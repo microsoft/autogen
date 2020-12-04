@@ -1,0 +1,5 @@
+[run]
+branch = True
+source = flaml
+omit =
+  *tests*
