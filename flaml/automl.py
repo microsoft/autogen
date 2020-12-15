@@ -28,33 +28,20 @@ logger = logging.getLogger(__name__)
 class AutoML:
     '''The AutoML class
 
-    Attributes:
-        model: An object with predict() and predict_proba() method (for
-            classification), storing the best trained model.
-        model_history: A dictionary of iter->model, storing the models when
-            the best model is updated each time
-        config_history: A dictionary of iter->(estimator, config, time), 
-            storing the best estimator, config, and the time when the best
-            model is updated each time
-        classes_: A list of n_classes elements for class labels
-        best_iteration: An integer of the iteration number where the best
-            config is found
-        best_estimator: A string indicating the best estimator found.
-        best_config: A dictionary of the best configuration.
-        best_config_train_time: A float of the seconds taken by training the
-            best config 
+    Example:
 
-    Typical usage example:
+        .. code-block:: python
 
-        automl = AutoML()
-        automl_settings = {
-            "time_budget": 60,
-            "metric": 'accuracy',
-            "task": 'classification',
-            "log_file_name": 'test/mylog.log',
-        }
-        automl.fit(X_train = X_train, y_train = y_train,
-            **automl_settings)
+            automl = AutoML()
+            automl_settings = {
+                "time_budget": 60,
+                "metric": 'accuracy',
+                "task": 'classification',
+                "log_file_name": 'test/mylog.log',
+            }
+            automl.fit(X_train = X_train, y_train = y_train,
+                **automl_settings)
+
     '''
 
     def __init__(self):
@@ -66,14 +53,24 @@ class AutoML:
 
     @property
     def model_history(self):
+        '''A dictionary of iter->model, storing the models when
+        the best model is updated each time.
+        '''
         return self._model_history
 
     @property
     def config_history(self):
+        '''A dictionary of iter->(estimator, config, time),
+        storing the best estimator, config, and the time when the best
+        model is updated each time.
+        '''
         return self._config_history
 
     @property
     def model(self):
+        '''An object with `predict()` and `predict_proba()` method (for
+        classification), storing the best trained model.
+        '''
         if self._trained_estimator:
             return self._trained_estimator.model
         else:
@@ -81,14 +78,18 @@ class AutoML:
 
     @property
     def best_estimator(self):
+        '''A string indicating the best estimator found.'''
         return self._best_estimator
 
     @property
     def best_iteration(self):
+        '''An integer of the iteration number where the best
+        config is found.'''
         return self._best_iteration
 
     @property
     def best_config(self):
+        '''A dictionary of the best configuration.'''
         return self._selected.best_config[0]
 
     @property
@@ -97,10 +98,13 @@ class AutoML:
 
     @property
     def best_config_train_time(self):
+        '''A float of the seconds taken by training the
+        best config.'''
         return self.best_train_time
 
     @property
     def classes_(self):
+        '''A list of n_classes elements for class labels.'''
         if self.label_transformer:
             return self.label_transformer.classes_.tolist()
         if self._trained_estimator:
@@ -111,10 +115,10 @@ class AutoML:
         '''Predict label from features.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n*m.
+            X_test: A numpy array of featurized instances, shape n * m.
 
         Returns:
-            A numpy array of shape n*1 -- each element is a predicted class
+            A numpy array of shape n * 1 - - each element is a predicted class
             label for an instance.
         '''
         X_test = self.preprocess(X_test)
@@ -132,11 +136,11 @@ class AutoML:
         classification problems.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n*m.
+            X_test: A numpy array of featurized instances, shape n * m.
 
         Returns:
-            A numpy array of shape n*c. c is the # classes. Each element at
-            (i,j) is the probability for instance i to be in class j.
+            A numpy array of shape n * c. c is the  # classes. Each element at
+            (i, j) is the probability for instance i to be in class j.
         '''
         X_test = self.preprocess(X_test)
         proba = self._trained_estimator.predict_proba(X_test)
@@ -298,14 +302,14 @@ class AutoML:
                     random_state=1)
                 X_train = concat(X_first, X_train)
                 y_train = concat(label_set,
-                                    y_train) if self.df else np.concatenate([label_set, y_train])
+                                 y_train) if self.df else np.concatenate([label_set, y_train])
                 X_val = concat(X_first, X_val)
                 y_val = concat(label_set,
-                                y_val) if self.df else np.concatenate([label_set, y_val])
+                               y_val) if self.df else np.concatenate([label_set, y_val])
                 _, y_train_counts_elements = np.unique(y_train,
-                                                        return_counts=True)
+                                                       return_counts=True)
                 _, y_val_counts_elements = np.unique(y_val,
-                                                        return_counts=True)
+                                                     return_counts=True)
                 logger.debug(
                     f"""{self.split_type} split for y_train \
                         {y_train_counts_elements}, \
@@ -396,7 +400,7 @@ class AutoML:
             learner_class: A subclass of BaseEstimator
             size_estimate: A function from a config to its memory size in float
             cost_relative2lgbm: A float number for the training cost ratio with
-                respect to lightgbm (when both use the initial config)
+                respect to lightgbm(when both use the initial config)
         '''
         self._custom_learners[learner_name] = learner_class
         self._eti_ini[learner_name] = cost_relative2lgbm
@@ -450,14 +454,14 @@ class AutoML:
         Args:
             time_budget: A float number of the time budget in seconds
             log_file_name: A string of the log file name
-            X_train: A numpy array of training data in shape n*m
-            y_train: A numpy array of labels in shape n*1
+            X_train: A numpy array of training data in shape n * m
+            y_train: A numpy array of labels in shape n * 1
             task: A string of the task type, e.g.,
                 'classification', 'regression'
             eval_method: A string of resampling strategy, one of
                 ['auto', 'cv', 'holdout']
             split_ratio: A float of the validation data percentage for holdout
-            n_splits: An integer of the number of folds for cross-validation
+            n_splits: An integer of the number of folds for cross - validation
             n_jobs: An integer of the number of threads for training
             train_best: A boolean of whether to train the best config in the
                 time budget; if false, train the last config in the budget
@@ -507,7 +511,8 @@ class AutoML:
                     self._trained_estimator = BaseEstimator()
                     self._trained_estimator.model = None
                     return training_duration
-        if not best: return
+        if not best:
+            return
         best_estimator = best.learner
         best_config = best.config
         sample_size = len(self.y_train_all) if train_full \
@@ -581,29 +586,36 @@ class AutoML:
 
         Args:
             X_train: A numpy array or a pandas dataframe of training data in
-             shape n*m
-            y_train: A numpy array or a pandas series of labels in shape n*1
+             shape n * m
+            y_train: A numpy array or a pandas series of labels in shape n * 1
             dataframe: A dataframe of training data including label column
             label: A str of the label column name
-                Note: If X_train and y_train are provided, 
+                Note: If X_train and y_train are provided,
                 dataframe and label are ignored;
                 If not, dataframe and label must be provided.
             metric: A string of the metric name or a function,
-                e.g., 'accuracy','roc_auc','f1','log_loss','mae','mse','r2'
+                e.g., 'accuracy', 'roc_auc', 'f1', 'log_loss', 'mae', 'mse', 'r2'
                 if passing a customized metric function, the function needs to
-                have the follwing signature
+                have the follwing signature:
 
-                def metric(X_test, y_test, estimator, labels, X_train, y_train):
-                    return metric_to_minimize, metrics_to_log
+                .. code-block:: python
 
-                which returns a float number as the minimization objective, 
+                    def metric(X_test, y_test, estimator, labels, X_train, y_train):
+                        return metric_to_minimize, metrics_to_log
+
+                which returns a float number as the minimization objective,
                 and a tuple of floats as the metrics to log
             task: A string of the task type, e.g.,
                 'classification', 'regression'
             n_jobs: An integer of the number of threads for training
             log_file_name: A string of the log file name
             estimator_list: A list of strings for estimator names, or 'auto'
-                e.g., ['lgbm', 'xgboost', 'catboost', 'rf', 'extra_tree']
+                e.g., 
+
+                .. code-block:: python
+
+                    ['lgbm', 'xgboost', 'catboost', 'rf', 'extra_tree']
+
             time_budget: A float number of the time budget in seconds
             max_iter: An integer of the maximal number of iterations
             sample: A boolean of whether to sample the training data during
@@ -611,16 +623,17 @@ class AutoML:
             eval_method: A string of resampling strategy, one of
                 ['auto', 'cv', 'holdout']
             split_ratio: A float of the valiation data percentage for holdout
-            n_splits: An integer of the number of folds for cross-validation
-            log_type: A string of the log type, one of ['better', 'all', 'new']
+            n_splits: An integer of the number of folds for cross - validation
+            log_type: A string of the log type, one of
+                ['better', 'all', 'new']
                 'better' only logs configs with better loss than previos iters
                 'all' logs all the tried configs
-                'new' only logs non-redundant configs
+                'new' only logs non - redundant configs
             model_history: A boolean of whether to keep the history of best
                 models in the history property. Make sure memory is large
                 enough if setting to True.
-            log_training_metric: A boolean of whether to log the training 
-                metric for each model. 
+            log_training_metric: A boolean of whether to log the training
+                metric for each model.
             mem_thres: A float of the memory size constraint in bytes
             X_val: None | a numpy array or a pandas dataframe of validation data
             y_val: None | a numpy array or a pandas series of validation labels
