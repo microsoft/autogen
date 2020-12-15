@@ -9,7 +9,7 @@ hyperparameter optimization and learner selection method invented by
 Microsoft Research.
 FLAML is easy to use:
 
-1. With three lines of code, you can start using this economical and fast
+* With three lines of code, you can start using this economical and fast
 AutoML engine as a scikit-learn style estimator.
 ```python
 from flaml import AutoML
@@ -17,13 +17,13 @@ automl = AutoML()
 automl.fit(X_train, y_train, task="classification")
 ```
 
-2. You can restrict the learners and use FLAML as a fast hyperparameter tuning
+* You can restrict the learners and use FLAML as a fast hyperparameter tuning
 tool for XGBoost, LightGBM, Random Forest etc. or a customized learner.
 ```python
 automl.fit(X_train, y_train, task="classification", estimator_list=["lgbm"])
 ```
 
-3. You can embed FLAML in self-tuning software for just-in-time tuning with
+* You can embed FLAML in self-tuning software for just-in-time tuning with
 low latency & resource consumption.
 ```python
 automl.fit(X_train, y_train, task="regression", time_budget=60)
