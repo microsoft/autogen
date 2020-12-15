@@ -1,7 +1,5 @@
 import os
 import unittest
-import logging
-import json
 from tempfile import TemporaryDirectory
 
 from sklearn.datasets import load_boston

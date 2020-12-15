@@ -2,9 +2,55 @@ import unittest
 
 import numpy as np
 import scipy.sparse
-from sklearn.datasets import load_boston, load_iris
+from sklearn.datasets import load_boston, load_iris, load_wine
 
-from flaml import AutoML, get_output_from_log
+from flaml import AutoML
+from flaml.data import get_output_from_log
+
+from flaml.model import BaseEstimator
+from flaml.space import ConfigSearchInfo
+from rgf.sklearn import RGFClassifier, RGFRegressor
+
+
+class MyRegularizedGreedyForest(BaseEstimator):
+
+    # search space
+    params_configsearch_info = {
+        'max_leaf': ConfigSearchInfo(name = 'max_leaf',
+         type = int, lower = 4, init = 4, upper = 10000),
+        'n_iter': ConfigSearchInfo(name = 'n_iter', type = int, lower = 1,
+         init = 1, upper = 32768),
+        'n_tree_search': ConfigSearchInfo(name = 'n_tree_search', type = int,
+         lower = 1, init = 1, upper = 32768),
+        'opt_interval': ConfigSearchInfo(name = 'opt_interval', type = int,
+         lower = 1, init = 100, upper = 10000),
+        'learning_rate': ConfigSearchInfo(name = 'learning_rate', type = float,
+         lower = 0.01, init = 1.0, upper = 20.0),
+        'min_samples_leaf': ConfigSearchInfo(name = 'min_samples_leaf',
+         type = int, lower = 1, init = 20, upper = 20)
+    }
+    
+    def __init__(self, objective_name = 'binary:logistic', n_jobs = 1,
+     max_leaf = 1000, n_iter = 1, n_tree_search = 1, opt_interval = 1,
+      learning_rate = 1.0, min_samples_leaf = 1):
+
+        self.objective_name = objective_name
+
+        if 'regression' in objective_name:
+            self.estimator_class = RGFRegressor
+        else:
+            self.estimator_class = RGFClassifier
+
+        # round integer hyperparameters
+        self.params = {
+            'max_leaf': int(round(max_leaf)),
+            'n_iter': int(round(n_iter)),
+            'n_tree_search': int(round(n_tree_search)),
+            'opt_interval': int(round(opt_interval)),
+            'learning_rate': learning_rate,
+            'min_samples_leaf':int(round(min_samples_leaf)),
+            "n_jobs": n_jobs,
+        }            
 
 
 def custom_metric(X_test, y_test, estimator, labels, X_train, y_train):
@@ -18,6 +64,23 @@ def custom_metric(X_test, y_test, estimator, labels, X_train, y_train):
 
 
 class TestAutoML(unittest.TestCase):
+
+    def test_custom_learner(self):
+        automl = AutoML()
+        automl.add_learner(learner_name = 'RGF',
+            learner_class = MyRegularizedGreedyForest)            
+        X_train, y_train = load_wine(return_X_y=True)
+        settings = {
+            "time_budget": 10, # total running time in seconds
+            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'], 
+            "task": 'classification', # task type    
+            "sample": True, # whether to subsample training data
+            "log_file_name": "test/wine.log",
+            "log_training_metric": True, # whether to log training metric
+        }
+
+        '''The main flaml automl API'''
+        automl.fit(X_train = X_train, y_train = y_train, **settings)
 
     def test_dataframe(self):
         self.test_classification(True)

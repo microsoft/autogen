@@ -36,9 +36,9 @@ class TestLogging(unittest.TestCase):
                 "model_history": True
             }
             X_train, y_train = load_boston(return_X_y=True)
-            n = len(y_train)
-            automl_experiment.fit(X_train=X_train[:n >> 1], y_train=y_train[:n >> 1],
-                                  X_val=X_train[n >> 1:], y_val=y_train[n >> 1:],
+            n = len(y_train) >> 1
+            automl_experiment.fit(X_train=X_train[:n], y_train=y_train[:n],
+                                  X_val=X_train[n:], y_val=y_train[n:],
                                   **automl_settings)
 
             # Check if the log buffer is populated.

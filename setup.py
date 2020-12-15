@@ -45,6 +45,7 @@ setuptools.setup(
             "flake8>=3.8.4",
             "pytest>=6.1.1",
             "coverage>=5.3",
+            "rgf-python",
         ],
     },
     classifiers=[
