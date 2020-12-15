@@ -1,12 +1,10 @@
 from flaml.automl import AutoML
-import logging
-
-from flaml.model import BaseEstimator
-from flaml.data import get_output_from_log
 from flaml.version import __version__
+import logging
 
 # Set the root logger.
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Add the console handler.
 _ch = logging.StreamHandler()

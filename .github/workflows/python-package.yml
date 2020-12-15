@@ -37,8 +37,7 @@ jobs:
       - name: Install packages and dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest coverage
-          pip install -e .
+          pip install -e .[test]
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names

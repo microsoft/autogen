@@ -6,7 +6,6 @@
 import numpy as np
 from scipy.sparse import vstack, issparse
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
 from .training_log import training_log_reader
 
 
