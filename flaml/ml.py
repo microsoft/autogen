@@ -92,7 +92,10 @@ def get_y_pred(estimator, X, eval_metric, obj):
     elif eval_metric in ['log_loss', 'roc_auc']:
         y_pred = estimator.predict_proba(X)
     else:
-        y_pred = estimator.predict(X)
+        try:
+            y_pred = estimator.predict(X)
+        except:
+            y_pred = np.ones(X.shape[0])
     return y_pred
 
 

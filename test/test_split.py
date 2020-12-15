@@ -32,12 +32,7 @@ def _test(split_type):
 
     print(acc)
 
-
-def test_stratified():
-    _test(split_type="stratified")
-
-
-def test_uniform():
+def _test_uniform():
     _test(split_type="uniform")
 
 

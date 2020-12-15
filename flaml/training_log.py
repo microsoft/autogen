@@ -44,6 +44,9 @@ class TrainingLogRecord(object):
         d = json.loads(json_str)
         return cls(**d)
 
+    def __str__(self):
+        return json.dumps(vars(self))
+
 
 class TrainingLogCheckPoint(TrainingLogRecord):
 

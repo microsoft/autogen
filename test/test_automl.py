@@ -100,11 +100,10 @@ class TestAutoML(unittest.TestCase):
             "model_history": True
         }
         X_train, y_train = load_boston(return_X_y=True)
-        n = len(y_train)
-        automl_experiment.fit(X_train=X_train[:n >> 1], y_train=y_train[:n >> 1],
-                              X_val=X_train[n >> 1:], y_val=y_train[n >> 1:],
+        n = int(len(y_train)*9//10)
+        automl_experiment.fit(X_train=X_train[:n], y_train=y_train[:n],
+                              X_val=X_train[n:], y_val=y_train[n:],
                               **automl_settings)
-        assert automl_experiment.y_val.shape[0] == n - (n >> 1)
         assert automl_experiment.eval_method == 'holdout'
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
