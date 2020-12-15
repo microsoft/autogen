@@ -655,9 +655,9 @@ class AutoML:
                                               and self.X_val is None)
         self.sample = sample and (eval_method != 'cv')
         if 'auto' == metric:
-            if 'binary' in task:
+            if 'binary' in self.task:
                 metric = 'roc_auc'
-            elif 'multi' in task:
+            elif 'multi' in self.task:
                 metric = 'log_loss'
             else:
                 metric = 'r2'
