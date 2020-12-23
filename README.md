@@ -96,6 +96,14 @@ print(automl.model)
 
 More examples: see the [notebook](https://github.com/microsoft/FLAML/tree/main/notebook/flaml_demo.ipynb)
 
+## Documentation
+
+The API documentation is [here](https://microsoft.github.io/FLAML/).
+
+For more technical details, please check our papers.
+
+* [FLAML: A Fast and Lightweight AutoML Library](https://arxiv.org/abs/1911.04706). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. arXiv:1911.04706, 2020.
+
 ## Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a
