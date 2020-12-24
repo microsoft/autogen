@@ -103,6 +103,7 @@ The API documentation is [here](https://microsoft.github.io/FLAML/).
 For more technical details, please check our papers.
 
 * [FLAML: A Fast and Lightweight AutoML Library](https://arxiv.org/abs/1911.04706). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. arXiv:1911.04706, 2020.
+* [Frugal Optimization for Cost-related Hyperparameters](https://arxiv.org/abs/2005.01571). Qingyun Wu, Chi Wang, Silu Huang. To appear in AAAI 2021.
 
 ## Contributing
 
