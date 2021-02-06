@@ -48,8 +48,6 @@ setuptools.setup(
             "coverage>=5.3",
             "xgboost<1.3",
             "rgf-python",
-            # "hpbandster",
-            # "torchvision"
         ],
         "ray": [
             "ray[tune]==1.1.0",
