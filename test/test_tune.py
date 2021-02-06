@@ -57,7 +57,7 @@ def _test_xgboost(method='BlendSearch'):
     }
     max_iter = 10
     for num_samples in [256]:
-        time_budget_s = None
+        time_budget_s = 60 #None
         for n_cpu in [8]:
             start_time = time.time()
             ray.init(num_cpus=n_cpu, num_gpus=0)
