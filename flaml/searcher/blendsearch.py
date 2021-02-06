@@ -396,15 +396,15 @@ class BlendSearch(Searcher):
 
 class CFO(BlendSearch):
     ''' class for CFO algorithm
-    Number of threads is 1 or 2. Thread 0 is a vacuous thread.
     '''
 
     __name__ = 'CFO'
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
+        # Number of threads is 1 or 2. Thread 0 is a vacuous thread
         assert len(self._search_thread_pool)<3, len(self._search_thread_pool)
         if len(self._search_thread_pool) < 2:
-            # When a local converges, the number of threads is 1. 
+            # When a local converges, the number of threads is 1
             # Need to restart
             self._init_used = False
         return super().suggest(trial_id)
