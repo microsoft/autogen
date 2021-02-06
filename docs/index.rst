@@ -24,8 +24,9 @@ AutoML
 Tune
 ------
 
-.. automodule:: flaml.tune
-   :members:
+.. autofunction:: flaml.tune.run
+
+.. autofunction:: flaml.tune.report
 
 .. autoclass:: flaml.BlendSearch
    :members:

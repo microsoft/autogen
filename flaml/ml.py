@@ -258,7 +258,7 @@ def train_estimator(X_train, y_train, config_dic, task,
      n_jobs=n_jobs)
     if X_train is not None:
         train_time = train_model(estimator, X_train, y_train, budget,
-            **fit_kwargs)
+            fit_kwargs)
     else:
         estimator = estimator.estimator_class(**estimator.params)
     train_time = time.time() - start_time
