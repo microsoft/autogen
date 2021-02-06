@@ -146,7 +146,9 @@ class AutoMLState:
         else:
             sampled_X_train, sampled_y_train = concat(self.X_train,
              self.X_val), np.concatenate([self.y_train, self.y_val])
-            sampled_weight = self.fit_kwargs.get('sample_weight')
+            weight = self.fit_kwargs.get('sample_weight')
+            if weight is not None:
+                sampled_weight = np.concatenate([weight, self.weight_val])
         return sampled_X_train, sampled_y_train, sampled_weight
 
     def _compute_with_config_base(self,
