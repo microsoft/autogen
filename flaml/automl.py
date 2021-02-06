@@ -133,16 +133,21 @@ class AutoMLState:
 
     def _prepare_sample_train_data(self, sample_size):
         full_size = len(self.y_train)
+        sampled_weight = None
         if sample_size <= full_size:
             if isinstance(self.X_train, pd.DataFrame):
                 sampled_X_train = self.X_train.iloc[:sample_size]
             else:
                 sampled_X_train = self.X_train[:sample_size]
             sampled_y_train = self.y_train[:sample_size]
+            weight = self.fit_kwargs.get('sample_weight')
+            if weight is not None:
+                sampled_weight = weight[:sample_size]
         else:
             sampled_X_train, sampled_y_train = concat(self.X_train,
              self.X_val), np.concatenate([self.y_train, self.y_val])
-        return sampled_X_train, sampled_y_train
+            sampled_weight = self.fit_kwargs.get('sample_weight')
+        return sampled_X_train, sampled_y_train, sampled_weight
 
     def _compute_with_config_base(self,
                                   estimator,
@@ -151,8 +156,12 @@ class AutoMLState:
         if 'FLAML_sample_size' in config_w_resource:
             sample_size = int(config_w_resource['FLAML_sample_size'])
         else: sample_size = self.data_size
-        sampled_X_train, sampled_y_train = self._prepare_sample_train_data(
-            sample_size)
+        sampled_X_train, sampled_y_train, sampled_weight = \
+            self._prepare_sample_train_data(sample_size)
+        if sampled_weight is not None:
+            weight = self.fit_kwargs['sample_weight']
+            self.fit_kwargs['sample_weight'] = sampled_weight
+        else: weight = None
         config = config_w_resource.copy()
         if 'FLAML_sample_size' in config: del config['FLAML_sample_size']
         time_left = self.time_budget - self.time_from_start
@@ -185,6 +194,9 @@ class AutoMLState:
         'trained_estimator': trained_estimator,}
         with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
             tune.report(**result)
+        if sampled_weight is not None:
+            self.fit_kwargs['sample_weight'] = weight
+
 
     def _train_with_config(self, estimator, config_w_resource,
      sample_size=None):
@@ -193,8 +205,12 @@ class AutoMLState:
             if not sample_size: sample_size = config['FLAML_sample_size']
             del config['FLAML_sample_size']
         assert sample_size is not None
-        sampled_X_train, sampled_y_train = self._prepare_sample_train_data(
-            sample_size)
+        sampled_X_train, sampled_y_train, sampled_weight = \
+            self._prepare_sample_train_data(sample_size)
+        if sampled_weight is not None:
+            weight = self.fit_kwargs['sample_weight']
+            self.fit_kwargs['sample_weight'] = sampled_weight
+        else: weight = None
         budget = None if self.time_budget is None else (self.time_budget -
          self.time_from_start)
         estimator, train_time = train_estimator(
@@ -207,6 +223,8 @@ class AutoMLState:
             self.learner_classes.get(estimator),
             budget,
             self.fit_kwargs)
+        if sampled_weight is not None:
+            self.fit_kwargs['sample_weight'] = weight
         return estimator, train_time
 
 
