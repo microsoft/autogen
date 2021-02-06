@@ -1,12 +1,17 @@
 # FLAML - Fast and Lightweight AutoML
 
+<p align="center">
+    <img src="https://github.com/microsoft/FLAML/raw/v0.2.2/docs/images/FLAML.png"  width=200>
+    <br>
+</p>
+
 FLAML is a Python library designed to automatically produce accurate machine
 learning models with low computational cost. It frees users from selecting
 learners and hyperparameters for each learner. It is fast and cheap.
 The simple and lightweight design makes it easy to extend, such as
-adding customized learners or metrics. FLAML is powered by a new, cost-effective
-hyperparameter optimization and learner selection method invented by
-Microsoft Research.
+adding customized learners or metrics. FLAML is powered by a new, [cost-effective
+hyperparameter optimization](https://github.com/microsoft/FLAML/tree/main/flaml/tune)
+and learner selection method invented by Microsoft Research.
 FLAML is easy to use:
 
 * With three lines of code, you can start using this economical and fast
@@ -23,10 +28,10 @@ tool for XGBoost, LightGBM, Random Forest etc. or a customized learner.
 automl.fit(X_train, y_train, task="classification", estimator_list=["lgbm"])
 ```
 
-* You can embed FLAML in self-tuning software for just-in-time tuning with
-low latency & resource consumption.
+* You can also run generic ray-tune style hyperparameter tuning for a custom function.
 ```python
-automl.fit(X_train, y_train, task="regression", time_budget=60)
+from flaml import tune
+tune.run(train_with_config, config={…}, init_config={…}, time_budget_s=3600)
 ```
 
 ## Installation
@@ -51,9 +56,9 @@ A basic classification example.
 ```python
 from flaml import AutoML
 from sklearn.datasets import load_iris
-# Initialize the FLAML learner.
+# Initialize an AutoML instance
 automl = AutoML()
-# Provide configurations.
+# Specify automl goal and constraint
 automl_settings = {
     "time_budget": 10,  # in seconds
     "metric": 'accuracy',
@@ -61,12 +66,12 @@ automl_settings = {
     "log_file_name": "test/iris.log",
 }
 X_train, y_train = load_iris(return_X_y=True)
-# Train with labeled input data.
+# Train with labeled input data
 automl.fit(X_train=X_train, y_train=y_train,
                         **automl_settings)
 # Predict
 print(automl.predict_proba(X_train))
-# Export the best model.
+# Export the best model
 print(automl.model)
 ```
 
@@ -75,9 +80,9 @@ A basic regression example.
 ```python
 from flaml import AutoML
 from sklearn.datasets import load_boston
-# Initialize the FLAML learner.
+# Initialize an AutoML instance
 automl = AutoML()
-# Provide configurations.
+# Specify automl goal and constraint
 automl_settings = {
     "time_budget": 10,  # in seconds
     "metric": 'r2',
@@ -85,25 +90,39 @@ automl_settings = {
     "log_file_name": "test/boston.log",
 }
 X_train, y_train = load_boston(return_X_y=True)
-# Train with labeled input data.
+# Train with labeled input data
 automl.fit(X_train=X_train, y_train=y_train,
                         **automl_settings)
 # Predict
 print(automl.predict(X_train))
-# Export the best model.
+# Export the best model
 print(automl.model)
 ```
 
-More examples: see the [notebook](https://github.com/microsoft/FLAML/tree/main/notebook/flaml_demo.ipynb)
+More examples can be found in [notebooks](https://github.com/microsoft/FLAML/tree/main/notebook/).
 
 ## Documentation
 
 The API documentation is [here](https://microsoft.github.io/FLAML/).
 
+Read more about the 
+hyperparameter optimization methods
+in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/tune). They can be used beyond the AutoML context. 
+And they can be used in distributed HPO frameworks such as ray tune or nni.
+
 For more technical details, please check our papers.
 
-* [FLAML: A Fast and Lightweight AutoML Library](https://arxiv.org/abs/1911.04706). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. arXiv:1911.04706, 2020.
-* [Frugal Optimization for Cost-related Hyperparameters](https://arxiv.org/abs/2005.01571). Qingyun Wu, Chi Wang, Silu Huang. To appear in AAAI 2021.
+* [FLAML: A Fast and Lightweight AutoML Library](https://arxiv.org/abs/1911.04706). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. To appear in MLSys, 2021.
+```
+@inproceedings{wang2021flaml,
+    title={Frugal Optimization for Cost-related Hyperparameters},
+    author={Chi Wang and Qingyun Wu and Markus Weimer and Erkang Zhu},
+    year={2021},
+    booktitle={MLSys},
+}
+```
+* [Frugal Optimization for Cost-related Hyperparameters](https://arxiv.org/abs/2005.01571). Qingyun Wu, Chi Wang, Silu Huang. AAAI 2021.
+* Economical Hyperparameter Optimization With Blended Search Strategy. Chi Wang, Qingyun Wu, Silu Huang, Amin Saied. To appear in ICLR 2021.
 
 ## Contributing
 
@@ -123,9 +142,8 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 * Chi Wang
 * Qingyun Wu
-* Erkang Zhu
 
-Contributors: Markus Weimer, Silu Huang, Haozhe Zhang, Alex Deng.
+Contributors (alphabetical order): Alex Deng, Silu Huang, John Langford, Amin Saied, Markus Weimer, Haozhe Zhang, Erkang Zhu.
 
 ## License
 
