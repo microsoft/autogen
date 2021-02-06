@@ -19,6 +19,7 @@ import copy
 import glob
 import logging
 import os
+import time
 from typing import Dict, Optional, Union, List, Tuple
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,36 @@ UNDEFINED_METRIC_MODE = str(
     "Either pass these arguments when instantiating the search algorithm, "
     "or pass them to `tune.run()`.")
 
+
+_logged = set()
+_disabled = False
+_periodic_log = False
+_last_logged = 0.0
+
+
+def log_once(key):
+    """Returns True if this is the "first" call for a given key.
+    Various logging settings can adjust the definition of "first".
+    Example:
+        >>> if log_once("some_key"):
+        ...     logger.info("Some verbose logging statement")
+    """
+
+    global _last_logged
+
+    if _disabled:
+        return False
+    elif key not in _logged:
+        _logged.add(key)
+        _last_logged = time.time()
+        return True
+    elif _periodic_log and time.time() - _last_logged > 60.0:
+        _logged.clear()
+        _last_logged = time.time()
+        return False
+    else:
+        return False
+        
 
 class Searcher:
     """Abstract class for wrapping suggesting algorithms.
