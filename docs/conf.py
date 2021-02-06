@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'FLAML'
-copyright = '2020, FLAML Team'
+copyright = '2020-2021, FLAML Team'
 author = 'FLAML Team'
 
 
