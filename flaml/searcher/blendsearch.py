@@ -116,7 +116,8 @@ class BlendSearch(Searcher):
         else:    
             self._metric, self._mode = metric, mode
             self._ls.set_search_properties(metric, mode, config)
-            self._gs.set_search_properties(metric, mode, config)
+            if self._gs is not None:
+                self._gs.set_search_properties(metric, mode, config)
             self._init_search()
         return True
 
