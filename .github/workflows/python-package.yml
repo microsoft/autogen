@@ -39,7 +39,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[test]
       - name: If linux or max, install ray
-        if: matrix.os == 'macOS-latest' or 'ubuntu-latest'
+        if: matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest'
         run: |
           pip install -e .[ray]
       - name: Lint with flake8
