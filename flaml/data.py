@@ -1,5 +1,5 @@
 '''!
- * Copyright (c) 2020 Microsoft Corporation. All rights reserved.
+ * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. 
 '''
 
@@ -122,7 +122,6 @@ def get_output_from_log(filename, time_budget):
             A list of the estimator, sample size and config of each logged iter
         logged_metric_list: A list of the logged metric of each logged iter 
     '''
-    import ast
 
     best_config = None
     best_learner = None
@@ -169,13 +168,13 @@ def concat(X1, X2):
     '''concatenate two matrices vertically
     '''
     if isinstance(X1, pd.DataFrame) or isinstance(X1, pd.Series):
+        df = pd.concat([X1, X2], sort=False)
+        df.reset_index(drop=True, inplace=True)
         if isinstance(X1, pd.DataFrame):
             cat_columns = X1.select_dtypes(
                 include='category').columns
-        df = pd.concat([X1, X2], sort=False)
-        df.reset_index(drop=True, inplace=True)
-        if isinstance(X1, pd.DataFrame) and len(cat_columns):
-            df[cat_columns] = df[cat_columns].astype('category')
+            if len(cat_columns):
+                df[cat_columns] = df[cat_columns].astype('category')
         return df
     if issparse(X1):
         return vstack((X1, X2))
@@ -187,7 +186,8 @@ class DataTransformer:
     '''transform X, y
     '''
 
-    def fit_transform(self, X, y, objective):
+
+    def fit_transform(self, X, y, task):
         if isinstance(X, pd.DataFrame):
             X = X.copy()
             n = X.shape[0]
@@ -224,9 +224,9 @@ class DataTransformer:
                     SimpleImputer(missing_values=np.nan, strategy='median'),
                     num_columns)])
                 X[num_columns] = self.transformer.fit_transform(X)
-            self.cat_columns, self.num_columns = cat_columns, num_columns
-
-        if objective == 'regression':
+            self._cat_columns, self._num_columns = cat_columns, num_columns
+            
+        if task == 'regression':
             self.label_transformer = None
         else:
             from sklearn.preprocessing import LabelEncoder
@@ -236,7 +236,7 @@ class DataTransformer:
 
     def transform(self, X):
         if isinstance(X, pd.DataFrame):
-            cat_columns, num_columns = self.cat_columns, self.num_columns
+            cat_columns, num_columns = self._cat_columns, self._num_columns
             X = X[cat_columns + num_columns].copy()
             for column in cat_columns:
                 # print(column, X[column].dtype.name)

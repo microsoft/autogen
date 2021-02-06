@@ -7,58 +7,74 @@ from sklearn.datasets import load_boston, load_iris, load_wine
 from flaml import AutoML
 from flaml.data import get_output_from_log
 
-from flaml.model import BaseEstimator
-from flaml.space import ConfigSearchInfo
+from flaml.model import SKLearnEstimator
 from rgf.sklearn import RGFClassifier, RGFRegressor
+from flaml import tune
 
 
-class MyRegularizedGreedyForest(BaseEstimator):
+class MyRegularizedGreedyForest(SKLearnEstimator):
 
-    # search space
-    params_configsearch_info = {
-        'max_leaf': ConfigSearchInfo(name = 'max_leaf',
-         type = int, lower = 4, init = 4, upper = 10000),
-        'n_iter': ConfigSearchInfo(name = 'n_iter', type = int, lower = 1,
-         init = 1, upper = 32768),
-        'n_tree_search': ConfigSearchInfo(name = 'n_tree_search', type = int,
-         lower = 1, init = 1, upper = 32768),
-        'opt_interval': ConfigSearchInfo(name = 'opt_interval', type = int,
-         lower = 1, init = 100, upper = 10000),
-        'learning_rate': ConfigSearchInfo(name = 'learning_rate', type = float,
-         lower = 0.01, init = 1.0, upper = 20.0),
-        'min_samples_leaf': ConfigSearchInfo(name = 'min_samples_leaf',
-         type = int, lower = 1, init = 20, upper = 20)
-    }
-    
-    def __init__(self, objective_name = 'binary:logistic', n_jobs = 1,
-     max_leaf = 1000, n_iter = 1, n_tree_search = 1, opt_interval = 1,
-      learning_rate = 1.0, min_samples_leaf = 1):
 
-        self.objective_name = objective_name
+    def __init__(self, task = 'binary:logistic', n_jobs = 1, max_leaf = 4,
+    n_iter = 1, n_tree_search = 1, opt_interval = 1, learning_rate = 1.0,
+    min_samples_leaf = 1, **params):
 
-        if 'regression' in objective_name:
+        super().__init__(task, **params)
+
+        if 'regression' in task:
             self.estimator_class = RGFRegressor
         else:
             self.estimator_class = RGFClassifier
 
         # round integer hyperparameters
         self.params = {
+            "n_jobs": n_jobs,
             'max_leaf': int(round(max_leaf)),
             'n_iter': int(round(n_iter)),
             'n_tree_search': int(round(n_tree_search)),
             'opt_interval': int(round(opt_interval)),
             'learning_rate': learning_rate,
-            'min_samples_leaf':int(round(min_samples_leaf)),
-            "n_jobs": n_jobs,
-        }            
+            'min_samples_leaf':int(round(min_samples_leaf))
+        }    
+
+    @classmethod
+    def search_space(cls, data_size, task):
+        space = {
+        'max_leaf': {'domain': tune.qloguniform(
+            lower = 4, upper = data_size, q = 1), 'init_value': 4},
+        'n_iter': {'domain': tune.qloguniform(
+            lower = 1, upper = data_size, q = 1), 'init_value': 1},
+        'n_tree_search': {'domain': tune.qloguniform(
+            lower = 1, upper = 32768, q = 1), 'init_value': 1},
+        'opt_interval': {'domain': tune.qloguniform(
+            lower = 1, upper = 10000, q = 1), 'init_value': 100},
+        'learning_rate': {'domain': tune.loguniform(
+            lower = 0.01, upper = 20.0)},
+        'min_samples_leaf': {'domain': tune.qloguniform(
+            lower = 1, upper = 20, q = 1), 'init_value': 20},
+        }
+        return space
+
+    @classmethod
+    def size(cls, config):
+        max_leaves = int(round(config['max_leaf']))
+        n_estimators = int(round(config['n_iter']))
+        return (max_leaves*3 + (max_leaves-1)*4 + 1.0)*n_estimators*8
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 1.0       
 
 
-def custom_metric(X_test, y_test, estimator, labels, X_train, y_train):
+def custom_metric(X_test, y_test, estimator, labels, X_train, y_train,
+    weight_test=None, weight_train=None):
     from sklearn.metrics import log_loss
     y_pred = estimator.predict_proba(X_test)
-    test_loss = log_loss(y_test, y_pred, labels=labels)
+    test_loss = log_loss(y_test, y_pred, labels=labels,
+     sample_weight=weight_test)
     y_pred = estimator.predict_proba(X_train)
-    train_loss = log_loss(y_train, y_pred, labels=labels)
+    train_loss = log_loss(y_train, y_pred, labels=labels,
+     sample_weight=weight_train)
     alpha = 0.5
     return test_loss * (1 + alpha) - alpha * train_loss, [test_loss, train_loss]
 
@@ -77,6 +93,27 @@ class TestAutoML(unittest.TestCase):
             "sample": True, # whether to subsample training data
             "log_file_name": "test/wine.log",
             "log_training_metric": True, # whether to log training metric
+            "n_jobs": 1,
+        }
+
+        '''The main flaml automl API'''
+        automl.fit(X_train = X_train, y_train = y_train, **settings)
+
+    def test_ensemble(self):
+        automl = AutoML()
+        automl.add_learner(learner_name = 'RGF',
+            learner_class = MyRegularizedGreedyForest)            
+        X_train, y_train = load_wine(return_X_y=True)
+        settings = {
+            "time_budget": 10, # total running time in seconds
+            # "estimator_list": ['lgbm', 'xgboost'], 
+            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'], 
+            "task": 'classification', # task type    
+            "sample": True, # whether to subsample training data
+            "log_file_name": "test/wine.log",
+            "log_training_metric": True, # whether to log training metric
+            "ensemble": True,
+            "n_jobs": 1,
         }
 
         '''The main flaml automl API'''
@@ -87,6 +124,7 @@ class TestAutoML(unittest.TestCase):
 
     def test_custom_metric(self):
 
+        X_train, y_train = load_iris(return_X_y=True)
         automl_experiment = AutoML()
         automl_settings = {
             "time_budget": 10,
@@ -96,9 +134,10 @@ class TestAutoML(unittest.TestCase):
             "log_file_name": "test/iris_custom.log",
             "log_training_metric": True,
             'log_type': 'all',
-            "model_history": True
+            "n_jobs": 1,
+            "model_history": True,
+            "sample_weight": np.ones(len(y_train)),
         }
-        X_train, y_train = load_iris(return_X_y=True)
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               **automl_settings)
         print(automl_experiment.classes_)
@@ -111,7 +150,7 @@ class TestAutoML(unittest.TestCase):
         automl_experiment = AutoML()
         estimator = automl_experiment.get_estimator_from_log(
             automl_settings["log_file_name"], record_id=0,
-            objective='multi')
+            task='multi')
         print(estimator)
         time_history, best_valid_loss_history, valid_loss_history, \
             config_history, train_loss_history = get_output_from_log(
@@ -127,6 +166,7 @@ class TestAutoML(unittest.TestCase):
             "task": 'classification',
             "log_file_name": "test/iris.log",
             "log_training_metric": True,
+            "n_jobs": 1,
             "model_history": True
         }
         X_train, y_train = load_iris(return_X_y=True, as_frame=as_frame)
@@ -160,6 +200,7 @@ class TestAutoML(unittest.TestCase):
             "task": 'regression',
             "log_file_name": "test/boston.log",
             "log_training_metric": True,
+            "n_jobs": 1,
             "model_history": True
         }
         X_train, y_train = load_boston(return_X_y=True)
@@ -167,7 +208,7 @@ class TestAutoML(unittest.TestCase):
         automl_experiment.fit(X_train=X_train[:n], y_train=y_train[:n],
                               X_val=X_train[n:], y_val=y_train[n:],
                               **automl_settings)
-        assert automl_experiment.eval_method == 'holdout'
+        assert automl_experiment._state.eval_method == 'holdout'
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
         print(automl_experiment.config_history)
@@ -185,6 +226,7 @@ class TestAutoML(unittest.TestCase):
             "task": 'classification',
             "log_file_name": "test/sparse_classification.log",
             "split_type": "uniform",
+            "n_jobs": 1,
             "model_history": True
         }
         X_train = scipy.sparse.random(1554, 21, dtype=int)
@@ -207,6 +249,7 @@ class TestAutoML(unittest.TestCase):
             "metric": 'mae',
             "task": 'regression',
             "log_file_name": "test/sparse_regression.log",
+            "n_jobs": 1,
             "model_history": True
         }
         X_train = scipy.sparse.random(300, 900, density=0.0001)
@@ -216,7 +259,7 @@ class TestAutoML(unittest.TestCase):
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               X_val=X_val, y_val=y_val,
                               **automl_settings)
-        assert automl_experiment.X_val.shape == X_val.shape
+        assert automl_experiment._state.X_val.shape == X_val.shape
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
         print(automl_experiment.config_history)
@@ -237,6 +280,7 @@ class TestAutoML(unittest.TestCase):
             "log_file_name": "test/sparse_classification.log",
             "estimator_list": ["xgboost"],
             "log_type": "all",
+            "n_jobs": 1,
         }
         X_train = scipy.sparse.eye(900000)
         y_train = np.random.randint(2, size=900000)
@@ -259,6 +303,7 @@ class TestAutoML(unittest.TestCase):
             "log_file_name": "test/sparse_classification.log",
             "estimator_list": ["lrl1", "lrl2"],
             "log_type": "all",
+            "n_jobs": 1,
         }
         X_train = scipy.sparse.random(3000, 900, density=0.1)
         y_train = np.random.randint(2, size=3000)
@@ -279,6 +324,7 @@ class TestAutoML(unittest.TestCase):
             'eval_method': 'cv',
             "task": 'regression',
             "log_file_name": "test/sparse_regression.log",
+            "n_jobs": 1,
             "model_history": True
         }
         X_train = scipy.sparse.random(100, 100)

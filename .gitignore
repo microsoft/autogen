@@ -148,3 +148,4 @@ dmypy.json
 cython_debug/
 /catboost_info
 notebook/*.pkl
+notebook/.azureml

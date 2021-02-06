@@ -38,6 +38,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .[test]
+      - name: If linux or max, install ray
+        if: matrix.os == 'macOS-latest' or 'ubuntu-latest'
+        run: |
+          pip install -e .[ray]
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names

@@ -1,17 +1,21 @@
 '''!
- * Copyright (c) 2020 Microsoft Corporation. All rights reserved.
+ * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. 
 '''
 
 import numpy as np
 import xgboost as xgb
-from xgboost import XGBClassifier, XGBRegressor
 import time
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
 from lightgbm import LGBMClassifier, LGBMRegressor
-import scipy.sparse
+from scipy.sparse import issparse
 import pandas as pd
+from . import tune
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class BaseEstimator:
@@ -24,50 +28,59 @@ class BaseEstimator:
             for both regression and classification        
     '''
 
-    def __init__(self, objective_name = 'binary:logistic', 
-        **params):
+    def __init__(self, task = 'binary:logistic', **params):
         '''Constructor
         
         Args:
-            objective_name: A string of the objective name, one of
+            task: A string of the task type, one of
                 'binary:logistic', 'multi:softmax', 'regression'
             n_jobs: An integer of the number of parallel threads
             params: A dictionary of the hyperparameter names and values
         '''
         self.params = params
-        self.estimator_class = None
-        self.objective_name = objective_name
+        self.estimator_class = self._model = None
+        self._task = task
         if '_estimator_type' in params:
             self._estimator_type = params['_estimator_type']
         else:
-            self._estimator_type = "regressor" if objective_name=='regression' \
+            self._estimator_type = "regressor" if task=='regression' \
                 else "classifier" 
 
     def get_params(self, deep=False):
         params = self.params.copy()
-        params["objective_name"] = self.objective_name
+        params["task"] = self._task
         if hasattr(self, '_estimator_type'):
             params['_estimator_type'] = self._estimator_type
         return params
 
     @property
     def classes_(self):
-        return self.model.classes_
+        return self._model.classes_
 
-    def preprocess(self, X):
+    @property
+    def n_features_in_(self): 
+        return self.model.n_features_in_
+
+    @property
+    def model(self):
+        '''Trained model after fit() is called, or None before fit() is called
+        '''
+        return self._model
+
+    def _preprocess(self, X):
         return X
 
-    def _fit(self, X_train, y_train):    
+    def _fit(self, X_train, y_train, **kwargs):    
 
         curent_time = time.time()
-        X_train = self.preprocess(X_train)
+        X_train = self._preprocess(X_train)
         model = self.estimator_class(**self.params)
-        model.fit(X_train, y_train)
-        train_time =  time.time() - curent_time
-        self.model = model
+        model.fit(X_train, y_train, **kwargs)
+        train_time = time.time() - curent_time
+        self._model = model
         return train_time
 
-    def fit(self, X_train, y_train, budget=None):    
+    def fit(self, X_train, y_train, budget=None, **kwargs):
         '''Train the model from given training data
         
         Args:
@@ -78,7 +91,7 @@ class BaseEstimator:
         Returns:
             train_time: A float of the training time in seconds
         '''
-        return self._fit(X_train, y_train)
+        return self._fit(X_train, y_train, **kwargs)
 
     def predict(self, X_test):
         '''Predict label from features
@@ -90,8 +103,8 @@ class BaseEstimator:
             A numpy array of shape n*1. 
             Each element is the label for a instance
         '''      
-        X_test = self.preprocess(X_test)
-        return self.model.predict(X_test)
+        X_test = self._preprocess(X_test)
+        return self._model.predict(X_test)
 
     def predict_proba(self, X_test):
         '''Predict the probability of each class from features
@@ -107,20 +120,51 @@ class BaseEstimator:
             Each element at (i,j) is the probability for instance i to be in
                 class j
         '''
-        if 'regression' in self.objective_name:
+        if 'regression' in self._task:
             print('Regression tasks do not support predict_prob')
             raise ValueError
         else:
-            X_test = self.preprocess(X_test)
-            return self.model.predict_proba(X_test)
+            X_test = self._preprocess(X_test)
+            return self._model.predict_proba(X_test)
 
     def cleanup(self): pass
+
+    @classmethod
+    def search_space(cls, **params): 
+        '''[required method] search space
+
+        Returns:
+            A dictionary of the search space. 
+            Each key is the name of a hyperparameter, and value is a dict with
+                its domain and init_value (optional), cat_hp_cost (optional) 
+                e.g., 
+                {'domain': tune.randint(lower=1, upper=10), 'init_value': 1}
+        '''
+        return {}
+
+    @classmethod
+    def size(cls, config): 
+        '''[optional method] memory size of the estimator in bytes
+        
+        Args:
+            config - the dict of the hyperparameter config
+
+        Returns:
+            A float of the memory size required by the estimator to train the
+            given config
+        '''
+        return 1.0
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        '''[optional method] relative cost compared to lightgbm'''
+        return 1.0
 
 
 class SKLearnEstimator(BaseEstimator):
 
 
-    def preprocess(self, X):
+    def _preprocess(self, X):
         if isinstance(X, pd.DataFrame):
             X = X.copy()
             cat_columns = X.select_dtypes(include=['category']).columns
@@ -131,28 +175,75 @@ class SKLearnEstimator(BaseEstimator):
 class LGBMEstimator(BaseEstimator):
 
 
-    def __init__(self, objective_name='binary:logistic', n_jobs=1,
+    @classmethod
+    def search_space(cls, data_size, **params): 
+        upper = min(32768,int(data_size))
+        return {
+            'n_estimators': {
+                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'init_value': 4,
+            },
+            'max_leaves': {
+                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'init_value': 4,
+            },
+            'min_child_weight': {
+                'domain': tune.loguniform(lower=0.001, upper=20.0),
+                'init_value': 20.0,
+            },
+            'learning_rate': {
+                'domain': tune.loguniform(lower=0.01, upper=1.0),
+                'init_value': 0.1,
+            },
+            'subsample': {
+                'domain': tune.uniform(lower=0.6, upper=1.0),
+                'init_value': 1.0,
+            },                        
+            'log_max_bin': {
+                'domain': tune.qloguniform(lower=3, upper=10, q=1),
+                'init_value': 8,
+            },                        
+            'colsample_bytree': {
+                'domain': tune.uniform(lower=0.7, upper=1.0),
+                'init_value': 1.0,
+            },                        
+            'reg_alpha': {
+                'domain': tune.loguniform(lower=1e-10, upper=1.0),
+                'init_value': 1e-10,
+            },    
+            'reg_lambda': {
+                'domain': tune.loguniform(lower=1e-10, upper=1.0),
+                'init_value': 1.0,
+            },    
+        }
+
+    @classmethod
+    def size(cls, config):
+        max_leaves = int(round(config['max_leaves']))
+        n_estimators = int(round(config['n_estimators']))
+        return (max_leaves*3 + (max_leaves-1)*4 + 1.0)*n_estimators*8
+
+    def __init__(self, task='binary:logistic', n_jobs=1,
      n_estimators=2, max_leaves=2, min_child_weight=1e-3, learning_rate=0.1, 
      subsample=1.0, reg_lambda=1.0, reg_alpha=0.0, colsample_bylevel=1.0, 
      colsample_bytree=1.0, log_max_bin=8, **params):
-        super().__init__(objective_name, **params)
+        super().__init__(task, **params)
         # Default: ‘regression’ for LGBMRegressor, 
         # ‘binary’ or ‘multiclass’ for LGBMClassifier
-        if 'regression' in objective_name:
-            final_objective_name = 'regression'
-        elif 'binary' in objective_name:
-            final_objective_name = 'binary'
-        elif 'multi' in objective_name:
-            final_objective_name = 'multiclass'
-        else:
-            final_objective_name = 'regression'
+        if 'regression' in task:
+            objective = 'regression'
+        elif 'binary' in task:
+            objective = 'binary'
+        elif 'multi' in task:
+            objective = 'multiclass'
+        else: objective = 'regression'
         self.params = {
             "n_estimators": int(round(n_estimators)),
             "num_leaves":  params[
                 'num_leaves'] if 'num_leaves' in params else int(
                     round(max_leaves)),
             'objective': params[
-                "objective"] if "objective" in params else final_objective_name,
+                "objective"] if "objective" in params else objective,
             'n_jobs': n_jobs,
             'learning_rate': float(learning_rate),
             'reg_alpha': float(reg_alpha),
@@ -163,43 +254,43 @@ class LGBMEstimator(BaseEstimator):
         }
         self.params['max_bin'] = params['max_bin'] if 'max_bin' in params else (
             1<<int(round(log_max_bin)))-1
-        if 'regression' in objective_name:
+        if 'regression' in task:
             self.estimator_class = LGBMRegressor
         else:
             self.estimator_class = LGBMClassifier
-        self.time_per_iter = None
-        self.train_size = 0
+        self._time_per_iter = None
+        self._train_size = 0
 
-    def preprocess(self, X):
-        if not isinstance(X, pd.DataFrame) and scipy.sparse.issparse(
+    def _preprocess(self, X):
+        if not isinstance(X, pd.DataFrame) and issparse(
             X) and np.issubdtype(X.dtype, np.integer):
             X = X.astype(float)
         return X
 
-    def fit(self, X_train, y_train, budget=None):
+    def fit(self, X_train, y_train, budget=None, **kwargs):
         start_time = time.time()
         n_iter = self.params["n_estimators"]
-        if (not self.time_per_iter or
-         abs(self.train_size-X_train.shape[0])>4) and budget is not None:
+        if (not self._time_per_iter or
+         abs(self._train_size-X_train.shape[0])>4) and budget is not None:
             self.params["n_estimators"] = 1
-            self.t1 = self._fit(X_train, y_train)
-            if self.t1 >= budget: 
+            self._t1 = self._fit(X_train, y_train, **kwargs)
+            if self._t1 >= budget: 
                 self.params["n_estimators"] = n_iter
-                return self.t1
+                return self._t1
             self.params["n_estimators"] = 4
-            self.t2 = self._fit(X_train, y_train)
-            self.time_per_iter = (self.t2 - self.t1)/(
-                self.params["n_estimators"]-1) if self.t2 > self.t1 \
-                else self.t1 if self.t1 else 0.001
-            self.train_size = X_train.shape[0]
-            if self.t1+self.t2>=budget or n_iter==self.params["n_estimators"]:
+            self._t2 = self._fit(X_train, y_train, **kwargs)
+            self._time_per_iter = (self._t2 - self._t1)/(
+                self.params["n_estimators"]-1) if self._t2 > self._t1 \
+                else self._t1 if self._t1 else 0.001
+            self._train_size = X_train.shape[0]
+            if self._t1+self._t2>=budget or n_iter==self.params["n_estimators"]:
                 self.params["n_estimators"] = n_iter
                 return time.time() - start_time
         if budget is not None:
             self.params["n_estimators"] = min(n_iter, int((budget-time.time()+
-                start_time-self.t1)/self.time_per_iter+1))
+                start_time-self._t1)/self._time_per_iter+1))
         if self.params["n_estimators"] > 0:
-            self._fit(X_train, y_train)
+            self._fit(X_train, y_train, **kwargs)
         self.params["n_estimators"] = n_iter
         train_time = time.time() - start_time
         return train_time
@@ -209,14 +300,63 @@ class XGBoostEstimator(SKLearnEstimator):
     ''' not using sklearn API, used for regression '''
 
 
-    def __init__(self, objective_name='regression', all_thread=False, n_jobs=1,
+    @classmethod
+    def search_space(cls, data_size, **params): 
+        upper = min(32768,int(data_size))
+        return {
+            'n_estimators': {
+                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'init_value': 4,
+            },
+            'max_leaves': {
+                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'init_value': 4,
+            },
+            'min_child_weight': {
+                'domain': tune.loguniform(lower=0.001, upper=20.0),
+                'init_value': 20.0,
+            },
+            'learning_rate': {
+                'domain': tune.loguniform(lower=0.01, upper=1.0),
+                'init_value': 0.1,
+            },
+            'subsample': {
+                'domain': tune.uniform(lower=0.6, upper=1.0),
+                'init_value': 1.0,
+            },                        
+            'colsample_bylevel': {
+                'domain': tune.uniform(lower=0.6, upper=1.0),
+                'init_value': 1.0,
+            },                        
+            'colsample_bytree': {
+                'domain': tune.uniform(lower=0.7, upper=1.0),
+                'init_value': 1.0,
+            },                        
+            'reg_alpha': {
+                'domain': tune.loguniform(lower=1e-10, upper=1.0),
+                'init_value': 1e-10,
+            },    
+            'reg_lambda': {
+                'domain': tune.loguniform(lower=1e-10, upper=1.0),
+                'init_value': 1.0,
+            },    
+        }
+        
+    @classmethod
+    def size(cls, config):
+        return LGBMEstimator.size(config)
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 1.6
+
+    def __init__(self, task='regression', all_thread=False, n_jobs=1,
         n_estimators=4, max_leaves=4, subsample=1.0, min_child_weight=1, 
         learning_rate=0.1, reg_lambda=1.0, reg_alpha=0.0, colsample_bylevel=1.0,
         colsample_bytree=1.0, tree_method='auto', **params):
-        super().__init__(objective_name, **params)
-        self.n_estimators = int(round(n_estimators))
-        self.max_leaves = int(round(max_leaves))
-        self.grids = []
+        super().__init__(task, **params)
+        self._n_estimators = int(round(n_estimators))
+        self._max_leaves = int(round(max_leaves))
         self.params = {
             'max_leaves': int(round(max_leaves)),
             'max_depth': 0,
@@ -242,24 +382,27 @@ class XGBoostEstimator(SKLearnEstimator):
         params["n_jobs"] = params['nthread']
         return params
 
-    def fit(self, X_train, y_train, budget=None):    
-        curent_time = time.time()        
-        if not scipy.sparse.issparse(X_train):
+    def fit(self, X_train, y_train, budget=None, **kwargs):
+        start_time = time.time()        
+        if not issparse(X_train):
             self.params['tree_method'] = 'hist'
-            X_train = self.preprocess(X_train)
+            X_train = self._preprocess(X_train)
         dtrain = xgb.DMatrix(X_train, label=y_train)
-        if self.max_leaves>0:
-            xgb_model = xgb.train(self.params,  dtrain, self.n_estimators)
+        if self._max_leaves>0:
+            if 'sample_weight' in kwargs:
+                self._model = xgb.train(self.params, dtrain,
+                 self._n_estimators, weight=kwargs['sample_weight'])
+            else:
+                self._model = xgb.train(self.params, dtrain, self._n_estimators)
             del dtrain
-            train_time = time.time() - curent_time
-            self.model = xgb_model
+            train_time = time.time() - start_time
             return train_time
         else:
             return None
 
     def predict(self, X_test):
-        if not scipy.sparse.issparse(X_test):
-            X_test = self.preprocess(X_test)
+        if not issparse(X_test):
+            X_test = self._preprocess(X_test)
         dtest = xgb.DMatrix(X_test)
         return super().predict(dtest)
 
@@ -268,12 +411,20 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
     ''' using sklearn API, used for classification '''
 
 
-    def __init__(self, objective_name='binary:logistic', n_jobs=1,  
+    @classmethod
+    def search_space(cls, data_size, **params): 
+        return XGBoostEstimator.search_space(data_size)
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return XGBoostEstimator.cost_relative2lgbm()
+
+    def __init__(self, task='binary:logistic', n_jobs=1,  
         n_estimators=4, max_leaves=4, subsample=1.0, 
         min_child_weight=1, learning_rate=0.1, reg_lambda=1.0, reg_alpha=0.0,
         colsample_bylevel=1.0, colsample_bytree=1.0, tree_method='hist', 
         **params):
-        super().__init__(objective_name, **params)
+        super().__init__(task, **params)
         self.params = {
         "n_estimators": int(round(n_estimators)),
         'max_leaves': int(round(max_leaves)),
@@ -293,38 +444,65 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         'colsample_bytree': float(colsample_bytree),
         }
 
-        if 'regression' in objective_name:
-            self.estimator_class = XGBRegressor
+        if 'regression' in task:
+            self.estimator_class = xgb.XGBRegressor
         else:
-            self.estimator_class = XGBClassifier
-        self.time_per_iter = None
-        self.train_size = 0
+            self.estimator_class = xgb.XGBClassifier
+        self._time_per_iter = None
+        self._train_size = 0
 
-    def fit(self, X_train, y_train, budget=None):    
-        if scipy.sparse.issparse(X_train):
+    def fit(self, X_train, y_train, budget=None, **kwargs):
+        if issparse(X_train):
             self.params['tree_method'] = 'auto'
-        return super().fit(X_train, y_train, budget)
+        return super().fit(X_train, y_train, budget, **kwargs)
         
 
 class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
 
 
-    def __init__(self, objective_name = 'binary:logistic', n_jobs = 1,
-      n_estimators = 4, max_leaves = 4, max_features = 1.0, 
-      min_samples_split = 2, min_samples_leaf = 1, criterion = 1, **params):
-        super().__init__(objective_name, **params)
+    @classmethod
+    def search_space(cls, data_size, task, **params): 
+        upper = min(2048, int(data_size))
+        space = {
+            'n_estimators': {
+                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'init_value': 4,
+            },
+            'max_features': {
+                'domain': tune.loguniform(lower=0.1, upper=1.0),
+                'init_value': 1.0,
+            },
+        }
+        if task != 'regression':
+            space['criterion'] = {
+                'domain': tune.choice(['gini', 'entropy']),
+                # 'init_value': 'gini',
+            }
+        return space
+
+    @classmethod
+    def size(cls, config):
+        return 1.0
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 2.0
+
+    def __init__(self, task = 'binary:logistic', n_jobs = 1,
+         n_estimators = 4, max_features = 1.0, criterion = 'gini', **params):
+        super().__init__(task, **params)
         self.params = {
         "n_estimators": int(round(n_estimators)),
         "n_jobs": n_jobs,
         'max_features': float(max_features),
         }
-        if 'regression' in objective_name:
+        if 'regression' in task:
             self.estimator_class = RandomForestRegressor
         else:
             self.estimator_class = RandomForestClassifier
-            self.params['criterion'] = 'entropy' if criterion>1.5 else 'gini'
-        self.time_per_iter = None
-        self.train_size = 0
+            self.params['criterion'] = criterion
+        self._time_per_iter = None
+        self._train_size = 0
 
     def get_params(self, deep=False):
         params = super().get_params()
@@ -335,32 +513,37 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
 class ExtraTreeEstimator(RandomForestEstimator):
 
 
-    def __init__(self, objective_name = 'binary:logistic', n_jobs = 1,
-      n_estimators = 4, max_leaves = 4, max_features = 1.0, 
-      min_samples_split = 2, min_samples_leaf = 1, criterion = 1, **params):
-        super().__init__(objective_name, **params)
-        self.params = {
-        "n_estimators": int(round(n_estimators)),
-        "n_jobs": n_jobs,
-        'max_features': float(max_features),
-        }
-        if 'regression' in objective_name:
-            from sklearn.ensemble import ExtraTreesRegressor
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 1.9
+
+    def __init__(self, task = 'binary:logistic', **params):
+        super().__init__(task, **params)
+        if 'regression' in task:
             self.estimator_class = ExtraTreesRegressor
         else:
-            from sklearn.ensemble import ExtraTreesClassifier
             self.estimator_class = ExtraTreesClassifier
-            self.params['criterion'] = 'entropy' if criterion>1.5 else 'gini'
-        self.time_per_iter = None
-        self.train_size = 0
 
 
 class LRL1Classifier(SKLearnEstimator):
 
 
-    def __init__(self, tol=0.0001, C=1.0, 
-        objective_name='binary:logistic', n_jobs=1, **params):
-        super().__init__(objective_name, **params)
+    @classmethod
+    def search_space(cls, **params): 
+        return {
+            'C': {
+                'domain': tune.loguniform(lower=0.03125, upper=32768.0),
+                'init_value': 1.0,
+            },
+        }
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 160
+
+    def __init__(self, task='binary:logistic', n_jobs=1, tol=0.0001, C=1.0, 
+        **params):
+        super().__init__(task, **params)
         self.params = {
             'penalty': 'l1',
             'tol': float(tol),
@@ -368,9 +551,9 @@ class LRL1Classifier(SKLearnEstimator):
             'solver': 'saga',
             'n_jobs': n_jobs,
         }
-        if 'regression' in objective_name:
+        if 'regression' in task:
             self.estimator_class = None
-            print('Does not support regression task')
+            print('LR does not support regression task')
             raise NotImplementedError
         else:
             self.estimator_class = LogisticRegression
@@ -379,9 +562,17 @@ class LRL1Classifier(SKLearnEstimator):
 class LRL2Classifier(SKLearnEstimator):
 
 
-    def __init__(self, tol=0.0001, C=1.0, 
-        objective_name='binary:logistic', n_jobs=1, **params):
-        super().__init__(objective_name, **params)
+    @classmethod
+    def search_space(cls, **params): 
+        return LRL1Classifier.search_space(**params)
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 25
+
+    def __init__(self, task='binary:logistic', n_jobs=1, tol=0.0001, C=1.0, 
+        **params):
+        super().__init__(task, **params)
         self.params = {
             'penalty': 'l2',
             'tol': float(tol),
@@ -389,9 +580,9 @@ class LRL2Classifier(SKLearnEstimator):
             'solver': 'lbfgs',
             'n_jobs': n_jobs,
         }
-        if 'regression' in objective_name:
+        if 'regression' in task:
             self.estimator_class = None
-            print('Does not support regression task')
+            print('LR does not support regression task')
             raise NotImplementedError
         else:
             self.estimator_class = LogisticRegression
@@ -400,15 +591,38 @@ class LRL2Classifier(SKLearnEstimator):
 class CatBoostEstimator(BaseEstimator):
 
 
-    time_per_iter = None
-    train_size = 0
+    _time_per_iter = None
+    _train_size = 0
 
-    def __init__(self, objective_name = 'binary:logistic', n_jobs=1,
-    n_estimators=8192, exp_max_depth=64, learning_rate=0.1, rounds=4, 
-    l2_leaf_reg=3, **params):
-        super().__init__(objective_name, **params)
+    @classmethod
+    def search_space(cls, data_size, **params): 
+        upper = max(min(round(1500000/data_size),150), 11)
+        return {
+            'early_stopping_rounds': {
+                'domain': tune.qloguniform(lower=10, upper=upper, q=1),
+                'init_value': 10,
+            },
+            'learning_rate': {
+                'domain': tune.loguniform(lower=.005, upper=.2),
+                'init_value': 0.1,
+            },
+        }
+
+    @classmethod
+    def size(cls, config):
+        n_estimators = 8192
+        max_leaves = 64
+        return (max_leaves*3 + (max_leaves-1)*4 + 1.0)*n_estimators*8
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 15
+
+    def __init__(self, task = 'binary:logistic', n_jobs=1,
+     n_estimators=8192, learning_rate=0.1, early_stopping_rounds=4, **params):
+        super().__init__(task, **params)
         self.params = {
-            "early_stopping_rounds": int(round(rounds)),
+            "early_stopping_rounds": int(round(early_stopping_rounds)),
             "n_estimators": n_estimators, 
             'learning_rate': learning_rate,
             'thread_count': n_jobs,
@@ -416,8 +630,7 @@ class CatBoostEstimator(BaseEstimator):
             'random_seed': params[
                 "random_seed"] if "random_seed" in params else 10242048,
         }
-        # print(n_estimators)
-        if 'regression' in objective_name:
+        if 'regression' in task:
             from catboost import CatBoostRegressor
             self.estimator_class = CatBoostRegressor
         else:
@@ -427,10 +640,9 @@ class CatBoostEstimator(BaseEstimator):
     def get_params(self, deep=False):
         params = super().get_params()
         params['n_jobs'] = params['thread_count']
-        params['rounds'] = params['early_stopping_rounds']
         return params
 
-    def fit(self, X_train, y_train, budget=None):
+    def fit(self, X_train, y_train, budget=None, **kwargs):
         start_time = time.time()
         n_iter = self.params["n_estimators"]
         if isinstance(X_train, pd.DataFrame):
@@ -438,47 +650,53 @@ class CatBoostEstimator(BaseEstimator):
                 include='category').columns)
         else:
             cat_features = []
-        if (not CatBoostEstimator.time_per_iter or
-         abs(CatBoostEstimator.train_size-len(y_train))>4) and budget:
+        if (not CatBoostEstimator._time_per_iter or
+         abs(CatBoostEstimator._train_size-len(y_train))>4) and budget:
             # measure the time per iteration
             self.params["n_estimators"] = 1
-            CatBoostEstimator.model = self.estimator_class(**self.params)
-            CatBoostEstimator.model.fit(X_train, y_train,
-             cat_features=cat_features)
-            CatBoostEstimator.t1 = time.time() - start_time
-            if CatBoostEstimator.t1 >= budget: 
+            CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
+            CatBoostEstimator._smallmodel.fit(X_train, y_train,
+             cat_features=cat_features, **kwargs)
+            CatBoostEstimator._t1 = time.time() - start_time
+            if CatBoostEstimator._t1 >= budget: 
                 self.params["n_estimators"] = n_iter
-                self.model = CatBoostEstimator.model
-                return CatBoostEstimator.t1
+                self._model = CatBoostEstimator._smallmodel
+                return CatBoostEstimator._t1
             self.params["n_estimators"] = 4
-            CatBoostEstimator.model = self.estimator_class(**self.params)
-            CatBoostEstimator.model.fit(X_train, y_train,
-             cat_features=cat_features)
-            CatBoostEstimator.time_per_iter = (time.time() - start_time -
-             CatBoostEstimator.t1)/(self.params["n_estimators"]-1)
-            if CatBoostEstimator.time_per_iter <= 0: 
-                CatBoostEstimator.time_per_iter = CatBoostEstimator.t1
-            CatBoostEstimator.train_size = len(y_train)
+            CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
+            CatBoostEstimator._smallmodel.fit(X_train, y_train,
+             cat_features=cat_features, **kwargs)
+            CatBoostEstimator._time_per_iter = (time.time() - start_time -
+             CatBoostEstimator._t1)/(self.params["n_estimators"]-1)
+            if CatBoostEstimator._time_per_iter <= 0: 
+                CatBoostEstimator._time_per_iter = CatBoostEstimator._t1
+            CatBoostEstimator._train_size = len(y_train)
             if time.time()-start_time>=budget or n_iter==self.params[
                 "n_estimators"]: 
                 self.params["n_estimators"] = n_iter
-                self.model = CatBoostEstimator.model
+                self._model = CatBoostEstimator._smallmodel
                 return time.time()-start_time
         if budget:
             train_times = 1 
             self.params["n_estimators"] = min(n_iter, int((budget-time.time()+
-                start_time-CatBoostEstimator.t1)/train_times/
-                CatBoostEstimator.time_per_iter+1))
-            self.model = CatBoostEstimator.model
+                start_time-CatBoostEstimator._t1)/train_times/
+                CatBoostEstimator._time_per_iter+1))
+            self._model = CatBoostEstimator._smallmodel
         if self.params["n_estimators"] > 0:
             l = max(int(len(y_train)*0.9), len(y_train)-1000)
             X_tr, y_tr = X_train[:l], y_train[:l]
+            if 'sample_weight' in kwargs:
+                weight = kwargs['sample_weight']
+                if weight is not None: kwargs['sample_weight'] = weight[:l]
+            else: weight = None
             from catboost import Pool
             model = self.estimator_class(**self.params)
             model.fit(X_tr, y_tr, cat_features=cat_features, eval_set=Pool(
-                data=X_train[l:], label=y_train[l:], cat_features=cat_features))
+                data=X_train[l:], label=y_train[l:], cat_features=cat_features),
+                **kwargs)
+            if weight is not None: kwargs['sample_weight'] = weight            
             # print(self.params["n_estimators"], model.get_best_iteration())
-            self.model = model
+            self._model = model
         self.params["n_estimators"] = n_iter
         train_time = time.time() - start_time
         # print(budget, train_time)
@@ -488,22 +706,36 @@ class CatBoostEstimator(BaseEstimator):
 class KNeighborsEstimator(BaseEstimator):
 
     
-    def __init__(self, objective_name='binary:logistic', n_jobs=1,
+    @classmethod
+    def search_space(cls, data_size, **params): 
+        upper = min(512, int(data_size/2))
+        return {
+            'n_neighbors': {
+                'domain': tune.qloguniform(lower=1, upper=upper, q=1),
+                'init_value': 5,
+            },
+        }
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 30
+
+    def __init__(self, task='binary:logistic', n_jobs=1,
      n_neighbors=5, **params):
-        super().__init__(objective_name, **params)
+        super().__init__(task, **params)
         self.params= {
             'n_neighbors': int(round(n_neighbors)),
             'weights': 'distance',
             'n_jobs': n_jobs,
         }
-        if 'regression' in objective_name:
+        if 'regression' in task:
             from sklearn.neighbors import KNeighborsRegressor
             self.estimator_class = KNeighborsRegressor
         else:
             from sklearn.neighbors import KNeighborsClassifier
             self.estimator_class = KNeighborsClassifier
 
-    def preprocess(self, X):
+    def _preprocess(self, X):
         if isinstance(X, pd.DataFrame):
             cat_columns = X.select_dtypes(['category']).columns
             # print(X.dtypes)
