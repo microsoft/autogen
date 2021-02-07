@@ -115,7 +115,7 @@ For more technical details, please check our papers.
 * [FLAML: A Fast and Lightweight AutoML Library](https://arxiv.org/abs/1911.04706). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. To appear in MLSys, 2021.
 ```
 @inproceedings{wang2021flaml,
-    title={Frugal Optimization for Cost-related Hyperparameters},
+    title={FLAML: A Fast and Lightweight AutoML Library},
     author={Chi Wang and Qingyun Wu and Markus Weimer and Erkang Zhu},
     year={2021},
     booktitle={MLSys},
