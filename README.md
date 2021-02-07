@@ -143,7 +143,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 * Chi Wang
 * Qingyun Wu
 
-Contributors (alphabetical order): Surajit Chaudhuri, Nadiia Chepurko, Alex Deng, Anshuman Dutt, Nicolo Fusi, Johannes Gehrke, Silu Huang, Dongwoo Kim, Christian Konig, John Langford, Amin Saied, Markus Weimer, Haozhe Zhang, Erkang Zhu.
+Contributors (alphabetical order): Sebastien Bubeck, Surajit Chaudhuri, Nadiia Chepurko, Ofer Dekel, Alex Deng, Anshuman Dutt, Nicolo Fusi, Jianfeng Gao, Johannes Gehrke, Silu Huang, Dongwoo Kim, Christian Konig, John Langford, Amin Saied, Neil Tenenholtz, Markus Weimer, Haozhe Zhang, Erkang Zhu.
 
 ## License
 
