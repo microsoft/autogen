@@ -506,7 +506,6 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
 
     def get_params(self, deep=False):
         params = super().get_params()
-        params["criterion"] = 1 if params["criterion"]=='gini' else 2
         return params
 
 
