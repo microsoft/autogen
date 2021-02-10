@@ -48,9 +48,9 @@ import time
 
 def evaluate_config(config):
     '''evaluate a hyperparameter configuration'''
-    # we uss a toy example with 2 hyperparameters
+    # we use a toy example with 2 hyperparameters
     metric = (round(config['x'])-85000)**2 - config['x']/config['y']
-    # usually the evaluation takes an non-neglible cost
+    # usually the evaluation takes a non-neglible cost
     # and the cost could be related to certain hyperparameters
     # in this example, we assume it's proportional to x
     time.sleep(config['x']/100000)
