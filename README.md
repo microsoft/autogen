@@ -5,8 +5,8 @@
     <br>
 </p>
 
-FLAML is a Python library designed to automatically produce accurate machine
-learning models with low computational cost. It frees users from selecting
+FLAML is a lightweight Python library that finds accurate machine
+learning models automatically, efficiently and economically. It frees users from selecting
 learners and hyperparameters for each learner. It is fast and cheap.
 The simple and lightweight design makes it easy to extend, such as
 adding customized learners or metrics. FLAML is powered by a new, [cost-effective
