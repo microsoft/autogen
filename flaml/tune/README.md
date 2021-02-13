@@ -146,6 +146,7 @@ based on optimism in face of uncertainty.
 Example:
 
 ```python
+# requirements: pip install flaml[blendsearch]
 from flaml import BlendSearch
 tune.run(...
     search_alg = BlendSearch(points_to_evaluate=[init_config]),

@@ -1,4 +1,0 @@
-torch
-transformers
-datasets
-ipywidgets

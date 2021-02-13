@@ -1,5 +1,6 @@
+'''Require: pip install flaml[test,ray]
+'''
 import unittest
-import os
 import time
 from sklearn.model_selection import train_test_split
 import sklearn.metrics
@@ -138,6 +139,7 @@ def _test_xgboost(method='BlendSearch'):
                     scheduler=scheduler, search_alg=algo)
             ray.shutdown()
             # # Load the best model checkpoint
+            # import os
             # best_bst = xgb.Booster()
             # best_bst.load_model(os.path.join(analysis.best_checkpoint,
             #  "model.xgb"))
