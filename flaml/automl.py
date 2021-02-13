@@ -1094,8 +1094,9 @@ class AutoML:
                             self._state.best_loss))
             else:
                 logger.info(f"no enough budget for learner {estimator}")
-                self.estimator_list.remove(estimator)
-                self._estimator_index -= 1
+                if self._estimator_index is not None:
+                    self.estimator_list.remove(estimator)
+                    self._estimator_index -= 1
             if self._retrain_full and best_config_sig and not better and (
                 self._search_states[self._best_estimator].sample_size ==
                 self._state.data_size) and (est_retrain_time <=
