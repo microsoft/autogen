@@ -20,7 +20,6 @@ install_requires = [
     "scipy>=1.4.1",
     "catboost>=0.23",
     "scikit-learn>=0.23.2",
-    "optuna==2.3.0"
 ],
 
 
@@ -48,6 +47,10 @@ setuptools.setup(
             "coverage>=5.3",
             "xgboost<1.3",
             "rgf-python",
+            "optuna==2.3.0",
+        ],
+        "blendsearch": [
+            "optuna==2.3.0"
         ],
         "ray": [
             "ray[tune]==1.1.0",

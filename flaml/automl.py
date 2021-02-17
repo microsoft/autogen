@@ -402,7 +402,7 @@ class AutoML:
             self._X_train_all, self._y_train_all = \
                 self._transformer.fit_transform(X, y, self._state.task)
             self._label_transformer = self._transformer.label_transformer
-
+        self._sample_weight_full = self._state.fit_kwargs.get('sample_weight')      
         if X_val is not None and y_val is not None:
             if not (isinstance(X_val, np.ndarray) or
                 issparse(X_val) or
@@ -446,7 +446,8 @@ class AutoML:
             self._X_train_all, self._y_train_all
         if issparse(X_train_all): 
             X_train_all = X_train_all.tocsr()
-        if self._state.task != 'regression':
+        if self._state.task != 'regression' and self._state.fit_kwargs.get(
+            'sample_weight') is None:
             # logger.info(f"label {pd.unique(y_train_all)}")
             label_set, counts = np.unique(y_train_all, return_counts=True)
             # augment rare classes
@@ -1093,8 +1094,9 @@ class AutoML:
                             self._state.best_loss))
             else:
                 logger.info(f"no enough budget for learner {estimator}")
-                self.estimator_list.remove(estimator)
-                self._estimator_index -= 1
+                if self._estimator_index is not None:
+                    self.estimator_list.remove(estimator)
+                    self._estimator_index -= 1
             if self._retrain_full and best_config_sig and not better and (
                 self._search_states[self._best_estimator].sample_size ==
                 self._state.data_size) and (est_retrain_time <=
@@ -1151,7 +1153,11 @@ class AutoML:
                 stacker = Stacker(estimators, best_m,
                     n_jobs=self._state.n_jobs,
                     passthrough=True)
-                stacker.fit(self._X_train_all, self._y_train_all)
+                if self._sample_weight_full is not None:
+                    self._state.fit_kwargs[
+                        'sample_weight'] = self._sample_weight_full
+                stacker.fit(self._X_train_all, self._y_train_all,
+                 **self._state.fit_kwargs)
                 logger.info(f'ensemble: {stacker}')
                 self._trained_estimator = stacker
                 self._trained_estimator.model = stacker

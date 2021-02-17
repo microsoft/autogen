@@ -121,8 +121,8 @@ class FLOW2(Searcher):
         self._unordered_cat_hp = {}
         self._cat_hp_cost = {}
         for key, domain in self.space.items():
-            assert not isinstance(domain, dict), \
-                key+"'s domain is grid search which is not supported in FLOW2."
+            assert not (isinstance(domain, dict) and 'grid_search' in domain
+            ), key+"'s domain is grid search which is not supported in FLOW2."
             if callable(getattr(domain, 'get_sampler', None)):
                 self._tunable_keys.append(key)
                 sampler = domain.get_sampler()
