@@ -6,6 +6,7 @@ The API is compatible with ray tune.
 Example:
 
 ```python
+# require: pip install flaml[blendsearch]
 from flaml import tune
 import time
 
@@ -42,6 +43,7 @@ print(analysis.best_config) # the best config
 
 Or, using ray tune's API:
 ```python
+# require: pip install flaml[blendsearch] ray[tune]
 from ray import tune as raytune
 from flaml import CFO, BlendSearch
 import time
@@ -146,6 +148,7 @@ based on optimism in face of uncertainty.
 Example:
 
 ```python
+# require: pip install flaml[blendsearch]
 from flaml import BlendSearch
 tune.run(...
     search_alg = BlendSearch(points_to_evaluate=[init_config]),

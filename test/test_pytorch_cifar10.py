@@ -1,3 +1,5 @@
+'''Require: pip install torchvision ray
+'''
 import unittest
 import os
 import time
