@@ -113,8 +113,9 @@ class BlendSearch(Searcher):
                 self._deadline = config.get('time_budget_s') + time.time()
             if 'metric_target' in config:
                 self._metric_target = config.get('metric_target')
-        else:    
-            self._metric, self._mode = metric, mode
+        else:
+            if metric: self._metric = metric
+            if mode: self._mode = mode
             self._ls.set_search_properties(metric, mode, config)
             if self._gs is not None:
                 self._gs.set_search_properties(metric, mode, config)
@@ -300,11 +301,9 @@ class BlendSearch(Searcher):
         else: # use init config
             init_config = self._points_to_evaluate.pop(
                 0) if self._points_to_evaluate else self._ls.init_config
-            if init_config==self._ls.init_config:
-                config = self._ls.complete_config(init_config,
+            config = self._ls.complete_config(init_config,
              self._admissible_min, self._admissible_max)
                 # logger.info(f"reset config to {config}")
-            else: config = init_config
             config_signature = self._ls.config_signature(config)
             result = self._result.get(config_signature)
             if result: # tried before
@@ -314,7 +313,6 @@ class BlendSearch(Searcher):
                 self._result[config_signature] = {}
             else: return None # running but no result yet
             self._init_used = True
-            self._trial_proposed_by[trial_id] = 0
         # logger.info(f"config={config}")
         return config
 

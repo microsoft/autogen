@@ -274,7 +274,7 @@ class TestAutoML(unittest.TestCase):
 
         automl_experiment = AutoML()
         automl_settings = {
-            "time_budget": 2,
+            "time_budget": 3,
             "metric": 'ap',
             "task": 'classification',
             "log_file_name": "test/sparse_classification.log",

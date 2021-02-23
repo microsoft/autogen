@@ -146,6 +146,8 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
-/catboost_info
+
+catboost_info
 notebook/*.pkl
 notebook/.azureml
+mlruns

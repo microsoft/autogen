@@ -190,6 +190,8 @@ class FLOW2(Searcher):
         self._K = 0
         self._iter_best_config = self.trial_count = 1
         self._reset_times = 0
+        # record intermediate trial cost
+        self._trial_cost = {}
 
     @property
     def step_lower_bound(self) -> float:
@@ -237,7 +239,8 @@ class FLOW2(Searcher):
         ''' generate a complete config from the partial config input
         add minimal resource to config if available
         '''
-        if self._reset_times: # not the first time, use random gaussian
+        if self._reset_times and partial_config==self.init_config:
+            # not the first time to complete init_config, use random gaussian
             normalized = self.normalize(partial_config)
             for key in normalized:
                  # don't change unordered cat choice
@@ -258,21 +261,22 @@ class FLOW2(Searcher):
                     normalized[key] = max(l, min(u, normalized[key] + delta))
             # use best config for unordered cat choice
             config = self.denormalize(normalized)
+            self._reset_times += 1
         else:
+            # first time init_config, or other configs, take as is
             config = partial_config.copy()
 
         for key, value in self.space.items():
             if key not in config:
                 config[key] = value
-        logger.debug(f'before random {config}')
+        # logger.debug(f'before random {config}')
         for _, generated in generate_variants({'config': config}):
             config = generated['config']
             break
-        logger.debug(f'after random {config}')
+        # logger.debug(f'after random {config}')
 
         if self._resource:
             config[self.prune_attr] = self.min_resource
-        self._reset_times += 1
         return config
 
     def create(self, init_config: Dict, obj: float, cost: float) -> Searcher:
@@ -442,7 +446,8 @@ class FLOW2(Searcher):
         if proposed_by == self.incumbent:
             # proposed by current incumbent and no better
             self._num_complete4incumbent += 1
-            cost = result.get(self.cost_attr)
+            cost = result.get(
+                self.cost_attr) if result else self._trial_cost.get(trial_id)
             if cost: self._cost_complete4incumbent += cost
             if self._num_complete4incumbent >= 2*self.dim and \
                 self._num_allowed4incumbent == 0:
@@ -483,6 +488,9 @@ class FLOW2(Searcher):
                         self._num_allowed4incumbent = 2 * self.dim
                         self._proposed_by.clear()
                         self._iter_best_config = self.trial_count
+            cost = result.get(self.cost_attr)
+            # record the cost in case it is pruned and cost info is lost
+            self._trial_cost[trial_id] = cost
 
     def rand_vector_unit_sphere(self, dim) -> np.ndarray:
         vec = self._random.normal(0, 1, dim)
