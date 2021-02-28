@@ -20,6 +20,7 @@ class SearchThread:
     '''
 
     cost_attr = 'time_total_s'
+    eps = 1e-10
 
     def __init__(self, mode: str = "min", 
                  search_alg: Optional[Searcher] = None):
@@ -70,7 +71,7 @@ class SearchThread:
         # calculate speed; use 0 for invalid speed temporarily
         if self.obj_best2 > self.obj_best1: 
             self.speed = (self.obj_best2 - self.obj_best1) / (
-                self.cost_total - self.cost_best2)
+                self.cost_total - self.cost_best2 + self.eps)
         else: self.speed = 0
 
     def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None,
