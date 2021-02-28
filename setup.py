@@ -57,8 +57,11 @@ setuptools.setup(
             "pyyaml<5.3.1",            
         ],
         "azureml": [
-            "azureml-mlflow"
+            "azureml-mlflow",
         ],
+        "nni": [
+            "nni",
+        ]
     },
     classifiers=[
         "Programming Language :: Python :: 3",

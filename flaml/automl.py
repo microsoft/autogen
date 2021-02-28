@@ -845,7 +845,7 @@ class AutoML:
         if eval_method == 'auto' or self._state.X_val is not None:
             eval_method = self._decide_eval_method(time_budget)
         self._state.eval_method = eval_method
-        if not mlflow or not mlflow.active_run() and not logger.handler:
+        if (not mlflow or not mlflow.active_run()) and not logger.handlers:
             # Add the console handler.
             _ch = logging.StreamHandler()
             _ch.setFormatter(logger_formatter)
@@ -1074,7 +1074,7 @@ class AutoML:
                                         search_state.best_config,
                                         estimator,
                                         search_state.sample_size)                
-                    if mlflow is not None:
+                    if mlflow is not None and mlflow.active_run():
                         with mlflow.start_run(nested=True) as run:
                             mlflow.log_metric('iter_counter',
                                 self._iter_per_learner[estimator])

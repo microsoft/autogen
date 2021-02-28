@@ -49,7 +49,6 @@ def _test_xgboost(method='BlendSearch'):
     else:
         from ray import tune
     search_space = {
-        # You can mix constants with search space objects.
         "max_depth": tune.randint(1, 8) if method in [
             "BlendSearch", "BOHB", "Optuna"] else tune.randint(1, 9),
         "min_child_weight": tune.choice([1, 2, 3]),
@@ -152,6 +151,33 @@ def _test_xgboost(method='BlendSearch'):
             logger.info(f"Best model eval loss: {logloss:.4f}")
             logger.info(f"Best model total accuracy: {accuracy:.4f}")
             logger.info(f"Best model parameters: {best_trial.config}")
+
+
+def test_nested():
+    from flaml import tune
+    search_space = {
+        # test nested search space
+        "cost_related": {
+            "a": tune.randint(1, 8),
+        },
+        "b": tune.uniform(0.5, 1.0),
+    }
+
+    def simple_func(config):
+        tune.report(
+            metric=(config["cost_related"]["a"]-4)**2 * (config["b"]-0.7)**2)
+
+    analysis = tune.run(
+        simple_func,
+        init_config={
+            "cost_related": {"a": 1,}
+        },
+        metric="metric",
+        mode="min",
+        config=search_space,
+        local_dir='logs/',
+        num_samples=-1,
+        time_budget_s=1)
 
 
 def test_xgboost_bs():

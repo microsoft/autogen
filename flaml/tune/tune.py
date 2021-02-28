@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 _use_ray = True
 _runner = None
 _verbose = 0
+_running_trial = None
+_training_iteration = 0
 
 
 class ExperimentAnalysis(EA):
@@ -68,6 +70,8 @@ def report(_metric=None, **kwargs):
     '''
     global _use_ray
     global _verbose
+    global _running_trial
+    global _training_iteration
     if _use_ray:
         from ray import tune
         return tune.report(_metric, **kwargs)
@@ -77,6 +81,12 @@ def report(_metric=None, **kwargs):
             logger.info(f"result: {kwargs}")
         if _metric: result['_default_anonymous_metric'] = _metric
         trial = _runner.running_trial
+        if _running_trial == trial:
+            _training_iteration += 1
+        else:
+            _training_iteration = 0
+            _running_trial = trial
+        result["training_iteration"] = _training_iteration
         result['config'] = trial.config
         for key, value in trial.config.items():
             result['config/'+key] = value
@@ -213,7 +223,7 @@ def run(training_function,
             import os
             os.makedirs(local_dir, exist_ok=True)
             logger.addHandler(logging.FileHandler(local_dir+'/tune_'+str(
-                datetime.datetime.now())+'.log'))
+                datetime.datetime.now()).replace(':', '-')+'.log'))
             if verbose<=2:
                 logger.setLevel(logging.INFO)
             else:

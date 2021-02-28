@@ -9,9 +9,10 @@ try:
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.variant_generator import generate_variants
     from ray.tune import sample
+    from ray.tune.utils.util import flatten_dict, unflatten_dict
 except ImportError:
     from .suggestion import Searcher
-    from .variant_generator import generate_variants
+    from .variant_generator import generate_variants, flatten_dict, unflatten_dict
     from ..tune import sample
 
 
@@ -86,6 +87,7 @@ class FLOW2(Searcher):
         elif mode == "min":
             self.metric_op = 1.
         self.space = space or {}
+        self.space = flatten_dict(self.space, prevent_delimiter=True)
         self._random = np.random.RandomState(seed)
         self._seed = seed
         if not init_config:
@@ -95,7 +97,8 @@ class FLOW2(Searcher):
                 "consider providing init values for cost-related hps via "
                 "'init_config'."
                 )
-        self.init_config = self.best_config = init_config
+        self.init_config = init_config
+        self.best_config = flatten_dict(init_config)
         self.cat_hp_cost = cat_hp_cost
         self.prune_attr = prune_attr
         self.min_resource = min_resource
@@ -171,7 +174,7 @@ class FLOW2(Searcher):
             # logger.info(self._resource)
         else: self._resource = None
         self.incumbent = {}
-        self.incumbent = self.normalize(self.init_config)
+        self.incumbent = self.normalize(self.best_config) # flattened
         self.best_obj = self.cost_incumbent = None
         self.dim = len(self._tunable_keys)  # total # tunable dimensions
         self._direction_tried = None        
@@ -247,7 +250,7 @@ class FLOW2(Searcher):
                 if key not in self._unordered_cat_hp:
                     if upper and lower:
                         u, l = upper[key], lower[key]
-                        gauss_std = u-l
+                        gauss_std = u-l or self.STEPSIZE
                         # allowed bound
                         u += self.STEPSIZE
                         l -= self.STEPSIZE
@@ -261,11 +264,11 @@ class FLOW2(Searcher):
                     normalized[key] = max(l, min(u, normalized[key] + delta))
             # use best config for unordered cat choice
             config = self.denormalize(normalized)
-            self._reset_times += 1
         else:
             # first time init_config, or other configs, take as is
             config = partial_config.copy()
-
+        if partial_config == self.init_config: self._reset_times += 1
+        config = flatten_dict(config)
         for key, value in self.space.items():
             if key not in config:
                 config[key] = value
@@ -277,13 +280,13 @@ class FLOW2(Searcher):
 
         if self._resource:
             config[self.prune_attr] = self.min_resource
-        return config
+        return unflatten_dict(config)
 
     def create(self, init_config: Dict, obj: float, cost: float) -> Searcher:
         flow2 = FLOW2(init_config, self.metric, self.mode, self._cat_hp_cost,
-                      self.space, self.prune_attr, self.min_resource,
-                      self.max_resource, self.resource_multiple_factor,
-                      self._seed+1)
+                      unflatten_dict(self.space), self.prune_attr, 
+                      self.min_resource, self.max_resource, 
+                      self.resource_multiple_factor, self._seed+1)
         flow2.best_obj = obj * self.metric_op  # minimize internally
         flow2.cost_incumbent = cost
         return flow2
@@ -292,7 +295,7 @@ class FLOW2(Searcher):
         ''' normalize each dimension in config to [0,1]
         '''
         config_norm = {}
-        for key, value in config.items():
+        for key, value in flatten_dict(config).items():
             if key in self.space:
                 # domain: sample.Categorical/Integer/Float/Function
                 domain = self.space[key]
@@ -426,7 +429,7 @@ class FLOW2(Searcher):
             obj = result.get(self._metric)
             if obj: 
                 obj *= self.metric_op
-                if obj < self.best_obj:
+                if self.best_obj is None or obj < self.best_obj:
                     self.best_obj, self.best_config = obj, self._configs[
                         trial_id]
                     self.incumbent = self.normalize(self.best_config)
@@ -437,7 +440,8 @@ class FLOW2(Searcher):
                     self._cost_complete4incumbent = 0
                     self._num_allowed4incumbent = 2 * self.dim
                     self._proposed_by.clear()
-                    if self._K > 0:
+                    if self._K > 0: 
+                        # self._oldK must have been set when self._K>0
                         self.step *= np.sqrt(self._K/self._oldK)
                     if self.step > self.step_ub: self.step = self.step_ub
                     self._iter_best_config = self.trial_count
@@ -474,7 +478,7 @@ class FLOW2(Searcher):
             obj = result.get(self._metric)
             if obj: 
                 obj *= self.metric_op
-                if obj < self.best_obj:
+                if self.best_obj is None or obj < self.best_obj:
                     self.best_obj = obj
                     config = self._configs[trial_id]
                     if self.best_config != config:
@@ -533,7 +537,7 @@ class FLOW2(Searcher):
         config = self.denormalize(move)
         self._proposed_by[trial_id] = self.incumbent
         self._configs[trial_id] = config
-        return config
+        return unflatten_dict(config)
 
     def _project(self, config):
         ''' project normalized config in the feasible region and set prune_attr
@@ -553,6 +557,7 @@ class FLOW2(Searcher):
     def config_signature(self, config) -> tuple:
         ''' return the signature tuple of a config
         '''
+        config = flatten_dict(config)
         value_list = []
         for key in self._space_keys:
             if key in config:

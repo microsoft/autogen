@@ -28,6 +28,46 @@ from ..tune.sample import Categorical, Domain, Function
 logger = logging.getLogger(__name__)
 
 
+def flatten_dict(dt, delimiter="/", prevent_delimiter=False):
+    dt = copy.deepcopy(dt)
+    if prevent_delimiter and any(delimiter in key for key in dt):
+        # Raise if delimiter is any of the keys
+        raise ValueError(
+            "Found delimiter `{}` in key when trying to flatten array."
+            "Please avoid using the delimiter in your specification.")
+    while any(isinstance(v, dict) for v in dt.values()):
+        remove = []
+        add = {}
+        for key, value in dt.items():
+            if isinstance(value, dict):
+                for subkey, v in value.items():
+                    if prevent_delimiter and delimiter in subkey:
+                        # Raise  if delimiter is in any of the subkeys
+                        raise ValueError(
+                            "Found delimiter `{}` in key when trying to "
+                            "flatten array. Please avoid using the delimiter "
+                            "in your specification.")
+                    add[delimiter.join([key, str(subkey)])] = v
+                remove.append(key)
+        dt.update(add)
+        for k in remove:
+            del dt[k]
+    return dt
+
+
+def unflatten_dict(dt, delimiter="/"):
+    """Unflatten dict. Does not support unflattening lists."""
+    dict_type = type(dt)
+    out = dict_type()
+    for key, val in dt.items():
+        path = key.split(delimiter)
+        item = out
+        for k in path[:-1]:
+            item = item.setdefault(k, dict_type())
+        item[path[-1]] = val
+    return out
+    
+    
 class TuneError(Exception):
     """General error class raised by ray.tune."""
     pass
