@@ -129,16 +129,16 @@ class FLOW2(Searcher):
             if callable(getattr(domain, 'get_sampler', None)):
                 self._tunable_keys.append(key)
                 sampler = domain.get_sampler()
-                if isinstance(sampler, sample.Quantized):
-                    sampler_inner = sampler.get_sampler()
-                    if str(sampler_inner) == 'Uniform':
-                        self._step_lb = min(
-                            self._step_lb, sampler.q/(domain.upper-domain.lower))
-                elif isinstance(domain, sample.Integer) and str(
-                    sampler) == 'Uniform':
-                    self._step_lb = min(
-                        self._step_lb, 1.0/(domain.upper-domain.lower))
-                elif isinstance(domain, sample.Categorical):
+                # if isinstance(sampler, sample.Quantized):
+                #     sampler_inner = sampler.get_sampler()
+                #     if str(sampler_inner) == 'Uniform':
+                #         self._step_lb = min(
+                #             self._step_lb, sampler.q/(domain.upper-domain.lower))
+                # elif isinstance(domain, sample.Integer) and str(
+                #     sampler) == 'Uniform':
+                #     self._step_lb = min(
+                #         self._step_lb, 1.0/(domain.upper-domain.lower))
+                if isinstance(domain, sample.Categorical):
                     cat_hp_cost = self.cat_hp_cost
                     if cat_hp_cost and key in cat_hp_cost:
                         cost = np.array(cat_hp_cost[key])
@@ -149,7 +149,7 @@ class FLOW2(Searcher):
                         for i, choice in enumerate(l):
                             d[choice] = i
                         self._ordered_cat_hp[key] = (l, d)
-                        self._step_lb = min(self._step_lb, 1.0/len(l))
+                        # self._step_lb = min(self._step_lb, 1.0/len(l))
                     elif all(isinstance(x, int) or isinstance(x, float)
                      for x in domain.categories):
                         l = sorted(domain.categories)
@@ -157,10 +157,10 @@ class FLOW2(Searcher):
                         for i, choice in enumerate(l):
                             d[choice] = i
                         self._ordered_choice_hp[key] = (l, d) 
-                        self._step_lb = min(self._step_lb, 1.0/len(l))
+                        # self._step_lb = min(self._step_lb, 1.0/len(l))
                     else:
                         self._unordered_cat_hp[key] = l = len(domain.categories)
-                        self._step_lb = min(self._step_lb, 1.0/l)
+                        # self._step_lb = min(self._step_lb, 1.0/l)
                 if str(sampler) != 'Normal':
                     self._bounded_keys.append(key)
         self._space_keys = list(self.space.keys())
@@ -306,10 +306,10 @@ class FLOW2(Searcher):
                         # normalize categorical
                         if key in self._ordered_cat_hp:
                             l, d = self._ordered_cat_hp[key]
-                            config_norm[key] = d[value]/len(l)
+                            config_norm[key] = (d[value]+0.5)/len(l) # center
                         elif key in self._ordered_choice_hp:
                             l, d = self._ordered_choice_hp[key]
-                            config_norm[key] = d[value]/len(l)
+                            config_norm[key] = (d[value]+0.5)/len(l) # center
                         elif key in self.incumbent:
                             config_norm[key] = self.incumbent[
                                 key] if value == self.best_config[
@@ -409,6 +409,7 @@ class FLOW2(Searcher):
             self._metric = metric
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
+            self._mode = mode
             if mode == "max":
                 self.metric_op = -1.
             elif mode == "min":
@@ -532,7 +533,7 @@ class FLOW2(Searcher):
         self._direction_tried = self.rand_vector_unit_sphere(
             self.dim) * self.step
         for i, key in enumerate(self._tunable_keys):
-            move[key] += self._direction_tried[i]            
+            move[key] += self._direction_tried[i]
         self._project(move)
         config = self.denormalize(move)
         self._proposed_by[trial_id] = self.incumbent
