@@ -27,6 +27,7 @@ class SearchThread:
         ''' When search_alg is omitted, use local search FLOW2
         '''
         self._search_alg = search_alg
+        self._is_ls = isinstance(search_alg, FLOW2)
         self._mode = mode
         self._metric_op = 1 if mode=='min' else -1
         self.cost_best = self.cost_last = self.cost_total = self.cost_best1 = \
@@ -37,6 +38,7 @@ class SearchThread:
         # eci: expected cost for improvement
         self.eci = self.cost_best
         self.priority = self.speed = 0
+        self._init_config = True 
         
     def suggest(self, trial_id: str) -> Optional[Dict]:
         ''' use the suggest() of the underlying search algorithm
@@ -82,7 +84,12 @@ class SearchThread:
         if not hasattr(self._search_alg, '_ot_trials') or (not error and
             trial_id in self._search_alg._ot_trials):
             # optuna doesn't handle error
-            self._search_alg.on_trial_complete(trial_id, result, error)
+            if self._is_ls or not self._init_config:
+                self._search_alg.on_trial_complete(trial_id, result, error)
+            else: 
+                # init config is not proposed by self._search_alg
+                # under this thread
+                self._init_config = False
         if result:
             if self.cost_attr in result:
                 self.cost_last = result[self.cost_attr]

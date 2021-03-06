@@ -56,7 +56,7 @@ def _test_xgboost(method='BlendSearch'):
         "eta": tune.loguniform(1e-4, 1e-1)
     }
     max_iter = 10
-    for num_samples in [256]:
+    for num_samples in [128]:
         time_budget_s = 60 #None
         for n_cpu in [8]:
             start_time = time.time()
