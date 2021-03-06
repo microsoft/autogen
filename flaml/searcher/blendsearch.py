@@ -426,7 +426,7 @@ try:
         from ray.tune import (uniform, quniform, choice, randint, qrandint, randn,
     qrandn, loguniform, qloguniform)
     except:
-        from .sample import (uniform, quniform, choice, randint, qrandint, randn,
+        from ..tune.sample import (uniform, quniform, choice, randint, qrandint, randn,
     qrandn, loguniform, qloguniform)
 
     class BlendSearchTuner(BlendSearch, NNITuner):
@@ -470,7 +470,7 @@ try:
             search_space: JSON object created by experiment owner
             '''
             config = {}
-            for key, value in search_space:
+            for key, value in search_space.items():
                 v = value.get("_value")
                 _type = value['_type']
                 if _type == 'choice':
