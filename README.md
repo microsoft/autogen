@@ -1,7 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/FLAML.svg)](https://badge.fury.io/py/FLAML)
 [![Build](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.6%20%7C%203.7%20%7C%203.8-blue)
-[![Downloads](https://pepy.tech/badge/flaml/month)](https://pepy.tech/project/flaml)
+[![Downloads](https://pepy.tech/badge/flaml/month)](https://pepy.tech/project/flaml) [![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # FLAML - Fast and Lightweight AutoML
 
