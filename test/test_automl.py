@@ -98,6 +98,8 @@ class TestAutoML(unittest.TestCase):
 
         '''The main flaml automl API'''
         automl.fit(X_train = X_train, y_train = y_train, **settings)
+        # print the best model found for RGF
+        print(automl.best_model_for_estimator("RGF"))
 
     def test_ensemble(self):
         automl = AutoML()

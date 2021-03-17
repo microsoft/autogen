@@ -15,7 +15,7 @@ try:
         Trainer,
         TrainingArguments,
     )
-    MODEL_CHECKPOINT = "google/electra-base-discriminator"
+    MODEL_CHECKPOINT = "microsoft/deberta-base"
     task_to_keys = {
         "cola": ("sentence", None),
         "mnli": ("premise", "hypothesis"),
@@ -55,12 +55,12 @@ import logging
 logger = logging.getLogger(__name__)
 import os
 os.makedirs('logs', exist_ok=True)
-logger.addHandler(logging.FileHandler('logs/tune_electra.log'))
+logger.addHandler(logging.FileHandler('logs/tune_deberta.log'))
 logger.setLevel(logging.INFO)
 
 import flaml
 
-def train_electra(config: dict):
+def train_deberta(config: dict):
 
     # Load dataset and apply tokenizer
     data_raw = load_dataset("glue", TASK)
@@ -119,9 +119,9 @@ def train_electra(config: dict):
         run.log('config', config)
     except: pass
 
-def _test_electra(method='BlendSearch'):
+def _test_deberta(method='BlendSearch'):
  
-    max_num_epoch = 9
+    max_num_epoch = 100
     num_samples = -1
     time_budget_s = 3600
 
@@ -185,7 +185,7 @@ def _test_electra(method='BlendSearch'):
             grace_period=1)
     scheduler = None
     analysis = ray.tune.run(
-        train_electra,
+        train_deberta,
         metric=HP_METRIC,
         mode=MODE,
         resources_per_trial={"gpu": 4, "cpu": 4},
@@ -206,45 +206,45 @@ def _test_electra(method='BlendSearch'):
     logger.info(f"Best model parameters: {best_trial.config}")
 
 
-def _test_electra_cfo():
-    _test_electra('CFO')
+def _test_deberta_cfo():
+    _test_deberta('CFO')
 
 
-def _test_electra_dragonfly():
-    _test_electra('Dragonfly')
+def _test_deberta_dragonfly():
+    _test_deberta('Dragonfly')
 
 
-def _test_electra_skopt():
-    _test_electra('SkOpt')
+def _test_deberta_skopt():
+    _test_deberta('SkOpt')
 
 
-def _test_electra_nevergrad():
-    _test_electra('Nevergrad')
+def _test_deberta_nevergrad():
+    _test_deberta('Nevergrad')
 
 
-def _test_electra_zoopt():
-    _test_electra('ZOOpt')
+def _test_deberta_zoopt():
+    _test_deberta('ZOOpt')
 
 
-def _test_electra_ax():
-    _test_electra('Ax')
+def _test_deberta_ax():
+    _test_deberta('Ax')
 
 
-def __test_electra_hyperopt():
-    _test_electra('HyperOpt')
+def __test_deberta_hyperopt():
+    _test_deberta('HyperOpt')
 
 
-def _test_electra_optuna():
-    _test_electra('Optuna')
+def _test_deberta_optuna():
+    _test_deberta('Optuna')
 
 
-def _test_electra_asha():
-    _test_electra('ASHA')
+def _test_deberta_asha():
+    _test_deberta('ASHA')
 
 
-def _test_electra_bohb():
-    _test_electra('BOHB')
+def _test_deberta_bohb():
+    _test_deberta('BOHB')
 
 
 if __name__ == "__main__":
-    _test_electra()
+    _test_deberta()

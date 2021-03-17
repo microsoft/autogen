@@ -26,7 +26,7 @@ class TestLogging(unittest.TestCase):
             logger.addHandler(ch)
 
             # Run a simple job.
-            automl_experiment = AutoML()
+            automl = AutoML()
             automl_settings = {
                 "time_budget": 1,
                 "metric": 'mse',
@@ -34,13 +34,18 @@ class TestLogging(unittest.TestCase):
                 "log_file_name": training_log,
                 "log_training_metric": True,
                 "n_jobs": 1,
-                "model_history": True
+                "model_history": True,
             }
             X_train, y_train = load_boston(return_X_y=True)
             n = len(y_train) >> 1
-            automl_experiment.fit(X_train=X_train[:n], y_train=y_train[:n],
+            automl.fit(X_train=X_train[:n], y_train=y_train[:n],
                                   X_val=X_train[n:], y_val=y_train[n:],
                                   **automl_settings)
 
             # Check if the log buffer is populated.
             self.assertTrue(len(buf.getvalue()) > 0)
+
+        import pickle
+        with open('automl.pkl', 'wb') as f:
+            pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
+        print(automl.__version__)

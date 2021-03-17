@@ -15,7 +15,7 @@ try:
         Trainer,
         TrainingArguments,
     )
-    MODEL_CHECKPOINT = "google/electra-base-discriminator"
+    MODEL_CHECKPOINT = "roberta-base"
     task_to_keys = {
         "cola": ("sentence", None),
         "mnli": ("premise", "hypothesis"),
@@ -55,12 +55,12 @@ import logging
 logger = logging.getLogger(__name__)
 import os
 os.makedirs('logs', exist_ok=True)
-logger.addHandler(logging.FileHandler('logs/tune_electra.log'))
+logger.addHandler(logging.FileHandler('logs/tune_roberta.log'))
 logger.setLevel(logging.INFO)
 
 import flaml
 
-def train_electra(config: dict):
+def train_roberta(config: dict):
 
     # Load dataset and apply tokenizer
     data_raw = load_dataset("glue", TASK)
@@ -119,16 +119,16 @@ def train_electra(config: dict):
         run.log('config', config)
     except: pass
 
-def _test_electra(method='BlendSearch'):
+def _test_roberta(method='BlendSearch'):
  
-    max_num_epoch = 9
+    max_num_epoch = 100
     num_samples = -1
     time_budget_s = 3600
 
     search_space = {
         # You can mix constants with search space objects.
         "num_train_epochs": flaml.tune.loguniform(1, max_num_epoch),
-        "learning_rate": flaml.tune.loguniform(3e-5, 1.5e-4),
+        "learning_rate": flaml.tune.loguniform(1e-5, 3e-5),
         "weight_decay": flaml.tune.uniform(0, 0.3),
         "per_device_train_batch_size": flaml.tune.choice([16, 32, 64, 128]),
         "seed": flaml.tune.choice([12, 22, 33, 42]),
@@ -185,7 +185,7 @@ def _test_electra(method='BlendSearch'):
             grace_period=1)
     scheduler = None
     analysis = ray.tune.run(
-        train_electra,
+        train_roberta,
         metric=HP_METRIC,
         mode=MODE,
         resources_per_trial={"gpu": 4, "cpu": 4},
@@ -206,45 +206,46 @@ def _test_electra(method='BlendSearch'):
     logger.info(f"Best model parameters: {best_trial.config}")
 
 
-def _test_electra_cfo():
-    _test_electra('CFO')
+def _test_roberta_cfo():
+    _test_roberta('CFO')
 
 
-def _test_electra_dragonfly():
-    _test_electra('Dragonfly')
+def _test_roberta_dragonfly():
+    _test_roberta('Dragonfly')
 
 
-def _test_electra_skopt():
-    _test_electra('SkOpt')
+def _test_roberta_skopt():
+    _test_roberta('SkOpt')
 
 
-def _test_electra_nevergrad():
-    _test_electra('Nevergrad')
+def _test_roberta_nevergrad():
+    _test_roberta('Nevergrad')
 
 
-def _test_electra_zoopt():
-    _test_electra('ZOOpt')
+def _test_roberta_zoopt():
+    _test_roberta('ZOOpt')
 
 
-def _test_electra_ax():
-    _test_electra('Ax')
+def _test_roberta_ax():
+    _test_roberta('Ax')
 
 
-def __test_electra_hyperopt():
-    _test_electra('HyperOpt')
+def __test_roberta_hyperopt():
+    _test_roberta('HyperOpt')
 
 
-def _test_electra_optuna():
-    _test_electra('Optuna')
+def _test_roberta_optuna():
+    _test_roberta('Optuna')
 
 
-def _test_electra_asha():
-    _test_electra('ASHA')
+def _test_roberta_asha():
+    _test_roberta('ASHA')
 
 
-def _test_electra_bohb():
-    _test_electra('BOHB')
+def _test_roberta_bohb():
+    _test_roberta('BOHB')
 
 
 if __name__ == "__main__":
-    _test_electra()
+    _test_roberta()
+

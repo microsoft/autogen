@@ -1,4 +1,4 @@
-from flaml.searcher import CFO, BlendSearch, FLOW2
+from flaml.searcher import CFO, BlendSearch, FLOW2, BlendSearchTuner
 from flaml.automl import AutoML, logger_formatter
 from flaml.version import __version__
 import logging
