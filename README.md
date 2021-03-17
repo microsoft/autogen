@@ -1,7 +1,8 @@
 [![PyPI version](https://badge.fury.io/py/FLAML.svg)](https://badge.fury.io/py/FLAML)
 [![Build](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.6%20%7C%203.7%20%7C%203.8-blue)
-[![Downloads](https://pepy.tech/badge/flaml/month)](https://pepy.tech/project/flaml) [![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Downloads](https://pepy.tech/badge/flaml/month)](https://pepy.tech/project/flaml)
+[![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # FLAML - Fast and Lightweight AutoML
 
@@ -12,11 +13,14 @@
 
 FLAML is a lightweight Python library that finds accurate machine
 learning models automatically, efficiently and economically. It frees users from selecting
-learners and hyperparameters for each learner. It is fast and cheap.
+learners and hyperparameters for each learner. It is fast and economical. 
 The simple and lightweight design makes it easy to extend, such as
 adding customized learners or metrics. FLAML is powered by a new, [cost-effective
 hyperparameter optimization](https://github.com/microsoft/FLAML/tree/main/flaml/tune)
 and learner selection method invented by Microsoft Research.
+FLAML leverages the structure of the search space to choose a search order optimized for both cost and error. For example, the system tends to propose cheap configurations at the beginning stage of the search,
+but quickly moves to configurations with high model complexity and large sample size when needed in the later stage of the search. For another example, it favors cheap learners in the beginning but penalizes them later if the error improvement is slow. The cost-bounded search and cost-based prioritization make a big difference in the the search efficiency under budget constraints.
+
 FLAML is easy to use:
 
 * With three lines of code, you can start using this economical and fast
@@ -117,7 +121,7 @@ And they can be used in distributed HPO frameworks such as ray tune or nni.
 
 For more technical details, please check our papers.
 
-* [FLAML: A Fast and Lightweight AutoML Library](https://arxiv.org/abs/1911.04706). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. To appear in MLSys, 2021.
+* [FLAML: A Fast and Lightweight AutoML Library](https://www.microsoft.com/en-us/research/publication/flaml-a-fast-and-lightweight-automl-library/). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. To appear in MLSys, 2021.
 ```
 @inproceedings{wang2021flaml,
     title={FLAML: A Fast and Lightweight AutoML Library},
@@ -127,13 +131,15 @@ For more technical details, please check our papers.
 }
 ```
 * [Frugal Optimization for Cost-related Hyperparameters](https://arxiv.org/abs/2005.01571). Qingyun Wu, Chi Wang, Silu Huang. AAAI 2021.
-* Economical Hyperparameter Optimization With Blended Search Strategy. Chi Wang, Qingyun Wu, Silu Huang, Amin Saied. To appear in ICLR 2021.
+* [Economical Hyperparameter Optimization With Blended Search Strategy](https://www.microsoft.com/en-us/research/publication/economical-hyperparameter-optimization-with-blended-search-strategy/). Chi Wang, Qingyun Wu, Silu Huang, Amin Saied. To appear in ICLR 2021.
 
 ## Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
+
+If you are new to GitHub [here](https://help.github.com/categories/collaborating-with-issues-and-pull-requests/) is a detailed help source on getting involved with development on GitHub.
 
 When you submit a pull request, a CLA bot will automatically determine whether you need to provide
 a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
@@ -142,6 +148,23 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Developing
+
+### Setup:
+
+```
+git clone https://github.com/microsoft/FLAML.git
+pip install -e .[test,notebook]
+```
+
+### Coverage
+Any code you commit should generally not significantly impact coverage. To run all unit tests:
+```
+coverage run -m pytest test
+```
+
+If all the tests are passed, please also test run notebook/flaml_automl to make sure your commit does not break the notebook example.
 
 ## Authors
 

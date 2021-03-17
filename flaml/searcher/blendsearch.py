@@ -7,6 +7,7 @@ from typing import Dict, Optional, List, Tuple
 import numpy as np
 import time
 import pickle
+
 try:
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
@@ -143,20 +144,31 @@ class BlendSearch(Searcher):
         self._deadline = np.inf
 
     def save(self, checkpoint_path: str):
-        save_object = (self._metric_target, self._search_thread_pool,
-            self._thread_count, self._init_used, self._trial_proposed_by,
-            self._ls_bound_min, self._ls_bound_max, self._result,
-            self._deadline)
+        save_object = self
         with open(checkpoint_path, "wb") as outputFile:
             pickle.dump(save_object, outputFile)
             
     def restore(self, checkpoint_path: str):
         with open(checkpoint_path, "rb") as inputFile:
-            save_object = pickle.load(inputFile)
-        self._metric_target, self._search_thread_pool, \
-            self._thread_count, self._init_used, self._trial_proposed_by, \
-            self._ls_bound_min, self._ls_bound_max, self._result, \
-            self._deadline = save_object
+            state = pickle.load(inputFile)
+        self._metric_target = state._metric_target
+        self._search_thread_pool = state._search_thread_pool
+        self._thread_count = state._thread_count
+        self._init_used = state._init_used
+        self._trial_proposed_by = state._trial_proposed_by
+        self._ls_bound_min = state._ls_bound_min
+        self._ls_bound_max = state._ls_bound_max
+        self._gs_admissible_min = state._gs_admissible_min
+        self._gs_admissible_max = state._gs_admissible_max
+        self._result = state._result
+        self._deadline = state._deadline
+        self._metric, self._mode = state._metric, state._mode
+        self._points_to_evaluate = state._points_to_evaluate
+        self._gs = state._gs
+        self._ls = state._ls
+        self._resources_per_trial = state._resources_per_trial
+        self._mem_size = state._mem_size
+        self._mem_threshold = state._mem_threshold
 
     def restore_from_dir(self, checkpoint_dir: str):
         super.restore_from_dir(checkpoint_dir)
@@ -526,3 +538,87 @@ class CFO(BlendSearchTuner):
         return len(self._search_thread_pool) < 2
 
 
+def create_next(client):
+    '''A stateless API for HPO
+    '''
+    state = client.get_state()
+    setting = client.get_settings_dict()
+    if state is None:
+        # first time call
+        try:
+            from ray.tune import (uniform, quniform, choice, randint, qrandint, randn,
+        qrandn, loguniform, qloguniform)
+            from ray.tune.trial import Trial
+        except:
+            from ..tune.sample import (uniform, quniform, choice, randint, qrandint, randn,
+        qrandn, loguniform, qloguniform)
+            from ..tune.trial import Trial
+        method = setting.get('method', 'BlendSearch')
+        mode = client.get_optimization_mode()
+        if mode == 'minimize':
+            mode = 'min'
+        elif mode == 'maximize':
+            mode = 'max'
+        metric = client.get_primary_metric()
+        hp_space = client.get_hyperparameter_space_dict()
+        space = {}
+        for key, value in hp_space.items():
+            t = value["type"]
+            if t == 'continuous':
+                space[key] = uniform(value["min_val"], value["max_val"])
+            elif t == 'discrete':
+                space[key] = choice(value["values"])
+            elif t == 'integral':
+                space[key] = randint(value["min_val"], value["max_val"])
+            elif t == 'quantized_continuous':
+                space[key] = quniform(value["min_val"], value["max_val"],
+                 value["step"])
+        init_config = setting.get('init_config', None)
+        if init_config:
+            points_to_evaluate = [init_config]
+        else:
+            points_to_evaluate = None
+        cat_hp_cost = setting.get('cat_hp_cost', None)
+
+        if method == 'BlendSearch':
+            Algo = BlendSearch
+        elif method == 'CFO':
+            Algo = CFO
+        algo = Algo(
+            mode=mode, 
+            metric=metric, 
+            space=space,
+            points_to_evaluate=points_to_evaluate,
+            cat_hp_cost=cat_hp_cost,
+            )
+        time_budget_s = setting.get('time_budget_s', None)
+        if time_budget_s:
+            algo._deadline = time_budget_s + time.time()
+        config2trialid = {}
+    else:
+        algo = state['algo']
+        config2trialid = state['config2trialid']
+    # update finished trials
+    trials_completed = []
+    for trial in client.get_trials():
+        if trial.end_time is not None:
+            signature = algo._ls.config_signature(trial.hp_sample)
+            if not algo._result[signature]:
+                trials_completed.append((trial.end_time, trial))
+    trials_completed.sort()
+    for t in trials_completed:
+        end_time, trial = t
+        trial_id = config2trialid[trial.hp_sample]
+        result = {}
+        result[algo.metric] = trial.metrics[algo.metric].values[-1]
+        result[algo.cost_attr] = (end_time - trial.start_time).total_seconds()
+        for key, value in trial.hp_sample.items():
+            result['config/'+key] = value
+        algo.on_trial_complete(trial_id, result=result)
+    # propose new trial
+    trial_id = Trial.generate_id()
+    config = algo.suggest(trial_id)
+    if config:
+        config2trialid[config] = trial_id
+        client.launch_trial(config)
+    client.update_state({'algo': algo, 'config2trialid': config2trialid})

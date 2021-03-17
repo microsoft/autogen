@@ -253,6 +253,8 @@ class AutoML:
 
     '''
 
+    from .version import __version__
+
     def __init__(self):
         self._track_iter = 0
         self._state = AutoMLState()
@@ -282,6 +284,22 @@ class AutoML:
             return self._trained_estimator.model
         else:
             return None
+
+    def best_model_for_estimator(self, estimator_name):
+        '''Return the best model found for a particular estimator
+
+        Args:
+            estimator_name: a str of the estimator's name
+        
+        Returns:
+            An object with `predict()` and `predict_proba()` method (for
+        classification), storing the best trained model for estimator_name.
+        '''
+        if estimator_name in self._search_states:
+            state = self._search_states[estimator_name]
+            if hasattr(state, 'trained_estimator'):
+                return state.trained_estimator.model
+        return None
 
     @property
     def best_estimator(self):
@@ -1208,9 +1226,10 @@ class AutoML:
                 gap = search_state.best_loss - self._state.best_loss
                 if gap > 0 and not self._ensemble:
                     delta_loss = (search_state.best_loss_old - 
-                                 search_state.best_loss)
+                                 search_state.best_loss) or \
+                                     search_state.best_loss
                     delta_time = (search_state.total_time_used - 
-                                 search_state.time_best_found_old)
+                                 search_state.time_best_found_old) or 1e-10
                     speed = delta_loss / delta_time
                     try:
                         estimated_cost = 2*gap/speed
