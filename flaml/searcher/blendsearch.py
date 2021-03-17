@@ -420,9 +420,10 @@ class BlendSearch(Searcher):
     def _valid(self, config: Dict) -> bool:
         ''' config validator
         '''
+        normalized_config = self._ls.normalize(config)
         for key in self._gs_admissible_min:
             if key in config:
-                value = config[key]
+                value = normalized_config[key]
                 # logger.info(
                 #     f"{key},{value},{self._admissible_min[key]},{self._admissible_max[key]}")
                 if value+self._ls.STEPSIZE<self._gs_admissible_min[
