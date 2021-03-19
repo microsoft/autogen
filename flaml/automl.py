@@ -589,6 +589,12 @@ class AutoML:
             self._state.y_val = (X_train, y_train, X_val, y_val)
         if self._split_type == "stratified":
             logger.info("Using StratifiedKFold")
+            assert y_train_all.size >= n_splits, (
+                f"{n_splits}-fold cross validation"
+                f" requires input data with at least {n_splits} examples.")
+            assert y_train_all.size >= 2*n_splits, (
+                f"{n_splits}-fold cross validation with metric=r2 "
+                f"requires input data with at least {n_splits*2} examples.")
             self._state.kf = RepeatedStratifiedKFold(n_splits=n_splits,
              n_repeats=1, random_state=RANDOM_SEED)
         else:
@@ -1045,7 +1051,7 @@ class AutoML:
                 init_config=None, 
                 search_alg=search_state.search_alg,
                 time_budget_s=budget_left,
-                verbose=max(self.verbose-1,0), local_dir='logs/tune_results',
+                verbose=max(self.verbose-1,0), #local_dir='logs/tune_results',
                 use_ray=False,
                 )
             # warnings.resetwarnings()

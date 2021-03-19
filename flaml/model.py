@@ -239,11 +239,8 @@ class LGBMEstimator(BaseEstimator):
         else: objective = 'regression'
         self.params = {
             "n_estimators": int(round(n_estimators)),
-            "num_leaves":  params[
-                'num_leaves'] if 'num_leaves' in params else int(
-                    round(max_leaves)),
-            'objective': params[
-                "objective"] if "objective" in params else objective,
+            "num_leaves":  params.get('num_leaves', int(round(max_leaves))),
+            'objective': params.get("objective", objective),
             'n_jobs': n_jobs,
             'learning_rate': float(learning_rate),
             'reg_alpha': float(reg_alpha),
@@ -359,18 +356,17 @@ class XGBoostEstimator(SKLearnEstimator):
         self._max_leaves = int(round(max_leaves))
         self.params = {
             'max_leaves': int(round(max_leaves)),
-            'max_depth': 0,
-            'grow_policy': params[
-                "grow_policy"] if "grow_policy" in params else 'lossguide',
-            'tree_method':tree_method,
-            'verbosity': 0,
-            'nthread':n_jobs,
+            'max_depth': params.get('max_depth', 0),
+            'grow_policy': params.get("grow_policy", 'lossguide'),
+            'tree_method': tree_method,
+            'verbosity': params.get('verbosity', 0),
+            'nthread': n_jobs,
             'learning_rate': float(learning_rate),
             'subsample': float(subsample),
             'reg_alpha': float(reg_alpha),
             'reg_lambda': float(reg_lambda),
             'min_child_weight': float(min_child_weight),
-            'booster': params['booster'] if 'booster' in params else 'gbtree',
+            'booster': params.get('booster', 'gbtree'),
             'colsample_bylevel': float(colsample_bylevel),
             'colsample_bytree':float(colsample_bytree),
             }
@@ -429,9 +425,8 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         "n_estimators": int(round(n_estimators)),
         'max_leaves': int(round(max_leaves)),
         'max_depth': 0,
-        'grow_policy': params[
-                "grow_policy"] if "grow_policy" in params else 'lossguide',
-        'tree_method':tree_method,
+        'grow_policy': params.get("grow_policy", 'lossguide'),
+        'tree_method': tree_method,
         'verbosity': 0,
         'n_jobs': n_jobs,
         'learning_rate': float(learning_rate),
@@ -439,7 +434,7 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         'reg_alpha': float(reg_alpha),
         'reg_lambda': float(reg_lambda),
         'min_child_weight': float(min_child_weight),
-        'booster': params['booster'] if 'booster' in params else 'gbtree',
+        'booster': params.get('booster', 'gbtree'),
         'colsample_bylevel': float(colsample_bylevel),
         'colsample_bytree': float(colsample_bytree),
         }
@@ -544,10 +539,10 @@ class LRL1Classifier(SKLearnEstimator):
         **params):
         super().__init__(task, **params)
         self.params = {
-            'penalty': 'l1',
+            'penalty': params.get("penalty", 'l1'),
             'tol': float(tol),
             'C': float(C),
-            'solver': 'saga',
+            'solver': params.get("solver", 'saga'),
             'n_jobs': n_jobs,
         }
         if 'regression' in task:
@@ -573,10 +568,10 @@ class LRL2Classifier(SKLearnEstimator):
         **params):
         super().__init__(task, **params)
         self.params = {
-            'penalty': 'l2',
+            'penalty': params.get("penalty", 'l2'),
             'tol': float(tol),
             'C': float(C),
-            'solver': 'lbfgs',
+            'solver': params.get("solver", 'lbfgs'),
             'n_jobs': n_jobs,
         }
         if 'regression' in task:
@@ -625,9 +620,8 @@ class CatBoostEstimator(BaseEstimator):
             "n_estimators": n_estimators, 
             'learning_rate': learning_rate,
             'thread_count': n_jobs,
-            'verbose': False,
-            'random_seed': params[
-                "random_seed"] if "random_seed" in params else 10242048,
+            'verbose': params.get('verbose', False),
+            'random_seed': params.get("random_seed", 10242048),
         }
         if 'regression' in task:
             from catboost import CatBoostRegressor
@@ -724,7 +718,7 @@ class KNeighborsEstimator(BaseEstimator):
         super().__init__(task, **params)
         self.params= {
             'n_neighbors': int(round(n_neighbors)),
-            'weights': 'distance',
+            'weights': params.get('weights', 'distance'),
             'n_jobs': n_jobs,
         }
         if 'regression' in task:

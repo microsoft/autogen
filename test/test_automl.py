@@ -172,6 +172,10 @@ class TestAutoML(unittest.TestCase):
             "model_history": True
         }
         X_train, y_train = load_iris(return_X_y=True, as_frame=as_frame)
+        if as_frame:
+            # test drop column
+            X_train.columns = range(X_train.shape[1])
+            X_train[X_train.shape[1]] = np.zeros(len(y_train))
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               **automl_settings)
         print(automl_experiment.classes_)
@@ -252,7 +256,8 @@ class TestAutoML(unittest.TestCase):
             "task": 'regression',
             "log_file_name": "test/sparse_regression.log",
             "n_jobs": 1,
-            "model_history": True
+            "model_history": True,
+            "verbose": 0,
         }
         X_train = scipy.sparse.random(300, 900, density=0.0001)
         y_train = np.random.uniform(size=300)
@@ -327,10 +332,11 @@ class TestAutoML(unittest.TestCase):
             "task": 'regression',
             "log_file_name": "test/sparse_regression.log",
             "n_jobs": 1,
-            "model_history": True
+            "model_history": True,
+            "metric": "mse"
         }
-        X_train = scipy.sparse.random(100, 100)
-        y_train = np.random.uniform(size=100)
+        X_train = scipy.sparse.random(8, 100)
+        y_train = np.random.uniform(size=8)
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               **automl_settings)
         print(automl_experiment.predict(X_train))
