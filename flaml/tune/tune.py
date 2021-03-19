@@ -205,7 +205,7 @@ def run(training_function,
             0 = silent, 1 = only status updates, 2 = status and brief trial
             results, 3 = status and detailed trial results. Defaults to 2.
         local_dir: A string of the local dir to save ray logs if ray backend is
-            used.
+            used; or a local dir to save the tuning log.
         num_samples: An integer of the number of configs to try. Defaults to 1.
         resources_per_trial: A dictionary of the hardware resources to allocate
             per trial, e.g., `{'mem': 1024**3}`. When not using ray backend,
@@ -221,9 +221,18 @@ def run(training_function,
         _verbose = verbose
         if verbose > 0:
             import os
-            os.makedirs(local_dir, exist_ok=True)
-            logger.addHandler(logging.FileHandler(local_dir+'/tune_'+str(
-                datetime.datetime.now()).replace(':', '-')+'.log'))
+            if local_dir:
+                os.makedirs(local_dir, exist_ok=True)
+                logger.addHandler(logging.FileHandler(local_dir+'/tune_'+str(
+                    datetime.datetime.now()).replace(':', '-')+'.log'))
+            elif not logger.handlers:
+                # Add the console handler.
+                _ch = logging.StreamHandler()
+                logger_formatter = logging.Formatter(
+                    '[%(name)s: %(asctime)s] {%(lineno)d} %(levelname)s - %(message)s',
+                    '%m-%d %H:%M:%S')
+                _ch.setFormatter(logger_formatter)
+                logger.addHandler(_ch)        
             if verbose<=2:
                 logger.setLevel(logging.INFO)
             else:

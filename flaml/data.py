@@ -192,11 +192,13 @@ class DataTransformer:
             X = X.copy()
             n = X.shape[0]
             cat_columns, num_columns = [], []
+            drop = False
             for column in X.columns:
                 if X[column].dtype.name in ('object', 'category'):
                     if X[column].nunique() == 1 or X[column].nunique(
                             dropna=True) == n - X[column].isnull().sum():
                         X.drop(columns=column, inplace=True)
+                        drop = True
                     elif X[column].dtype.name == 'category':
                         current_categories = X[column].cat.categories
                         if '__NAN__' not in current_categories:
@@ -204,27 +206,33 @@ class DataTransformer:
                                 '__NAN__').fillna('__NAN__')
                         cat_columns.append(column)
                     else:
-                        X[column].fillna('__NAN__', inplace=True)
+                        X[column] = X[column].fillna('__NAN__')
                         cat_columns.append(column)
                 else:
                     # print(X[column].dtype.name)
                     if X[column].nunique(dropna=True) < 2:
                         X.drop(columns=column, inplace=True)
+                        drop = True
                     else:
-                        X[column].fillna(np.nan, inplace=True)
+                        X[column] = X[column].fillna(np.nan)
                         num_columns.append(column)
             X = X[cat_columns + num_columns]
             if cat_columns:
                 X[cat_columns] = X[cat_columns].astype('category')
             if num_columns:
+                X_num = X[num_columns]
+                if drop and np.issubdtype(X_num.columns.dtype, np.integer):
+                    X_num.columns = range(X_num.shape[1])
+                else: drop = False
                 from sklearn.impute import SimpleImputer
                 from sklearn.compose import ColumnTransformer
                 self.transformer = ColumnTransformer([(
                     'continuous',
                     SimpleImputer(missing_values=np.nan, strategy='median'),
-                    num_columns)])
-                X[num_columns] = self.transformer.fit_transform(X)
+                        X_num.columns)])
+                X[num_columns] = self.transformer.fit_transform(X_num)
             self._cat_columns, self._num_columns = cat_columns, num_columns
+            self._drop = drop
             
         if task == 'regression':
             self.label_transformer = None
@@ -241,7 +249,7 @@ class DataTransformer:
             for column in cat_columns:
                 # print(column, X[column].dtype.name)
                 if X[column].dtype.name == 'object':
-                    X[column].fillna('__NAN__', inplace=True)
+                    X[column] = X[column].fillna('__NAN__')
                 elif X[column].dtype.name == 'category':
                     current_categories = X[column].cat.categories
                     if '__NAN__' not in current_categories:
@@ -250,6 +258,8 @@ class DataTransformer:
             if cat_columns:
                 X[cat_columns] = X[cat_columns].astype('category')
             if num_columns:
-                X[num_columns].fillna(np.nan, inplace=True)
-                X[num_columns] = self.transformer.transform(X)
+                X_num = X[num_columns].fillna(np.nan)
+                if self._drop:
+                    X_num.columns = range(X_num.shape[1])
+                X[num_columns] = self.transformer.transform(X_num)
         return X
