@@ -455,7 +455,7 @@ try:
             value: final metrics of the trial, including default metric
             '''
             result = {}
-            for key, value in parameters:
+            for key, value in parameters.items():
                 result['config/'+key] = value
             reward = extract_scalar_reward(value)
             result[self._metric] = reward

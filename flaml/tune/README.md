@@ -159,6 +159,12 @@ Recommended scenario: cost-related hyperparameters exist, a low-cost
 initial point is known, and the search space is complex such that local search
 is prone to be stuck at local optima.
 
+An example of using BlendSearch with NNI can be seen in [test](https://github.com/microsoft/FLAML/tree/main/test/nni), CFO can be used with NNI as well in a similar manner. To run the example, first make sure you have [NNI](https://nni.readthedocs.io/en/stable/) installed, then run:
+
+```shell
+$nnictl create --config ./config.yml
+```
+
 For more technical details, please check our papers.
 
 * [Frugal Optimization for Cost-related Hyperparameters](https://arxiv.org/abs/2005.01571). Qingyun Wu, Chi Wang, Silu Huang. AAAI 2021.
