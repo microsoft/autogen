@@ -40,7 +40,8 @@ class BlendSearch(Searcher):
                  reduction_factor: Optional[float] = None,
                  resources_per_trial: Optional[dict] = None,
                  global_search_alg: Optional[Searcher] = None,
-                 mem_size = None):
+                 mem_size = None, 
+                 seed: Optional[int] = 20):
         '''Constructor
 
         Args:
@@ -88,6 +89,7 @@ class BlendSearch(Searcher):
                 - HyperOptSearch raises exception sometimes
                 - TuneBOHB has its own scheduler
             mem_size: A function to estimate the memory size for a given config.
+            seed: An integer of the random seed.
         '''
         self._metric, self._mode = metric, mode
         if points_to_evaluate: init_config = points_to_evaluate[0]
@@ -100,7 +102,7 @@ class BlendSearch(Searcher):
         else:
             self._gs = None
         self._ls = LocalSearch(init_config, metric, mode, cat_hp_cost, space,
-         prune_attr, min_resource, max_resource, reduction_factor)
+         prune_attr, min_resource, max_resource, reduction_factor, seed)
         self._resources_per_trial = resources_per_trial
         self._mem_size = mem_size
         self._mem_threshold = resources_per_trial.get(
