@@ -4,7 +4,7 @@ ws = Workspace.from_config()
 compute_target = ws.compute_targets['V100-4']
 # compute_target = ws.compute_targets['K80']
 command = [
-    "pip install torch transformers datasets flaml[blendsearch,ray] ax-platform sqlalchemy && ",
+    "pip install torch transformers datasets flaml[blendsearch,ray] && ",
     "python test_electra.py"]
 
 config = ScriptRunConfig(
