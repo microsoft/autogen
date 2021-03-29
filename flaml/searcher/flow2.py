@@ -200,6 +200,7 @@ class FLOW2(Searcher):
     def step_lower_bound(self) -> float:
         step_lb = self._step_lb
         for key in self._tunable_keys:
+            if key not in self.best_config: continue
             domain = self.space[key]
             sampler = domain.get_sampler()
             if isinstance(sampler, sample.Quantized):
@@ -499,7 +500,7 @@ class FLOW2(Searcher):
 
     def rand_vector_unit_sphere(self, dim) -> np.ndarray:
         vec = self._random.normal(0, 1, dim)
-        mag = np.linalg.norm(vec)        
+        mag = np.linalg.norm(vec)
         return vec/mag
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
@@ -518,7 +519,6 @@ class FLOW2(Searcher):
                 self._resource * self.resource_multiple_factor)
             config = self.best_config.copy()
             config[self.prune_attr] = self._resource
-            # self.incumbent[self.prune_attr] = self._resource
             self._direction_tried = None
             self._configs[trial_id] = config
             return config
