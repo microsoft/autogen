@@ -383,13 +383,14 @@ class XGBoostEstimator(SKLearnEstimator):
         if not issparse(X_train):
             self.params['tree_method'] = 'hist'
             X_train = self._preprocess(X_train)
-        dtrain = xgb.DMatrix(X_train, label=y_train)
+        if 'sample_weight' in kwargs:
+            dtrain = xgb.DMatrix(X_train, label=y_train, weight=kwargs[
+                'sample_weight'])
+        else:
+            dtrain = xgb.DMatrix(X_train, label=y_train)
+            
         if self._max_leaves>0:
-            if 'sample_weight' in kwargs:
-                self._model = xgb.train(self.params, dtrain,
-                 self._n_estimators, weight=kwargs['sample_weight'])
-            else:
-                self._model = xgb.train(self.params, dtrain, self._n_estimators)
+            self._model = xgb.train(self.params, dtrain, self._n_estimators)
             del dtrain
             train_time = time.time() - start_time
             return train_time
