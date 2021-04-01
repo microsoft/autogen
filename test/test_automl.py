@@ -249,6 +249,10 @@ class TestAutoML(unittest.TestCase):
 
     def test_sparse_matrix_regression(self):
 
+        X_train = scipy.sparse.random(300, 900, density=0.0001)
+        y_train = np.random.uniform(size=300)
+        X_val = scipy.sparse.random(100, 900, density=0.0001)
+        y_val = np.random.uniform(size=100)
         automl_experiment = AutoML()
         automl_settings = {
             "time_budget": 2,
@@ -259,10 +263,6 @@ class TestAutoML(unittest.TestCase):
             "model_history": True,
             "verbose": 0,
         }
-        X_train = scipy.sparse.random(300, 900, density=0.0001)
-        y_train = np.random.uniform(size=300)
-        X_val = scipy.sparse.random(100, 900, density=0.0001)
-        y_val = np.random.uniform(size=100)
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               X_val=X_val, y_val=y_val,
                               **automl_settings)
@@ -325,6 +325,8 @@ class TestAutoML(unittest.TestCase):
 
     def test_sparse_matrix_regression_cv(self):
 
+        X_train = scipy.sparse.random(8, 100)
+        y_train = np.random.uniform(size=8)
         automl_experiment = AutoML()
         automl_settings = {
             "time_budget": 2,
@@ -333,10 +335,9 @@ class TestAutoML(unittest.TestCase):
             "log_file_name": "test/sparse_regression.log",
             "n_jobs": 1,
             "model_history": True,
-            "metric": "mse"
+            "metric": "mse",
+            "sample_weight": np.ones(len(y_train)),
         }
-        X_train = scipy.sparse.random(8, 100)
-        y_train = np.random.uniform(size=8)
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               **automl_settings)
         print(automl_experiment.predict(X_train))
