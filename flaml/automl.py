@@ -51,6 +51,7 @@ class SearchState:
         self.init_eci = learner_class.cost_relative2lgbm()
         self._search_space_domain = {}
         self.init_config = {}
+        self.low_cost_partial_config = {}
         self.cat_hp_cost = {}
         self.data_size = data_size
         search_space = learner_class.search_space(
@@ -60,6 +61,9 @@ class SearchState:
             self._search_space_domain[name] = space['domain']
             if 'init_value' in space: 
                 self.init_config[name] = space['init_value']
+            if 'low_cost_init_value' in space:
+                self.low_cost_partial_config[name] = space[
+                    'low_cost_init_value']
             if 'cat_hp_cost' in space:
                 self.cat_hp_cost[name] = space['cat_hp_cost']
         self._hp_names = list(self._search_space_domain.keys())
@@ -1017,12 +1021,15 @@ class AutoML:
                                 keys[1]: x2,
                             })
                     self._max_iter_per_learner = len(points_to_evaluate)
+                    low_cost_partial_config = None
                 else:
                     points_to_evaluate=[search_state.init_config]
+                    low_cost_partial_config = search_state.low_cost_partial_config
                 if self._hpo_method in ('bs', 'cfo', 'grid'):
                     algo = SearchAlgo(metric='val_loss', mode='min',
                         space=search_space,
                         points_to_evaluate=points_to_evaluate, 
+                        low_cost_partial_config=low_cost_partial_config,
                         cat_hp_cost=search_state.cat_hp_cost,
                         prune_attr=prune_attr,
                         min_resource=min_resource,
@@ -1048,7 +1055,6 @@ class AutoML:
             start_run_time = time.time()
             # warnings.filterwarnings("ignore")
             analysis = tune.run(search_state.training_function,
-                init_config=None, 
                 search_alg=search_state.search_alg,
                 time_budget_s=budget_left,
                 verbose=max(self.verbose-1,0), #local_dir='logs/tune_results',

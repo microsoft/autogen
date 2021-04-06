@@ -61,7 +61,7 @@ setuptools.setup(
         ],
         "nni": [
             "nni",
-        ]
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
