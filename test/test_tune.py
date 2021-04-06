@@ -64,9 +64,9 @@ def _test_xgboost(method='BlendSearch'):
             if method == 'BlendSearch':
                 analysis = tune.run(
                     train_breast_cancer,
-                    init_config={
+                    config=search_space,
+                    low_cost_partial_config={
                         "max_depth": 1,
-                        "min_child_weight": 3,
                     },
                     cat_hp_cost={
                         "min_child_weight": [6, 3, 2],
@@ -78,7 +78,6 @@ def _test_xgboost(method='BlendSearch'):
                     report_intermediate_result=True,
                     # You can add "gpu": 0.1 to allocate GPUs
                     resources_per_trial={"cpu": 1},
-                    config=search_space,
                     local_dir='logs/',
                     num_samples=num_samples*n_cpu,
                     time_budget_s=time_budget_s,
@@ -96,10 +95,9 @@ def _test_xgboost(method='BlendSearch'):
                     algo = OptunaSearch()
                 elif 'CFO' == method:
                     from flaml import CFO
-                    algo = CFO(points_to_evaluate=[{
+                    algo = CFO(low_cost_partial_config={
                         "max_depth": 1,
-                        "min_child_weight": 3,
-                    }], cat_hp_cost={
+                    }, cat_hp_cost={
                         "min_child_weight": [6, 3, 2],
                     })
                 elif 'Dragonfly' == method:
@@ -169,12 +167,12 @@ def test_nested():
 
     analysis = tune.run(
         simple_func,
-        init_config={
+        config=search_space,
+        low_cost_partial_config={
             "cost_related": {"a": 1,}
         },
         metric="metric",
         mode="min",
-        config=search_space,
         local_dir='logs/',
         num_samples=-1,
         time_budget_s=1)

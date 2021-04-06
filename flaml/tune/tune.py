@@ -3,7 +3,7 @@
  * Licensed under the MIT License. See LICENSE file in the
  * project root for license information.
 '''
-from typing import Optional, Union
+from typing import Optional, Union, List
 import datetime, time
 try:
     from ray.tune.analysis import ExperimentAnalysis as EA
@@ -53,7 +53,6 @@ def report(_metric=None, **kwargs):
 
         analysis = tune.run(
             compute_with_config,
-            init_config={},
             config={
                 'x': tune.qloguniform(lower=1, upper=1000000, q=1),
                 'y': tune.randint(lower=1, upper=1000000)
@@ -100,8 +99,9 @@ def report(_metric=None, **kwargs):
 
 
 def run(training_function,
-        init_config: dict,
         config: Optional[dict] = None,
+        points_to_evaluate: Optional[List[dict]] = None,
+        low_cost_partial_config: Optional[dict] = None,
         cat_hp_cost: Optional[dict] = None,
         metric: Optional[str] = None,
         mode: Optional[str] = None,
@@ -136,7 +136,6 @@ def run(training_function,
 
         analysis = tune.run(
             compute_with_config,
-            init_config={},
             config={
                 'x': tune.qloguniform(lower=1, upper=1000000, q=1),
                 'y': tune.randint(lower=1, upper=1000000)
@@ -148,15 +147,17 @@ def run(training_function,
 
     Args:
         training_function: A user-defined training function. 
-        init_config: A dictionary from a subset of controlled dimensions
-            to the initial low-cost values. e.g.,            
+        config: A dictionary to specify the search space.
+        points_to_evaluate: A list of initial hyperparameter
+            configurations to run first.
+        low_cost_partial_config: A dictionary from a subset of 
+            controlled dimensions to the initial low-cost values.
+            e.g., 
 
             .. code-block:: python
 
-                {'epochs': 1}
-
-            If no such dimension, pass an empty dict {}.
-        config: A dictionary to specify the search space.
+                {'n_estimators': 4, 'max_leaves': 4}
+            
         cat_hp_cost: A dictionary from a subset of categorical dimensions
             to the relative cost of each choice. 
             e.g.,
@@ -195,9 +196,9 @@ def run(training_function,
                 from flaml import BlendSearch
                 algo = BlendSearch(metric='val_loss', mode='min',
                         space=search_space,
-                        points_to_evaluate=points_to_evaluate)
+                        low_cost_partial_config=low_cost_partial_config)
                 for i in range(10):
-                    analysis = tune.run(compute_with_config, init_config=None,
+                    analysis = tune.run(compute_with_config,
                         search_alg=algo, use_ray=False)
                     print(analysis.trials[-1].last_result)
                     
@@ -242,8 +243,9 @@ def run(training_function,
 
     if search_alg is None:
         from ..searcher.blendsearch import BlendSearch
-        search_alg = BlendSearch(points_to_evaluate=[init_config], 
-                                metric=metric, mode=mode,
+        search_alg = BlendSearch(metric=metric, mode=mode,
+                                points_to_evaluate=points_to_evaluate,
+                                low_cost_partial_config=low_cost_partial_config,
                                 cat_hp_cost=cat_hp_cost,
                                 space=config, prune_attr=prune_attr,
                                 min_resource=min_resource,

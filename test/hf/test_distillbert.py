@@ -119,14 +119,14 @@ def _test_distillbert(method='BlendSearch'):
         algo = OptunaSearch()
     elif 'CFO' == method:
         from flaml import CFO
-        algo = CFO(points_to_evaluate=[{
+        algo = CFO(low_cost_partial_config={
             "num_train_epochs": 1,
-        }])
+        })
     elif 'BlendSearch' == method:
         from flaml import BlendSearch
-        algo = BlendSearch(points_to_evaluate=[{
+        algo = BlendSearch(low_cost_partial_config={
             "num_train_epochs": 1,
-        }])
+        })
     elif 'Dragonfly' == method:
         from ray.tune.suggest.dragonfly import DragonflySearch
         algo = DragonflySearch()

@@ -27,7 +27,7 @@ analysis = tune.run(
         'x': tune.qloguniform(lower=1, upper=100000, q=1),
         'y': tune.randint(lower=1, upper=100000)
     }, # the search space
-    init_config={'x':1},    # a initial (partial) config with low cost
+    low_cost_partial_config={'x':1},    # a initial (partial) config with low cost
     metric='metric',    # the name of the metric used for optimization
     mode='min',         # the optimization mode, 'min' or 'max'
     num_samples=-1,    # the maximal number of configs to try, -1 means infinite
@@ -71,7 +71,7 @@ analysis = raytune.run(
     num_samples=-1,    # the maximal number of configs to try, -1 means infinite
     time_budget_s=60,   # the time budget in seconds
     local_dir='logs/',  # the local directory to store logs
-    search_alg=CFO(points_to_evaluate=[{'x':1}]) # or BlendSearch
+    search_alg=CFO(low_cost_partial_config=[{'x':1}]) # or BlendSearch
     )
 
 print(analysis.best_trial.last_result)  # the best trial's result
@@ -124,7 +124,7 @@ Example:
 ```python
 from flaml import CFO
 tune.run(...
-    search_alg = CFO(points_to_evaluate=[init_config]),
+    search_alg = CFO(low_cost_partial_config=low_cost_partial_config),
 )
 ```
 
@@ -157,7 +157,7 @@ Example:
 # require: pip install flaml[blendsearch]
 from flaml import BlendSearch
 tune.run(...
-    search_alg = BlendSearch(points_to_evaluate=[init_config]),
+    search_alg = BlendSearch(low_cost_partial_config=low_cost_partial_config),
 )
 ```
 

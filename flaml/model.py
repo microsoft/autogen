@@ -182,10 +182,12 @@ class LGBMEstimator(BaseEstimator):
             'n_estimators': {
                 'domain': tune.qloguniform(lower=4, upper=upper, q=1),
                 'init_value': 4,
+                'low_cost_init_value': 4,
             },
             'max_leaves': {
                 'domain': tune.qloguniform(lower=4, upper=upper, q=1),
                 'init_value': 4,
+                'low_cost_init_value': 4,
             },
             'min_data_in_leaf': {
                 'domain': tune.qloguniform(lower=2, upper=2**7, q=1),
@@ -304,10 +306,12 @@ class XGBoostEstimator(SKLearnEstimator):
             'n_estimators': {
                 'domain': tune.qloguniform(lower=4, upper=upper, q=1),
                 'init_value': 4,
+                'low_cost_init_value': 4,
             },
             'max_leaves': {
                 'domain': tune.qloguniform(lower=4, upper=upper, q=1),
                 'init_value': 4,
+                'low_cost_init_value': 4,
             },
             'min_child_weight': {
                 'domain': tune.loguniform(lower=0.001, upper=128),
@@ -463,6 +467,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
             'n_estimators': {
                 'domain': tune.qloguniform(lower=4, upper=upper, q=1),
                 'init_value': 4,
+                'low_cost_init_value': 4,
             },
             'max_features': {
                 'domain': tune.loguniform(lower=0.1, upper=1.0),
@@ -596,6 +601,7 @@ class CatBoostEstimator(BaseEstimator):
             'early_stopping_rounds': {
                 'domain': tune.qloguniform(lower=10, upper=upper, q=1),
                 'init_value': 10,
+                'low_cost_init_value': 10,
             },
             'learning_rate': {
                 'domain': tune.loguniform(lower=.005, upper=.2),
@@ -707,6 +713,7 @@ class KNeighborsEstimator(BaseEstimator):
             'n_neighbors': {
                 'domain': tune.qloguniform(lower=1, upper=upper, q=1),
                 'init_value': 5,
+                'low_cost_init_value': 1,
             },
         }
 

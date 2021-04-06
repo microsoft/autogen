@@ -230,7 +230,8 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
     if method == 'BlendSearch':
         result = tune.run(
             ray.tune.with_parameters(train_cifar, data_dir=data_dir),
-            init_config={
+            config=config,
+            low_cost_partial_config={
                 "l1": 2,
                 "l2": 2,
                 "num_epochs": 1,
@@ -242,7 +243,6 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
             min_resource=1,
             report_intermediate_result=True,
             resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
-            config=config,
             local_dir='logs/',
             num_samples=num_samples,
             time_budget_s=time_budget_s,
@@ -260,12 +260,12 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
             algo = OptunaSearch()
         elif 'CFO' == method:
             from flaml import CFO
-            algo = CFO(points_to_evaluate=[{
+            algo = CFO(low_cost_partial_config={
                 "l1": 2,
                 "l2": 2,
                 "num_epochs": 1,
                 "batch_size": 4,
-            }])
+            })
         elif 'Nevergrad' == method:
             from ray.tune.suggest.nevergrad import NevergradSearch
             import nevergrad as ng

@@ -40,7 +40,7 @@ automl.fit(X_train, y_train, task="classification", estimator_list=["lgbm"])
 * You can also run generic ray-tune style hyperparameter tuning for a custom function.
 ```python
 from flaml import tune
-tune.run(train_with_config, config={…}, init_config={…}, time_budget_s=3600)
+tune.run(train_with_config, config={…}, low_cost_partial_config={…}, time_budget_s=3600)
 ```
 
 ## Installation
