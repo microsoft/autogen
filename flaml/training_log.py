@@ -1,6 +1,6 @@
 '''!
  * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. 
+ * Licensed under the MIT License.
 '''
 
 import json
@@ -118,7 +118,7 @@ class TrainingLogWriter(object):
 
     def close(self):
         self.file.close()
-        self.file = None # for pickle
+        self.file = None  # for pickle
 
 
 class TrainingLogReader(object):
@@ -142,7 +142,7 @@ class TrainingLogReader(object):
 
     def close(self):
         self.file.close()
-        self.file = None # for pickle
+        self.file = None  # for pickle
 
     def get_record(self, record_id) -> TrainingLogRecord:
         if self.file is None:

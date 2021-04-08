@@ -121,8 +121,7 @@ class Trial:
                     self.metric_analysis[metric]["min"] = min(
                         value, self.metric_analysis[metric]["min"])
                     self.metric_analysis[metric]["avg"] = 1 / step * (
-                        value +
-                        (step - 1) * self.metric_analysis[metric]["avg"])
+                        value + (step - 1) * self.metric_analysis[metric]["avg"])
                     self.metric_analysis[metric]["last"] = value
 
                     for n in self.n_steps:

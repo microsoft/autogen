@@ -27,7 +27,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 20, 5, 1)
         self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(4*4*50, hidden_size)
+        self.fc1 = nn.Linear(4 * 4 * 50, hidden_size)
         self.fc2 = nn.Linear(hidden_size, 10)
 
     def forward(self, x):
@@ -35,7 +35,7 @@ class Net(nn.Module):
         x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.conv2(x))
         x = F.max_pool2d(x, 2, 2)
-        x = x.view(-1, 4*4*50)
+        x = x.view(-1, 4 * 4 * 50)
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
@@ -150,7 +150,6 @@ def get_params():
                         help='disables CUDA training')
     parser.add_argument('--log_interval', type=int, default=1000, metavar='N',
                         help='how many batches to wait before logging training status')
-
 
     args, _ = parser.parse_known_args()
     return args

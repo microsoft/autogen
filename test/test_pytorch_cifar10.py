@@ -9,23 +9,6 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.FileHandler('test/tune_pytorch_cifar10.log'))
 
 
-# __load_data_begin__
-def load_data(data_dir="./data"):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-
-    trainset = torchvision.datasets.CIFAR10(
-        root=data_dir, train=True, download=True, transform=transform)
-
-    testset = torchvision.datasets.CIFAR10(
-        root=data_dir, train=False, download=True, transform=transform)
-
-    return trainset, testset
-# __load_data_end__
-
-
 try:
     import torch
     import torch.nn as nn
@@ -35,9 +18,9 @@ try:
     import torchvision
     import torchvision.transforms as transforms
 
-
     # __net_begin__
     class Net(nn.Module):
+
         def __init__(self, l1=120, l2=84):
             super(Net, self).__init__()
             self.conv1 = nn.Conv2d(3, 6, 5)
@@ -79,7 +62,7 @@ def load_data(data_dir="test/data"):
 
 # __train_begin__
 def train_cifar(config, checkpoint_dir=None, data_dir=None):
-    if not "l1" in config:
+    if "l1" not in config:
         logger.warning(config)
     net = Net(2 ** config["l1"], 2 ** config["l2"])
 
@@ -200,8 +183,9 @@ def _test_accuracy(net, device="cpu"):
 
 
 # __main_begin__
-def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
- gpus_per_trial=2):
+def cifar10_main(
+    method='BlendSearch', num_samples=10, max_num_epochs=100, gpus_per_trial=2
+):
     data_dir = os.path.abspath("test/data")
     load_data(data_dir)  # Download data for all trials before starting the run
     if method == 'BlendSearch':
@@ -214,15 +198,15 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
             "l2": tune.randint(2, 8),
             "lr": tune.loguniform(1e-4, 1e-1),
             "num_epochs": tune.qloguniform(1, max_num_epochs, q=1),
-            "batch_size": tune.randint(1, 4)#tune.choice([2, 4, 8, 16])
+            "batch_size": tune.randint(1, 4)
         }
     else:
         config = {
             "l1": tune.randint(2, 9),
             "l2": tune.randint(2, 9),
             "lr": tune.loguniform(1e-4, 1e-1),
-            "num_epochs": tune.qloguniform(1, max_num_epochs+1, q=1),
-            "batch_size": tune.randint(1, 5)#tune.choice([2, 4, 8, 16])
+            "num_epochs": tune.qloguniform(1, max_num_epochs + 1, q=1),
+            "batch_size": tune.randint(1, 5)
         }
     import ray
     time_budget_s = 3600
@@ -274,7 +258,7 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
             from ray.tune.schedulers import ASHAScheduler
             scheduler = ASHAScheduler(
                 max_t=max_num_epochs,
-                grace_period=1)        
+                grace_period=1)
         result = tune.run(
             tune.with_parameters(train_cifar, data_dir=data_dir),
             resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
@@ -297,7 +281,7 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
         best_trial.metric_analysis["accuracy"]["max"]))
 
     best_trained_model = Net(2**best_trial.config["l1"],
-     2**best_trial.config["l2"])
+                             2**best_trial.config["l2"])
     device = "cpu"
     if torch.cuda.is_available():
         device = "cuda:0"
@@ -315,8 +299,8 @@ def cifar10_main(method='BlendSearch', num_samples=10, max_num_epochs=100,
 # __main_end__
 
 
-gpus_per_trial=0#.5
-num_samples=500
+gpus_per_trial = 0  # 0.5 on GPU server
+num_samples = 500
 
 
 def _test_cifar10_bs():
@@ -325,27 +309,27 @@ def _test_cifar10_bs():
 
 def _test_cifar10_cfo():
     cifar10_main('CFO',
-     num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_optuna():
     cifar10_main('Optuna',
-     num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_asha():
     cifar10_main('ASHA',
-     num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_bohb():
     cifar10_main('BOHB',
-     num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_nevergrad():
     cifar10_main('Nevergrad',
-     num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 if __name__ == "__main__":

@@ -57,7 +57,7 @@ def _test_xgboost(method='BlendSearch'):
     }
     max_iter = 10
     for num_samples in [128]:
-        time_budget_s = 60 #None
+        time_budget_s = 60
         for n_cpu in [8]:
             start_time = time.time()
             ray.init(num_cpus=n_cpu, num_gpus=0)
@@ -79,7 +79,7 @@ def _test_xgboost(method='BlendSearch'):
                     # You can add "gpu": 0.1 to allocate GPUs
                     resources_per_trial={"cpu": 1},
                     local_dir='logs/',
-                    num_samples=num_samples*n_cpu,
+                    num_samples=num_samples * n_cpu,
                     time_budget_s=time_budget_s,
                     use_ray=True)
             else:
@@ -112,7 +112,7 @@ def _test_xgboost(method='BlendSearch'):
                     algo = NevergradSearch(optimizer=ng.optimizers.OnePlusOne)
                 elif 'ZOOpt' == method:
                     from ray.tune.suggest.zoopt import ZOOptSearch
-                    algo = ZOOptSearch(budget=num_samples*n_cpu)
+                    algo = ZOOptSearch(budget=num_samples * n_cpu)
                 elif 'Ax' == method:
                     from ray.tune.suggest.ax import AxSearch
                     algo = AxSearch()
@@ -132,7 +132,8 @@ def _test_xgboost(method='BlendSearch'):
                     # You can add "gpu": 0.1 to allocate GPUs
                     resources_per_trial={"cpu": 1},
                     config=search_space, local_dir='logs/',
-                    num_samples=num_samples*n_cpu, time_budget_s=time_budget_s,
+                    num_samples=num_samples * n_cpu,
+                    time_budget_s=time_budget_s,
                     scheduler=scheduler, search_alg=algo)
             ray.shutdown()
             # # Load the best model checkpoint
@@ -140,7 +141,7 @@ def _test_xgboost(method='BlendSearch'):
             # best_bst = xgb.Booster()
             # best_bst.load_model(os.path.join(analysis.best_checkpoint,
             #  "model.xgb"))
-            best_trial = analysis.get_best_trial("eval-logloss","min","all")
+            best_trial = analysis.get_best_trial("eval-logloss", "min", "all")
             accuracy = 1. - best_trial.metric_analysis["eval-error"]["min"]
             logloss = best_trial.metric_analysis["eval-logloss"]["min"]
             logger.info(f"method={method}")
@@ -162,14 +163,14 @@ def test_nested():
     }
 
     def simple_func(config):
-        tune.report(
-            metric=(config["cost_related"]["a"]-4)**2 * (config["b"]-0.7)**2)
+        tune.report(metric=(config["cost_related"]["a"] - 4)**2
+                    * (config["b"] - 0.7)**2)
 
-    analysis = tune.run(
+    tune.run(
         simple_func,
         config=search_space,
         low_cost_partial_config={
-            "cost_related": {"a": 1,}
+            "cost_related": {"a": 1}
         },
         metric="metric",
         mode="min",

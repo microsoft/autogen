@@ -2,6 +2,8 @@
 '''
 import time
 import numpy as np
+import logging
+import os
 
 try:
     import ray
@@ -15,6 +17,7 @@ try:
         Trainer,
         TrainingArguments,
     )
+    import flaml
     MODEL_CHECKPOINT = "distilbert-base-uncased"
     TASK = "cola"
     NUM_LABELS = 2
@@ -26,20 +29,18 @@ try:
 
     # Define tokenize method
     tokenizer = AutoTokenizer.from_pretrained(MODEL_CHECKPOINT, use_fast=True)
+
     def tokenize(examples):
         return tokenizer(examples[COLUMN_NAME], truncation=True)
 
-except:
+except ImportError:
     print("pip install torch transformers datasets flaml[blendsearch,ray]")
-    
-import logging
+
 logger = logging.getLogger(__name__)
-import os
 os.makedirs('logs', exist_ok=True)
 logger.addHandler(logging.FileHandler('logs/tune_distilbert.log'))
 logger.setLevel(logging.INFO)
 
-import flaml
 
 def train_distilbert(config: dict):
 
@@ -87,11 +88,11 @@ def train_distilbert(config: dict):
     flaml.tune.report(
         loss=eval_output["eval_loss"],
         matthews_correlation=eval_output["eval_matthews_correlation"],
-        )
+    )
 
 
 def _test_distillbert(method='BlendSearch'):
- 
+
     max_num_epoch = 64
     num_samples = -1
     time_budget_s = 3600
