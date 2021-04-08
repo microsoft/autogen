@@ -66,8 +66,8 @@ def unflatten_dict(dt, delimiter="/"):
             item = item.setdefault(k, dict_type())
         item[path[-1]] = val
     return out
-    
-    
+
+
 class TuneError(Exception):
     """General error class raised by ray.tune."""
     pass

@@ -23,12 +23,12 @@ class TestTrainingLog(unittest.TestCase):
                 "task": 'regression',
                 "log_file_name": filename,
                 "log_training_metric": True,
-                "mem_thres": 1024*1024,
+                "mem_thres": 1024 * 1024,
                 "n_jobs": 1,
                 "model_history": True,
                 "verbose": 2,
             }
-            X_train, y_train = load_boston(return_X_y=True)            
+            X_train, y_train = load_boston(return_X_y=True)
             automl_experiment.fit(X_train=X_train, y_train=y_train,
                                   **automl_settings)
 

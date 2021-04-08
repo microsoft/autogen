@@ -2,6 +2,7 @@
 '''
 import time
 import numpy as np
+import os
 
 try:
     import ray
@@ -15,6 +16,7 @@ try:
         Trainer,
         TrainingArguments,
     )
+    import flaml
     MODEL_CHECKPOINT = "google/electra-base-discriminator"
     task_to_keys = {
         "cola": ("sentence", None),
@@ -27,9 +29,9 @@ try:
         "stsb": ("sentence1", "sentence2"),
         "wnli": ("sentence1", "sentence2"),
     }
-    max_seq_length=128
-    overwrite_cache=False
-    pad_to_max_length=True
+    max_seq_length = 128
+    overwrite_cache = False
+    pad_to_max_length = True
     padding = "max_length"
 
     TASK = "qnli"
@@ -46,19 +48,17 @@ try:
                 examples[sentence1_key], examples[sentence2_key])
         )
         return tokenizer(*args, padding=padding, max_length=max_seq_length,
-         truncation=True)
+                         truncation=True)
 
-except:
+except ImportError:
     print("pip install torch transformers datasets flaml[blendsearch,ray]")
-    
+
 import logging
 logger = logging.getLogger(__name__)
-import os
 os.makedirs('logs', exist_ok=True)
 logger.addHandler(logging.FileHandler('logs/tune_electra.log'))
 logger.setLevel(logging.INFO)
 
-import flaml
 
 def train_electra(config: dict):
 
@@ -75,7 +75,6 @@ def train_electra(config: dict):
         predictions, labels = eval_pred
         predictions = np.argmax(predictions, axis=1)
         return metric.compute(predictions=predictions, references=labels)
-
 
     model = AutoModelForSequenceClassification.from_pretrained(
         MODEL_CHECKPOINT, num_labels=NUM_LABELS
@@ -109,7 +108,7 @@ def train_electra(config: dict):
     flaml.tune.report(
         loss=eval_output["eval_loss"],
         accuracy=eval_output["eval_accuracy"],
-        )
+    )
 
     try:
         from azureml.core import Run
@@ -117,10 +116,12 @@ def train_electra(config: dict):
         run.log('accuracy', eval_output["eval_accuracy"])
         run.log('loss', eval_output["eval_loss"])
         run.log('config', config)
-    except: pass
+    except ImportError:
+        pass
+
 
 def _test_electra(method='BlendSearch'):
- 
+
     max_num_epoch = 9
     num_samples = -1
     time_budget_s = 3600

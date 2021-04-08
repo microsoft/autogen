@@ -54,7 +54,7 @@ setuptools.setup(
         ],
         "ray": [
             "ray[tune]==1.2.0",
-            "pyyaml<5.3.1",            
+            "pyyaml<5.3.1",
         ],
         "azureml": [
             "azureml-mlflow",
@@ -66,7 +66,7 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",        
+        "Operating System :: OS Independent",
     ],
     python_requires=">=3.6",
 )

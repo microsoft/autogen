@@ -15,5 +15,5 @@ config = ScriptRunConfig(
 
 exp = Experiment(ws, 'test-electra')
 run = exp.submit(config)
-print(run.get_portal_url()) # link to ml.azure.com
+print(run.get_portal_url())  # link to ml.azure.com
 run.wait_for_completion(show_output=True)

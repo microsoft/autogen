@@ -15,7 +15,7 @@ class XGBoost2D(XGBoostSklearnEstimator):
 
     @classmethod
     def search_space(cls, data_size, task):
-        upper = min(32768,int(data_size))
+        upper = min(32768, int(data_size))
         return {
             'n_estimators': {
                 'domain': tune.qloguniform(lower=4, upper=upper, q=1),
@@ -30,19 +30,14 @@ class XGBoost2D(XGBoostSklearnEstimator):
 
 def _test_simple(method=None, size_ratio=1.0):
     automl = AutoML()
-    automl.add_learner(learner_name = 'XGBoost2D',
-        learner_class = XGBoost2D)            
+    automl.add_learner(learner_name='XGBoost2D',
+                       learner_class=XGBoost2D)
 
-    
-    try:
-        X, y = fetch_openml(name=dataset, return_X_y=True)
-    except:
-        from sklearn.datasets import load_wine
-        X, y = load_wine(return_X_y=True)
+    X, y = fetch_openml(name=dataset, return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33,
-     random_state=42)
+                                                        random_state=42)
 
-    final_size = int(len(y_train)*size_ratio)
+    final_size = int(len(y_train) * size_ratio)
     X_train = X_train[:final_size]
     y_train = y_train[:final_size]
     automl_settings = {
@@ -62,13 +57,16 @@ def _test_simple(method=None, size_ratio=1.0):
 
 
 def _test_grid_1():
-    _test_simple(method="grid", size_ratio=1.0/3.0)
+    _test_simple(method="grid", size_ratio=1.0 / 3.0)
+
 
 def _test_grid_2():
-    _test_simple(method="grid", size_ratio=2.0/3.0)
+    _test_simple(method="grid", size_ratio=2.0 / 3.0)
+
 
 def _test_grid_4():
     _test_simple(method="grid", size_ratio=0.5)
+
 
 def _test_grid_3():
     _test_simple(method="grid", size_ratio=1.0)

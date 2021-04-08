@@ -14,10 +14,9 @@ from flaml import tune
 
 class MyRegularizedGreedyForest(SKLearnEstimator):
 
-
-    def __init__(self, task = 'binary:logistic', n_jobs = 1, max_leaf = 4,
-    n_iter = 1, n_tree_search = 1, opt_interval = 1, learning_rate = 1.0,
-    min_samples_leaf = 1, **params):
+    def __init__(self, task='binary:logistic', n_jobs=1, max_leaf=4,
+                 n_iter=1, n_tree_search=1, opt_interval=1, learning_rate=1.0,
+                 min_samples_leaf=1, **params):
 
         super().__init__(task, **params)
 
@@ -34,24 +33,24 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
             'n_tree_search': int(round(n_tree_search)),
             'opt_interval': int(round(opt_interval)),
             'learning_rate': learning_rate,
-            'min_samples_leaf':int(round(min_samples_leaf))
-        }    
+            'min_samples_leaf': int(round(min_samples_leaf))
+        }
 
     @classmethod
     def search_space(cls, data_size, task):
         space = {
-        'max_leaf': {'domain': tune.qloguniform(
-            lower = 4, upper = data_size, q = 1), 'init_value': 4},
-        'n_iter': {'domain': tune.qloguniform(
-            lower = 1, upper = data_size, q = 1), 'init_value': 1},
-        'n_tree_search': {'domain': tune.qloguniform(
-            lower = 1, upper = 32768, q = 1), 'init_value': 1},
-        'opt_interval': {'domain': tune.qloguniform(
-            lower = 1, upper = 10000, q = 1), 'init_value': 100},
-        'learning_rate': {'domain': tune.loguniform(
-            lower = 0.01, upper = 20.0)},
-        'min_samples_leaf': {'domain': tune.qloguniform(
-            lower = 1, upper = 20, q = 1), 'init_value': 20},
+            'max_leaf': {'domain': tune.qloguniform(
+                lower=4, upper=data_size, q=1), 'init_value': 4},
+            'n_iter': {'domain': tune.qloguniform(
+                lower=1, upper=data_size, q=1), 'init_value': 1},
+            'n_tree_search': {'domain': tune.qloguniform(
+                lower=1, upper=32768, q=1), 'init_value': 1},
+            'opt_interval': {'domain': tune.qloguniform(
+                lower=1, upper=10000, q=1), 'init_value': 100},
+            'learning_rate': {'domain': tune.loguniform(
+                lower=0.01, upper=20.0)},
+            'min_samples_leaf': {'domain': tune.qloguniform(
+                lower=1, upper=20, q=1), 'init_value': 20},
         }
         return space
 
@@ -59,22 +58,22 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
     def size(cls, config):
         max_leaves = int(round(config['max_leaf']))
         n_estimators = int(round(config['n_iter']))
-        return (max_leaves*3 + (max_leaves-1)*4 + 1.0)*n_estimators*8
+        return (max_leaves * 3 + (max_leaves - 1) * 4 + 1.0) * n_estimators * 8
 
     @classmethod
     def cost_relative2lgbm(cls):
-        return 1.0       
+        return 1.0
 
 
 def custom_metric(X_test, y_test, estimator, labels, X_train, y_train,
-    weight_test=None, weight_train=None):
+                  weight_test=None, weight_train=None):
     from sklearn.metrics import log_loss
     y_pred = estimator.predict_proba(X_test)
     test_loss = log_loss(y_test, y_pred, labels=labels,
-     sample_weight=weight_test)
+                         sample_weight=weight_test)
     y_pred = estimator.predict_proba(X_train)
     train_loss = log_loss(y_train, y_pred, labels=labels,
-     sample_weight=weight_train)
+                          sample_weight=weight_train)
     alpha = 0.5
     return test_loss * (1 + alpha) - alpha * train_loss, [test_loss, train_loss]
 
@@ -83,43 +82,42 @@ class TestAutoML(unittest.TestCase):
 
     def test_custom_learner(self):
         automl = AutoML()
-        automl.add_learner(learner_name = 'RGF',
-            learner_class = MyRegularizedGreedyForest)            
+        automl.add_learner(learner_name='RGF',
+                           learner_class=MyRegularizedGreedyForest)
         X_train, y_train = load_wine(return_X_y=True)
         settings = {
-            "time_budget": 10, # total running time in seconds
-            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'], 
-            "task": 'classification', # task type    
-            "sample": True, # whether to subsample training data
+            "time_budget": 10,  # total running time in seconds
+            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'],
+            "task": 'classification',  # task type
+            "sample": True,  # whether to subsample training data
             "log_file_name": "test/wine.log",
-            "log_training_metric": True, # whether to log training metric
+            "log_training_metric": True,  # whether to log training metric
             "n_jobs": 1,
         }
 
         '''The main flaml automl API'''
-        automl.fit(X_train = X_train, y_train = y_train, **settings)
+        automl.fit(X_train=X_train, y_train=y_train, **settings)
         # print the best model found for RGF
         print(automl.best_model_for_estimator("RGF"))
 
     def test_ensemble(self):
         automl = AutoML()
-        automl.add_learner(learner_name = 'RGF',
-            learner_class = MyRegularizedGreedyForest)            
+        automl.add_learner(learner_name='RGF',
+                           learner_class=MyRegularizedGreedyForest)
         X_train, y_train = load_wine(return_X_y=True)
         settings = {
-            "time_budget": 10, # total running time in seconds
-            # "estimator_list": ['lgbm', 'xgboost'], 
-            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'], 
-            "task": 'classification', # task type    
-            "sample": True, # whether to subsample training data
+            "time_budget": 10,  # total running time in seconds
+            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'],
+            "task": 'classification',  # task type
+            "sample": True,  # whether to subsample training data
             "log_file_name": "test/wine.log",
-            "log_training_metric": True, # whether to log training metric
+            "log_training_metric": True,  # whether to log training metric
             "ensemble": True,
             "n_jobs": 1,
         }
 
         '''The main flaml automl API'''
-        automl.fit(X_train = X_train, y_train = y_train, **settings)
+        automl.fit(X_train=X_train, y_train=y_train, **settings)
 
     def test_dataframe(self):
         self.test_classification(True)
@@ -210,7 +208,7 @@ class TestAutoML(unittest.TestCase):
             "model_history": True
         }
         X_train, y_train = load_boston(return_X_y=True)
-        n = int(len(y_train)*9//10)
+        n = int(len(y_train) * 9 // 10)
         automl_experiment.fit(X_train=X_train[:n], y_train=y_train[:n],
                               X_val=X_train[n:], y_val=y_train[n:],
                               **automl_settings)
