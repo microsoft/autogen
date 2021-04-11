@@ -44,7 +44,7 @@ def test_simple(method=None):
     }
     try:
         X, y = fetch_openml(name=dataset, return_X_y=True)
-    except FileNotFoundError:
+    except ValueError:
         from sklearn.datasets import load_wine
         X, y = load_wine(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(

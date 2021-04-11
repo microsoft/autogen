@@ -362,7 +362,6 @@ class XGBoostEstimator(SKLearnEstimator):
     ):
         super().__init__(task, **params)
         self._n_estimators = int(round(n_estimators))
-        self._max_leaves = int(round(max_leaves))
         self.params = {
             'max_leaves': int(round(max_leaves)),
             'max_depth': params.get('max_depth', 0),
@@ -378,6 +377,7 @@ class XGBoostEstimator(SKLearnEstimator):
             'booster': params.get('booster', 'gbtree'),
             'colsample_bylevel': float(colsample_bylevel),
             'colsample_bytree': float(colsample_bytree),
+            'objective': params.get("objective")
         }
         if all_thread:
             del self.params['nthread']
@@ -398,13 +398,19 @@ class XGBoostEstimator(SKLearnEstimator):
         else:
             dtrain = xgb.DMatrix(X_train, label=y_train)
 
-        if self._max_leaves > 0:
-            self._model = xgb.train(self.params, dtrain, self._n_estimators)
-            del dtrain
-            train_time = time.time() - start_time
-            return train_time
+        objective = self.params.get('objective')
+        if isinstance(objective, str):
+            obj = None
         else:
-            return None
+            obj = objective
+            if 'objective' in self.params:
+                del self.params['objective']
+        self._model = xgb.train(self.params, dtrain, self._n_estimators,
+                                obj=obj)
+        self.params['objective'] = objective
+        del dtrain
+        train_time = time.time() - start_time
+        return train_time
 
     def predict(self, X_test):
         if not issparse(X_test):
