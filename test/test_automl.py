@@ -7,7 +7,7 @@ from sklearn.datasets import load_boston, load_iris, load_wine
 from flaml import AutoML
 from flaml.data import get_output_from_log
 
-from flaml.model import SKLearnEstimator
+from flaml.model import SKLearnEstimator, XGBoostEstimator
 from rgf.sklearn import RGFClassifier, RGFRegressor
 from flaml import tune
 
@@ -63,6 +63,30 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
     @classmethod
     def cost_relative2lgbm(cls):
         return 1.0
+
+
+def logregobj(preds, dtrain):
+    labels = dtrain.get_label()
+    preds = 1.0 / (1.0 + np.exp(-preds)) # transform raw leaf weight
+    grad = preds - labels
+    hess = preds * (1.0 - preds)
+    return grad, hess
+
+
+class MyXGB1(XGBoostEstimator):
+    '''XGBoostEstimator with logregobj as the objective function
+    '''
+
+    def __init__(self, **params):
+        super().__init__(objective=logregobj, **params) 
+
+
+class MyXGB2(XGBoostEstimator):
+    '''XGBoostEstimator with 'reg:squarederror' as the objective function
+    '''
+
+    def __init__(self, **params):
+        super().__init__(objective='reg:squarederror', **params)
 
 
 def custom_metric(X_test, y_test, estimator, labels, X_train, y_train,
@@ -344,6 +368,36 @@ class TestAutoML(unittest.TestCase):
         print(automl_experiment.model_history)
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
+
+    def test_regression_xgboost(self):
+        X_train = scipy.sparse.random(300, 900, density=0.0001)
+        y_train = np.random.uniform(size=300)
+        X_val = scipy.sparse.random(100, 900, density=0.0001)
+        y_val = np.random.uniform(size=100)
+        automl_experiment = AutoML()
+        automl_experiment.add_learner(learner_name='my_xgb1', learner_class=MyXGB1)
+        automl_experiment.add_learner(learner_name='my_xgb2', learner_class=MyXGB2)
+        automl_settings = {
+            "time_budget": 2,
+            "estimator_list": ['my_xgb1', 'my_xgb2'],
+            "task": 'regression',
+            "log_file_name": 'test/regression_xgboost.log',
+            "n_jobs": 1,
+            "model_history": True,
+        }
+        automl_experiment.fit(X_train=X_train, y_train=y_train,
+                              X_val=X_val, y_val=y_val,
+                              **automl_settings)
+        assert automl_experiment._state.X_val.shape == X_val.shape
+        print(automl_experiment.predict(X_train))
+        print(automl_experiment.model)
+        print(automl_experiment.config_history)
+        print(automl_experiment.model_history)
+        print(automl_experiment.best_iteration)
+        print(automl_experiment.best_estimator)
+        print(automl_experiment.best_config)
+        print(automl_experiment.best_loss)
+        print(automl_experiment.best_config_train_time)
 
 
 if __name__ == "__main__":
