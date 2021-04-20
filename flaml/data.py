@@ -8,6 +8,8 @@ from scipy.sparse import vstack, issparse
 import pandas as pd
 from .training_log import training_log_reader
 
+from datetime import datetime
+
 
 def load_openml_dataset(dataset_id, data_dir=None, random_state=0):
     '''Load dataset from open ML.
@@ -193,6 +195,9 @@ class DataTransformer:
             cat_columns, num_columns = [], []
             drop = False
             for column in X.columns:
+                # sklearn\utils\validation.py needs int/float values
+                if X[column].dtype.name == 'datetime64[ns]':
+                    X[column] = X[column].map(datetime.toordinal)
                 if X[column].dtype.name in ('object', 'category'):
                     if X[column].nunique() == 1 or X[column].nunique(
                             dropna=True) == n - X[column].isnull().sum():
@@ -263,3 +268,4 @@ class DataTransformer:
                     X_num.columns = range(X_num.shape[1])
                 X[num_columns] = self.transformer.transform(X_num)
         return X
+
