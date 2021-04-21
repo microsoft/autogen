@@ -42,9 +42,10 @@ def test_simple(method=None):
         "log_type": "all",
         "time_budget": 3
     }
+    from sklearn.externals._arff import ArffException
     try:
         X, y = fetch_openml(name=dataset, return_X_y=True)
-    except ValueError:
+    except (ArffException, ValueError):
         from sklearn.datasets import load_wine
         X, y = load_wine(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(

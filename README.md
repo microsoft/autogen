@@ -7,7 +7,7 @@
 # FLAML - Fast and Lightweight AutoML
 
 <p align="center">
-    <img src="https://github.com/microsoft/FLAML/raw/v0.2.2/docs/images/FLAML.png"  width=200>
+    <img src="https://github.com/microsoft/FLAML/blob/main/docs/images/FLAML.png"  width=200>
     <br>
 </p>
 

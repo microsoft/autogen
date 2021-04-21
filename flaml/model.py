@@ -103,8 +103,11 @@ class BaseEstimator:
             A numpy array of shape n*1.
             Each element is the label for a instance
         '''
-        X_test = self._preprocess(X_test)
-        return self._model.predict(X_test)
+        if self._model is not None:
+            X_test = self._preprocess(X_test)
+            return self._model.predict(X_test)
+        else:
+            return np.ones(X_test.shape[0])
 
     def predict_proba(self, X_test):
         '''Predict the probability of each class from features
@@ -663,59 +666,63 @@ class CatBoostEstimator(BaseEstimator):
                 include='category').columns)
         else:
             cat_features = []
-        if (not CatBoostEstimator._time_per_iter or abs(
-                CatBoostEstimator._train_size - len(y_train)) > 4) and budget:
-            # measure the time per iteration
-            self.params["n_estimators"] = 1
-            CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
-            CatBoostEstimator._smallmodel.fit(
-                X_train, y_train, cat_features=cat_features, **kwargs)
-            CatBoostEstimator._t1 = time.time() - start_time
-            if CatBoostEstimator._t1 >= budget:
-                self.params["n_estimators"] = n_iter
+        from catboost import CatBoostError
+        try:
+            if (not CatBoostEstimator._time_per_iter or abs(
+                    CatBoostEstimator._train_size - len(y_train)) > 4) and budget:
+                # measure the time per iteration
+                self.params["n_estimators"] = 1
+                CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
+                CatBoostEstimator._smallmodel.fit(
+                    X_train, y_train, cat_features=cat_features, **kwargs)
+                CatBoostEstimator._t1 = time.time() - start_time
+                if CatBoostEstimator._t1 >= budget:
+                    self.params["n_estimators"] = n_iter
+                    self._model = CatBoostEstimator._smallmodel
+                    return CatBoostEstimator._t1
+                self.params["n_estimators"] = 4
+                CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
+                CatBoostEstimator._smallmodel.fit(
+                    X_train, y_train, cat_features=cat_features, **kwargs)
+                CatBoostEstimator._time_per_iter = (
+                    time.time() - start_time - CatBoostEstimator._t1) / (
+                        self.params["n_estimators"] - 1)
+                if CatBoostEstimator._time_per_iter <= 0:
+                    CatBoostEstimator._time_per_iter = CatBoostEstimator._t1
+                CatBoostEstimator._train_size = len(y_train)
+                if time.time() - start_time >= budget or n_iter == self.params[
+                        "n_estimators"]:
+                    self.params["n_estimators"] = n_iter
+                    self._model = CatBoostEstimator._smallmodel
+                    return time.time() - start_time
+            if budget:
+                train_times = 1
+                self.params["n_estimators"] = min(n_iter, int(
+                    (budget - time.time() + start_time - CatBoostEstimator._t1)
+                    / train_times / CatBoostEstimator._time_per_iter + 1))
                 self._model = CatBoostEstimator._smallmodel
-                return CatBoostEstimator._t1
-            self.params["n_estimators"] = 4
-            CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
-            CatBoostEstimator._smallmodel.fit(
-                X_train, y_train, cat_features=cat_features, **kwargs)
-            CatBoostEstimator._time_per_iter = (
-                time.time() - start_time - CatBoostEstimator._t1) / (
-                    self.params["n_estimators"] - 1)
-            if CatBoostEstimator._time_per_iter <= 0:
-                CatBoostEstimator._time_per_iter = CatBoostEstimator._t1
-            CatBoostEstimator._train_size = len(y_train)
-            if time.time() - start_time >= budget or n_iter == self.params[
-                    "n_estimators"]:
-                self.params["n_estimators"] = n_iter
-                self._model = CatBoostEstimator._smallmodel
-                return time.time() - start_time
-        if budget:
-            train_times = 1
-            self.params["n_estimators"] = min(n_iter, int(
-                (budget - time.time() + start_time - CatBoostEstimator._t1)
-                / train_times / CatBoostEstimator._time_per_iter + 1))
-            self._model = CatBoostEstimator._smallmodel
-        if self.params["n_estimators"] > 0:
-            n = max(int(len(y_train) * 0.9), len(y_train) - 1000)
-            X_tr, y_tr = X_train[:n], y_train[:n]
-            if 'sample_weight' in kwargs:
-                weight = kwargs['sample_weight']
+            if self.params["n_estimators"] > 0:
+                n = max(int(len(y_train) * 0.9), len(y_train) - 1000)
+                X_tr, y_tr = X_train[:n], y_train[:n]
+                if 'sample_weight' in kwargs:
+                    weight = kwargs['sample_weight']
+                    if weight is not None:
+                        kwargs['sample_weight'] = weight[:n]
+                else:
+                    weight = None
+                from catboost import Pool
+                model = self.estimator_class(**self.params)
+                model.fit(
+                    X_tr, y_tr, cat_features=cat_features,
+                    eval_set=Pool(
+                        data=X_train[n:], label=y_train[n:],
+                        cat_features=cat_features),
+                    **kwargs)   # model.get_best_iteration()
                 if weight is not None:
-                    kwargs['sample_weight'] = weight[:n]
-            else:
-                weight = None
-            from catboost import Pool
-            model = self.estimator_class(**self.params)
-            model.fit(
-                X_tr, y_tr, cat_features=cat_features,
-                eval_set=Pool(
-                    data=X_train[n:], label=y_train[n:],
-                    cat_features=cat_features),
-                **kwargs)   # model.get_best_iteration()
-            if weight is not None:
-                kwargs['sample_weight'] = weight
-            self._model = model
+                    kwargs['sample_weight'] = weight
+                self._model = model
+        except CatBoostError:
+            self._model = None
         self.params["n_estimators"] = n_iter
         train_time = time.time() - start_time
         return train_time
