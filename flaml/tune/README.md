@@ -94,7 +94,7 @@ $nnictl create --config ./config.yml
 ## CFO: Frugal Optimization for Cost-related Hyperparameters
 
 <p align="center">
-    <img src="https://github.com/microsoft/FLAML/raw/v0.2.2/docs/images/CFO.png"  width=200>
+    <img src="https://github.com/microsoft/FLAML/blob/main/docs/images/CFO.png"  width=200>
     <br>
 </p>
 
@@ -113,7 +113,7 @@ FLOW<sup>2</sup> only requires pairwise comparisons between function values to p
 The GIFs attached below demostrates an example search trajectory of FLOW<sup>2</sup> shown in the loss and evaluation cost (i.e., the training time ) space respectively. From the demonstration, we can see that (1) FLOW<sup>2</sup> can quickly move toward the low-loss region, showing good convergence property and (2) FLOW<sup>2</sup> tends to avoid exploring the high-cost region until necessary.
 
 <p align="center">
-    <img align="center", src="https://github.com/microsoft/FLAML/raw/v0.2.2/docs/images/heatmap_loss_cfo_12s.gif"  width=360>  <img align="center", src="https://github.com/microsoft/FLAML/raw/v0.2.2/docs/images/heatmap_cost_cfo_12s.gif"  width=360> 
+    <img align="center", src="https://github.com/microsoft/FLAML/blob/main/docs/images/heatmap_loss_cfo_12s.gif"  width=360>  <img align="center", src="https://github.com/microsoft/FLAML/blob/main/docs/images/heatmap_cost_cfo_12s.gif"  width=360> 
     <br>
     <figcaption>Figure 1. FLOW<sup>2</sup> in tuning the # of leaves and the # of trees for XGBoost. The two background heatmaps show the loss and cost distribution of all configurations. The black dots are the points evaluated in FLOW<sup>2</sup>. Black dots connected by lines are points that yield better loss performance when evaluated.</figcaption>
 </p>
@@ -136,7 +136,7 @@ using BlendSearch.
 ## BlendSearch: Economical Hyperparameter Optimization With Blended Search Strategy
 
 <p align="center">
-    <img src="https://github.com/microsoft/FLAML/raw/v0.2.2/docs/images/BlendSearch.png"  width=200>
+    <img src="https://github.com/microsoft/FLAML/blob/main/docs/images/BlendSearch.png"  width=200>
     <br>
 </p>
 
