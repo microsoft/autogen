@@ -4,6 +4,9 @@ import numpy as np
 import scipy.sparse
 from sklearn.datasets import load_boston, load_iris, load_wine
 
+import pandas as pd
+from datetime import datetime
+
 from flaml import AutoML
 from flaml.data import get_output_from_log
 
@@ -218,6 +221,23 @@ class TestAutoML(unittest.TestCase):
         print(duration)
         print(automl_experiment.model)
         print(automl_experiment.predict_proba(X_train)[:5])
+
+    def test_datetime_columns(self):
+
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget":         2,
+            "metric":              'mse',
+            "task":                'regression',
+            "log_file_name":       "test/datetime_columns.log",
+            "log_training_metric": True,
+            "n_jobs":              1,
+            "model_history":       True
+        }
+
+        fake_df = pd.DataFrame({'A': [datetime(1900, 2, 3), datetime(1900, 3, 4)]})
+        y = np.array([0, 1])
+        automl_experiment.fit(X_train=fake_df, X_val=fake_df, y_train=y, y_val=y, **automl_settings)
 
     def test_regression(self):
 
