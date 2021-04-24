@@ -239,6 +239,8 @@ class TestAutoML(unittest.TestCase):
         y = np.array([0, 1])
         automl_experiment.fit(X_train=fake_df, X_val=fake_df, y_train=y, y_val=y, **automl_settings)
 
+        y_pred = automl_experiment.predict(fake_df)
+
     def test_regression(self):
 
         automl_experiment = AutoML()

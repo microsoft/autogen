@@ -214,6 +214,7 @@ class DataTransformer:
                         X[column] = X[column].fillna('__NAN__')
                         cat_columns.append(column)
                 else:
+                    # print(X[column].dtype.name)
                     if X[column].nunique(dropna=True) < 2:
                         X.drop(columns=column, inplace=True)
                         drop = True
@@ -236,8 +237,8 @@ class DataTransformer:
                     SimpleImputer(missing_values=np.nan, strategy='median'),
                     X_num.columns)])
                 X[num_columns] = self.transformer.fit_transform(X_num)
-            self._cat_columns, self._num_columns, self._datetime_columns = \
-                cat_columns, num_columns, datetime_columns
+            self._cat_columns, self._num_columns, self._datetime_columns = cat_columns, \
+                                                                           num_columns, datetime_columns
             self._drop = drop
 
         if task == 'regression':
@@ -249,13 +250,14 @@ class DataTransformer:
         return X, y
 
     def transform(self, X):
+        X = X.copy()
         if isinstance(X, pd.DataFrame):
-            cat_columns, num_columns, datetime_columns = \
-                self._cat_columns, self._num_columns, self._datetime_columns
+            cat_columns, num_columns, datetime_columns = self._cat_columns, \
+                self._num_columns, self._datetime_columns
+            X = X[cat_columns + num_columns].copy()
             if datetime_columns:
                 for dt_column in datetime_columns:
                     X[dt_column] = X[dt_column].map(datetime.toordinal)
-            X = X[cat_columns + num_columns].copy()
             for column in cat_columns:
                 # print(column, X[column].dtype.name)
                 if X[column].dtype.name == 'object':
@@ -273,3 +275,4 @@ class DataTransformer:
                     X_num.columns = range(X_num.shape[1])
                 X[num_columns] = self.transformer.transform(X_num)
         return X
+
