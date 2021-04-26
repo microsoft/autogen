@@ -54,9 +54,9 @@ def sklearn_metric_loss_score(
     '''Loss using the specified metric
 
     Args:
-        metric_name: A string of the mtric name, one of
+        metric_name: A string of the metric name, one of
             'r2', 'rmse', 'mae', 'mse', 'accuracy', 'roc_auc', 'log_loss',
-            'f1', 'ap'
+            'f1', 'ap', 'micro_f1', 'macro_f1'
         y_predict: A 1d or 2d numpy array of the predictions which can be
             used to calculate the metric. E.g., 2d for log_loss and 1d
             for others.
@@ -88,6 +88,10 @@ def sklearn_metric_loss_score(
     elif 'log_loss' in metric_name:
         score = log_loss(
             y_true, y_predict, labels=labels, sample_weight=sample_weight)
+    elif 'micro_f1' in metric_name:
+        score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight, average='micro')
+    elif 'macro_f1' in metric_name:
+        score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight, average='macro')
     elif 'f1' in metric_name:
         score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight)
     elif 'ap' in metric_name:
