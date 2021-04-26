@@ -809,7 +809,7 @@ class AutoML:
                 dataframe and label are ignored;
                 If not, dataframe and label must be provided.
             metric: A string of the metric name or a function,
-                e.g., 'accuracy', 'roc_auc', 'f1', 'log_loss', 'mae', 'mse', 'r2'
+                e.g., 'accuracy', 'roc_auc', 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2'
                 if passing a customized metric function, the function needs to
                 have the follwing signature:
 
@@ -902,7 +902,7 @@ class AutoML:
             else:
                 metric = 'r2'
         self._state.metric = metric
-        if metric in ['r2', 'accuracy', 'roc_auc', 'f1', 'ap']:
+        if metric in ['r2', 'accuracy', 'roc_auc', 'f1', 'ap', 'micro_f1', 'macro_f1']:
             error_metric = f"1-{metric}"
         elif isinstance(metric, str):
             error_metric = metric
