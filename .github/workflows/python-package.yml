@@ -7,7 +7,7 @@ on:
   push:
     branches: ['main']
   pull_request:
-    branches: ['*']
+    branches: ['main']
 
 jobs:
   build:
@@ -49,13 +49,17 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
+        if: ${{ matrix.python-version != '3.7' || matrix.os == 'macos-latest' }}
         run: |
           pytest test
       - name: Coverage
+        if: ${{ matrix.python-version == '3.7' && matrix.os != 'macos-latest' }}
         run: |
+          pip install coverage
           coverage run -a -m pytest test
           coverage xml
       - name: Upload coverage to Codecov
+        if: ${{ matrix.python-version == '3.7' && matrix.os != 'macos-latest' }}
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
