@@ -161,9 +161,13 @@ tune.run(...
 )
 ```
 
-Recommended scenario: cost-related hyperparameters exist, a low-cost
+- Recommended scenario: cost-related hyperparameters exist, a low-cost
 initial point is known, and the search space is complex such that local search
 is prone to be stuck at local optima.
+
+
+- Suggestion about using larger search space in BlendSearch: 
+In hyperparameter optimization, a larger search space is desirable because it is more likely to include the optimal configuration (or one of the optimal configurations) in hindsight. However the performance (especially anytime performance) of most existing HPO methods is undesirable if the cost of the configurations in the search space has a large variation. Thus hand-crafted small search spaces (with relatively homogeneous cost) are often used in practice for these methods, which is subject to idiosyncrasy. BlendSearch combines the benefits of local search and global search, which enables a smart (economical) way of deciding where to explore in the search space even though it is larger than necessary. This allows users to specify a larger search space in BlendSearch, which is often easier and a better practice than narrowing down the search space by hand.
 
 For more technical details, please check our papers.
 
@@ -178,7 +182,7 @@ For more technical details, please check our papers.
 }
 ```
 
-* [Economical Hyperparameter Optimization With Blended Search Strategy](https://www.microsoft.com/en-us/research/publication/economical-hyperparameter-optimization-with-blended-search-strategy/). Chi Wang, Qingyun Wu, Silu Huang, Amin Saied. To appear in ICLR 2021.
+* [Economical Hyperparameter Optimization With Blended Search Strategy](https://www.microsoft.com/en-us/research/publication/economical-hyperparameter-optimization-with-blended-search-strategy/). Chi Wang, Qingyun Wu, Silu Huang, Amin Saied. ICLR 2021.
 
 ```
 @inproceedings{wang2021blendsearch,
