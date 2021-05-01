@@ -529,11 +529,12 @@ class FLOW2(Searcher):
             for i, key in enumerate(self._tunable_keys):
                 move[key] -= self._direction_tried[i]
             self._direction_tried = None
-        # propose a new direction
-        self._direction_tried = self.rand_vector_unit_sphere(
-            self.dim) * self.step
-        for i, key in enumerate(self._tunable_keys):
-            move[key] += self._direction_tried[i]
+        else:
+            # propose a new direction
+            self._direction_tried = self.rand_vector_unit_sphere(
+                self.dim) * self.step
+            for i, key in enumerate(self._tunable_keys):
+                move[key] += self._direction_tried[i]
         self._project(move)
         config = self.denormalize(move)
         self._proposed_by[trial_id] = self.incumbent
