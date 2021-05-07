@@ -89,9 +89,11 @@ def sklearn_metric_loss_score(
         score = log_loss(
             y_true, y_predict, labels=labels, sample_weight=sample_weight)
     elif 'micro_f1' in metric_name:
-        score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight, average='micro')
+        score = 1 - f1_score(
+            y_true, y_predict, sample_weight=sample_weight, average='micro')
     elif 'macro_f1' in metric_name:
-        score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight, average='macro')
+        score = 1 - f1_score(
+            y_true, y_predict, sample_weight=sample_weight, average='macro')
     elif 'f1' in metric_name:
         score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight)
     elif 'ap' in metric_name:

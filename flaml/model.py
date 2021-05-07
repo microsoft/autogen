@@ -124,8 +124,7 @@ class BaseEstimator:
                 class j
         '''
         if 'regression' in self._task:
-            print('Regression tasks do not support predict_prob')
-            raise ValueError
+            raise ValueError('Regression tasks do not support predict_prob')
         else:
             X_test = self._preprocess(X_test)
             return self._model.predict_proba(X_test)
