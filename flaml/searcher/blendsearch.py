@@ -255,11 +255,14 @@ class BlendSearch(Searcher):
                     break
         if self._search_thread_pool[thread_id].converged:
             todelete.add(thread_id)
-            for key in self._ls_bound_max:
-                self._ls_bound_max[key] += self._ls.STEPSIZE
-                self._ls_bound_min[key] -= self._ls.STEPSIZE
+            self._expand_admissible_region()
         for id in todelete:
             del self._search_thread_pool[id]
+
+    def _expand_admissible_region(self):
+        for key in self._ls_bound_max:
+            self._ls_bound_max[key] += self._ls.STEPSIZE
+            self._ls_bound_min[key] -= self._ls.STEPSIZE        
 
     def _inferior(self, id1: int, id2: int) -> bool:
         ''' whether thread id1 is inferior to id2
@@ -291,6 +294,12 @@ class BlendSearch(Searcher):
                 return None
             self._use_rs = False
             config = self._search_thread_pool[choice].suggest(trial_id)
+            if choice and config is None:
+                # local search thread finishes
+                if self._search_thread_pool[choice].converged:
+                    self._expand_admissible_region()
+                    del self._search_thread_pool[choice]
+                return None
             # preliminary check; not checking config validation
             skip = self._should_skip(choice, trial_id, config)
             if skip:
