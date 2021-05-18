@@ -237,8 +237,8 @@ class DataTransformer:
                     SimpleImputer(missing_values=np.nan, strategy='median'),
                     X_num.columns)])
                 X[num_columns] = self.transformer.fit_transform(X_num)
-            self._cat_columns, self._num_columns, self._datetime_columns = cat_columns, \
-                                                                           num_columns, datetime_columns
+            self._cat_columns, self._num_columns, self._datetime_columns = \
+                cat_columns, num_columns, datetime_columns
             self._drop = drop
 
         if task == 'regression':
@@ -275,4 +275,3 @@ class DataTransformer:
                     X_num.columns = range(X_num.shape[1])
                 X[num_columns] = self.transformer.transform(X_num)
         return X
-
