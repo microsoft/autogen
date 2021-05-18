@@ -1036,9 +1036,8 @@ class AutoML:
                         prune_attr=prune_attr,
                         min_resource=min_resource,
                         max_resource=max_resource,
-                        resources_per_trial={"cpu": self._state.n_jobs,
-                                             "mem": self._mem_thres},
-                        mem_size=learner_class.size)
+                        config_constraints=[(learner_class.size, '<=', self._mem_thres)]
+                    )
                 else:
                     algo = SearchAlgo(
                         metric='val_loss', mode='min', space=search_space,

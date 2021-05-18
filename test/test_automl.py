@@ -70,7 +70,7 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
 
 def logregobj(preds, dtrain):
     labels = dtrain.get_label()
-    preds = 1.0 / (1.0 + np.exp(-preds)) # transform raw leaf weight
+    preds = 1.0 / (1.0 + np.exp(-preds))  # transform raw leaf weight
     grad = preds - labels
     hess = preds * (1.0 - preds)
     return grad, hess
@@ -81,7 +81,7 @@ class MyXGB1(XGBoostEstimator):
     '''
 
     def __init__(self, **params):
-        super().__init__(objective=logregobj, **params) 
+        super().__init__(objective=logregobj, **params)
 
 
 class MyXGB2(XGBoostEstimator):
@@ -226,32 +226,34 @@ class TestAutoML(unittest.TestCase):
 
         automl_experiment = AutoML()
         automl_settings = {
-            "time_budget":         2,
-            "metric":              'mse',
-            "task":                'regression',
-            "log_file_name":       "test/datetime_columns.log",
+            "time_budget": 2,
+            "metric": 'mse',
+            "task": 'regression',
+            "log_file_name": "test/datetime_columns.log",
             "log_training_metric": True,
-            "n_jobs":              1,
-            "model_history":       True
+            "n_jobs": 1,
+            "model_history": True
         }
 
         fake_df = pd.DataFrame({'A': [datetime(1900, 2, 3), datetime(1900, 3, 4)]})
         y = np.array([0, 1])
-        automl_experiment.fit(X_train=fake_df, X_val=fake_df, y_train=y, y_val=y, **automl_settings)
+        automl_experiment.fit(
+            X_train=fake_df, X_val=fake_df, y_train=y, y_val=y, **automl_settings)
 
         y_pred = automl_experiment.predict(fake_df)
+        print(y_pred)
 
     def test_micro_macro_f1(self):
         automl_experiment = AutoML()
         automl_experiment_macro = AutoML()
 
         automl_settings = {
-            "time_budget":         2,
-            "task":                'classification',
-            "log_file_name":       "test/micro_macro_f1.log",
+            "time_budget": 2,
+            "task": 'classification',
+            "log_file_name": "test/micro_macro_f1.log",
             "log_training_metric": True,
-            "n_jobs":              1,
-            "model_history":       True
+            "n_jobs": 1,
+            "model_history": True
         }
 
         X_train, y_train = load_iris(return_X_y=True)
