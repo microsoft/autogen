@@ -922,6 +922,7 @@ class AutoML:
         # set up learner search space
         for estimator_name in estimator_list:
             estimator_class = self._state.learner_classes[estimator_name]
+            estimator_class.init()
             self._search_states[estimator_name] = SearchState(
                 learner_class=estimator_class,
                 data_size=self._state.data_size, task=self._state.task,
