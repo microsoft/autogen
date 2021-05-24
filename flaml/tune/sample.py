@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 This source file is included here because ray does not fully support Windows.
+
+Copyright (c) Microsoft Corporation.
 '''
 import logging
 import random
