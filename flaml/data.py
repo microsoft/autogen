@@ -196,9 +196,6 @@ class DataTransformer:
             drop = False
             for column in X.columns:
                 # sklearn\utils\validation.py needs int/float values
-                if X[column].dtype.name == 'datetime64[ns]':
-                    X[column] = X[column].map(datetime.toordinal)
-                    datetime_columns.append(column)
                 if X[column].dtype.name in ('object', 'category'):
                     if X[column].nunique() == 1 or X[column].nunique(
                             dropna=True) == n - X[column].isnull().sum():
@@ -219,8 +216,25 @@ class DataTransformer:
                         X.drop(columns=column, inplace=True)
                         drop = True
                     else:
-                        X[column] = X[column].fillna(np.nan)
-                        num_columns.append(column)
+                        if X[column].dtype.name == 'datetime64[ns]':
+                            tmp_dt = X[column].dt
+                            new_columns_dict = {f'year_{column}': tmp_dt.year, f'month_{column}': tmp_dt.month,
+                                                f'day_{column}': tmp_dt.day, f'hour_{column}': tmp_dt.hour,
+                                                f'minute_{column}': tmp_dt.minute, f'second_{column}': tmp_dt.second,
+                                                f'dayofweek_{column}': tmp_dt.dayofweek,
+                                                f'dayofyear_{column}': tmp_dt.dayofyear,
+                                                f'quarter_{column}': tmp_dt.quarter}
+                            for new_col_name in new_columns_dict.keys():
+                                if new_col_name not in X.columns and \
+                                        new_columns_dict.get(new_col_name).nunique(dropna=False) >= 2:
+                                    X[new_col_name] = new_columns_dict.get(new_col_name)
+                                    num_columns.append(new_col_name)
+                            X[column] = X[column].map(datetime.toordinal)
+                            datetime_columns.append(column)
+                            del tmp_dt
+                        else:
+                            X[column] = X[column].fillna(np.nan)
+                            num_columns.append(column)
             X = X[cat_columns + num_columns]
             if cat_columns:
                 X[cat_columns] = X[cat_columns].astype('category')
@@ -254,12 +268,23 @@ class DataTransformer:
         if isinstance(X, pd.DataFrame):
             cat_columns, num_columns, datetime_columns = self._cat_columns, \
                 self._num_columns, self._datetime_columns
-            X = X[cat_columns + num_columns].copy()
             if datetime_columns:
-                for dt_column in datetime_columns:
-                    X[dt_column] = X[dt_column].map(datetime.toordinal)
+                for column in datetime_columns:
+                    tmp_dt = X[column].dt
+                    new_columns_dict = {f'year_{column}': tmp_dt.year, f'month_{column}': tmp_dt.month,
+                                        f'day_{column}': tmp_dt.day, f'hour_{column}': tmp_dt.hour,
+                                        f'minute_{column}': tmp_dt.minute, f'second_{column}': tmp_dt.second,
+                                        f'dayofweek_{column}': tmp_dt.dayofweek,
+                                        f'dayofyear_{column}': tmp_dt.dayofyear,
+                                        f'quarter_{column}': tmp_dt.quarter}
+                    for new_col_name in new_columns_dict.keys():
+                        if new_col_name not in X.columns and \
+                                new_columns_dict.get(new_col_name).nunique(dropna=False) >= 2:
+                            X[new_col_name] = new_columns_dict.get(new_col_name)
+                    X[column] = X[column].map(datetime.toordinal)
+                    del tmp_dt
+            X = X[cat_columns + num_columns].copy()
             for column in cat_columns:
-                # print(column, X[column].dtype.name)
                 if X[column].dtype.name == 'object':
                     X[column] = X[column].fillna('__NAN__')
                 elif X[column].dtype.name == 'category':

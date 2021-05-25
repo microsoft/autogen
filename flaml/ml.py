@@ -103,7 +103,7 @@ def sklearn_metric_loss_score(
         raise ValueError(
             metric_name + ' is not a built-in metric, '
             'currently built-in metrics are: '
-            'r2, rmse, mae, mse, accuracy, roc_auc, log_loss, f1, ap. '
+            'r2, rmse, mae, mse, accuracy, roc_auc, log_loss, f1, micro_f1, macro_f1, ap. '
             'please pass a customized metric function to AutoML.fit(metric=func)')
     return score
 
