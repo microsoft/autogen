@@ -118,7 +118,9 @@ More examples can be found in [notebooks](https://github.com/microsoft/FLAML/tre
 
 ## Documentation
 
-The API documentation is [here](https://microsoft.github.io/FLAML/).
+Please find the API documentation [here](https://microsoft.github.io/FLAML/).
+
+Please find demo and tutorials of FLAML [here](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A)
 
 Read more about the 
 hyperparameter optimization methods
