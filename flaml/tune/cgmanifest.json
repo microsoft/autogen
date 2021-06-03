@@ -1,0 +1,11 @@
+{
+    "Registrations": [ 
+        {
+            "Component": { 
+                "Type": "pip", 
+                "pip": {"Name": "ray[tune]", "Version": "1.2.0" }
+            },
+            "DevelopmentDependency": false
+        },
+    ]
+}

@@ -51,8 +51,8 @@ class BlendSearch(Searcher):
 
         Args:
             metric: A string of the metric name to optimize for.
-                minimization or maximization.
             mode: A string in ['min', 'max'] to specify the objective as
+                minimization or maximization.
             space: A dictionary to specify the search space.
             points_to_evaluate: Initial parameter suggestions to be run first.
             low_cost_partial_config: A dictionary from a subset of
@@ -107,6 +107,13 @@ class BlendSearch(Searcher):
         '''
         self._metric, self._mode = metric, mode
         init_config = low_cost_partial_config or {}
+        if not init_config:
+            logger.warning(
+                "No low-cost init config given to the search algorithm."
+                "For cost-frugal search, "
+                "consider providing init values for cost-related hps via "
+                "'init_config'."
+            )
         self._points_to_evaluate = points_to_evaluate or []
         self._config_constraints = config_constraints
         self._metric_constraints = metric_constraints
@@ -201,6 +208,10 @@ class BlendSearch(Searcher):
         self._metric_constraints = state._metric_constraints
         self._metric_constraint_satisfied = state._metric_constraint_satisfied
         self._metric_constraint_penalty = state._metric_constraint_penalty
+
+    @property
+    def metric_target(self):
+        return self._metric_target
 
     def restore_from_dir(self, checkpoint_dir: str):
         super.restore_from_dir(checkpoint_dir)

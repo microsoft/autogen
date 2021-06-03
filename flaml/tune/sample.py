@@ -414,6 +414,31 @@ class Quantized(Sampler):
         return list(quantized)
 
 
+class PolynomialExpansionSet:
+
+    def __init__(self, init_monomials: set = (), highest_poly_order: int = None,
+                 allow_self_inter: bool = False):
+        self._init_monomials = init_monomials
+        self._highest_poly_order = highest_poly_order if \
+            highest_poly_order is not None else len(self._init_monomials)
+        self._allow_self_inter = allow_self_inter
+
+    @property
+    def init_monomials(self):
+        return self._init_monomials
+
+    @property
+    def highest_poly_order(self):
+        return self._highest_poly_order
+
+    @property
+    def allow_self_inter(self):
+        return self._allow_self_inter
+
+    def __str__(self):
+        return "PolynomialExpansionSet"
+
+
 # TODO (krfricke): Remove tune.function
 def function(func):
     logger.warning(
@@ -535,3 +560,9 @@ def qrandn(mean: float, sd: float, q: float):
             integer increment of this value.
     """
     return Float(None, None).normal(mean, sd).quantized(q)
+
+
+def polynomial_expansion_set(init_monomials: set, highest_poly_order: int = None,
+                             allow_self_inter: bool = False):
+
+    return PolynomialExpansionSet(init_monomials, highest_poly_order, allow_self_inter)

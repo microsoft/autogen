@@ -47,8 +47,8 @@ class FLOW2(Searcher):
                 to the initial low-cost values.
                 e.g. {'epochs': 1}
             metric: A string of the metric name to optimize for.
-                minimization or maximization.
             mode: A string in ['min', 'max'] to specify the objective as
+                minimization or maximization.
             cat_hp_cost: A dictionary from a subset of categorical dimensions
                 to the relative cost of each choice.
                 e.g.,
@@ -92,13 +92,6 @@ class FLOW2(Searcher):
         self.space = flatten_dict(self.space, prevent_delimiter=True)
         self._random = np.random.RandomState(seed)
         self._seed = seed
-        if not init_config:
-            logger.warning(
-                "No init config given to FLOW2. Using random initial config."
-                "For cost-frugal search, "
-                "consider providing init values for cost-related hps via "
-                "'init_config'."
-            )
         self.init_config = init_config
         self.best_config = flatten_dict(init_config)
         self.cat_hp_cost = cat_hp_cost
@@ -508,6 +501,7 @@ class FLOW2(Searcher):
         1. same incumbent, increase resource
         2. same resource, move from the incumbent to a random direction
         3. same resource, move from the incumbent to the opposite direction
+        #TODO: better decouple FLOW2 config suggestion and stepsize update
         '''
         self.trial_count_proposed += 1
         if self._num_complete4incumbent > 0 and self.cost_incumbent and \
