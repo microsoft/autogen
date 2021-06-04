@@ -109,10 +109,10 @@ class BlendSearch(Searcher):
         init_config = low_cost_partial_config or {}
         if not init_config:
             logger.warning(
-                "No low-cost init config given to the search algorithm."
+                "No low-cost partial config given to the search algorithm. "
                 "For cost-frugal search, "
-                "consider providing init values for cost-related hps via "
-                "'init_config'."
+                "consider providing low-cost values for cost-related hps via "
+                "'low_cost_partial_config'."
             )
         self._points_to_evaluate = points_to_evaluate or []
         self._config_constraints = config_constraints

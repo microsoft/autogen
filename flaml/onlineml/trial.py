@@ -4,10 +4,10 @@ import time
 import math
 import copy
 import collections
-from typing import Dict, Optional
+from typing import Optional
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from vowpalwabbit import pyvw
 from flaml.tune import Trial
+
 logger = logging.getLogger(__name__)
 
 
@@ -270,6 +270,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
         - Namespace vs features:
         https://stackoverflow.com/questions/28586225/in-vowpal-wabbit-what-is-the-difference-between-a-namespace-and-feature
     """
+    from vowpalwabbit import pyvw
     MODEL_CLASS = pyvw.vw
     cost_unit = 1.0
     interactions_config_key = 'interactions'

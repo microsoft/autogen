@@ -461,6 +461,7 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             'booster': params.get('booster', 'gbtree'),
             'colsample_bylevel': float(colsample_bylevel),
             'colsample_bytree': float(colsample_bytree),
+            'use_label_encoder': params.get('use_label_encoder', False),
         }
 
         if 'regression' in task:

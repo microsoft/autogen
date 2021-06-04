@@ -1,4 +1,3 @@
-import numpy as np
 from typing import Optional, Union
 import logging
 from flaml.tune import Trial, Categorical, Float, PolynomialExpansionSet, polynomial_expansion_set
@@ -6,6 +5,7 @@ from flaml.onlineml import OnlineTrialRunner
 from flaml.scheduler import ChaChaScheduler
 from flaml.searcher import ChampionFrontierSearcher
 from flaml.onlineml.trial import get_ns_feature_dim_from_vw_example
+
 logger = logging.getLogger(__name__)
 
 
