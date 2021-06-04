@@ -124,15 +124,16 @@ class FLOW2(Searcher):
             if callable(getattr(domain, 'get_sampler', None)):
                 self._tunable_keys.append(key)
                 sampler = domain.get_sampler()
-                # if isinstance(sampler, sample.Quantized):
-                #     sampler_inner = sampler.get_sampler()
-                #     if str(sampler_inner) == 'Uniform':
-                #         self._step_lb = min(
-                #             self._step_lb, sampler.q/(domain.upper-domain.lower))
-                # elif isinstance(domain, sample.Integer) and str(
-                #     sampler) == 'Uniform':
-                #     self._step_lb = min(
-                #         self._step_lb, 1.0/(domain.upper-domain.lower))
+                # the step size lower bound for uniform variables doesn't depend
+                # on the current config
+                if isinstance(sampler, sample.Quantized):
+                    sampler_inner = sampler.get_sampler()
+                    if str(sampler_inner) == 'Uniform':
+                        self._step_lb = min(
+                            self._step_lb, sampler.q / (domain.upper - domain.lower))
+                elif isinstance(domain, sample.Integer) and str(sampler) == 'Uniform':
+                    self._step_lb = min(
+                        self._step_lb, 1.0 / (domain.upper - domain.lower))
                 if isinstance(domain, sample.Categorical):
                     cat_hp_cost = self.cat_hp_cost
                     if cat_hp_cost and key in cat_hp_cost:
@@ -199,6 +200,8 @@ class FLOW2(Searcher):
                 continue
             domain = self.space[key]
             sampler = domain.get_sampler()
+            # the stepsize lower bound for log uniform variables depends on the
+            # current config
             if isinstance(sampler, sample.Quantized):
                 sampler_inner = sampler.get_sampler()
                 if str(sampler_inner) == 'LogUniform':

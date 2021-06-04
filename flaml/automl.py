@@ -809,14 +809,17 @@ class AutoML:
                 dataframe and label are ignored;
                 If not, dataframe and label must be provided.
             metric: A string of the metric name or a function,
-                e.g., 'accuracy', 'roc_auc', 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2'
+                e.g., 'accuracy', 'roc_auc', 'f1', 'micro_f1', 'macro_f1',
+                'log_loss', 'mae', 'mse', 'r2'
                 if passing a customized metric function, the function needs to
                 have the follwing signature:
 
                 .. code-block:: python
 
-                    def custom_metric(X_test, y_test, estimator, labels,
-                     X_train, y_train, weight_test=None, weight_train=None):
+                    def custom_metric(
+                        X_test, y_test, estimator, labels,
+                        X_train, y_train, weight_test=None, weight_train=None
+                    ):
                         return metric_to_minimize, metrics_to_log
 
                 which returns a float number as the minimization objective,
@@ -1238,7 +1241,7 @@ class AutoML:
         for i, estimator in enumerate(estimator_list):
             if estimator in self._search_states and (
                 self._search_states[estimator].sample_size
-            ):  # sample_size=none meaning no result
+            ):  # sample_size=None meaning no result
                 search_state = self._search_states[estimator]
                 if (self._search_states[estimator].time2eval_best
                     > self._state.time_budget - self._state.time_from_start

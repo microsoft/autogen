@@ -260,6 +260,14 @@ class TestAutoML(unittest.TestCase):
             X_train=X_train, y_train=y_train, metric='micro_f1', **automl_settings)
         automl_experiment_macro.fit(
             X_train=X_train, y_train=y_train, metric='macro_f1', **automl_settings)
+        estimator = automl_experiment_macro.model
+        y_pred = estimator.predict(X_train)
+        y_pred_proba = estimator.predict_proba(X_train)
+        from flaml.ml import norm_confusion_matrix, multi_class_curves
+        print(norm_confusion_matrix(y_train, y_pred))
+        from sklearn.metrics import roc_curve, precision_recall_curve
+        print(multi_class_curves(y_train, y_pred_proba, roc_curve))
+        print(multi_class_curves(y_train, y_pred_proba, precision_recall_curve))
 
     def test_regression(self):
         automl_experiment = AutoML()

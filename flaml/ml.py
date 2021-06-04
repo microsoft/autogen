@@ -294,3 +294,45 @@ def get_classification_objective(num_labels: int) -> str:
     else:
         objective_name = 'multi:softmax'
     return objective_name
+
+
+def norm_confusion_matrix(y_true, y_pred):
+    '''normalized confusion matrix
+
+    Args:
+        estimator: A multi-class classification estimator
+        y_true: A numpy array or a pandas series of true labels
+        y_pred: A numpy array or a pandas series of predicted labels
+
+    Returns:
+        A normalized confusion matrix
+    '''
+    from sklearn.metrics import confusion_matrix
+    conf_mat = confusion_matrix(y_true, y_pred)
+    norm_conf_mat = conf_mat.astype('float') / conf_mat.sum(axis=1)[:, np.newaxis]
+    return norm_conf_mat
+
+
+def multi_class_curves(y_true, y_pred_proba, curve_func):
+    '''Binarize the data for multi-class tasks and produce ROC or precision-recall curves
+
+    Args:
+        y_true: A numpy array or a pandas series of true labels
+        y_pred_proba: A numpy array or a pandas dataframe of predicted probabilites
+        curve_func: A function to produce a curve (e.g., roc_curve or precision_recall_curve)
+
+    Returns:
+        A tuple of two dictionaries with the same set of keys (class indices)
+        The first dictionary curve_x stores the x coordinates of each curve, e.g.,
+            curve_x[0] is an 1D array of the x coordinates of class 0
+        The second dictionary curve_y stores the y coordinates of each curve, e.g.,
+            curve_y[0] is an 1D array of the y coordinates of class 0
+    '''
+    from sklearn.preprocessing import label_binarize
+    classes = np.unique(y_true)
+    y_true_binary = label_binarize(y_true, classes=classes)
+
+    curve_x, curve_y = {}, {}
+    for i in range(len(classes)):
+        curve_x[i], curve_y[i], _ = curve_func(y_true_binary[:, i], y_pred_proba[:, i])
+    return curve_x, curve_y
