@@ -18,7 +18,7 @@ class AutoVW:
         AUTO
     """
     WARMSTART_NUM = 100
-    AUTO_STRING = '_auto'
+    AUTOMATIC = '_auto'
     VW_INTERACTION_ARG_NAME = 'interactions'
 
     def __init__(self,
@@ -94,7 +94,7 @@ class AutoVW:
         # setup the default search space for the namespace interaction hyperparameter
         search_space = self._search_space.copy()
         for k, v in self._search_space.items():
-            if k == self.VW_INTERACTION_ARG_NAME and v == self.AUTO_STRING:
+            if k == self.VW_INTERACTION_ARG_NAME and v == self.AUTOMATIC:
                 raw_namespaces = self.get_ns_feature_dim_from_vw_example(vw_example).keys()
                 search_space[k] = polynomial_expansion_set(init_monomials=set(raw_namespaces))
         # setup the init config based on the input _init_config and search space

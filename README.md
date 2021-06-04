@@ -62,7 +62,11 @@ tune.run(train_with_config, config={…}, low_cost_partial_config={…}, time_bu
 
 * For classification and regression tasks, find quality models with lower computational resources.
 * Users can choose their desired customizability: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), full customization (arbitrary training and evaluation code).
-* Allow human guidance in hyperparameter tuning to respect prior on certain subspaces but also able to explore other subspaces.
+* Allow human guidance in hyperparameter tuning to respect prior on certain subspaces but also able to explore other subspaces. Read more about the 
+hyperparameter optimization methods
+in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/tune). They can be used beyond the AutoML context. 
+And they can be used in distributed HPO frameworks such as ray tune or nni.
+* Support online AutoML: automatic hyperparameter tuning for online learning algorithms. Read more about the online AutoML method in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/onlineml).
 
 ## Examples
 
@@ -122,10 +126,6 @@ Please find the API documentation [here](https://microsoft.github.io/FLAML/).
 
 Please find demo and tutorials of FLAML [here](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A)
 
-Read more about the 
-hyperparameter optimization methods
-in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/tune). They can be used beyond the AutoML context. 
-And they can be used in distributed HPO frameworks such as ray tune or nni.
 
 For more technical details, please check our papers.
 
