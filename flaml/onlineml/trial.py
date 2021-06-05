@@ -270,8 +270,6 @@ class VowpalWabbitTrial(BaseOnlineTrial):
         - Namespace vs features:
         https://stackoverflow.com/questions/28586225/in-vowpal-wabbit-what-is-the-difference-between-a-namespace-and-feature
     """
-    from vowpalwabbit import pyvw
-    MODEL_CLASS = pyvw.vw
     cost_unit = 1.0
     interactions_config_key = 'interactions'
     MIN_RES_CONST = 5
@@ -299,6 +297,11 @@ class VowpalWabbitTrial(BaseOnlineTrial):
             trial_id (str): id of the trial (if None, it will be generated in the constructor)
 
         """
+        try:
+            from vowpalwabbit import pyvw
+        except ImportError:
+            raise ImportError(
+                'To use AutoVW, please run pip install flaml[vw] to install vowpalwabbit')
         # attributes
         self.trial_id = self._config_to_id(config) if trial_id is None else trial_id
         logger.info('Create trial with trial_id: %s', self.trial_id)
@@ -306,7 +309,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
                          custom_trial_name, self.trial_id)
         self.model = None   # model is None until the config is scheduled to run
         self.result = None
-        self.trainable_class = self.MODEL_CLASS
+        self.trainable_class = pyvw.vw
         # variables that are needed during online training
         self._metric = metric
         self._y_min_observed = None
