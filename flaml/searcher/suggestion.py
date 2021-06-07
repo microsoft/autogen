@@ -470,6 +470,7 @@ class OptunaSearch(Searcher):
             configurations.
         sampler (optuna.samplers.BaseSampler): Optuna sampler used to
             draw hyperparameter configurations. Defaults to ``TPESampler``.
+        seed (int): The random seed for the sampler
     Tune automatically converts search spaces to Optuna's format:
     .. code-block:: python
         from ray.tune.suggest.optuna import OptunaSearch
@@ -502,7 +503,8 @@ class OptunaSearch(Searcher):
                  metric: Optional[str] = None,
                  mode: Optional[str] = None,
                  points_to_evaluate: Optional[List[Dict]] = None,
-                 sampler: Optional[BaseSampler] = None):
+                 sampler: Optional[BaseSampler] = None,
+                 seed: Optional[int] = None):
         assert ot is not None, (
             "Optuna must be installed! Run `pip install optuna`.")
         super(OptunaSearch, self).__init__(
@@ -524,7 +526,7 @@ class OptunaSearch(Searcher):
         self._points_to_evaluate = points_to_evaluate
 
         self._study_name = "optuna"  # Fixed study name for in-memory storage
-        self._sampler = sampler or ot.samplers.TPESampler()
+        self._sampler = sampler or ot.samplers.TPESampler(seed=seed)
         assert isinstance(self._sampler, BaseSampler), \
             "You can only pass an instance of `optuna.samplers.BaseSampler` " \
             "as a sampler to `OptunaSearcher`."

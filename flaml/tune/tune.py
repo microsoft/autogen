@@ -4,6 +4,7 @@
  * project root for license information.
 '''
 from typing import Optional, Union, List, Callable, Tuple
+import numpy as np
 import datetime
 import time
 try:
@@ -315,6 +316,8 @@ def run(training_function,
         mode=mode,
     )
     num_trials = 0
+    if time_budget_s is None:
+        time_budget_s = np.inf
     while time.time() - time_start < time_budget_s and (
             num_samples < 0 or num_trials < num_samples):
         trial_to_run = _runner.step()
