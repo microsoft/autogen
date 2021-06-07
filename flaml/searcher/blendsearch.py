@@ -13,7 +13,8 @@ try:
     from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
     from ray.tune.suggest.variant_generator import generate_variants
 except ImportError:
-    from .suggestion import Searcher, OptunaSearch as GlobalSearch
+    from .suggestion import Searcher
+    from .suggestion import OptunaSearch as GlobalSearch
     from .variant_generator import generate_variants
 from .search_thread import SearchThread
 from .flow2 import FLOW2 as LocalSearch
@@ -123,7 +124,11 @@ class BlendSearch(Searcher):
         if global_search_alg is not None:
             self._gs = global_search_alg
         elif getattr(self, '__name__', None) != 'CFO':
-            self._gs = GlobalSearch(space=space, metric=metric, mode=mode)
+            try:
+                gs_seed = seed - 10 if (seed - 10) >= 0 else seed - 11 + (1 << 32)
+                self._gs = GlobalSearch(space=space, metric=metric, mode=mode, seed=gs_seed)
+            except TypeError:
+                self._gs = GlobalSearch(space=space, metric=metric, mode=mode)
         else:
             self._gs = None
         self._ls = LocalSearch(
@@ -135,12 +140,7 @@ class BlendSearch(Searcher):
                               metric: Optional[str] = None,
                               mode: Optional[str] = None,
                               config: Optional[Dict] = None) -> bool:
-        if self._ls.space:
-            if 'time_budget_s' in config:
-                self._deadline = config.get('time_budget_s') + time.time()
-            if 'metric_target' in config:
-                self._metric_target = config.get('metric_target')
-        else:
+        if not self._ls.space:
             if metric:
                 self._metric = metric
                 if self._metric_constraints:
@@ -154,6 +154,13 @@ class BlendSearch(Searcher):
             if self._gs is not None:
                 self._gs.set_search_properties(metric, mode, config)
             self._init_search()
+        if 'time_budget_s' in config:
+            time_budget_s = config['time_budget_s']
+            if time_budget_s is not None:
+                self._deadline = time_budget_s + time.time()
+                SearchThread.set_eps(time_budget_s)
+        if 'metric_target' in config:
+            self._metric_target = config.get('metric_target')
         return True
 
     def _init_search(self):

@@ -20,7 +20,7 @@ class SearchThread:
     '''
 
     cost_attr = 'time_total_s'
-    eps = 1e-10
+    _eps = 1.0
 
     def __init__(self, mode: str = "min",
                  search_alg: Optional[Searcher] = None):
@@ -39,6 +39,10 @@ class SearchThread:
         self.eci = self.cost_best
         self.priority = self.speed = 0
         self._init_config = True
+
+    @classmethod
+    def set_eps(cls, time_budget_s):
+        cls._eps = max(min(time_budget_s / 1000.0, 1.0), 1e-10)
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
         ''' use the suggest() of the underlying search algorithm
@@ -74,7 +78,7 @@ class SearchThread:
         # calculate speed; use 0 for invalid speed temporarily
         if self.obj_best2 > self.obj_best1:
             self.speed = (self.obj_best2 - self.obj_best1) / (
-                self.cost_total - self.cost_best2 + self.eps)
+                max(self.cost_total - self.cost_best2, SearchThread._eps))
         else:
             self.speed = 0
 
