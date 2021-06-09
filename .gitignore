@@ -153,3 +153,5 @@ notebook/.azureml
 mlruns
 logs
 automl.pkl
+
+.idea/*

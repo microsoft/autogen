@@ -38,6 +38,13 @@ Tune
    :members:
 
 
+NLP
+------
+
+.. autoclass:: flaml.nlp.AutoTransformers
+   :members:
+
+
 .. Indices and tables
 .. ==================
 
