@@ -171,6 +171,9 @@ class BaseEstimator:
 
 class SKLearnEstimator(BaseEstimator):
 
+    def __init__(self, task='binary:logistic', **params):
+        super().__init__(task, **params)
+
     def _preprocess(self, X):
         if isinstance(X, pd.DataFrame):
             X = X.copy()
@@ -231,12 +234,7 @@ class LGBMEstimator(BaseEstimator):
         n_estimators = int(round(config['n_estimators']))
         return (num_leaves * 3 + (num_leaves - 1) * 4 + 1.0) * n_estimators * 8
 
-    def __init__(
-        self, task='binary:logistic', n_jobs=1,
-        n_estimators=2, num_leaves=2, min_child_samples=20, learning_rate=0.1,
-        subsample=1.0, reg_lambda=1.0, reg_alpha=0.0,
-        colsample_bytree=1.0, log_max_bin=8, **params
-    ):
+    def __init__(self, task='binary:logistic', log_max_bin=8, **params):
         super().__init__(task, **params)
         # Default: ‘regression’ for LGBMRegressor,
         # ‘binary’ or ‘multiclass’ for LGBMClassifier
@@ -248,20 +246,16 @@ class LGBMEstimator(BaseEstimator):
             objective = 'multiclass'
         else:
             objective = 'regression'
-        self.params = {
-            "n_estimators": int(round(n_estimators)),
-            "num_leaves": int(round(num_leaves)),
-            'objective': params.get("objective", objective),
-            'n_jobs': n_jobs,
-            'learning_rate': float(learning_rate),
-            'reg_alpha': float(reg_alpha),
-            'reg_lambda': float(reg_lambda),
-            'min_child_samples': int(round(min_child_samples)),
-            'colsample_bytree': float(colsample_bytree),
-            'subsample': float(subsample),
-        }
-        self.params['max_bin'] = params['max_bin'] if 'max_bin' in params else (
-            1 << int(round(log_max_bin))) - 1
+        if "n_estimators" in self.params:
+            self.params["n_estimators"] = int(round(self.params["n_estimators"]))
+        if "num_leaves" in self.params:
+            self.params["num_leaves"] = int(round(self.params["num_leaves"]))
+        if "min_child_samples" in self.params:
+            self.params["min_child_samples"] = int(round(self.params["min_child_samples"]))
+        if "objective" not in self.params:
+            self.params["objective"] = objective
+        if "max_bin" not in self.params:
+            self.params['max_bin'] = 1 << int(round(log_max_bin)) - 1
         if 'regression' in task:
             self.estimator_class = LGBMRegressor
         else:
@@ -369,7 +363,7 @@ class XGBoostEstimator(SKLearnEstimator):
     ):
         super().__init__(task, **params)
         self._n_estimators = int(round(n_estimators))
-        self.params = {
+        self.params.update({
             'max_leaves': int(round(max_leaves)),
             'max_depth': params.get('max_depth', 0),
             'grow_policy': params.get("grow_policy", 'lossguide'),
@@ -385,7 +379,7 @@ class XGBoostEstimator(SKLearnEstimator):
             'colsample_bylevel': float(colsample_bylevel),
             'colsample_bytree': float(colsample_bytree),
             'objective': params.get("objective")
-        }
+        })
         if all_thread:
             del self.params['nthread']
 
@@ -445,7 +439,8 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         **params
     ):
         super().__init__(task, **params)
-        self.params = {
+        self.params = params
+        self.params.update({
             "n_estimators": int(round(n_estimators)),
             'max_leaves': int(round(max_leaves)),
             'max_depth': 0,
@@ -462,7 +457,7 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             'colsample_bylevel': float(colsample_bylevel),
             'colsample_bytree': float(colsample_bytree),
             'use_label_encoder': params.get('use_label_encoder', False),
-        }
+        })
 
         if 'regression' in task:
             self.estimator_class = xgb.XGBRegressor
@@ -513,11 +508,12 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         n_estimators=4, max_features=1.0, criterion='gini', **params
     ):
         super().__init__(task, **params)
-        self.params = {
+        self.params = params
+        self.params.update({
             "n_estimators": int(round(n_estimators)),
             "n_jobs": n_jobs,
             'max_features': float(max_features),
-        }
+        })
         if 'regression' in task:
             self.estimator_class = RandomForestRegressor
         else:
@@ -565,13 +561,13 @@ class LRL1Classifier(SKLearnEstimator):
         **params
     ):
         super().__init__(task, **params)
-        self.params = {
+        self.params.update({
             'penalty': params.get("penalty", 'l1'),
             'tol': float(tol),
             'C': float(C),
             'solver': params.get("solver", 'saga'),
             'n_jobs': n_jobs,
-        }
+        })
         if 'regression' in task:
             self.estimator_class = None
             raise NotImplementedError('LR does not support regression task')
@@ -594,13 +590,13 @@ class LRL2Classifier(SKLearnEstimator):
         **params
     ):
         super().__init__(task, **params)
-        self.params = {
+        self.params.update({
             'penalty': params.get("penalty", 'l2'),
             'tol': float(tol),
             'C': float(C),
             'solver': params.get("solver", 'lbfgs'),
             'n_jobs': n_jobs,
-        }
+        })
         if 'regression' in task:
             self.estimator_class = None
             raise NotImplementedError('LR does not support regression task')
@@ -648,14 +644,14 @@ class CatBoostEstimator(BaseEstimator):
         n_estimators=8192, learning_rate=0.1, early_stopping_rounds=4, **params
     ):
         super().__init__(task, **params)
-        self.params = {
+        self.params.update({
             "early_stopping_rounds": int(round(early_stopping_rounds)),
             "n_estimators": n_estimators,
             'learning_rate': learning_rate,
             'thread_count': n_jobs,
             'verbose': params.get('verbose', False),
             'random_seed': params.get("random_seed", 10242048),
-        }
+        })
         if 'regression' in task:
             from catboost import CatBoostRegressor
             self.estimator_class = CatBoostRegressor
@@ -759,11 +755,12 @@ class KNeighborsEstimator(BaseEstimator):
         self, task='binary:logistic', n_jobs=1, n_neighbors=5, **params
     ):
         super().__init__(task, **params)
-        self.params = {
+        self.params = params
+        self.params.update({
             'n_neighbors': int(round(n_neighbors)),
             'weights': params.get('weights', 'distance'),
             'n_jobs': n_jobs,
-        }
+        })
         if 'regression' in task:
             from sklearn.neighbors import KNeighborsRegressor
             self.estimator_class = KNeighborsRegressor

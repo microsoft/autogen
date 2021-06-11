@@ -5,7 +5,6 @@ import scipy.sparse
 
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-import time
 import logging
 from flaml.tune import loguniform, polynomial_expansion_set
 from vowpalwabbit import pyvw
@@ -13,6 +12,7 @@ from flaml import AutoVW
 import string
 import os
 import openml
+
 VW_DS_DIR = 'test/data/'
 NS_LIST = list(string.ascii_lowercase) + list(string.ascii_uppercase)
 logger = logging.getLogger(__name__)

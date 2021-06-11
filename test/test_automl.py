@@ -273,7 +273,6 @@ class TestAutoML(unittest.TestCase):
         automl_experiment = AutoML()
         automl_settings = {
             "time_budget": 2,
-            "metric": 'mse',
             "task": 'regression',
             "log_file_name": "test/boston.log",
             "log_training_metric": True,
