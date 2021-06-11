@@ -4,7 +4,15 @@ FLAML includes *ChaCha* which is an automatic hyperparameter tuning solution for
 
 For more technical details about *ChaCha*, please check our paper.
 
-* ChaCha for online AutoML. Qingyun Wu, Chi Wang, John Langford, Paul Mineiro and Marco Rossi. To appear in ICML 2021.
+* [ChaCha for Online AutoML](https://arxiv.org/pdf/2106.04815.pdf). Qingyun Wu, Chi Wang, John Langford, Paul Mineiro and Marco Rossi. To appear in ICML 2021.
+```
+@inproceedings{wu2021chacha,
+    title={ChaCha for online AutoML},
+    author={Qingyun Wu and Chi Wang and John Langford and Paul Mineiro and Marco Rossi},
+    year={2021},
+    booktitle={ICML},
+}
+```
 
 ## `AutoVW`
 
