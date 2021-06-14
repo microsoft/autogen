@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 import ray
 from ray.tune.suggest.optuna import OptunaSearch
+
 from flaml import CFO, BlendSearch
 
 SEARCH_ALGO_MAPPING = OrderedDict(
@@ -55,7 +56,7 @@ class AutoSearchAlgorithm:
 
         Example:
         >>> from flaml.nlp.hpo.hpo_searchspace import AutoHPOSearchSpace
-        >>> search_space_hpo=AutoHPOSearchSpace.from_model_and_dataset_name(logger, "uni", "electra", "small", "glue", "rte")
+        >>> search_space_hpo=AutoHPOSearchSpace.from_model_and_dataset_name("uni", "electra", "small", ["glue"], "rte")
         >>> search_algo = AutoSearchAlgorithm.from_method_name("bs", "cus", search_space_hpo,
                          {"points_to_evaluate": [{"learning_rate": 1e-5, "num_train_epochs": 10}])
         """
@@ -64,40 +65,39 @@ class AutoSearchAlgorithm:
         if not search_algo_name:
             search_algo_name = "grid"
         if search_algo_name in SEARCH_ALGO_MAPPING.keys():
-            try:
-                """
-                filtering the customized args for hpo from custom_hpo_args, keep those
-                which are in the input variable name list of the constructor of
-                the algorithm, remove those which does not appear in the input variables
-                of the constructor function
-                """
-                this_search_algo_kwargs = None
-                allowed_arguments = SEARCH_ALGO_MAPPING[search_algo_name].__init__.__code__.co_varnames
-                allowed_custom_args = {key: custom_hpo_args[key] for key in custom_hpo_args.keys() if
-                                       key in allowed_arguments}
-
-                """
-                 If the search_algo_args_mode is "dft", set the args to the default args, e.g.,the default args for
-                 BlendSearch is "low_cost_partial_config": {"num_train_epochs": min_epoch,"per_device_train_batch_size"
-                 : max(hpo_search_space["per_device_train_batch_size"].categories)},
-                """
-                if search_algo_args_mode == "dft":
-                    this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[search_algo_name](
-                        "dft", hpo_search_space=hpo_search_space, **allowed_custom_args)
-                elif search_algo_args_mode == "cus":
-                    this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[search_algo_name](
-                        "cus", hpo_search_space=hpo_search_space, **allowed_custom_args)
-
-                """
-                returning the hpo algorithm with the arguments
-                """
-                return SEARCH_ALGO_MAPPING[search_algo_name](**this_search_algo_kwargs)
-            except KeyError:
+            if search_algo_name == "grid":
                 return None
+            """
+            filtering the customized args for hpo from custom_hpo_args, keep those
+            which are in the input variable name list of the constructor of
+            the algorithm, remove those which does not appear in the input variables
+            of the constructor function
+            """
+            this_search_algo_kwargs = None
+            allowed_arguments = SEARCH_ALGO_MAPPING[search_algo_name].__init__.__code__.co_varnames
+            allowed_custom_args = {key: custom_hpo_args[key] for key in custom_hpo_args.keys() if
+                                   key in allowed_arguments}
+
+            """
+             If the search_algo_args_mode is "dft", set the args to the default args, e.g.,the default args for
+             BlendSearch is "low_cost_partial_config": {"num_train_epochs": min_epoch,"per_device_train_batch_size"
+             : max(hpo_search_space["per_device_train_batch_size"].categories)},
+            """
+            if search_algo_args_mode == "dft":
+                this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[search_algo_name](
+                    "dft", hpo_search_space=hpo_search_space, **allowed_custom_args)
+            elif search_algo_args_mode == "cus":
+                this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[search_algo_name](
+                    "cus", hpo_search_space=hpo_search_space, **allowed_custom_args)
+
+            """
+            returning the hpo algorithm with the arguments
+            """
+            return SEARCH_ALGO_MAPPING[search_algo_name](**this_search_algo_kwargs)
         raise ValueError(
             "Unrecognized method {} for this kind of AutoSearchAlgorithm: {}.\n"
             "Method name should be one of {}.".format(
-                search_algo_name, cls.__name__, ", ".join(c.__name__ for c in SEARCH_ALGO_MAPPING.keys())
+                search_algo_name, cls.__name__, ", ".join(SEARCH_ALGO_MAPPING.keys())
             )
         )
 

@@ -72,6 +72,12 @@ setuptools.setup(
         ],
         "vw": [
             "vowpalwabbit",
+        ],
+        "nlp": [
+            "ray[tune]>=1.2.0",
+            "transformers",
+            "datasets==1.4",
+            "torch"
         ]
     },
     classifiers=[

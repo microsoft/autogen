@@ -178,7 +178,7 @@ class AutoEncodeText:
     def from_model_and_dataset_name(cls,
                                     data_raw,
                                     model_checkpoint_path,
-                                    dataset_name,
+                                    dataset_name_list: list = None,
                                     subdataset_name=None,
                                     **kwargs):
         """
@@ -193,8 +193,8 @@ class AutoEncodeText:
             model_checkpoint_path:
                 A string variable which specifies the model path, e.g., "google/electra-base-discriminator"
 
-            dataset_name:
-                A string variable which is the dataset name, e.g., "glue"
+            dataset_name_list:
+                A list which is the dataset name, e.g., ["glue"]
 
             subdataset_name:
                 A string variable which is the sub dataset name,e.g., "rte"
@@ -208,6 +208,8 @@ class AutoEncodeText:
             >>> AutoEncodeText.from_model_and_dataset_name(data_raw, "google/electra-base-discriminator", ["glue"], "rte")
 
         """
+        from ..result_analysis.azure_utils import JobID
+        dataset_name = JobID.dataset_list_to_str(dataset_name_list)
         if (dataset_name, subdataset_name) in TOKENIZER_MAPPING.keys():
             this_tokenizer = AutoTokenizer.from_pretrained(model_checkpoint_path, use_fast=True)
             token_func = TOKENIZER_MAPPING[(dataset_name, subdataset_name)]
@@ -220,6 +222,6 @@ class AutoEncodeText:
         raise ValueError(
             "Unrecognized method {},{} for this kind of AutoGridSearchSpace: {}.\n"
             "Method name should be one of {}.".format(
-                dataset_name, subdataset_name, cls.__name__, ", ".join(c.__name__ for c in TOKENIZER_MAPPING.keys())
+                dataset_name, subdataset_name, cls.__name__, ", ".join(c[0] for c in TOKENIZER_MAPPING.keys())
             )
         )

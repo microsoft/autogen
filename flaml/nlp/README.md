@@ -5,7 +5,7 @@ from flaml.nlp.autotransformers import AutoTransformers
 
 autohf = AutoTransformers()
 preparedata_setting = {
-        "dataset_subdataset_name": "glue:rte",
+        "dataset_subdataset_name": "glue:mrpc",
         "pretrained_model_size": "electra-base-discriminator:base",
         "data_root_path": "data/",
         "max_seq_length": 128,
