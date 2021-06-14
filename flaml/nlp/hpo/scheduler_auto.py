@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from ray.tune.schedulers import ASHAScheduler, HyperBandScheduler, MedianStoppingRule
+from ray.tune.schedulers import ASHAScheduler, HyperBandScheduler
 
 SCHEDULER_MAPPING = OrderedDict(
     [
@@ -37,15 +37,13 @@ class AutoScheduler:
         Example:
             >>> AutoScheduler.from_scheduler_name("asha")
         """
-
         if scheduler_name in SCHEDULER_MAPPING.keys():
-            try:
-                return SCHEDULER_MAPPING[scheduler_name](**kwargs)
-            except TypeError:
+            if SCHEDULER_MAPPING[scheduler_name] is None:
                 return None
+            return SCHEDULER_MAPPING[scheduler_name](**kwargs)
         raise ValueError(
             "Unrecognized scheduler {} for this kind of AutoScheduler: {}.\n"
             "Scheduler name should be one of {}.".format(
-                scheduler_name, cls.__name__, ", ".join(c.__name__ for c in SCHEDULER_MAPPING.keys())
+                scheduler_name, cls.__name__, ", ".join(SCHEDULER_MAPPING.keys())
             )
         )

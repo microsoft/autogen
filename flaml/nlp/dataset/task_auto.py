@@ -30,7 +30,9 @@ TASK_MAPPING = OrderedDict(
 )
 
 
-def get_default_task(dataset_name, subdataset_name=None):
+def get_default_task(dataset_name_list: list, subdataset_name=None):
+    from ..result_analysis.azure_utils import JobID
+    dataset_name = JobID.dataset_list_to_str(dataset_name_list)
     assert dataset_name in TASK_MAPPING.keys(), "The dataset is not in {}, you must explicitly specify " \
                                                 "the custom_metric_name and custom_metric_mode_name".format(
         ",".join(TASK_MAPPING.keys()))

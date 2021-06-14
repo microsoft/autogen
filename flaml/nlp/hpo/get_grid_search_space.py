@@ -1,8 +1,9 @@
 # lookup table for the grid configs in each pre-trained language huggingface for different tasks
-import copy
 
 
-def get_space_union_and_unique(search_space_common, search_space_unique, this_case_tags: list):
+def get_space_union_and_unique(search_space_common,
+                               search_space_unique,
+                               this_case_tags: list):
     """
         get the recommended search configs for each pre-trained language models
 
@@ -37,7 +38,7 @@ def get_space_union_and_unique(search_space_common, search_space_unique, this_ca
 
 
 def get_deberta_space(model_size_type=None,
-                      dataset_name=None,
+                      dataset_name_list: list = None,
                       subdataset_name=None,
                       algo_mode=None):
     """
@@ -64,18 +65,17 @@ def get_deberta_space(model_size_type=None,
 
 
 def get_longformer_space(model_size_type=None,
-                         dataset_name=None,
+                         dataset_name_list: list = None,
                          subdataset_name=None,
                          algo_mode=None):
     """
         TODO: Longformer: The Long-Document Transformer
     """
-    if dataset_name == "glue":
-        return
+    return
 
 
 def get_funnel_space(model_size_type=None,
-                     dataset_name=None,
+                     dataset_name_list: list = None,
                      subdataset_name=None,
                      algo_mode=None):
     """
@@ -154,11 +154,13 @@ def get_funnel_space(model_size_type=None,
     }
     from ..result_analysis.azure_utils import JobID
     return get_space_union_and_unique(search_space_common, search_space_unique,
-                                      [JobID.get_full_data_name(dataset_name, subdataset_name)])
+                                      [JobID.get_full_data_name(
+                                          dataset_name_list,
+                                          subdataset_name)])
 
 
 def get_bert_space(model_size_type=None,
-                   dataset_name=None,
+                   dataset_name_list: list = None,
                    subdataset_name=None,
                    algo_mode=None):
     """
@@ -203,11 +205,13 @@ def get_bert_space(model_size_type=None,
             "num_train_epochs": [2, 3, 4],
         }
     }
-    return get_space_union_and_unique(search_space_common, search_space_unique, [dataset_name])
+    return get_space_union_and_unique(search_space_common,
+                                      search_space_unique,
+                                      dataset_name_list)
 
 
 def get_roberta_space(model_size_type=None,
-                      dataset_name=None,
+                      dataset_name_list: list = None,
                       subdataset_name=None,
                       algo_mode=None):
     # RoBERTa: A Robustly Optimized BERT Pretraining Approach
@@ -241,11 +245,13 @@ def get_roberta_space(model_size_type=None,
             "num_train_epochs": [2],
         }
     }
-    return get_space_union_and_unique(search_space_common, search_space_unique, [dataset_name])
+    return get_space_union_and_unique(search_space_common,
+                                      search_space_unique,
+                                      dataset_name_list)
 
 
 def get_electra_space(model_size_type=None,
-                      dataset_name=None,
+                      dataset_name_list: list = None,
                       subdataset_name=None,
                       algo_mode=None):
     """
@@ -255,8 +261,7 @@ def get_electra_space(model_size_type=None,
     assert model_size_type in ("small", "base", "large", "intermediate", "xlarge"), \
         "Electra paper has only provided hyperparameter for the small and base huggingface"
     search_space_common = {
-        "learning_rate": [3e-5, 5e-5, 1e-4, 1.5e-4] if algo_mode == "grid"
-        else [3e-5, 5e-5, 1e-4, 1.5e-4, 2e-4, 3e-4, 5e-3],
+        "learning_rate": [3e-5, 5e-5, 1e-4, 1.5e-4],
         "weight_decay": [0.0],
         "adam_epsilon": [1e-6],
         "warmup_ratio": [0.1],
@@ -282,7 +287,7 @@ def get_electra_space(model_size_type=None,
             "num_train_epochs": [3],
         },
         "glue_mrpc": {
-            "num_train_epochs": [3],
+            "num_train_epochs": [0.2],
         },
         "glue_cola": {
             "num_train_epochs": [3],
@@ -302,11 +307,13 @@ def get_electra_space(model_size_type=None,
     }
     from ..result_analysis.azure_utils import JobID
     return get_space_union_and_unique(search_space_common, search_space_unique,
-                                      [JobID.get_full_data_name(dataset_name, subdataset_name), model_size_type])
+                                      [JobID.get_full_data_name(
+                                          dataset_name_list,
+                                          subdataset_name), model_size_type])
 
 
 def get_mobilebert_space(model_size_type=None,
-                         dataset_name=None,
+                         dataset_name_list: list = None,
                          subdataset_name=None,
                          algo_mode=None):
     """
@@ -326,7 +333,7 @@ def get_mobilebert_space(model_size_type=None,
 
 
 def get_albert_space(model_size_type=None,
-                     dataset_name=None,
+                     dataset_name_list: list = None,
                      subdataset_name=None,
                      algo_mode=None):
     """
@@ -453,4 +460,6 @@ def get_albert_space(model_size_type=None,
     # rates ((1-10) * e-5), and the number of epochs (2-10)
     from ..result_analysis.azure_utils import JobID
     return get_space_union_and_unique(search_space_common, search_space_unique,
-                                      [JobID.get_full_data_name(dataset_name, subdataset_name)])
+                                      [JobID.get_full_data_name(
+                                          dataset_name_list,
+                                          subdataset_name)])

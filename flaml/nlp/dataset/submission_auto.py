@@ -42,12 +42,13 @@ test_size_glue = {
 }
 
 
-def output_prediction_glue(output_path, output_dir_name, predictions, train_data, dev_name, subdataset_name):
-    output_dir = os.path.join(output_path, output_dir_name)
+def output_prediction_glue(output_path, zip_file_name, predictions, train_data, dev_name, subdataset_name):
+    output_dir = os.path.join(output_path, zip_file_name)
     if os.path.exists(output_dir):
         assert os.path.isdir(output_dir)
     else:
-        os.mkdir(output_dir)
+        import pathlib
+        pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
     if subdataset_name != "stsb":
         label_list = train_data.features["label"].names
 
@@ -81,8 +82,8 @@ def output_prediction_glue(output_path, output_dir_name, predictions, train_data
                                 else:
                                     writer.write(f"{index}\t{item:3.3f}\n")
 
-    shutil.make_archive(os.path.join(output_path, output_dir_name), 'zip', output_dir)
-    return os.path.join(output_path, output_dir_name + ".zip")
+    shutil.make_archive(os.path.join(output_path, zip_file_name), 'zip', output_dir)
+    return os.path.join(output_path, zip_file_name + ".zip")
 
 
 OUTPUT_PREDICTION_MAPPING = OrderedDict(
@@ -92,16 +93,18 @@ OUTPUT_PREDICTION_MAPPING = OrderedDict(
 )
 
 
-def auto_output_prediction(dataset_name,
+def auto_output_prediction(dataset_name_list: list,
                            output_path,
-                           output_dir_name,
+                           zip_file_name,
                            predictions,
                            train_data,
                            dev_name,
                            subset_name):
+    from ..result_analysis.azure_utils import JobID
+    dataset_name = JobID.dataset_list_to_str(dataset_name_list)
     if dataset_name in OUTPUT_PREDICTION_MAPPING.keys():
         return OUTPUT_PREDICTION_MAPPING[dataset_name](output_path,
-                                                       output_dir_name,
+                                                       zip_file_name,
                                                        predictions,
                                                        train_data,
                                                        dev_name,
