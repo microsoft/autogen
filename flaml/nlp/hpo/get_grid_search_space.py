@@ -287,7 +287,7 @@ def get_electra_space(model_size_type=None,
             "num_train_epochs": [3],
         },
         "glue_mrpc": {
-            "num_train_epochs": [0.2],
+            "num_train_epochs": [3],
         },
         "glue_cola": {
             "num_train_epochs": [3],

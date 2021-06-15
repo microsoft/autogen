@@ -50,11 +50,13 @@ class ConfigScoreList:
             self._config_score_list = sorted(self._config_score_list, key=lambda x: x.start_time, reverse=False)
         else:
             self._config_score_list = sorted(self._config_score_list,
-                                             key=lambda x: getattr(x, "metric_score")[metric_mode], reverse=True)
+                                             key=lambda x: getattr(x, "metric_score")
+                                             [metric_mode], reverse=True)
 
     def get_best_config(self,
                         metric_mode="max"):
-        return max(self._config_score_list, key=lambda x: getattr(x, "metric_score")[metric_mode])
+        return max(self._config_score_list, key=lambda x: getattr(x, "metric_score")
+                   [metric_mode])
 
 
 @dataclass
@@ -318,11 +320,11 @@ class JobID:
             try:
                 try:
                     if each_key == "dataset_subdataset_name":
-                        dataset_subdataset_name_format_check(getattr(console_args, each_key))
+                        dataset_subdataset_name_format_check(JobID.get_attrval_from_arg_or_dict(console_args, each_key))
                         self.dat = JobID.get_attrval_from_arg_or_dict(console_args, each_key).split(":")[0].split(",")
                         self.subdat = JobID.get_attrval_from_arg_or_dict(console_args, each_key).split(":")[1]
                     elif each_key == "pretrained_model_size":
-                        pretrained_model_size_format_check(getattr(console_args, each_key))
+                        pretrained_model_size_format_check(JobID.get_attrval_from_arg_or_dict(console_args, each_key))
                         self.pre_full = JobID.get_attrval_from_arg_or_dict(console_args, each_key).split(":")[0]
                         self.pre = JobID.extract_model_type(self.pre_full)
                         self.presz = JobID.get_attrval_from_arg_or_dict(console_args, each_key).split(":")[1]

@@ -24,7 +24,7 @@ def get_console_args():
 
 
 def model_init():
-    from flaml.nlp.result_analysis.azure_utils import JobID
+    from flaml.nlp import JobID
     jobid_config = JobID()
     jobid_config.set_unittest_config()
     from flaml.nlp import AutoTransformers
@@ -88,7 +88,7 @@ def test_gridsearch_space():
         return
 
     from flaml.nlp.hpo.grid_searchspace_auto import GRID_SEARCH_SPACE_MAPPING, AutoGridSearchSpace
-    from flaml.nlp.result_analysis.azure_utils import JobID
+    from flaml.nlp import JobID
     jobid_config = JobID()
     jobid_config.set_unittest_config()
 
@@ -107,7 +107,7 @@ def test_hpo_space():
         return
 
     from flaml.nlp.hpo.hpo_searchspace import AutoHPOSearchSpace, HPO_SEARCH_SPACE_MAPPING
-    from flaml.nlp.result_analysis.azure_utils import JobID
+    from flaml.nlp import JobID
     jobid_config = JobID()
     jobid_config.set_unittest_config()
 
@@ -168,7 +168,7 @@ def test_switch_head():
         return
 
     from flaml.nlp.huggingface.switch_head_auto import AutoSeqClassificationHead, MODEL_CLASSIFICATION_HEAD_MAPPING
-    from flaml.nlp.result_analysis.azure_utils import JobID
+    from flaml.nlp import JobID
     jobid_config = JobID()
     jobid_config.set_unittest_config()
     checkpoint_path = jobid_config.pre_full
@@ -191,7 +191,7 @@ def test_wandb_utils():
         return
 
     from flaml.nlp.result_analysis.wandb_utils import WandbUtils
-    from flaml.nlp.result_analysis.azure_utils import JobID
+    from flaml.nlp import JobID
     import os
 
     args = get_console_args()
