@@ -65,7 +65,7 @@ class AutoSearchAlgorithm:
         if not search_algo_name:
             search_algo_name = "grid"
         if search_algo_name in SEARCH_ALGO_MAPPING.keys():
-            if search_algo_name == "grid":
+            if SEARCH_ALGO_MAPPING[search_algo_name] is None:
                 return None
             """
             filtering the customized args for hpo from custom_hpo_args, keep those

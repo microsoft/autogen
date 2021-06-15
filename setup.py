@@ -76,7 +76,7 @@ setuptools.setup(
         "nlp": [
             "ray[tune]>=1.2.0",
             "transformers",
-            "datasets==1.4",
+            "datasets==1.4.1",
             "torch"
         ]
     },

@@ -803,7 +803,7 @@ class AutoTransformers:
         test_trainer = TrainerForAutoTransformers(best_model, training_args)
 
         if self.jobid_config.spt == "ori":
-            if "label" in self.test_dataset.keys():
+            if "label" in self.test_dataset.features.keys():
                 self.test_dataset.remove_columns_("label")
                 print("Cleaning the existing label column from test data")
 

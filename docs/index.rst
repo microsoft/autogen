@@ -51,6 +51,12 @@ NLP
 .. autoclass:: flaml.nlp.AutoTransformers
    :members:
 
+.. autoclass:: flaml.nlp.AzureUtils
+   :members:
+
+.. autoclass:: flaml.nlp.JobID
+   :members:
+
 
 .. Indices and tables
 .. ==================
