@@ -9,7 +9,7 @@ from functools import partial
 import numpy as np
 from scipy.sparse import issparse
 from sklearn.model_selection import train_test_split, RepeatedStratifiedKFold, \
-    RepeatedKFold
+    RepeatedKFold, GroupKFold
 from sklearn.utils import shuffle
 import pandas as pd
 import os
@@ -513,6 +513,10 @@ class AutoML:
                     X_train_all, y_train_all,
                     self._state.fit_kwargs['sample_weight'],
                     random_state=RANDOM_SEED)
+        elif hasattr(self._state, 'groups') and self._state.groups is not None:
+            X_train_all, y_train_all, self._state.groups = shuffle(
+                X_train_all, y_train_all, self._state.groups,
+                random_state=RANDOM_SEED)
         else:
             X_train_all, y_train_all = shuffle(
                 X_train_all, y_train_all, random_state=RANDOM_SEED)
@@ -523,7 +527,10 @@ class AutoML:
 
         X_train, y_train = X_train_all, y_train_all
         if X_val is None:
+            # if eval_method = holdout, make holdout data
             if self._state.task != 'regression' and eval_method == 'holdout':
+                # for classification, make sure the labels are complete in both
+                # training and validation data
                 label_set, first = np.unique(y_train_all, return_index=True)
                 rest = []
                 last = 0
@@ -565,10 +572,6 @@ class AutoML:
                 X_val = concat(X_first, X_val)
                 y_val = concat(label_set, y_val) if self._df else \
                     np.concatenate([label_set, y_val])
-                _, y_train_counts_elements = np.unique(y_train,
-                                                       return_counts=True)
-                _, y_val_counts_elements = np.unique(y_val,
-                                                     return_counts=True)
             elif eval_method == 'holdout' and self._state.task == 'regression':
                 if 'sample_weight' in self._state.fit_kwargs:
                     X_train, X_val, y_train, y_val, self._state.fit_kwargs[
@@ -592,7 +595,15 @@ class AutoML:
             self.data_size_full = self._state.data_size + X_val.shape[0]
         self._state.X_train, self._state.y_train, self._state.X_val, \
             self._state.y_val = (X_train, y_train, X_val, y_val)
-        if self._split_type == "stratified":
+        if hasattr(self._state, 'groups') and self._state.groups is not None:
+            logger.info("Using GroupKFold")
+            assert len(self._state.groups) == y_train_all.size, \
+                "the length of groups must match the number of examples"
+            assert len(np.unique(self._state.groups)) >= n_splits, \
+                "the number of groups must be equal or larger than n_splits"
+            self._state.kf = GroupKFold(n_splits)
+            self._state.kf.groups = self._state.groups
+        elif self._split_type == "stratified":
             logger.info("Using StratifiedKFold")
             assert y_train_all.size >= n_splits, (
                 f"{n_splits}-fold cross validation"
@@ -791,11 +802,12 @@ class AutoML:
             X_val=None,
             y_val=None,
             sample_weight_val=None,
+            groups=None,
+            verbose=1,
             retrain_full=True,
             split_type="stratified",
             learner_selector='sample',
             hpo_method=None,
-            verbose=1,
             **fit_kwargs):
         '''Find a model for a given task
 
@@ -853,10 +865,12 @@ class AutoML:
             log_training_metric: A boolean of whether to log the training
                 metric for each model.
             mem_thres: A float of the memory size constraint in bytes
-            X_val: None | a numpy array or a pandas dataframe of validation data
-            y_val: None | a numpy array or a pandas series of validation labels
-            sample_weight_val: None | a numpy array of the sample weight of
+            X_val: None or a numpy array or a pandas dataframe of validation data
+            y_val: None or a numpy array or a pandas series of validation labels
+            sample_weight_val: None or a numpy array of the sample weight of
                 validation data
+            groups: None or an array-like of shape (n,) | Group labels for the
+                samples used while splitting the dataset into train/valid set
             verbose: int, default=1 | Controls the verbosity, higher means more
                 messages
             **fit_kwargs: Other key word arguments to pass to fit() function of
@@ -867,6 +881,7 @@ class AutoML:
         self._state.log_training_metric = log_training_metric
         self._state.fit_kwargs = fit_kwargs
         self._state.weight_val = sample_weight_val
+        self._state.groups = groups
         self._validate_data(X_train, y_train, dataframe, label, X_val, y_val)
         self._search_states = {}  # key: estimator name; value: SearchState
         self._random = np.random.RandomState(RANDOM_SEED)
