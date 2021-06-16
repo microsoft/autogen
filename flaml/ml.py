@@ -9,7 +9,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error, r2_score, roc_auc_score, \
     accuracy_score, mean_absolute_error, log_loss, average_precision_score, \
     f1_score
-from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.model_selection import RepeatedStratifiedKFold, GroupKFold
 from .model import (
     XGBoostEstimator, XGBoostSklearnEstimator, RandomForestEstimator,
     LGBMEstimator, LRL1Classifier, LRL2Classifier, CatBoostEstimator,
@@ -194,6 +194,8 @@ def evaluate_model_CV(
 
     if isinstance(kf, RepeatedStratifiedKFold):
         kf = kf.split(X_train_split, y_train_split)
+    elif isinstance(kf, GroupKFold):
+        kf = kf.split(X_train_split, y_train_split, kf.groups)
     else:
         kf = kf.split(X_train_split)
     rng = np.random.RandomState(2020)
