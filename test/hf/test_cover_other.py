@@ -198,7 +198,7 @@ def test_wandb_utils():
     args.key_path = "."
     jobid_config = JobID(args)
 
-    wandb_utils = WandbUtils(is_wandb_on=True, console_args=args, jobid_config=jobid_config)
+    wandb_utils = WandbUtils(is_wandb_on=True, wandb_key_path=args.key_path, jobid_config=jobid_config)
     os.environ["WANDB_MODE"] = "online"
     wandb_utils.wandb_group_name = "test"
     wandb_utils._get_next_trial_ids()

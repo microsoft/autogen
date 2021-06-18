@@ -54,7 +54,7 @@ def test_hpo():
     if test_metric:
         validation_metric.update({"test": test_metric})
 
-    azure_utils = AzureUtils(root_log_path="logs_test/", autohf=autohf)
+    azure_utils = AzureUtils(root_log_path="logs_test/", data_root_dir="data/", autohf=autohf)
     azure_utils._azure_key = "test"
     azure_utils._container_name = "test"
 

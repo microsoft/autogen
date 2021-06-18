@@ -1,7 +1,13 @@
 from collections import OrderedDict
 
-from transformers.models.electra.modeling_electra import ElectraClassificationHead
-from transformers.models.roberta.modeling_roberta import RobertaClassificationHead
+import transformers
+
+if transformers.__version__.startswith("3"):
+    from transformers.modeling_electra import ElectraClassificationHead
+    from transformers.modeling_roberta import RobertaClassificationHead
+else:
+    from transformers.models.electra.modeling_electra import ElectraClassificationHead
+    from transformers.models.roberta.modeling_roberta import RobertaClassificationHead
 
 MODEL_CLASSIFICATION_HEAD_MAPPING = OrderedDict(
     [

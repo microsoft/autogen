@@ -2,6 +2,7 @@ import os
 import subprocess
 import hashlib
 from time import time
+import json
 
 
 class WandbUtils:
@@ -25,11 +26,10 @@ class WandbUtils:
 
     def __init__(self,
                  is_wandb_on=False,
-                 console_args=None,
+                 wandb_key_path=None,
                  jobid_config=None):
         if is_wandb_on:
-            from ..utils import get_wandb_azure_key
-            wandb_key, azure_key, container_name = get_wandb_azure_key(console_args.key_path)
+            wandb_key = WandbUtils.get_wandb_key(wandb_key_path)
             if wandb_key != "":
                 subprocess.run(["wandb", "login", "--relogin", wandb_key])
             os.environ["WANDB_API_KEY"] = wandb_key
@@ -37,6 +37,20 @@ class WandbUtils:
         else:
             os.environ["WANDB_MODE"] = "disabled"
         self.jobid_config = jobid_config
+
+    @staticmethod
+    def get_wandb_key(key_path):
+        try:
+            try:
+                key_json = json.load(open(os.path.join(key_path, "key.json"), "r"))
+                wandb_key = key_json["wandb_key"]
+                return wandb_key
+            except FileNotFoundError:
+                print("Cannot use wandb module because key.json is not found under key_path")
+                return ""
+        except KeyError:
+            print("Cannot use wandb module because wandb key is not specified")
+            return ""
 
     def set_wandb_per_trial(self):
         print("before wandb.init\n\n\n")
@@ -57,7 +71,7 @@ class WandbUtils:
                 print(err)
                 return None
         except ImportError:
-            print("To use the wandb component in flaml.nlp, run pip install wandb==0.10.26")
+            print("Cannot use wandb module because wandb is not installed, run pip install wandb==0.10.26")
 
     @staticmethod
     def _get_next_trial_ids():
@@ -84,4 +98,4 @@ class WandbUtils:
                 print(err)
                 return None
         except ImportError:
-            print("To use the wandb component in flaml.nlp, run pip install wandb==0.10.26")
+            print("Cannot use wandb module because wandb is not installed, run pip install wandb==0.10.26")
