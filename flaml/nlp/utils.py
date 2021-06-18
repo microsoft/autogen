@@ -56,22 +56,10 @@ def load_dft_args():
     arg_parser.add_argument('--round_idx', type=int, help='round idx for acl experiments', required=False, default=0)
     arg_parser.add_argument('--seed_data', type=int, help='seed of data shuffling', required=False, default=43)
     arg_parser.add_argument('--seed_transformers', type=int, help='seed of transformers', required=False, default=42)
-    arg_parser.add_argument('--optarg1', type=float, help='place holder for optional arg', required=False)
-    arg_parser.add_argument('--optarg2', type=float, help='place holder for optional arg', required=False)
+    arg_parser.add_argument('--learning_rate', type=float, help='optional arg learning_rate', required=False)
+    arg_parser.add_argument('--weight_decay', type=float, help='optional arg weight_decay', required=False)
     args, unknown = arg_parser.parse_known_args()
     return args
-
-
-def get_wandb_azure_key(key_path):
-    try:
-        key_json = json.load(open(os.path.join(key_path, "key.json"), "r"))
-        wandb_key = key_json["wandb_key"]
-        azure_key = key_json["azure_key"]
-        azure_container_name = key_json["container_name"]
-        return wandb_key, azure_key, azure_container_name
-    except FileNotFoundError:
-        print("File not found for key.json under", key_path)
-        return "", "", ""
 
 
 def merge_dicts(dict1, dict2):
@@ -91,7 +79,7 @@ def _check_dict_keys_overlaps(dict1: dict, dict2: dict):
     return len(dict1_keys.intersection(dict2_keys)) > 0
 
 
-def _variable_override_default_alternative(logger, obj_ref, var_name, default_value, all_values, overriding_value=None):
+def _variable_override_default_alternative(obj_ref, var_name, default_value, all_values, overriding_value=None):
     """
         Setting the value of var. If overriding_value is specified, var is set to overriding_value;
         If overriding_value is not specified, var is set to default_value meanwhile showing all_values
@@ -99,11 +87,11 @@ def _variable_override_default_alternative(logger, obj_ref, var_name, default_va
     assert isinstance(all_values, list)
     if overriding_value:
         setattr(obj_ref, var_name, overriding_value)
-        logger.warning("The value for {} is specified as {}".format(var_name, overriding_value))
+        print("The value for {} is specified as {}".format(var_name, overriding_value))
     else:
         setattr(obj_ref, var_name, default_value)
-        logger.warning("The value for {} is not specified, setting it to the default value {}. "
-                       "Alternatively, you can set it to {}".format(var_name, default_value, ",".join(all_values)))
+        print("The value for {} is not specified, setting it to the default value {}. "
+              "Alternatively, you can set it to {}".format(var_name, default_value, ",".join(all_values)))
 
 
 @dataclass

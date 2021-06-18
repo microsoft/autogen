@@ -6,6 +6,7 @@ import logging
 
 try:
     import ray
+    import transformers
     from transformers import TrainingArguments
     import datasets
     import torch
@@ -15,11 +16,6 @@ except ImportError:
 from .dataset.task_auto import get_default_task
 from .result_analysis.azure_utils import JobID
 from .huggingface.trainer import TrainerForAutoTransformers
-
-logger = logging.getLogger(__name__)
-logger_formatter = logging.Formatter(
-    '[%(name)s: %(asctime)s] {%(lineno)d} %(levelname)s - %(message)s',
-    '%m-%d %H:%M:%S')
 
 task_list = [
     "seq-classification",
@@ -173,7 +169,7 @@ class AutoTransformers:
         if is_wandb_on:
             from .result_analysis.wandb_utils import WandbUtils
             self.wandb_utils = WandbUtils(is_wandb_on=is_wandb_on,
-                                          console_args=console_args,
+                                          wandb_key_path=console_args.key_path,
                                           jobid_config=self.jobid_config)
             self.wandb_utils.set_wandb_per_run()
         else:
@@ -358,9 +354,8 @@ class AutoTransformers:
         return training_args_config, per_model_config
 
     def _objective(self, config, reporter, checkpoint_dir=None):
-        from transformers import IntervalStrategy
-
         from transformers.trainer_utils import set_seed
+        self._set_transformers_verbosity(self._transformers_verbose)
 
         def model_init():
             return self._load_model()
@@ -377,17 +372,32 @@ class AutoTransformers:
             batch_size=config["per_device_train_batch_size"])
 
         assert self.path_utils.ckpt_dir_per_trial
-        training_args = TrainingArguments(
-            output_dir=self.path_utils.ckpt_dir_per_trial,
-            do_eval=False,
-            per_device_eval_batch_size=32,
-            eval_steps=ckpt_freq,
-            evaluation_strategy=IntervalStrategy.STEPS,
-            save_steps=ckpt_freq,
-            save_total_limit=0,
-            fp16=self._fp16,
-            **training_args_config,
-        )
+
+        if transformers.__version__.startswith("3"):
+            training_args = TrainingArguments(
+                output_dir=self.path_utils.ckpt_dir_per_trial,
+                do_eval=True,
+                per_device_eval_batch_size=32,
+                eval_steps=ckpt_freq,
+                evaluate_during_training=True,
+                save_steps=ckpt_freq,
+                save_total_limit=0,
+                fp16=self._fp16,
+                **training_args_config,
+            )
+        else:
+            from transformers import IntervalStrategy
+            training_args = TrainingArguments(
+                output_dir=self.path_utils.ckpt_dir_per_trial,
+                do_eval=True,
+                per_device_eval_batch_size=32,
+                eval_steps=ckpt_freq,
+                evaluation_strategy=IntervalStrategy.STEPS,
+                save_steps=ckpt_freq,
+                save_total_limit=0,
+                fp16=self._fp16,
+                **training_args_config,
+            )
 
         trainer = TrainerForAutoTransformers(
             this_model,
@@ -398,7 +408,6 @@ class AutoTransformers:
             tokenizer=self._tokenizer,
             compute_metrics=self._compute_metrics_by_dataset_name,
         )
-        trainer.logger = logger
         trainer.trial_id = reporter.trial_id
 
         """
@@ -498,7 +507,7 @@ class AutoTransformers:
             ckpt_json = json.load(open(ckpt_dir))
             return ckpt_json["best_ckpt"]
         except FileNotFoundError as err:
-            logger.error("Saved checkpoint not found. Please make sure checkpoint is stored under {}".format(ckpt_dir))
+            print("Saved checkpoint not found. Please make sure checkpoint is stored under {}".format(ckpt_dir))
             raise err
 
     def _set_metric(self, custom_metric_name=None, custom_metric_mode_name=None):
@@ -511,14 +520,12 @@ class AutoTransformers:
                 subdataset_name=self.jobid_config.subdat,
                 custom_metric_name=custom_metric_name,
                 custom_metric_mode_name=custom_metric_mode_name)
-        _variable_override_default_alternative(logger,
-                                               self,
+        _variable_override_default_alternative(self,
                                                "metric_name",
                                                default_metric,
                                                all_metrics,
                                                custom_metric_name)
-        _variable_override_default_alternative(logger,
-                                               self,
+        _variable_override_default_alternative(self,
                                                "metric_mode_name",
                                                default_mode,
                                                all_modes,
@@ -620,6 +627,7 @@ class AutoTransformers:
             resources_per_trial=resources_per_trial)
         duration = time.time() - start_time
         self.last_run_duration = duration
+        print("Total running time: {} seconds".format(duration))
 
         hp_dict = best_run.hyperparameters
         hp_dict["seed"] = int(hp_dict["seed"])
@@ -650,6 +658,18 @@ class AutoTransformers:
 
         return validation_metric
 
+    def _set_transformers_verbosity(self, transformers_verbose):
+        if transformers_verbose == transformers.logging.ERROR:
+            transformers.logging.set_verbosity_error()
+        elif transformers_verbose == transformers.logging.WARNING:
+            transformers.logging.set_verbosity_warning()
+        elif transformers_verbose == transformers.logging.INFO:
+            transformers.logging.set_verbosity_info()
+        elif transformers_verbose == transformers.logging.DEBUG:
+            transformers.logging.set_verbosity_debug()
+        else:
+            raise Exception("transformers_verbose must be set to ERROR, WARNING, INFO or DEBUG")
+
     def fit(self,
             num_samples,
             time_budget,
@@ -657,7 +677,8 @@ class AutoTransformers:
             custom_metric_mode_name=None,
             ckpt_per_epoch=1,
             fp16=True,
-            verbose=1,
+            ray_verbose=1,
+            transformers_verbose=10,
             resources_per_trial=None,
             ray_local_mode=False,
             **custom_hpo_args):
@@ -688,9 +709,12 @@ class AutoTransformers:
                 e.g., "max", "min", "last", "all"
             ckpt_per_epoch:
                 An integer value of number of checkpoints per epoch, default = 1
-            verbose:
-                int, default=1 | Controls the verbosity, higher means more
-                messages
+            ray_verbose:
+                int, default=1 | verbosit of ray,
+            transformers_verbose:
+                int, default=transformers.logging.INFO | verbosity of transformers, must be chosen from one of
+                transformers.logging.ERROR, transformers.logging.INFO, transformers.logging.WARNING,
+                or transformers.logging.DEBUG
             fp16:
                 boolean, default = True | whether to use fp16
             ray_local_mode:
@@ -709,6 +733,7 @@ class AutoTransformers:
 
         '''
         from .hpo.scheduler_auto import AutoScheduler
+        self._transformers_verbose = transformers_verbose
 
         """
          Specify the other parse of jobid configs from custom_hpo_args, e.g., if the search algorithm was not specified
@@ -729,12 +754,6 @@ class AutoTransformers:
         self.ckpt_per_epoch = ckpt_per_epoch
         self.path_utils.make_dir_per_run()
 
-        logger.addHandler(logging.FileHandler(os.path.join(self.path_utils.log_dir_per_run, 'tune.log')))
-        old_level = logger.getEffectiveLevel()
-        self._verbose = verbose
-        if verbose == 0:
-            logger.setLevel(logging.WARNING)
-
         assert self.path_utils.ckpt_dir_per_run
         start_time = time.time()
 
@@ -748,7 +767,7 @@ class AutoTransformers:
             name="ray_result",
             resources_per_trial=resources_per_trial,
             config=tune_config,
-            verbose=verbose,
+            verbose=ray_verbose,
             local_dir=self.path_utils.ckpt_dir_per_run,
             num_samples=num_samples,
             time_budget_s=time_budget,
@@ -758,7 +777,7 @@ class AutoTransformers:
         )
         duration = time.time() - start_time
         self.last_run_duration = duration
-        logger.info("Total running time: {} seconds".format(duration))
+        print("Total running time: {} seconds".format(duration))
 
         ray.shutdown()
 
@@ -773,9 +792,6 @@ class AutoTransformers:
         best_ckpt = AutoTransformers._recover_checkpoint(get_best_ckpt)
 
         self._save_ckpt_json(best_ckpt)
-
-        if verbose == 0:
-            logger.setLevel(old_level)
 
         return validation_metric, analysis
 

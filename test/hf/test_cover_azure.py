@@ -109,7 +109,7 @@ def test_azureutils():
         configscore_list.sorted(each_method)
     configscore_list.get_best_config()
 
-    azureutils = AzureUtils(console_args=args, autohf=autohf)
+    azureutils = AzureUtils(azure_key_path=args.key_path, data_root_dir=args.data_root_dir, autohf=autohf)
     azureutils.autohf = autohf
     azureutils.root_log_path = "logs_azure/"
 
