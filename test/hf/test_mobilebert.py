@@ -24,7 +24,6 @@ def get_autohf_settings():
                        "time_budget": 100000,
                        "ckpt_per_epoch": 1,
                        "fp16": False,
-                       "ray_local_mode": True
                        }
     return autohf_settings
 
