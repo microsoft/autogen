@@ -43,7 +43,7 @@ def test_get_configblob_from_partial_jobid():
     from flaml.nlp import JobID
     each_blob_name = "dat=glue_subdat=cola_mod=grid_spa=cus_arg=dft_alg=grid" \
                      "_pru=None_pre=deberta_presz=large_spt=rspt_rep=0_sddt=43" \
-                     "_sdhf=42_var1=1e-05_var2=0.0.json"
+                     "_sdhf=42.json"
     partial_jobid = JobID()
     partial_jobid.pre = "deberta"
     partial_jobid.mod = "grid"

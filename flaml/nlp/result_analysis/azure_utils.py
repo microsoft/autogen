@@ -106,8 +106,6 @@ class JobID:
     rep: int = field(default=0)
     sddt: int = field(default=None)
     sdhf: int = field(default=None)
-    var1: Optional[float] = field(default=None)
-    var2: Optional[float] = field(default=None)
 
     def __init__(self,
                  console_args=None):
@@ -132,8 +130,6 @@ class JobID:
         self.rep = 0
         self.sddt = 43
         self.sdhf = 42
-        self.var1 = None
-        self.var2 = None
 
     def is_match(self, partial_jobid):
         """
@@ -344,8 +340,6 @@ class JobID:
             "rep_id": "rep",
             "seed_data": "sddt",
             "seed_transformers": "sdhf",
-            "learning_rate": "var1",
-            "weight_decay": "var2"
         }
         for each_key in console_to_jobid_key_mapping.keys():
             try:
