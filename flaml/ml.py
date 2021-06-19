@@ -233,7 +233,10 @@ def evaluate_model_CV(
         valid_fold_num += 1
         total_val_loss += val_loss_i
         if train_loss is not False:
-            if total_train_loss != 0:
+            if isinstance(total_train_loss, list):
+                total_train_loss = [
+                    total_train_loss[i] + v for i, v in enumerate(train_loss_i)]
+            elif total_train_loss != 0:
                 total_train_loss += train_loss_i
             else:
                 total_train_loss = train_loss_i
@@ -246,7 +249,10 @@ def evaluate_model_CV(
             break
     val_loss = np.max(val_loss_list)
     if train_loss is not False:
-        train_loss = total_train_loss / n
+        if isinstance(total_train_loss, list):
+            train_loss = [v / n for v in total_train_loss]
+        else:
+            train_loss = total_train_loss / n
     budget -= time.time() - start_time
     if val_loss < best_val_loss and budget > budget_per_train:
         estimator.cleanup()

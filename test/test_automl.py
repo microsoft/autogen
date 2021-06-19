@@ -153,8 +153,8 @@ class TestAutoML(unittest.TestCase):
         X_train, y_train = load_iris(return_X_y=True)
         automl_experiment = AutoML()
         automl_settings = {
-            "time_budget": 10,
-            'eval_method': 'holdout',
+            "time_budget": 5,
+            'eval_method': 'cv',
             "metric": custom_metric,
             "task": 'classification',
             "log_file_name": "test/iris_custom.log",
