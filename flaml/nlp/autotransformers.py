@@ -2,20 +2,17 @@ import json
 import os
 import numpy as np
 import time
-import logging
 
 try:
     import ray
     import transformers
     from transformers import TrainingArguments
     import datasets
-    import torch
+    from .dataset.task_auto import get_default_task
+    from .result_analysis.azure_utils import JobID
+    from .huggingface.trainer import TrainerForAutoTransformers
 except ImportError:
     print("To use the nlp component in flaml, run pip install flaml[nlp]")
-
-from .dataset.task_auto import get_default_task
-from .result_analysis.azure_utils import JobID
-from .huggingface.trainer import TrainerForAutoTransformers
 
 task_list = [
     "seq-classification",
@@ -116,20 +113,18 @@ class AutoTransformers:
                      fold_name=None,
                      resplit_portion=None,
                      **custom_data_args):
-        '''Prepare data
+        """Prepare data
 
-            An example:
+            Example:
 
-                preparedata_setting = {
-                "server_name": "tmdev",
-                "data_root_path": "data/",
-                "max_seq_length": 128,
-                "jobid_config": jobid_config,
-                "wandb_utils": wandb_utils,
-                "resplit_portion": {"source": ["train", "validation"],
-                "train": [0, 0.8], "validation": [0.8, 0.9], "test": [0.9, 1.0]}
-                }
-                autohf.prepare_data(**preparedata_setting)
+                .. code-block:: python
+
+                    preparedata_setting = {"server_name": "tmdev", "data_root_path": "data/", "max_seq_length": 128,
+                                               "jobid_config": jobid_config, "wandb_utils": wandb_utils,
+                                               "resplit_portion": {"source": ["train", "validation"],
+                                               "train": [0, 0.8], "validation": [0.8, 0.9], "test": [0.9, 1.0]}}
+
+                    autohf.prepare_data(**preparedata_setting)
 
             Args:
                 server_name:
@@ -148,7 +143,7 @@ class AutoTransformers:
                     If args.resplit_mode = "rspt", resplit_portion is required
                 is_wandb_on:
                     A boolean variable indicating whether wandb is used
-            '''
+        """
         from .dataset.dataprocess_auto import AutoEncodeText
         from transformers import AutoTokenizer
         from datasets import load_dataset
@@ -682,16 +677,20 @@ class AutoTransformers:
             resources_per_trial=None,
             ray_local_mode=False,
             **custom_hpo_args):
-        '''Fine tuning the huggingface using the hpo setting
+        """Fine tuning the huggingface using the hpo setting
 
-        An example:
-            autohf_settings = {"resources_per_trial": {"cpu": 1},
-                       "num_samples": 1,
-                       "time_budget": 100000,
-                       "ckpt_per_epoch": 1,
-                       "fp16": False,
-                      }
-            validation_metric, analysis = autohf.fit(**autohf_settings)
+        Example:
+
+            .. code-block:: python
+
+                autohf_settings = {"resources_per_trial": {"cpu": 1},
+                           "num_samples": 1,
+                           "time_budget": 100000,
+                           "ckpt_per_epoch": 1,
+                           "fp16": False,
+                          }
+
+                validation_metric, analysis = autohf.fit(**autohf_settings)
 
         Args:
             resources_per_trial:
@@ -710,28 +709,25 @@ class AutoTransformers:
             ckpt_per_epoch:
                 An integer value of number of checkpoints per epoch, default = 1
             ray_verbose:
-                int, default=1 | verbosit of ray,
+                An integer, default=1 | verbosit of ray,
             transformers_verbose:
-                int, default=transformers.logging.INFO | verbosity of transformers, must be chosen from one of
+                An integer, default=transformers.logging.INFO | verbosity of transformers, must be chosen from one of
                 transformers.logging.ERROR, transformers.logging.INFO, transformers.logging.WARNING,
                 or transformers.logging.DEBUG
             fp16:
-                boolean, default = True | whether to use fp16
+                A boolean, default = True | whether to use fp16
             ray_local_mode:
-                boolean, default = False | whether to use the local mode (debugging mode) for ray tune.run
+                A boolean, default = False | whether to use the local mode (debugging mode) for ray tune.run
             custom_hpo_args:
-                The additional keyword arguments, e.g.,
-                custom_hpo_args = {"points_to_evaluate": [{
-                           "num_train_epochs": 1,
-                           "per_device_train_batch_size": 128, }]}
+                The additional keyword arguments, e.g., custom_hpo_args = {"points_to_evaluate": [{
+                "num_train_epochs": 1, "per_device_train_batch_size": 128, }]}
 
         Returns:
-           validation_metric:
-                a dict storing the validation score
-           analysis:
-                a ray.tune.analysis.Analysis object storing the analysis results from tune.run
 
-        '''
+            validation_metric: A dict storing the validation score
+
+            analysis: A ray.tune.analysis.Analysis object storing the analysis results from tune.run
+        """
         from .hpo.scheduler_auto import AutoScheduler
         self._transformers_verbose = transformers_verbose
 
@@ -854,14 +850,14 @@ class AutoTransformers:
 
             Args:
                 predictions:
-                    a list of predictions, which is the output of AutoTransformers.predict()
+                    A list of predictions, which is the output of AutoTransformers.predict()
                 output_prediction_path:
-                    output path for the prediction
+                    Output path for the prediction
                 output_zip_file_name:
-                    an string, which is the name of the output zip file
+                    An string, which is the name of the output zip file
 
             Returns:
-                the path of the output .zip file
+                The path of the output .zip file
         """
         from .dataset.submission_auto import auto_output_prediction
         return auto_output_prediction(self.jobid_config.dat,

@@ -11,12 +11,8 @@ logger = logging.getLogger(__name__)
 
 class AutoVW:
     """The AutoML class
-
-    Methods:
-        predict(data_sample)
-        learn(data_sample)
-        AUTO
     """
+
     WARMSTART_NUM = 100
     AUTOMATIC = '_auto'
     VW_INTERACTION_ARG_NAME = 'interactions'
@@ -134,7 +130,7 @@ class AutoVW:
         self._y_predict = self._best_trial.predict(data_sample)
         # code for debugging purpose
         if self._prediction_trial_id is None or \
-           self._prediction_trial_id != self._best_trial.trial_id:
+                self._prediction_trial_id != self._best_trial.trial_id:
             self._prediction_trial_id = self._best_trial.trial_id
             logger.info('prediction trial id changed to %s at iter %s, resource used: %s',
                         self._prediction_trial_id, self._iter,
@@ -160,7 +156,7 @@ class AutoVW:
                                              or trial.result.resource_used >= self.WARMSTART_NUM):
                 score = trial.result.get_score(self._model_select_policy)
                 if ('min' == self._model_selection_mode and score < best_score) or \
-                   ('max' == self._model_selection_mode and score > best_score):
+                        ('max' == self._model_selection_mode and score > best_score):
                     best_score = score
                     new_best_trial = trial
         if new_best_trial is not None:
