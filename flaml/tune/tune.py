@@ -180,10 +180,10 @@ def run(training_function,
         prune_attr: A string of the attribute used for pruning.
             Not necessarily in space.
             When prune_attr is in space, it is a hyperparameter, e.g.,
-                'n_iters', and the best value is unknown.
+            'n_iters', and the best value is unknown.
             When prune_attr is not in space, it is a resource dimension,
-                e.g., 'sample_size', and the peak performance is assumed
-                to be at the max_resource.
+            e.g., 'sample_size', and the peak performance is assumed
+            to be at the max_resource.
         min_resource: A float of the minimal resource to use for the
             prune_attr; only valid if prune_attr is not in space.
         max_resource: A float of the maximal resource to use for the

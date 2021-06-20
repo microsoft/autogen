@@ -1,14 +1,12 @@
 import os
-import transformers
+
+try:
+    from transformers import Trainer as TFTrainer
+except ImportError:
+    TFTrainer = object
 
 
-class TrainerForAutoTransformers(transformers.Trainer):
-    """
-        Overriding transformers.Trainer.
-
-        Args:
-            huggingface (:class:`~transformers.PreTrainedModel` or :obj:`torch.nn.Module`, `optional`):
-    """
+class TrainerForAutoTransformers(TFTrainer):
 
     def evaluate(self,
                  eval_dataset=None):

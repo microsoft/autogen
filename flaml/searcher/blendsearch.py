@@ -189,11 +189,15 @@ class BlendSearch(Searcher):
             self._metric_constraint_penalty = None
 
     def save(self, checkpoint_path: str):
+        ''' save states to a checkpoint path
+        '''
         save_object = self
         with open(checkpoint_path, "wb") as outputFile:
             pickle.dump(save_object, outputFile)
 
     def restore(self, checkpoint_path: str):
+        ''' restore states from checkpoint
+        '''
         with open(checkpoint_path, "rb") as inputFile:
             state = pickle.load(inputFile)
         self._metric_target = state._metric_target
@@ -219,9 +223,6 @@ class BlendSearch(Searcher):
     @property
     def metric_target(self):
         return self._metric_target
-
-    def restore_from_dir(self, checkpoint_dir: str):
-        super.restore_from_dir(checkpoint_dir)
 
     def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None,
                           error: bool = False):
@@ -353,6 +354,8 @@ class BlendSearch(Searcher):
         return False
 
     def on_trial_result(self, trial_id: str, result: Dict):
+        ''' receive intermediate result
+        '''
         if trial_id not in self._trial_proposed_by:
             return
         thread_id = self._trial_proposed_by[trial_id]
