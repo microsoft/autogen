@@ -21,6 +21,8 @@ and learner selection method invented by Microsoft Research.
 FLAML leverages the structure of the search space to choose a search order optimized for both cost and error. For example, the system tends to propose cheap configurations at the beginning stage of the search,
 but quickly moves to configurations with high model complexity and large sample size when needed in the later stage of the search. For another example, it favors cheap learners in the beginning but penalizes them later if the error improvement is slow. The cost-bounded search and cost-based prioritization make a big difference in the search efficiency under budget constraints.
 
+FLAML has a .NET implementation as well from [ML.NET Model Builder](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet/model-builder). This [ML.NET blog](https://devblogs.microsoft.com/dotnet/ml-net-june-updates/#new-and-improved-automl) describes the improvement brought by FLAML.
+
 ## Installation
 
 FLAML requires **Python version >= 3.6**. It can be installed from pip:
@@ -40,6 +42,7 @@ pip install flaml[notebook]
 
 * With three lines of code, you can start using this economical and fast
 AutoML engine as a scikit-learn style estimator.
+
 ```python
 from flaml import AutoML
 automl = AutoML()
@@ -48,11 +51,13 @@ automl.fit(X_train, y_train, task="classification")
 
 * You can restrict the learners and use FLAML as a fast hyperparameter tuning
 tool for XGBoost, LightGBM, Random Forest etc. or a customized learner.
+
 ```python
 automl.fit(X_train, y_train, task="classification", estimator_list=["lgbm"])
 ```
 
 * You can also run generic ray-tune style hyperparameter tuning for a custom function.
+
 ```python
 from flaml import tune
 tune.run(train_with_config, config={…}, low_cost_partial_config={…}, time_budget_s=3600)
@@ -62,9 +67,9 @@ tune.run(train_with_config, config={…}, low_cost_partial_config={…}, time_bu
 
 * For classification and regression tasks, find quality models with lower computational resources.
 * Users can choose their desired customizability: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), full customization (arbitrary training and evaluation code).
-* Allow human guidance in hyperparameter tuning to respect prior on certain subspaces but also able to explore other subspaces. Read more about the 
+* Allow human guidance in hyperparameter tuning to respect prior on certain subspaces but also able to explore other subspaces. Read more about the
 hyperparameter optimization methods
-in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/tune). They can be used beyond the AutoML context. 
+in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/tune). They can be used beyond the AutoML context.
 And they can be used in distributed HPO frameworks such as ray tune or nni.
 * Support online AutoML: automatic hyperparameter tuning for online learning algorithms. Read more about the online AutoML method in FLAML [here](https://github.com/microsoft/FLAML/tree/main/flaml/onlineml).
 
@@ -126,11 +131,11 @@ Please find the API documentation [here](https://microsoft.github.io/FLAML/).
 
 Please find demo and tutorials of FLAML [here](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A)
 
-
 For more technical details, please check our papers.
 
 * [FLAML: A Fast and Lightweight AutoML Library](https://www.microsoft.com/en-us/research/publication/flaml-a-fast-and-lightweight-automl-library/). Chi Wang, Qingyun Wu, Markus Weimer, Erkang Zhu. MLSys, 2021.
-```
+
+```bibtex
 @inproceedings{wang2021flaml,
     title={FLAML: A Fast and Lightweight AutoML Library},
     author={Chi Wang and Qingyun Wu and Markus Weimer and Erkang Zhu},
@@ -138,6 +143,7 @@ For more technical details, please check our papers.
     booktitle={MLSys},
 }
 ```
+
 * [Frugal Optimization for Cost-related Hyperparameters](https://arxiv.org/abs/2005.01571). Qingyun Wu, Chi Wang, Silu Huang. AAAI 2021.
 * [Economical Hyperparameter Optimization With Blended Search Strategy](https://www.microsoft.com/en-us/research/publication/economical-hyperparameter-optimization-with-blended-search-strategy/). Chi Wang, Qingyun Wu, Silu Huang, Amin Saied. ICLR 2021.
 * [ChaCha for Online AutoML](https://arxiv.org/pdf/2106.04815.pdf). Qingyun Wu, Chi Wang, John Langford, Paul Mineiro and Marco Rossi. To appear in ICML 2021.
@@ -160,18 +166,21 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Developing
 
-### Setup:
+### Setup
 
-```
+```bash
 git clone https://github.com/microsoft/FLAML.git
 pip install -e .[test,notebook]
 ```
 
 ### Coverage
+
 Any code you commit should generally not significantly impact coverage. To run all unit tests:
-```
+
+```bash
 coverage run -m pytest test
 ```
+
 Then you can see the coverage report by
 `coverage report -m` or `coverage html`.
 If all the tests are passed, please also test run notebook/flaml_automl to make sure your commit does not break the notebook example.
