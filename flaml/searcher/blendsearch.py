@@ -372,7 +372,6 @@ class BlendSearch(Searcher):
             choice, backup = self._select_thread()
             if choice < 0:  # timeout
                 return None
-            self._use_rs = False
             config = self._search_thread_pool[choice].suggest(trial_id)
             if choice and config is None:
                 # local search thread finishes
@@ -386,18 +385,16 @@ class BlendSearch(Searcher):
                 if choice:
                     return None
                 # use rs when BO fails to suggest a config
-                self._use_rs = True
                 for _, generated in generate_variants({'config': self._ls.space}):
                     config = generated['config']
                     break  # get one random config
-                skip = self._should_skip(choice, trial_id, config)
+                skip = self._should_skip(-1, trial_id, config)
                 if skip:
                     return None
             if choice or self._valid(config):
                 # LS or valid or no backup choice
                 self._trial_proposed_by[trial_id] = choice
             else:  # invalid config proposed by GS
-                self._use_rs = False
                 if choice == backup:
                     # use CFO's init point
                     init_config = self._ls.init_config
@@ -439,6 +436,7 @@ class BlendSearch(Searcher):
                 return None
             self._init_used = True
             self._trial_proposed_by[trial_id] = 0
+            self._search_thread_pool[0].running += 1
         return config
 
     def _should_skip(self, choice, trial_id, config) -> bool:
@@ -462,16 +460,16 @@ class BlendSearch(Searcher):
                     }
                     exists = True
                     break
-        if exists:
-            if not self._use_rs:
+        if exists:  # suggested before
+            if choice >= 0:  # not fallback to rs
                 result = self._result.get(config_signature)
-                if result:
+                if result:  # finished
                     self._search_thread_pool[choice].on_trial_complete(
                         trial_id, result, error=False)
                     if choice:
                         # local search thread
                         self._clean(choice)
-                # else:
+                # else:     # running
                 #     # tell the thread there is an error
                 #     self._search_thread_pool[choice].on_trial_complete(
                 #         trial_id, {}, error=True)

@@ -39,6 +39,7 @@ class SearchThread:
         self.eci = self.cost_best
         self.priority = self.speed = 0
         self._init_config = True
+        self.running = 0    # the number of running trials from the thread
 
     @classmethod
     def set_eps(cls, time_budget_s):
@@ -57,6 +58,8 @@ class SearchThread:
                     'The global search method raises FloatingPointError. '
                     'Ignoring for this iteration.')
                 config = None
+        if config is not None:
+            self.running += 1
         return config
 
     def update_priority(self, eci: Optional[float] = 0):
@@ -77,7 +80,8 @@ class SearchThread:
     def _update_speed(self):
         # calculate speed; use 0 for invalid speed temporarily
         if self.obj_best2 > self.obj_best1:
-            self.speed = (self.obj_best2 - self.obj_best1) / (
+            # discount the speed if there are unfinished trials
+            self.speed = (self.obj_best2 - self.obj_best1) / self.running / (
                 max(self.cost_total - self.cost_best2, SearchThread._eps))
         else:
             self.speed = 0
@@ -92,7 +96,13 @@ class SearchThread:
                 not error and trial_id in self._search_alg._ot_trials):
             # optuna doesn't handle error
             if self._is_ls or not self._init_config:
-                self._search_alg.on_trial_complete(trial_id, result, error)
+                try:
+                    self._search_alg.on_trial_complete(trial_id, result, error)
+                except RuntimeError as e:
+                    # rs is used in place of optuna sometimes
+                    if not str(e).endswith(
+                       "has already finished and can not be updated."):
+                        raise e
             else:
                 # init config is not proposed by self._search_alg
                 # under this thread
@@ -111,6 +121,8 @@ class SearchThread:
                     self.obj_best1 = obj
                     self.cost_best = self.cost_last
             self._update_speed()
+        self.running -= 1
+        assert self.running >= 0
 
     def on_trial_result(self, trial_id: str, result: Dict):
         ''' TODO update the statistics of the thread with partial result?
@@ -118,8 +130,14 @@ class SearchThread:
         if not self._search_alg:
             return
         if not hasattr(self._search_alg, '_ot_trials') or (
-                trial_id in self._search_alg._ot_trials):
-            self._search_alg.on_trial_result(trial_id, result)
+           trial_id in self._search_alg._ot_trials):
+            try:
+                self._search_alg.on_trial_result(trial_id, result)
+            except RuntimeError as e:
+                # rs is used in place of optuna sometimes
+                if not str(e).endswith(
+                   "has already finished and can not be updated."):
+                    raise e
         if self.cost_attr in result and self.cost_last < result[self.cost_attr]:
             self.cost_last = result[self.cost_attr]
             # self._update_speed()

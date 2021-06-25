@@ -31,7 +31,7 @@ class ExperimentAnalysis(EA):
             super().__init__(self, None, trials, metric, mode)
         except (TypeError, ValueError):
             self.trials = trials
-            self.default_metric = metric
+            self.default_metric = metric or '_default_anonymous_metric'
             self.default_mode = mode
 
 
@@ -257,7 +257,8 @@ def run(training_function,
     if search_alg is None:
         from ..searcher.blendsearch import BlendSearch
         search_alg = BlendSearch(
-            metric=metric, mode=mode, space=config,
+            metric=metric or '_default_anonymous_metric', mode=mode,
+            space=config,
             points_to_evaluate=points_to_evaluate,
             low_cost_partial_config=low_cost_partial_config,
             cat_hp_cost=cat_hp_cost,
@@ -325,6 +326,13 @@ def run(training_function,
             num_trials += 1
             if verbose:
                 logger.info(f'trial {num_trials} config: {trial_to_run.config}')
-            training_function(trial_to_run.config)
+            result = training_function(trial_to_run.config)
+            if result is not None:
+                if isinstance(result, dict):
+                    tune.report(**result)
+                else:
+                    tune.report(_metric=result)
             _runner.stop_trial(trial_to_run)
+    if verbose > 0:
+        logger.handlers.clear()
     return ExperimentAnalysis(_runner.get_trials(), metric=metric, mode=mode)

@@ -181,7 +181,7 @@ class FLOW2(Searcher):
         if self.step > self.step_ub:
             self.step = self.step_ub
         # maximal # consecutive no improvements
-        self.dir = 2**(self.dim)
+        self.dir = 2**(min(9, self.dim))
         self._configs = {}  # dict from trial_id to (config, stepsize)
         self._K = 0
         self._iter_best_config = self.trial_count_proposed = self.trial_count_complete = 1
