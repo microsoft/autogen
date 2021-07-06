@@ -19,11 +19,11 @@ class SearchThread:
     '''Class of global or local search thread
     '''
 
-    cost_attr = 'time_total_s'
     _eps = 1.0
 
     def __init__(self, mode: str = "min",
-                 search_alg: Optional[Searcher] = None):
+                 search_alg: Optional[Searcher] = None,
+                 cost_attr: Optional[str] = 'time_total_s'):
         ''' When search_alg is omitted, use local search FLOW2
         '''
         self._search_alg = search_alg
@@ -40,6 +40,7 @@ class SearchThread:
         self.priority = self.speed = 0
         self._init_config = True
         self.running = 0    # the number of running trials from the thread
+        self.cost_attr = cost_attr
 
     @classmethod
     def set_eps(cls, time_budget_s):
@@ -108,9 +109,8 @@ class SearchThread:
                 # under this thread
                 self._init_config = False
         if result:
-            if self.cost_attr in result:
-                self.cost_last = result[self.cost_attr]
-                self.cost_total += self.cost_last
+            self.cost_last = result.get(self.cost_attr, 1)
+            self.cost_total += self.cost_last
             if self._search_alg.metric in result:
                 obj = result[self._search_alg.metric] * self._metric_op
                 if obj < self.obj_best1:
