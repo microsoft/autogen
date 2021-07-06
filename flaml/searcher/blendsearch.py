@@ -133,8 +133,8 @@ class BlendSearch(Searcher):
         else:
             self._gs = None
         self._ls = self.LocalSearch(
-            init_config, metric, mode, cat_hp_cost, space,
-            prune_attr, min_resource, max_resource, reduction_factor, seed)
+            init_config, metric, mode, cat_hp_cost, space, prune_attr,
+            min_resource, max_resource, reduction_factor, self.cost_attr, seed)
         self._init_search()
 
     def set_search_properties(self,
