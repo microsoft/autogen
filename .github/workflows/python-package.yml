@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
       - uses: actions/checkout@v2
@@ -39,9 +39,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[test]
       - name: If linux or mac, install ray
-        if: matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest'
+        if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9'
         run: |
           pip install -e .[ray]
+          pip install 'tensorboardX<=2.2'
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names

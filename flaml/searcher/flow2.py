@@ -172,12 +172,12 @@ class FLOW2(Searcher):
         self._num_complete4incumbent = self._cost_complete4incumbent = 0
         self._num_allowed4incumbent = 2 * self.dim
         self._proposed_by = {}  # trial_id: int -> incumbent: Dict
-        self.step = self.STEPSIZE * np.sqrt(self.dim)
+        self.step_ub = np.sqrt(self.dim)
+        self.step = self.STEPSIZE * self.step_ub
         lb = self.step_lower_bound
         if lb > self.step:
             self.step = lb * 2
         # upper bound
-        self.step_ub = np.sqrt(self.dim)
         if self.step > self.step_ub:
             self.step = self.step_ub
         # maximal # consecutive no improvements
@@ -189,8 +189,11 @@ class FLOW2(Searcher):
         self._reset_times = 0
         # record intermediate trial cost
         self._trial_cost = {}
-        self._same = False  # whether the proposedd config is the same as best_config
-        self._init_phrase = True  # initial phase to increase initial stepsize
+        self._same = False  # whether the proposed config is the same as best_config
+        self._init_phase = True  # initial phase to increase initial stepsize
+        self._trunc = 0
+        # no truncation by default. when > 0, it means how many
+        # non-zero dimensions to keep in the random unit vector
 
     @property
     def step_lower_bound(self) -> float:
@@ -215,7 +218,7 @@ class FLOW2(Searcher):
         if np.isinf(step_lb):
             step_lb = self.STEP_LOWER_BOUND
         else:
-            step_lb *= np.sqrt(self.dim)
+            step_lb *= self.step_ub
         return step_lb
 
     @property
@@ -285,12 +288,14 @@ class FLOW2(Searcher):
         return unflatten_dict(config)
 
     def create(self, init_config: Dict, obj: float, cost: float) -> Searcher:
-        flow2 = FLOW2(init_config, self.metric, self.mode, self._cat_hp_cost,
-                      unflatten_dict(self.space), self.prune_attr,
-                      self.min_resource, self.max_resource,
-                      self.resource_multiple_factor, self._seed + 1)
+        flow2 = self.__class__(
+            init_config, self.metric, self.mode, self._cat_hp_cost,
+            unflatten_dict(self.space), self.prune_attr,
+            self.min_resource, self.max_resource,
+            self.resource_multiple_factor, self._seed + 1)
         flow2.best_obj = obj * self.metric_op  # minimize internally
         flow2.cost_incumbent = cost
+        self._seed += 1
         return flow2
 
     def normalize(self, config) -> Dict:
@@ -315,10 +320,11 @@ class FLOW2(Searcher):
                         elif key in self.incumbent:
                             config_norm[key] = self.incumbent[
                                 key] if value == self.best_config[
-                                    key] else (self.incumbent[
-                                        key] + 1) % self._unordered_cat_hp[key]
+                                    key] else (
+                                        self.incumbent[key]
+                                        + 1.0 / self._unordered_cat_hp[key]) % 1
                         else:
-                            config_norm[key] = 0
+                            config_norm[key] = 0.5
                         continue
                     # Uniform/LogUniform/Normal/Base
                     sampler = domain.get_sampler()
@@ -365,7 +371,8 @@ class FLOW2(Searcher):
                             config_denorm[key] = l[min(n - 1, int(np.floor(value * n)))]
                         else:
                             assert key in self.incumbent
-                            if round(value) == self.incumbent[key]:
+                            n = self._unordered_cat_hp[key]
+                            if np.floor(value * n) == np.floor(self.incumbent[key] * n):
                                 config_denorm[key] = self.best_config[key]
                             else:  # ****random value each time!****
                                 config_denorm[key] = self._random.choice(
@@ -448,7 +455,11 @@ class FLOW2(Searcher):
                     if self.step > self.step_ub:
                         self.step = self.step_ub
                     self._iter_best_config = self.trial_count_complete
+                    if self._trunc:
+                        self._trunc = min(self._trunc + 1, self.dim)
                     return
+                elif self._trunc:
+                    self._trunc = max(self._trunc >> 1, 1)
         proposed_by = self._proposed_by.get(trial_id)
         if proposed_by == self.incumbent:
             # proposed by current incumbent and no better
@@ -494,8 +505,10 @@ class FLOW2(Searcher):
             # record the cost in case it is pruned and cost info is lost
             self._trial_cost[trial_id] = cost
 
-    def rand_vector_unit_sphere(self, dim) -> np.ndarray:
+    def rand_vector_unit_sphere(self, dim, trunc=0) -> np.ndarray:
         vec = self._random.normal(0, 1, dim)
+        if 0 < trunc < dim:
+            vec[np.abs(vec).argsort()[:dim - trunc]] = 0
         mag = np.linalg.norm(vec)
         return vec / mag
 
@@ -532,7 +545,7 @@ class FLOW2(Searcher):
         else:
             # propose a new direction
             self._direction_tried = self.rand_vector_unit_sphere(
-                self.dim) * self.step
+                self.dim, self._trunc) * self.step
             for i, key in enumerate(self._tunable_keys):
                 move[key] += self._direction_tried[i]
         self._project(move)
@@ -540,13 +553,14 @@ class FLOW2(Searcher):
         self._proposed_by[trial_id] = self.incumbent
         self._configs[trial_id] = (config, self.step)
         self._num_proposedby_incumbent += 1
-        if self._init_phrase:
+        best_config = flatten_dict(self.best_config)
+        if self._init_phase:
             if self._direction_tried is None:
                 if self._same:
-                    # check if the new config is different from self.best_config
+                    # check if the new config is different from best_config
                     same = True
                     for key, value in config.items():
-                        if key not in self.best_config or value != self.best_config[key]:
+                        if key not in best_config or value != best_config[key]:
                             same = False
                             break
                     if same:
@@ -555,10 +569,10 @@ class FLOW2(Searcher):
                         if self.step > self.step_ub:
                             self.step = self.step_ub
             else:
-                # check if the new config is different from self.best_config
+                # check if the new config is different from best_config
                 same = True
                 for key, value in config.items():
-                    if key not in self.best_config or value != self.best_config[key]:
+                    if key not in best_config or value != best_config[key]:
                         same = False
                         break
                 self._same = same
@@ -566,7 +580,7 @@ class FLOW2(Searcher):
                 not self._resource or self._resource == self.max_resource):
             # check stuck condition if using max resource
             self._num_proposedby_incumbent -= 2
-            self._init_phrase = False
+            self._init_phase = False
             if self.step >= self.step_lower_bound:
                 # decrease step size
                 self._oldK = self._K if self._K else self._iter_best_config
@@ -574,6 +588,27 @@ class FLOW2(Searcher):
                 self.step *= np.sqrt(self._oldK / self._K)
             else:
                 return None
+        if self._init_phase:
+            return unflatten_dict(config)
+        if self._trunc == 1 and self._direction_tried is not None:
+            # random
+            for i, key in enumerate(self._tunable_keys):
+                if self._direction_tried[i] != 0:
+                    for _, generated in generate_variants({'config': {
+                        key: self.space[key]
+                    }}):
+                        if generated['config'][key] != best_config[key]:
+                            config[key] = generated['config'][key]
+                            return unflatten_dict(config)
+                        break
+        else:
+            # check if config == best_config
+            if len(config) == len(best_config):
+                for key, value in best_config.items():
+                    if value != config[key]:
+                        return unflatten_dict(config)
+                # print('move to', move)
+                self.incumbent = move
         return unflatten_dict(config)
 
     def _project(self, config):

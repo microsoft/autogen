@@ -17,7 +17,7 @@ except ImportError:
     from .suggestion import OptunaSearch as GlobalSearch
     from .variant_generator import generate_variants
 from .search_thread import SearchThread
-from .flow2 import FLOW2 as LocalSearch
+from .flow2 import FLOW2
 
 import logging
 logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ class BlendSearch(Searcher):
     cost_attr = "time_total_s"  # cost attribute in result
     lagrange = '_lagrange'      # suffix for lagrange-modified metric
     penalty = 1e+10             # penalty term for constraints
+    LocalSearch = FLOW2
 
     def __init__(self,
                  metric: Optional[str] = None,
@@ -131,7 +132,7 @@ class BlendSearch(Searcher):
                 self._gs = GlobalSearch(space=space, metric=metric, mode=mode)
         else:
             self._gs = None
-        self._ls = LocalSearch(
+        self._ls = self.LocalSearch(
             init_config, metric, mode, cat_hp_cost, space,
             prune_attr, min_resource, max_resource, reduction_factor, seed)
         self._init_search()
@@ -277,7 +278,9 @@ class BlendSearch(Searcher):
                     self._search_thread_pool[self._thread_count] = SearchThread(
                         self._ls.mode,
                         self._ls.create(
-                            config, objective, cost=result[self.cost_attr])
+                            config, objective,
+                            cost=result.get(self.cost_attr, 1)),
+                        self.cost_attr
                     )
                     thread_id = self._thread_count
                     self._thread_count += 1

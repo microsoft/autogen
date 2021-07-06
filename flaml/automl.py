@@ -981,15 +981,9 @@ class AutoML:
         self._retrained_config = {}
         est_retrain_time = next_trial_time = 0
         best_config_sig = None
-        # use ConcurrencyLimiter to limit the amount of concurrency when
-        # using a search algorithm
         better = True  # whether we find a better model in one trial
         if self._ensemble:
             self.best_model = {}
-        try:
-            from ray.tune.suggest import ConcurrencyLimiter
-        except ImportError:
-            from .searcher.suggestion import ConcurrencyLimiter
         if self._hpo_method in ('cfo', 'grid'):
             from flaml import CFO as SearchAlgo
         elif 'optuna' == self._hpo_method:
@@ -1062,12 +1056,11 @@ class AutoML:
                         metric='val_loss', mode='min', space=search_space,
                         points_to_evaluate=points_to_evaluate,
                     )
-                search_state.search_alg = ConcurrencyLimiter(algo,
-                                                             max_concurrent=1)
+                search_state.search_alg = algo
             else:
                 search_space = None
                 if self._hpo_method in ('bs', 'cfo'):
-                    search_state.search_alg.searcher.set_search_properties(
+                    search_state.search_alg.set_search_properties(
                         config={
                             'metric_target': self._state.best_loss,
                         },

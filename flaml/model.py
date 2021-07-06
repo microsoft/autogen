@@ -67,6 +67,12 @@ class BaseEstimator:
         '''
         return self._model
 
+    @property
+    def estimator(self):
+        '''Trained model after fit() is called, or None before fit() is called
+        '''
+        return self._model
+
     def _preprocess(self, X):
         return X
 
