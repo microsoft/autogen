@@ -162,7 +162,6 @@ class AutoMLState:
     def _compute_with_config_base(self,
                                   estimator,
                                   config_w_resource):
-        compute_start_time = time.time()
         if 'FLAML_sample_size' in config_w_resource:
             sample_size = int(config_w_resource['FLAML_sample_size'])
         else:
@@ -181,14 +180,14 @@ class AutoMLState:
         budget = time_left if sample_size == self.data_size else \
             time_left / 2 * sample_size / self.data_size
 
-        trained_estimator, val_loss, train_loss, time2eval, _ = \
+        trained_estimator, val_loss, train_loss, time2eval, pred_time = \
             compute_estimator(
                 sampled_X_train,
                 sampled_y_train,
                 self.X_val,
                 self.y_val,
                 self.weight_val,
-                budget,
+                min(budget, self.train_time_limit),
                 self.kf,
                 config,
                 self.task,
@@ -201,7 +200,7 @@ class AutoMLState:
                 self.log_training_metric,
                 self.fit_kwargs)
         result = {
-            'total_time': time.time() - compute_start_time,
+            'pred_time': pred_time,
             'time2eval': time2eval,
             'train_loss': train_loss,
             'val_loss': val_loss,
@@ -799,6 +798,8 @@ class AutoML:
             n_splits=N_SPLITS,
             log_training_metric=False,
             mem_thres=MEM_THRES,
+            pred_time_limit=np.inf,
+            train_time_limit=np.inf,
             X_val=None,
             y_val=None,
             sample_weight_val=None,
@@ -813,7 +814,7 @@ class AutoML:
 
         Args:
             X_train: A numpy array or a pandas dataframe of training data in
-             shape (n, m)
+                shape (n, m)
             y_train: A numpy array or a pandas series of labels in shape (n,)
             dataframe: A dataframe of training data including label column
             label: A str of the label column name
@@ -835,7 +836,7 @@ class AutoML:
                         return metric_to_minimize, metrics_to_log
 
                 which returns a float number as the minimization objective,
-                and a tuple of floats as the metrics to log
+                and a tuple of floats or a dictionary as the metrics to log
             task: A string of the task type, e.g.,
                 'classification', 'regression'
             n_jobs: An integer of the number of threads for training
@@ -865,6 +866,8 @@ class AutoML:
             log_training_metric: A boolean of whether to log the training
                 metric for each model.
             mem_thres: A float of the memory size constraint in bytes
+            pred_time_limit: A float of the prediction latency constraint in seconds
+            train_time_limit: A float of the training time constraint in seconds
             X_val: None or a numpy array or a pandas dataframe of validation data
             y_val: None or a numpy array or a pandas series of validation labels
             sample_weight_val: None or a numpy array of the sample weight of
@@ -955,6 +958,8 @@ class AutoML:
             self._ensemble = ensemble
             self._max_iter = max_iter
             self._mem_thres = mem_thres
+            self._pred_time_limit = pred_time_limit
+            self._state.train_time_limit = train_time_limit
             self._log_type = log_type
             self.split_ratio = split_ratio
             self._save_model_history = model_history
@@ -1047,6 +1052,10 @@ class AutoML:
                     points_to_evaluate = [search_state.init_config]
                     low_cost_partial_config = search_state.low_cost_partial_config
                 if self._hpo_method in ('bs', 'cfo', 'grid'):
+                    metric_constraints = []
+                    if np.isfinite(self._pred_time_limit):
+                        metric_constraints.append(
+                            ('pred_time', '<=', self._pred_time_limit))
                     algo = SearchAlgo(
                         metric='val_loss', mode='min', space=search_space,
                         points_to_evaluate=points_to_evaluate,
@@ -1055,7 +1064,10 @@ class AutoML:
                         prune_attr=prune_attr,
                         min_resource=min_resource,
                         max_resource=max_resource,
-                        config_constraints=[(learner_class.size, '<=', self._mem_thres)]
+                        config_constraints=[
+                            (learner_class.size, '<=', self._mem_thres)
+                        ],
+                        metric_constraints=metric_constraints,
                     )
                 else:
                     algo = SearchAlgo(
@@ -1077,7 +1089,7 @@ class AutoML:
             analysis = tune.run(
                 search_state.training_function,
                 search_alg=search_state.search_alg,
-                time_budget_s=budget_left,
+                time_budget_s=min(budget_left, self._state.train_time_limit),
                 verbose=max(self.verbose - 1, 0),
                 use_ray=False)
             time_used = time.time() - start_run_time

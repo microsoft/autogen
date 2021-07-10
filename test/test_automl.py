@@ -95,14 +95,19 @@ class MyXGB2(XGBoostEstimator):
 def custom_metric(X_test, y_test, estimator, labels, X_train, y_train,
                   weight_test=None, weight_train=None):
     from sklearn.metrics import log_loss
+    import time
+    start = time.time()
     y_pred = estimator.predict_proba(X_test)
+    pred_time = (time.time() - start) / len(X_test)
     test_loss = log_loss(y_test, y_pred, labels=labels,
                          sample_weight=weight_test)
     y_pred = estimator.predict_proba(X_train)
     train_loss = log_loss(y_train, y_pred, labels=labels,
                           sample_weight=weight_train)
     alpha = 0.5
-    return test_loss * (1 + alpha) - alpha * train_loss, [test_loss, train_loss]
+    return test_loss * (1 + alpha) - alpha * train_loss, {
+        "test_loss": test_loss, "train_loss": train_loss, "pred_time": pred_time
+    }
 
 
 class TestAutoML(unittest.TestCase):
@@ -133,8 +138,8 @@ class TestAutoML(unittest.TestCase):
                            learner_class=MyRegularizedGreedyForest)
         X_train, y_train = load_wine(return_X_y=True)
         settings = {
-            "time_budget": 10,  # total running time in seconds
-            "estimator_list": ['RGF', 'lgbm', 'rf', 'xgboost'],
+            "time_budget": 5,  # total running time in seconds
+            "estimator_list": ['rf', 'xgboost', 'catboost'],
             "task": 'classification',  # task type
             "sample": True,  # whether to subsample training data
             "log_file_name": "test/wine.log",
@@ -163,6 +168,7 @@ class TestAutoML(unittest.TestCase):
             "n_jobs": 1,
             "model_history": True,
             "sample_weight": np.ones(len(y_train)),
+            "pred_time_limit": 1e-5,
         }
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               **automl_settings)

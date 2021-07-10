@@ -42,6 +42,7 @@ class BaseEstimator:
         self._task = task
         if '_estimator_type' in params:
             self._estimator_type = params['_estimator_type']
+            del self.params['_estimator_type']
         else:
             self._estimator_type = "regressor" if task == 'regression' \
                 else "classifier"
@@ -152,7 +153,7 @@ class BaseEstimator:
         return {}
 
     @classmethod
-    def size(cls, config):
+    def size(cls, config: dict) -> float:
         '''[optional method] memory size of the estimator in bytes
 
         Args:
@@ -165,7 +166,7 @@ class BaseEstimator:
         return 1.0
 
     @classmethod
-    def cost_relative2lgbm(cls):
+    def cost_relative2lgbm(cls) -> float:
         '''[optional method] relative cost compared to lightgbm'''
         return 1.0
 
@@ -445,7 +446,8 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         **params
     ):
         super().__init__(task, **params)
-        self.params = params
+        del self.params['objective']
+        del self.params['max_bin']
         self.params.update({
             "n_estimators": int(round(n_estimators)),
             'max_leaves': int(round(max_leaves)),
@@ -514,7 +516,8 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         n_estimators=4, max_features=1.0, criterion='gini', **params
     ):
         super().__init__(task, **params)
-        self.params = params
+        del self.params['objective']
+        del self.params['max_bin']
         self.params.update({
             "n_estimators": int(round(n_estimators)),
             "n_jobs": n_jobs,
@@ -525,8 +528,6 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         else:
             self.estimator_class = RandomForestClassifier
             self.params['criterion'] = criterion
-        self._time_per_iter = None
-        self._train_size = 0
 
     def get_params(self, deep=False):
         params = super().get_params()
@@ -761,7 +762,6 @@ class KNeighborsEstimator(BaseEstimator):
         self, task='binary:logistic', n_jobs=1, n_neighbors=5, **params
     ):
         super().__init__(task, **params)
-        self.params = params
         self.params.update({
             'n_neighbors': int(round(n_neighbors)),
             'weights': params.get('weights', 'distance'),

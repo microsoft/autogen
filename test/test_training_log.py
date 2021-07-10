@@ -26,7 +26,8 @@ class TestTrainingLog(unittest.TestCase):
                 "mem_thres": 1024 * 1024,
                 "n_jobs": 1,
                 "model_history": True,
-                "verbose": 2,
+                "train_time_limit": 0.01,
+                "verbose": 3,
             }
             X_train, y_train = load_boston(return_X_y=True)
             automl_experiment.fit(X_train=X_train, y_train=y_train,
