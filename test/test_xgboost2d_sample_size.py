@@ -18,11 +18,11 @@ class XGBoost2D(XGBoostSklearnEstimator):
         upper = min(32768, int(data_size))
         return {
             'n_estimators': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
             },
             'max_leaves': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
             },
         }

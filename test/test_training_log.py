@@ -28,6 +28,7 @@ class TestTrainingLog(unittest.TestCase):
                 "model_history": True,
                 "train_time_limit": 0.01,
                 "verbose": 3,
+                "ensemble": True,
             }
             X_train, y_train = load_boston(return_X_y=True)
             automl_experiment.fit(X_train=X_train, y_train=y_train,

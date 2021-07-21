@@ -120,57 +120,6 @@ _STANDARD_IMPORTS = {
 _MAX_RESOLUTION_PASSES = 20
 
 
-def resolve_nested_dict(nested_dict: Dict) -> Dict[Tuple, Any]:
-    """Flattens a nested dict by joining keys into tuple of paths.
-    Can then be passed into `format_vars`.
-    """
-    res = {}
-    for k, v in nested_dict.items():
-        if isinstance(v, dict):
-            for k_, v_ in resolve_nested_dict(v).items():
-                res[(k, ) + k_] = v_
-        else:
-            res[(k, )] = v
-    return res
-
-
-def format_vars(resolved_vars: Dict) -> str:
-    """Formats the resolved variable dict into a single string."""
-    out = []
-    for path, value in sorted(resolved_vars.items()):
-        if path[0] in ["run", "env", "resources_per_trial"]:
-            continue  # TrialRunner already has these in the experiment_tag
-        pieces = []
-        last_string = True
-        for k in path[::-1]:
-            if isinstance(k, int):
-                pieces.append(str(k))
-            elif last_string:
-                last_string = False
-                pieces.append(k)
-        pieces.reverse()
-        out.append(_clean_value("_".join(pieces)) + "=" + _clean_value(value))
-    return ",".join(out)
-
-
-def flatten_resolved_vars(resolved_vars: Dict) -> Dict:
-    """Formats the resolved variable dict into a mapping of (str -> value)."""
-    flattened_resolved_vars_dict = {}
-    for pieces, value in resolved_vars.items():
-        if pieces[0] == "config":
-            pieces = pieces[1:]
-        pieces = [str(piece) for piece in pieces]
-        flattened_resolved_vars_dict["/".join(pieces)] = value
-    return flattened_resolved_vars_dict
-
-
-def _clean_value(value: Any) -> str:
-    if isinstance(value, float):
-        return "{:.5}".format(value)
-    else:
-        return str(value).replace("/", "_")
-
-
 def parse_spec_vars(spec: Dict) -> Tuple[List[Tuple[Tuple, Any]], List[Tuple[
         Tuple, Any]], List[Tuple[Tuple, Any]]]:
     resolved, unresolved = _split_resolved_unresolved_values(spec)
@@ -189,40 +138,6 @@ def parse_spec_vars(spec: Dict) -> Tuple[List[Tuple[Tuple, Any]], List[Tuple[
     grid_vars.sort()
 
     return resolved_vars, domain_vars, grid_vars
-
-
-def count_variants(spec: Dict, presets: Optional[List[Dict]] = None) -> int:
-    # Helper function: Deep update dictionary
-    def deep_update(d, u):
-        for k, v in u.items():
-            if isinstance(v, Mapping):
-                d[k] = deep_update(d.get(k, {}), v)
-            else:
-                d[k] = v
-        return d
-
-    # Count samples for a specific spec
-    def spec_samples(spec, num_samples=1):
-        _, domain_vars, grid_vars = parse_spec_vars(spec)
-        grid_count = 1
-        for path, domain in grid_vars:
-            grid_count *= len(domain.categories)
-        return num_samples * grid_count
-
-    total_samples = 0
-    total_num_samples = spec.get("num_samples", 1)
-    # For each preset, overwrite the spec and count the samples generated
-    # for this preset
-    for preset in presets:
-        preset_spec = copy.deepcopy(spec)
-        deep_update(preset_spec["config"], preset)
-        total_samples += spec_samples(preset_spec, 1)
-        total_num_samples -= 1
-
-    # Add the remaining samples
-    if total_num_samples > 0:
-        total_samples += spec_samples(spec, total_num_samples)
-    return total_samples
 
 
 def _generate_variants(spec: Dict) -> Tuple[Dict, Dict]:
@@ -248,43 +163,6 @@ def _generate_variants(spec: Dict) -> Tuple[Dict, Dict]:
                         "your configuration.".format(k))
                 resolved_vars[k] = v
             yield resolved_vars, spec
-
-
-def get_preset_variants(spec: Dict, config: Dict):
-    """Get variants according to a spec, initialized with a config.
-    Variables from the spec are overwritten by the variables in the config.
-    Thus, we may end up with less sampled parameters.
-    This function also checks if values used to overwrite search space
-    parameters are valid, and logs a warning if not.
-    """
-    spec = copy.deepcopy(spec)
-
-    resolved, _, _ = parse_spec_vars(config)
-
-    for path, val in resolved:
-        try:
-            domain = _get_value(spec["config"], path)
-            if isinstance(domain, dict):
-                if "grid_search" in domain:
-                    domain = Categorical(domain["grid_search"])
-                else:
-                    # If users want to overwrite an entire subdict,
-                    # let them do it.
-                    domain = None
-        except IndexError as exc:
-            raise ValueError(
-                f"Pre-set config key `{'/'.join(path)}` does not correspond "
-                f"to a valid key in the search space definition. Please add "
-                f"this path to the `config` variable passed to `tune.run()`."
-            ) from exc
-
-        if domain and not domain.is_valid(val):
-            logger.warning(
-                f"Pre-set value `{val}` is not within valid values of "
-                f"parameter `{'/'.join(path)}`: {domain.domain_str}")
-        assign_value(spec["config"], path, val)
-
-    return _generate_variants(spec)
 
 
 def assign_value(spec: Dict, path: Tuple, value: Any):

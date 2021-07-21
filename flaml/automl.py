@@ -504,7 +504,7 @@ class AutoML:
                         y_train_all = np.concatenate([y_train_all,
                                                       y_train_all[:n][rare_index]])
                     count += rare_count
-                logger.debug(
+                logger.info(
                     f"class {label} augmented from {rare_count} to {count}")
         if 'sample_weight' in self._state.fit_kwargs:
             X_train_all, y_train_all, self._state.fit_kwargs[
@@ -764,6 +764,7 @@ class AutoML:
         self._state.n_jobs = n_jobs
         self._trained_estimator = self._state._train_with_config(
             best_estimator, best_config, sample_size)[0]
+        logger.info('retrain from log succeeded')
         return training_duration
 
     def _decide_eval_method(self, time_budget):

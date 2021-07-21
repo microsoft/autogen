@@ -57,30 +57,6 @@ _periodic_log = False
 _last_logged = 0.0
 
 
-def log_once(key):
-    """Returns True if this is the "first" call for a given key.
-    Various logging settings can adjust the definition of "first".
-    Example:
-        >>> if log_once("some_key"):
-        ...     logger.info("Some verbose logging statement")
-    """
-
-    global _last_logged
-
-    if _disabled:
-        return False
-    elif key not in _logged:
-        _logged.add(key)
-        _last_logged = time.time()
-        return True
-    elif _periodic_log and time.time() - _last_logged > 60.0:
-        _logged.clear()
-        _last_logged = time.time()
-        return False
-    else:
-        return False
-
-
 class Searcher:
     """Abstract class for wrapping suggesting algorithms.
     Custom algorithms can extend this class easily by overriding the
@@ -258,57 +234,6 @@ class Searcher:
 
     def set_state(self, state: Dict):
         raise NotImplementedError
-
-    def save_to_dir(self, checkpoint_dir: str, session_str: str = "default"):
-        """Automatically saves the given searcher to the checkpoint_dir.
-        This is automatically used by tune.run during a Tune job.
-        Args:
-            checkpoint_dir (str): Filepath to experiment dir.
-            session_str (str): Unique identifier of the current run
-                session.
-        """
-        tmp_search_ckpt_path = os.path.join(checkpoint_dir,
-                                            ".tmp_searcher_ckpt")
-        success = True
-        try:
-            self.save(tmp_search_ckpt_path)
-        except NotImplementedError:
-            if log_once("suggest:save_to_dir"):
-                logger.warning(
-                    "save not implemented for Searcher. Skipping save.")
-            success = False
-
-        if success and os.path.exists(tmp_search_ckpt_path):
-            os.rename(
-                tmp_search_ckpt_path,
-                os.path.join(checkpoint_dir,
-                             self.CKPT_FILE_TMPL.format(session_str)))
-
-    def restore_from_dir(self, checkpoint_dir: str):
-        """Restores the state of a searcher from a given checkpoint_dir.
-        Typically, you should use this function to restore from an
-        experiment directory such as `~/ray_results/trainable`.
-        .. code-block:: python
-            experiment_1 = tune.run(
-                cost,
-                num_samples=5,
-                search_alg=search_alg,
-                verbose=0,
-                name=self.experiment_name,
-                local_dir="~/my_results")
-            search_alg2 = Searcher()
-            search_alg2.restore_from_dir(
-                os.path.join("~/my_results", self.experiment_name)
-        """
-
-        pattern = self.CKPT_FILE_TMPL.format("*")
-        full_paths = glob.glob(os.path.join(checkpoint_dir, pattern))
-        if not full_paths:
-            raise RuntimeError(
-                "Searcher unable to find checkpoint in {}".format(
-                    checkpoint_dir))  # TODO
-        most_recent_checkpoint = max(full_paths)
-        self.restore(most_recent_checkpoint)
 
     @property
     def metric(self) -> str:

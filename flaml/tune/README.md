@@ -24,7 +24,7 @@ def evaluate_config(config):
 analysis = tune.run(
     evaluate_config,    # the function to evaluate a config
     config={
-        'x': tune.qloguniform(lower=1, upper=100000, q=1),
+        'x': tune.lograndint(lower=1, upper=100000),
         'y': tune.randint(lower=1, upper=100000)
     }, # the search space
     low_cost_partial_config={'x':1},    # a initial (partial) config with low cost
@@ -63,7 +63,7 @@ def evaluate_config(config):
 analysis = raytune.run(
     evaluate_config,    # the function to evaluate a config
     config={
-        'x': tune.qloguniform(lower=1, upper=100000, q=1),
+        'x': tune.lograndint(lower=1, upper=100000),
         'y': tune.randint(lower=1, upper=100000)
     }, # the search space
     metric='metric',    # the name of the metric used for optimization
