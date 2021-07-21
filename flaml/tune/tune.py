@@ -55,7 +55,7 @@ def report(_metric=None, **kwargs):
         analysis = tune.run(
             compute_with_config,
             config={
-                'x': tune.qloguniform(lower=1, upper=1000000, q=1),
+                'x': tune.lograndint(lower=1, upper=1000000),
                 'y': tune.randint(lower=1, upper=1000000)
             },
             metric='metric2minimize', mode='min',
@@ -142,7 +142,7 @@ def run(training_function,
         analysis = tune.run(
             compute_with_config,
             config={
-                'x': tune.qloguniform(lower=1, upper=1000000, q=1),
+                'x': tune.lograndint(lower=1, upper=1000000),
                 'y': tune.randint(lower=1, upper=1000000)
             },
             metric='metric2minimize', mode='min',

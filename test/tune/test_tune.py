@@ -103,6 +103,13 @@ def _test_xgboost(method='BlendSearch'):
                     }, cat_hp_cost={
                         "min_child_weight": [6, 3, 2],
                     })
+                elif 'CFOCat' == method:
+                    from flaml.searcher.cfo_cat import CFOCat
+                    algo = CFOCat(low_cost_partial_config={
+                        "max_depth": 1,
+                    }, cat_hp_cost={
+                        "min_child_weight": [6, 3, 2],
+                    })
                 elif 'Dragonfly' == method:
                     from ray.tune.suggest.dragonfly import DragonflySearch
                     algo = DragonflySearch()
@@ -193,8 +200,12 @@ def test_xgboost_bs():
     _test_xgboost()
 
 
-def test_xgboost_cfo():
+def _test_xgboost_cfo():
     _test_xgboost('CFO')
+
+
+def test_xgboost_cfocat():
+    _test_xgboost('CFOCat')
 
 
 def _test_xgboost_dragonfly():

@@ -22,10 +22,10 @@ def load_openml_dataset(dataset_id, data_dir=None, random_state=0):
         random_state: An integer of the random seed for splitting data
 
     Returns:
-        X_train: A 2d numpy array of training data
-        X_test:  A 2d numpy array of test data
-        y_train: A 1d numpy arrya of labels for training data
-        y_test:  A 1d numpy arrya of labels for test data
+        X_train: A dataframe of training data
+        X_test:  A dataframe of test data
+        y_train: A series of labels for training data
+        y_test:  A series of labels for test data
     '''
     import os
     import openml
@@ -48,7 +48,7 @@ def load_openml_dataset(dataset_id, data_dir=None, random_state=0):
     print('Dataset name:', dataset.name)
     X, y, * \
         __ = dataset.get_data(
-            target=dataset.default_target_attribute, dataset_format='array')
+            target=dataset.default_target_attribute)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, random_state=random_state)
     print(
@@ -70,10 +70,10 @@ def load_openml_task(task_id, data_dir):
         data_dir: A string of the path to store and load the data
 
     Returns:
-        X_train: A 2d numpy array of training data
-        X_test:  A 2d numpy array of test data
-        y_train: A 1d numpy arrya of labels for training data
-        y_test:  A 1d numpy arrya of labels for test data
+        X_train: A dataframe of training data
+        X_test:  A dataframe of test data
+        y_train: A series of labels for training data
+        y_test:  A series of labels for test data
     '''
     import os
     import openml
@@ -90,15 +90,15 @@ def load_openml_task(task_id, data_dir):
         dataset = task.get_dataset()
         with open(filepath, 'wb') as f:
             pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
-    X, y, _, _ = dataset.get_data(task.target_name, dataset_format='array')
+    X, y, _, _ = dataset.get_data(task.target_name)
     train_indices, test_indices = task.get_train_test_split_indices(
         repeat=0,
         fold=0,
         sample=0,
     )
-    X_train = X[train_indices]
+    X_train = X.iloc[train_indices]
     y_train = y[train_indices]
-    X_test = X[test_indices]
+    X_test = X.iloc[test_indices]
     y_test = y[test_indices]
     print(
         'X_train.shape: {}, y_train.shape: {},\nX_test.shape: {}, y_test.shape: {}'.format(

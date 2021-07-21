@@ -29,12 +29,13 @@ class TestLogging(unittest.TestCase):
             automl = AutoML()
             automl_settings = {
                 "time_budget": 1,
-                "metric": 'mse',
+                "metric": 'rmse',
                 "task": 'regression',
                 "log_file_name": training_log,
                 "log_training_metric": True,
                 "n_jobs": 1,
                 "model_history": True,
+                "learner_selector": "roundrobin",
             }
             X_train, y_train = load_boston(return_X_y=True)
             n = len(y_train) >> 1

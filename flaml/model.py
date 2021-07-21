@@ -196,17 +196,17 @@ class LGBMEstimator(BaseEstimator):
         upper = min(32768, int(data_size))
         return {
             'n_estimators': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
                 'low_cost_init_value': 4,
             },
             'num_leaves': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
                 'low_cost_init_value': 4,
             },
             'min_child_samples': {
-                'domain': tune.qloguniform(lower=2, upper=2**7, q=1),
+                'domain': tune.lograndint(lower=2, upper=2**7),
                 'init_value': 20,
             },
             'learning_rate': {
@@ -218,7 +218,7 @@ class LGBMEstimator(BaseEstimator):
                 'init_value': 1.0,
             },
             'log_max_bin': {
-                'domain': tune.qloguniform(lower=3, upper=10, q=1),
+                'domain': tune.lograndint(lower=3, upper=10),
                 'init_value': 8,
             },
             'colsample_bytree': {
@@ -315,12 +315,12 @@ class XGBoostEstimator(SKLearnEstimator):
         upper = min(32768, int(data_size))
         return {
             'n_estimators': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
                 'low_cost_init_value': 4,
             },
             'max_leaves': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
                 'low_cost_init_value': 4,
             },
@@ -487,7 +487,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         upper = min(2048, int(data_size))
         space = {
             'n_estimators': {
-                'domain': tune.qloguniform(lower=4, upper=upper, q=1),
+                'domain': tune.lograndint(lower=4, upper=upper),
                 'init_value': 4,
                 'low_cost_init_value': 4,
             },
@@ -621,7 +621,7 @@ class CatBoostEstimator(BaseEstimator):
         upper = max(min(round(1500000 / data_size), 150), 11)
         return {
             'early_stopping_rounds': {
-                'domain': tune.qloguniform(lower=10, upper=upper, q=1),
+                'domain': tune.lograndint(lower=10, upper=upper),
                 'init_value': 10,
                 'low_cost_init_value': 10,
             },
@@ -748,7 +748,7 @@ class KNeighborsEstimator(BaseEstimator):
         upper = min(512, int(data_size / 2))
         return {
             'n_neighbors': {
-                'domain': tune.qloguniform(lower=1, upper=upper, q=1),
+                'domain': tune.lograndint(lower=1, upper=upper),
                 'init_value': 5,
                 'low_cost_init_value': 1,
             },

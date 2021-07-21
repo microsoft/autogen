@@ -54,6 +54,8 @@ def test_groups():
         "model_history": True,
         "eval_method": "cv",
         "groups": np.random.randint(low=0, high=10, size=len(y)),
+        "estimator_list": ['lgbm', 'rf', 'xgboost', 'kneighbor'],  # list of ML learners
+        "learner_selector": "roundrobin",
     }
     automl.fit(X, y, **automl_settings)
 
