@@ -48,7 +48,7 @@ setuptools.setup(
             "coverage>=5.3",
             "xgboost<1.3",
             "rgf-python",
-            "optuna==2.3.0",
+            "optuna==2.8.0",
             "vowpalwabbit",
             "openml",
             "transformers==4.4.1",
@@ -58,10 +58,10 @@ setuptools.setup(
             "azure-storage-blob",
         ],
         "blendsearch": [
-            "optuna==2.3.0"
+            "optuna==2.8.0"
         ],
         "ray": [
-            "ray[tune]==1.2.0",
+            "ray[tune]==1.4.1",
             "pyyaml<5.3.1",
         ],
         "azureml": [
@@ -74,7 +74,7 @@ setuptools.setup(
             "vowpalwabbit",
         ],
         "nlp": [
-            "ray[tune]>=1.2.0",
+            "ray[tune]>=1.4.1",
             "transformers",
             "datasets==1.4.1",
             "tensorboardX<=2.2",

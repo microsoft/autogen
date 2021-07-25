@@ -44,7 +44,7 @@ print(analysis.best_config) # the best config
 * Example for using ray tune's API:
 
 ```python
-# require: pip install flaml[blendsearch] ray[tune]
+# require: pip install flaml[blendsearch,ray]
 from ray import tune as raytune
 from flaml import CFO, BlendSearch
 import time
@@ -60,18 +60,37 @@ def evaluate_config(config):
     # use tune.report to report the metric to optimize    
     tune.report(metric=metric) 
 
-analysis = raytune.run(
-    evaluate_config,    # the function to evaluate a config
-    config={
+# provide a time budget (in seconds) for the tuning process
+time_budget_s = 60
+# provide the search space
+config_search_space = {
         'x': tune.lograndint(lower=1, upper=100000),
         'y': tune.randint(lower=1, upper=100000)
-    }, # the search space
+    }
+# provide the low cost partial config
+low_cost_partial_config={'x':1}
+
+# set up CFO
+search_alg_cfo = CFO(low_cost_partial_config=low_cost_partial_config)
+
+# set up BlendSearch. 
+search_alg_blendsearch = BlendSearch(metric="metric",
+            mode="min",
+            space=config_search_space,
+            low_cost_partial_config=low_cost_partial_config)
+# NOTE that when using BlendSearch as a search_alg in ray tune, you need to
+# configure the 'time_budget_s' for BlendSearch accordingly as follows such that BlendSearch is aware of the time budget. This step is not needed when BlendSearch is used as the search_alg in flaml.tune as it is already done automatically in flaml.
+search_alg_blendsearch.set_search_properties(config={"time_budget_s": time_budget_s})
+
+analysis = raytune.run(
+    evaluate_config,    # the function to evaluate a config
+    config=config_search_space,
     metric='metric',    # the name of the metric used for optimization
     mode='min',         # the optimization mode, 'min' or 'max'
     num_samples=-1,    # the maximal number of configs to try, -1 means infinite
-    time_budget_s=60,   # the time budget in seconds
+    time_budget_s=time_budget_s,   # the time budget in seconds
     local_dir='logs/',  # the local directory to store logs
-    search_alg=CFO(low_cost_partial_config=[{'x':1}]) # or BlendSearch
+    search_alg=search_alg_blendsearch # or search_alg_cfo
     )
 
 print(analysis.best_trial.last_result)  # the best trial's result
