@@ -151,6 +151,30 @@ class TestAutoML(unittest.TestCase):
         '''The main flaml automl API'''
         automl.fit(X_train=X_train, y_train=y_train, **settings)
 
+    def test_preprocess(self):
+        automl = AutoML()
+        X = pd.DataFrame({
+        'f1': [1, -2, 3, -4, 5, -6, -7, 8, -9, -10, -11, -12, -13, -14],
+        'f2': [3., 16., 10., 12., 3., 14., 11., 12., 5., 14., 20., 16., 15., 11.,],
+        'f3': ['a', 'b', 'a', 'c', 'c', 'b', 'b', 'b', 'b', 'a', 'b', 'e', 'e', 'a'],
+        'f4': [True, True, False, True, True, False, False, False, True, True, False, False, True, True],
+        })
+        y = pd.Series([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
+
+        automl_settings = {
+            "time_budget": 3,
+            "task": 'classification',
+            "n_jobs": 1,
+            "estimator_list": ['xgboost', 'catboost', 'kneighbor'],
+            "eval_method": "cv",
+            "n_splits": 3,
+            "metric": "accuracy",
+            "log_training_metric": True,
+            "verbose": 1,
+            "ensemble": True,
+        }
+        automl.fit(X, y, **automl_settings)
+
     def test_dataframe(self):
         self.test_classification(True)
 
