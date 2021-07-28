@@ -95,6 +95,7 @@ class SearchState:
             time2eval = result['time2eval']
             trained_estimator = result[
                 'trained_estimator']
+            del result['trained_estimator']     # free up RAM
         else:
             obj, time2eval, trained_estimator = np.inf, 0.0, None
             train_loss = config = None

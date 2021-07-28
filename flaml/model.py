@@ -186,6 +186,13 @@ class SKLearnEstimator(BaseEstimator):
             X = X.copy()
             cat_columns = X.select_dtypes(include=['category']).columns
             X[cat_columns] = X[cat_columns].apply(lambda x: x.cat.codes)
+        elif isinstance(X, np.ndarray) and X.dtype.kind not in 'buif':
+            # numpy array is not of numeric dtype
+            X = pd.DataFrame(X)
+            for col in X.columns:
+                if isinstance(X[col][0], str):
+                    X[col] = X[col].astype('category').cat.codes
+            X = X.to_numpy()
         return X
 
 
@@ -484,7 +491,8 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
 
     @classmethod
     def search_space(cls, data_size, task, **params):
-        upper = min(2048, int(data_size))
+        data_size = int(data_size)
+        upper = min(2048, data_size)
         space = {
             'n_estimators': {
                 'domain': tune.lograndint(lower=4, upper=upper),
@@ -495,6 +503,11 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
                 'domain': tune.loguniform(lower=0.1, upper=1.0),
                 'init_value': 1.0,
             },
+            'max_leaves': {
+                'domain': tune.lograndint(lower=4, upper=min(32768, data_size)),
+                'init_value': 4,
+                'low_cost_init_value': 4,
+            },
         }
         if task != 'regression':
             space['criterion'] = {
@@ -504,16 +517,13 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         return space
 
     @classmethod
-    def size(cls, config):
-        return 1.0
-
-    @classmethod
     def cost_relative2lgbm(cls):
         return 2.0
 
     def __init__(
         self, task='binary:logistic', n_jobs=1,
-        n_estimators=4, max_features=1.0, criterion='gini', **params
+        n_estimators=4, max_features=1.0, criterion='gini', max_leaves=4,
+        **params
     ):
         super().__init__(task, **params)
         del self.params['objective']
@@ -522,6 +532,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
             "n_estimators": int(round(n_estimators)),
             "n_jobs": n_jobs,
             'max_features': float(max_features),
+            "max_leaf_nodes": params.get('max_leaf_nodes', int(round(max_leaves))),
         })
         if 'regression' in task:
             self.estimator_class = RandomForestRegressor
@@ -781,4 +792,13 @@ class KNeighborsEstimator(BaseEstimator):
                 raise ValueError(
                     "kneighbor requires at least one numeric feature")
             X = X.drop(cat_columns, axis=1)
+        elif isinstance(X, np.ndarray) and X.dtype.kind not in 'buif':
+            # drop categocial columns if any
+            X = pd.DataFrame(X)
+            cat_columns = []
+            for col in X.columns:
+                if isinstance(X[col][0], str):
+                    cat_columns.append(col)
+            X = X.drop(cat_columns, axis=1)
+            X = X.to_numpy()
         return X
