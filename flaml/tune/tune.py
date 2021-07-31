@@ -267,8 +267,13 @@ def run(training_function,
             reduction_factor=reduction_factor,
             config_constraints=config_constraints,
             metric_constraints=metric_constraints)
+    else:
+        search_alg.set_search_properties(metric, mode, config)
+        if metric is None or mode is None:
+            metric = metric or search_alg.metric
+            mode = mode or search_alg.mode
     if time_budget_s:
-        search_alg.set_search_properties(metric, mode, config={
+        search_alg.set_search_properties(None, None, config={
             'time_budget_s': time_budget_s})
     scheduler = None
     if report_intermediate_result:

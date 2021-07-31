@@ -163,7 +163,7 @@ def _test_xgboost(method='BlendSearch'):
 
 
 def test_nested():
-    from flaml import tune
+    from flaml import tune, CFO
     search_space = {
         # test nested search space
         "cost_related": {
@@ -180,6 +180,27 @@ def test_nested():
 
     analysis = tune.run(
         simple_func,
+        search_alg=CFO(
+            space=search_space, metric="obj", mode="min",
+            low_cost_partial_config={
+                "cost_related": {"a": 1}
+            },
+            points_to_evaluate=[
+                {"b": .99, "cost_related": {"a": 3}},
+                {"b": .99, "cost_related": {"a": 2}},
+                {"cost_related": {"a": 8}}
+            ],
+            metric_constraints=[("ab", "<=", 4)]),
+        local_dir='logs/',
+        num_samples=-1,
+        time_budget_s=.1)
+
+    best_trial = analysis.get_best_trial()
+    logger.info(f"CFO best config: {best_trial.config}")
+    logger.info(f"CFO best result: {best_trial.last_result}")
+
+    analysis = tune.run(
+        simple_func,
         config=search_space,
         low_cost_partial_config={
             "cost_related": {"a": 1}
@@ -189,11 +210,11 @@ def test_nested():
         metric_constraints=[("ab", "<=", 4)],
         local_dir='logs/',
         num_samples=-1,
-        time_budget_s=1)
+        time_budget_s=.1)
 
     best_trial = analysis.get_best_trial()
-    logger.info(f"Best config: {best_trial.config}")
-    logger.info(f"Best result: {best_trial.last_result}")
+    logger.info(f"BlendSearch best config: {best_trial.config}")
+    logger.info(f"BlendSearch best result: {best_trial.last_result}")
 
 
 def test_xgboost_bs():
