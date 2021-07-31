@@ -48,7 +48,7 @@ class SearchState:
         return max(self.time_best_found - self.time_best_found_old,
                    self.total_time_used - self.time_best_found)
 
-    def __init__(self, learner_class, data_size, task):
+    def __init__(self, learner_class, data_size, task, starting_point=None):
         self.init_eci = learner_class.cost_relative2lgbm()
         self._search_space_domain = {}
         self.init_config = {}
@@ -67,8 +67,13 @@ class SearchState:
                     'low_cost_init_value']
             if 'cat_hp_cost' in space:
                 self.cat_hp_cost[name] = space['cat_hp_cost']
+            # if a starting point is provided, set the init config to be
+            # the starting point provided
+            if starting_point is not None and starting_point.get(name) is not None:
+                self.init_config[name] = starting_point[name]
         self._hp_names = list(self._search_space_domain.keys())
         self.search_alg = None
+        self.best_config = None
         self.best_loss = self.best_loss_old = np.inf
         self.total_time_used = 0
         self.total_iter = 0
@@ -327,6 +332,12 @@ class AutoML:
     def best_config(self):
         '''A dictionary of the best configuration.'''
         return self._search_states[self._best_estimator].best_config
+
+    @property
+    def best_config_per_estimator(self):
+        '''A dictionary of all estimators' best configuration.'''
+        return {e: e_search_state.best_config for e, e_search_state in
+                self._search_states.items()}
 
     @property
     def best_loss(self):
@@ -811,6 +822,7 @@ class AutoML:
             split_type="stratified",
             learner_selector='sample',
             hpo_method=None,
+            starting_points={},
             **fit_kwargs):
         '''Find a model for a given task
 
@@ -873,11 +885,15 @@ class AutoML:
             X_val: None or a numpy array or a pandas dataframe of validation data
             y_val: None or a numpy array or a pandas series of validation labels
             sample_weight_val: None or a numpy array of the sample weight of
-                validation data
+                validation data.
             groups: None or an array-like of shape (n,) | Group labels for the
                 samples used while splitting the dataset into train/valid set
             verbose: int, default=1 | Controls the verbosity, higher means more
-                messages
+                messages.
+            starting_points: A dictionary to specify the starting hyperparameter
+                config for the estimators.
+                Keys are the name of the estimators, and values are the starting
+                hyperparamter configurations for the corresponding estimators.
             **fit_kwargs: Other key word arguments to pass to fit() function of
                 the searched learners, such sample_weight
         '''
@@ -949,6 +965,7 @@ class AutoML:
             self._search_states[estimator_name] = SearchState(
                 learner_class=estimator_class,
                 data_size=self._state.data_size, task=self._state.task,
+                starting_point=starting_points.get(estimator_name)
             )
         logger.info("List of ML learners in AutoML Run: {}".format(
             estimator_list))

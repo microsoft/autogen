@@ -132,6 +132,13 @@ class BlendSearch(Searcher):
                 self._gs = GlobalSearch(space=space, metric=metric, mode=mode)
         else:
             self._gs = None
+        if getattr(self, '__name__', None) == 'CFO' and points_to_evaluate and len(
+           points_to_evaluate) > 1:
+            # use the best config in points_to_evaluate as the start point
+            self._candidate_start_points = {}
+            self._started_from_low_cost = not low_cost_partial_config
+        else:
+            self._candidate_start_points = None
         self._ls = self.LocalSearch(
             init_config, metric, mode, cat_hp_cost, space, prune_attr,
             min_resource, max_resource, reduction_factor, self.cost_attr, seed)
@@ -141,27 +148,38 @@ class BlendSearch(Searcher):
                               metric: Optional[str] = None,
                               mode: Optional[str] = None,
                               config: Optional[Dict] = None) -> bool:
+        metric_changed = mode_changed = False
+        if metric and self._metric != metric:
+            metric_changed = True
+            self._metric = metric
+            if self._metric_constraints:
+                # metric modified by lagrange
+                metric += self.lagrange
+                # TODO: don't change metric for global search methods that
+                # can handle constraints already
+        if mode and self._mode != mode:
+            mode_changed = True
+            self._mode = mode
         if not self._ls.space:
-            if metric:
-                self._metric = metric
-                if self._metric_constraints:
-                    # metric modified by lagrange
-                    metric += self.lagrange
-                    # TODO: don't change metric for global search methods that
-                    # can handle constraints already
-            if mode:
-                self._mode = mode
+            # the search space can be set only once
             self._ls.set_search_properties(metric, mode, config)
             if self._gs is not None:
                 self._gs.set_search_properties(metric, mode, config)
             self._init_search()
-        if 'time_budget_s' in config:
-            time_budget_s = config['time_budget_s']
-            if time_budget_s is not None:
-                self._deadline = time_budget_s + time.time()
-                SearchThread.set_eps(time_budget_s)
-        if 'metric_target' in config:
-            self._metric_target = config.get('metric_target')
+        elif metric_changed or mode_changed:
+            # reset search when metric or mode changed
+            self._ls.set_search_properties(metric, mode)
+            if self._gs is not None:
+                self._gs.set_search_properties(metric, mode)
+            self._init_search()
+        if config:
+            if 'time_budget_s' in config:
+                time_budget_s = config['time_budget_s']
+                if time_budget_s is not None:
+                    self._deadline = time_budget_s + time.time()
+                    SearchThread.set_eps(time_budget_s)
+            if 'metric_target' in config:
+                self._metric_target = config.get('metric_target')
         return True
 
     def _init_search(self):
@@ -220,6 +238,10 @@ class BlendSearch(Searcher):
         self._metric_constraints = state._metric_constraints
         self._metric_constraint_satisfied = state._metric_constraint_satisfied
         self._metric_constraint_penalty = state._metric_constraint_penalty
+        self._candidate_start_points = state._candidate_start_points
+        if self._candidate_start_points:
+            self._started_from_given = state._started_from_given
+            self._started_from_low_cost = state._started_from_low_cost
 
     @property
     def metric_target(self):
@@ -267,25 +289,20 @@ class BlendSearch(Searcher):
             else:  # add to result cache
                 self._result[self._ls.config_signature(config)] = result
                 # update target metric if improved
-                objective = result[
-                    self._metric + self.lagrange] if self._metric_constraints \
-                    else result[self._metric]
+                objective = result[self._ls.metric]
                 if (objective - self._metric_target) * self._ls.metric_op < 0:
                     self._metric_target = objective
-                if not thread_id and metric_constraint_satisfied \
-                        and self._create_condition(result):
+                if thread_id == 0 and metric_constraint_satisfied \
+                   and self._create_condition(result):
                     # thread creator
-                    self._search_thread_pool[self._thread_count] = SearchThread(
-                        self._ls.mode,
-                        self._ls.create(
-                            config, objective,
-                            cost=result.get(self.cost_attr, 1)),
-                        self.cost_attr
-                    )
                     thread_id = self._thread_count
-                    self._thread_count += 1
-                    self._update_admissible_region(
-                        config, self._ls_bound_min, self._ls_bound_max)
+                    self._started_from_given = self._candidate_start_points \
+                        and trial_id in self._candidate_start_points
+                    if self._started_from_given:
+                        del self._candidate_start_points[trial_id]
+                    else:
+                        self._started_from_low_cost = True
+                    self._create_thread(config, result)
                 elif thread_id and not self._metric_constraint_satisfied:
                     # no point has been found to satisfy metric constraint
                     self._expand_admissible_region()
@@ -296,6 +313,19 @@ class BlendSearch(Searcher):
         if thread_id and thread_id in self._search_thread_pool:
             # local search thread
             self._clean(thread_id)
+
+    def _create_thread(self, config, result):
+        # logger.info(f"create local search thread from {config}")
+        self._search_thread_pool[self._thread_count] = SearchThread(
+            self._ls.mode,
+            self._ls.create(
+                config, result[self._ls.metric],
+                cost=result.get(self.cost_attr, 1)),
+            self.cost_attr
+        )
+        self._thread_count += 1
+        self._update_admissible_region(
+            config, self._ls_bound_min, self._ls_bound_max)
 
     def _update_admissible_region(self, config, admissible_min, admissible_max):
         # update admissible region
@@ -315,7 +345,7 @@ class BlendSearch(Searcher):
         obj_median = np.median(
             [thread.obj_best1 for id, thread in self._search_thread_pool.items()
              if id])
-        return result[self._metric] * self._ls.metric_op < obj_median
+        return result[self._ls.metric] * self._ls.metric_op < obj_median
 
     def _clean(self, thread_id: int):
         ''' delete thread and increase admissible region if converged,
@@ -332,11 +362,47 @@ class BlendSearch(Searcher):
                 if self._inferior(thread_id, id):
                     todelete.add(thread_id)
                     break
+        create_new = False
         if self._search_thread_pool[thread_id].converged:
             todelete.add(thread_id)
             self._expand_admissible_region()
+            if self._candidate_start_points:
+                if not self._started_from_given:
+                    # remove start points whose perf is worse than the converged
+                    obj = self._search_thread_pool[thread_id].obj_best1
+                    worse = [
+                        trial_id
+                        for trial_id, r in self._candidate_start_points.items()
+                        if r and r[self._ls.metric] * self._ls.metric_op >= obj]
+                    # logger.info(f"remove candidate start points {worse} than {obj}")
+                    for trial_id in worse:
+                        del self._candidate_start_points[trial_id]
+                if self._candidate_start_points and self._started_from_low_cost:
+                    create_new = True
         for id in todelete:
             del self._search_thread_pool[id]
+        if create_new:
+            self._create_thread_from_best_candidate()
+
+    def _create_thread_from_best_candidate(self):
+        # find the best start point
+        best_trial_id = None
+        obj_best = None
+        for trial_id, r in self._candidate_start_points.items():
+            if r and (best_trial_id is None
+                      or r[self._ls.metric] * self._ls.metric_op < obj_best):
+                best_trial_id = trial_id
+                obj_best = r[self._ls.metric] * self._ls.metric_op
+        if best_trial_id:
+            # create a new thread
+            config = {}
+            result = self._candidate_start_points[best_trial_id]
+            for key, value in result.items():
+                if key.startswith('config/'):
+                    config[key[7:]] = value
+            self._started_from_given = True
+            del self._candidate_start_points[best_trial_id]
+            self._create_thread(config, result)
 
     def _expand_admissible_region(self):
         for key in self._ls_bound_max:
@@ -425,6 +491,8 @@ class BlendSearch(Searcher):
                 self._gs_admissible_max.update(self._ls_bound_max)
             self._result[self._ls.config_signature(config)] = {}
         else:  # use init config
+            if self._candidate_start_points is not None and self._points_to_evaluate:
+                self._candidate_start_points[trial_id] = None
             init_config = self._points_to_evaluate.pop(
                 0) if self._points_to_evaluate else self._ls.init_config
             config = self._ls.complete_config(
@@ -624,7 +692,7 @@ class CFO(BlendSearchTuner):
         # Number of threads is 1 or 2. Thread 0 is a vacuous thread
         assert len(self._search_thread_pool) < 3, len(self._search_thread_pool)
         if len(self._search_thread_pool) < 2:
-            # When a local converges, the number of threads is 1
+            # When a local thread converges, the number of threads is 1
             # Need to restart
             self._init_used = False
         return super().suggest(trial_id)
@@ -637,4 +705,28 @@ class CFO(BlendSearchTuner):
     def _create_condition(self, result: Dict) -> bool:
         ''' create thread condition
         '''
-        return len(self._search_thread_pool) < 2
+        if self._points_to_evaluate:
+            # still evaluating user-specified init points
+            # we evaluate all candidate start points before we
+            # create the first local search thread
+            return False
+        if len(self._search_thread_pool) == 2:
+            return False
+        if self._candidate_start_points and self._thread_count == 1:
+            # result needs to match or exceed the best candidate start point
+            obj_best = min(
+                self._ls.metric_op * r[self._ls.metric]
+                for r in self._candidate_start_points.values() if r)
+            return result[self._ls.metric] * self._ls.metric_op <= obj_best
+        else:
+            return True
+
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None,
+                          error: bool = False):
+        super().on_trial_complete(trial_id, result, error)
+        if self._candidate_start_points \
+           and trial_id in self._candidate_start_points:
+            # the trial is a candidate start point
+            self._candidate_start_points[trial_id] = result
+            if len(self._search_thread_pool) < 2 and not self._points_to_evaluate:
+                self._create_thread_from_best_candidate()

@@ -129,7 +129,7 @@ FLOW<sup>2</sup> only requires pairwise comparisons between function values to p
 1. It is applicable to general black-box functions with a good convergence rate in terms of loss.
 3. It provides theoretical guarantees on the total evaluation cost incurred.
 
-The GIFs attached below demostrates an example search trajectory of FLOW<sup>2</sup> shown in the loss and evaluation cost (i.e., the training time ) space respectively. From the demonstration, we can see that (1) FLOW<sup>2</sup> can quickly move toward the low-loss region, showing good convergence property and (2) FLOW<sup>2</sup> tends to avoid exploring the high-cost region until necessary.
+The GIFs attached below demonstrate an example search trajectory of FLOW<sup>2</sup> shown in the loss and evaluation cost (i.e., the training time ) space respectively. From the demonstration, we can see that (1) FLOW<sup>2</sup> can quickly move toward the low-loss region, showing good convergence property and (2) FLOW<sup>2</sup> tends to avoid exploring the high-cost region until necessary.
 
 <p align="center">
     <img align="center", src="https://github.com/microsoft/FLAML/blob/main/docs/images/heatmap_loss_cfo_12s.gif"  width=360>  <img align="center", src="https://github.com/microsoft/FLAML/blob/main/docs/images/heatmap_cost_cfo_12s.gif"  width=360> 
