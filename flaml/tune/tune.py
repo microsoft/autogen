@@ -334,9 +334,9 @@ def run(training_function,
             result = training_function(trial_to_run.config)
             if result is not None:
                 if isinstance(result, dict):
-                    tune.report(**result)
+                    report(**result)
                 else:
-                    tune.report(_metric=result)
+                    report(_metric=result)
             _runner.stop_trial(trial_to_run)
     if verbose > 0:
         logger.handlers.clear()
