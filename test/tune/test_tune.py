@@ -217,6 +217,37 @@ def test_nested():
     logger.info(f"BlendSearch best result: {best_trial.last_result}")
 
 
+def test_run_training_function_return_value():
+    from flaml import tune
+
+    # Test dict return value
+    def evaluate_config_dict(config):
+        metric = (round(config['x'])-85000)**2 - config['x']/config['y']
+        return {"metric": metric}
+
+    tune.run(
+        evaluate_config_dict,
+        config={
+            'x': tune.lograndint(lower=1, upper=100000),
+            'y': tune.randint(lower=1, upper=100000)
+        },
+        metric='metric',
+    )
+
+    # Test scalar return value
+    def evaluate_config_scalar(config):
+        metric = (round(config['x'])-85000)**2 - config['x']/config['y']
+        return metric
+
+    tune.run(
+        evaluate_config_scalar,
+        config={
+            'x': tune.lograndint(lower=1, upper=100000),
+            'y': tune.randint(lower=1, upper=100000)
+        },
+    )
+
+
 def test_xgboost_bs():
     _test_xgboost()
 
