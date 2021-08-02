@@ -12,10 +12,11 @@ try:
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
     from ray.tune.suggest.variant_generator import generate_variants
+    from ray.tune.utils.util import flatten_dict
 except ImportError:
     from .suggestion import Searcher
     from .suggestion import OptunaSearch as GlobalSearch
-    from .variant_generator import generate_variants
+    from .variant_generator import generate_variants, flatten_dict
 from .search_thread import SearchThread
 from .flow2 import FLOW2
 
@@ -48,7 +49,8 @@ class BlendSearch(Searcher):
                      List[Tuple[Callable[[dict], float], str, float]]] = None,
                  metric_constraints: Optional[
                      List[Tuple[str, str, float]]] = None,
-                 seed: Optional[int] = 20):
+                 seed: Optional[int] = 20,
+                 experimental: Optional[bool] = False):
         '''Constructor
 
         Args:
@@ -106,6 +108,7 @@ class BlendSearch(Searcher):
             metric_constraints: A list of metric constraints to be satisfied.
                 e.g., `['precision', '>=', 0.9]`
             seed: An integer of the random seed.
+            experimental: A bool of whether to use experimental features.
         '''
         self._metric, self._mode = metric, mode
         init_config = low_cost_partial_config or {}
@@ -127,11 +130,20 @@ class BlendSearch(Searcher):
         elif getattr(self, '__name__', None) != 'CFO':
             try:
                 gs_seed = seed - 10 if (seed - 10) >= 0 else seed - 11 + (1 << 32)
-                self._gs = GlobalSearch(space=space, metric=metric, mode=mode, seed=gs_seed)
+                if experimental:
+                    import optuna as ot
+                    sampler = ot.samplers.TPESampler(
+                        seed=seed, multivariate=True, group=True)
+                else:
+                    sampler = None
+                self._gs = GlobalSearch(
+                    space=space, metric=metric, mode=mode, seed=gs_seed,
+                    sampler=sampler)
             except TypeError:
                 self._gs = GlobalSearch(space=space, metric=metric, mode=mode)
         else:
             self._gs = None
+        self._experimental = experimental
         if getattr(self, '__name__', None) == 'CFO' and points_to_evaluate and len(
            points_to_evaluate) > 1:
             # use the best config in points_to_evaluate as the start point
@@ -292,8 +304,14 @@ class BlendSearch(Searcher):
                 objective = result[self._ls.metric]
                 if (objective - self._metric_target) * self._ls.metric_op < 0:
                     self._metric_target = objective
-                if thread_id == 0 and metric_constraint_satisfied \
-                   and self._create_condition(result):
+                if thread_id:
+                    if not self._metric_constraint_satisfied:
+                        # no point has been found to satisfy metric constraint
+                        self._expand_admissible_region()
+                    if self._gs is not None and self._experimental:
+                        self._gs.add_evaluated_point(flatten_dict(config), objective)
+                elif metric_constraint_satisfied and self._create_condition(
+                        result):
                     # thread creator
                     thread_id = self._thread_count
                     self._started_from_given = self._candidate_start_points \
@@ -303,9 +321,6 @@ class BlendSearch(Searcher):
                     else:
                         self._started_from_low_cost = True
                     self._create_thread(config, result)
-                elif thread_id and not self._metric_constraint_satisfied:
-                    # no point has been found to satisfy metric constraint
-                    self._expand_admissible_region()
                 # reset admissible region to ls bounding box
                 self._gs_admissible_min.update(self._ls_bound_min)
                 self._gs_admissible_max.update(self._ls_bound_max)

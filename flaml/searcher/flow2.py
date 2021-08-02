@@ -290,9 +290,12 @@ class FLOW2(Searcher):
         return unflatten_dict(config)
 
     def create(self, init_config: Dict, obj: float, cost: float) -> Searcher:
+        flatten_config = flatten_dict(init_config)
+        # use the subspace where the init_config is located
+        space = {k: self.space[k] for k in flatten_config if k in self.space}
         flow2 = self.__class__(
             init_config, self.metric, self.mode, self._cat_hp_cost,
-            unflatten_dict(self.space), self.prune_attr,
+            unflatten_dict(space), self.prune_attr,
             self.min_resource, self.max_resource,
             self.resource_multiple_factor, self.cost_attr, self._seed + 1)
         flow2.best_obj = obj * self.metric_op  # minimize internally

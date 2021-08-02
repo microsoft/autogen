@@ -37,6 +37,9 @@ def test_automl(budget=5):
         get_output_from_log(filename=settings['log_file_name'], time_budget=60)
     for config in config_history:
         print(config)
+    print(automl.prune_attr)
+    print(automl.max_resource)
+    print(automl.min_resource)
 
 
 def test_mlflow():

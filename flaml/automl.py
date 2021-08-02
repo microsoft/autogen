@@ -4,6 +4,7 @@
  * project root for license information.
 '''
 import time
+from typing import Callable, Optional
 import warnings
 from functools import partial
 import numpy as np
@@ -212,10 +213,11 @@ class AutoMLState:
             'val_loss': val_loss,
             'trained_estimator': trained_estimator
         }
-        with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
-            tune.report(**result)
         if sampled_weight is not None:
             self.fit_kwargs['sample_weight'] = weight
+        # with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
+        #     tune.report(**result)
+        return result
 
     def _train_with_config(
         self, estimator, config_w_resource, sample_size=None
@@ -790,6 +792,177 @@ class AutoML:
         else:
             return 'holdout'
 
+    @property
+    def search_space(self) -> dict:
+        '''Search space
+        Must be called after fit(...) (use max_iter=0 to prevent actual fitting)
+
+        Returns:
+            A dict of the search space
+        '''
+        estimator_list = self.estimator_list
+        if len(estimator_list) == 1:
+            estimator = estimator_list[0]
+            space = self._search_states[estimator].search_space.copy()
+            space['learner'] = estimator
+            return space
+        choices = []
+        for estimator in estimator_list:
+            space = self._search_states[estimator].search_space.copy()
+            space['learner'] = estimator
+            choices.append(space)
+        return {'ml': tune.choice(choices)}
+
+    @property
+    def low_cost_partial_config(self) -> dict:
+        '''Low cost partial config
+
+        Returns:
+            A dict.
+            (a) if there is only one estimator in estimator_list, each key is a
+            hyperparameter name
+            (b) otherwise, it is a nested dict with 'ml' as the key, and
+            a list of the low_cost_partial_configs as the value, corresponding
+            to each learner's low_cost_partial_config
+
+        '''
+        if len(self.estimator_list) == 1:
+            estimator = self.estimator_list[0]
+            c = self._search_states[estimator].low_cost_partial_config
+            return c
+        else:
+            configs = []
+            for estimator in self.estimator_list:
+                c = self._search_states[estimator].low_cost_partial_config
+                configs.append(c)
+            config = {'ml': configs}
+        return config
+
+    @property
+    def cat_hp_cost(self) -> dict:
+        '''Categorical hyperparameter cost
+
+        Returns:
+            A dict.
+            (a) if there is only one estimator in estimator_list, each key is a
+            hyperparameter name
+            (b) otherwise, it is a nested dict with 'ml' as the key, and
+            a list of the cat_hp_cost's as the value, corresponding
+            to each learner's cat_hp_cost
+
+        '''
+        if len(self.estimator_list) == 1:
+            estimator = self.estimator_list[0]
+            c = self._search_states[estimator].cat_hp_cost
+            return c
+        else:
+            configs = []
+            for estimator in self.estimator_list:
+                c = self._search_states[estimator].cat_hp_cost
+                configs.append(c)
+            config = {'ml': configs}
+        return config
+
+    @property
+    def points_to_evalaute(self) -> dict:
+        '''Initial points to evaluate
+
+        Returns:
+            A list of dicts. Each dict is the initial point for each learner
+        '''
+        points = []
+        for estimator in self.estimator_list:
+            config = self._search_states[estimator].init_config
+            config['learner'] = estimator
+            if len(self.estimator_list) > 1:
+                points.append({'ml': config})
+            else:
+                points.append(config)
+        return points
+
+    @property
+    def prune_attr(self) -> Optional[str]:
+        '''Attribute for pruning
+
+        Returns:
+            A string for the sample size attribute or None
+        '''
+        return 'FLAML_sample_size' if self._sample else None
+
+    @property
+    def min_resource(self) -> Optional[float]:
+        '''Attribute for pruning
+
+        Returns:
+            A float for the minimal sample size or None
+        '''
+        return MIN_SAMPLE_TRAIN if self._sample else None
+
+    @property
+    def max_resource(self) -> Optional[float]:
+        '''Attribute for pruning
+
+        Returns:
+            A float for the maximal sample size or None
+        '''
+        return self._state.data_size if self._sample else None
+
+    @property
+    def trainable(self) -> Callable[[dict], Optional[float]]:
+        '''Training function
+
+        Returns:
+            A function that evaluates each config and returns the loss
+        '''
+        self._state.time_from_start = 0
+        for estimator in self.estimator_list:
+            search_state = self._search_states[estimator]
+            if not hasattr(search_state, 'training_function'):
+                search_state.training_function = partial(
+                    AutoMLState._compute_with_config_base,
+                    self._state, estimator)
+        states = self._search_states
+
+        def train(config: dict):
+            sample_size = config.get('FLAML_sample_size')
+            config = config.get('ml', config).copy()
+            if sample_size:
+                config['FLAML_sample_size'] = sample_size
+            estimator = config['learner']
+            del config['learner']
+            states[estimator].training_function(config)
+
+        return train
+
+    @property
+    def size(self) -> Callable[[dict], float]:
+        '''Size function
+
+        Returns:
+            A function that returns the mem size in bytes for a config
+        '''
+
+        def size_func(config: dict) -> float:
+            config = config.get('ml', config).copy
+            estimator = config['learner']
+            learner_class = self._state.learner_classes.get(estimator)
+            return learner_class.size(config)
+
+        return size_func
+
+    @property
+    def metric_constraints(self) -> list:
+        '''Metric constraints
+
+        Returns:
+            A list of the metric constraints
+        '''
+        constraints = []
+        if np.isfinite(self._pred_time_limit):
+            constraints.append(
+                ('pred_time', '<=', self._pred_time_limit))
+        return constraints
+
     def fit(self,
             X_train=None,
             y_train=None,
@@ -969,11 +1142,12 @@ class AutoML:
             )
         logger.info("List of ML learners in AutoML Run: {}".format(
             estimator_list))
+        self.estimator_list = estimator_list
         self._hpo_method = hpo_method or 'cfo'
         with training_log_writer(log_file_name) as save_helper:
             self._training_log = save_helper
             self._state.time_budget = time_budget
-            self.estimator_list = estimator_list
+            self._active_estimators = estimator_list.copy()
             self._ensemble = ensemble
             self._max_iter = max_iter
             self._mem_thres = mem_thres
@@ -1028,9 +1202,9 @@ class AutoML:
 
         for self._track_iter in range(self._max_iter):
             if self._estimator_index is None:
-                estimator = self.estimator_list[0]
+                estimator = self._active_estimators[0]
             else:
-                estimator = self._select_estimator(self.estimator_list)
+                estimator = self._select_estimator(self._active_estimators)
                 if not estimator:
                     break
             logger.info(
@@ -1071,10 +1245,6 @@ class AutoML:
                     points_to_evaluate = [search_state.init_config]
                     low_cost_partial_config = search_state.low_cost_partial_config
                 if self._hpo_method in ('bs', 'cfo', 'grid'):
-                    metric_constraints = []
-                    if np.isfinite(self._pred_time_limit):
-                        metric_constraints.append(
-                            ('pred_time', '<=', self._pred_time_limit))
                     algo = SearchAlgo(
                         metric='val_loss', mode='min', space=search_space,
                         points_to_evaluate=points_to_evaluate,
@@ -1086,7 +1256,7 @@ class AutoML:
                         config_constraints=[
                             (learner_class.size, '<=', self._mem_thres)
                         ],
-                        metric_constraints=metric_constraints,
+                        metric_constraints=self.metric_constraints,
                     )
                 else:
                     algo = SearchAlgo(
@@ -1198,7 +1368,7 @@ class AutoML:
             else:
                 logger.info(f"no enough budget for learner {estimator}")
                 if self._estimator_index is not None:
-                    self.estimator_list.remove(estimator)
+                    self._active_estimators.remove(estimator)
                     self._estimator_index -= 1
             if self._retrain_full and best_config_sig and not better and (
                 self._search_states[
@@ -1217,7 +1387,7 @@ class AutoML:
                 est_retrain_time = 0
             self._state.time_from_start = time.time() - self._start_time_flag
             if (self._state.time_from_start >= self._state.time_budget
-                    or not self.estimator_list):
+                    or not self._active_estimators):
                 break
             if self._ensemble and self._best_estimator:
                 time_left = self._state.time_budget - self._state.time_from_start

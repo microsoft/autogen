@@ -1,5 +1,6 @@
 '''Require: pip install flaml[test,ray]
 '''
+from flaml.searcher.blendsearch import BlendSearch
 import time
 import os
 from sklearn.model_selection import train_test_split
@@ -201,6 +202,28 @@ def test_nested():
 
     analysis = tune.run(
         simple_func,
+        search_alg=BlendSearch(
+            experimental=True,
+            space=search_space, metric="obj", mode="min",
+            low_cost_partial_config={
+                "cost_related": {"a": 1}
+            },
+            points_to_evaluate=[
+                {"b": .99, "cost_related": {"a": 3}},
+                {"b": .99, "cost_related": {"a": 2}},
+                {"cost_related": {"a": 8}}
+            ],
+            metric_constraints=[("ab", "<=", 4)]),
+        local_dir='logs/',
+        num_samples=-1,
+        time_budget_s=.1)
+
+    best_trial = analysis.get_best_trial()
+    logger.info(f"BlendSearch exp best config: {best_trial.config}")
+    logger.info(f"BlendSearch exp best result: {best_trial.last_result}")
+
+    analysis = tune.run(
+        simple_func,
         config=search_space,
         low_cost_partial_config={
             "cost_related": {"a": 1}
@@ -222,7 +245,7 @@ def test_run_training_function_return_value():
 
     # Test dict return value
     def evaluate_config_dict(config):
-        metric = (round(config['x'])-85000)**2 - config['x']/config['y']
+        metric = (round(config['x']) - 85000)**2 - config['x'] / config['y']
         return {"metric": metric}
 
     tune.run(
@@ -236,7 +259,7 @@ def test_run_training_function_return_value():
 
     # Test scalar return value
     def evaluate_config_scalar(config):
-        metric = (round(config['x'])-85000)**2 - config['x']/config['y']
+        metric = (round(config['x']) - 85000)**2 - config['x'] / config['y']
         return metric
 
     tune.run(

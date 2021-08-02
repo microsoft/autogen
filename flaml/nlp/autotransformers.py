@@ -455,6 +455,9 @@ class AutoTransformers:
     def _get_search_algo(self,
                          search_algo_name,
                          search_algo_args_mode,
+                         time_budget,
+                         metric_name,
+                         metric_mode_name,
                          **custom_hpo_args):
         from .hpo.searchalgo_auto import AutoSearchAlgorithm
 
@@ -464,6 +467,9 @@ class AutoTransformers:
             search_algo_name,
             search_algo_args_mode,
             self._search_space_hpo,
+            time_budget,
+            metric_name,
+            metric_mode_name,
             **custom_hpo_args)
         return search_algo
 
@@ -745,7 +751,12 @@ class AutoTransformers:
         ray.init(local_mode=ray_local_mode)
         self._set_search_space(**custom_hpo_args)
 
-        search_algo = self._get_search_algo(self.jobid_config.alg, self.jobid_config.arg, **custom_hpo_args)
+        search_algo = self._get_search_algo(self.jobid_config.alg,
+                                            self.jobid_config.arg,
+                                            time_budget,
+                                            self.metric_name,
+                                            self.metric_mode_name,
+                                            **custom_hpo_args)
         scheduler = AutoScheduler.from_scheduler_name(self.jobid_config.pru)
         self.ckpt_per_epoch = ckpt_per_epoch
         self.path_utils.make_dir_per_run()
