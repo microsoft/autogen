@@ -117,7 +117,8 @@ class TrainingLogWriter(object):
         self.file.flush()
 
     def close(self):
-        self.file.close()
+        if self.file is not None:
+            self.file.close()
         self.file = None  # for pickle
 
 
@@ -141,7 +142,8 @@ class TrainingLogReader(object):
             yield TrainingLogRecord(**data)
 
     def close(self):
-        self.file.close()
+        if self.file is not None:
+            self.file.close()
         self.file = None  # for pickle
 
     def get_record(self, record_id) -> TrainingLogRecord:
