@@ -52,7 +52,7 @@ def _test_xgboost(method='BlendSearch'):
     else:
         from ray import tune
     search_space = {
-        "max_depth": tune.randint(1, 8) if method in [
+        "max_depth": tune.randint(1, 9) if method in [
             "BlendSearch", "BOHB", "Optuna"] else tune.randint(1, 9),
         "min_child_weight": tune.choice([1, 2, 3]),
         "subsample": tune.uniform(0.5, 1.0),
@@ -61,7 +61,7 @@ def _test_xgboost(method='BlendSearch'):
     max_iter = 10
     for num_samples in [128]:
         time_budget_s = 60
-        for n_cpu in [8]:
+        for n_cpu in [4]:
             start_time = time.time()
             ray.init(num_cpus=n_cpu, num_gpus=0)
             # ray.init(address='auto')
@@ -168,7 +168,7 @@ def test_nested():
     search_space = {
         # test nested search space
         "cost_related": {
-            "a": tune.randint(1, 8),
+            "a": tune.randint(1, 9),
         },
         "b": tune.uniform(0.5, 1.0),
     }
@@ -194,7 +194,7 @@ def test_nested():
             metric_constraints=[("ab", "<=", 4)]),
         local_dir='logs/',
         num_samples=-1,
-        time_budget_s=.1)
+        time_budget_s=1)
 
     best_trial = analysis.get_best_trial()
     logger.info(f"CFO best config: {best_trial.config}")
@@ -216,7 +216,7 @@ def test_nested():
             metric_constraints=[("ab", "<=", 4)]),
         local_dir='logs/',
         num_samples=-1,
-        time_budget_s=.1)
+        time_budget_s=1)
 
     best_trial = analysis.get_best_trial()
     logger.info(f"BlendSearch exp best config: {best_trial.config}")
@@ -233,7 +233,7 @@ def test_nested():
         metric_constraints=[("ab", "<=", 4)],
         local_dir='logs/',
         num_samples=-1,
-        time_budget_s=.1)
+        time_budget_s=1)
 
     best_trial = analysis.get_best_trial()
     logger.info(f"BlendSearch best config: {best_trial.config}")
@@ -251,10 +251,11 @@ def test_run_training_function_return_value():
     tune.run(
         evaluate_config_dict,
         config={
-            'x': tune.lograndint(lower=1, upper=100000),
-            'y': tune.randint(lower=1, upper=100000)
+            'x': tune.qloguniform(lower=1, upper=100000, q=1),
+            'y': tune.qrandint(lower=2, upper=100000, q=2)
         },
-        metric='metric',
+        metric='metric', mode='max',
+        num_samples=100,
     )
 
     # Test scalar return value
@@ -265,9 +266,10 @@ def test_run_training_function_return_value():
     tune.run(
         evaluate_config_scalar,
         config={
-            'x': tune.lograndint(lower=1, upper=100000),
-            'y': tune.randint(lower=1, upper=100000)
+            'x': tune.qloguniform(lower=1, upper=100000, q=1),
+            'y': tune.qlograndint(lower=2, upper=100000, q=2)
         },
+        num_samples=100, mode='max',
     )
 
 

@@ -21,11 +21,10 @@ import uuid
 import time
 from numbers import Number
 from collections import deque
-import copy
 
 
 def flatten_dict(dt, delimiter="/", prevent_delimiter=False):
-    dt = copy.deepcopy(dt)
+    dt = dt.copy()
     if prevent_delimiter and any(delimiter in key for key in dt):
         # Raise if delimiter is any of the keys
         raise ValueError(

@@ -59,7 +59,7 @@ def test_simple(method=None):
     automl.trainable(config)
     from flaml import tune
     analysis = tune.run(
-        automl.trainable, automl.search_space, metric='val_loss',
+        automl.trainable, automl.search_space, metric='val_loss', mode="min",
         low_cost_partial_config=automl.low_cost_partial_config,
         points_to_evaluate=automl.points_to_evalaute,
         cat_hp_cost=automl.cat_hp_cost,
@@ -68,7 +68,7 @@ def test_simple(method=None):
         max_resource=automl.max_resource,
         time_budget_s=automl._state.time_budget,
         config_constraints=[(automl.size, '<=', automl._mem_thres)],
-        metric_constraints=automl.metric_constraints)
+        metric_constraints=automl.metric_constraints, num_samples=5)
     print(analysis.trials[-1])
 
 

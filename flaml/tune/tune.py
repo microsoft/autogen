@@ -8,8 +8,10 @@ import numpy as np
 import datetime
 import time
 try:
+    from ray import __version__ as ray_version
+    assert ray_version >= '1.0.0'
     from ray.tune.analysis import ExperimentAnalysis as EA
-except ImportError:
+except (ImportError, AssertionError):
     from .analysis import ExperimentAnalysis as EA
 import logging
 logger = logging.getLogger(__name__)
@@ -288,9 +290,11 @@ def run(training_function,
         if reduction_factor:
             params['reduction_factor'] = reduction_factor
         try:
+            from ray import __version__ as ray_version
+            assert ray_version >= '1.0.0'
             from ray.tune.schedulers import ASHAScheduler
             scheduler = ASHAScheduler(**params)
-        except ImportError:
+        except (ImportError, AssertionError):
             pass
     if use_ray:
         try:

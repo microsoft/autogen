@@ -11,7 +11,8 @@ from .training_log import training_log_reader
 from datetime import datetime
 
 
-def load_openml_dataset(dataset_id, data_dir=None, random_state=0):
+def load_openml_dataset(dataset_id, data_dir=None, random_state=0,
+                        dataset_format='dataframe'):
     '''Load dataset from open ML.
 
     If the file is not cached locally, download it from open ML.
@@ -20,12 +21,15 @@ def load_openml_dataset(dataset_id, data_dir=None, random_state=0):
         dataset_id: An integer of the dataset id in openml
         data_dir: A string of the path to store and load the data
         random_state: An integer of the random seed for splitting data
-
+        dataset_format: A string specifying the format of returned dataset. Default is 'dataframe'.
+            Can choose from ['dataframe', 'array'].
+            If 'dataframe', the returned dataset will be a Pandas DataFrame.
+            If 'array', the returned dataset will be a NumPy array or a SciPy sparse matrix.
     Returns:
-        X_train: A dataframe of training data
-        X_test:  A dataframe of test data
-        y_train: A series of labels for training data
-        y_test:  A series of labels for test data
+        X_train: Training data
+        X_test:  Test data
+        y_train: A series or array of labels for training data
+        y_test:  A series or array of labels for test data
     '''
     import os
     import openml
@@ -48,7 +52,7 @@ def load_openml_dataset(dataset_id, data_dir=None, random_state=0):
     print('Dataset name:', dataset.name)
     X, y, * \
         __ = dataset.get_data(
-            target=dataset.default_target_attribute)
+            target=dataset.default_target_attribute, dataset_format=dataset_format)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, random_state=random_state)
     print(

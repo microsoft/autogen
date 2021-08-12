@@ -35,6 +35,11 @@ try:
 
 except ImportError:
     print("pip install torch transformers datasets flaml[blendsearch,ray]")
+except ValueError as e:
+    if 'Connection error' in str(e):
+        print(e)
+    else:
+        raise(e)
 
 logger = logging.getLogger(__name__)
 os.makedirs('logs', exist_ok=True)
