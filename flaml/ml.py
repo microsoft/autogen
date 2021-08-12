@@ -23,24 +23,24 @@ logger = logging.getLogger(__name__)
 def get_estimator_class(task, estimator_name):
     ''' when adding a new learner, need to add an elif branch '''
 
-    if 'xgboost' in estimator_name:
+    if 'xgboost' == estimator_name:
         if 'regression' in task:
             estimator_class = XGBoostEstimator
         else:
             estimator_class = XGBoostSklearnEstimator
-    elif 'rf' in estimator_name:
+    elif 'rf' == estimator_name:
         estimator_class = RandomForestEstimator
-    elif 'lgbm' in estimator_name:
+    elif 'lgbm' == estimator_name:
         estimator_class = LGBMEstimator
-    elif 'lrl1' in estimator_name:
+    elif 'lrl1' == estimator_name:
         estimator_class = LRL1Classifier
-    elif 'lrl2' in estimator_name:
+    elif 'lrl2' == estimator_name:
         estimator_class = LRL2Classifier
-    elif 'catboost' in estimator_name:
+    elif 'catboost' == estimator_name:
         estimator_class = CatBoostEstimator
-    elif 'extra_tree' in estimator_name:
+    elif 'extra_tree' == estimator_name:
         estimator_class = ExtraTreeEstimator
-    elif 'kneighbor' in estimator_name:
+    elif 'kneighbor' == estimator_name:
         estimator_class = KNeighborsEstimator
     else:
         raise ValueError(

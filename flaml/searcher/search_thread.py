@@ -6,10 +6,13 @@
 from typing import Dict, Optional
 import numpy as np
 try:
+    from ray import __version__ as ray_version
+    assert ray_version >= '1.0.0'
     from ray.tune.suggest import Searcher
-except ImportError:
+except (ImportError, AssertionError):
     from .suggestion import Searcher
 from .flow2 import FLOW2
+from ..tune.space import (add_cost_to_space, unflatten_hierarchical)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,6 +44,12 @@ class SearchThread:
         self._init_config = True
         self.running = 0    # the number of running trials from the thread
         self.cost_attr = cost_attr
+        if search_alg:
+            self.space = self._space = search_alg.space  # unflattened space
+            # TODO: remove when define_by_run is supported
+            if not isinstance(self._search_alg, FLOW2):
+                # remember const config
+                self._const = add_cost_to_space(self.space, {}, {})
 
     @classmethod
     def set_eps(cls, time_budget_s):
@@ -54,6 +63,9 @@ class SearchThread:
         else:
             try:
                 config = self._search_alg.suggest(trial_id)
+                # TODO: remove when define_by_run is supported
+                config.update(self._const)
+                config, self.space = unflatten_hierarchical(config, self._space)
             except FloatingPointError:
                 logger.warning(
                     'The global search method raises FloatingPointError. '

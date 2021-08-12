@@ -13,8 +13,6 @@ from sklearn.model_selection import train_test_split, RepeatedStratifiedKFold, \
     RepeatedKFold, GroupKFold
 from sklearn.utils import shuffle
 import pandas as pd
-import os
-import contextlib
 
 from .ml import compute_estimator, train_estimator, get_estimator_class, \
     get_classification_objective
@@ -56,6 +54,7 @@ class SearchState:
         self.low_cost_partial_config = {}
         self.cat_hp_cost = {}
         self.data_size = data_size
+        self.ls_ever_converged = False
         search_space = learner_class.search_space(
             data_size=data_size, task=task)
         for name, space in search_space.items():
@@ -215,7 +214,6 @@ class AutoMLState:
         }
         if sampled_weight is not None:
             self.fit_kwargs['sample_weight'] = weight
-        # with open(os.devnull, "w") as f, contextlib.redirect_stdout(f):
         #     tune.report(**result)
         return result
 
@@ -820,10 +818,12 @@ class AutoML:
         Returns:
             A dict.
             (a) if there is only one estimator in estimator_list, each key is a
-            hyperparameter name
+            hyperparameter name.
             (b) otherwise, it is a nested dict with 'ml' as the key, and
             a list of the low_cost_partial_configs as the value, corresponding
-            to each learner's low_cost_partial_config
+            to each learner's low_cost_partial_config; the estimator index as
+            an integer corresponding to the cheapest learner is appeneded to the
+            list at the end.
 
         '''
         if len(self.estimator_list) == 1:
@@ -835,6 +835,9 @@ class AutoML:
             for estimator in self.estimator_list:
                 c = self._search_states[estimator].low_cost_partial_config
                 configs.append(c)
+            configs.append(np.argmin([
+                self._state.learner_classes.get(estimator).cost_relative2lgbm()
+                for estimator in self.estimator_list]))
             config = {'ml': configs}
         return config
 
@@ -845,10 +848,11 @@ class AutoML:
         Returns:
             A dict.
             (a) if there is only one estimator in estimator_list, each key is a
-            hyperparameter name
+            hyperparameter name.
             (b) otherwise, it is a nested dict with 'ml' as the key, and
             a list of the cat_hp_cost's as the value, corresponding
-            to each learner's cat_hp_cost
+            to each learner's cat_hp_cost; the cost relative to lgbm for each
+            learner (as a list itself) is appended to the list at the end.
 
         '''
         if len(self.estimator_list) == 1:
@@ -860,6 +864,9 @@ class AutoML:
             for estimator in self.estimator_list:
                 c = self._search_states[estimator].cat_hp_cost
                 configs.append(c)
+            configs.append([
+                self._state.learner_classes.get(estimator).cost_relative2lgbm()
+                for estimator in self.estimator_list])
             config = {'ml': configs}
         return config
 
@@ -930,7 +937,8 @@ class AutoML:
                 config['FLAML_sample_size'] = sample_size
             estimator = config['learner']
             del config['learner']
-            states[estimator].training_function(config)
+            result = states[estimator].training_function(config)
+            return result
 
         return train
 
@@ -943,7 +951,7 @@ class AutoML:
         '''
 
         def size_func(config: dict) -> float:
-            config = config.get('ml', config).copy
+            config = config.get('ml', config)
             estimator = config['learner']
             learner_class = self._state.learner_classes.get(estimator)
             return learner_class.size(config)
@@ -971,7 +979,7 @@ class AutoML:
             metric='auto',
             task='classification',
             n_jobs=-1,
-            log_file_name='default.log',
+            log_file_name='flaml.log',
             estimator_list='auto',
             time_budget=60,
             max_iter=1000000,
@@ -996,6 +1004,7 @@ class AutoML:
             learner_selector='sample',
             hpo_method=None,
             starting_points={},
+            seed=None,
             **fit_kwargs):
         '''Find a model for a given task
 
@@ -1063,12 +1072,20 @@ class AutoML:
                 samples used while splitting the dataset into train/valid set
             verbose: int, default=1 | Controls the verbosity, higher means more
                 messages.
+            hpo_method: str or None, default=None | The hyperparameter
+                optimization method. When it is None, CFO is used.
+                No need to set when using flaml's default search space or using
+                a simple customized search space. When set to 'bs', BlendSearch
+                is used. BlendSearch can be tried when the search space is
+                complex, for example, containing multiple disjoint, discontinuous
+                subspaces.
             starting_points: A dictionary to specify the starting hyperparameter
                 config for the estimators.
                 Keys are the name of the estimators, and values are the starting
                 hyperparamter configurations for the corresponding estimators.
+            seed: int or None, default=None | The random seed for np.random.
             **fit_kwargs: Other key word arguments to pass to fit() function of
-                the searched learners, such sample_weight
+                the searched learners, such as sample_weight.
         '''
         self._start_time_flag = time.time()
         self._state.task = task
@@ -1079,6 +1096,8 @@ class AutoML:
         self._validate_data(X_train, y_train, dataframe, label, X_val, y_val)
         self._search_states = {}  # key: estimator name; value: SearchState
         self._random = np.random.RandomState(RANDOM_SEED)
+        if seed is not None:
+            np.random.seed(seed)
         self._learner_selector = learner_selector
         old_level = logger.getEffectiveLevel()
         self.verbose = verbose
@@ -1144,21 +1163,33 @@ class AutoML:
             estimator_list))
         self.estimator_list = estimator_list
         self._hpo_method = hpo_method or 'cfo'
-        with training_log_writer(log_file_name) as save_helper:
-            self._training_log = save_helper
-            self._state.time_budget = time_budget
-            self._active_estimators = estimator_list.copy()
-            self._ensemble = ensemble
-            self._max_iter = max_iter
-            self._mem_thres = mem_thres
-            self._pred_time_limit = pred_time_limit
-            self._state.train_time_limit = train_time_limit
-            self._log_type = log_type
-            self.split_ratio = split_ratio
-            self._save_model_history = model_history
-            self._state.n_jobs = n_jobs
+        self._state.time_budget = time_budget
+        self._active_estimators = estimator_list.copy()
+        self._ensemble = ensemble
+        self._max_iter = max_iter
+        self._mem_thres = mem_thres
+        self._pred_time_limit = pred_time_limit
+        self._state.train_time_limit = train_time_limit
+        self._log_type = log_type
+        self.split_ratio = split_ratio
+        self._save_model_history = model_history
+        self._state.n_jobs = n_jobs
+        if log_file_name:
+            with training_log_writer(log_file_name) as save_helper:
+                self._training_log = save_helper
+                self._search()
+        else:
+            self._training_log = None
             self._search()
-            logger.info("fit succeeded")
+        logger.info("fit succeeded")
+        logger.info(f"Time taken to find the best model: {self._time_taken_best_iter}")
+        if self._time_taken_best_iter >= time_budget * 0.7 and not \
+           all(self._ever_converged_per_learner.values()):
+            logger.warn("Time taken to find the best model is {0:.0f}% of the "
+                        "provided time budget and not all estimators' hyperparameter "
+                        "search converged. Consider increasing the time budget.".format(
+                            self._time_taken_best_iter / time_budget * 100))
+
         if verbose == 0:
             logger.setLevel(old_level)
 
@@ -1169,14 +1200,18 @@ class AutoML:
         self._state.time_from_start = 0
         self._estimator_index = None
         self._best_iteration = 0
+        self._time_taken_best_iter = 0
         self._model_history = {}
         self._config_history = {}
         self._max_iter_per_learner = 1000000  # TODO
         self._iter_per_learner = dict([(e, 0) for e in self.estimator_list])
+        self._ever_converged_per_learner = dict([(e, False) for e in self.estimator_list])
         self._fullsize_reached = False
         self._trained_estimator = None
         self._best_estimator = None
         self._retrained_config = {}
+        self._warn_threshold = 10
+
         est_retrain_time = next_trial_time = 0
         best_config_sig = None
         # use ConcurrencyLimiter to limit the amount of concurrency when
@@ -1185,20 +1220,27 @@ class AutoML:
         if self._ensemble:
             self.best_model = {}
         try:
+            from ray import __version__ as ray_version
+            assert ray_version >= '1.0.0'
             from ray.tune.suggest import ConcurrencyLimiter
-        except ImportError:
+        except (ImportError, AssertionError):
             from .searcher.suggestion import ConcurrencyLimiter
         if self._hpo_method in ('cfo', 'grid'):
             from flaml import CFO as SearchAlgo
         elif 'optuna' == self._hpo_method:
             try:
+                assert ray_version >= '1.0.0'
                 from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
-            except ImportError:
+            except (ImportError, AssertionError):
                 from .searcher.suggestion import OptunaSearch as SearchAlgo
         elif 'bs' == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
+        elif 'cfocat' == self._hpo_method:
+            from flaml import CFOCat as SearchAlgo
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"hpo_method={self._hpo_method} is not recognized. "
+                "'cfo' and 'bs' are supported.")
 
         for self._track_iter in range(self._max_iter):
             if self._estimator_index is None:
@@ -1244,7 +1286,7 @@ class AutoML:
                 else:
                     points_to_evaluate = [search_state.init_config]
                     low_cost_partial_config = search_state.low_cost_partial_config
-                if self._hpo_method in ('bs', 'cfo', 'grid'):
+                if self._hpo_method in ('bs', 'cfo', 'grid', 'cfocat'):
                     algo = SearchAlgo(
                         metric='val_loss', mode='min', space=search_space,
                         points_to_evaluate=points_to_evaluate,
@@ -1267,7 +1309,7 @@ class AutoML:
                                                              max_concurrent=1)
             else:
                 search_space = None
-                if self._hpo_method in ('bs', 'cfo'):
+                if self._hpo_method in ('bs', 'cfo', 'cfocat'):
                     search_state.search_alg.set_search_properties(
                         metric=None, mode=None,
                         config={
@@ -1320,20 +1362,22 @@ class AutoML:
                         self._trained_estimator = None
                     self._trained_estimator = search_state.trained_estimator
                     self._best_iteration = self._track_iter
+                    self._time_taken_best_iter = self._state.time_from_start
                     better = True
                     next_trial_time = search_state.time2eval_best
                 if better or self._log_type == 'all':
-                    self._training_log.append(
-                        self._iter_per_learner[estimator],
-                        search_state.train_loss,
-                        search_state.trial_time,
-                        self._state.time_from_start,
-                        search_state.val_loss,
-                        search_state.config,
-                        search_state.best_loss,
-                        search_state.best_config,
-                        estimator,
-                        search_state.sample_size)
+                    if self._training_log:
+                        self._training_log.append(
+                            self._iter_per_learner[estimator],
+                            search_state.train_loss,
+                            search_state.trial_time,
+                            self._state.time_from_start,
+                            search_state.val_loss,
+                            search_state.config,
+                            search_state.best_loss,
+                            search_state.best_config,
+                            estimator,
+                            search_state.sample_size)
                     if mlflow is not None and mlflow.active_run():
                         with mlflow.start_run(nested=True):
                             mlflow.log_metric('iter_counter',
@@ -1365,6 +1409,15 @@ class AutoML:
                         search_state.best_loss,
                         self._best_estimator,
                         self._state.best_loss))
+                searcher = search_state.search_alg.searcher
+                if searcher.is_ls_ever_converged and not self._ever_converged_per_learner[estimator]:
+                    self._ever_converged_per_learner[estimator] = searcher.is_ls_ever_converged
+                if all(self._ever_converged_per_learner.values()) and \
+                   self._state.time_from_start > self._warn_threshold * self._time_taken_best_iter:
+                    logger.warn("All estimator hyperparameters local search has converged at least once, "
+                                f"and the total search time exceeds {self._warn_threshold} times the time taken "
+                                "to find the best model.")
+                    self._warn_threshold *= 10
             else:
                 logger.info(f"no enough budget for learner {estimator}")
                 if self._estimator_index is not None:
@@ -1396,7 +1449,8 @@ class AutoML:
                 if time_left < time_ensemble < 2 * time_left:
                     break
         # Add a checkpoint for the current best config to the log.
-        self._training_log.checkpoint()
+        if self._training_log:
+            self._training_log.checkpoint()
         if self._best_estimator:
             self._selected = self._search_states[self._best_estimator]
             self._trained_estimator = self._selected.trained_estimator
