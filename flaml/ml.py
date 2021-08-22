@@ -56,8 +56,8 @@ def sklearn_metric_loss_score(
 
     Args:
         metric_name: A string of the metric name, one of
-            'r2', 'rmse', 'mae', 'mse', 'accuracy', 'roc_auc', 'log_loss',
-            'f1', 'ap', 'micro_f1', 'macro_f1'
+            'r2', 'rmse', 'mae', 'mse', 'accuracy', 'roc_auc', 'roc_auc_ovr',
+            'roc_auc_ovo', 'log_loss', 'f1', 'ap', 'micro_f1', 'macro_f1'
         y_predict: A 1d or 2d numpy array of the predictions which can be
             used to calculate the metric. E.g., 2d for log_loss and 1d
             for others.
@@ -83,9 +83,15 @@ def sklearn_metric_loss_score(
     elif metric_name == 'accuracy':
         score = 1.0 - accuracy_score(
             y_true, y_predict, sample_weight=sample_weight)
-    elif 'roc_auc' in metric_name:
+    elif metric_name == 'roc_auc':
         score = 1.0 - roc_auc_score(
             y_true, y_predict, sample_weight=sample_weight)
+    elif metric_name == 'roc_auc_ovr':
+        score = 1.0 - roc_auc_score(
+            y_true, y_predict, sample_weight=sample_weight, multi_class='ovr')
+    elif metric_name == 'roc_auc_ovo':
+        score = 1.0 - roc_auc_score(
+            y_true, y_predict, sample_weight=sample_weight, multi_class='ovo')
     elif 'log_loss' in metric_name:
         score = log_loss(
             y_true, y_predict, labels=labels, sample_weight=sample_weight)
@@ -104,7 +110,8 @@ def sklearn_metric_loss_score(
         raise ValueError(
             metric_name + ' is not a built-in metric, '
             'currently built-in metrics are: '
-            'r2, rmse, mae, mse, accuracy, roc_auc, log_loss, f1, micro_f1, macro_f1, ap. '
+            'r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,'
+            'log_loss, f1, micro_f1, macro_f1, ap. '
             'please pass a customized metric function to AutoML.fit(metric=func)')
     return score
 
@@ -114,7 +121,7 @@ def get_y_pred(estimator, X, eval_metric, obj):
         y_pred_classes = estimator.predict_proba(X)
         y_pred = y_pred_classes[
             :, 1] if y_pred_classes.ndim > 1 else y_pred_classes
-    elif eval_metric in ['log_loss', 'roc_auc']:
+    elif eval_metric in ['log_loss', 'roc_auc', 'roc_auc_ovr', 'roc_auc_ovo']:
         y_pred = estimator.predict_proba(X)
     else:
         y_pred = estimator.predict(X)

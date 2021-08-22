@@ -14,7 +14,7 @@ def test_automl(budget=5, dataset_format='dataframe'):
     automl = AutoML()
     settings = {
         "time_budget": budget,  # total running time in seconds
-        "metric": 'accuracy',  # primary metrics can be chosen from: ['accuracy','roc_auc','f1','log_loss','mae','mse','r2']
+        "metric": 'accuracy',  # primary metrics can be chosen from: ['accuracy','roc_auc','roc_auc_ovr','roc_auc_ovo','f1','log_loss','mae','mse','r2']
         "task": 'classification',  # task type
         "log_file_name": 'airlines_experiment.log',  # flaml log file
     }
@@ -71,7 +71,7 @@ def test_mlflow():
     automl = AutoML()
     settings = {
         "time_budget": 5,  # total running time in seconds
-        "metric": 'accuracy',  # primary metrics can be chosen from: ['accuracy','roc_auc','f1','log_loss','mae','mse','r2']
+        "metric": 'accuracy',  # primary metrics can be chosen from: ['accuracy','roc_auc','roc_auc_ovr','roc_auc_ovo','f1','log_loss','mae','mse','r2']
         "estimator_list": ['lgbm', 'rf', 'xgboost'],  # list of ML learners
         "task": 'classification',  # task type
         "sample": False,  # whether to subsample training data

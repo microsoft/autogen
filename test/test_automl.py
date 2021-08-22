@@ -344,6 +344,36 @@ class TestAutoML(unittest.TestCase):
         print(multi_class_curves(y_train, y_pred_proba, roc_curve))
         print(multi_class_curves(y_train, y_pred_proba, precision_recall_curve))
 
+    def test_roc_auc_ovr(self):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 2,
+            "metric": "roc_auc_ovr",
+            "task": "classification",
+            "log_file_name": "test/roc_auc_ovr.log",
+            "log_training_metric": True,
+            "n_jobs": 1,
+            "model_history": True
+        }
+        X_train, y_train = load_iris(return_X_y=True)
+        automl_experiment.fit(
+            X_train=X_train, y_train=y_train, **automl_settings)
+
+    def test_roc_auc_ovo(self):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 2,
+            "metric": "roc_auc_ovo",
+            "task": "classification",
+            "log_file_name": "test/roc_auc_ovo.log",
+            "log_training_metric": True,
+            "n_jobs": 1,
+            "model_history": True
+        }
+        X_train, y_train = load_iris(return_X_y=True)
+        automl_experiment.fit(
+            X_train=X_train, y_train=y_train, **automl_settings)
+
     def test_regression(self):
         automl_experiment = AutoML()
         automl_settings = {
