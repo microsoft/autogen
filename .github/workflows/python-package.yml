@@ -41,7 +41,7 @@ jobs:
       - name: If linux or mac, install ray
         if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9'
         run: |
-          pip install -e .[ray]
+          pip install -e .[ray,forecast]
           pip install 'tensorboardX<=2.2'
       - name: Lint with flake8
         run: |

@@ -10,7 +10,7 @@ from functools import partial
 import numpy as np
 from scipy.sparse import issparse
 from sklearn.model_selection import train_test_split, RepeatedStratifiedKFold, \
-    RepeatedKFold, GroupKFold
+    RepeatedKFold, GroupKFold, TimeSeriesSplit
 from sklearn.utils import shuffle
 import pandas as pd
 
@@ -25,6 +25,7 @@ from . import tune
 from .training_log import training_log_reader, training_log_writer
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger_formatter = logging.Formatter(
     '[%(name)s: %(asctime)s] {%(lineno)d} %(levelname)s - %(message)s',
@@ -360,11 +361,15 @@ class AutoML:
             return self._trained_estimator.classes_.tolist()
         return None
 
-    def predict(self, X_test):
+    def predict(self, X_test, freq=None):
         '''Predict label from features.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n * m.
+            X_test: A numpy array of featurized instances, shape n * m,
+            or a pandas dataframe with one column with timestamp values
+            for 'forecasting' task.
+            freq: str or pandas offset, default=None | The frequency of the
+            time-series.
 
         Returns:
             A numpy array of shape n * 1 - - each element is a predicted class
@@ -375,8 +380,14 @@ class AutoML:
                 "No estimator is trained. Please run fit with enough budget.")
             return None
         X_test = self._preprocess(X_test)
-        y_pred = self._trained_estimator.predict(X_test)
-        if y_pred.ndim > 1:
+        if self._state.task == 'forecast':
+            X_test_df = pd.DataFrame(X_test)
+            X_test_col = list(X_test.columns)[0]
+            X_test_df = X_test_df.rename(columns={X_test_col: 'ds'})
+            y_pred = self._trained_estimator.predict(X_test_df, freq=freq)
+        else:
+            y_pred = self._trained_estimator.predict(X_test)
+        if y_pred.ndim > 1 and isinstance(y_pred, np.ndarray):
             y_pred = y_pred.flatten()
         if self._label_transformer:
             return self._label_transformer.inverse_transform(pd.Series(
@@ -408,6 +419,25 @@ class AutoML:
 
     def _validate_data(self, X_train_all, y_train_all, dataframe, label,
                        X_val=None, y_val=None):
+        if self._state.task == 'forecast':
+            if dataframe is not None and label is not None:
+                dataframe = dataframe.copy()
+                dataframe = dataframe.rename(columns={label[0]: 'ds', label[1]: 'y'})
+            elif dataframe is not None:
+                if ('ds' not in dataframe) or ('y' not in dataframe):
+                    raise ValueError(
+                        'For forecasting task, Dataframe must have columns "ds" and "y" '
+                        'with the dates and values respectively.'
+                    )
+            elif (X_train_all is not None) and (y_train_all is not None):
+                dataframe = pd.DataFrame(X_train_all)
+                time_col = list(dataframe.columns)[0]
+                dataframe = dataframe.rename(columns={time_col: 'ds'})
+                dataframe['y'] = pd.Series(y_train_all)
+                X_train_all = None
+                y_train_all = None
+            label = 'y'
+
         if X_train_all is not None and y_train_all is not None:
             if not (isinstance(X_train_all, np.ndarray) or issparse(X_train_all)
                     or isinstance(X_train_all, pd.DataFrame)):
@@ -440,7 +470,7 @@ class AutoML:
         else:
             raise ValueError(
                 "either X_train+y_train or dataframe+label are required")
-        if issparse(X_train_all):
+        if issparse(X_train_all) or self._state.task == 'forecast':
             self._transformer = self._label_transformer = False
             self._X_train_all, self._y_train_all = X, y
         else:
@@ -482,7 +512,8 @@ class AutoML:
     def _prepare_data(self,
                       eval_method,
                       split_ratio,
-                      n_splits):
+                      n_splits,
+                      period=None):
         X_val, y_val = self._state.X_val, self._state.y_val
         if issparse(X_val):
             X_val = X_val.tocsr()
@@ -490,8 +521,9 @@ class AutoML:
             self._X_train_all, self._y_train_all
         if issparse(X_train_all):
             X_train_all = X_train_all.tocsr()
-        if self._state.task != 'regression' and self._state.fit_kwargs.get(
-                'sample_weight') is None:
+        if (self._state.task == 'binary:logistic' or self._state.task == 'multi:softmax') \
+                and self._state.fit_kwargs.get('sample_weight') is None \
+                and self._split_type != 'time':
             # logger.info(f"label {pd.unique(y_train_all)}")
             label_set, counts = np.unique(y_train_all, return_counts=True)
             # augment rare classes
@@ -518,19 +550,21 @@ class AutoML:
                     count += rare_count
                 logger.info(
                     f"class {label} augmented from {rare_count} to {count}")
-        if 'sample_weight' in self._state.fit_kwargs:
-            X_train_all, y_train_all, self._state.fit_kwargs[
-                'sample_weight'] = shuffle(
+        SHUFFLE_SPLIT_TYPES = ['uniform', 'stratified']
+        if self._split_type in SHUFFLE_SPLIT_TYPES:
+            if 'sample_weight' in self._state.fit_kwargs:
+                X_train_all, y_train_all, self._state.fit_kwargs[
+                    'sample_weight'] = shuffle(
                     X_train_all, y_train_all,
                     self._state.fit_kwargs['sample_weight'],
                     random_state=RANDOM_SEED)
-        elif hasattr(self._state, 'groups') and self._state.groups is not None:
-            X_train_all, y_train_all, self._state.groups = shuffle(
-                X_train_all, y_train_all, self._state.groups,
-                random_state=RANDOM_SEED)
-        else:
-            X_train_all, y_train_all = shuffle(
-                X_train_all, y_train_all, random_state=RANDOM_SEED)
+            elif hasattr(self._state, 'groups') and self._state.groups is not None:
+                X_train_all, y_train_all, self._state.groups = shuffle(
+                    X_train_all, y_train_all, self._state.groups,
+                    random_state=RANDOM_SEED)
+            else:
+                X_train_all, y_train_all = shuffle(
+                    X_train_all, y_train_all, random_state=RANDOM_SEED)
         if self._df:
             X_train_all.reset_index(drop=True, inplace=True)
             if isinstance(y_train_all, pd.Series):
@@ -539,7 +573,31 @@ class AutoML:
         X_train, y_train = X_train_all, y_train_all
         if X_val is None:
             # if eval_method = holdout, make holdout data
-            if self._state.task != 'regression' and eval_method == 'holdout':
+            if eval_method == 'holdout' and self._split_type == 'time':
+                if 'period' in self._state.fit_kwargs:
+                    num_samples = X_train_all.shape[0]
+                    split_idx = num_samples - self._state.fit_kwargs.get('period')
+                    X_train = X_train_all[:split_idx]
+                    y_train = y_train_all[:split_idx]
+                    X_val = X_train_all[split_idx:]
+                    y_val = y_train_all[split_idx:]
+                else:
+                    if 'sample_weight' in self._state.fit_kwargs:
+                        X_train, X_val, y_train, y_val, self._state.fit_kwargs[
+                            'sample_weight'], self._state.weight_val = \
+                            train_test_split(
+                                X_train_all,
+                                y_train_all,
+                                self._state.fit_kwargs['sample_weight'],
+                                test_size=split_ratio,
+                                shuffle=False)
+                    else:
+                        X_train, X_val, y_train, y_val = train_test_split(
+                            X_train_all,
+                            y_train_all,
+                            test_size=split_ratio,
+                            shuffle=False)
+            elif self._state.task != 'regression' and eval_method == 'holdout':
                 # for classification, make sure the labels are complete in both
                 # training and validation data
                 label_set, first = np.unique(y_train_all, return_index=True)
@@ -624,6 +682,13 @@ class AutoML:
                 f"requires input data with at least {n_splits*2} examples.")
             self._state.kf = RepeatedStratifiedKFold(
                 n_splits=n_splits, n_repeats=1, random_state=RANDOM_SEED)
+        elif self._split_type == "time":
+            logger.info("Using TimeSeriesSplit")
+            if self._state.task == 'forecast':
+                self._state.kf = TimeSeriesSplit(
+                    n_splits=n_splits, test_size=self._state.fit_kwargs.get('period'))
+            else:
+                self._state.kf = TimeSeriesSplit(n_splits=n_splits)
         else:
             logger.info("Using RepeatedKFold")
             self._state.kf = RepeatedKFold(
@@ -762,10 +827,15 @@ class AutoML:
         if self._state.task == 'classification':
             self._state.task = get_classification_objective(
                 len(np.unique(self._y_train_all)))
-            assert split_type in ["stratified", "uniform"]
+            assert split_type in ["stratified", "uniform", "time"]
             self._split_type = split_type
-        else:
-            self._split_type = "uniform"
+        elif self._state.task == 'regression':
+            if split_type in ["uniform", "time"]:
+                self._split_type = split_type
+            else:
+                self._split_type = "uniform"
+        elif self._state.task == 'forecast':
+            self._split_type = "time"
         if record_id >= 0:
             eval_method = 'cv'
         elif eval_method == 'auto':
@@ -1011,15 +1081,22 @@ class AutoML:
         Args:
             X_train: A numpy array or a pandas dataframe of training data in
                 shape (n, m)
+                For 'forecast' task, X_train should be timestamp
             y_train: A numpy array or a pandas series of labels in shape (n,)
+                For 'forecast' task, y_train should be value
             dataframe: A dataframe of training data including label column
-            label: A str of the label column name
+                For 'forecast' task, dataframe must be specified and should
+                have two columns: timestamp and value
+            label: A str of the label column name for 'classification' or
+                'regression' task or a tuple of strings for timestamp and
+                value columns for 'forecasting' task
                 Note: If X_train and y_train are provided,
                 dataframe and label are ignored;
                 If not, dataframe and label must be provided.
             metric: A string of the metric name or a function,
                 e.g., 'accuracy', 'roc_auc', 'roc_auc_ovr', 'roc_auc_ovo',
-                'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2'
+                'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mape', 'mae', 'mse', 'r2'
+                for 'forecast' task, use 'mape'
                 if passing a customized metric function, the function needs to
                 have the follwing signature:
 
@@ -1034,7 +1111,7 @@ class AutoML:
                 which returns a float number as the minimization objective,
                 and a tuple of floats or a dictionary as the metrics to log
             task: A string of the task type, e.g.,
-                'classification', 'regression'
+                'classification', 'regression', 'forecast'
             n_jobs: An integer of the number of threads for training
             log_file_name: A string of the log file name
             estimator_list: A list of strings for estimator names, or 'auto'
@@ -1085,7 +1162,8 @@ class AutoML:
                 hyperparamter configurations for the corresponding estimators.
             seed: int or None, default=None | The random seed for np.random.
             **fit_kwargs: Other key word arguments to pass to fit() function of
-                the searched learners, such as sample_weight.
+                the searched learners, such as sample_weight. Include period as
+                a key word argument for 'forecast' task.
         '''
         self._start_time_flag = time.time()
         self._state.task = task
@@ -1093,6 +1171,7 @@ class AutoML:
         self._state.fit_kwargs = fit_kwargs
         self._state.weight_val = sample_weight_val
         self._state.groups = groups
+
         self._validate_data(X_train, y_train, dataframe, label, X_val, y_val)
         self._search_states = {}  # key: estimator name; value: SearchState
         self._random = np.random.RandomState(RANDOM_SEED)
@@ -1106,10 +1185,19 @@ class AutoML:
         if self._state.task == 'classification':
             self._state.task = get_classification_objective(
                 len(np.unique(self._y_train_all)))
-            assert split_type in ["stratified", "uniform"]
+            assert split_type in ["stratified", "uniform", "time"]
             self._split_type = split_type
-        else:
-            self._split_type = "uniform"
+        elif self._state.task == 'regression':
+            if split_type in ["uniform", "time"]:
+                self._split_type = split_type
+            else:
+                self._split_type = "uniform"
+        elif self._state.task == 'forecast':
+            if split_type is not None and split_type != 'time':
+                    raise ValueError("split_type must be 'time' when task is 'forecast'. ")
+            self._split_type = "time"
+        if self._state.task == 'forecast' and self._state.fit_kwargs.get('period') is None:
+            raise TypeError("missing 1 required argument for 'forecast' task: 'period'. ")
         if eval_method == 'auto' or self._state.X_val is not None:
             eval_method = self._decide_eval_method(time_budget)
         self._state.eval_method = eval_method
@@ -1122,7 +1210,11 @@ class AutoML:
 
         self._retrain_full = retrain_full and (
             eval_method == 'holdout' and self._state.X_val is None)
-        self._prepare_data(eval_method, split_ratio, n_splits)
+        if self._state.task != 'forecast':
+            self._prepare_data(eval_method, split_ratio, n_splits)
+        else:
+            self._prepare_data(eval_method, split_ratio, n_splits,
+                               period=self._state.fit_kwargs.get('period'))
         self._sample = sample and eval_method != 'cv' and (
             MIN_SAMPLE_TRAIN * SAMPLE_MULTIPLY_FACTOR < self._state.data_size)
         if 'auto' == metric:
@@ -1130,6 +1222,8 @@ class AutoML:
                 metric = 'roc_auc'
             elif 'multi' in self._state.task:
                 metric = 'log_loss'
+            elif self._state.task == 'forecast':
+                metric = 'mape'
             else:
                 metric = 'r2'
         self._state.metric = metric
@@ -1146,6 +1240,8 @@ class AutoML:
             estimator_list = ['lgbm', 'rf', 'catboost', 'xgboost', 'extra_tree']
             if 'regression' != self._state.task:
                 estimator_list += ['lrl1']
+            if self._state.task == 'forecast':
+                estimator_list = ['fbprophet', 'arima', 'sarimax']
         for estimator_name in estimator_list:
             if estimator_name not in self._state.learner_classes:
                 self.add_learner(
@@ -1237,7 +1333,7 @@ class AutoML:
         elif 'bs' == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
         elif 'cfocat' == self._hpo_method:
-            from flaml import CFOCat as SearchAlgo
+            from flaml.searcher.cfo_cat import CFOCat as SearchAlgo
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "
