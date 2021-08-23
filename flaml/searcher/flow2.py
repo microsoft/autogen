@@ -3,6 +3,7 @@
  * Licensed under the MIT License. See LICENSE file in the
  * project root for license information.
 '''
+from flaml.tune.sample import Domain
 from typing import Dict, Optional, Tuple
 import numpy as np
 try:
@@ -140,7 +141,7 @@ class FLOW2(Searcher):
                 if str(sampler) != 'Normal':
                     self._bounded_keys.append(key)
         if not hier:
-            self._space_keys = sorted(self._space.keys())
+            self._space_keys = sorted(self._tunable_keys)
         self._hierarchical = hier
         if (self.prune_attr and self.prune_attr not in self._space
                 and self.max_resource):
@@ -499,18 +500,28 @@ class FLOW2(Searcher):
         else:
             space = self._space
         value_list = []
+        # self._space_keys doesn't contain keys with const values,
+        # e.g., "eval_metric": ["logloss", "error"].
         keys = sorted(config.keys()) if self._hierarchical else self._space_keys
         for key in keys:
             value = config[key]
             if key == self.prune_attr:
                 value_list.append(value)
-            # else key must be in self.space
-            # get rid of list type or constant,
-            # e.g., "eval_metric": ["logloss", "error"]
-            elif isinstance(space[key], sample.Integer):
-                value_list.append(int(round(value)))
             else:
-                value_list.append(value)
+                # key must be in space
+                domain = space[key]
+                if self._hierarchical:
+                    # can't remove constant for hierarchical search space,
+                    # e.g., learner
+                    if not (domain is None or type(domain) in (str, int, float)
+                            or isinstance(domain, sample.Domain)):
+                        # not domain or hashable
+                        # get rid of list type for hierarchical search space.
+                        continue
+                if isinstance(domain, sample.Integer):
+                    value_list.append(int(round(value)))
+                else:
+                    value_list.append(value)
         return tuple(value_list)
 
     @property

@@ -17,6 +17,7 @@ def test_automl(budget=5, dataset_format='dataframe'):
         "metric": 'accuracy',  # primary metrics can be chosen from: ['accuracy','roc_auc','roc_auc_ovr','roc_auc_ovo','f1','log_loss','mae','mse','r2']
         "task": 'classification',  # task type
         "log_file_name": 'airlines_experiment.log',  # flaml log file
+        "seed": 7654321,    # random seed
     }
     '''The main flaml automl API'''
     automl.fit(X_train=X_train, y_train=y_train, **settings)

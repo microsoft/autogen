@@ -63,6 +63,7 @@ def _test_xgboost(method='BlendSearch'):
         time_budget_s = 60
         for n_cpu in [4]:
             start_time = time.time()
+            ray.shutdown()
             ray.init(num_cpus=n_cpu, num_gpus=0)
             # ray.init(address='auto')
             if method == 'BlendSearch':

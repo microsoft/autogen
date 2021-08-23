@@ -363,6 +363,7 @@ def indexof(domain: Dict, config: Dict) -> int:
             continue
         # print(domain.const[i])
         if all(config[key] == value for key, value in domain.const[i].items()):
+            # assumption: the concatenation of constants is a unique identifier
             return i
     return None
 

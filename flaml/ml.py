@@ -102,8 +102,11 @@ def sklearn_metric_loss_score(
         score = log_loss(
             y_true, y_predict, labels=labels, sample_weight=sample_weight)
     elif 'mape' in metric_name:
-        score = mean_absolute_percentage_error(
-            y_true, y_predict)
+        try:
+            score = mean_absolute_percentage_error(
+                y_true, y_predict)
+        except ValueError:
+            return np.inf
     elif 'micro_f1' in metric_name:
         score = 1 - f1_score(
             y_true, y_predict, sample_weight=sample_weight, average='micro')
@@ -141,21 +144,23 @@ def get_y_pred(estimator, X, eval_metric, obj, freq=None):
 
 def get_test_loss(
     estimator, X_train, y_train, X_test, y_test, weight_test,
-    eval_metric, obj, labels=None, budget=None, train_loss=False, fit_kwargs={}
+    eval_metric, obj, labels=None, budget=None, log_training_metric=False, fit_kwargs={}
 ):
     start = time.time()
-    train_time = estimator.fit(X_train, y_train, budget, **fit_kwargs)
+    estimator.fit(X_train, y_train, budget, **fit_kwargs)
     if isinstance(eval_metric, str):
         pred_start = time.time()
         test_pred_y = get_y_pred(estimator, X_test, eval_metric, obj)
         pred_time = (time.time() - pred_start) / X_test.shape[0]
         test_loss = sklearn_metric_loss_score(eval_metric, test_pred_y, y_test,
                                               labels, weight_test)
-        if train_loss is not False:
+        if log_training_metric:
             test_pred_y = get_y_pred(estimator, X_train, eval_metric, obj)
             train_loss = sklearn_metric_loss_score(
                 eval_metric, test_pred_y,
                 y_train, labels, fit_kwargs.get('sample_weight'))
+        else:
+            train_loss = None
     else:  # customized metric function
         test_loss, metrics = eval_metric(
             X_test, y_test, estimator, labels, X_train, y_train,
@@ -174,40 +179,41 @@ def train_model(estimator, X_train, y_train, budget, fit_kwargs={}):
 
 def evaluate_model(
     estimator, X_train, y_train, X_val, y_val, weight_val,
-    budget, kf, task, eval_method, eval_metric, best_val_loss, train_loss=False,
+    budget, kf, task, eval_method, eval_metric, best_val_loss, log_training_metric=False,
     fit_kwargs={}
 ):
     if 'holdout' in eval_method:
         val_loss, train_loss, train_time, pred_time = evaluate_model_holdout(
             estimator, X_train, y_train, X_val, y_val, weight_val, budget,
-            task, eval_metric, train_loss=train_loss,
+            task, eval_metric, log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs)
     else:
         val_loss, train_loss, train_time, pred_time = evaluate_model_CV(
             estimator, X_train, y_train, budget, kf, task,
-            eval_metric, best_val_loss, train_loss=train_loss,
+            eval_metric, best_val_loss, log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs)
     return val_loss, train_loss, train_time, pred_time
 
 
 def evaluate_model_holdout(
     estimator, X_train, y_train, X_val, y_val,
-    weight_val, budget, task, eval_metric, train_loss=False,
+    weight_val, budget, task, eval_metric, log_training_metric=False,
     fit_kwargs={}
 ):
     val_loss, train_time, train_loss, pred_time = get_test_loss(
         estimator, X_train, y_train, X_val, y_val, weight_val, eval_metric,
-        task, budget=budget, train_loss=train_loss, fit_kwargs=fit_kwargs)
+        task, budget=budget, log_training_metric=log_training_metric, fit_kwargs=fit_kwargs)
     return val_loss, train_loss, train_time, pred_time
 
 
 def evaluate_model_CV(
     estimator, X_train_all, y_train_all, budget, kf,
-    task, eval_metric, best_val_loss, train_loss=False, fit_kwargs={}
+    task, eval_metric, best_val_loss, log_training_metric=False, fit_kwargs={}
 ):
     start_time = time.time()
     total_val_loss = 0
     total_train_loss = None
+    train_loss = None
     train_time = pred_time = 0
     valid_fold_num = total_fold_num = 0
     n = kf.get_n_splits()
@@ -231,7 +237,7 @@ def evaluate_model_CV(
         kf = kf.split(X_train_split)
     rng = np.random.RandomState(2020)
     val_loss_list = []
-    budget_per_train = budget / (n + 1)
+    budget_per_train = budget / n
     if 'sample_weight' in fit_kwargs:
         weight = fit_kwargs['sample_weight']
         weight_val = None
@@ -259,13 +265,13 @@ def evaluate_model_CV(
         val_loss_i, train_time_i, train_loss_i, pred_time_i = get_test_loss(
             estimator, X_train, y_train, X_val, y_val, weight_val,
             eval_metric, task, labels, budget_per_train,
-            train_loss=train_loss, fit_kwargs=fit_kwargs)
+            log_training_metric=log_training_metric, fit_kwargs=fit_kwargs)
         if weight is not None:
             fit_kwargs['sample_weight'] = weight
         valid_fold_num += 1
         total_fold_num += 1
         total_val_loss += val_loss_i
-        if train_loss is not False:
+        if log_training_metric or not isinstance(eval_metric, str):
             if isinstance(total_train_loss, list):
                 total_train_loss = [
                     total_train_loss[i] + v for i, v in enumerate(train_loss_i)]
@@ -286,7 +292,7 @@ def evaluate_model_CV(
             break
     val_loss = np.max(val_loss_list)
     n = total_fold_num
-    if train_loss is not False:
+    if log_training_metric or not isinstance(eval_metric, str):
         if isinstance(total_train_loss, list):
             train_loss = [v / n for v in total_train_loss]
         elif isinstance(total_train_loss, dict):
@@ -294,17 +300,17 @@ def evaluate_model_CV(
         else:
             train_loss = total_train_loss / n
     pred_time /= n
-    budget -= time.time() - start_time
-    if val_loss < best_val_loss and budget > budget_per_train:
-        estimator.cleanup()
-        estimator.fit(X_train_all, y_train_all, budget, **fit_kwargs)
+    # budget -= time.time() - start_time
+    # if val_loss < best_val_loss and budget > budget_per_train:
+    #     estimator.cleanup()
+    #     estimator.fit(X_train_all, y_train_all, budget, **fit_kwargs)
     return val_loss, train_loss, train_time, pred_time
 
 
 def compute_estimator(
     X_train, y_train, X_val, y_val, weight_val, budget, kf,
     config_dic, task, estimator_name, eval_method, eval_metric,
-    best_val_loss=np.Inf, n_jobs=1, estimator_class=None, train_loss=False,
+    best_val_loss=np.Inf, n_jobs=1, estimator_class=None, log_training_metric=False,
     fit_kwargs={}
 ):
     estimator_class = estimator_class or get_estimator_class(
@@ -313,7 +319,7 @@ def compute_estimator(
         **config_dic, task=task, n_jobs=n_jobs)
     val_loss, train_loss, train_time, pred_time = evaluate_model(
         estimator, X_train, y_train, X_val, y_val, weight_val, budget, kf, task,
-        eval_method, eval_metric, best_val_loss, train_loss=train_loss,
+        eval_method, eval_metric, best_val_loss, log_training_metric=log_training_metric,
         fit_kwargs=fit_kwargs)
     return estimator, val_loss, train_loss, train_time, pred_time
 
