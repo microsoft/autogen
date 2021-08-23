@@ -15,6 +15,7 @@ import pandas as pd
 from . import tune
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -635,7 +636,6 @@ class LRL2Classifier(SKLearnEstimator):
 
 
 class CatBoostEstimator(BaseEstimator):
-
     _time_per_iter = None
     _train_size = 0
 
@@ -834,3 +834,222 @@ class KNeighborsEstimator(BaseEstimator):
             X = X.drop(cat_columns, axis=1)
             X = X.to_numpy()
         return X
+
+
+class FBProphet(BaseEstimator):
+    @classmethod
+    def search_space(cls, **params):
+        space = {
+            'changepoint_prior_scale': {
+                'domain': tune.loguniform(lower=0.001, upper=1000),
+                'init_value': 0.01,
+                'low_cost_init_value': 0.001,
+            },
+            'seasonality_prior_scale': {
+                'domain': tune.loguniform(lower=0.01, upper=100),
+                'init_value': 1,
+            },
+            'holidays_prior_scale': {
+                'domain': tune.loguniform(lower=0.01, upper=100),
+                'init_value': 1,
+            },
+            'seasonality_mode': {
+                'domain': tune.choice(['additive', 'multiplicative']),
+                'init_value': 'multiplicative',
+            }
+        }
+        return space
+
+    def fit(self, X_train, y_train, budget=None, **kwargs):
+        y_train = pd.DataFrame(y_train, columns=['y'])
+        train_df = X_train.join(y_train)
+
+        if ('ds' not in train_df) or ('y' not in train_df):
+            raise ValueError(
+                'Dataframe for training forecast model must have columns "ds" and "y" with the dates and '
+                'values respectively.'
+            )
+
+        if 'n_jobs' in self.params:
+            self.params.pop('n_jobs')
+
+        from prophet import Prophet
+
+        current_time = time.time()
+        model = Prophet(**self.params).fit(train_df)
+        train_time = time.time() - current_time
+        self._model = model
+        return train_time
+
+    def predict(self, X_test, freq=None):
+        if self._model is not None:
+            if isinstance(X_test, int) and freq is not None:
+                future = self._model.make_future_dataframe(periods=X_test, freq=freq)
+                forecast = self._model.predict(future)
+            elif isinstance(X_test, pd.DataFrame):
+                forecast = self._model.predict(X_test)
+            else:
+                raise ValueError(
+                    "either X_test(pd.Dataframe with dates for predictions, column ds) or"
+                    "X_test(int number of periods)+freq are required.")
+            return forecast['yhat']
+        else:
+            return np.ones(X_test.shape[0])
+
+
+class ARIMA(BaseEstimator):
+    @classmethod
+    def search_space(cls, **params):
+        space = {
+            'p': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 2,
+                'low_cost_init_value': 0,
+            },
+            'd': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 2,
+                'low_cost_init_value': 0,
+            },
+            'q': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 2,
+                'low_cost_init_value': 0,
+            }
+        }
+        return space
+
+    def fit(self, X_train, y_train, budget=None, **kwargs):
+        y_train = pd.DataFrame(y_train, columns=['y'])
+        train_df = X_train.join(y_train)
+
+        if ('ds' not in train_df) or ('y' not in train_df):
+            raise ValueError(
+                'Dataframe for training forecast model must have columns "ds" and "y" with the dates and '
+                'values respectively.'
+            )
+
+        train_df.index = pd.to_datetime(train_df['ds'])
+        train_df = train_df.drop('ds', axis=1)
+
+        if 'n_jobs' in self.params:
+            self.params.pop('n_jobs')
+
+        from statsmodels.tsa.arima.model import ARIMA as ARIMA_estimator
+        import warnings
+        warnings.filterwarnings("ignore")
+
+        current_time = time.time()
+        model = ARIMA_estimator(train_df,
+                                order=(self.params['p'], self.params['d'], self.params['q']),
+                                enforce_stationarity=False,
+                                enforce_invertibility=False)
+
+        model = model.fit()
+        train_time = time.time() - current_time
+        self._model = model
+        return train_time
+
+    def predict(self, X_test, freq=None):
+        if self._model is not None:
+            if isinstance(X_test, int) and freq is not None:
+                forecast = self._model.forecast(steps=X_test).to_frame().reset_index()
+            elif isinstance(X_test, pd.DataFrame):
+                start_date = X_test.iloc[0, 0]
+                end_date = X_test.iloc[-1, 0]
+                forecast = self._model.predict(start=start_date, end=end_date)
+            else:
+                raise ValueError(
+                    "either X_test(pd.Dataframe with dates for predictions, column ds) or"
+                    "X_test(int number of periods)+freq are required.")
+            return forecast
+        else:
+            return np.ones(X_test.shape[0])
+
+
+class SARIMAX(BaseEstimator):
+    @classmethod
+    def search_space(cls, **params):
+        space = {
+            'p': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 2,
+                'low_cost_init_value': 0,
+            },
+            'd': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 2,
+                'low_cost_init_value': 0,
+            },
+            'q': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 2,
+                'low_cost_init_value': 0,
+            },
+            'P': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 1,
+                'low_cost_init_value': 0,
+            },
+            'D': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 1,
+                'low_cost_init_value': 0,
+            },
+            'Q': {
+                'domain': tune.quniform(lower=0, upper=10, q=1),
+                'init_value': 1,
+                'low_cost_init_value': 0,
+            },
+            's': {
+                'domain': tune.choice([1, 4, 6, 12]),
+                'init_value': 12,
+            }
+        }
+        return space
+
+    def fit(self, X_train, y_train, budget=None, **kwargs):
+        y_train = pd.DataFrame(y_train, columns=['y'])
+        train_df = X_train.join(y_train)
+
+        if ('ds' not in train_df) or ('y' not in train_df):
+            raise ValueError(
+                'Dataframe for training forecast model must have columns "ds" and "y" with the dates and '
+                'values respectively.'
+            )
+
+        train_df.index = pd.to_datetime(train_df['ds'])
+        train_df = train_df.drop('ds', axis=1)
+
+        if 'n_jobs' in self.params:
+            self.params.pop('n_jobs')
+
+        from statsmodels.tsa.statespace.sarimax import SARIMAX as SARIMAX_estimator
+
+        current_time = time.time()
+        model = SARIMAX_estimator(train_df,
+                                  order=(self.params['p'], self.params['d'], self.params['q']),
+                                  seasonality_order=(self.params['P'], self.params['D'], self.params['Q'], self.params['s']),
+                                  enforce_stationarity=False,
+                                  enforce_invertibility=False)
+
+        model = model.fit()
+        train_time = time.time() - current_time
+        self._model = model
+        return train_time
+
+    def predict(self, X_test, freq=None):
+        if self._model is not None:
+            if isinstance(X_test, int) and freq is not None:
+                forecast = self._model.forecast(steps=X_test).to_frame().reset_index()
+            elif isinstance(X_test, pd.DataFrame):
+                start_date = X_test.iloc[0, 0]
+                end_date = X_test.iloc[-1, 0]
+                forecast = self._model.predict(start=start_date, end=end_date)
+            else:
+                raise ValueError(
+                    "either X_test(pd.Dataframe with dates for predictions, column ds)"
+                    "or X_test(int number of periods)+freq are required.")
+            return forecast
+        else:
+            return np.ones(X_test.shape[0])

@@ -6,10 +6,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 
-dataset = "credit"
+dataset = "credit-g"
 
 
 def _test(split_type):
+    from sklearn.externals._arff import ArffException
+
     automl = AutoML()
 
     automl_settings = {
@@ -22,9 +24,17 @@ def _test(split_type):
         "split_type": split_type,
     }
 
-    X, y = fetch_openml(name=dataset, return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33,
-                                                        random_state=42)
+    try:
+        X, y = fetch_openml(name=dataset, return_X_y=True)
+    except (ArffException, ValueError):
+        from sklearn.datasets import load_wine
+        X, y = load_wine(return_X_y=True)
+    if split_type != 'time':
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33,
+                                                            random_state=42)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33,
+                                                            shuffle=False)
     automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
 
     pred = automl.predict(X_test)
@@ -35,6 +45,10 @@ def _test(split_type):
 
 def _test_uniform():
     _test(split_type="uniform")
+
+
+def test_time():
+    _test(split_type="time")
 
 
 def test_groups():

@@ -165,7 +165,8 @@ class BlendSearch(Searcher):
             min_resource, max_resource, reduction_factor, self.cost_attr, seed)
         self._is_ls_ever_converged = False
         self._subspace = {}     # the subspace for each trial id
-        self._init_search()
+        if space:
+            self._init_search()
 
     def set_search_properties(self,
                               metric: Optional[str] = None,
