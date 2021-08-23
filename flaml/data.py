@@ -141,14 +141,14 @@ def get_output_from_log(filename, time_budget):
     best_config_list = []
     with training_log_reader(filename) as reader:
         for record in reader.records():
-            time_used = record.total_search_time
+            time_used = record.wall_clock_time
             val_loss = record.validation_loss
             config = record.config
             learner = record.learner.split('_')[0]
             sample_size = record.sample_size
             train_loss = record.logged_metric
 
-            if time_used < time_budget:
+            if time_used < time_budget and np.isfinite(val_loss):
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     best_config = config

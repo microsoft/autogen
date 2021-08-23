@@ -27,6 +27,8 @@ def test_blendsearch_tune(smoke_test=True):
     except ImportError:
         print('ray[tune] is not installed, skipping test')
         return
+    import numpy as np
+
     algo = BlendSearch()
     algo = ConcurrencyLimiter(algo, max_concurrent=4)
     scheduler = AsyncHyperBandScheduler()
@@ -42,7 +44,8 @@ def test_blendsearch_tune(smoke_test=True):
             "width": tune.uniform(0, 20),
             "height": tune.uniform(-100, 100),
             # This is an ignored parameter.
-            "activation": tune.choice(["relu", "tanh"])
+            "activation": tune.choice(["relu", "tanh"]),
+            "test4": np.zeros((3, 1)),
         })
 
     print("Best hyperparameters found were: ", analysis.best_config)

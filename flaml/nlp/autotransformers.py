@@ -748,6 +748,7 @@ class AutoTransformers:
         self._set_metric(custom_metric_name, custom_metric_mode_name)
         self._set_task()
         self._fp16 = fp16
+        ray.shutdown()
         ray.init(local_mode=ray_local_mode)
         self._set_search_space(**custom_hpo_args)
 
