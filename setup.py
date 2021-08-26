@@ -16,10 +16,10 @@ __version__ = version["__version__"]
 install_requires = [
     "NumPy>=1.16.2",
     "lightgbm>=2.3.1",
-    "xgboost>=0.90",
+    "xgboost>=0.90,<=1.3.3",
     "scipy>=1.4.1",
     "catboost>=0.23",
-    "scikit-learn>=0.23.2",
+    "scikit-learn>=0.24",
 ],
 
 

@@ -36,6 +36,7 @@ class TestLogging(unittest.TestCase):
                 "log_training_metric": True,
                 "n_jobs": 1,
                 "model_history": True,
+                "keep_search_state": True,
                 "learner_selector": "roundrobin",
             }
             X_train, y_train = load_boston(return_X_y=True)
@@ -78,7 +79,7 @@ class TestLogging(unittest.TestCase):
             analysis = tune.run(
                 automl.trainable, search_alg=search_alg,    # verbose=2,
                 time_budget_s=1, num_samples=-1)
-            print(min((trial.last_result["val_loss"], trial.last_result)
+            print(min(trial.last_result["val_loss"]
                       for trial in analysis.trials))
             # Check if the log buffer is populated.
             self.assertTrue(len(buf.getvalue()) > 0)

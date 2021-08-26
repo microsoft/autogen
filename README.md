@@ -129,7 +129,7 @@ More examples can be found in [notebooks](https://github.com/microsoft/FLAML/tre
 
 Please find the API documentation [here](https://microsoft.github.io/FLAML/).
 
-Please find demo and tutorials of FLAML [here](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A)
+Please find demo and tutorials of FLAML [here](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A).
 
 For more technical details, please check our papers.
 
@@ -191,7 +191,6 @@ If all the tests are passed, please also test run notebook/flaml_automl to make 
 * Qingyun Wu
 
 Contributors (alphabetical order): Amir Aghaei, Vijay Aski, Sebastien Bubeck, Surajit Chaudhuri, Nadiia Chepurko, Ofer Dekel, Alex Deng, Anshuman Dutt, Nicolo Fusi, Jianfeng Gao, Johannes Gehrke, Niklas Gustafsson, Silu Huang, Dongwoo Kim, Christian Konig, John Langford, Menghao Li, Mingqin Li, Zhe Liu, Naveen Gaur, Paul Mineiro, Vivek Narasayya, Jake Radzikowski, Marco Rossi, Amin Saied, Neil Tenenholtz, Olga Vrousgou, Markus Weimer, Yue Wang, Qingyun Wu, Qiufeng Yin, Haozhe Zhang, Minjia Zhang, XiaoYun Zhang, Eric Zhu, and open-source contributors.
-
 
 ## License
 
