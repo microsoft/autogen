@@ -41,6 +41,7 @@ def test_simple(method=None):
         "hpo_method": method,
         "log_type": "all",
         "retrain_full": "budget",
+        "keep_search_state": True,
         "time_budget": 1
     }
     from sklearn.externals._arff import ArffException

@@ -457,6 +457,7 @@ class TestAutoML(unittest.TestCase):
             "log_file_name": "test/sparse_regression.log",
             "n_jobs": 1,
             "model_history": True,
+            "keep_search_state": True,
             "verbose": 0,
         }
         automl_experiment.fit(X_train=X_train, y_train=y_train,
@@ -615,6 +616,7 @@ class TestAutoML(unittest.TestCase):
             "log_file_name": 'test/regression_xgboost.log',
             "n_jobs": 1,
             "model_history": True,
+            "keep_search_state": True,
         }
         automl_experiment.fit(X_train=X_train, y_train=y_train,
                               X_val=X_val, y_val=y_val,
