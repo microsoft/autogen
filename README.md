@@ -65,7 +65,7 @@ tune.run(train_with_config, config={…}, low_cost_partial_config={…}, time_bu
 
 ## Advantages
 
-* For classification and regression tasks, find quality models with lower computational resources.
+* For common machine learning tasks like classification and regression, find quality models with small computational resources.
 * Users can choose their desired customizability: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), full customization (arbitrary training and evaluation code).
 * Allow human guidance in hyperparameter tuning to respect prior on certain subspaces but also able to explore other subspaces. Read more about the
 hyperparameter optimization methods
@@ -75,7 +75,7 @@ And they can be used in distributed HPO frameworks such as ray tune or nni.
 
 ## Examples
 
-A basic classification example.
+- A basic classification example.
 
 ```python
 from flaml import AutoML
@@ -99,7 +99,7 @@ print(automl.predict_proba(X_train))
 print(automl.model)
 ```
 
-A basic regression example.
+- A basic regression example.
 
 ```python
 from flaml import AutoML
@@ -121,6 +121,39 @@ automl.fit(X_train=X_train, y_train=y_train,
 print(automl.predict(X_train))
 # Export the best model
 print(automl.model)
+```
+
+- Time series forecasting.
+
+```python
+# pip install flaml[forecast]
+import numpy as np
+from flaml import AutoML
+X_train = np.arange('2014-01', '2021-01', dtype='datetime64[M]')
+y_train = np.random.random(size=72)
+automl = AutoML()
+automl.fit(X_train=X_train[:72],  # a single column of timestamp
+           y_train=y_train,  # value for each timestamp
+           period=12,  # time horizon to forecast, e.g., 12 months
+           task='forecast', time_budget=15,  # time budget in seconds
+           log_file_name="test/forecast.log",
+          )
+print(automl.predict(X_train[72:]))
+```
+
+- Learning to rank.
+
+```python
+from sklearn.datasets import fetch_openml
+from flaml import AutoML
+X, y = fetch_openml(name="credit-g", return_X_y=True)   
+# not a real learning to rank dataaset
+groups = [200] * 4 + [100] * 2,    # group counts
+automl = AutoML()
+automl.fit(
+    X_train, y_train, groups=groups,
+    task='rank', time_budget=10,    # in seconds
+)
 ```
 
 More examples can be found in [notebooks](https://github.com/microsoft/FLAML/tree/main/notebook/).

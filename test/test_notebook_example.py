@@ -42,7 +42,7 @@ def test_automl(budget=5, dataset_format='dataframe'):
     print('roc_auc', '=', 1 - sklearn_metric_loss_score('roc_auc', y_pred_proba, y_test))
     print('log_loss', '=', sklearn_metric_loss_score('log_loss', y_pred_proba, y_test))
     from flaml.data import get_output_from_log
-    time_history, best_valid_loss_history, valid_loss_history, config_history, train_loss_history = \
+    time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history = \
         get_output_from_log(filename=settings['log_file_name'], time_budget=60)
     for config in config_history:
         print(config)

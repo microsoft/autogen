@@ -8,19 +8,20 @@ import numpy as np
 import time
 import pickle
 
+
 try:
     from ray import __version__ as ray_version
     assert ray_version >= '1.0.0'
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
-    from ray.tune.utils.util import flatten_dict
+    from ray.tune.utils.util import unflatten_dict
 except (ImportError, AssertionError):
     from .suggestion import Searcher
     from .suggestion import OptunaSearch as GlobalSearch
-    from .variant_generator import flatten_dict
+    from ..tune.trial import unflatten_dict
 from .search_thread import SearchThread
 from .flow2 import FLOW2
-from ..tune.space import add_cost_to_space, normalize   # TODO: , define_by_run_func
+from ..tune.space import add_cost_to_space, indexof, normalize, define_by_run_func
 
 import logging
 logger = logging.getLogger(__name__)
@@ -133,9 +134,8 @@ class BlendSearch(Searcher):
         if global_search_alg is not None:
             self._gs = global_search_alg
         elif getattr(self, '__name__', None) != 'CFO':
-            gs_space = space
-            # TODO: when define_by_run is supported
-            # gs_space = define_by_run_func(space)
+            from functools import partial
+            gs_space = partial(define_by_run_func, space=space)
             try:
                 gs_seed = seed - 10 if (seed - 10) >= 0 else seed - 11 + (1 << 32)
                 if experimental:
@@ -198,7 +198,10 @@ class BlendSearch(Searcher):
             # reset search when metric or mode changed
             self._ls.set_search_properties(metric, mode)
             if self._gs is not None:
-                self._gs.set_search_properties(metric, mode)
+                self._gs = GlobalSearch(
+                    space=self._gs._space, metric=metric, mode=mode,
+                    sampler=self._gs._sampler)
+                self._gs.space = self._ls.space
             self._init_search()
         if config:
             if 'time_budget_s' in config:
@@ -312,9 +315,11 @@ class BlendSearch(Searcher):
                         self._expand_admissible_region(
                             self._ls_bound_min, self._ls_bound_max,
                             self._subspace.get(trial_id, self._ls.space))
-                    if self._gs is not None and self._experimental:
-                        # TODO: key match for hierarchical space
-                        self._gs.add_evaluated_point(flatten_dict(config), objective)
+                    # if self._gs is not None and self._experimental:
+                    #     # TODO: recover when supported
+                    #     converted = convert_key(config, self._gs.space)
+                    #     logger.info(converted)
+                    #     self._gs.add_evaluated_point(converted, objective)
                 elif metric_constraint_satisfied and self._create_condition(
                         result):
                     # thread creator
@@ -339,7 +344,6 @@ class BlendSearch(Searcher):
             del self._subspace[trial_id]
 
     def _create_thread(self, config, result, space):
-        # logger.info(f"create local search thread from {config}")
         self._search_thread_pool[self._thread_count] = SearchThread(
             self._ls.mode,
             self._ls.create(
@@ -349,26 +353,29 @@ class BlendSearch(Searcher):
         )
         self._thread_count += 1
         self._update_admissible_region(
-            config, self._ls_bound_min, self._ls_bound_max, space)
+            unflatten_dict(config), self._ls_bound_min, self._ls_bound_max, space,
+            self._ls.space)
 
     def _update_admissible_region(
-        self, config, admissible_min, admissible_max, space: Dict = {}
+        self, config, admissible_min, admissible_max, subspace: Dict = {},
+        space: Dict = {}
     ):
         # update admissible region
-        normalized_config = normalize(config, space, config, {})
+        normalized_config = normalize(config, subspace, config, {})
         for key in admissible_min:
             value = normalized_config[key]
             if isinstance(admissible_max[key], list):
-                choice = space[key]['_choice_']
+                domain = space[key]
+                choice = indexof(domain, value)
                 self._update_admissible_region(
                     value,
                     admissible_min[key][choice], admissible_max[key][choice],
-                    space[key]
+                    subspace[key], domain[choice]
                 )
             elif isinstance(value, dict):
                 self._update_admissible_region(
-                    value,
-                    admissible_min[key], admissible_max[key], space[key])
+                    value, admissible_min[key], admissible_max[key],
+                    subspace[key], space[key])
             else:
                 if value > admissible_max[key]:
                     admissible_max[key] = value
@@ -514,7 +521,8 @@ class BlendSearch(Searcher):
                     return None
                 use_rs = 1
             if choice or self._valid(
-               config, space, self._gs_admissible_min, self._gs_admissible_max):
+               config, self._ls.space, space, self._gs_admissible_min,
+               self._gs_admissible_max):
                 # LS or valid or no backup choice
                 self._trial_proposed_by[trial_id] = choice
                 self._search_thread_pool[choice].running += use_rs
@@ -542,10 +550,11 @@ class BlendSearch(Searcher):
                 # temporarily relax admissible region for parallel proposals
                 self._update_admissible_region(
                     config, self._gs_admissible_min, self._gs_admissible_max,
-                    space)
+                    space, self._ls.space)
             else:
                 self._update_admissible_region(
-                    config, self._ls_bound_min, self._ls_bound_max, space)
+                    config, self._ls_bound_min, self._ls_bound_max, space,
+                    self._ls.space)
                 self._gs_admissible_min.update(self._ls_bound_min)
                 self._gs_admissible_max.update(self._ls_bound_max)
             signature = self._ls.config_signature(config, space)
@@ -632,11 +641,6 @@ class BlendSearch(Searcher):
         top_thread_id = backup_thread_id = 0
         priority1 = priority2 = self._search_thread_pool[0].priority
         for thread_id, thread in self._search_thread_pool.items():
-            # if thread_id:
-            #     print(
-            #         f"priority of thread {thread_id}={thread.priority}")
-            #     logger.debug(
-            #         f"thread {thread_id}.can_suggest={thread.can_suggest}")
             if thread_id and thread.can_suggest:
                 priority = thread.priority
                 if priority > priority1:
@@ -647,21 +651,29 @@ class BlendSearch(Searcher):
                     backup_thread_id = thread_id
         return top_thread_id, backup_thread_id
 
-    def _valid(self, config: Dict, space: Dict, lower: Dict, upper: Dict) -> bool:
+    def _valid(self, config: Dict, space: Dict, subspace: Dict,
+               lower: Dict, upper: Dict) -> bool:
         ''' config validator
         '''
-        normalized_config = normalize(config, space, config, {})
+        normalized_config = normalize(config, subspace, config, {})
         for key, lb in lower.items():
             if key in config:
                 value = normalized_config[key]
                 if isinstance(lb, list):
-                    subspace = space[key]['_choice_']
+                    domain = space[key]
+                    index = indexof(domain, value)
+                    nestedspace = subspace[key]
+                    lb = lb[index]
+                    ub = upper[key][index]
                 elif isinstance(lb, dict):
-                    subspace = space[key]
+                    nestedspace = subspace[key]
+                    domain = space[key]
+                    ub = upper[key]
                 else:
-                    subspace = None
-                if subspace:
-                    valid = self._valid(value, subspace, lb, upper[key])
+                    nestedspace = None
+                if nestedspace:
+                    valid = self._valid(
+                        value, domain, nestedspace, lb, ub)
                     if not valid:
                         return False
                 elif (value + self._ls.STEPSIZE < lower[key]

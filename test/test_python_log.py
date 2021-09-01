@@ -62,11 +62,11 @@ class TestLogging(unittest.TestCase):
             config = automl.best_config.copy()
             config['learner'] = automl.best_estimator
             automl.trainable({"ml": config})
-            from flaml import tune, CFO
+            from flaml import tune, BlendSearch
             from flaml.automl import size
             from functools import partial
-            search_alg = CFO(
-                metric='val_loss',
+            search_alg = BlendSearch(
+                metric='val_loss', mode='min',
                 space=automl.search_space,
                 low_cost_partial_config=automl.low_cost_partial_config,
                 points_to_evaluate=automl.points_to_evaluate,
