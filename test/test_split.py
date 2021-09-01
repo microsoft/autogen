@@ -74,5 +74,41 @@ def test_groups():
     automl.fit(X, y, **automl_settings)
 
 
+def test_rank():
+    from sklearn.externals._arff import ArffException
+    try:
+        X, y = fetch_openml(name=dataset, return_X_y=True)
+    except (ArffException, ValueError):
+        from sklearn.datasets import load_wine
+        X, y = load_wine(return_X_y=True)
+    y = y.cat.codes
+    import numpy as np
+    automl = AutoML()
+    automl_settings = {
+        "time_budget": 2,
+        "task": "rank",
+        "log_file_name": "test/{}.log".format(dataset),
+        "model_history": True,
+        "eval_method": "cv",
+        "groups": np.array(     # group labels
+            [0] * 200 + [1] * 200 + [2] * 200 + [3] * 200 + [4] * 100 + [5] * 100),
+        "learner_selector": "roundrobin",
+    }
+    automl.fit(X, y, **automl_settings)
+
+    automl = AutoML()
+    automl_settings = {
+        "time_budget": 2,
+        "task": "rank",
+        "metric": "ndcg@5",     # 5 can be replaced by any number
+        "log_file_name": "test/{}.log".format(dataset),
+        "model_history": True,
+        "groups": [200] * 4 + [100] * 2,    # alternative way: group counts
+        # "estimator_list": ['lgbm', 'xgboost'],  # list of ML learners
+        "learner_selector": "roundrobin",
+    }
+    automl.fit(X, y, **automl_settings)
+
+
 if __name__ == "__main__":
     unittest.main()

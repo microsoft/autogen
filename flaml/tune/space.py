@@ -26,6 +26,9 @@ def define_by_run_func(
     for key, domain in space.items():
         if path:
             key = path + '/' + key
+        if isinstance(domain, dict):
+            config.update(define_by_run_func(trial, domain, key))
+            continue
         if not isinstance(domain, sample.Domain):
             config[key] = domain
             continue
@@ -57,7 +60,7 @@ def define_by_run_func(
                 trial.suggest_int(
                     key, domain.lower,
                     domain.upper - int(bool(not quantize)),
-                    step=quantize or 1, log=True)
+                    log=True)
             elif isinstance(sampler, sample.Uniform):
                 # Upper bound should be inclusive for quantization and
                 # exclusive otherwise
@@ -76,7 +79,7 @@ def define_by_run_func(
                 if isinstance(choice, dict):
                     key += f":{index}"
                     # the suffix needs to be removed from the final config
-                    config[key] = define_by_run_func(trial, choice, key)
+                    config.update(define_by_run_func(trial, choice, key))
         else:
             raise ValueError(
                 "Optuna search does not support parameters of type "
@@ -84,6 +87,32 @@ def define_by_run_func(
                     type(domain).__name__,
                     type(domain.sampler).__name__))
     # Return all constants in a dictionary.
+    return config
+
+
+def convert_key(
+    conf: Dict, space: Dict, path: str = ""
+) -> Optional[Dict[str, Any]]:
+    """Convert config keys to define-by-run keys.
+
+    Returns:
+        A dict with converted keys.
+    """
+    config = {}
+    for key, domain in space.items():
+        value = conf[key]
+        if path:
+            key = path + '/' + key
+        if isinstance(domain, dict):
+            config.update(convert_key(conf[key], domain, key))
+        elif isinstance(domain, sample.Categorical):
+            index = indexof(domain, value)
+            config[key + '_choice_'] = index
+            if isinstance(value, dict):
+                key += f":{index}"
+                config.update(convert_key(value, domain.categories[index], key))
+        else:
+            config[key] = value
     return config
 
 
@@ -101,12 +130,18 @@ def unflatten_hierarchical(config: Dict, space: Dict) -> Tuple[Dict, Dict]:
             hier[true_key], subspace[true_key] = unflatten_hierarchical(
                 value, space[true_key][choice])
         else:
+            if key.endswith("_choice_"):
+                key = key[:-8]
             domain = space.get(key)
             if domain is not None:
                 subspace[key] = domain
                 if isinstance(domain, sample.Domain):
                     sampler = domain.sampler
-                    if isinstance(sampler, sample.Quantized):
+                    if isinstance(domain, sample.Categorical):
+                        value = domain.categories[value]
+                        if isinstance(value, dict):
+                            continue
+                    elif isinstance(sampler, sample.Quantized):
                         q = sampler.q
                         sampler = sampler.sampler
                         if isinstance(sampler, sample.LogUniform):

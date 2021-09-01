@@ -3,16 +3,18 @@
  * Licensed under the MIT License.
 '''
 
+import warnings
 import numpy as np
 import xgboost as xgb
 import time
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
-from lightgbm import LGBMClassifier, LGBMRegressor
+from lightgbm import LGBMClassifier, LGBMRegressor, LGBMRanker
 from scipy.sparse import issparse
 import pandas as pd
 from . import tune
+from .data import group_counts
 
 import logging
 
@@ -45,8 +47,8 @@ class BaseEstimator:
             self._estimator_type = params['_estimator_type']
             del self.params['_estimator_type']
         else:
-            self._estimator_type = "regressor" if task == 'regression' \
-                else "classifier"
+            self._estimator_type = "classifier" if task in (
+                'binary:logistic', 'multi:softmax') else "regressor"
 
     def get_params(self, deep=False):
         params = self.params.copy()
@@ -81,6 +83,18 @@ class BaseEstimator:
     def _fit(self, X_train, y_train, **kwargs):
 
         current_time = time.time()
+        if 'groups' in kwargs:
+            kwargs = kwargs.copy()
+            if self._task == 'rank':
+                kwargs['group'] = group_counts(kwargs['groups'])
+                # groups_val = kwargs.get('groups_val')
+                # if groups_val is not None:
+                #     kwargs['eval_group'] = [group_counts(groups_val)]
+                #     kwargs['eval_set'] = [
+                #         (kwargs['X_val'], kwargs['y_val'])]
+                #     kwargs['verbose'] = False
+                #     del kwargs['groups_val'], kwargs['X_val'], kwargs['y_val']
+            del kwargs['groups']
         X_train = self._preprocess(X_train)
         model = self.estimator_class(**self.params)
         model.fit(X_train, y_train, **kwargs)
@@ -255,12 +269,14 @@ class LGBMEstimator(BaseEstimator):
         if "objective" not in self.params:
             # Default: ‘regression’ for LGBMRegressor,
             # ‘binary’ or ‘multiclass’ for LGBMClassifier
-            if 'regression' in task:
+            if 'regression' == task:
                 objective = 'regression'
             elif 'binary' in task:
                 objective = 'binary'
             elif 'multi' in task:
                 objective = 'multiclass'
+            elif 'rank' == task:
+                objective = 'lambdarank'
             else:
                 objective = 'regression'
             self.params["objective"] = objective
@@ -276,8 +292,10 @@ class LGBMEstimator(BaseEstimator):
             self.params['verbose'] = -1
         # if "subsample_freq" not in self.params:
         #     self.params['subsample_freq'] = 1
-        if 'regression' in task:
+        if 'regression' == task:
             self.estimator_class = LGBMRegressor
+        elif 'rank' == task:
+            self.estimator_class = LGBMRanker
         else:
             self.estimator_class = LGBMClassifier
         self._time_per_iter = None
@@ -488,8 +506,10 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             'use_label_encoder': params.get('use_label_encoder', False),
         })
 
-        if 'regression' in task:
+        if 'regression' == task:
             self.estimator_class = xgb.XGBRegressor
+        elif 'rank' == task:
+            self.estimator_class = xgb.XGBRanker
         else:
             self.estimator_class = xgb.XGBClassifier
         self._time_per_iter = None
@@ -716,7 +736,9 @@ class CatBoostEstimator(BaseEstimator):
         return params
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
+        import shutil
         start_time = time.time()
+        train_dir = f'catboost_{str(start_time)}'
         n_iter = self.params["n_estimators"]
         X_train = self._preprocess(X_train)
         if isinstance(X_train, pd.DataFrame):
@@ -730,16 +752,19 @@ class CatBoostEstimator(BaseEstimator):
                 CatBoostEstimator._train_size - len(y_train)) > 4) and budget:
             # measure the time per iteration
             self.params["n_estimators"] = 1
-            CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
+            CatBoostEstimator._smallmodel = self.estimator_class(
+                train_dir=train_dir, **self.params)
             CatBoostEstimator._smallmodel.fit(
                 X_train, y_train, cat_features=cat_features, **kwargs)
             CatBoostEstimator._t1 = time.time() - start_time
             if CatBoostEstimator._t1 >= budget:
                 self.params["n_estimators"] = n_iter
                 self._model = CatBoostEstimator._smallmodel
+                shutil.rmtree(train_dir, ignore_errors=True)
                 return CatBoostEstimator._t1
             self.params["n_estimators"] = 4
-            CatBoostEstimator._smallmodel = self.estimator_class(**self.params)
+            CatBoostEstimator._smallmodel = self.estimator_class(
+                train_dir=train_dir, **self.params)
             CatBoostEstimator._smallmodel.fit(
                 X_train, y_train, cat_features=cat_features, **kwargs)
             CatBoostEstimator._time_per_iter = (
@@ -752,6 +777,7 @@ class CatBoostEstimator(BaseEstimator):
                     "n_estimators"]:
                 self.params["n_estimators"] = n_iter
                 self._model = CatBoostEstimator._smallmodel
+                shutil.rmtree(train_dir, ignore_errors=True)
                 return time.time() - start_time
         if budget:
             train_times = 1
@@ -769,13 +795,14 @@ class CatBoostEstimator(BaseEstimator):
             else:
                 weight = None
             from catboost import Pool
-            model = self.estimator_class(**self.params)
+            model = self.estimator_class(train_dir=train_dir, **self.params)
             model.fit(
                 X_tr, y_tr, cat_features=cat_features,
                 eval_set=Pool(
                     data=X_train[n:], label=y_train[n:],
                     cat_features=cat_features),
                 **kwargs)   # model.get_best_iteration()
+            shutil.rmtree(train_dir, ignore_errors=True)
             if weight is not None:
                 kwargs['sample_weight'] = weight
             self._model = model
@@ -862,44 +889,43 @@ class FBProphet(BaseEstimator):
         }
         return space
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def __init__(self, task='forecast', **params):
+        if 'n_jobs' in params:
+            params.pop('n_jobs')
+        super().__init__(task, **params)
+
+    def _join(self, X_train, y_train):
+        assert 'ds' in X_train, (
+            'Dataframe for training forecast model must have column'
+            ' "ds" with the dates in X_train.')
         y_train = pd.DataFrame(y_train, columns=['y'])
         train_df = X_train.join(y_train)
+        return train_df
 
-        if ('ds' not in train_df) or ('y' not in train_df):
-            raise ValueError(
-                'Dataframe for training forecast model must have columns "ds" and "y" with the dates and '
-                'values respectively.'
-            )
-
-        if 'n_jobs' in self.params:
-            self.params.pop('n_jobs')
-
+    def fit(self, X_train, y_train, budget=None, **kwargs):
         from prophet import Prophet
-
         current_time = time.time()
+        train_df = self._join(X_train, y_train)
         model = Prophet(**self.params).fit(train_df)
         train_time = time.time() - current_time
         self._model = model
         return train_time
 
-    def predict(self, X_test, freq=None):
+    def predict(self, X_test):
+        if isinstance(X_test, int):
+            raise ValueError(
+                "predict() with steps is only supported for arima/sarimax."
+                " For FBProphet, pass a dataframe with a date colum named ds.")
         if self._model is not None:
-            if isinstance(X_test, int) and freq is not None:
-                future = self._model.make_future_dataframe(periods=X_test, freq=freq)
-                forecast = self._model.predict(future)
-            elif isinstance(X_test, pd.DataFrame):
-                forecast = self._model.predict(X_test)
-            else:
-                raise ValueError(
-                    "either X_test(pd.Dataframe with dates for predictions, column ds) or"
-                    "X_test(int number of periods)+freq are required.")
+            forecast = self._model.predict(X_test)
             return forecast['yhat']
         else:
+            warnings.warn(
+                "Estimator is not fit yet. Please run fit() before predict().")
             return np.ones(X_test.shape[0])
 
 
-class ARIMA(BaseEstimator):
+class ARIMA(FBProphet):
     @classmethod
     def search_space(cls, **params):
         space = {
@@ -921,55 +947,45 @@ class ARIMA(BaseEstimator):
         }
         return space
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
-        y_train = pd.DataFrame(y_train, columns=['y'])
-        train_df = X_train.join(y_train)
-
-        if ('ds' not in train_df) or ('y' not in train_df):
-            raise ValueError(
-                'Dataframe for training forecast model must have columns "ds" and "y" with the dates and '
-                'values respectively.'
-            )
-
+    def _join(self, X_train, y_train):
+        train_df = super()._join(X_train, y_train)
         train_df.index = pd.to_datetime(train_df['ds'])
         train_df = train_df.drop('ds', axis=1)
+        return train_df
 
-        if 'n_jobs' in self.params:
-            self.params.pop('n_jobs')
-
+    def fit(self, X_train, y_train, budget=None, **kwargs):
         from statsmodels.tsa.arima.model import ARIMA as ARIMA_estimator
-        import warnings
         warnings.filterwarnings("ignore")
-
         current_time = time.time()
-        model = ARIMA_estimator(train_df,
-                                order=(self.params['p'], self.params['d'], self.params['q']),
-                                enforce_stationarity=False,
-                                enforce_invertibility=False)
-
+        train_df = self._join(X_train, y_train)
+        model = ARIMA_estimator(
+            train_df, order=(
+                self.params['p'], self.params['d'], self.params['q']),
+            enforce_stationarity=False, enforce_invertibility=False)
         model = model.fit()
         train_time = time.time() - current_time
         self._model = model
         return train_time
 
-    def predict(self, X_test, freq=None):
+    def predict(self, X_test):
         if self._model is not None:
-            if isinstance(X_test, int) and freq is not None:
-                forecast = self._model.forecast(steps=X_test).to_frame().reset_index()
+            if isinstance(X_test, int):
+                forecast = self._model.forecast(steps=X_test)
             elif isinstance(X_test, pd.DataFrame):
-                start_date = X_test.iloc[0, 0]
-                end_date = X_test.iloc[-1, 0]
-                forecast = self._model.predict(start=start_date, end=end_date)
+                start = X_test.iloc[0, 0]
+                end = X_test.iloc[-1, 0]
+                forecast = self._model.predict(start=start, end=end)
             else:
                 raise ValueError(
-                    "either X_test(pd.Dataframe with dates for predictions, column ds) or"
-                    "X_test(int number of periods)+freq are required.")
+                    "X_test needs to be either a pd.Dataframe with dates as column ds)"
+                    " or an int number of periods for predict().")
             return forecast
         else:
-            return np.ones(X_test.shape[0])
+            return np.ones(X_test if isinstance(X_test, int)
+                           else X_test.shape[0])
 
 
-class SARIMAX(BaseEstimator):
+class SARIMAX(ARIMA):
     @classmethod
     def search_space(cls, **params):
         space = {
@@ -1011,47 +1027,17 @@ class SARIMAX(BaseEstimator):
         return space
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
-        y_train = pd.DataFrame(y_train, columns=['y'])
-        train_df = X_train.join(y_train)
-
-        if ('ds' not in train_df) or ('y' not in train_df):
-            raise ValueError(
-                'Dataframe for training forecast model must have columns "ds" and "y" with the dates and '
-                'values respectively.'
-            )
-
-        train_df.index = pd.to_datetime(train_df['ds'])
-        train_df = train_df.drop('ds', axis=1)
-
-        if 'n_jobs' in self.params:
-            self.params.pop('n_jobs')
-
         from statsmodels.tsa.statespace.sarimax import SARIMAX as SARIMAX_estimator
-
         current_time = time.time()
-        model = SARIMAX_estimator(train_df,
-                                  order=(self.params['p'], self.params['d'], self.params['q']),
-                                  seasonality_order=(self.params['P'], self.params['D'], self.params['Q'], self.params['s']),
-                                  enforce_stationarity=False,
-                                  enforce_invertibility=False)
-
+        train_df = self._join(X_train, y_train)
+        model = SARIMAX_estimator(
+            train_df, order=(
+                self.params['p'], self.params['d'], self.params['q']),
+            seasonality_order=(
+                self.params['P'], self.params['D'], self.params['Q'],
+                self.params['s']),
+            enforce_stationarity=False, enforce_invertibility=False)
         model = model.fit()
         train_time = time.time() - current_time
         self._model = model
         return train_time
-
-    def predict(self, X_test, freq=None):
-        if self._model is not None:
-            if isinstance(X_test, int) and freq is not None:
-                forecast = self._model.forecast(steps=X_test).to_frame().reset_index()
-            elif isinstance(X_test, pd.DataFrame):
-                start_date = X_test.iloc[0, 0]
-                end_date = X_test.iloc[-1, 0]
-                forecast = self._model.predict(start=start_date, end=end_date)
-            else:
-                raise ValueError(
-                    "either X_test(pd.Dataframe with dates for predictions, column ds)"
-                    "or X_test(int number of periods)+freq are required.")
-            return forecast
-        else:
-            return np.ones(X_test.shape[0])

@@ -62,7 +62,7 @@ setuptools.setup(
             "optuna==2.8.0"
         ],
         "ray": [
-            "ray[tune]==1.5.1",
+            "ray[tune]==1.6.0",
             "pyyaml<5.3.1",
         ],
         "azureml": [
@@ -75,7 +75,7 @@ setuptools.setup(
             "vowpalwabbit",
         ],
         "nlp": [
-            "ray[tune]>=1.5.1",
+            "ray[tune]>=1.6.0",
             "transformers",
             "datasets==1.4.1",
             "tensorboardX<=2.2",

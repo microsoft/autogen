@@ -543,8 +543,9 @@ class FLOW2(Searcher):
             return False
         for key in self._unordered_cat_hp:
             # unordered cat choice is hard to reach by chance
-            if config1[key] != config2[key]:
+            if config1[key] != config2.get(key):
                 return False
         delta = np.array(
-            [incumbent1[key] - incumbent2[key] for key in self._tunable_keys])
+            [incumbent1[key] - incumbent2.get(key, np.inf)
+             for key in self._tunable_keys])
         return np.linalg.norm(delta) <= self.step

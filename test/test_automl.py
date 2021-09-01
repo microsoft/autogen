@@ -111,7 +111,8 @@ class MyLargeLGBM(LGBMEstimator):
 
 
 def custom_metric(X_test, y_test, estimator, labels, X_train, y_train,
-                  weight_test=None, weight_train=None):
+                  weight_test=None, weight_train=None, config=None,
+                  groups_test=None, groups_train=None):
     from sklearn.metrics import log_loss
     import time
     start = time.time()
@@ -162,7 +163,10 @@ class TestAutoML(unittest.TestCase):
             "sample": True,  # whether to subsample training data
             "log_file_name": "test/wine.log",
             "log_training_metric": True,  # whether to log training metric
-            "ensemble": True,
+            "ensemble": {
+                "final_estimator": MyRegularizedGreedyForest(),
+                "passthrough": False,
+            },
             "n_jobs": 1,
         }
 
@@ -274,9 +278,9 @@ class TestAutoML(unittest.TestCase):
             task='multi')
         print(estimator)
         time_history, best_valid_loss_history, valid_loss_history, \
-            config_history, train_loss_history = get_output_from_log(
+            config_history, metric_history = get_output_from_log(
                 filename=automl_settings['log_file_name'], time_budget=6)
-        print(train_loss_history)
+        print(metric_history)
 
     def test_classification(self, as_frame=False):
         automl_experiment = AutoML()
@@ -495,6 +499,30 @@ class TestAutoML(unittest.TestCase):
         print(automl_experiment.model_history)
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
+
+    def test_parallel(self, hpo_method=None):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 10,
+            "task": 'regression',
+            "log_file_name": "test/boston.log",
+            "log_type": "all",
+            "n_jobs": 1,
+            "n_concurrent_trials": 2,
+            "hpo_method": hpo_method,
+        }
+        X_train, y_train = load_boston(return_X_y=True)
+        try:
+            automl_experiment.fit(X_train=X_train, y_train=y_train,
+                                  **automl_settings)
+            print(automl_experiment.predict(X_train))
+            print(automl_experiment.model)
+            print(automl_experiment.config_history)
+            print(automl_experiment.model_history)
+            print(automl_experiment.best_iteration)
+            print(automl_experiment.best_estimator)
+        except ImportError:
+            return
 
     def test_parallel_xgboost(self, hpo_method=None):
         automl_experiment = AutoML()
