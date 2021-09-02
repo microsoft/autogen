@@ -911,7 +911,7 @@ class AutoML:
         return training_duration
 
     def _decide_split_type(self, split_type):
-        if self._state.task == 'classification':
+        if self._state.task in ('classification', 'binary', 'multi'):
             self._state.task = get_classification_objective(
                 len(np.unique(self._y_train_all)))
             assert split_type in [None, "stratified", "uniform", "time"]
