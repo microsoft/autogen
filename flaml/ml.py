@@ -157,6 +157,32 @@ def get_y_pred(estimator, X, eval_metric, obj):
     return y_pred
 
 
+def _eval_estimator(config, estimator, X_train, y_train, X_test, y_test, weight_test,
+                    groups_test, eval_metric, obj, labels=None,
+                    log_training_metric=False, fit_kwargs={}):
+    if isinstance(eval_metric, str):
+        pred_start = time.time()
+        test_pred_y = get_y_pred(estimator, X_test, eval_metric, obj)
+        pred_time = (time.time() - pred_start) / X_test.shape[0]
+        test_loss = sklearn_metric_loss_score(eval_metric, test_pred_y, y_test,
+                                              labels, weight_test, groups_test)
+        metric_for_logging = {}
+        if log_training_metric:
+            train_pred_y = get_y_pred(estimator, X_train, eval_metric, obj)
+            metric_for_logging['train_loss'] = sklearn_metric_loss_score(
+                eval_metric, train_pred_y, y_train, labels,
+                fit_kwargs.get('sample_weight'), fit_kwargs.get('groups'))
+    else:  # customized metric function
+        test_loss, metric_for_logging = eval_metric(
+            X_test, y_test, estimator, labels, X_train, y_train, weight_test,
+            fit_kwargs.get('sample_weight'), config, groups_test,
+            fit_kwargs.get('groups'))
+        if isinstance(metric_for_logging, dict):
+            pred_time = metric_for_logging.get('pred_time', 0)
+        test_pred_y = None  # eval_metric may return test_pred_y but not necessarily. Setting None for now.
+    return test_loss, metric_for_logging, pred_time, test_pred_y
+
+
 def get_test_loss(config, estimator, X_train, y_train, X_test, y_test, weight_test,
                   groups_test, eval_metric, obj, labels=None, budget=None,
                   log_training_metric=False, fit_kwargs={}):
@@ -167,27 +193,10 @@ def get_test_loss(config, estimator, X_train, y_train, X_test, y_test, weight_te
     #     fit_kwargs['X_val'] = X_test
     #     fit_kwargs['y_val'] = y_test
     estimator.fit(X_train, y_train, budget, **fit_kwargs)
-    if isinstance(eval_metric, str):
-        pred_start = time.time()
-        test_pred_y = get_y_pred(estimator, X_test, eval_metric, obj)
-        pred_time = (time.time() - pred_start) / X_test.shape[0]
-        test_loss = sklearn_metric_loss_score(eval_metric, test_pred_y, y_test,
-                                              labels, weight_test, groups_test)
-        if log_training_metric:
-            test_pred_y = get_y_pred(estimator, X_train, eval_metric, obj)
-            metric_for_logging = sklearn_metric_loss_score(
-                eval_metric, test_pred_y, y_train, labels,
-                fit_kwargs.get('sample_weight'), fit_kwargs.get('groups'))
-        else:
-            metric_for_logging = None
-    else:  # customized metric function
-        test_loss, metrics = eval_metric(
-            X_test, y_test, estimator, labels, X_train, y_train, weight_test,
-            fit_kwargs.get('sample_weight'), config, groups_test,
-            fit_kwargs.get('groups'))
-        if isinstance(metrics, dict):
-            pred_time = metrics.get('pred_time', 0)
-        metric_for_logging = metrics
+    test_loss, metric_for_logging, pred_time, _ = _eval_estimator(config, estimator,
+                                                                  X_train, y_train, X_test, y_test,
+                                                                  weight_test, groups_test, eval_metric, obj,
+                                                                  labels, log_training_metric, fit_kwargs)
     train_time = time.time() - start
     return test_loss, metric_for_logging, train_time, pred_time
 
