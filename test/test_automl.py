@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 import scipy.sparse
-from sklearn.datasets import load_boston, load_iris, load_wine
+from sklearn.datasets import load_boston, load_iris, load_wine, load_breast_cancer
 
 import pandas as pd
 from datetime import datetime
@@ -281,6 +281,20 @@ class TestAutoML(unittest.TestCase):
             config_history, metric_history = get_output_from_log(
                 filename=automl_settings['log_file_name'], time_budget=6)
         print(metric_history)
+
+    def test_binary(self):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 1,
+            "task": 'binary',
+            "log_file_name": "test/breast_cancer.log",
+            "log_training_metric": True,
+            "n_jobs": 1,
+            "model_history": True
+        }
+        X_train, y_train = load_breast_cancer(return_X_y=True)
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        _ = automl_experiment.predict(X_train)
 
     def test_classification(self, as_frame=False):
         automl_experiment = AutoML()
