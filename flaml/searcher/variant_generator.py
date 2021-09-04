@@ -19,55 +19,14 @@ Copyright (c) Microsoft Corporation.
 '''
 import copy
 import logging
-from collections.abc import Mapping
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 import numpy
 import random
 
-from ..tune.sample import Categorical, Domain, Function
+from ..tune.sample import Categorical, Domain
 
 logger = logging.getLogger(__name__)
-
-
-def flatten_dict(dt, delimiter="/", prevent_delimiter=False):
-    dt = copy.deepcopy(dt)
-    if prevent_delimiter and any(delimiter in key for key in dt):
-        # Raise if delimiter is any of the keys
-        raise ValueError(
-            "Found delimiter `{}` in key when trying to flatten array."
-            "Please avoid using the delimiter in your specification.")
-    while any(isinstance(v, dict) for v in dt.values()):
-        remove = []
-        add = {}
-        for key, value in dt.items():
-            if isinstance(value, dict):
-                for subkey, v in value.items():
-                    if prevent_delimiter and delimiter in subkey:
-                        # Raise  if delimiter is in any of the subkeys
-                        raise ValueError(
-                            "Found delimiter `{}` in key when trying to "
-                            "flatten array. Please avoid using the delimiter "
-                            "in your specification.")
-                    add[delimiter.join([key, str(subkey)])] = v
-                remove.append(key)
-        dt.update(add)
-        for k in remove:
-            del dt[k]
-    return dt
-
-
-def unflatten_dict(dt, delimiter="/"):
-    """Unflatten dict. Does not support unflattening lists."""
-    dict_type = type(dt)
-    out = dict_type()
-    for key, val in dt.items():
-        path = key.split(delimiter)
-        item = out
-        for k in path[:-1]:
-            item = item.setdefault(k, dict_type())
-        item[path[-1]] = val
-    return out
 
 
 class TuneError(Exception):
@@ -84,16 +43,9 @@ def generate_variants(
         variants in combination:
             "activation": grid_search(["relu", "tanh"])
             "learning_rate": grid_search([1e-3, 1e-4, 1e-5])
-        Lambda functions: These are evaluated to produce a concrete value, and
-        can express dependencies or conditional distributions between values.
-        They can also be used to express random search (e.g., by calling
-        into the `random` or `np` module).
-            "cpu": lambda spec: spec.config.num_workers
-            "batch_size": lambda spec: random.uniform(1, 1000)
     Finally, to support defining specs in plain JSON / YAML, grid search
-    and lambda functions can also be defined alternatively as follows:
+    can also be defined alternatively as follows:
         "activation": {"grid_search": ["relu", "tanh"]}
-        "cpu": {"eval": "spec.config.num_workers"}
     Use `format_vars` to format the returned dict of hyperparameters.
     Yields:
         (Dict of resolved variables, Spec object)
@@ -242,10 +194,6 @@ def _try_resolve(v) -> Tuple[bool, Any]:
     if isinstance(v, Domain):
         # Domain to sample from
         return False, v
-    elif isinstance(v, dict) and len(v) == 1 and "eval" in v:
-        # Lambda function in eval syntax
-        return False, Function(
-            lambda spec: eval(v["eval"], _STANDARD_IMPORTS, {"spec": spec}))
     elif isinstance(v, dict) and len(v) == 1 and "grid_search" in v:
         # Grid search values
         grid_values = v["grid_search"]

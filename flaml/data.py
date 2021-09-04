@@ -261,7 +261,7 @@ class DataTransformer:
                 cat_columns, num_columns, datetime_columns
             self._drop = drop
 
-        if task in ('binary:logistic', 'multi:softmax'):
+        if task in ('binary', 'multi', 'classification'):
             from sklearn.preprocessing import LabelEncoder
             self.label_transformer = LabelEncoder()
             y = self.label_transformer.fit_transform(y)

@@ -325,11 +325,6 @@ class Categorical(Domain):
         new.set_sampler(self._Uniform())
         return new
 
-    def grid(self):
-        new = copy(self)
-        new.set_sampler(Grid())
-        return new
-
     def __len__(self):
         return len(self.categories)
 
@@ -342,55 +337,6 @@ class Categorical(Domain):
     @property
     def domain_str(self):
         return f"{self.categories}"
-
-
-class Function(Domain):
-    class _CallSampler(BaseSampler):
-        def sample(self,
-                   domain: "Function",
-                   spec: Optional[Union[List[Dict], Dict]] = None,
-                   size: int = 1):
-            if domain.pass_spec:
-                items = [
-                    domain.func(spec[i] if isinstance(spec, list) else spec)
-                    for i in range(size)
-                ]
-            else:
-                items = [domain.func() for i in range(size)]
-
-            return items if len(items) > 1 else domain.cast(items[0])
-
-    default_sampler_cls = _CallSampler
-
-    def __init__(self, func: Callable):
-        sig = signature(func)
-
-        pass_spec = True  # whether we should pass `spec` when calling `func`
-        try:
-            sig.bind({})
-        except TypeError:
-            pass_spec = False
-
-        if not pass_spec:
-            try:
-                sig.bind()
-            except TypeError as exc:
-                raise ValueError(
-                    "The function passed to a `Function` parameter must be "
-                    "callable with either 0 or 1 parameters.") from exc
-
-        self.pass_spec = pass_spec
-        self.func = func
-
-    def is_function(self):
-        return True
-
-    def is_valid(self, value: Any):
-        return True  # This is user-defined, so lets not assume anything
-
-    @property
-    def domain_str(self):
-        return f"{self.func}()"
 
 
 class Quantized(Sampler):
@@ -437,22 +383,6 @@ class PolynomialExpansionSet:
 
     def __str__(self):
         return "PolynomialExpansionSet"
-
-
-# TODO (krfricke): Remove tune.function
-def function(func):
-    logger.warning(
-        "DeprecationWarning: wrapping {} with tune.function() is no "
-        "longer needed".format(func))
-    return func
-
-
-def sample_from(func: Callable[[Dict], Any]):
-    """Specify that tune should sample configuration values from this function.
-    Arguments:
-        func: An callable function to draw a sample from.
-    """
-    return Function(func)
 
 
 def uniform(lower: float, upper: float):

@@ -5,7 +5,6 @@
 '''
 import time
 from typing import Callable, Optional
-import warnings
 from functools import partial
 import numpy as np
 from scipy.sparse import issparse
@@ -144,9 +143,8 @@ class SearchState:
 class AutoMLState:
 
     def _prepare_sample_train_data(self, sample_size):
-        full_size = len(self.y_train)
         sampled_weight = groups = None
-        if sample_size <= full_size:
+        if sample_size <= self.data_size:
             if isinstance(self.X_train, pd.DataFrame):
                 sampled_X_train = self.X_train.iloc[:sample_size]
             else:
@@ -225,13 +223,13 @@ class AutoMLState:
         self, estimator, config_w_resource, sample_size=None
     ):
         if not sample_size:
-            sample_size = config_w_resource['FLAML_sample_size']
+            sample_size = config_w_resource.get(
+                'FLAML_sample_size', len(self.y_train_all))
         config = config_w_resource.get('ml', config_w_resource).copy()
         if 'FLAML_sample_size' in config:
             del config['FLAML_sample_size']
         if "learner" in config:
-            del config['learner']
-        assert sample_size is not None
+            del config["learner"]
         sampled_X_train, sampled_y_train, sampled_weight, groups = \
             self._prepare_sample_train_data(sample_size)
         if sampled_weight is not None:
@@ -316,10 +314,7 @@ class AutoML:
         '''An object with `predict()` and `predict_proba()` method (for
         classification), storing the best trained model.
         '''
-        if self._trained_estimator:
-            return self._trained_estimator
-        else:
-            return None
+        return self.__dict__.get('_trained_estimator')
 
     def best_model_for_estimator(self, estimator_name):
         '''Return the best model found for a particular estimator
@@ -331,11 +326,8 @@ class AutoML:
             An object with `predict()` and `predict_proba()` method (for
         classification), storing the best trained model for estimator_name.
         '''
-        if estimator_name in self._search_states:
-            state = self._search_states[estimator_name]
-            if hasattr(state, 'trained_estimator'):
-                return state.trained_estimator
-        return None
+        state = self._search_states.get(estimator_name)
+        return state and getattr(state, 'trained_estimator', None)
 
     @property
     def best_estimator(self):
@@ -374,10 +366,12 @@ class AutoML:
     @property
     def classes_(self):
         '''A list of n_classes elements for class labels.'''
-        if self._label_transformer:
-            return self._label_transformer.classes_.tolist()
-        if self._trained_estimator:
-            return self._trained_estimator.classes_.tolist()
+        attr = getattr(self, "label_transformer", None)
+        if attr:
+            return attr.classes_.tolist()
+        attr = getattr(self, "_trained_estimator", None)
+        if attr:
+            return attr.classes_.tolist()
         return None
 
     def predict(self, X_test):
@@ -394,12 +388,13 @@ class AutoML:
             A array-like of shape n * 1 - - each element is a predicted
             label for an instance.
         '''
-        if self._trained_estimator is None:
-            warnings.warn(
+        estimator = getattr(self, "_trained_estimator", None)
+        if estimator is None:
+            logger.warning(
                 "No estimator is trained. Please run fit with enough budget.")
             return None
         X_test = self._preprocess(X_test)
-        y_pred = self._trained_estimator.predict(X_test)
+        y_pred = estimator.predict(X_test)
         if y_pred.ndim > 1 and isinstance(y_pred, np.ndarray):
             y_pred = y_pred.flatten()
         if self._label_transformer:
@@ -443,10 +438,9 @@ class AutoML:
                 dataframe = dataframe.copy()
                 dataframe = dataframe.rename(columns={label[0]: 'ds', label[1]: 'y'})
             elif dataframe is not None:
-                if ('ds' not in dataframe) or ('y' not in dataframe):
-                    raise ValueError(
-                        'For forecasting task, dataframe must have columns "ds" and "y" '
-                        'with the dates and values respectively.')
+                assert 'ds' in dataframe and 'y' in dataframe, (
+                    'For forecasting task, dataframe must have columns '
+                    '"ds" and "y" with the dates and values respectively.')
             elif (X_train_all is not None) and (y_train_all is not None):
                 dataframe = pd.DataFrame(X_train_all)
                 dataframe = dataframe.rename(columns={dataframe.columns[0]: 'ds'})
@@ -456,30 +450,29 @@ class AutoML:
             label = 'y'
 
         if X_train_all is not None and y_train_all is not None:
-            if not (isinstance(X_train_all, np.ndarray) or issparse(X_train_all)
-                    or isinstance(X_train_all, pd.DataFrame)):
-                raise ValueError(
-                    "X_train_all must be a numpy array, a pandas dataframe, "
-                    "or Scipy sparse matrix.")
-            if not (isinstance(y_train_all, np.ndarray)
-                    or isinstance(y_train_all, pd.Series)):
-                raise ValueError(
-                    "y_train_all must be a numpy array or a pandas series.")
-            if X_train_all.size == 0 or y_train_all.size == 0:
-                raise ValueError("Input data must not be empty.")
+            assert (
+                isinstance(X_train_all, np.ndarray) or issparse(X_train_all)
+                or isinstance(X_train_all, pd.DataFrame)), (
+                "X_train_all must be a numpy array, a pandas dataframe, "
+                "or Scipy sparse matrix.")
+            assert (
+                isinstance(y_train_all, np.ndarray)
+                or isinstance(y_train_all, pd.Series)), (
+                "y_train_all must be a numpy array or a pandas series.")
+            assert X_train_all.size != 0 and y_train_all.size != 0, (
+                "Input data must not be empty.")
             if isinstance(y_train_all, np.ndarray):
                 y_train_all = y_train_all.flatten()
-            if X_train_all.shape[0] != y_train_all.shape[0]:
-                raise ValueError(
-                    "# rows in X_train must match length of y_train.")
+            assert X_train_all.shape[0] == y_train_all.shape[0], (
+                "# rows in X_train must match length of y_train.")
             self._df = isinstance(X_train_all, pd.DataFrame)
             self._nrow, self._ndim = X_train_all.shape
             X, y = X_train_all, y_train_all
         elif dataframe is not None and label is not None:
-            if not isinstance(dataframe, pd.DataFrame):
-                raise ValueError("dataframe must be a pandas DataFrame")
-            if label not in dataframe.columns:
-                raise ValueError("label must a column name in dataframe")
+            assert isinstance(dataframe, pd.DataFrame), (
+                "dataframe must be a pandas DataFrame")
+            assert label in dataframe.columns, (
+                "label must a column name in dataframe")
             self._df = True
             X = dataframe.drop(columns=label)
             self._nrow, self._ndim = X.shape
@@ -498,23 +491,21 @@ class AutoML:
             self._label_transformer = self._transformer.label_transformer
         self._sample_weight_full = self._state.fit_kwargs.get('sample_weight')
         if X_val is not None and y_val is not None:
-            if not (isinstance(X_val, np.ndarray) or issparse(X_val)
-                    or isinstance(X_val, pd.DataFrame)):
-                raise ValueError(
-                    "X_val must be None, a numpy array, a pandas dataframe, "
-                    "or Scipy sparse matrix.")
-            if not (isinstance(y_val, np.ndarray)
-                    or isinstance(y_val, pd.Series)):
-                raise ValueError(
-                    "y_val must be None, a numpy array or a pandas series.")
-            if X_val.size == 0 or y_val.size == 0:
-                raise ValueError(
-                    "Validation data are expected to be nonempty. "
-                    "Use None for X_val and y_val if no validation data.")
+            assert (
+                isinstance(X_val, np.ndarray) or issparse(X_val)
+                or isinstance(X_val, pd.DataFrame)), (
+                "X_val must be None, a numpy array, a pandas dataframe, "
+                "or Scipy sparse matrix.")
+            assert (
+                isinstance(y_val, np.ndarray) or isinstance(y_val, pd.Series)
+            ), "y_val must be None, a numpy array or a pandas series."
+            assert X_val.size != 0 and y_val.size != 0, (
+                "Validation data are expected to be nonempty. "
+                "Use None for X_val and y_val if no validation data.")
             if isinstance(y_val, np.ndarray):
                 y_val = y_val.flatten()
-            if X_val.shape[0] != y_val.shape[0]:
-                raise ValueError("# rows in X_val must match length of y_val.")
+            assert X_val.shape[0] == y_val.shape[0], (
+                "# rows in X_val must match length of y_val.")
             if self._transformer:
                 self._state.X_val = self._transformer.transform(X_val)
             else:
@@ -548,7 +539,7 @@ class AutoML:
         X_train_all, y_train_all = self._X_train_all, self._y_train_all
         if issparse(X_train_all):
             X_train_all = X_train_all.tocsr()
-        if self._state.task in ('binary:logistic', 'multi:softmax') \
+        if self._state.task in ('binary', 'multi') \
                 and self._state.fit_kwargs.get('sample_weight') is None \
                 and self._split_type != 'time':
             # logger.info(f"label {pd.unique(y_train_all)}")
@@ -638,7 +629,7 @@ class AutoML:
                     y_train, y_val = y_train_all[train_idx], y_train_all[val_idx]
                     self._state.groups, self._state.groups_val = self._state.groups[
                         train_idx], self._state.groups[val_idx]
-            elif self._state.task != 'regression':
+            elif self._state.task in ('binary', 'multi'):
                 # for classification, make sure the labels are complete in both
                 # training and validation data
                 label_set, first = np.unique(y_train_all, return_index=True)
@@ -760,7 +751,7 @@ class AutoML:
             record_id: An integer of the record ID in the file,
                 0 corresponds to the first trial
             task: A string of the task type,
-                'binary', 'multi', or 'regression'
+                'binary', 'multi', 'regression', 'forecast', 'rank'
 
         Returns:
             An estimator object for the given configuration
@@ -875,9 +866,10 @@ class AutoML:
                             best_val_loss = val_loss
                             sample_size = size
                 if not training_duration:
+                    logger.warning(
+                        f"No estimator found within time_budget={time_budget}")
                     from .model import BaseEstimator as Estimator
                     self._trained_estimator = Estimator()
-                    self._trained_estimator.model = None
                     return training_duration
         if not best:
             return
@@ -898,11 +890,7 @@ class AutoML:
         elif eval_method == 'auto':
             eval_method = self._decide_eval_method(time_budget)
         self.modelcount = 0
-        if self._state.task != 'forecast':
-            self._prepare_data(eval_method, split_ratio, n_splits)
-        else:
-            self._prepare_data(eval_method, split_ratio, n_splits,
-                               period=self._state.fit_kwargs['period'])
+        self._prepare_data(eval_method, split_ratio, n_splits)
         self._state.time_budget = None
         self._state.n_jobs = n_jobs
         self._trained_estimator = self._state._train_with_config(
@@ -911,9 +899,10 @@ class AutoML:
         return training_duration
 
     def _decide_split_type(self, split_type):
-        if self._state.task in ('classification', 'binary', 'multi'):
+        if self._state.task == 'classification':
             self._state.task = get_classification_objective(
                 len(np.unique(self._y_train_all)))
+        if self._state.task in ('binary', 'multi'):
             assert split_type in [None, "stratified", "uniform", "time"]
             self._split_type = split_type or "stratified"
         elif self._state.task == 'regression':
@@ -1248,13 +1237,14 @@ class AutoML:
                 For time series forecasting, must be None or 'time'.
                 For ranking task, must be None or 'group'.
             hpo_method: str or None, default=None | The hyperparameter
-                optimization method. When it is None, CFO is used.
+                optimization method. By default, CFO is used for sequential
+                search and BlendSearch is used for parallel search.
                 No need to set when using flaml's default search space or using
                 a simple customized search space. When set to 'bs', BlendSearch
                 is used. BlendSearch can be tried when the search space is
                 complex, for example, containing multiple disjoint, discontinuous
-                subspaces. When set to 'random' and the argument 'n_concurrent_trials'
-                is larger than 1, RandomSearch is used.
+                subspaces. When set to 'random' and the argument
+                `n_concurrent_trials` is larger than 1, random search is used.
             starting_points: A dictionary to specify the starting hyperparameter
                 config for the estimators.
                 Keys are the name of the estimators, and values are the starting
@@ -1355,8 +1345,7 @@ class AutoML:
             estimator_list))
         self.estimator_list = estimator_list
         self._hpo_method = hpo_method or (
-            'cfo' if n_concurrent_trials == 1 or len(estimator_list) == 1
-            else 'bs')
+            'cfo' if n_concurrent_trials == 1 else 'bs')
         self._state.time_budget = time_budget
         self._active_estimators = estimator_list.copy()
         self._ensemble = ensemble
@@ -1379,14 +1368,16 @@ class AutoML:
         if self._best_estimator:
             logger.info("fit succeeded")
             logger.info(f"Time taken to find the best model: {self._time_taken_best_iter}")
-            if self._time_taken_best_iter >= time_budget * 0.7 and not all(
+            if self._hpo_method in ('cfo', 'bs') and (
+                self._time_taken_best_iter >= time_budget * 0.7) and not all(
                 state.search_alg and state.search_alg.searcher.is_ls_ever_converged
                 for state in self._search_states.values()
             ):
-                logger.warn("Time taken to find the best model is {0:.0f}% of the "
-                            "provided time budget and not all estimators' hyperparameter "
-                            "search converged. Consider increasing the time budget.".format(
-                                self._time_taken_best_iter / time_budget * 100))
+                logger.warning(
+                    "Time taken to find the best model is {0:.0f}% of the "
+                    "provided time budget and not all estimators' hyperparameter "
+                    "search converged. Consider increasing the time budget.".format(
+                        self._time_taken_best_iter / time_budget * 100))
 
         if not keep_search_state:
             # release space
@@ -1413,20 +1404,16 @@ class AutoML:
                 "Please run pip install flaml[ray]")
         if self._hpo_method in ('cfo', 'grid'):
             from flaml import CFO as SearchAlgo
-        elif 'optuna' == self._hpo_method:
-            from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
         elif 'bs' == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
-        elif 'cfocat' == self._hpo_method:
-            from flaml.searcher.cfo_cat import CFOCat as SearchAlgo
         elif 'random' == self._hpo_method:
             from ray.tune.suggest import BasicVariantGenerator as SearchAlgo
-            from ray.tune.sample import Domain as RayDomain
-            from .tune.sample import Domain
+            from ray.tune.sample import Domain
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "
                 "'cfo' and 'bs' are supported.")
+        space = self.search_space
         if self._hpo_method == 'random':
             # Any point in points_to_evaluate must consist of hyperparamters
             # that are tunable, which can be identified by checking whether
@@ -1434,19 +1421,19 @@ class AutoML:
             # the 'Domain' class from flaml or ray.tune
             points_to_evaluate = self.points_to_evaluate.copy()
             to_del = []
-            for k, v in self.search_space.items():
-                if not (isinstance(v, Domain) or isinstance(v, RayDomain)):
+            for k, v in space.items():
+                if not isinstance(v, Domain):
                     to_del.append(k)
             for k in to_del:
                 for p in points_to_evaluate:
-                    del p[k]
-
-            search_alg = SearchAlgo(max_concurrent=self._n_concurrent_trials,
-                                    points_to_evaluate=points_to_evaluate)
+                    if k in p:
+                        del p[k]
+            search_alg = SearchAlgo(
+                max_concurrent=self._n_concurrent_trials,
+                points_to_evaluate=points_to_evaluate)
         else:
             search_alg = SearchAlgo(
-                metric='val_loss',
-                space=self.search_space,
+                metric='val_loss', space=space,
                 low_cost_partial_config=self.low_cost_partial_config,
                 points_to_evaluate=self.points_to_evaluate,
                 cat_hp_cost=self.cat_hp_cost,
@@ -1463,7 +1450,7 @@ class AutoML:
         resources_per_trial = {
             "cpu": self._state.n_jobs} if self._state.n_jobs > 1 else None
         analysis = ray.tune.run(
-            self.trainable, search_alg=search_alg, config=self.search_space,
+            self.trainable, search_alg=search_alg, config=space,
             metric='val_loss', mode='min', resources_per_trial=resources_per_trial,
             time_budget_s=self._state.time_budget, num_samples=self._max_iter,
             verbose=self.verbose)
@@ -1521,6 +1508,7 @@ class AutoML:
             from flaml import CFO as SearchAlgo
         elif 'optuna' == self._hpo_method:
             try:
+                from ray import __version__ as ray_version
                 assert ray_version >= '1.0.0'
                 from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
             except (ImportError, AssertionError):
@@ -1600,7 +1588,9 @@ class AutoML:
                 else:
                     algo = SearchAlgo(
                         metric='val_loss', mode='min', space=search_space,
-                        points_to_evaluate=points_to_evaluate,
+                        points_to_evaluate=points_to_evaluate
+                        if len(search_state.init_config) == len(
+                            search_space) else None,
                     )
                 search_state.search_alg = ConcurrencyLimiter(algo,
                                                              max_concurrent=1)
@@ -1710,13 +1700,16 @@ class AutoML:
                         search_state.best_loss,
                         self._best_estimator,
                         self._state.best_loss))
-                if all(state.search_alg and state.search_alg.searcher.is_ls_ever_converged
-                       for state in self._search_states.values()) and (
-                           self._state.time_from_start
-                           > self._warn_threshold * self._time_taken_best_iter):
-                    logger.warn("All estimator hyperparameters local search has converged at least once, "
-                                f"and the total search time exceeds {self._warn_threshold} times the time taken "
-                                "to find the best model.")
+                if self._hpo_method in ('cfo', 'bs') and all(
+                    state.search_alg and state.search_alg.searcher.is_ls_ever_converged
+                    for state in self._search_states.values()) and (
+                        self._state.time_from_start
+                        > self._warn_threshold * self._time_taken_best_iter):
+                    logger.warning(
+                        "All estimator hyperparameters local search has "
+                        "converged at least once, and the total search time "
+                        f"exceeds {self._warn_threshold} times the time taken "
+                        "to find the best model.")
                     self._warn_threshold *= 10
             else:
                 logger.info(f"no enough budget for learner {estimator}")
@@ -1766,6 +1759,8 @@ class AutoML:
         self._best_estimator = None
         self._retrained_config = {}
         self._warn_threshold = 10
+        self._selected = None
+        self.modelcount = 0
 
         if self._n_concurrent_trials == 1:
             self._search_sequential()
@@ -1782,7 +1777,7 @@ class AutoML:
             if self._trained_estimator:
                 logger.info(f'selected model: {self._trained_estimator.model}')
             if self._ensemble and self._state.task in (
-                'binary:logistic', 'multi:softmax', 'regression',
+                'binary', 'multi', 'regression',
             ):
                 search_states = list(x for x in self._search_states.items()
                                      if x[1].trained_estimator)
@@ -1795,7 +1790,7 @@ class AutoML:
                 logger.info(estimators)
                 if len(estimators) <= 1:
                     return
-                if self._state.task in ('binary:logistic', 'multi:softmax'):
+                if self._state.task in ('binary', 'multi'):
                     from sklearn.ensemble import StackingClassifier as Stacker
                 else:
                     from sklearn.ensemble import StackingRegressor as Stacker
@@ -1838,9 +1833,6 @@ class AutoML:
                 else:
                     logger.info(
                         "not retraining because the time budget is too small.")
-        else:
-            self._selected = self._trained_estimator = None
-            self.modelcount = 0
         if self.model and mlflow is not None and mlflow.active_run():
             mlflow.sklearn.log_model(self.model, 'best_model')
 
@@ -1886,8 +1878,7 @@ class AutoML:
                     speed = delta_loss / delta_time
                     if speed:
                         estimated_cost = max(2 * gap / speed, estimated_cost)
-                if estimated_cost == 0:
-                    estimated_cost = 1e-10
+                estimated_cost == estimated_cost or 1e-10
                 inv.append(1 / estimated_cost)
             else:
                 estimated_cost = self._eci[i]

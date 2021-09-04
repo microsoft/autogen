@@ -16,9 +16,9 @@ class TestTrainingLog(unittest.TestCase):
             filename = os.path.join(d, path)
 
             # Run a simple job.
-            automl_experiment = AutoML()
+            automl = AutoML()
             automl_settings = {
-                "time_budget": 2,
+                "time_budget": 1,
                 "metric": 'mse',
                 "task": 'regression',
                 "log_file_name": filename,
@@ -29,10 +29,12 @@ class TestTrainingLog(unittest.TestCase):
                 "train_time_limit": 0.01,
                 "verbose": 3,
                 "ensemble": True,
+                "keep_search_state": True,
             }
             X_train, y_train = load_boston(return_X_y=True)
-            automl_experiment.fit(X_train=X_train, y_train=y_train,
-                                  **automl_settings)
+            automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+            automl._state._train_with_config(
+                automl.best_estimator, automl.best_config)
 
             # Check if the training log file is populated.
             self.assertTrue(os.path.exists(filename))
@@ -44,8 +46,10 @@ class TestTrainingLog(unittest.TestCase):
                 self.assertGreater(count, 0)
 
             automl_settings["log_file_name"] = None
-            automl_experiment.fit(X_train=X_train, y_train=y_train,
-                                  **automl_settings)
+            automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+            automl._selected.update(None, 0)
+            automl = AutoML()
+            automl.fit(X_train=X_train, y_train=y_train, max_iter=0)
 
     def test_illfilename(self):
         try:

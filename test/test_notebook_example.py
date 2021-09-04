@@ -1,7 +1,7 @@
 from openml.exceptions import OpenMLServerException
 
 
-def test_automl(budget=5, dataset_format='dataframe'):
+def test_automl(budget=5, dataset_format='dataframe', hpo_method=None):
     from flaml.data import load_openml_dataset
     try:
         X_train, X_test, y_train, y_test = load_openml_dataset(
@@ -18,6 +18,7 @@ def test_automl(budget=5, dataset_format='dataframe'):
         "task": 'classification',  # task type
         "log_file_name": 'airlines_experiment.log',  # flaml log file
         "seed": 7654321,    # random seed
+        'hpo_method': hpo_method
     }
     '''The main flaml automl API'''
     automl.fit(X_train=X_train, y_train=y_train, **settings)
@@ -52,7 +53,7 @@ def test_automl(budget=5, dataset_format='dataframe'):
 
 
 def test_automl_array():
-    test_automl(5, 'array')
+    test_automl(5, 'array', 'bs')
 
 
 def test_mlflow():
@@ -81,8 +82,11 @@ def test_mlflow():
     mlflow.set_experiment("flaml")
     with mlflow.start_run():
         '''The main flaml automl API'''
-        automl.fit(X_train=X_train, y_train=y_train, **settings)
+        automl.fit(
+            X_train=X_train, y_train=y_train, **settings)
     # subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "mlflow"])
+    automl._mem_thres = 0
+    print(automl.trainable(automl.points_to_evaluate[0]))
 
 
 if __name__ == "__main__":

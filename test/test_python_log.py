@@ -41,6 +41,7 @@ class TestLogging(unittest.TestCase):
             }
             X_train, y_train = load_boston(return_X_y=True)
             n = len(y_train) >> 1
+            print(automl.model, automl.classes_, automl.predict(X_train))
             automl.fit(X_train=X_train[:n], y_train=y_train[:n],
                        X_val=X_train[n:], y_val=y_train[n:],
                        **automl_settings)
@@ -81,6 +82,8 @@ class TestLogging(unittest.TestCase):
                 time_budget_s=1, num_samples=-1)
             print(min(trial.last_result["val_loss"]
                       for trial in analysis.trials))
+            config = analysis.trials[-1].last_result['config']['ml']
+            automl._state._train_with_config(config['learner'], config)
             # Check if the log buffer is populated.
             self.assertTrue(len(buf.getvalue()) > 0)
 

@@ -15,7 +15,7 @@ import xgboost as xgb
 import logging
 logger = logging.getLogger(__name__)
 os.makedirs('logs', exist_ok=True)
-logger.addHandler(logging.FileHandler('logs/tune_xgboost.log'))
+logger.addHandler(logging.FileHandler('logs/tune.log'))
 logger.setLevel(logging.INFO)
 
 
@@ -223,12 +223,22 @@ def test_nested():
     logger.info(f"BlendSearch exp best config: {best_trial.config}")
     logger.info(f"BlendSearch exp best result: {best_trial.last_result}")
 
+    points_to_evaluate = [
+        {"b": .99, "cost_related": {"a": 3}},
+        {"b": .99, "cost_related": {"a": 2}},
+    ]
     analysis = tune.run(
         simple_func,
         config=search_space,
         low_cost_partial_config={
             "cost_related": {"a": 1}
         },
+        points_to_evaluate=points_to_evaluate,
+        evaluated_rewards=[
+            (config["cost_related"]["a"] - 4)**2
+            + (config["b"] - config["cost_related"]["a"])**2
+            for config in points_to_evaluate
+        ],
         metric="obj",
         mode="min",
         metric_constraints=[("ab", "<=", 4)],
