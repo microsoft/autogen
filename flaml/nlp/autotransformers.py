@@ -29,12 +29,11 @@ class AutoTransformers:
         .. code-block:: python
 
             autohf = AutoTransformers()
-            autohf_settings = {"resources_per_trial": {"cpu": 1},
-                       "num_samples": -1,
-                       "time_budget": 100000,
-                       "ckpt_per_epoch": 1,
-                       "fp16": False,
-                      }
+            autohf_settings = {
+                "resources_per_trial": {"cpu": 1, "gpu": 1},
+                "num_samples": -1,
+                "time_budget": 60,
+            }
 
             validation_metric, analysis = autohf.fit(**autohf_settings)
 
@@ -45,10 +44,11 @@ class AutoTransformers:
         search_space = {}
 
         if mode == "grid":
+            # TODO add test
             for each_hp in config_json.keys():
                 this_config = config_json[each_hp]
                 assert isinstance(this_config, dict) or isinstance(this_config, list), \
-                    "config of " + each_hp + " must be dict or list"
+                    "config of " + each_hp + " must be dict or list for grid search"
                 search_space[each_hp] = ray.tune.grid_search(this_config)
         else:
             for each_hp in config_json.keys():
@@ -84,10 +84,6 @@ class AutoTransformers:
         self._search_space_hpo = AutoTransformers._convert_dict_to_ray_tune_space(
             search_space_hpo_json,
             mode=self.jobid_config.mod)
-
-    @staticmethod
-    def _wrapper(func, *args):  # with star
-        return func(*args)
 
     @staticmethod
     def _get_split_name(data_raw, fold_name=None):
@@ -179,7 +175,7 @@ class AutoTransformers:
             data_raw = load_dataset(JobID.dataset_list_to_str(self.jobid_config.dat),
                                     self.jobid_config.subdat)
         else:
-            data_raw = AutoTransformers._wrapper(load_dataset, *self.jobid_config.dat)
+            data_raw = load_dataset(*self.jobid_config.dat)
 
         self._train_name, self._dev_name, self._test_name = AutoTransformers._get_split_name(
             data_raw,
@@ -349,6 +345,7 @@ class AutoTransformers:
         return training_args_config, per_model_config
 
     def _objective(self, config, reporter, checkpoint_dir=None):
+        # TODO add test
         from transformers.trainer_utils import set_seed
         self._set_transformers_verbosity(self._transformers_verbose)
 
@@ -827,6 +824,7 @@ class AutoTransformers:
         test_trainer = TrainerForAutoTransformers(best_model, training_args)
 
         if self.jobid_config.spt == "ori":
+            # TODO add test
             if "label" in self.test_dataset.features.keys():
                 self.test_dataset.remove_columns_("label")
                 print("Cleaning the existing label column from test data")

@@ -91,15 +91,6 @@ class Searcher:
                  mode: Optional[str] = None,
                  max_concurrent: Optional[int] = None,
                  use_early_stopped_trials: Optional[bool] = None):
-        if use_early_stopped_trials is False:
-            raise DeprecationWarning(
-                "Early stopped trials are now always used. If this is a "
-                "problem, file an issue: https://github.com/ray-project/ray.")
-        if max_concurrent is not None:
-            logger.warning(
-                "DeprecationWarning: `max_concurrent` is deprecated for this "
-                "search algorithm. Use tune.suggest.ConcurrencyLimiter() "
-                "instead. This will raise an error in future versions of Ray.")
 
         self._metric = metric
         self._mode = mode
@@ -151,83 +142,6 @@ class Searcher:
                 avoid breaking the optimization process.
         """
         pass
-
-    def on_trial_complete(self,
-                          trial_id: str,
-                          result: Optional[Dict] = None,
-                          error: bool = False):
-        """Notification for the completion of trial.
-        Typically, this method is used for notifying the underlying
-        optimizer of the result.
-        Args:
-            trial_id (str): A unique string ID for the trial.
-            result (dict): Dictionary of metrics for current training progress.
-                Note that the result dict may include NaNs or
-                may not include the optimization metric. It is up to the
-                subclass implementation to preprocess the result to
-                avoid breaking the optimization process. Upon errors, this
-                may also be None.
-            error (bool): True if the training process raised an error.
-        """
-        raise NotImplementedError
-
-    def suggest(self, trial_id: str) -> Optional[Dict]:
-        """Queries the algorithm to retrieve the next set of parameters.
-        Arguments:
-            trial_id (str): Trial ID used for subsequent notifications.
-        Returns:
-            dict | FINISHED | None: Configuration for a trial, if possible.
-                If FINISHED is returned, Tune will be notified that
-                no more suggestions/configurations will be provided.
-                If None is returned, Tune will skip the querying of the
-                searcher for this step.
-        """
-        raise NotImplementedError
-
-    def save(self, checkpoint_path: str):
-        """Save state to path for this search algorithm.
-        Args:
-            checkpoint_path (str): File where the search algorithm
-                state is saved. This path should be used later when
-                restoring from file.
-        Example:
-        .. code-block:: python
-            search_alg = Searcher(...)
-            analysis = tune.run(
-                cost,
-                num_samples=5,
-                search_alg=search_alg,
-                name=self.experiment_name,
-                local_dir=self.tmpdir)
-            search_alg.save("./my_favorite_path.pkl")
-        .. versionchanged:: 0.8.7
-            Save is automatically called by `tune.run`. You can use
-            `restore_from_dir` to restore from an experiment directory
-            such as `~/ray_results/trainable`.
-        """
-        raise NotImplementedError
-
-    def restore(self, checkpoint_path: str):
-        """Restore state for this search algorithm
-        Args:
-            checkpoint_path (str): File where the search algorithm
-                state is saved. This path should be the same
-                as the one provided to "save".
-        Example:
-        .. code-block:: python
-            search_alg.save("./my_favorite_path.pkl")
-            search_alg2 = Searcher(...)
-            search_alg2 = ConcurrencyLimiter(search_alg2, 1)
-            search_alg2.restore(checkpoint_path)
-            tune.run(cost, num_samples=5, search_alg=search_alg2)
-        """
-        raise NotImplementedError
-
-    def get_state(self) -> Dict:
-        raise NotImplementedError
-
-    def set_state(self, state: Dict):
-        raise NotImplementedError
 
     @property
     def metric(self) -> str:
@@ -535,14 +449,6 @@ class OptunaSearch(Searcher):
             else:
                 # Flatten to support nested dicts
                 space = flatten_dict(space, "/")
-
-        # Deprecate: 1.5
-        if isinstance(space, list):
-            logger.warning(
-                "Passing lists of `param.suggest_*()` calls to OptunaSearch "
-                "as a search space is deprecated and will be removed in "
-                "a future release of Ray. Please pass a dict mapping "
-                "to `optuna.distributions` objects instead.")
 
         self._space = space
 

@@ -1,12 +1,12 @@
 import numpy as np
 import logging
-from typing import Optional, Dict
-from flaml.scheduler import FIFOScheduler, TrialScheduler
+from typing import Dict
+from flaml.scheduler import TrialScheduler
 from flaml.tune import Trial
 logger = logging.getLogger(__name__)
 
 
-class OnlineScheduler(FIFOScheduler):
+class OnlineScheduler(TrialScheduler):
     """Implementation of the OnlineFIFOSchedulers.
 
     Methods:

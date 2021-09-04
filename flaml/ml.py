@@ -24,7 +24,7 @@ def get_estimator_class(task, estimator_name):
     ''' when adding a new learner, need to add an elif branch '''
 
     if 'xgboost' == estimator_name:
-        if 'regression' in task:
+        if 'regression' == task:
             estimator_class = XGBoostEstimator
         else:
             estimator_class = XGBoostSklearnEstimator
@@ -179,7 +179,8 @@ def _eval_estimator(config, estimator, X_train, y_train, X_test, y_test, weight_
             fit_kwargs.get('groups'))
         if isinstance(metric_for_logging, dict):
             pred_time = metric_for_logging.get('pred_time', 0)
-        test_pred_y = None  # eval_metric may return test_pred_y but not necessarily. Setting None for now.
+        test_pred_y = None
+        # eval_metric may return test_pred_y but not necessarily. Setting None for now.
     return test_loss, metric_for_logging, pred_time, test_pred_y
 
 
@@ -193,10 +194,10 @@ def get_test_loss(config, estimator, X_train, y_train, X_test, y_test, weight_te
     #     fit_kwargs['X_val'] = X_test
     #     fit_kwargs['y_val'] = y_test
     estimator.fit(X_train, y_train, budget, **fit_kwargs)
-    test_loss, metric_for_logging, pred_time, _ = _eval_estimator(config, estimator,
-                                                                  X_train, y_train, X_test, y_test,
-                                                                  weight_test, groups_test, eval_metric, obj,
-                                                                  labels, log_training_metric, fit_kwargs)
+    test_loss, metric_for_logging, pred_time, _ = _eval_estimator(
+        config, estimator, X_train, y_train, X_test, y_test,
+        weight_test, groups_test, eval_metric, obj,
+        labels, log_training_metric, fit_kwargs)
     train_time = time.time() - start
     return test_loss, metric_for_logging, train_time, pred_time
 
@@ -212,7 +213,7 @@ def evaluate_model_CV(config, estimator, X_train_all, y_train_all, budget, kf,
     valid_fold_num = total_fold_num = 0
     n = kf.get_n_splits()
     X_train_split, y_train_split = X_train_all, y_train_all
-    if task == 'binary:logistics' or task == 'multi:softmax':
+    if task in ('binary', 'multi'):
         labels = np.unique(y_train_all)
     else:
         labels = None
@@ -346,9 +347,9 @@ def train_estimator(
 
 def get_classification_objective(num_labels: int) -> str:
     if num_labels == 2:
-        objective_name = 'binary:logistic'
+        objective_name = 'binary'
     else:
-        objective_name = 'multi:softmax'
+        objective_name = 'multi'
     return objective_name
 
 

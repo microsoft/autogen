@@ -13,6 +13,7 @@ try:
     from ray.tune.analysis import ExperimentAnalysis as EA
 except (ImportError, AssertionError):
     from .analysis import ExperimentAnalysis as EA
+from .result import DEFAULT_METRIC
 import logging
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class ExperimentAnalysis(EA):
             super().__init__(self, None, trials, metric, mode)
         except (TypeError, ValueError):
             self.trials = trials
-            self.default_metric = metric or '_default_anonymous_metric'
+            self.default_metric = metric or DEFAULT_METRIC
             self.default_mode = mode
 
 
@@ -82,7 +83,7 @@ def report(_metric=None, **kwargs):
         if _verbose == 2:
             logger.info(f"result: {kwargs}")
         if _metric:
-            result['_default_anonymous_metric'] = _metric
+            result[DEFAULT_METRIC] = _metric
         trial = _runner.running_trial
         if _running_trial == trial:
             _training_iteration += 1
@@ -105,12 +106,13 @@ def report(_metric=None, **kwargs):
 
 def run(training_function,
         config: Optional[dict] = None,
-        points_to_evaluate: Optional[List[dict]] = None,
         low_cost_partial_config: Optional[dict] = None,
         cat_hp_cost: Optional[dict] = None,
         metric: Optional[str] = None,
         mode: Optional[str] = None,
         time_budget_s: Union[int, float, datetime.timedelta] = None,
+        points_to_evaluate: Optional[List[dict]] = None,
+        evaluated_rewards: Optional[List] = None,
         prune_attr: Optional[str] = None,
         min_resource: Optional[float] = None,
         max_resource: Optional[float] = None,
@@ -155,8 +157,6 @@ def run(training_function,
     Args:
         training_function: A user-defined training function.
         config: A dictionary to specify the search space.
-        points_to_evaluate: A list of initial hyperparameter
-            configurations to run first.
         low_cost_partial_config: A dictionary from a subset of
             controlled dimensions to the initial low-cost values.
             e.g.,
@@ -179,6 +179,14 @@ def run(training_function,
         mode: A string in ['min', 'max'] to specify the objective as
             minimization or maximization.
         time_budget_s: A float of the time budget in seconds.
+        points_to_evaluate: A list of initial hyperparameter
+            configurations to run first.
+        evaluated_rewards (list): If you have previously evaluated the
+            parameters passed in as points_to_evaluate you can avoid
+            re-running those trials by passing in the reward attributes
+            as a list so the optimiser can be told the results without
+            needing to re-compute the trial. Must be the same length as
+            points_to_evaluate.
         prune_attr: A string of the attribute used for pruning.
             Not necessarily in space.
             When prune_attr is in space, it is a hyperparameter, e.g.,
@@ -259,9 +267,10 @@ def run(training_function,
     if search_alg is None:
         from ..searcher.blendsearch import BlendSearch
         search_alg = BlendSearch(
-            metric=metric or '_default_anonymous_metric', mode=mode,
+            metric=metric or DEFAULT_METRIC, mode=mode,
             space=config,
             points_to_evaluate=points_to_evaluate,
+            evaluated_rewards=evaluated_rewards,
             low_cost_partial_config=low_cost_partial_config,
             cat_hp_cost=cat_hp_cost,
             prune_attr=prune_attr,

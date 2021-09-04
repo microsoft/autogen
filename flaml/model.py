@@ -3,7 +3,6 @@
  * Licensed under the MIT License.
 '''
 
-import warnings
 import numpy as np
 import xgboost as xgb
 import time
@@ -31,12 +30,12 @@ class BaseEstimator:
             for both regression and classification
     '''
 
-    def __init__(self, task='binary:logistic', **params):
+    def __init__(self, task='binary', **params):
         '''Constructor
 
         Args:
             task: A string of the task type, one of
-                'binary:logistic', 'multi:softmax', 'regression'
+                'binary', 'multi', 'regression', 'rank', 'forecast'
             n_jobs: An integer of the number of parallel threads
             params: A dictionary of the hyperparameter names and values
         '''
@@ -48,7 +47,7 @@ class BaseEstimator:
             del self.params['_estimator_type']
         else:
             self._estimator_type = "classifier" if task in (
-                'binary:logistic', 'multi:softmax') else "regressor"
+                'binary', 'multi') else "regressor"
 
     def get_params(self, deep=False):
         params = self.params.copy()
@@ -145,11 +144,10 @@ class BaseEstimator:
             Each element at (i,j) is the probability for instance i to be in
                 class j
         '''
-        if 'regression' in self._task:
-            raise ValueError('Regression tasks do not support predict_prob')
-        else:
-            X_test = self._preprocess(X_test)
-            return self._model.predict_proba(X_test)
+        assert self._task in ('binary', 'multi'), (
+            'predict_prob() only for classification task.')
+        X_test = self._preprocess(X_test)
+        return self._model.predict_proba(X_test)
 
     def cleanup(self):
         pass
@@ -193,7 +191,7 @@ class BaseEstimator:
 
 class SKLearnEstimator(BaseEstimator):
 
-    def __init__(self, task='binary:logistic', **params):
+    def __init__(self, task='binary', **params):
         super().__init__(task, **params)
 
     def _preprocess(self, X):
@@ -264,21 +262,18 @@ class LGBMEstimator(BaseEstimator):
         n_estimators = int(round(config['n_estimators']))
         return (num_leaves * 3 + (num_leaves - 1) * 4 + 1.0) * n_estimators * 8
 
-    def __init__(self, task='binary:logistic', log_max_bin=8, **params):
+    def __init__(self, task='binary', log_max_bin=8, **params):
         super().__init__(task, **params)
         if "objective" not in self.params:
             # Default: ‘regression’ for LGBMRegressor,
             # ‘binary’ or ‘multiclass’ for LGBMClassifier
-            if 'regression' == task:
-                objective = 'regression'
-            elif 'binary' in task:
+            objective = 'regression'
+            if 'binary' in task:
                 objective = 'binary'
             elif 'multi' in task:
                 objective = 'multiclass'
             elif 'rank' == task:
                 objective = 'lambdarank'
-            else:
-                objective = 'regression'
             self.params["objective"] = objective
         if "n_estimators" in self.params:
             self.params["n_estimators"] = int(round(self.params["n_estimators"]))
@@ -477,7 +472,7 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         return XGBoostEstimator.cost_relative2lgbm()
 
     def __init__(
-        self, task='binary:logistic', n_jobs=1,
+        self, task='binary', n_jobs=1,
         n_estimators=4, max_leaves=4, subsample=1.0,
         min_child_weight=1, learning_rate=0.1, reg_lambda=1.0, reg_alpha=0.0,
         colsample_bylevel=1.0, colsample_bytree=1.0, tree_method='hist',
@@ -506,11 +501,10 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             'use_label_encoder': params.get('use_label_encoder', False),
         })
 
-        if 'regression' == task:
-            self.estimator_class = xgb.XGBRegressor
-        elif 'rank' == task:
+        self.estimator_class = xgb.XGBRegressor
+        if 'rank' == task:
             self.estimator_class = xgb.XGBRanker
-        else:
+        elif task in ('binary', 'multi'):
             self.estimator_class = xgb.XGBClassifier
         self._time_per_iter = None
         self._train_size = 0
@@ -543,7 +537,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
                 'low_cost_init_value': 4,
             },
         }
-        if task != 'regression':
+        if task in ('binary', 'multi'):
             space['criterion'] = {
                 'domain': tune.choice(['gini', 'entropy']),
                 # 'init_value': 'gini',
@@ -555,7 +549,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         return 2.0
 
     def __init__(
-        self, task='binary:logistic', n_jobs=1,
+        self, task='binary', n_jobs=1,
         n_estimators=4, max_features=1.0, criterion='gini', max_leaves=4,
         **params
     ):
@@ -569,9 +563,8 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
             'max_features': float(max_features),
             "max_leaf_nodes": params.get('max_leaf_nodes', int(round(max_leaves))),
         })
-        if 'regression' in task:
-            self.estimator_class = RandomForestRegressor
-        else:
+        self.estimator_class = RandomForestRegressor
+        if task in ('binary', 'multi'):
             self.estimator_class = RandomForestClassifier
             self.params['criterion'] = criterion
 
@@ -586,7 +579,7 @@ class ExtraTreeEstimator(RandomForestEstimator):
     def cost_relative2lgbm(cls):
         return 1.9
 
-    def __init__(self, task='binary:logistic', **params):
+    def __init__(self, task='binary', **params):
         super().__init__(task, **params)
         if 'regression' in task:
             self.estimator_class = ExtraTreesRegressor
@@ -610,7 +603,7 @@ class LRL1Classifier(SKLearnEstimator):
         return 160
 
     def __init__(
-        self, task='binary:logistic', n_jobs=1, tol=0.0001, C=1.0,
+        self, task='binary', n_jobs=1, tol=0.0001, C=1.0,
         **params
     ):
         super().__init__(task, **params)
@@ -621,11 +614,9 @@ class LRL1Classifier(SKLearnEstimator):
             'solver': params.get("solver", 'saga'),
             'n_jobs': n_jobs,
         })
-        if 'regression' in task:
-            self.estimator_class = None
-            raise NotImplementedError('LR does not support regression task')
-        else:
-            self.estimator_class = LogisticRegression
+        assert task in ('binary', 'multi'), (
+            'LogisticRegression for classification task only')
+        self.estimator_class = LogisticRegression
 
 
 class LRL2Classifier(SKLearnEstimator):
@@ -639,7 +630,7 @@ class LRL2Classifier(SKLearnEstimator):
         return 25
 
     def __init__(
-        self, task='binary:logistic', n_jobs=1, tol=0.0001, C=1.0,
+        self, task='binary', n_jobs=1, tol=0.0001, C=1.0,
         **params
     ):
         super().__init__(task, **params)
@@ -650,11 +641,9 @@ class LRL2Classifier(SKLearnEstimator):
             'solver': params.get("solver", 'lbfgs'),
             'n_jobs': n_jobs,
         })
-        if 'regression' in task:
-            self.estimator_class = None
-            raise NotImplementedError('LR does not support regression task')
-        else:
-            self.estimator_class = LogisticRegression
+        assert task in ('binary', 'multi'), (
+            'LogisticRegression for classification task only')
+        self.estimator_class = LogisticRegression
 
 
 class CatBoostEstimator(BaseEstimator):
@@ -711,7 +700,7 @@ class CatBoostEstimator(BaseEstimator):
         return X
 
     def __init__(
-        self, task='binary:logistic', n_jobs=1,
+        self, task='binary', n_jobs=1,
         n_estimators=8192, learning_rate=0.1, early_stopping_rounds=4, **params
     ):
         super().__init__(task, **params)
@@ -723,10 +712,9 @@ class CatBoostEstimator(BaseEstimator):
             'verbose': params.get('verbose', False),
             'random_seed': params.get("random_seed", 10242048),
         })
-        if 'regression' in task:
-            from catboost import CatBoostRegressor
-            self.estimator_class = CatBoostRegressor
-        else:
+        from catboost import CatBoostRegressor
+        self.estimator_class = CatBoostRegressor
+        if task in ('binary', 'multi'):
             from catboost import CatBoostClassifier
             self.estimator_class = CatBoostClassifier
 
@@ -831,7 +819,7 @@ class KNeighborsEstimator(BaseEstimator):
         return 30
 
     def __init__(
-        self, task='binary:logistic', n_jobs=1, n_neighbors=5, **params
+        self, task='binary', n_jobs=1, n_neighbors=5, **params
     ):
         super().__init__(task, **params)
         self.params.update({
@@ -839,10 +827,9 @@ class KNeighborsEstimator(BaseEstimator):
             'weights': params.get('weights', 'distance'),
             'n_jobs': n_jobs,
         })
-        if 'regression' in task:
-            from sklearn.neighbors import KNeighborsRegressor
-            self.estimator_class = KNeighborsRegressor
-        else:
+        from sklearn.neighbors import KNeighborsRegressor
+        self.estimator_class = KNeighborsRegressor
+        if task in ('binary', 'multi'):
             from sklearn.neighbors import KNeighborsClassifier
             self.estimator_class = KNeighborsClassifier
 
@@ -920,7 +907,7 @@ class FBProphet(BaseEstimator):
             forecast = self._model.predict(X_test)
             return forecast['yhat']
         else:
-            warnings.warn(
+            logger.warning(
                 "Estimator is not fit yet. Please run fit() before predict().")
             return np.ones(X_test.shape[0])
 
@@ -954,8 +941,9 @@ class ARIMA(FBProphet):
         return train_df
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
-        from statsmodels.tsa.arima.model import ARIMA as ARIMA_estimator
+        import warnings
         warnings.filterwarnings("ignore")
+        from statsmodels.tsa.arima.model import ARIMA as ARIMA_estimator
         current_time = time.time()
         train_df = self._join(X_train, y_train)
         model = ARIMA_estimator(

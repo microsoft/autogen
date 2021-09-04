@@ -14,14 +14,14 @@ try:
     assert ray_version >= '1.0.0'
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
-    from ray.tune.utils.util import unflatten_dict
 except (ImportError, AssertionError):
     from .suggestion import Searcher
     from .suggestion import OptunaSearch as GlobalSearch
-    from ..tune.trial import unflatten_dict
+from ..tune.trial import unflatten_dict, flatten_dict
 from .search_thread import SearchThread
 from .flow2 import FLOW2
-from ..tune.space import add_cost_to_space, indexof, normalize, define_by_run_func
+from ..tune.space import (
+    add_cost_to_space, indexof, normalize, define_by_run_func)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -40,9 +40,10 @@ class BlendSearch(Searcher):
                  metric: Optional[str] = None,
                  mode: Optional[str] = None,
                  space: Optional[dict] = None,
-                 points_to_evaluate: Optional[List[dict]] = None,
                  low_cost_partial_config: Optional[dict] = None,
                  cat_hp_cost: Optional[dict] = None,
+                 points_to_evaluate: Optional[List[dict]] = None,
+                 evaluated_rewards: Optional[List] = None,
                  prune_attr: Optional[str] = None,
                  min_resource: Optional[float] = None,
                  max_resource: Optional[float] = None,
@@ -61,7 +62,6 @@ class BlendSearch(Searcher):
             mode: A string in ['min', 'max'] to specify the objective as
                 minimization or maximization.
             space: A dictionary to specify the search space.
-            points_to_evaluate: Initial parameter suggestions to be run first.
             low_cost_partial_config: A dictionary from a subset of
                 controlled dimensions to the initial low-cost values.
                 e.g.,
@@ -80,6 +80,13 @@ class BlendSearch(Searcher):
 
                 i.e., the relative cost of the
                 three choices of 'tree_method' is 1, 1 and 2 respectively.
+            points_to_evaluate: Initial parameter suggestions to be run first.
+            evaluated_rewards (list): If you have previously evaluated the
+                parameters passed in as points_to_evaluate you can avoid
+                re-running those trials by passing in the reward attributes
+                as a list so the optimiser can be told the results without
+                needing to re-compute the trial. Must be the same length as
+                points_to_evaluate.
             prune_attr: A string of the attribute used for pruning.
                 Not necessarily in space.
                 When prune_attr is in space, it is a hyperparameter, e.g.,
@@ -122,7 +129,20 @@ class BlendSearch(Searcher):
                 "consider providing low-cost values for cost-related hps via "
                 "'low_cost_partial_config'."
             )
-        self._points_to_evaluate = points_to_evaluate or []
+        if evaluated_rewards and mode:
+            self._points_to_evaluate = []
+            self._evaluated_rewards = []
+            best = max(evaluated_rewards) if mode == 'max' else min(
+                evaluated_rewards)
+            # only keep the best points as start points
+            for i, r in enumerate(evaluated_rewards):
+                if r == best:
+                    p = points_to_evaluate[i]
+                    self._points_to_evaluate.append(p)
+                    self._evaluated_rewards.append(r)
+        else:
+            self._points_to_evaluate = points_to_evaluate or []
+            self._evaluated_rewards = evaluated_rewards or []
         self._config_constraints = config_constraints
         self._metric_constraints = metric_constraints
         if self._metric_constraints:
@@ -131,40 +151,45 @@ class BlendSearch(Searcher):
         self._cat_hp_cost = cat_hp_cost or {}
         if space:
             add_cost_to_space(space, init_config, self._cat_hp_cost)
+        self._ls = self.LocalSearch(
+            init_config, metric, mode, space, prune_attr,
+            min_resource, max_resource, reduction_factor, self.cost_attr, seed)
         if global_search_alg is not None:
             self._gs = global_search_alg
         elif getattr(self, '__name__', None) != 'CFO':
-            from functools import partial
-            gs_space = partial(define_by_run_func, space=space)
+            if space and self._ls.hierarchical:
+                from functools import partial
+                gs_space = partial(define_by_run_func, space=space)
+                evaluated_rewards = None    # not supproted by define-by-run
+            else:
+                gs_space = space
+            gs_seed = seed - 10 if (seed - 10) >= 0 else seed - 11 + (1 << 32)
+            if experimental:
+                import optuna as ot
+                sampler = ot.samplers.TPESampler(
+                    seed=seed, multivariate=True, group=True)
+            else:
+                sampler = None
             try:
-                gs_seed = seed - 10 if (seed - 10) >= 0 else seed - 11 + (1 << 32)
-                if experimental:
-                    import optuna as ot
-                    sampler = ot.samplers.TPESampler(
-                        seed=seed, multivariate=True, group=True)
-                else:
-                    sampler = None
+                self._gs = GlobalSearch(
+                    space=gs_space, metric=metric, mode=mode, seed=gs_seed,
+                    sampler=sampler, points_to_evaluate=points_to_evaluate,
+                    evaluated_rewards=evaluated_rewards)
+            except ValueError:
                 self._gs = GlobalSearch(
                     space=gs_space, metric=metric, mode=mode, seed=gs_seed,
                     sampler=sampler)
-            except TypeError:
-                self._gs = GlobalSearch(space=gs_space, metric=metric, mode=mode)
             self._gs.space = space
         else:
             self._gs = None
         self._experimental = experimental
         if getattr(self, '__name__', None) == 'CFO' and points_to_evaluate and len(
-           points_to_evaluate) > 1:
+           self._points_to_evaluate) > 1:
             # use the best config in points_to_evaluate as the start point
             self._candidate_start_points = {}
             self._started_from_low_cost = not low_cost_partial_config
         else:
             self._candidate_start_points = None
-        self._ls = self.LocalSearch(
-            init_config, metric, mode, space, prune_attr,
-            min_resource, max_resource, reduction_factor, self.cost_attr, seed)
-        self._is_ls_ever_converged = False
-        self._subspace = {}     # the subspace for each trial id
         if space:
             self._init_search()
 
@@ -187,6 +212,7 @@ class BlendSearch(Searcher):
         if not self._ls.space:
             # the search space can be set only once
             if self._gs is not None:
+                # define-by-run is not supported via set_search_properties
                 self._gs.set_search_properties(metric, mode, config)
                 self._gs.space = config
             if config:
@@ -216,6 +242,8 @@ class BlendSearch(Searcher):
     def _init_search(self):
         '''initialize the search
         '''
+        self._is_ls_ever_converged = False
+        self._subspace = {}     # the subspace for each trial id
         self._metric_target = np.inf * self._ls.metric_op
         self._search_thread_pool = {
             # id: int -> thread: SearchThread
@@ -239,6 +267,7 @@ class BlendSearch(Searcher):
         else:
             self._metric_constraint_satisfied = True
             self._metric_constraint_penalty = None
+        self.best_resource = self._ls.min_resource
 
     def save(self, checkpoint_path: str):
         ''' save states to a checkpoint path
@@ -295,10 +324,11 @@ class BlendSearch(Searcher):
                 trial_id, result, error)
             del self._trial_proposed_by[trial_id]
         if result:
-            config = {}
-            for key, value in result.items():
-                if key.startswith('config/'):
-                    config[key[7:]] = value
+            config = result.get('config', {})
+            if not config:
+                for key, value in result.items():
+                    if key.startswith('config/'):
+                        config[key[7:]] = value
             signature = self._ls.config_signature(
                 config, self._subspace.get(trial_id, {}))
             if error:  # remove from result cache
@@ -309,17 +339,22 @@ class BlendSearch(Searcher):
                 objective = result[self._ls.metric]
                 if (objective - self._metric_target) * self._ls.metric_op < 0:
                     self._metric_target = objective
+                    if self._ls.resource:
+                        self._best_resource = config[self._ls.prune_attr]
                 if thread_id:
                     if not self._metric_constraint_satisfied:
                         # no point has been found to satisfy metric constraint
                         self._expand_admissible_region(
                             self._ls_bound_min, self._ls_bound_max,
                             self._subspace.get(trial_id, self._ls.space))
-                    # if self._gs is not None and self._experimental:
-                    #     # TODO: recover when supported
-                    #     converted = convert_key(config, self._gs.space)
-                    #     logger.info(converted)
-                    #     self._gs.add_evaluated_point(converted, objective)
+                    if self._gs is not None and self._experimental and (
+                       not self._ls.hierarchical):
+                        self._gs.add_evaluated_point(
+                            flatten_dict(config), objective)
+                        # TODO: recover when supported
+                        # converted = convert_key(config, self._gs.space)
+                        # logger.info(converted)
+                        # self._gs.add_evaluated_point(converted, objective)
                 elif metric_constraint_satisfied and self._create_condition(
                         result):
                     # thread creator
@@ -496,10 +531,12 @@ class BlendSearch(Searcher):
         '''
         if self._init_used and not self._points_to_evaluate:
             choice, backup = self._select_thread()
-            if choice < 0:  # timeout
-                return None
+            # if choice < 0:  # timeout
+            #     return None
             config = self._search_thread_pool[choice].suggest(trial_id)
-            if choice and config is None:
+            if not choice and config is not None and self._ls.resource:
+                config[self._ls.prune_attr] = self.best_resource
+            elif choice and config is None:
                 # local search thread finishes
                 if self._search_thread_pool[choice].converged:
                     self._expand_admissible_region(
@@ -544,9 +581,6 @@ class BlendSearch(Searcher):
                     self._trial_proposed_by[trial_id] = backup
                     choice = backup
             if not choice:  # global search
-                if self._ls._resource:
-                    # TODO: min or median?
-                    config[self._ls.prune_attr] = self._ls.min_resource
                 # temporarily relax admissible region for parallel proposals
                 self._update_admissible_region(
                     config, self._gs_admissible_min, self._gs_admissible_max,
@@ -563,22 +597,35 @@ class BlendSearch(Searcher):
         else:  # use init config
             if self._candidate_start_points is not None and self._points_to_evaluate:
                 self._candidate_start_points[trial_id] = None
-            init_config = self._points_to_evaluate.pop(
-                0) if self._points_to_evaluate else self._ls.init_config
+            reward = None
+            if self._points_to_evaluate:
+                init_config = self._points_to_evaluate.pop(0)
+                if self._evaluated_rewards:
+                    reward = self._evaluated_rewards.pop(0)
+            else:
+                init_config = self._ls.init_config
             config, space = self._ls.complete_config(
                 init_config, self._ls_bound_min, self._ls_bound_max)
-            config_signature = self._ls.config_signature(config, space)
-            result = self._result.get(config_signature)
-            if result:  # tried before
-                return None
-            elif result is None:  # not tried before
-                self._result[config_signature] = {}
-            else:  # running but no result yet
-                return None
+            if reward is None:
+                config_signature = self._ls.config_signature(config, space)
+                result = self._result.get(config_signature)
+                if result:  # tried before
+                    return None
+                elif result is None:  # not tried before
+                    self._result[config_signature] = {}
+                else:  # running but no result yet
+                    return None
             self._init_used = True
             self._trial_proposed_by[trial_id] = 0
             self._search_thread_pool[0].running += 1
             self._subspace[trial_id] = space
+            if reward is not None:
+                result = {
+                    self._metric: reward, self.cost_attr: 1,
+                    'config': config
+                }
+                self.on_trial_complete(trial_id, result)
+                return None
         return config
 
     def _should_skip(self, choice, trial_id, config, space) -> bool:
@@ -694,78 +741,87 @@ except (ImportError, AssertionError):
 try:
     from nni.tuner import Tuner as NNITuner
     from nni.utils import extract_scalar_reward
-
-    class BlendSearchTuner(BlendSearch, NNITuner):
-        '''Tuner class for NNI
-        '''
-
-        def receive_trial_result(self, parameter_id, parameters, value,
-                                 **kwargs):
-            '''
-            Receive trial's final result.
-            parameter_id: int
-            parameters: object created by 'generate_parameters()'
-            value: final metrics of the trial, including default metric
-            '''
-            result = {}
-            for key, value in parameters.items():
-                result['config/' + key] = value
-            reward = extract_scalar_reward(value)
-            result[self._metric] = reward
-            # if nni does not report training cost,
-            # using sequence as an approximation.
-            # if no sequence, using a constant 1
-            result[self.cost_attr] = value.get(self.cost_attr, value.get(
-                'sequence', 1))
-            self.on_trial_complete(str(parameter_id), result)
-        ...
-
-        def generate_parameters(self, parameter_id, **kwargs) -> Dict:
-            '''
-            Returns a set of trial (hyper-)parameters, as a serializable object
-            parameter_id: int
-            '''
-            return self.suggest(str(parameter_id))
-        ...
-
-        def update_search_space(self, search_space):
-            '''
-            Tuners are advised to support updating search space at run-time.
-            If a tuner can only set search space once before generating first hyper-parameters,
-            it should explicitly document this behaviour.
-            search_space: JSON object created by experiment owner
-            '''
-            config = {}
-            for key, value in search_space.items():
-                v = value.get("_value")
-                _type = value['_type']
-                if _type == 'choice':
-                    config[key] = choice(v)
-                elif _type == 'randint':
-                    config[key] = randint(v[0], v[1] - 1)
-                elif _type == 'uniform':
-                    config[key] = uniform(v[0], v[1])
-                elif _type == 'quniform':
-                    config[key] = quniform(v[0], v[1], v[2])
-                elif _type == 'loguniform':
-                    config[key] = loguniform(v[0], v[1])
-                elif _type == 'qloguniform':
-                    config[key] = qloguniform(v[0], v[1], v[2])
-                elif _type == 'normal':
-                    config[key] = randn(v[1], v[2])
-                elif _type == 'qnormal':
-                    config[key] = qrandn(v[1], v[2], v[3])
-                else:
-                    raise ValueError(
-                        f'unsupported type in search_space {_type}')
-            self._ls.set_search_properties(None, None, config)
-            if self._gs is not None:
-                self._gs.set_search_properties(None, None, config)
-            self._init_search()
-
 except ImportError:
-    class BlendSearchTuner(BlendSearch):
+    class NNITuner:
         pass
+
+    def extract_scalar_reward(x: Dict):
+        return x.get('reward')
+
+
+class BlendSearchTuner(BlendSearch, NNITuner):
+    '''Tuner class for NNI
+    '''
+
+    def receive_trial_result(self, parameter_id, parameters, value,
+                             **kwargs):
+        '''
+        Receive trial's final result.
+        parameter_id: int
+        parameters: object created by 'generate_parameters()'
+        value: final metrics of the trial, including default metric
+        '''
+        result = {}
+        for k, v in parameters.items():
+            result['config/' + k] = v
+        reward = extract_scalar_reward(value)
+        result[self._metric] = reward
+        # if nni does not report training cost,
+        # using sequence as an approximation.
+        # if no sequence, using a constant 1
+        result[self.cost_attr] = value.get(self.cost_attr, value.get(
+            'sequence', 1))
+        self.on_trial_complete(str(parameter_id), result)
+    ...
+
+    def generate_parameters(self, parameter_id, **kwargs) -> Dict:
+        '''
+        Returns a set of trial (hyper-)parameters, as a serializable object
+        parameter_id: int
+        '''
+        return self.suggest(str(parameter_id))
+    ...
+
+    def update_search_space(self, search_space):
+        '''
+        Tuners are advised to support updating search space at run-time.
+        If a tuner can only set search space once before generating first hyper-parameters,
+        it should explicitly document this behaviour.
+        search_space: JSON object created by experiment owner
+        '''
+        config = {}
+        for key, value in search_space.items():
+            v = value.get("_value")
+            _type = value['_type']
+            if _type == 'choice':
+                config[key] = choice(v)
+            elif _type == 'randint':
+                config[key] = randint(*v)
+            elif _type == 'uniform':
+                config[key] = uniform(*v)
+            elif _type == 'quniform':
+                config[key] = quniform(*v)
+            elif _type == 'loguniform':
+                config[key] = loguniform(*v)
+            elif _type == 'qloguniform':
+                config[key] = qloguniform(*v)
+            elif _type == 'normal':
+                config[key] = randn(*v)
+            elif _type == 'qnormal':
+                config[key] = qrandn(*v)
+            else:
+                raise ValueError(
+                    f'unsupported type in search_space {_type}')
+        add_cost_to_space(config, {}, {})
+        self._ls = self.LocalSearch(
+            {}, self._ls.metric, self._mode, config, cost_attr=self.cost_attr,
+            seed=self._ls.seed)
+        if self._gs is not None:
+            self._gs = GlobalSearch(
+                space=config, metric=self._metric, mode=self._mode,
+                sampler=self._gs._sampler)
+            self._gs.space = config
+        self._init_search()
 
 
 class CFO(BlendSearchTuner):

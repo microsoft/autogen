@@ -21,6 +21,7 @@ def test_forecast_automl(budget=5):
         "task": 'forecast',  # task type
         "log_file_name": 'CO2_forecast.log',  # flaml log file
         "eval_method": "holdout",
+        "label": ('ds', 'y'),
     }
     '''The main flaml automl API'''
     try:

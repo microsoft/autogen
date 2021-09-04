@@ -90,30 +90,30 @@ def define_by_run_func(
     return config
 
 
-def convert_key(
-    conf: Dict, space: Dict, path: str = ""
-) -> Optional[Dict[str, Any]]:
-    """Convert config keys to define-by-run keys.
+# def convert_key(
+#     conf: Dict, space: Dict, path: str = ""
+# ) -> Optional[Dict[str, Any]]:
+#     """Convert config keys to define-by-run keys.
 
-    Returns:
-        A dict with converted keys.
-    """
-    config = {}
-    for key, domain in space.items():
-        value = conf[key]
-        if path:
-            key = path + '/' + key
-        if isinstance(domain, dict):
-            config.update(convert_key(conf[key], domain, key))
-        elif isinstance(domain, sample.Categorical):
-            index = indexof(domain, value)
-            config[key + '_choice_'] = index
-            if isinstance(value, dict):
-                key += f":{index}"
-                config.update(convert_key(value, domain.categories[index], key))
-        else:
-            config[key] = value
-    return config
+#     Returns:
+#         A dict with converted keys.
+#     """
+#     config = {}
+#     for key, domain in space.items():
+#         value = conf[key]
+#         if path:
+#             key = path + '/' + key
+#         if isinstance(domain, dict):
+#             config.update(convert_key(conf[key], domain, key))
+#         elif isinstance(domain, sample.Categorical):
+#             index = indexof(domain, value)
+#             config[key + '_choice_'] = index
+#             if isinstance(value, dict):
+#                 key += f":{index}"
+#                 config.update(convert_key(value, domain.categories[index], key))
+#         else:
+#             config[key] = value
+#     return config
 
 
 def unflatten_hierarchical(config: Dict, space: Dict) -> Tuple[Dict, Dict]:
@@ -306,10 +306,8 @@ def normalize(
         elif str(sampler) == 'Normal':
             # N(mean, sd) -> N(0,1)
             config_norm[key] = (value - sampler.mean) / sampler.sd
-        else:
-            # TODO? elif str(sampler) == 'Base': # sample.Function._CallSampler
-            # e.g., {test: sample_from(lambda spec: randn(10, 2).sample() * 0.01)}
-            config_norm[key] = value
+        # else:
+        #     config_norm[key] = value
     return config_norm
 
 

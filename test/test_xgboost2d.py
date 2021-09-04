@@ -76,7 +76,7 @@ def test_simple(method=None):
     print(analysis.trials[-1])
 
 
-def _test_optuna():
+def test_optuna():
     test_simple(method="optuna")
 
 
