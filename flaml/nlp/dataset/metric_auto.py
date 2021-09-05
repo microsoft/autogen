@@ -64,6 +64,7 @@ def get_default_and_alternative_metric(dataset_name_list: typing.List,
 
         return default_metric, default_mode, all_metrics, all_mode
     else:
+        # TODO coverage
         assert isinstance(eval_name_mapping, list), "dataset_name and subdataset_name not correctly specified"
 
         default_metric, default_mode = eval_name_mapping[0]

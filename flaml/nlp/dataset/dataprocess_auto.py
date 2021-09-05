@@ -77,6 +77,7 @@ def tokenize_superglue_wic(this_example,
     try:
         padding_direction = this_tokenizer.padding_side
         if padding_direction == "left":
+            # TODO coverage
             padding_id = input_ids_sepp[0]
             while input_ids_sepp[ptr_sepp] == padding_id:
                 ptr_sepp += 1
@@ -103,6 +104,7 @@ def tokenize_superglue_wic(this_example,
                 which_sepp += 1
                 ptr_sepp += 1
             else:
+                # TODO coverage
                 ptr_sepp += 1
     """
         max_word_span is the maximum tokens of the word
@@ -131,6 +133,7 @@ def tokenize_glue(this_example,
     if len(sentence_keys) > 1:
         sentence1_key, sentence2_key = sentence_keys[0], sentence_keys[1]
     else:
+        # TODO coverage
         sentence1_key = sentence_keys[0]
         sentence2_key = None
 

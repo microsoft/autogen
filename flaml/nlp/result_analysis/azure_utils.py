@@ -360,6 +360,7 @@ class JobID:
                 print("console_args has no attribute {}, continue".format(each_key))
                 continue
         if self.mod == "grid":
+            # TODO coverage
             self.alg = "grid"
 
 
@@ -447,6 +448,7 @@ class AzureUtils:
         if autohf is not None:
             self.jobid = autohf.jobid_config
         else:
+            # TODO coverage
             assert jobid_config is not None, "jobid_config must be passed either through autohf.jobid_config" \
                                              " or jobid_config"
             self.jobid = jobid_config
@@ -527,6 +529,7 @@ class AzureUtils:
             print("Your output will not be synced to azure because azure-blob-storage is not installed")
 
     def download_azure_blob(self, blobname):
+        # TODO coverage
         blob_client = self._init_blob_client(blobname)
         if blob_client:
             pathlib.Path(re.search("(?P<parent_path>^.*)/[^/]+$", blobname).group("parent_path")).mkdir(
@@ -549,6 +552,7 @@ class AzureUtils:
                 metric_score = each_trial.metric_analysis["eval_" + analysis.default_metric]
                 time_stamp = each_trial.metric_analysis['timestamp']
             except KeyError:
+                # TODO coverage
                 print("KeyError, {} does not contain the key {} or {}".format("each_trial.metric_analysis",
                                                                               "eval_" + analysis.default_metric,
                                                                               "timestamp"))
@@ -608,6 +612,7 @@ class AzureUtils:
         """
         azure_save_file_name = local_json_file.split("/")[-1][:-5]
         if self.data_root_dir is None:
+            # TODO coverage
             from ..utils import load_dft_args
             console_args = load_dft_args()
             output_dir = getattr(console_args, "data_root_dir")
@@ -622,6 +627,7 @@ class AzureUtils:
 
     @staticmethod
     def is_after_earliest_time(this_blob, earliest_time: Tuple[int, int, int]):
+        # TODO coverage
         import pytz
         utc = pytz.UTC
         if this_blob.last_modified >= utc.localize(datetime(earliest_time[0], earliest_time[1], earliest_time[2])):
@@ -639,6 +645,7 @@ class AzureUtils:
         container_client = self._init_azure_clients()
         if container_client:
             for each_blob in container_client.list_blobs():
+                # TODO coverage
                 if each_blob.name.startswith(root_log_path):
                     each_jobconfig = JobID.convert_blobname_to_jobid(each_blob.name)
                     is_append = False
@@ -701,6 +708,7 @@ class AzureUtils:
         """
         matched_config_score_lists = []
         for (each_jobconfig, each_blob) in matched_blob_list:
+            # TODO coverage
             self.download_azure_blob(each_blob.name)
             data_json = json.load(open(each_blob.name, "r"))
             each_config_and_score_list = ConfigScoreList(

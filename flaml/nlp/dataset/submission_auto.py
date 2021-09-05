@@ -59,6 +59,7 @@ def output_prediction_glue(output_path, zip_file_name, predictions, train_data, 
             if subdataset_name != "mnli":
                 is_match = subdataset_name == each_subdataset_name
             else:
+                # TODO coverage
                 if dev_name == "validation_matched":
                     is_match = each_file == "MNLI-m.tsv"
                 else:
@@ -68,11 +69,13 @@ def output_prediction_glue(output_path, zip_file_name, predictions, train_data, 
                     writer.write("index\tprediction\n")
                     for index, item in enumerate(predictions):
                         if subdataset_name == "stsb":
+                            # TODO coverage
                             if item > 5.0:
                                 item = 5.0
                             writer.write(f"{index}\t{item:3.3f}\n")
                         else:
                             if subdataset_name in ("rte", "qnli", "mnli"):
+                                # TODO coverage
                                 item = label_list[item]
                                 writer.write(f"{index}\t{item}\n")
                             else:
@@ -80,6 +83,7 @@ def output_prediction_glue(output_path, zip_file_name, predictions, train_data, 
                                     item = int(item)
                                     writer.write(f"{index}\t{item}\n")
                                 else:
+                                    # TODO coverage
                                     writer.write(f"{index}\t{item:3.3f}\n")
 
     shutil.make_archive(os.path.join(output_path, zip_file_name), 'zip', output_dir)
