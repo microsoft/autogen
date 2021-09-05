@@ -366,7 +366,7 @@ class AutoML:
     @property
     def classes_(self):
         '''A list of n_classes elements for class labels.'''
-        attr = getattr(self, "label_transformer", None)
+        attr = getattr(self, "_label_transformer", None)
         if attr:
             return attr.classes_.tolist()
         attr = getattr(self, "_trained_estimator", None)

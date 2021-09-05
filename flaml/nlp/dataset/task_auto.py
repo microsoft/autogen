@@ -42,6 +42,7 @@ def get_default_task(dataset_name_list: list, subdataset_name=None):
             "dataset_name and subdataset_name not correctly specified"
         default_task = eval_name_mapping[subdataset_name]
     else:
+        # TODO coverage
         assert isinstance(eval_name_mapping, list), "dataset_name and subdataset_name not correctly specified"
         default_task = eval_name_mapping
     return default_task

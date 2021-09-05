@@ -35,6 +35,7 @@ class WandbUtils:
             os.environ["WANDB_API_KEY"] = wandb_key
             os.environ["WANDB_MODE"] = "online"
         else:
+            # TODO coverage
             os.environ["WANDB_MODE"] = "disabled"
         self.jobid_config = jobid_config
 
@@ -53,6 +54,7 @@ class WandbUtils:
             return ""
 
     def set_wandb_per_trial(self):
+        # TODO coverage
         print("before wandb.init\n\n\n")
         try:
             import wandb
