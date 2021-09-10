@@ -1,12 +1,14 @@
 '''Require: pip install torchvision ray flaml[blendsearch]
 '''
-import unittest
 import os
 import time
+import numpy as np
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.FileHandler('test/tune_pytorch_cifar10.log'))
+os.makedirs('logs', exist_ok=True)
+logger.addHandler(logging.FileHandler('logs/tune_pytorch_cifar10.log'))
+logger.setLevel(logging.INFO)
 
 
 try:
@@ -184,7 +186,7 @@ def _test_accuracy(net, device="cpu"):
 
 # __main_begin__
 def cifar10_main(
-    method='BlendSearch', num_samples=10, max_num_epochs=100, gpus_per_trial=2
+    method='BlendSearch', num_samples=10, max_num_epochs=100, gpus_per_trial=1
 ):
     data_dir = os.path.abspath("test/data")
     load_data(data_dir)  # Download data for all trials before starting the run
@@ -192,7 +194,7 @@ def cifar10_main(
         from flaml import tune
     else:
         from ray import tune
-    if method in ['BlendSearch', 'BOHB', 'Optuna']:
+    if method in ['BOHB']:
         config = {
             "l1": tune.randint(2, 8),
             "l2": tune.randint(2, 8),
@@ -205,28 +207,24 @@ def cifar10_main(
             "l1": tune.randint(2, 9),
             "l2": tune.randint(2, 9),
             "lr": tune.loguniform(1e-4, 1e-1),
-            "num_epochs": tune.qloguniform(1, max_num_epochs + 1, q=1),
+            "num_epochs": tune.loguniform(1, max_num_epochs),
             "batch_size": tune.randint(1, 5)
         }
     import ray
-    time_budget_s = 3600
+    time_budget_s = 600
+    np.random.seed(7654321)
     start_time = time.time()
     if method == 'BlendSearch':
         result = tune.run(
             ray.tune.with_parameters(train_cifar, data_dir=data_dir),
             config=config,
-            low_cost_partial_config={
-                "l1": 2,
-                "l2": 2,
-                "num_epochs": 1,
-                "batch_size": 4,
-            },
             metric="loss",
             mode="min",
+            low_cost_partial_config={"num_epochs": 1},
             max_resource=max_num_epochs,
             min_resource=1,
             report_intermediate_result=True,
-            resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
+            resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
             local_dir='logs/',
             num_samples=num_samples,
             time_budget_s=time_budget_s,
@@ -241,14 +239,11 @@ def cifar10_main(
             scheduler = HyperBandForBOHB(max_t=max_num_epochs)
         elif 'Optuna' == method:
             from ray.tune.suggest.optuna import OptunaSearch
-            algo = OptunaSearch()
+            algo = OptunaSearch(seed=10)
         elif 'CFO' == method:
             from flaml import CFO
             algo = CFO(low_cost_partial_config={
-                "l1": 2,
-                "l2": 2,
                 "num_epochs": 1,
-                "batch_size": 4,
             })
         elif 'Nevergrad' == method:
             from ray.tune.suggest.nevergrad import NevergradSearch
@@ -261,7 +256,7 @@ def cifar10_main(
                 grace_period=1)
         result = tune.run(
             tune.with_parameters(train_cifar, data_dir=data_dir),
-            resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
+            resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
             config=config,
             metric="loss",
             mode="min",
@@ -271,7 +266,7 @@ def cifar10_main(
     ray.shutdown()
 
     logger.info(f"method={method}")
-    logger.info(f"n_samples={num_samples}")
+    logger.info(f"#trials={len(result.trials)}")
     logger.info(f"time={time.time()-start_time}")
     best_trial = result.get_best_trial("loss", "min", "all")
     logger.info("Best trial config: {}".format(best_trial.config))
@@ -299,7 +294,7 @@ def cifar10_main(
 # __main_end__
 
 
-gpus_per_trial = 0  # 0.5 on GPU server
+gpus_per_trial = 0.5  # on GPU server
 num_samples = 500
 
 
@@ -333,4 +328,4 @@ def _test_cifar10_nevergrad():
 
 
 if __name__ == "__main__":
-    unittest.main()
+    _test_cifar10_bs()

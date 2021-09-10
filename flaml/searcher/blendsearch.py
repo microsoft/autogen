@@ -761,16 +761,14 @@ class BlendSearchTuner(BlendSearch, NNITuner):
         parameters: object created by 'generate_parameters()'
         value: final metrics of the trial, including default metric
         '''
-        result = {}
-        for k, v in parameters.items():
-            result['config/' + k] = v
-        reward = extract_scalar_reward(value)
-        result[self._metric] = reward
-        # if nni does not report training cost,
-        # using sequence as an approximation.
-        # if no sequence, using a constant 1
-        result[self.cost_attr] = value.get(self.cost_attr, value.get(
-            'sequence', 1))
+        result = {
+            'config': parameters, self._metric: extract_scalar_reward(value),
+            self.cost_attr: 1 if isinstance(value, float) else value.get(
+                self.cost_attr, value.get('sequence', 1))
+            # if nni does not report training cost,
+            # using sequence as an approximation.
+            # if no sequence, using a constant 1
+        }
         self.on_trial_complete(str(parameter_id), result)
     ...
 

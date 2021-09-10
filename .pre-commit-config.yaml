@@ -1,0 +1,18 @@
+
+repos:
+  - repo: https://github.com/psf/black
+    rev: stable
+    hooks:
+    - id: black
+      language_version: python3
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v1.2.3
+    hooks:
+    - id: flake8
+    - id: check-added-large-files
+    - id: check-ast
+    - id: check-byte-order-marker
+    - id: check-merge-conflict
+    - id: detect-private-key
+    - id: trailing-whitespace
+    - id: no-commit-to-branch
