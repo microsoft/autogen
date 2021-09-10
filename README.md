@@ -13,7 +13,7 @@
 
 FLAML is a lightweight Python library that finds accurate machine
 learning models automatically, efficiently and economically. It frees users from selecting
-learners and hyperparameters for each learner. It is fast and economical. 
+learners and hyperparameters for each learner. It is fast and economical.
 The simple and lightweight design makes it easy to extend, such as
 adding customized learners or metrics. FLAML is powered by a new, [cost-effective
 hyperparameter optimization](https://github.com/microsoft/FLAML/tree/main/flaml/tune)
@@ -146,7 +146,7 @@ print(automl.predict(X_train[72:]))
 ```python
 from sklearn.datasets import fetch_openml
 from flaml import AutoML
-X, y = fetch_openml(name="credit-g", return_X_y=True)   
+X, y = fetch_openml(name="credit-g", return_X_y=True)  
 # not a real learning to rank dataaset
 groups = [200] * 4 + [100] * 2,    # group counts
 automl = AutoML()
@@ -206,9 +206,24 @@ git clone https://github.com/microsoft/FLAML.git
 pip install -e .[test,notebook]
 ```
 
+### Docker
+We provide a simple [Dockerfile](https://github.com/microsoft/FLAML/blob/main/Dockerfile).
+```
+docker build git://github.com/microsoft/FLAML -t flaml-dev
+docker run -it flaml-dev
+```
+
+### Develop in Remote Container
+If you use vscode, you can open the FLAML folder in a [Container](https://code.visualstudio.com/docs/remote/containers).
+We have provided the configuration in (.devcontainer)[(https://github.com/microsoft/FLAML/blob/main/.devcontainer)].
+
+### Pre-commit
+Run `pre-commit install` to install pre-commit into your git hooks. Before you commit, run
+`pre-commit run` to check if you meet the pre-commit requirements. If you use Windows (without WSL) and can't commit after installing pre-commit, you can run `pre-commit uninstall` to uninstall the hook. In WSL or Linux this is supposed to work.
+
 ### Coverage
 
-Any code you commit should generally not significantly impact coverage. To run all unit tests:
+Any code you commit should not decrease coverage. To run all unit tests:
 
 ```bash
 coverage run -m pytest test

@@ -67,6 +67,9 @@ class TrainingLogWriter(object):
     def open(self):
         self.file = open(self.output_filename, 'w')
 
+    def append_open(self):
+        self.file = open(self.output_filename, 'a')
+
     def append(self,
                it_counter: int,
                train_loss: float,
@@ -157,10 +160,13 @@ class TrainingLogReader(object):
 
 
 @contextmanager
-def training_log_writer(filename: str):
+def training_log_writer(filename: str, append: bool = False):
     try:
         w = TrainingLogWriter(filename)
-        w.open()
+        if not append:
+            w.open()
+        else:
+            w.append_open()
         yield w
     finally:
         w.close()

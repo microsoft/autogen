@@ -20,7 +20,7 @@ install_requires = [
     "scipy>=1.4.1",
     "catboost>=0.23",
     "scikit-learn>=0.24",
-],
+]
 
 
 setuptools.setup(
@@ -40,12 +40,12 @@ setuptools.setup(
             "jupyter",
             "matplotlib==3.2.0",
             "rgf-python",
-            "vowpalwabbit",
         ],
         "test": [
             "flake8>=3.8.4",
             "pytest>=6.1.1",
             "coverage>=5.3",
+            "pre-commit",
             "xgboost<1.3",
             "rgf-python",
             "optuna==2.8.0",
@@ -56,11 +56,9 @@ setuptools.setup(
             "torch==1.8.1",
             "datasets==1.4.1",
             "azure-storage-blob",
-            "statsmodels>=0.12.2"
+            "statsmodels>=0.12.2",
         ],
-        "blendsearch": [
-            "optuna==2.8.0"
-        ],
+        "blendsearch": ["optuna==2.8.0"],
         "ray": [
             "ray[tune]==1.6.0",
             "pyyaml<5.3.1",
@@ -79,12 +77,9 @@ setuptools.setup(
             "transformers",
             "datasets==1.4.1",
             "tensorboardX<=2.2",
-            "torch"
+            "torch",
         ],
-        "forecast": [
-            "prophet>=1.0.1",
-            "statsmodels>=0.12.2"
-        ]
+        "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
