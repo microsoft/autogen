@@ -32,7 +32,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/FLAML",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(include=["flaml*"]),
     install_requires=install_requires,
     extras_require={
         "notebook": [

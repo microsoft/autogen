@@ -30,9 +30,11 @@ def test_forecast_automl(budget=5):
     }
     """The main flaml automl API"""
     try:
+        import prophet
+
         automl.fit(dataframe=df, **settings, period=time_horizon)
     except ImportError:
-        print("not using FBProphet due to ImportError")
+        print("not using prophet due to ImportError")
         automl.fit(
             dataframe=df,
             **settings,
@@ -79,7 +81,7 @@ def test_forecast_automl(budget=5):
     try:
         automl.fit(X_train=X_train, y_train=y_train, **settings, period=time_horizon)
     except ImportError:
-        print("not using FBProphet due to ImportError")
+        print("not using prophet due to ImportError")
         automl.fit(
             X_train=X_train,
             y_train=y_train,
@@ -94,6 +96,8 @@ def test_numpy():
     y_train = np.random.random(size=72)
     automl = AutoML()
     try:
+        import prophet
+
         automl.fit(
             X_train=X_train[:60],  # a single column of timestamp
             y_train=y_train,  # value for each timestamp
@@ -105,9 +109,9 @@ def test_numpy():
         print(automl.predict(X_train[60:]))
         print(automl.predict(12))
     except ValueError:
-        print("ValueError for FBProphet is raised as expected.")
+        print("ValueError for prophet is raised as expected.")
     except ImportError:
-        print("not using FBProphet due to ImportError")
+        print("not using prophet due to ImportError")
         automl = AutoML()
         automl.fit(
             X_train=X_train[:72],  # a single column of timestamp
