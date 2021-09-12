@@ -1474,7 +1474,12 @@ class AutoML:
 
         if "auto" == estimator_list:
             if self._state.task == "forecast":
-                estimator_list = ["fbprophet", "arima", "sarimax"]
+                try:
+                    import prophet
+
+                    estimator_list = ["prophet", "arima", "sarimax"]
+                except ImportError:
+                    estimator_list = ["arima", "sarimax"]
             elif self._state.task == "rank":
                 estimator_list = ["lgbm", "xgboost"]
             else:
