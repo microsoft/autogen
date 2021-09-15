@@ -83,8 +83,6 @@ def report(_metric=None, **kwargs):
         return tune.report(_metric, **kwargs)
     else:
         result = kwargs
-        if _verbose == 2:
-            logger.info(f"result: {kwargs}")
         if _metric:
             result[DEFAULT_METRIC] = _metric
         trial = _runner.running_trial
@@ -114,7 +112,7 @@ def run(
     cat_hp_cost: Optional[dict] = None,
     metric: Optional[str] = None,
     mode: Optional[str] = None,
-    time_budget_s: Union[int, float, datetime.timedelta] = None,
+    time_budget_s: Union[int, float] = None,
     points_to_evaluate: Optional[List[dict]] = None,
     evaluated_rewards: Optional[List] = None,
     prune_attr: Optional[str] = None,
@@ -184,7 +182,7 @@ def run(
         metric: A string of the metric name to optimize for.
         mode: A string in ['min', 'max'] to specify the objective as
             minimization or maximization.
-        time_budget_s: A float of the time budget in seconds.
+        time_budget_s: int or float | The time budget in seconds.
         points_to_evaluate: A list of initial hyperparameter
             configurations to run first.
         evaluated_rewards (list): If you have previously evaluated the
@@ -291,6 +289,8 @@ def run(
             evaluated_rewards=evaluated_rewards,
             low_cost_partial_config=low_cost_partial_config,
             cat_hp_cost=cat_hp_cost,
+            time_budget_s=time_budget_s,
+            num_samples=num_samples,
             prune_attr=prune_attr,
             min_resource=min_resource,
             max_resource=max_resource,
@@ -303,10 +303,12 @@ def run(
         if metric is None or mode is None:
             metric = metric or search_alg.metric
             mode = mode or search_alg.mode
-    if time_budget_s:
-        search_alg.set_search_properties(
-            None, None, config={"time_budget_s": time_budget_s}
-        )
+        if time_budget_s or num_samples > 0:
+            search_alg.set_search_properties(
+                None,
+                None,
+                config={"time_budget_s": time_budget_s, "num_samples": num_samples},
+            )
     scheduler = None
     if report_intermediate_result:
         params = {}
