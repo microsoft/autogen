@@ -884,7 +884,7 @@ except ImportError:
         pass
 
     def extract_scalar_reward(x: Dict):
-        return x.get("reward")
+        return x.get("default")
 
 
 class BlendSearchTuner(BlendSearch, NNITuner):
@@ -949,12 +949,19 @@ class BlendSearchTuner(BlendSearch, NNITuner):
                 config[key] = qrandn(*v)
             else:
                 raise ValueError(f"unsupported type in search_space {_type}")
-        add_cost_to_space(config, {}, {})
+        # low_cost_partial_config is passed to constructor,
+        # which is before update_search_space() is called
+        init_config = self._ls.init_config
+        add_cost_to_space(config, init_config, self._cat_hp_cost)
         self._ls = self.LocalSearch(
-            {},
+            init_config,
             self._ls.metric,
             self._mode,
             config,
+            self._ls.prune_attr,
+            self._ls.min_resource,
+            self._ls.max_resource,
+            self._ls.resource_multiple_factor,
             cost_attr=self.cost_attr,
             seed=self._ls.seed,
         )
