@@ -1024,3 +1024,19 @@ class CFO(BlendSearchTuner):
             self._candidate_start_points[trial_id] = result
             if len(self._search_thread_pool) < 2 and not self._points_to_evaluate:
                 self._create_thread_from_best_candidate()
+
+
+class RandomSearch(CFO):
+    def suggest(self, trial_id: str) -> Optional[Dict]:
+        if self._points_to_evaluate:
+            return super().suggest(trial_id)
+        config, _ = self._ls.complete_config({})
+        return config
+
+    def on_trial_complete(
+        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
+    ):
+        return
+
+    def on_trial_result(self, trial_id: str, result: Dict):
+        return

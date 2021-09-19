@@ -1,4 +1,3 @@
-from flaml.searcher.blendsearch import CFO
 import numpy as np
 
 try:
@@ -8,8 +7,9 @@ try:
     from ray.tune import sample
 except (ImportError, AssertionError):
     from flaml.tune import sample
+
     from flaml.searcher.suggestion import OptunaSearch, Searcher, ConcurrencyLimiter
-    from flaml.searcher.blendsearch import BlendSearch
+    from flaml.searcher.blendsearch import BlendSearch, CFO, RandomSearch
 
     def define_search_space(trial):
         trial.suggest_float("a", 6, 8)
@@ -135,3 +135,14 @@ except (ImportError, AssertionError):
                 },
             }
         )
+        np.random.seed(7654321)
+        searcher = RandomSearch(
+            space=config,
+            points_to_evaluate=[{"a": 7, "b": 1e-3}, {"a": 6, "b": 3e-4}],
+        )
+        print(searcher.suggest("t1"))
+        print(searcher.suggest("t2"))
+        print(searcher.suggest("t3"))
+        print(searcher.suggest("t4"))
+        searcher.on_trial_complete({"t1"}, {})
+        searcher.on_trial_result({"t2"}, {})

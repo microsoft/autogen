@@ -363,7 +363,7 @@ class AutoML:
 
         Returns:
             An object with `predict()` and `predict_proba()` method (for
-        classification), storing the best trained model for estimator_name.
+            classification), storing the best trained model for estimator_name.
         """
         state = self._search_states.get(estimator_name)
         return state and getattr(state, "trained_estimator", None)
@@ -413,6 +413,11 @@ class AutoML:
         if attr:
             return attr.classes_.tolist()
         return None
+
+    @property
+    def time_to_find_best_model(self) -> float:
+        """time taken to find best model in seconds"""
+        return self.__dict__.get("_time_taken_best_iter")
 
     def predict(self, X_test):
         """Predict label from features.
@@ -1374,8 +1379,7 @@ class AutoML:
                 a simple customized search space. When set to 'bs', BlendSearch
                 is used. BlendSearch can be tried when the search space is
                 complex, for example, containing multiple disjoint, discontinuous
-                subspaces. When set to 'random' and the argument
-                `n_concurrent_trials` is larger than 1, random search is used.
+                subspaces. When set to 'random', random search is used.
             starting_points: A dictionary to specify the starting hyperparameter
                 config for the estimators.
                 Keys are the name of the estimators, and values are the starting
@@ -1717,6 +1721,8 @@ class AutoML:
                 from .searcher.suggestion import OptunaSearch as SearchAlgo
         elif "bs" == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
+        elif "random" == self._hpo_method:
+            from flaml.searcher import RandomSearch as SearchAlgo
         elif "cfocat" == self._hpo_method:
             from flaml.searcher.cfo_cat import CFOCat as SearchAlgo
         else:
@@ -1784,7 +1790,7 @@ class AutoML:
                         else [search_state.init_config]
                     )
                     low_cost_partial_config = search_state.low_cost_partial_config
-                if self._hpo_method in ("bs", "cfo", "grid", "cfocat"):
+                if self._hpo_method in ("bs", "cfo", "grid", "cfocat", "random"):
                     algo = SearchAlgo(
                         metric="val_loss",
                         mode="min",
