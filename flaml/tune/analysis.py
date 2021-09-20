@@ -1,4 +1,4 @@
-'''
+"""
 Copyright 2020 The Ray Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,13 @@ limitations under the License.
 This source file is adapted here because ray does not fully support Windows.
 
 Copyright (c) Microsoft Corporation.
-'''
+"""
 from typing import Dict, Optional
 import numpy as np
 from .trial import Trial
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,8 +31,7 @@ def is_nan_or_inf(value):
 
 
 class ExperimentAnalysis:
-    """Analyze results from a Tune experiment.
-    """
+    """Analyze results from a Tune experiment."""
 
     @property
     def best_trial(self) -> Trial:
@@ -46,7 +46,8 @@ class ExperimentAnalysis:
                 "To fetch the `best_trial`, pass a `metric` and `mode` "
                 "parameter to `tune.run()`. Alternatively, use the "
                 "`get_best_trial(metric, mode)` method to set the metric "
-                "and mode explicitly.")
+                "and mode explicitly."
+            )
         return self.get_best_trial(self.default_metric, self.default_mode)
 
     @property
@@ -62,30 +63,41 @@ class ExperimentAnalysis:
                 "To fetch the `best_config`, pass a `metric` and `mode` "
                 "parameter to `tune.run()`. Alternatively, use the "
                 "`get_best_config(metric, mode)` method to set the metric "
-                "and mode explicitly.")
+                "and mode explicitly."
+            )
         return self.get_best_config(self.default_metric, self.default_mode)
+
+    @property
+    def results(self) -> Dict[str, Dict]:
+        """Get the last result of all the trials of the experiment"""
+
+        return {trial.trial_id: trial.last_result for trial in self.trials}
 
     def _validate_metric(self, metric: str) -> str:
         if not metric and not self.default_metric:
             raise ValueError(
                 "No `metric` has been passed and  `default_metric` has "
-                "not been set. Please specify the `metric` parameter.")
+                "not been set. Please specify the `metric` parameter."
+            )
         return metric or self.default_metric
 
     def _validate_mode(self, mode: str) -> str:
         if not mode and not self.default_mode:
             raise ValueError(
                 "No `mode` has been passed and  `default_mode` has "
-                "not been set. Please specify the `mode` parameter.")
+                "not been set. Please specify the `mode` parameter."
+            )
         if mode and mode not in ["min", "max"]:
             raise ValueError("If set, `mode` has to be one of [min, max]")
         return mode or self.default_mode
 
-    def get_best_trial(self,
-                       metric: Optional[str] = None,
-                       mode: Optional[str] = None,
-                       scope: str = "last",
-                       filter_nan_and_inf: bool = True) -> Optional[Trial]:
+    def get_best_trial(
+        self,
+        metric: Optional[str] = None,
+        mode: Optional[str] = None,
+        scope: str = "last",
+        filter_nan_and_inf: bool = True,
+    ) -> Optional[Trial]:
         """Retrieve the best trial object.
         Compares all trials' scores on ``metric``.
         If ``metric`` is not specified, ``self.default_metric`` will be used.
@@ -116,11 +128,13 @@ class ExperimentAnalysis:
         if scope not in ["all", "last", "avg", "last-5-avg", "last-10-avg"]:
             raise ValueError(
                 "ExperimentAnalysis: attempting to get best trial for "
-                "metric {} for scope {} not in [\"all\", \"last\", \"avg\", "
-                "\"last-5-avg\", \"last-10-avg\"]. "
+                'metric {} for scope {} not in ["all", "last", "avg", '
+                '"last-5-avg", "last-10-avg"]. '
                 "If you didn't pass a `metric` parameter to `tune.run()`, "
                 "you have to pass one when fetching the best trial.".format(
-                    metric, scope))
+                    metric, scope
+                )
+            )
         best_trial = None
         best_metric_score = None
         for trial in self.trials:
@@ -150,13 +164,16 @@ class ExperimentAnalysis:
         if not best_trial:
             logger.warning(
                 "Could not find best trial. Did you pass the correct `metric` "
-                "parameter?")
+                "parameter?"
+            )
         return best_trial
 
-    def get_best_config(self,
-                        metric: Optional[str] = None,
-                        mode: Optional[str] = None,
-                        scope: str = "last") -> Optional[Dict]:
+    def get_best_config(
+        self,
+        metric: Optional[str] = None,
+        mode: Optional[str] = None,
+        scope: str = "last",
+    ) -> Optional[Dict]:
         """Retrieve the best config corresponding to the trial.
         Compares all trials' scores on `metric`.
         If ``metric`` is not specified, ``self.default_metric`` will be used.
