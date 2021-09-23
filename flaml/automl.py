@@ -1312,7 +1312,7 @@ class AutoML:
                         return metric_to_minimize, metrics_to_log
 
                 which returns a float number as the minimization objective,
-                and a tuple of floats or a dictionary as the metrics to log.
+                and a dictionary as the metrics to log.
             task: A string of the task type, e.g.,
                 'classification', 'regression', 'forecast', 'rank'.
             n_jobs: An integer of the number of threads for training.
@@ -1853,6 +1853,16 @@ class AutoML:
                             self._search_states[e].init_eci / eci_base * self._eci[0]
                         )
                     self._estimator_index = 0
+                    min_budget = max(10 * self._eci[0], sum(self._eci))
+                    max_budget = 10000 * self._eci[0]
+                    if search_state.sample_size:
+                        ratio = search_state.data_size / search_state.sample_size
+                        min_budget *= ratio
+                        max_budget *= ratio
+                    logger.info(
+                        f"Estimated sufficient time budget={max_budget:.0f}s."
+                        f" Estimated necessary time budget={min_budget:.0f}s."
+                    )
                 if result["wall_clock_time"] is not None:
                     self._state.time_from_start = result["wall_clock_time"]
                 # logger.info(f"{self._search_states[estimator].sample_size}, {data_size}")
@@ -1923,7 +1933,7 @@ class AutoML:
                             mlflow.log_param("best_config", search_state.best_config)
                             mlflow.log_param("best_learner", self._best_estimator)
                 logger.info(
-                    " at {:.1f}s,\tbest {}'s error={:.4f},\tbest {}'s error={:.4f}".format(
+                    " at {:.1f}s,\testimator {}'s best error={:.4f},\tbest estimator {}'s best error={:.4f}".format(
                         self._state.time_from_start,
                         estimator,
                         search_state.best_loss,
@@ -1949,18 +1959,16 @@ class AutoML:
                         f"exceeds {self._warn_threshold} times the time taken "
                         "to find the best model."
                     )
-                    self._warn_threshold *= 10
                     if self._early_stop:
                         logger.warning("Stopping search as early_stop is set to True.")
                         break
+                    self._warn_threshold *= 10
             else:
                 logger.info(f"stop trying learner {estimator}")
                 if self._estimator_index is not None:
                     self._active_estimators.remove(estimator)
                     self._estimator_index -= 1
-                self._state.time_from_start = time.time() - self._start_time_flag
-                if self._state.time_budget > self._state.time_from_start:
-                    search_state.search_alg.searcher._is_ls_ever_converged = True
+                search_state.search_alg.searcher._is_ls_ever_converged = True
             if (
                 self._retrain_in_budget
                 and best_config_sig

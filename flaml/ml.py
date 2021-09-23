@@ -232,8 +232,7 @@ def _eval_estimator(
             groups_test,
             fit_kwargs.get("groups"),
         )
-        if isinstance(metric_for_logging, dict):
-            pred_time = metric_for_logging.get("pred_time", 0)
+        pred_time = metric_for_logging.get("pred_time", 0)
         test_pred_y = None
         # eval_metric may return test_pred_y but not necessarily. Setting None for now.
     return test_loss, metric_for_logging, pred_time, test_pred_y
@@ -373,9 +372,7 @@ def evaluate_model_CV(
         total_fold_num += 1
         total_val_loss += val_loss_i
         if log_training_metric or not isinstance(eval_metric, str):
-            if isinstance(total_metric, list):
-                total_metric = [total_metric[i] + v for i, v in enumerate(metric_i)]
-            elif isinstance(total_metric, dict):
+            if isinstance(total_metric, dict):
                 total_metric = {k: total_metric[k] + v for k, v in metric_i.items()}
             elif total_metric is not None:
                 total_metric += metric_i
@@ -392,9 +389,7 @@ def evaluate_model_CV(
     val_loss = np.max(val_loss_list)
     n = total_fold_num
     if log_training_metric or not isinstance(eval_metric, str):
-        if isinstance(total_metric, list):
-            metric = [v / n for v in total_metric]
-        elif isinstance(total_metric, dict):
+        if isinstance(total_metric, dict):
             metric = {k: v / n for k, v in total_metric.items()}
         else:
             metric = total_metric / n
@@ -428,7 +423,7 @@ def compute_estimator(
 ):
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
     estimator = estimator_class(**config_dic, task=task, n_jobs=n_jobs)
-    if "holdout" in eval_method:
+    if "holdout" == eval_method:
         val_loss, metric_for_logging, train_time, pred_time = get_test_loss(
             config_dic,
             estimator,
