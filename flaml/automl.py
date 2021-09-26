@@ -1414,6 +1414,7 @@ class AutoML:
         self._random = np.random.RandomState(RANDOM_SEED)
         if seed is not None:
             np.random.seed(seed)
+        self._seed = seed + 19823 if seed is not None else 20
         self._learner_selector = learner_selector
         old_level = logger.getEffectiveLevel()
         self.verbose = verbose
@@ -1625,6 +1626,7 @@ class AutoML:
                     (partial(size, self._state), "<=", self._mem_thres)
                 ],
                 metric_constraints=self.metric_constraints,
+                seed=self._seed,
             )
             search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
         self._state.time_from_start = time.time() - self._start_time_flag
@@ -1805,6 +1807,7 @@ class AutoML:
                             (learner_class.size, "<=", self._mem_thres)
                         ],
                         metric_constraints=self.metric_constraints,
+                        seed=self._seed,
                     )
                 else:
                     algo = SearchAlgo(
