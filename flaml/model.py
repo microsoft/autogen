@@ -316,15 +316,18 @@ class LGBMEstimator(BaseEstimator):
     def fit(self, X_train, y_train, budget=None, **kwargs):
         start_time = time.time()
         n_iter = self.params["n_estimators"]
+        trained = False
         if (
-            not self._time_per_iter or abs(self._train_size - X_train.shape[0]) > 4
-        ) and budget is not None:
+            (not self._time_per_iter or abs(self._train_size - X_train.shape[0]) > 4)
+            and budget is not None
+            and n_iter > 1
+        ):
             self.params["n_estimators"] = 1
             self._t1 = self._fit(X_train, y_train, **kwargs)
             if self._t1 >= budget:
-                self.params["n_estimators"] = n_iter
+                # self.params["n_estimators"] = n_iter
                 return self._t1
-            self.params["n_estimators"] = 4
+            self.params["n_estimators"] = min(n_iter, 4)
             self._t2 = self._fit(X_train, y_train, **kwargs)
             self._time_per_iter = (
                 (self._t2 - self._t1) / (self.params["n_estimators"] - 1)
@@ -335,19 +338,24 @@ class LGBMEstimator(BaseEstimator):
             )
             self._train_size = X_train.shape[0]
             if self._t1 + self._t2 >= budget or n_iter == self.params["n_estimators"]:
-                self.params["n_estimators"] = n_iter
+                # self.params["n_estimators"] = n_iter
                 return time.time() - start_time
-        if budget is not None:
-            self.params["n_estimators"] = min(
+            trained = True
+        if budget is not None and n_iter > 1:
+            max_iter = min(
                 n_iter,
                 int(
                     (budget - time.time() + start_time - self._t1) / self._time_per_iter
                     + 1
                 ),
             )
+            if trained and max_iter <= self.params["n_estimators"]:
+                return time.time() - start_time
+            self.params["n_estimators"] = max_iter
         if self.params["n_estimators"] > 0:
             self._fit(X_train, y_train, **kwargs)
-        self.params["n_estimators"] = n_iter
+        else:
+            self.params["n_estimators"] = n_iter
         train_time = time.time() - start_time
         return train_time
 
@@ -787,10 +795,15 @@ class CatBoostEstimator(BaseEstimator):
             cat_features = []
         # from catboost import CatBoostError
         # try:
+        trained = False
         if (
-            not CatBoostEstimator._time_per_iter
-            or abs(CatBoostEstimator._train_size - len(y_train)) > 4
-        ) and budget:
+            (
+                not CatBoostEstimator._time_per_iter
+                or abs(CatBoostEstimator._train_size - len(y_train)) > 4
+            )
+            and budget
+            and n_iter > 4
+        ):
             # measure the time per iteration
             self.params["n_estimators"] = 1
             CatBoostEstimator._smallmodel = self.estimator_class(
@@ -801,11 +814,11 @@ class CatBoostEstimator(BaseEstimator):
             )
             CatBoostEstimator._t1 = time.time() - start_time
             if CatBoostEstimator._t1 >= budget:
-                self.params["n_estimators"] = n_iter
+                # self.params["n_estimators"] = n_iter
                 self._model = CatBoostEstimator._smallmodel
                 shutil.rmtree(train_dir, ignore_errors=True)
                 return CatBoostEstimator._t1
-            self.params["n_estimators"] = 4
+            self.params["n_estimators"] = min(n_iter, 4)
             CatBoostEstimator._smallmodel = self.estimator_class(
                 train_dir=train_dir, **self.params
             )
@@ -822,13 +835,14 @@ class CatBoostEstimator(BaseEstimator):
                 time.time() - start_time >= budget
                 or n_iter == self.params["n_estimators"]
             ):
-                self.params["n_estimators"] = n_iter
+                # self.params["n_estimators"] = n_iter
                 self._model = CatBoostEstimator._smallmodel
                 shutil.rmtree(train_dir, ignore_errors=True)
                 return time.time() - start_time
-        if budget:
+            trained = True
+        if budget and n_iter > 4:
             train_times = 1
-            self.params["n_estimators"] = min(
+            max_iter = min(
                 n_iter,
                 int(
                     (budget - time.time() + start_time - CatBoostEstimator._t1)
@@ -838,6 +852,9 @@ class CatBoostEstimator(BaseEstimator):
                 ),
             )
             self._model = CatBoostEstimator._smallmodel
+            if trained and max_iter <= self.params["n_estimators"]:
+                return time.time() - start_time
+            self.params["n_estimators"] = max_iter
         if self.params["n_estimators"] > 0:
             n = max(int(len(y_train) * 0.9), len(y_train) - 1000)
             X_tr, y_tr = X_train[:n], y_train[:n]
@@ -863,9 +880,10 @@ class CatBoostEstimator(BaseEstimator):
             if weight is not None:
                 kwargs["sample_weight"] = weight
             self._model = model
+        else:
+            self.params["n_estimators"] = n_iter
         # except CatBoostError:
         #     self._model = None
-        self.params["n_estimators"] = n_iter
         train_time = time.time() - start_time
         return train_time
 

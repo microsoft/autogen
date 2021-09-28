@@ -117,9 +117,17 @@ class SearchState:
             time2eval = result["time_total_s"]
             trained_estimator = result["trained_estimator"]
             del result["trained_estimator"]  # free up RAM
+            n_iter = trained_estimator and trained_estimator.params.get("n_estimators")
+            if (
+                n_iter is not None
+                and "n_estimators" in config
+                and n_iter >= self._search_space_domain["n_estimators"].lower
+            ):
+                config["n_estimators"] = n_iter
+                n_iter = None
         else:
             obj, time2eval, trained_estimator = np.inf, 0.0, None
-            metric_for_logging = config = None
+            metric_for_logging = config = n_iter = None
         self.trial_time = time2eval
         self.total_time_used += time_used
         self.total_iter += 1
@@ -147,8 +155,10 @@ class SearchState:
                 self.trained_estimator.cleanup()
             if trained_estimator:
                 self.trained_estimator = trained_estimator
+            self.best_n_iter = n_iter
         self.metric_for_logging = metric_for_logging
         self.val_loss, self.config = obj, config
+        self.n_iter = n_iter
 
     def get_hist_config_sig(self, sample_size, config):
         config_values = tuple([config[k] for k in self._hp_names])
@@ -251,7 +261,9 @@ class AutoMLState:
         #     tune.report(**result)
         return result
 
-    def _train_with_config(self, estimator, config_w_resource, sample_size=None):
+    def _train_with_config(
+        self, estimator, config_w_resource, sample_size=None, n_iter=None
+    ):
         if not sample_size:
             sample_size = config_w_resource.get(
                 "FLAML_sample_size", len(self.y_train_all)
@@ -288,6 +300,7 @@ class AutoMLState:
             self.n_jobs,
             self.learner_classes.get(estimator),
             budget,
+            n_iter,
             self.fit_kwargs,
         )
         if sampled_weight is not None:
@@ -444,7 +457,9 @@ class AutoML:
         if y_pred.ndim > 1 and isinstance(y_pred, np.ndarray):
             y_pred = y_pred.flatten()
         if self._label_transformer:
-            return self._label_transformer.inverse_transform(pd.Series(y_pred))
+            return self._label_transformer.inverse_transform(
+                pd.Series(y_pred.astype(int))
+            )
         else:
             return y_pred
 
@@ -606,7 +621,7 @@ class AutoML:
         if (
             self._state.task in ("binary", "multi")
             and self._state.fit_kwargs.get("sample_weight") is None
-            and self._split_type != "time"
+            and self._split_type not in ["time", "group"]
         ):
             # logger.info(f"label {pd.unique(y_train_all)}")
             label_set, counts = np.unique(y_train_all, return_counts=True)
@@ -695,12 +710,12 @@ class AutoML:
                             test_size=split_ratio,
                             shuffle=False,
                         )
-            elif self._state.task == "rank":
+            elif self._split_type == "group":
                 gss = GroupShuffleSplit(
                     n_splits=1, test_size=split_ratio, random_state=RANDOM_SEED
                 )
                 for train_idx, val_idx in gss.split(
-                    X_train_all, y_train_all, self._state.groups
+                    X_train_all, y_train_all, self._state.groups_all
                 ):
                     if self._df:
                         X_train = X_train_all.iloc[train_idx]
@@ -708,8 +723,8 @@ class AutoML:
                     else:
                         X_train, X_val = X_train_all[train_idx], X_train_all[val_idx]
                     y_train, y_val = y_train_all[train_idx], y_train_all[val_idx]
-                    self._state.groups = self._state.groups[train_idx]
-                    self._state.groups_val = self._state.groups[val_idx]
+                    self._state.groups = self._state.groups_all[train_idx]
+                    self._state.groups_val = self._state.groups_all[val_idx]
             elif self._state.task in ("binary", "multi"):
                 # for classification, make sure the labels are complete in both
                 # training and validation data
@@ -920,7 +935,7 @@ class AutoML:
             n_splits: An integer of the number of folds for cross-validation.
             split_type: str or None, default=None | the data split type.
                 For classification tasks, valid choices are [
-                    None, 'stratified', 'uniform', 'time']. None -> stratified.
+                    None, 'stratified', 'uniform', 'time', 'group']. None -> stratified.
                 For regression tasks, valid choices are [None, 'uniform', 'time'].
                     None -> uniform.
                 For time series forecasting, must be None or 'time'.
@@ -1007,7 +1022,7 @@ class AutoML:
         self._state.time_budget = None
         self._state.n_jobs = n_jobs
         self._trained_estimator = self._state._train_with_config(
-            best_estimator, best_config, sample_size
+            best_estimator, best_config, sample_size, best.n_iter
         )[0]
         logger.info("retrain from log succeeded")
         return training_duration
@@ -1018,10 +1033,12 @@ class AutoML:
                 len(np.unique(self._y_train_all))
             )
         if self._state.task in ("binary", "multi"):
-            assert split_type in [None, "stratified", "uniform", "time"]
-            self._split_type = split_type or "stratified"
+            assert split_type in [None, "stratified", "uniform", "time", "group"]
+            self._split_type = (
+                split_type or self._state.groups is None and "stratified" or "group"
+            )
         elif self._state.task == "regression":
-            assert split_type in [None, "uniform", "time"]
+            assert split_type in [None, "uniform", "time", "group"]
             self._split_type = split_type or "uniform"
         elif self._state.task == "forecast":
             assert split_type in [None, "time"]
@@ -1420,15 +1437,16 @@ class AutoML:
         self.verbose = verbose
         if verbose == 0:
             logger.setLevel(logging.WARNING)
-        self._decide_split_type(split_type)
-        if eval_method == "auto" or self._state.X_val is not None:
-            eval_method = self._decide_eval_method(time_budget)
-        self._state.eval_method = eval_method
         if (not mlflow or not mlflow.active_run()) and not logger.handlers:
             # Add the console handler.
             _ch = logging.StreamHandler()
             _ch.setFormatter(logger_formatter)
             logger.addHandler(_ch)
+        self._decide_split_type(split_type)
+        logger.info(f"Data split method: {self._split_type}")
+        if eval_method == "auto" or self._state.X_val is not None:
+            eval_method = self._decide_eval_method(time_budget)
+        self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
 
         self._retrain_in_budget = retrain_full == "budget" and (
@@ -1697,10 +1715,9 @@ class AutoML:
                         self._state.time_from_start,
                         search_state.val_loss,
                         config,
-                        self._state.best_loss,
-                        search_state.best_config,
                         estimator,
                         search_state.sample_size,
+                        search_state.n_iter,
                     )
 
     def _search_sequential(self):
@@ -1909,10 +1926,9 @@ class AutoML:
                             self._state.time_from_start,
                             search_state.val_loss,
                             search_state.config,
-                            search_state.best_loss,
-                            search_state.best_config,
                             estimator,
                             search_state.sample_size,
+                            search_state.n_iter,
                         )
                     if mlflow is not None and mlflow.active_run():
                         with mlflow.start_run(nested=True):
@@ -1985,10 +2001,12 @@ class AutoML:
                     <= est_retrain_time + next_trial_time
                 )
             ):
+                state = self._search_states[self._best_estimator]
                 self._trained_estimator, retrain_time = self._state._train_with_config(
                     self._best_estimator,
-                    self._search_states[self._best_estimator].best_config,
+                    state.best_config,
                     self.data_size_full,
+                    state.best_n_iter,
                 )
                 logger.info(
                     "retrain {} for {:.1f}s".format(self._best_estimator, retrain_time)
@@ -2093,13 +2111,15 @@ class AutoML:
                     > self._selected.est_retrain_time(self.data_size_full)
                     and self._selected.best_config_sample_size == self._state.data_size
                 ):
+                    state = self._search_states[self._best_estimator]
                     (
                         self._trained_estimator,
                         retrain_time,
                     ) = self._state._train_with_config(
                         self._best_estimator,
-                        self._search_states[self._best_estimator].best_config,
+                        state.best_config,
                         self.data_size_full,
+                        state.best_n_iter,
                     )
                     logger.info(
                         "retrain {} for {:.1f}s".format(
