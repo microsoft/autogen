@@ -13,7 +13,7 @@ SEARCH_ALGO_MAPPING = OrderedDict(
         ("bs", BlendSearch),
         ("grid", None),
         ("gridbert", None),
-        ("rs", None)
+        ("rs", None),
     ]
 )
 
@@ -35,14 +35,16 @@ class AutoSearchAlgorithm:
         )
 
     @classmethod
-    def from_method_name(cls,
-                         search_algo_name,
-                         search_algo_args_mode,
-                         hpo_search_space,
-                         time_budget,
-                         metric_name,
-                         metric_mode_name,
-                         **custom_hpo_args):
+    def from_method_name(
+        cls,
+        search_algo_name,
+        search_algo_args_mode,
+        hpo_search_space,
+        time_budget,
+        metric_name,
+        metric_mode_name,
+        **custom_hpo_args
+    ):
         """
         Instantiating one of the search algorithm classes based on the search algorithm name, search algorithm
         argument mode, hpo search space and other keyword args
@@ -68,7 +70,9 @@ class AutoSearchAlgorithm:
                          {"points_to_evaluate": [{"learning_rate": 1e-5, "num_train_epochs": 10}])
         """
 
-        assert hpo_search_space, "hpo_search_space needs to be specified for calling AutoSearchAlgorithm.from_method_name"
+        assert (
+            hpo_search_space
+        ), "hpo_search_space needs to be specified for calling AutoSearchAlgorithm.from_method_name"
         if not search_algo_name:
             # TODO coverage
             search_algo_name = "grid"
@@ -83,9 +87,15 @@ class AutoSearchAlgorithm:
             of the constructor function
             """
             this_search_algo_kwargs = None
-            allowed_arguments = SEARCH_ALGO_MAPPING[search_algo_name].__init__.__code__.co_varnames
-            allowed_custom_args = {key: custom_hpo_args[key] for key in custom_hpo_args.keys() if
-                                   key in allowed_arguments}
+            allowed_arguments = SEARCH_ALGO_MAPPING[
+                search_algo_name
+            ].__init__.__code__.co_varnames
+            custom_hpo_args["time_budget_s"] = time_budget
+            allowed_custom_args = {
+                key: custom_hpo_args[key]
+                for key in custom_hpo_args.keys()
+                if key in allowed_arguments
+            }
 
             """
              If the search_algo_args_mode is "dft", set the args to the default args, e.g.,the default args for
@@ -94,26 +104,34 @@ class AutoSearchAlgorithm:
             """
             if search_algo_args_mode == "dft":
                 # TODO coverage
-                this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[search_algo_name](
+                this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[
+                    search_algo_name
+                ](
                     "dft",
                     metric_name,
                     metric_mode_name,
                     hpo_search_space=hpo_search_space,
-                    **allowed_custom_args)
+                    **allowed_custom_args
+                )
             elif search_algo_args_mode == "cus":
-                this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[search_algo_name](
+                this_search_algo_kwargs = DEFAULT_SEARCH_ALGO_ARGS_MAPPING[
+                    search_algo_name
+                ](
                     "cus",
                     metric_name,
                     metric_mode_name,
                     hpo_search_space=hpo_search_space,
-                    **allowed_custom_args)
+                    **allowed_custom_args
+                )
 
             """
             returning the hpo algorithm with the arguments
             """
-            search_algo = SEARCH_ALGO_MAPPING[search_algo_name](**this_search_algo_kwargs)
+            search_algo = SEARCH_ALGO_MAPPING[search_algo_name](
+                **this_search_algo_kwargs
+            )
             if search_algo_name == "bs":
-                search_algo.set_search_properties(config={"time_budget_s": time_budget})
+                search_algo.set_search_properties()
             return search_algo
         raise ValueError(
             "Unrecognized method {} for this kind of AutoSearchAlgorithm: {}.\n"
@@ -125,29 +143,39 @@ class AutoSearchAlgorithm:
     @staticmethod
     def grid2list(grid_config):
         # TODO coverage
-        key_val_list = [[(key, each_val) for each_val in val_list['grid_search']]
-                        for (key, val_list) in grid_config.items()]
+        key_val_list = [
+            [(key, each_val) for each_val in val_list["grid_search"]]
+            for (key, val_list) in grid_config.items()
+        ]
         config_list = [dict(x) for x in itertools.product(*key_val_list)]
         return config_list
 
 
-def get_search_algo_args_optuna(search_args_mode,
-                                metric_name,
-                                metric_mode_name,
-                                hpo_search_space=None,
-                                **custom_hpo_args):
+def get_search_algo_args_optuna(
+    search_args_mode,
+    metric_name,
+    metric_mode_name,
+    hpo_search_space=None,
+    **custom_hpo_args
+):
     # TODO coverage
     return {}
 
 
-def default_search_algo_args_bs(search_args_mode,
-                                metric_name,
-                                metric_mode_name,
-                                hpo_search_space=None,
-                                **custom_hpo_args):
-    assert hpo_search_space, "hpo_search_space needs to be specified for calling AutoSearchAlgorithm.from_method_name"
-    if "num_train_epochs" in hpo_search_space and \
-            isinstance(hpo_search_space["num_train_epochs"], ray.tune.sample.Categorical):
+def default_search_algo_args_bs(
+    search_args_mode,
+    metric_name,
+    metric_mode_name,
+    hpo_search_space=None,
+    time_budget_s=None,
+    **custom_hpo_args
+):
+    assert (
+        hpo_search_space
+    ), "hpo_search_space needs to be specified for calling AutoSearchAlgorithm.from_method_name"
+    if "num_train_epochs" in hpo_search_space and isinstance(
+        hpo_search_space["num_train_epochs"], ray.tune.sample.Categorical
+    ):
         min_epoch = min(hpo_search_space["num_train_epochs"].categories)
     else:
         # TODO coverage
@@ -156,31 +184,38 @@ def default_search_algo_args_bs(search_args_mode,
     default_search_algo_args = {
         "low_cost_partial_config": {
             "num_train_epochs": min_epoch,
-            "per_device_train_batch_size": max(hpo_search_space["per_device_train_batch_size"].categories),
+            "per_device_train_batch_size": max(
+                hpo_search_space["per_device_train_batch_size"].categories
+            ),
         },
         "space": hpo_search_space,
         "metric": metric_name,
-        "mode": metric_mode_name
+        "mode": metric_mode_name,
+        "time_budget_s": time_budget_s,
     }
     if search_args_mode == "cus":
         default_search_algo_args.update(custom_hpo_args)
     return default_search_algo_args
 
 
-def default_search_algo_args_grid_search(search_args_mode,
-                                         metric_name,
-                                         metric_mode_name,
-                                         hpo_search_space=None,
-                                         **custom_hpo_args):
+def default_search_algo_args_grid_search(
+    search_args_mode,
+    metric_name,
+    metric_mode_name,
+    hpo_search_space=None,
+    **custom_hpo_args
+):
     # TODO coverage
     return {}
 
 
-def default_search_algo_args_random_search(search_args_mode,
-                                           metric_name,
-                                           metric_mode_name,
-                                           hpo_search_space=None,
-                                           **custom_hpo_args):
+def default_search_algo_args_random_search(
+    search_args_mode,
+    metric_name,
+    metric_mode_name,
+    hpo_search_space=None,
+    **custom_hpo_args
+):
     # TODO coverage
     return {}
 
@@ -191,6 +226,5 @@ DEFAULT_SEARCH_ALGO_ARGS_MAPPING = OrderedDict(
         ("cfo", default_search_algo_args_bs),
         ("bs", default_search_algo_args_bs),
         ("grid", default_search_algo_args_grid_search),
-        ("gridbert", default_search_algo_args_random_search)
     ]
 )

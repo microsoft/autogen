@@ -13,7 +13,10 @@ try:
 
     assert ray_version >= "1.0.0"
     from ray.tune.analysis import ExperimentAnalysis as EA
+
+    ray_import = True
 except (ImportError, AssertionError):
+    ray_import = False
     from .analysis import ExperimentAnalysis as EA
 from .result import DEFAULT_METRIC
 import logging
@@ -278,9 +281,9 @@ def run(
         else:
             logger.setLevel(logging.CRITICAL)
 
-    if search_alg is None:
-        from ..searcher.blendsearch import BlendSearch
+    from ..searcher.blendsearch import BlendSearch
 
+    if search_alg is None:
         search_alg = BlendSearch(
             metric=metric or DEFAULT_METRIC,
             mode=mode,
@@ -299,16 +302,27 @@ def run(
             metric_constraints=metric_constraints,
         )
     else:
-        search_alg.set_search_properties(metric, mode, config)
         if metric is None or mode is None:
             metric = metric or search_alg.metric
             mode = mode or search_alg.mode
-        if time_budget_s or num_samples > 0:
-            search_alg.set_search_properties(
-                None,
-                None,
-                config={"time_budget_s": time_budget_s, "num_samples": num_samples},
-            )
+        if ray_import:
+            from ray.tune.suggest import ConcurrencyLimiter
+        else:
+            from flaml.searcher.suggestion import ConcurrencyLimiter
+        searcher = (
+            search_alg.searcher
+            if isinstance(search_alg, ConcurrencyLimiter)
+            else search_alg
+        )
+        if isinstance(searcher, BlendSearch):
+            setting = {}
+            if time_budget_s:
+                setting["time_budget_s"] = time_budget_s
+            if num_samples > 0:
+                setting["num_samples"] = num_samples
+            searcher.set_search_properties(metric, mode, config, setting)
+        else:
+            searcher.set_search_properties(metric, mode, config)
     scheduler = None
     if report_intermediate_result:
         params = {}
@@ -321,15 +335,10 @@ def run(
             params["grace_period"] = min_resource
         if reduction_factor:
             params["reduction_factor"] = reduction_factor
-        try:
-            from ray import __version__ as ray_version
-
-            assert ray_version >= "1.0.0"
+        if ray_import:
             from ray.tune.schedulers import ASHAScheduler
 
             scheduler = ASHAScheduler(**params)
-        except (ImportError, AssertionError):
-            pass
     if use_ray:
         try:
             from ray import tune
@@ -392,7 +401,9 @@ def run(
         else:
             fail += 1  # break with ub consecutive failures
     if fail == ub:
-        logger.warning("fail to sample a trial for 10 times in a row, stopping.")
+        logger.warning(
+            f"fail to sample a trial for {max_failure} times in a row, stopping."
+        )
     if verbose > 0:
         logger.handlers.clear()
     return ExperimentAnalysis(_runner.get_trials(), metric=metric, mode=mode)

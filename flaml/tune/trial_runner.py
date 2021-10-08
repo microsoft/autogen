@@ -1,9 +1,10 @@
-'''!
- * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
+"""!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See LICENSE file in the
  * project root for license information.
-'''
+"""
 from typing import Optional
+
 # try:
 #     from ray import __version__ as ray_version
 #     assert ray_version >= '1.0.0'
@@ -11,20 +12,19 @@ from typing import Optional
 # except (ImportError, AssertionError):
 from .trial import Trial
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-class Nologger():
-    '''Logger without logging
-    '''
+class Nologger:
+    """Logger without logging"""
 
     def on_result(self, result):
         pass
 
 
 class SimpleTrial(Trial):
-    '''A simple trial class
-    '''
+    """A simple trial class"""
 
     def __init__(self, config, trial_id=None):
         self.trial_id = Trial.generate_id() if trial_id is None else trial_id
@@ -49,10 +49,13 @@ class BaseTrialRunner:
     Note that the caller usually should not mutate trial state directly.
     """
 
-    def __init__(self,
-                 search_alg=None, scheduler=None,
-                 metric: Optional[str] = None,
-                 mode: Optional[str] = 'min'):
+    def __init__(
+        self,
+        search_alg=None,
+        scheduler=None,
+        metric: Optional[str] = None,
+        mode: Optional[str] = "min",
+    ):
         self._search_alg = search_alg
         self._scheduler_alg = scheduler
         self._trials = []
@@ -89,12 +92,12 @@ class BaseTrialRunner:
                 trial.set_status(Trial.PAUSED)
 
     def stop_trial(self, trial):
-        """Stops trial.
-        """
+        """Stops trial."""
         if trial.status not in [Trial.ERROR, Trial.TERMINATED]:
             if self._scheduler_alg:
                 self._scheduler_alg.on_trial_complete(
-                    self, trial.trial_id, trial.last_result)
+                    self, trial.trial_id, trial.last_result
+                )
             self._search_alg.on_trial_complete(trial.trial_id, trial.last_result)
             trial.set_status(Trial.TERMINATED)
         elif self._scheduler_alg:
@@ -102,8 +105,7 @@ class BaseTrialRunner:
 
 
 class SequentialTrialRunner(BaseTrialRunner):
-    """Implementation of the sequential trial runner
-    """
+    """Implementation of the sequential trial runner"""
 
     def step(self) -> Trial:
         """Runs one step of the trial event loop.
@@ -114,7 +116,7 @@ class SequentialTrialRunner(BaseTrialRunner):
         """
         trial_id = Trial.generate_id()
         config = self._search_alg.suggest(trial_id)
-        if config:
+        if config is not None:
             trial = SimpleTrial(config, trial_id)
             self.add_trial(trial)
             trial.set_status(Trial.RUNNING)

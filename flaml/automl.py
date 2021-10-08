@@ -36,7 +36,7 @@ from .config import (
     N_SPLITS,
     SAMPLE_MULTIPLY_FACTOR,
 )
-from .data import concat
+from .data import concat, CLASSIFICATION
 from . import tune
 from .training_log import training_log_reader, training_log_writer
 
@@ -619,7 +619,8 @@ class AutoML:
         if issparse(X_train_all):
             X_train_all = X_train_all.tocsr()
         if (
-            self._state.task in ("binary", "multi")
+            self._state.task in CLASSIFICATION
+            and self._auto_augment
             and self._state.fit_kwargs.get("sample_weight") is None
             and self._split_type not in ["time", "group"]
         ):
@@ -725,7 +726,7 @@ class AutoML:
                     y_train, y_val = y_train_all[train_idx], y_train_all[val_idx]
                     self._state.groups = self._state.groups_all[train_idx]
                     self._state.groups_val = self._state.groups_all[val_idx]
-            elif self._state.task in ("binary", "multi"):
+            elif self._state.task in CLASSIFICATION:
                 # for classification, make sure the labels are complete in both
                 # training and validation data
                 label_set, first = np.unique(y_train_all, return_index=True)
@@ -904,10 +905,11 @@ class AutoML:
         n_splits=N_SPLITS,
         split_type=None,
         groups=None,
-        n_jobs=1,
+        n_jobs=-1,
         train_best=True,
         train_full=False,
         record_id=-1,
+        auto_augment=True,
         **fit_kwargs,
     ):
         """Retrain from log file
@@ -943,7 +945,8 @@ class AutoML:
             groups: None or array-like | Group labels (with matching length to
                 y_train) or groups counts (with sum equal to length of y_train)
                 for training data.
-            n_jobs: An integer of the number of threads for training.
+            n_jobs: An integer of the number of threads for training. Use all
+                available resources when n_jobs == -1.
             train_best: A boolean of whether to train the best config in the
                 time budget; if false, train the last config in the budget.
             train_full: A boolean of whether to train on the full data. If true,
@@ -952,6 +955,8 @@ class AutoML:
                 be retrained. By default `record_id = -1` which means this will be
                 ignored. `record_id = 0` corresponds to the first trial, and
                 when `record_id >= 0`, `time_budget` will be ignored.
+            auto_augment: boolean, default=True | Whether to automatically
+                augment rare classes.
             **fit_kwargs: Other key word arguments to pass to fit() function of
                 the searched learners, such as sample_weight.
         """
@@ -1018,6 +1023,7 @@ class AutoML:
         elif eval_method == "auto":
             eval_method = self._decide_eval_method(time_budget)
         self.modelcount = 0
+        self._auto_augment = auto_augment
         self._prepare_data(eval_method, split_ratio, n_splits)
         self._state.time_budget = None
         self._state.n_jobs = n_jobs
@@ -1032,7 +1038,7 @@ class AutoML:
             self._state.task = get_classification_objective(
                 len(np.unique(self._y_train_all))
             )
-        if self._state.task in ("binary", "multi"):
+        if self._state.task in CLASSIFICATION:
             assert split_type in [None, "stratified", "uniform", "time", "group"]
             self._split_type = (
                 split_type or self._state.groups is None and "stratified" or "group"
@@ -1191,7 +1197,7 @@ class AutoML:
         Returns:
             A float for the minimal sample size or None
         """
-        return MIN_SAMPLE_TRAIN if self._sample else None
+        return self._min_sample_size if self._sample else None
 
     @property
     def max_resource(self) -> Optional[float]:
@@ -1282,7 +1288,7 @@ class AutoML:
         sample_weight_val=None,
         groups_val=None,
         groups=None,
-        verbose=1,
+        verbose=3,
         retrain_full=True,
         split_type=None,
         learner_selector="sample",
@@ -1291,8 +1297,10 @@ class AutoML:
         seed=None,
         n_concurrent_trials=1,
         keep_search_state=False,
-        append_log=False,
         early_stop=False,
+        append_log=False,
+        auto_augment=True,
+        min_sample_size=MIN_SAMPLE_TRAIN,
         **fit_kwargs,
     ):
         """Find a model for a given task
@@ -1375,7 +1383,7 @@ class AutoML:
             groups: None or array-like | Group labels (with matching length to
                 y_train) or groups counts (with sum equal to length of y_train)
                 for training data.
-            verbose: int, default=1 | Controls the verbosity, higher means more
+            verbose: int, default=3 | Controls the verbosity, higher means more
                 messages.
             retrain_full: bool or str, default=True | whether to retrain the
                 selected model on the full training data when using holdout.
@@ -1412,8 +1420,12 @@ class AutoML:
                 saving.
             early_stop: boolean, default=False | Whether to stop early if the
                 search is considered to converge.
-            append_log: boolean, default=False | whetehr to directly append the log
+            append_log: boolean, default=False | Whetehr to directly append the log
                 records to the input log file if it exists.
+            auto_augment: boolean, default=True | Whether to automatically
+                augment rare classes.
+            min_sample_size: int, default=MIN_SAMPLE_TRAIN | the minimal sample
+                size when sample=True.
             **fit_kwargs: Other key word arguments to pass to fit() function of
                 the searched learners, such as sample_weight. Include period as
                 a key word argument for 'forecast' task.
@@ -1435,8 +1447,8 @@ class AutoML:
         self._learner_selector = learner_selector
         old_level = logger.getEffectiveLevel()
         self.verbose = verbose
-        if verbose == 0:
-            logger.setLevel(logging.WARNING)
+        # if verbose == 0:
+        logger.setLevel(50 - verbose * 10)
         if (not mlflow or not mlflow.active_run()) and not logger.handlers:
             # Add the console handler.
             _ch = logging.StreamHandler()
@@ -1457,12 +1469,14 @@ class AutoML:
             and (eval_method == "holdout" and self._state.X_val is None)
             or (eval_method == "cv")
         )
+        self._auto_augment = auto_augment
+        self._min_sample_size = min_sample_size
         self._prepare_data(eval_method, split_ratio, n_splits)
         self._sample = (
             sample
             and task != "rank"
             and eval_method != "cv"
-            and (MIN_SAMPLE_TRAIN * SAMPLE_MULTIPLY_FACTOR < self._state.data_size)
+            and (self._min_sample_size * SAMPLE_MULTIPLY_FACTOR < self._state.data_size)
         )
         if "auto" == metric:
             if "binary" in self._state.task:
@@ -1584,8 +1598,8 @@ class AutoML:
             for state in self._search_states.values():
                 if state.trained_estimator:
                     del state.trained_estimator
-        if verbose == 0:
-            logger.setLevel(old_level)
+        # if verbose == 0:
+        logger.setLevel(old_level)
 
     def _search_parallel(self):
         try:
@@ -1631,6 +1645,8 @@ class AutoML:
                 points_to_evaluate=points_to_evaluate,
             )
         else:
+            self._state.time_from_start = time.time() - self._start_time_flag
+            time_left = self._state.time_budget - self._state.time_from_start
             search_alg = SearchAlgo(
                 metric="val_loss",
                 space=space,
@@ -1645,13 +1661,9 @@ class AutoML:
                 ],
                 metric_constraints=self.metric_constraints,
                 seed=self._seed,
+                time_budget_s=time_left,
             )
             search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
-        self._state.time_from_start = time.time() - self._start_time_flag
-        time_left = self._state.time_budget - self._state.time_from_start
-        search_alg.set_search_properties(
-            None, None, config={"time_budget_s": time_left}
-        )
         resources_per_trial = (
             {"cpu": self._state.n_jobs} if self._state.n_jobs > 1 else None
         )
@@ -1782,7 +1794,7 @@ class AutoML:
                 search_space = search_state.search_space
                 if self._sample:
                     prune_attr = "FLAML_sample_size"
-                    min_resource = MIN_SAMPLE_TRAIN
+                    min_resource = self._min_sample_size
                     max_resource = self._state.data_size
                 else:
                     prune_attr = min_resource = max_resource = None
@@ -1840,10 +1852,10 @@ class AutoML:
             else:
                 search_space = None
                 if self._hpo_method in ("bs", "cfo", "cfocat"):
-                    search_state.search_alg.set_search_properties(
+                    search_state.search_alg.searcher.set_search_properties(
                         metric=None,
                         mode=None,
-                        config={
+                        setting={
                             "metric_target": self._state.best_loss,
                         },
                     )
@@ -1852,7 +1864,7 @@ class AutoML:
                 search_state.training_function,
                 search_alg=search_state.search_alg,
                 time_budget_s=min(budget_left, self._state.train_time_limit),
-                verbose=max(self.verbose - 1, 0),
+                verbose=max(self.verbose - 3, 0),
                 use_ray=False,
             )
             time_used = time.time() - start_run_time
@@ -2077,7 +2089,7 @@ class AutoML:
                 logger.info(estimators)
                 if len(estimators) <= 1:
                     return
-                if self._state.task in ("binary", "multi"):
+                if self._state.task in CLASSIFICATION:
                     from sklearn.ensemble import StackingClassifier as Stacker
                 else:
                     from sklearn.ensemble import StackingRegressor as Stacker
@@ -2184,7 +2196,7 @@ class AutoML:
                     speed = delta_loss / delta_time
                     if speed:
                         estimated_cost = max(2 * gap / speed, estimated_cost)
-                estimated_cost == estimated_cost or 1e-10
+                estimated_cost == estimated_cost or 1e-9
                 inv.append(1 / estimated_cost)
             else:
                 estimated_cost = self._eci[i]

@@ -129,11 +129,12 @@ class BlendSearch(Searcher):
         self._metric, self._mode = metric, mode
         init_config = low_cost_partial_config or {}
         if not init_config:
-            logger.warning(
+            logger.info(
                 "No low-cost partial config given to the search algorithm. "
                 "For cost-frugal search, "
                 "consider providing low-cost values for cost-related hps via "
-                "'low_cost_partial_config'."
+                "'low_cost_partial_config'. More info can be found at "
+                "https://github.com/microsoft/FLAML/wiki/About-%60low_cost_partial_config%60"
             )
         if evaluated_rewards and mode:
             self._points_to_evaluate = []
@@ -228,6 +229,7 @@ class BlendSearch(Searcher):
         metric: Optional[str] = None,
         mode: Optional[str] = None,
         config: Optional[Dict] = None,
+        setting: Optional[Dict] = None,
     ) -> bool:
         metric_changed = mode_changed = False
         if metric and self._metric != metric:
@@ -264,22 +266,22 @@ class BlendSearch(Searcher):
                     )
                     self._gs.space = self._ls.space
                 self._init_search()
-            if config:
-                # CFO doesn't need these settings
-                if "time_budget_s" in config:
-                    self._time_budget_s = config["time_budget_s"]  # budget from now
-                    now = time.time()
-                    self._time_used += now - self._start_time
-                    self._start_time = now
-                    self._set_deadline()
-                if "metric_target" in config:
-                    self._metric_target = config.get("metric_target")
-                if "num_samples" in config:
-                    self._num_samples = (
-                        config["num_samples"]
-                        + len(self._result)
-                        + len(self._trial_proposed_by)
-                    )
+        if setting:
+            # CFO doesn't need these settings
+            if "time_budget_s" in setting:
+                self._time_budget_s = setting["time_budget_s"]  # budget from now
+                now = time.time()
+                self._time_used += now - self._start_time
+                self._start_time = now
+                self._set_deadline()
+            if "metric_target" in setting:
+                self._metric_target = setting.get("metric_target")
+            if "num_samples" in setting:
+                self._num_samples = (
+                    setting["num_samples"]
+                    + len(self._result)
+                    + len(self._trial_proposed_by)
+                )
         return True
 
     def _set_deadline(self):

@@ -103,7 +103,7 @@ print(automl.model)
 
 ```python
 from flaml import AutoML
-from sklearn.datasets import load_boston
+from sklearn.datasets import fetch_california_housing
 # Initialize an AutoML instance
 automl = AutoML()
 # Specify automl goal and constraint
@@ -113,7 +113,7 @@ automl_settings = {
     "task": 'regression',
     "log_file_name": "test/boston.log",
 }
-X_train, y_train = load_boston(return_X_y=True)
+X_train, y_train = fetch_california_housing(return_X_y=True)
 # Train with labeled input data
 automl.fit(X_train=X_train, y_train=y_train,
            **automl_settings)
