@@ -1,14 +1,17 @@
 """!
- * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
 """
 
 import numpy as np
 from scipy.sparse import vstack, issparse
 import pandas as pd
+
 from .training_log import training_log_reader
 
 from datetime import datetime
+
+CLASSIFICATION = ("binary", "multi", "classification")
 
 
 def load_openml_dataset(
@@ -300,11 +303,7 @@ class DataTransformer:
             )
             self._drop = drop
 
-        if task in (
-            "binary",
-            "multi",
-            "classification",
-        ) or not pd.api.types.is_numeric_dtype(y):
+        if task in CLASSIFICATION or not pd.api.types.is_numeric_dtype(y):
             from sklearn.preprocessing import LabelEncoder
 
             self.label_transformer = LabelEncoder()

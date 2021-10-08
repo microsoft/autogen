@@ -1,14 +1,16 @@
-'''!
- * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
+"""!
+ * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See LICENSE file in the
  * project root for license information.
-'''
+"""
 from flaml.tune.sample import Domain
 from typing import Dict, Optional, Tuple
 import numpy as np
+
 try:
     from ray import __version__ as ray_version
-    assert ray_version >= '1.0.0'
+
+    assert ray_version >= "1.0.0"
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.variant_generator import generate_variants
     from ray.tune import sample
@@ -22,28 +24,30 @@ from ..tune.space import complete_config, denormalize, normalize
 
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class FLOW2(Searcher):
-    '''Local search algorithm FLOW2, with adaptive step size
-    '''
+    """Local search algorithm FLOW2, with adaptive step size"""
 
     STEPSIZE = 0.1
     STEP_LOWER_BOUND = 0.0001
 
-    def __init__(self,
-                 init_config: dict,
-                 metric: Optional[str] = None,
-                 mode: Optional[str] = None,
-                 space: Optional[dict] = None,
-                 prune_attr: Optional[str] = None,
-                 min_resource: Optional[float] = None,
-                 max_resource: Optional[float] = None,
-                 resource_multiple_factor: Optional[float] = 4,
-                 cost_attr: Optional[str] = 'time_total_s',
-                 seed: Optional[int] = 20):
-        '''Constructor
+    def __init__(
+        self,
+        init_config: dict,
+        metric: Optional[str] = None,
+        mode: Optional[str] = None,
+        space: Optional[dict] = None,
+        prune_attr: Optional[str] = None,
+        min_resource: Optional[float] = None,
+        max_resource: Optional[float] = None,
+        resource_multiple_factor: Optional[float] = 4,
+        cost_attr: Optional[str] = "time_total_s",
+        seed: Optional[int] = 20,
+    ):
+        """Constructor
 
         Args:
             init_config: a dictionary of a partial or full initial config,
@@ -79,20 +83,18 @@ class FLOW2(Searcher):
                 used for increasing resource.
             cost_attr: A string of the attribute used for cost.
             seed: An integer of the random seed.
-        '''
+        """
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
         else:
             mode = "min"
 
-        super(FLOW2, self).__init__(
-            metric=metric,
-            mode=mode)
+        super(FLOW2, self).__init__(metric=metric, mode=mode)
         # internally minimizes, so "max" => -1
         if mode == "max":
-            self.metric_op = -1.
+            self.metric_op = -1.0
         elif mode == "min":
-            self.metric_op = 1.
+            self.metric_op = 1.0
         self.space = space or {}
         self._space = flatten_dict(self.space, prevent_delimiter=True)
         self._random = np.random.RandomState(seed)
@@ -106,7 +108,7 @@ class FLOW2(Searcher):
         self.max_resource = max_resource
         self._resource = None
         self._step_lb = np.Inf
-        if space:
+        if space is not None:
             self._init_search()
 
     def _init_search(self):
@@ -115,9 +117,10 @@ class FLOW2(Searcher):
         self._unordered_cat_hp = {}
         hier = False
         for key, domain in self._space.items():
-            assert not (isinstance(domain, dict) and 'grid_search' in domain), \
-                f"{key}'s domain is grid search, not supported in FLOW^2."
-            if callable(getattr(domain, 'get_sampler', None)):
+            assert not (
+                isinstance(domain, dict) and "grid_search" in domain
+            ), f"{key}'s domain is grid search, not supported in FLOW^2."
+            if callable(getattr(domain, "get_sampler", None)):
                 self._tunable_keys.append(key)
                 sampler = domain.get_sampler()
                 # the step size lower bound for uniform variables doesn't depend
@@ -125,12 +128,14 @@ class FLOW2(Searcher):
                 if isinstance(sampler, sample.Quantized):
                     q = sampler.q
                     sampler = sampler.get_sampler()
-                    if str(sampler) == 'Uniform':
+                    if str(sampler) == "Uniform":
                         self._step_lb = min(
-                            self._step_lb, q / (domain.upper - domain.lower))
-                elif isinstance(domain, sample.Integer) and str(sampler) == 'Uniform':
+                            self._step_lb, q / (domain.upper - domain.lower)
+                        )
+                elif isinstance(domain, sample.Integer) and str(sampler) == "Uniform":
                     self._step_lb = min(
-                        self._step_lb, 1.0 / (domain.upper - 1 - domain.lower))
+                        self._step_lb, 1.0 / (domain.upper - 1 - domain.lower)
+                    )
                 if isinstance(domain, sample.Categorical):
                     if not domain.ordered:
                         self._unordered_cat_hp[key] = len(domain.categories)
@@ -139,13 +144,12 @@ class FLOW2(Searcher):
                             if isinstance(cat, dict):
                                 hier = True
                                 break
-                if str(sampler) != 'Normal':
+                if str(sampler) != "Normal":
                     self._bounded_keys.append(key)
         if not hier:
             self._space_keys = sorted(self._tunable_keys)
         self.hierarchical = hier
-        if (self.prune_attr and self.prune_attr not in self._space
-                and self.max_resource):
+        if self.prune_attr and self.prune_attr not in self._space and self.max_resource:
             self.min_resource = self.min_resource or self._min_resource()
             self._resource = self._round(self.min_resource)
             if not hier:
@@ -169,10 +173,11 @@ class FLOW2(Searcher):
         if self.step > self.step_ub:
             self.step = self.step_ub
         # maximal # consecutive no improvements
-        self.dir = 2**(min(9, self.dim))
+        self.dir = 2 ** (min(9, self.dim))
         self._configs = {}  # dict from trial_id to (config, stepsize)
         self._K = 0
-        self._iter_best_config = self.trial_count_proposed = self.trial_count_complete = 1
+        self._iter_best_config = 1
+        self.trial_count_proposed = self.trial_count_complete = 1
         self._num_proposedby_incumbent = 0
         self._reset_times = 0
         # record intermediate trial cost
@@ -196,14 +201,18 @@ class FLOW2(Searcher):
             if isinstance(sampler, sample.Quantized):
                 q = sampler.q
                 sampler_inner = sampler.get_sampler()
-                if str(sampler_inner) == 'LogUniform':
+                if str(sampler_inner) == "LogUniform":
                     step_lb = min(
-                        step_lb, np.log(1.0 + q / self.best_config[key])
-                        / np.log(domain.upper / domain.lower))
-            elif isinstance(domain, sample.Integer) and str(sampler) == 'LogUniform':
+                        step_lb,
+                        np.log(1.0 + q / self.best_config[key])
+                        / np.log(domain.upper / domain.lower),
+                    )
+            elif isinstance(domain, sample.Integer) and str(sampler) == "LogUniform":
                 step_lb = min(
-                    step_lb, np.log(1.0 + 1.0 / self.best_config[key])
-                    / np.log((domain.upper - 1) / domain.lower))
+                    step_lb,
+                    np.log(1.0 + 1.0 / self.best_config[key])
+                    / np.log((domain.upper - 1) / domain.lower),
+                )
         if np.isinf(step_lb):
             step_lb = self.STEP_LOWER_BOUND
         else:
@@ -215,13 +224,11 @@ class FLOW2(Searcher):
         return self._resource
 
     def _min_resource(self) -> float:
-        ''' automatically decide minimal resource
-        '''
+        """automatically decide minimal resource"""
         return self.max_resource / np.pow(self.resource_multiple_factor, 5)
 
     def _round(self, resource) -> float:
-        ''' round the resource to self.max_resource if close to it
-        '''
+        """round the resource to self.max_resource if close to it"""
         if resource * self.resource_multiple_factor > self.max_resource:
             return self.max_resource
         return resource
@@ -231,70 +238,83 @@ class FLOW2(Searcher):
         return vec
 
     def complete_config(
-        self, partial_config: Dict,
-        lower: Optional[Dict] = None, upper: Optional[Dict] = None
+        self,
+        partial_config: Dict,
+        lower: Optional[Dict] = None,
+        upper: Optional[Dict] = None,
     ) -> Tuple[Dict, Dict]:
-        ''' generate a complete config from the partial config input
+        """generate a complete config from the partial config input
         add minimal resource to config if available
-        '''
+        """
         disturb = self._reset_times and partial_config == self.init_config
         # if not the first time to complete init_config, use random gaussian
         config, space = complete_config(
-            partial_config, self.space, self, disturb, lower, upper)
+            partial_config, self.space, self, disturb, lower, upper
+        )
         if partial_config == self.init_config:
             self._reset_times += 1
         if self._resource:
             config[self.prune_attr] = self.min_resource
         return config, space
 
-    def create(self, init_config: Dict, obj: float, cost: float, space: Dict
-               ) -> Searcher:
+    def create(
+        self, init_config: Dict, obj: float, cost: float, space: Dict
+    ) -> Searcher:
         # space is the subspace where the init_config is located
         flow2 = self.__class__(
-            init_config, self.metric, self.mode,
-            space, self.prune_attr,
-            self.min_resource, self.max_resource,
-            self.resource_multiple_factor, self.cost_attr, self.seed + 1)
+            init_config,
+            self.metric,
+            self.mode,
+            space,
+            self.prune_attr,
+            self.min_resource,
+            self.max_resource,
+            self.resource_multiple_factor,
+            self.cost_attr,
+            self.seed + 1,
+        )
         flow2.best_obj = obj * self.metric_op  # minimize internally
         flow2.cost_incumbent = cost
         self.seed += 1
         return flow2
 
     def normalize(self, config, recursive=False) -> Dict:
-        ''' normalize each dimension in config to [0,1]
-        '''
+        """normalize each dimension in config to [0,1]"""
         return normalize(
-            config, self._space, self.best_config, self.incumbent, recursive)
+            config, self._space, self.best_config, self.incumbent, recursive
+        )
 
     def denormalize(self, config):
-        ''' denormalize each dimension in config from [0,1]
-        '''
+        """denormalize each dimension in config from [0,1]"""
         return denormalize(
-            config, self._space, self.best_config, self.incumbent, self._random)
+            config, self._space, self.best_config, self.incumbent, self._random
+        )
 
-    def set_search_properties(self,
-                              metric: Optional[str] = None,
-                              mode: Optional[str] = None,
-                              config: Optional[Dict] = None) -> bool:
+    def set_search_properties(
+        self,
+        metric: Optional[str] = None,
+        mode: Optional[str] = None,
+        config: Optional[Dict] = None,
+    ) -> bool:
         if metric:
             self._metric = metric
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
             self._mode = mode
             if mode == "max":
-                self.metric_op = -1.
+                self.metric_op = -1.0
             elif mode == "min":
-                self.metric_op = 1.
+                self.metric_op = 1.0
         if config:
             self.space = config
             self._space = flatten_dict(self.space)
             self._init_search()
         return True
 
-    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None,
-                          error: bool = False):
-        ''' compare with incumbent
-        '''
+    def on_trial_complete(
+        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
+    ):
+        # compare with incumbent
         # if better, move, reset num_complete and num_proposed
         # if not better and num_complete >= 2*dim, num_allowed += 2
         self.trial_count_complete += 1
@@ -329,15 +349,19 @@ class FLOW2(Searcher):
         if proposed_by == self.incumbent:
             # proposed by current incumbent and no better
             self._num_complete4incumbent += 1
-            cost = result.get(
-                self.cost_attr) if result else self._trial_cost.get(trial_id)
+            cost = (
+                result.get(self.cost_attr) if result else self._trial_cost.get(trial_id)
+            )
             if cost:
                 self._cost_complete4incumbent += cost
-            if self._num_complete4incumbent >= 2 * self.dim and \
-                    self._num_allowed4incumbent == 0:
+            if (
+                self._num_complete4incumbent >= 2 * self.dim
+                and self._num_allowed4incumbent == 0
+            ):
                 self._num_allowed4incumbent = 2
             if self._num_complete4incumbent == self.dir and (
-                    not self._resource or self._resource == self.max_resource):
+                not self._resource or self._resource == self.max_resource
+            ):
                 # check stuck condition if using max resource
                 self._num_complete4incumbent -= 2
                 if self._num_allowed4incumbent < 2:
@@ -345,8 +369,7 @@ class FLOW2(Searcher):
         # elif proposed_by: del self._proposed_by[trial_id]
 
     def on_trial_result(self, trial_id: str, result: Dict):
-        ''' early update of incumbent
-        '''
+        """early update of incumbent"""
         if result:
             obj = result.get(self._metric)
             if obj:
@@ -373,27 +396,32 @@ class FLOW2(Searcher):
     def rand_vector_unit_sphere(self, dim, trunc=0) -> np.ndarray:
         vec = self._random.normal(0, 1, dim)
         if 0 < trunc < dim:
-            vec[np.abs(vec).argsort()[:dim - trunc]] = 0
+            vec[np.abs(vec).argsort()[: dim - trunc]] = 0
         mag = np.linalg.norm(vec)
         return vec / mag
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
-        ''' suggest a new config, one of the following cases:
+        """suggest a new config, one of the following cases:
         1. same incumbent, increase resource
         2. same resource, move from the incumbent to a random direction
         3. same resource, move from the incumbent to the opposite direction
         #TODO: better decouple FLOW2 config suggestion and stepsize update
-        '''
+        """
         self.trial_count_proposed += 1
-        if self._num_complete4incumbent > 0 and self.cost_incumbent and \
-            self._resource and self._resource < self.max_resource and (
+        if (
+            self._num_complete4incumbent > 0
+            and self.cost_incumbent
+            and self._resource
+            and self._resource < self.max_resource
+            and (
                 self._cost_complete4incumbent
-                >= self.cost_incumbent * self.resource_multiple_factor):
+                >= self.cost_incumbent * self.resource_multiple_factor
+            )
+        ):
             # consider increasing resource using sum eval cost of complete
             # configs
             old_resource = self._resource
-            self._resource = self._round(
-                self._resource * self.resource_multiple_factor)
+            self._resource = self._round(self._resource * self.resource_multiple_factor)
             self.cost_incumbent *= self._resource / old_resource
             config = self.best_config.copy()
             config[self.prune_attr] = self._resource
@@ -409,8 +437,9 @@ class FLOW2(Searcher):
             self._direction_tried = None
         else:
             # propose a new direction
-            self._direction_tried = self.rand_vector_unit_sphere(
-                self.dim, self._trunc) * self.step
+            self._direction_tried = (
+                self.rand_vector_unit_sphere(self.dim, self._trunc) * self.step
+            )
             for i, key in enumerate(self._tunable_keys):
                 move[key] += self._direction_tried[i]
         self._project(move)
@@ -442,7 +471,8 @@ class FLOW2(Searcher):
                         break
                 self._same = same
         if self._num_proposedby_incumbent == self.dir and (
-                not self._resource or self._resource == self.max_resource):
+            not self._resource or self._resource == self.max_resource
+        ):
             # check stuck condition if using max resource
             self._num_proposedby_incumbent -= 2
             self._init_phase = False
@@ -459,11 +489,11 @@ class FLOW2(Searcher):
             # random
             for i, key in enumerate(self._tunable_keys):
                 if self._direction_tried[i] != 0:
-                    for _, generated in generate_variants({'config': {
-                        key: self._space[key]
-                    }}):
-                        if generated['config'][key] != best_config[key]:
-                            config[key] = generated['config'][key]
+                    for _, generated in generate_variants(
+                        {"config": {key: self._space[key]}}
+                    ):
+                        if generated["config"][key] != best_config[key]:
+                            config[key] = generated["config"][key]
                             return unflatten_dict(config)
                         break
         else:
@@ -477,8 +507,7 @@ class FLOW2(Searcher):
         return unflatten_dict(config)
 
     def _project(self, config):
-        ''' project normalized config in the feasible region and set prune_attr
-        '''
+        """project normalized config in the feasible region and set prune_attr"""
         for key in self._bounded_keys:
             value = config[key]
             config[key] = max(0, min(1, value))
@@ -487,14 +516,13 @@ class FLOW2(Searcher):
 
     @property
     def can_suggest(self) -> bool:
-        ''' can't suggest if 2*dim configs have been proposed for the incumbent
-            while fewer are completed
-        '''
+        """can't suggest if 2*dim configs have been proposed for the incumbent
+        while fewer are completed
+        """
         return self._num_allowed4incumbent > 0
 
     def config_signature(self, config, space: Dict = None) -> tuple:
-        ''' return the signature tuple of a config
-        '''
+        """return the signature tuple of a config"""
         config = flatten_dict(config)
         if space:
             space = flatten_dict(space)
@@ -514,8 +542,11 @@ class FLOW2(Searcher):
                 if self.hierarchical:
                     # can't remove constant for hierarchical search space,
                     # e.g., learner
-                    if not (domain is None or type(domain) in (str, int, float)
-                            or isinstance(domain, sample.Domain)):
+                    if not (
+                        domain is None
+                        or type(domain) in (str, int, float)
+                        or isinstance(domain, sample.Domain)
+                    ):
                         # not domain or hashable
                         # get rid of list type for hierarchical search space.
                         continue
@@ -527,16 +558,14 @@ class FLOW2(Searcher):
 
     @property
     def converged(self) -> bool:
-        ''' return whether the local search has converged
-        '''
+        """return whether the local search has converged"""
         if self._num_complete4incumbent < self.dir - 2:
             return False
         # check stepsize after enough configs are completed
         return self.step < self.step_lower_bound
 
     def reach(self, other: Searcher) -> bool:
-        ''' whether the incumbent can reach the incumbent of other
-        '''
+        """whether the incumbent can reach the incumbent of other"""
         config1, config2 = self.best_config, other.best_config
         incumbent1, incumbent2 = self.incumbent, other.incumbent
         if self._resource and config1[self.prune_attr] > config2[self.prune_attr]:
@@ -547,6 +576,9 @@ class FLOW2(Searcher):
             if config1[key] != config2.get(key):
                 return False
         delta = np.array(
-            [incumbent1[key] - incumbent2.get(key, np.inf)
-             for key in self._tunable_keys])
+            [
+                incumbent1[key] - incumbent2.get(key, np.inf)
+                for key in self._tunable_keys
+            ]
+        )
         return np.linalg.norm(delta) <= self.step

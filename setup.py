@@ -18,7 +18,7 @@ install_requires = [
     "lightgbm>=2.3.1",
     "xgboost>=0.90,<=1.3.3",
     "scipy>=1.4.1",
-    "catboost>=0.23",
+    # "catboost>=0.23",  # making optional for conda
     "scikit-learn>=0.24",
 ]
 
@@ -47,6 +47,7 @@ setuptools.setup(
             "coverage>=5.3",
             "pre-commit",
             "xgboost<1.3",
+            "catboost>=0.23",
             "rgf-python",
             "optuna==2.8.0",
             "vowpalwabbit",
@@ -58,6 +59,7 @@ setuptools.setup(
             "azure-storage-blob",
             "statsmodels>=0.12.2",
         ],
+        "catboost": ["catboost>=0.23"],
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
             "ray[tune]==1.6.0",

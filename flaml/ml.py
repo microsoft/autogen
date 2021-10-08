@@ -33,7 +33,7 @@ from .model import (
     ARIMA,
     SARIMAX,
 )
-from .data import group_counts
+from .data import CLASSIFICATION, group_counts
 
 import logging
 
@@ -301,7 +301,7 @@ def evaluate_model_CV(
     valid_fold_num = total_fold_num = 0
     n = kf.get_n_splits()
     X_train_split, y_train_split = X_train_all, y_train_all
-    if task in ("binary", "multi"):
+    if task in CLASSIFICATION:
         labels = np.unique(y_train_all)
     else:
         labels = None

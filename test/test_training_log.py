@@ -2,15 +2,14 @@ import os
 import unittest
 from tempfile import TemporaryDirectory
 
-from sklearn.datasets import load_boston
+from sklearn.datasets import fetch_california_housing
 
 from flaml import AutoML
 from flaml.training_log import training_log_reader
 
 
 class TestTrainingLog(unittest.TestCase):
-
-    def test_training_log(self, path='test_training_log.log'):
+    def test_training_log(self, path="test_training_log.log"):
 
         with TemporaryDirectory() as d:
             filename = os.path.join(d, path)
@@ -19,8 +18,8 @@ class TestTrainingLog(unittest.TestCase):
             automl = AutoML()
             automl_settings = {
                 "time_budget": 1,
-                "metric": 'mse',
-                "task": 'regression',
+                "metric": "mse",
+                "task": "regression",
                 "log_file_name": filename,
                 "log_training_metric": True,
                 "mem_thres": 1024 * 1024,
@@ -31,10 +30,9 @@ class TestTrainingLog(unittest.TestCase):
                 "ensemble": True,
                 "keep_search_state": True,
             }
-            X_train, y_train = load_boston(return_X_y=True)
+            X_train, y_train = fetch_california_housing(return_X_y=True)
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
-            automl._state._train_with_config(
-                automl.best_estimator, automl.best_config)
+            automl._state._train_with_config(automl.best_estimator, automl.best_config)
 
             # Check if the training log file is populated.
             self.assertTrue(os.path.exists(filename))
@@ -49,11 +47,11 @@ class TestTrainingLog(unittest.TestCase):
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
             automl._selected.update(None, 0)
             automl = AutoML()
-            automl.fit(X_train=X_train, y_train=y_train, max_iter=0)
+            automl.fit(X_train=X_train, y_train=y_train, max_iter=0, task="regression")
 
     def test_illfilename(self):
         try:
-            self.test_training_log('/')
+            self.test_training_log("/")
         except IsADirectoryError:
             print("IsADirectoryError happens as expected in linux.")
         except PermissionError:

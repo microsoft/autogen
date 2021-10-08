@@ -13,11 +13,11 @@ from lightgbm import LGBMClassifier, LGBMRegressor, LGBMRanker
 from scipy.sparse import issparse
 import pandas as pd
 from . import tune
-from .data import group_counts
+from .data import group_counts, CLASSIFICATION
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("flaml.automl")
 
 
 class BaseEstimator:
@@ -30,24 +30,23 @@ class BaseEstimator:
             for both regression and classification
     """
 
-    def __init__(self, task="binary", **params):
+    def __init__(self, task="binary", **config):
         """Constructor
 
         Args:
             task: A string of the task type, one of
                 'binary', 'multi', 'regression', 'rank', 'forecast'
-            n_jobs: An integer of the number of parallel threads
-            params: A dictionary of the hyperparameter names and values
+            config: A dictionary containing the hyperparameter names
+                and 'n_jobs' as keys. n_jobs is the number of parallel threads.
         """
-        self.params = params
+        self.params = self.config2params(config)
         self.estimator_class = self._model = None
         self._task = task
-        if "_estimator_type" in params:
-            self._estimator_type = params["_estimator_type"]
-            del self.params["_estimator_type"]
+        if "_estimator_type" in config:
+            self._estimator_type = self.params.pop("_estimator_type")
         else:
             self._estimator_type = (
-                "classifier" if task in ("binary", "multi") else "regressor"
+                "classifier" if task in CLASSIFICATION else "regressor"
             )
 
     def get_params(self, deep=False):
@@ -83,8 +82,9 @@ class BaseEstimator:
         current_time = time.time()
         if "groups" in kwargs:
             kwargs = kwargs.copy()
+            groups = kwargs.pop("groups")
             if self._task == "rank":
-                kwargs["group"] = group_counts(kwargs["groups"])
+                kwargs["group"] = group_counts(groups)
                 # groups_val = kwargs.get('groups_val')
                 # if groups_val is not None:
                 #     kwargs['eval_group'] = [group_counts(groups_val)]
@@ -92,10 +92,13 @@ class BaseEstimator:
                 #         (kwargs['X_val'], kwargs['y_val'])]
                 #     kwargs['verbose'] = False
                 #     del kwargs['groups_val'], kwargs['X_val'], kwargs['y_val']
-            del kwargs["groups"]
         X_train = self._preprocess(X_train)
         model = self.estimator_class(**self.params)
+        if logger.level == logging.DEBUG:
+            logger.debug(f"flaml.model - {model} fit started")
         model.fit(X_train, y_train, **kwargs)
+        if logger.level == logging.DEBUG:
+            logger.debug(f"flaml.model - {model} fit finished")
         train_time = time.time() - current_time
         self._model = model
         return train_time
@@ -143,9 +146,8 @@ class BaseEstimator:
             Each element at (i,j) is the probability for instance i to be in
                 class j
         """
-        assert self._task in (
-            "binary",
-            "multi",
+        assert (
+            self._task in CLASSIFICATION
         ), "predict_prob() only for classification task."
         X_test = self._preprocess(X_test)
         return self._model.predict_proba(X_test)
@@ -160,9 +162,10 @@ class BaseEstimator:
         Returns:
             A dictionary of the search space.
             Each key is the name of a hyperparameter, and value is a dict with
-                its domain and init_value (optional), cat_hp_cost (optional)
+                its domain (required) and low_cost_init_value, init_value,
+                cat_hp_cost (if applicable).
                 e.g.,
-                {'domain': tune.randint(lower=1, upper=10), 'init_value': 1}
+                {'domain': tune.randint(lower=1, upper=10), 'init_value': 1}.
         """
         return {}
 
@@ -171,11 +174,11 @@ class BaseEstimator:
         """[optional method] memory size of the estimator in bytes
 
         Args:
-            config - the dict of the hyperparameter config
+            config - A dict of the hyperparameter config.
 
         Returns:
             A float of the memory size required by the estimator to train the
-            given config
+            given config.
         """
         return 1.0
 
@@ -189,10 +192,21 @@ class BaseEstimator:
         """[optional method] initialize the class"""
         pass
 
+    def config2params(self, config: dict) -> dict:
+        """[optional method] config dict to params dict
+
+        Args:
+            config - A dict of the hyperparameter config.
+
+        Returns:
+            A dict that will be passed to self.estimator_class's constructor.
+        """
+        return config.copy()
+
 
 class SKLearnEstimator(BaseEstimator):
-    def __init__(self, task="binary", **params):
-        super().__init__(task, **params)
+    def __init__(self, task="binary", **config):
+        super().__init__(task, **config)
 
     def _preprocess(self, X):
         if isinstance(X, pd.DataFrame):
@@ -255,39 +269,22 @@ class LGBMEstimator(BaseEstimator):
             },
         }
 
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        if "log_max_bin" in params:
+            params["max_bin"] = (1 << params.pop("log_max_bin")) - 1
+        return params
+
     @classmethod
     def size(cls, config):
         num_leaves = int(round(config.get("num_leaves") or config["max_leaves"]))
         n_estimators = int(round(config["n_estimators"]))
         return (num_leaves * 3 + (num_leaves - 1) * 4 + 1.0) * n_estimators * 8
 
-    def __init__(self, task="binary", log_max_bin=8, **params):
-        super().__init__(task, **params)
-        if "objective" not in self.params:
-            # Default: ‘regression’ for LGBMRegressor,
-            # ‘binary’ or ‘multiclass’ for LGBMClassifier
-            objective = "regression"
-            if "binary" in task:
-                objective = "binary"
-            elif "multi" in task:
-                objective = "multiclass"
-            elif "rank" == task:
-                objective = "lambdarank"
-            self.params["objective"] = objective
-        if "n_estimators" in self.params:
-            self.params["n_estimators"] = int(round(self.params["n_estimators"]))
-        if "num_leaves" in self.params:
-            self.params["num_leaves"] = int(round(self.params["num_leaves"]))
-        if "min_child_samples" in self.params:
-            self.params["min_child_samples"] = int(
-                round(self.params["min_child_samples"])
-            )
-        if "max_bin" not in self.params:
-            self.params["max_bin"] = 1 << int(round(log_max_bin)) - 1
+    def __init__(self, task="binary", **config):
+        super().__init__(task, **config)
         if "verbose" not in self.params:
             self.params["verbose"] = -1
-        # if "subsample_freq" not in self.params:
-        #     self.params['subsample_freq'] = 1
         if "regression" == task:
             self.estimator_class = LGBMRegressor
         elif "rank" == task:
@@ -355,7 +352,7 @@ class LGBMEstimator(BaseEstimator):
         if self.params["n_estimators"] > 0:
             self._fit(X_train, y_train, **kwargs)
         else:
-            self.params["n_estimators"] = n_iter
+            self.params["n_estimators"] = self._model.n_estimators
         train_time = time.time() - start_time
         return train_time
 
@@ -415,56 +412,30 @@ class XGBoostEstimator(SKLearnEstimator):
     def cost_relative2lgbm(cls):
         return 1.6
 
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params["max_depth"] = params.get("max_depth", 0)
+        params["grow_policy"] = params.get("grow_policy", "lossguide")
+        params["booster"] = params.get("booster", "gbtree")
+        params["use_label_encoder"] = params.get("use_label_encoder", False)
+        params["tree_method"] = params.get("tree_method", "hist")
+        if "n_jobs" in config:
+            params["nthread"] = params.pop("n_jobs")
+        return params
+
     def __init__(
         self,
         task="regression",
-        all_thread=False,
-        n_jobs=1,
-        n_estimators=4,
-        max_leaves=4,
-        subsample=1.0,
-        min_child_weight=1,
-        learning_rate=0.1,
-        reg_lambda=1.0,
-        reg_alpha=0.0,
-        colsample_bylevel=1.0,
-        colsample_bytree=1.0,
-        tree_method="auto",
-        **params,
+        **config,
     ):
-        super().__init__(task, **params)
-        self._n_estimators = int(round(n_estimators))
-        self.params.update(
-            {
-                "max_leaves": int(round(max_leaves)),
-                "max_depth": params.get("max_depth", 0),
-                "grow_policy": params.get("grow_policy", "lossguide"),
-                "tree_method": tree_method,
-                "verbosity": params.get("verbosity", 0),
-                "nthread": n_jobs,
-                "learning_rate": float(learning_rate),
-                "subsample": float(subsample),
-                "reg_alpha": float(reg_alpha),
-                "reg_lambda": float(reg_lambda),
-                "min_child_weight": float(min_child_weight),
-                "booster": params.get("booster", "gbtree"),
-                "colsample_bylevel": float(colsample_bylevel),
-                "colsample_bytree": float(colsample_bytree),
-                "objective": params.get("objective"),
-            }
-        )
-        if all_thread:
-            del self.params["nthread"]
-
-    def get_params(self, deep=False):
-        params = super().get_params()
-        params["n_jobs"] = params["nthread"]
-        return params
+        super().__init__(task, **config)
+        self.params["verbosity"] = 0
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
         start_time = time.time()
-        if not issparse(X_train):
-            self.params["tree_method"] = "hist"
+        if issparse(X_train):
+            self.params["tree_method"] = "auto"
+        else:
             X_train = self._preprocess(X_train)
         if "sample_weight" in kwargs:
             dtrain = xgb.DMatrix(X_train, label=y_train, weight=kwargs["sample_weight"])
@@ -478,8 +449,10 @@ class XGBoostEstimator(SKLearnEstimator):
             obj = objective
             if "objective" in self.params:
                 del self.params["objective"]
-        self._model = xgb.train(self.params, dtrain, self._n_estimators, obj=obj)
+        _n_estimators = self.params.pop("n_estimators")
+        self._model = xgb.train(self.params, dtrain, _n_estimators, obj=obj)
         self.params["objective"] = objective
+        self.params["n_estimators"] = _n_estimators
         del dtrain
         train_time = time.time() - start_time
         return train_time
@@ -502,54 +475,29 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
     def cost_relative2lgbm(cls):
         return XGBoostEstimator.cost_relative2lgbm()
 
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params["max_depth"] = 0
+        params["grow_policy"] = params.get("grow_policy", "lossguide")
+        params["booster"] = params.get("booster", "gbtree")
+        params["use_label_encoder"] = params.get("use_label_encoder", False)
+        params["tree_method"] = params.get("tree_method", "hist")
+        return params
+
     def __init__(
         self,
         task="binary",
-        n_jobs=1,
-        n_estimators=4,
-        max_leaves=4,
-        subsample=1.0,
-        min_child_weight=1,
-        learning_rate=0.1,
-        reg_lambda=1.0,
-        reg_alpha=0.0,
-        colsample_bylevel=1.0,
-        colsample_bytree=1.0,
-        tree_method="hist",
-        **params,
+        **config,
     ):
-        super().__init__(task, **params)
-        del self.params["objective"]
-        del self.params["max_bin"]
+        super().__init__(task, **config)
         del self.params["verbose"]
-        self.params.update(
-            {
-                "n_estimators": int(round(n_estimators)),
-                "max_leaves": int(round(max_leaves)),
-                "max_depth": 0,
-                "grow_policy": params.get("grow_policy", "lossguide"),
-                "tree_method": tree_method,
-                "n_jobs": n_jobs,
-                "verbosity": 0,
-                "learning_rate": float(learning_rate),
-                "subsample": float(subsample),
-                "reg_alpha": float(reg_alpha),
-                "reg_lambda": float(reg_lambda),
-                "min_child_weight": float(min_child_weight),
-                "booster": params.get("booster", "gbtree"),
-                "colsample_bylevel": float(colsample_bylevel),
-                "colsample_bytree": float(colsample_bytree),
-                "use_label_encoder": params.get("use_label_encoder", False),
-            }
-        )
+        self.params["verbosity"] = 0
 
         self.estimator_class = xgb.XGBRegressor
         if "rank" == task:
             self.estimator_class = xgb.XGBRanker
-        elif task in ("binary", "multi"):
+        elif task in CLASSIFICATION:
             self.estimator_class = xgb.XGBClassifier
-        self._time_per_iter = None
-        self._train_size = 0
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
         if issparse(X_train):
@@ -578,7 +526,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
                 "low_cost_init_value": 4,
             },
         }
-        if task in ("binary", "multi"):
+        if task in CLASSIFICATION:
             space["criterion"] = {
                 "domain": tune.choice(["gini", "entropy"]),
                 # 'init_value': 'gini',
@@ -589,36 +537,24 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
     def cost_relative2lgbm(cls):
         return 2.0
 
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        if "max_leaves" in params:
+            params["max_leaf_nodes"] = params.get(
+                "max_leaf_nodes", params.pop("max_leaves")
+            )
+        return params
+
     def __init__(
         self,
         task="binary",
-        n_jobs=1,
-        n_estimators=4,
-        max_features=1.0,
-        criterion="gini",
-        max_leaves=4,
         **params,
     ):
         super().__init__(task, **params)
-        del self.params["objective"]
-        del self.params["max_bin"]
-        self.params.update(
-            {
-                "n_estimators": int(round(n_estimators)),
-                "n_jobs": n_jobs,
-                "verbose": 0,
-                "max_features": float(max_features),
-                "max_leaf_nodes": params.get("max_leaf_nodes", int(round(max_leaves))),
-            }
-        )
+        self.params["verbose"] = 0
         self.estimator_class = RandomForestRegressor
-        if task in ("binary", "multi"):
+        if task in CLASSIFICATION:
             self.estimator_class = RandomForestClassifier
-            self.params["criterion"] = criterion
-
-    def get_params(self, deep=False):
-        params = super().get_params()
-        return params
 
 
 class ExtraTreeEstimator(RandomForestEstimator):
@@ -648,21 +584,16 @@ class LRL1Classifier(SKLearnEstimator):
     def cost_relative2lgbm(cls):
         return 160
 
-    def __init__(self, task="binary", n_jobs=1, tol=0.0001, C=1.0, **params):
-        super().__init__(task, **params)
-        self.params.update(
-            {
-                "penalty": params.get("penalty", "l1"),
-                "tol": float(tol),
-                "C": float(C),
-                "solver": params.get("solver", "saga"),
-                "n_jobs": n_jobs,
-            }
-        )
-        assert task in (
-            "binary",
-            "multi",
-        ), "LogisticRegression for classification task only"
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params["tol"] = params.get("tol", 0.0001)
+        params["solver"] = params.get("solver", "saga")
+        params["penalty"] = params.get("penalty", "l1")
+        return params
+
+    def __init__(self, task="binary", **config):
+        super().__init__(task, **config)
+        assert task in CLASSIFICATION, "LogisticRegression for classification task only"
         self.estimator_class = LogisticRegression
 
 
@@ -675,21 +606,16 @@ class LRL2Classifier(SKLearnEstimator):
     def cost_relative2lgbm(cls):
         return 25
 
-    def __init__(self, task="binary", n_jobs=1, tol=0.0001, C=1.0, **params):
-        super().__init__(task, **params)
-        self.params.update(
-            {
-                "penalty": params.get("penalty", "l2"),
-                "tol": float(tol),
-                "C": float(C),
-                "solver": params.get("solver", "lbfgs"),
-                "n_jobs": n_jobs,
-            }
-        )
-        assert task in (
-            "binary",
-            "multi",
-        ), "LogisticRegression for classification task only"
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params["tol"] = params.get("tol", 0.0001)
+        params["solver"] = params.get("solver", "lbfgs")
+        params["penalty"] = params.get("penalty", "l2")
+        return params
+
+    def __init__(self, task="binary", **config):
+        super().__init__(task, **config)
+        assert task in CLASSIFICATION, "LogisticRegression for classification task only"
         self.estimator_class = LogisticRegression
 
 
@@ -749,38 +675,32 @@ class CatBoostEstimator(BaseEstimator):
             X = X.to_numpy()
         return X
 
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params["n_estimators"] = params.get("n_estimators", 8192)
+        if "n_jobs" in params:
+            params["thread_count"] = params.pop("n_jobs")
+        return params
+
     def __init__(
         self,
         task="binary",
-        n_jobs=1,
-        n_estimators=8192,
-        learning_rate=0.1,
-        early_stopping_rounds=4,
-        **params,
+        **config,
     ):
-        super().__init__(task, **params)
+        super().__init__(task, **config)
         self.params.update(
             {
-                "early_stopping_rounds": int(round(early_stopping_rounds)),
-                "n_estimators": n_estimators,
-                "learning_rate": learning_rate,
-                "thread_count": n_jobs,
-                "verbose": params.get("verbose", False),
-                "random_seed": params.get("random_seed", 10242048),
+                "verbose": config.get("verbose", False),
+                "random_seed": config.get("random_seed", 10242048),
             }
         )
         from catboost import CatBoostRegressor
 
         self.estimator_class = CatBoostRegressor
-        if task in ("binary", "multi"):
+        if task in CLASSIFICATION:
             from catboost import CatBoostClassifier
 
             self.estimator_class = CatBoostClassifier
-
-    def get_params(self, deep=False):
-        params = super().get_params()
-        params["n_jobs"] = params["thread_count"]
-        return params
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
         import shutil
@@ -881,7 +801,7 @@ class CatBoostEstimator(BaseEstimator):
                 kwargs["sample_weight"] = weight
             self._model = model
         else:
-            self.params["n_estimators"] = n_iter
+            self.params["n_estimators"] = self._model.tree_count_
         # except CatBoostError:
         #     self._model = None
         train_time = time.time() - start_time
@@ -904,22 +824,21 @@ class KNeighborsEstimator(BaseEstimator):
     def cost_relative2lgbm(cls):
         return 30
 
-    def __init__(self, task="binary", n_jobs=1, n_neighbors=5, **params):
-        super().__init__(task, **params)
-        self.params.update(
-            {
-                "n_neighbors": int(round(n_neighbors)),
-                "weights": params.get("weights", "distance"),
-                "n_jobs": n_jobs,
-            }
-        )
-        from sklearn.neighbors import KNeighborsRegressor
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params["weights"] = params.get("weights", "distance")
+        return params
 
-        self.estimator_class = KNeighborsRegressor
-        if task in ("binary", "multi"):
+    def __init__(self, task="binary", **config):
+        super().__init__(task, **config)
+        if task in CLASSIFICATION:
             from sklearn.neighbors import KNeighborsClassifier
 
             self.estimator_class = KNeighborsClassifier
+        else:
+            from sklearn.neighbors import KNeighborsRegressor
+
+            self.estimator_class = KNeighborsRegressor
 
     def _preprocess(self, X):
         if isinstance(X, pd.DataFrame):
@@ -963,9 +882,7 @@ class Prophet(BaseEstimator):
         }
         return space
 
-    def __init__(self, task="forecast", **params):
-        if "n_jobs" in params:
-            params.pop("n_jobs")
+    def __init__(self, task="forecast", n_jobs=1, **params):
         super().__init__(task, **params)
 
     def _join(self, X_train, y_train):
