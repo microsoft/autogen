@@ -111,7 +111,7 @@ automl_settings = {
     "time_budget": 10,  # in seconds
     "metric": 'r2',
     "task": 'regression',
-    "log_file_name": "test/boston.log",
+    "log_file_name": "test/california.log",
 }
 X_train, y_train = fetch_california_housing(return_X_y=True)
 # Train with labeled input data
