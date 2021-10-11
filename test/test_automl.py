@@ -503,7 +503,7 @@ class TestAutoML(unittest.TestCase):
         automl_settings = {
             "time_budget": 2,
             "task": "regression",
-            "log_file_name": "test/california.log",
+            "log_file_name": "test/boston.log",
             "log_training_metric": True,
             "n_jobs": 1,
             "model_history": True,
@@ -625,7 +625,7 @@ class TestAutoML(unittest.TestCase):
         automl_settings = {
             "time_budget": 10,
             "task": "regression",
-            "log_file_name": "test/california.log",
+            "log_file_name": "test/boston.log",
             "log_type": "all",
             "n_jobs": 1,
             "n_concurrent_trials": 2,

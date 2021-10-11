@@ -18,7 +18,7 @@ install_requires = [
     "lightgbm>=2.3.1",
     "xgboost>=0.90,<=1.3.3",
     "scipy>=1.4.1",
-    # "catboost>=0.23",  # making optional for conda
+    "pandas>=1.1.4",
     "scikit-learn>=0.24",
 ]
 
