@@ -39,7 +39,7 @@ class TestTrainingLog(unittest.TestCase):
                 model0 = automl.best_model_for_estimator(estimator)
                 print(model0.params["n_estimators"], model0.estimator)
 
-                automl.time_budget = None
+                automl._state.time_budget = None
                 model, _ = automl._state._train_with_config(estimator, config)
                 print(model.estimator)
                 # model0 and model are equivalent unless model0's n_estimator is out of search space range
