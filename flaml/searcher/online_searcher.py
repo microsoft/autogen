@@ -138,7 +138,7 @@ class ChampionFrontierSearcher(BaseSearcher):
 
         # value: trial_id, key: searcher_trial_id
         self._trialid_to_searcher_trial_id = {}
-        
+
         self._challenger_list = []
         # initialize the search in set_search_properties
         self.set_search_properties(
