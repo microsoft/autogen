@@ -325,7 +325,7 @@ class LGBMEstimator(BaseEstimator):
         ):
             self.params["n_estimators"] = 1
             self._t1 = self._fit(X_train, y_train, **kwargs)
-            if self._t1 >= budget:
+            if self._t1 >= budget or n_iter == 1:
                 # self.params["n_estimators"] = n_iter
                 return self._t1
             self.params["n_estimators"] = min(n_iter, 4)
@@ -742,7 +742,7 @@ class CatBoostEstimator(BaseEstimator):
                 X_train, y_train, cat_features=cat_features, **kwargs
             )
             CatBoostEstimator._t1 = time.time() - start_time
-            if CatBoostEstimator._t1 >= budget:
+            if CatBoostEstimator._t1 >= budget or n_iter == 1:
                 # self.params["n_estimators"] = n_iter
                 self._model = CatBoostEstimator._smallmodel
                 shutil.rmtree(train_dir, ignore_errors=True)
