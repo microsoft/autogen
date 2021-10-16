@@ -44,7 +44,7 @@ class TestTrainingLog(unittest.TestCase):
                 # model0 and model are equivalent unless model0's n_estimator is out of search space range
                 assert (
                     str(model0.estimator) == str(model.estimator)
-                    or model0["n_estimators"] < 4
+                    or model0.params["n_estimators"] < 4
                 )
 
                 # assuming estimator & config are saved and loaded as follows
