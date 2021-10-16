@@ -104,6 +104,7 @@ class SearchState:
         self.trained_estimator = None
         self.sample_size = None
         self.trial_time = 0
+        self.best_n_iter = None
 
     def update(self, result, time_used, save_model_history=False):
         if result:
@@ -430,7 +431,7 @@ class AutoML:
 
     @property
     def time_to_find_best_model(self) -> float:
-        """time taken to find best model in seconds"""
+        """Time taken to find best model in seconds"""
         return self.__dict__.get("_time_taken_best_iter")
 
     def predict(self, X_test):
@@ -1768,6 +1769,17 @@ class AutoML:
         better = True  # whether we find a better model in one trial
         if self._ensemble:
             self.best_model = {}
+        if self._max_iter < 2 and self.estimator_list:
+            # when max_iter is 1, no need to search
+            self._max_iter = 0
+            self._best_estimator = estimator = self.estimator_list[0]
+            self._selected = state = self._search_states[estimator]
+            state.best_config_sample_size = self._state.data_size
+            state.best_config = (
+                state.init_config
+                if isinstance(state.init_config, dict)
+                else state.init_config[0]
+            )
         for self._track_iter in range(self._max_iter):
             if self._estimator_index is None:
                 estimator = self._active_estimators[0]
@@ -1844,9 +1856,9 @@ class AutoML:
                         metric="val_loss",
                         mode="min",
                         space=search_space,
-                        points_to_evaluate=points_to_evaluate
-                        if len(search_state.init_config) == len(search_space)
-                        else None,
+                        points_to_evaluate=[
+                            p for p in points_to_evaluate if len(p) == len(search_space)
+                        ],
                     )
                 search_state.search_alg = ConcurrencyLimiter(algo, max_concurrent=1)
                 # search_state.search_alg = algo
