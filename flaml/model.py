@@ -4,12 +4,10 @@
 """
 
 import numpy as np
-import xgboost as xgb
 import time
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
-from lightgbm import LGBMClassifier, LGBMRegressor, LGBMRanker
 from scipy.sparse import issparse
 import pandas as pd
 from . import tune
@@ -286,10 +284,16 @@ class LGBMEstimator(BaseEstimator):
         if "verbose" not in self.params:
             self.params["verbose"] = -1
         if "regression" == task:
+            from lightgbm import LGBMRegressor
+
             self.estimator_class = LGBMRegressor
         elif "rank" == task:
+            from lightgbm import LGBMRanker
+
             self.estimator_class = LGBMRanker
         else:
+            from lightgbm import LGBMClassifier
+
             self.estimator_class = LGBMClassifier
         self._time_per_iter = None
         self._train_size = 0
@@ -432,6 +436,8 @@ class XGBoostEstimator(SKLearnEstimator):
         self.params["verbosity"] = 0
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
+        import xgboost as xgb
+
         start_time = time.time()
         if issparse(X_train):
             self.params["tree_method"] = "auto"
@@ -458,6 +464,8 @@ class XGBoostEstimator(SKLearnEstimator):
         return train_time
 
     def predict(self, X_test):
+        import xgboost as xgb
+        
         if not issparse(X_test):
             X_test = self._preprocess(X_test)
         dtest = xgb.DMatrix(X_test)
@@ -492,6 +500,7 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         super().__init__(task, **config)
         del self.params["verbose"]
         self.params["verbosity"] = 0
+        import xgboost as xgb
 
         self.estimator_class = xgb.XGBRegressor
         if "rank" == task:

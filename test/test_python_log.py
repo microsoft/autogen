@@ -64,18 +64,20 @@ class TestLogging(unittest.TestCase):
                 automl.search_space, automl.low_cost_partial_config, automl.cat_hp_cost
             )
             logger.info(automl.search_space["ml"].categories)
-            config = automl.best_config.copy()
-            config["learner"] = automl.best_estimator
-            automl.trainable({"ml": config})
+            if automl.best_config:
+                config = automl.best_config.copy()
+                config["learner"] = automl.best_estimator
+                automl.trainable({"ml": config})
             from flaml import tune, BlendSearch
             from flaml.automl import size
             from functools import partial
 
+            low_cost_partial_config = automl.low_cost_partial_config
             search_alg = BlendSearch(
                 metric="val_loss",
                 mode="min",
                 space=automl.search_space,
-                low_cost_partial_config=automl.low_cost_partial_config,
+                low_cost_partial_config=low_cost_partial_config,
                 points_to_evaluate=automl.points_to_evaluate,
                 cat_hp_cost=automl.cat_hp_cost,
                 prune_attr=automl.prune_attr,
@@ -95,6 +97,14 @@ class TestLogging(unittest.TestCase):
             print(min(trial.last_result["val_loss"] for trial in analysis.trials))
             config = analysis.trials[-1].last_result["config"]["ml"]
             automl._state._train_with_config(config["learner"], config)
+            for _ in range(3):
+                print(
+                    search_alg._ls.complete_config(
+                        low_cost_partial_config,
+                        search_alg._ls_bound_min,
+                        search_alg._ls_bound_max,
+                    )
+                )
             # Check if the log buffer is populated.
             self.assertTrue(len(buf.getvalue()) > 0)
 

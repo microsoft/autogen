@@ -6,7 +6,9 @@
 import json
 from typing import IO
 from contextlib import contextmanager
-import warnings
+import logging
+
+logger = logging.getLogger("flaml.automl")
 
 
 class TrainingLogRecord(object):
@@ -113,8 +115,8 @@ class TrainingLogWriter(object):
         if self.file is None:
             raise IOError("Call open() to open the outpute file first.")
         if self.current_best_loss_record_id is None:
-            warnings.warn(
-                "checkpoint() called before any record is written, " "skipped."
+            logger.warning(
+                "flaml.training_log: checkpoint() called before any record is written, skipped."
             )
             return
         record = TrainingLogCheckPoint(self.current_best_loss_record_id)

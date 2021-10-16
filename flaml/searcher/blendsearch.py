@@ -313,7 +313,13 @@ class BlendSearch(Searcher):
             {},
             recursive=True,
         )
-        self._ls_bound_max = self._ls_bound_min.copy()
+        self._ls_bound_max = normalize(
+            self._ls.init_config.copy(),
+            self._ls.space,
+            self._ls.init_config,
+            {},
+            recursive=True,
+        )
         self._gs_admissible_min = self._ls_bound_min.copy()
         self._gs_admissible_max = self._ls_bound_max.copy()
         self._result = {}  # config_signature: tuple -> result: Dict
@@ -492,6 +498,11 @@ class BlendSearch(Searcher):
                     subspace[key],
                     domain[choice],
                 )
+                if len(admissible_max[key]) > len(domain.categories):
+                    # points + index
+                    normal = (choice + 0.5) / len(domain.categories)
+                    admissible_max[key][-1] = max(normal, admissible_max[key][-1])
+                    admissible_min[key][-1] = min(normal, admissible_min[key][-1])
             elif isinstance(value, dict):
                 self._update_admissible_region(
                     value,
@@ -583,6 +594,7 @@ class BlendSearch(Searcher):
             )
 
     def _expand_admissible_region(self, lower, upper, space):
+        """expand the admissible region for the subspace `space`"""
         for key in upper:
             ub = upper[key]
             if isinstance(ub, list):

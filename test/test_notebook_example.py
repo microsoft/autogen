@@ -109,4 +109,4 @@ def test_mlflow():
 
 
 if __name__ == "__main__":
-    test_automl(300)
+    test_automl(120)
