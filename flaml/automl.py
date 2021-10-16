@@ -119,11 +119,7 @@ class SearchState:
             trained_estimator = result["trained_estimator"]
             del result["trained_estimator"]  # free up RAM
             n_iter = trained_estimator and trained_estimator.params.get("n_estimators")
-            if (
-                n_iter is not None
-                and "n_estimators" in config
-                # and n_iter >= self._search_space_domain["n_estimators"].lower
-            ):
+            if n_iter is not None and "n_estimators" in config:
                 config["n_estimators"] = n_iter
         else:
             obj, time2eval, trained_estimator = np.inf, 0.0, None
@@ -256,7 +252,6 @@ class AutoMLState:
         }
         if sampled_weight is not None:
             self.fit_kwargs["sample_weight"] = weight
-        #     tune.report(**result)
         return result
 
     def _train_with_config(self, estimator, config_w_resource, sample_size=None):
@@ -1764,6 +1759,7 @@ class AutoML:
             self.best_model = {}
         if self._max_iter < 2 and self.estimator_list:
             # when max_iter is 1, no need to search
+            # TODO: otherwise, need to make sure SearchStates.init_config is inside search space
             self._max_iter = 0
             self._best_estimator = estimator = self.estimator_list[0]
             self._selected = state = self._search_states[estimator]
