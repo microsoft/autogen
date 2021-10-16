@@ -31,7 +31,7 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
             self.estimator_class = RGFClassifier
         else:
             from rgf.sklearn import RGFRegressor
-            
+
             self.estimator_class = RGFRegressor
 
     @classmethod

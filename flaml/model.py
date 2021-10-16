@@ -465,7 +465,7 @@ class XGBoostEstimator(SKLearnEstimator):
 
     def predict(self, X_test):
         import xgboost as xgb
-        
+
         if not issparse(X_test):
             X_test = self._preprocess(X_test)
         dtest = xgb.DMatrix(X_test)

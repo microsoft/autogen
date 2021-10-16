@@ -25,23 +25,49 @@ class TestTrainingLog(unittest.TestCase):
                 "mem_thres": 1024 * 1024,
                 "n_jobs": 1,
                 "model_history": True,
-                "train_time_limit": 0.01,
+                "train_time_limit": 0.1,
                 "verbose": 3,
                 "ensemble": True,
                 "keep_search_state": True,
             }
             X_train, y_train = fetch_california_housing(return_X_y=True)
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
-            automl._state._train_with_config(automl.best_estimator, automl.best_config)
-
             # Check if the training log file is populated.
             self.assertTrue(os.path.exists(filename))
-            with training_log_reader(filename) as reader:
-                count = 0
-                for record in reader.records():
-                    print(record)
-                    count += 1
-                self.assertGreater(count, 0)
+            if automl.best_estimator:
+                estimator, config = automl.best_estimator, automl.best_config
+                model0 = automl.best_model_for_estimator(estimator)
+                print(model0.estimator)
+
+                automl.time_budget = None
+                model, _ = automl._state._train_with_config(estimator, config)
+                # model0 and model are equivalent unless model0's n_estimator is out of search space range
+                assert (
+                    str(model0.estimator) == str(model.estimator)
+                    or model0["n_estimators"] < 4
+                )
+
+                # assuming estimator & config are saved and loaded as follows
+                automl = AutoML()
+                automl.fit(
+                    X_train=X_train,
+                    y_train=y_train,
+                    max_iter=0,
+                    task="regression",
+                    estimator_list=[estimator],
+                    n_jobs=1,
+                    starting_points={estimator: config},
+                )
+                # then the fitted model should be equivalent to model
+                # print(str(model.estimator), str(automl.model.estimator))
+                assert str(model.estimator) == str(automl.model.estimator)
+
+                with training_log_reader(filename) as reader:
+                    count = 0
+                    for record in reader.records():
+                        print(record)
+                        count += 1
+                    self.assertGreater(count, 0)
 
             automl_settings["log_file_name"] = None
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
