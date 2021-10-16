@@ -89,6 +89,7 @@ class SearchState:
                 and starting_point.get(name) is not None
             ):
                 self.init_config[name] = starting_point[name]
+
         if isinstance(starting_point, list):
             self.init_config = starting_point
         self._hp_names = list(self._search_space_domain.keys())
@@ -104,7 +105,6 @@ class SearchState:
         self.trained_estimator = None
         self.sample_size = None
         self.trial_time = 0
-        self.best_n_iter = None
 
     def update(self, result, time_used, save_model_history=False):
         if result:
@@ -122,13 +122,12 @@ class SearchState:
             if (
                 n_iter is not None
                 and "n_estimators" in config
-                and n_iter >= self._search_space_domain["n_estimators"].lower
+                # and n_iter >= self._search_space_domain["n_estimators"].lower
             ):
                 config["n_estimators"] = n_iter
-                n_iter = None
         else:
             obj, time2eval, trained_estimator = np.inf, 0.0, None
-            metric_for_logging = config = n_iter = None
+            metric_for_logging = config = None
         self.trial_time = time2eval
         self.total_time_used += time_used
         self.total_iter += 1
@@ -156,10 +155,8 @@ class SearchState:
                 self.trained_estimator.cleanup()
             if trained_estimator:
                 self.trained_estimator = trained_estimator
-            self.best_n_iter = n_iter
         self.metric_for_logging = metric_for_logging
         self.val_loss, self.config = obj, config
-        self.n_iter = n_iter
 
     def get_hist_config_sig(self, sample_size, config):
         config_values = tuple([config[k] for k in self._hp_names])
@@ -262,9 +259,7 @@ class AutoMLState:
         #     tune.report(**result)
         return result
 
-    def _train_with_config(
-        self, estimator, config_w_resource, sample_size=None, n_iter=None
-    ):
+    def _train_with_config(self, estimator, config_w_resource, sample_size=None):
         if not sample_size:
             sample_size = config_w_resource.get(
                 "FLAML_sample_size", len(self.y_train_all)
@@ -301,7 +296,6 @@ class AutoMLState:
             self.n_jobs,
             self.learner_classes.get(estimator),
             budget,
-            n_iter,
             self.fit_kwargs,
         )
         if sampled_weight is not None:
@@ -1030,7 +1024,7 @@ class AutoML:
         self._state.time_budget = None
         self._state.n_jobs = n_jobs
         self._trained_estimator = self._state._train_with_config(
-            best_estimator, best_config, sample_size, best.n_iter
+            best_estimator, best_config, sample_size
         )[0]
         logger.info("retrain from log succeeded")
         return training_duration
@@ -1731,7 +1725,6 @@ class AutoML:
                         config,
                         estimator,
                         search_state.sample_size,
-                        search_state.n_iter,
                     )
 
     def _search_sequential(self):
@@ -1953,7 +1946,6 @@ class AutoML:
                             search_state.config,
                             estimator,
                             search_state.sample_size,
-                            search_state.n_iter,
                         )
                     if mlflow is not None and mlflow.active_run():
                         with mlflow.start_run(nested=True):
@@ -2031,7 +2023,6 @@ class AutoML:
                     self._best_estimator,
                     state.best_config,
                     self.data_size_full,
-                    state.best_n_iter,
                 )
                 logger.info(
                     "retrain {} for {:.1f}s".format(self._best_estimator, retrain_time)
@@ -2144,7 +2135,6 @@ class AutoML:
                         self._best_estimator,
                         state.best_config,
                         self.data_size_full,
-                        state.best_n_iter,
                     )
                     logger.info(
                         "retrain {} for {:.1f}s".format(

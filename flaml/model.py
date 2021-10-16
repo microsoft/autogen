@@ -645,11 +645,15 @@ class CatBoostEstimator(BaseEstimator):
                 "domain": tune.loguniform(lower=0.005, upper=0.2),
                 "init_value": 0.1,
             },
+            "n_estimators": {
+                "domain": 8192,
+                "init_value": 8192,
+            },
         }
 
     @classmethod
     def size(cls, config):
-        n_estimators = 8192
+        n_estimators = config.get("n_estimators", 8192)
         max_leaves = 64
         return (max_leaves * 3 + (max_leaves - 1) * 4 + 1.0) * n_estimators * 8
 

@@ -23,7 +23,6 @@ class TrainingLogRecord(object):
         config: dict,
         learner: str,
         sample_size: int,
-        n_iter: int,
     ):
         self.record_id = record_id
         self.iter_per_learner = iter_per_learner
@@ -34,7 +33,6 @@ class TrainingLogRecord(object):
         self.config = config
         self.learner = learner
         self.sample_size = sample_size
-        self.n_iter = n_iter  # n_estimators for catboost
 
     def dump(self, fp: IO[str]):
         d = vars(self)
@@ -79,7 +77,6 @@ class TrainingLogWriter(object):
         config,
         learner,
         sample_size,
-        n_iter,
     ):
         if self.file is None:
             raise IOError("Call open() to open the outpute file first.")
@@ -95,7 +92,6 @@ class TrainingLogWriter(object):
             config,
             learner,
             sample_size,
-            n_iter,
         )
         if (
             validation_loss < self.current_best_loss
