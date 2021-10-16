@@ -465,14 +465,11 @@ def train_estimator(
     n_jobs=1,
     estimator_class=None,
     budget=None,
-    n_iter=None,
     fit_kwargs={},
 ):
     start_time = time.time()
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
     estimator = estimator_class(**config_dic, task=task, n_jobs=n_jobs)
-    if n_iter is not None:
-        estimator.params["n_estimators"] = n_iter
     if X_train is not None:
         train_time = estimator.fit(X_train, y_train, budget, **fit_kwargs)
     else:

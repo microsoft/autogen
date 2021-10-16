@@ -9,7 +9,7 @@ from flaml.training_log import training_log_reader
 
 
 class TestTrainingLog(unittest.TestCase):
-    def test_training_log(self, path="test_training_log.log"):
+    def test_training_log(self, path="test_training_log.log", estimator_list="auto"):
 
         with TemporaryDirectory() as d:
             filename = os.path.join(d, path)
@@ -27,8 +27,9 @@ class TestTrainingLog(unittest.TestCase):
                 "model_history": True,
                 "train_time_limit": 0.1,
                 "verbose": 3,
-                "ensemble": True,
+                # "ensemble": True,
                 "keep_search_state": True,
+                "estimator_list": estimator_list,
             }
             X_train, y_train = fetch_california_housing(return_X_y=True)
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
@@ -37,31 +38,34 @@ class TestTrainingLog(unittest.TestCase):
             if automl.best_estimator:
                 estimator, config = automl.best_estimator, automl.best_config
                 model0 = automl.best_model_for_estimator(estimator)
-                print(model0.params["n_estimators"], model0.estimator)
+                print(model0.params["n_estimators"], config)
 
+                # train on full data with no time limit
                 automl._state.time_budget = None
                 model, _ = automl._state._train_with_config(estimator, config)
-                print(model.estimator)
-                # model0 and model are equivalent unless model0's n_estimator is out of search space range
-                assert (
-                    str(model0.estimator) == str(model.estimator)
-                    or model0.params["n_estimators"] < 4
-                )
 
                 # assuming estimator & config are saved and loaded as follows
                 automl = AutoML()
                 automl.fit(
                     X_train=X_train,
                     y_train=y_train,
-                    max_iter=0,
+                    max_iter=1,
                     task="regression",
                     estimator_list=[estimator],
                     n_jobs=1,
                     starting_points={estimator: config},
                 )
+                print(automl.best_config)
                 # then the fitted model should be equivalent to model
-                # print(str(model.estimator), str(automl.model.estimator))
-                assert str(model.estimator) == str(automl.model.estimator)
+                assert (
+                    str(model.estimator) == str(automl.model.estimator)
+                    or estimator == "xgboost"
+                    and str(model.estimator.get_dump())
+                    == str(automl.model.estimator.get_dump())
+                    or estimator == "catboost"
+                    and str(model.estimator.get_all_params())
+                    == str(automl.model.estimator.get_all_params())
+                )
 
                 with training_log_reader(filename) as reader:
                     count = 0
@@ -83,3 +87,10 @@ class TestTrainingLog(unittest.TestCase):
             print("IsADirectoryError happens as expected in linux.")
         except PermissionError:
             print("PermissionError happens as expected in windows.")
+
+    def test_each_estimator(self):
+        self.test_training_log(estimator_list=["xgboost"])
+        self.test_training_log(estimator_list=["catboost"])
+        self.test_training_log(estimator_list=["extra_tree"])
+        self.test_training_log(estimator_list=["rf"])
+        self.test_training_log(estimator_list=["lgbm"])
