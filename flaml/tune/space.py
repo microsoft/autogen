@@ -418,14 +418,13 @@ def indexof(domain: Dict, config: Dict) -> int:
         return domain.categories.index(config)
     # print(config)
     for i, cat in enumerate(domain.categories):
-        # print(cat)
         if not isinstance(cat, dict):
             continue
         # print(len(cat), len(config))
-        if len(cat) != len(config):
-            continue
+        # if len(cat) != len(config):
+        #     continue
         # print(cat.keys())
-        if not set(cat.keys()).issubset(set(config.keys())):
+        if not set(config.keys()).issubset(set(cat.keys())):
             continue
         # print(domain.const[i])
         if all(config[key] == value for key, value in domain.const[i].items()):
