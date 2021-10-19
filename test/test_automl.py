@@ -651,7 +651,12 @@ class TestAutoML(unittest.TestCase):
 
         X, y = make_classification(1000, 10)
         automl = AutoML()
-        automl.fit(X, y, time_budget=10, task="classification", n_concurrent_trials=2)
+        try:
+            automl.fit(
+                X, y, time_budget=10, task="classification", n_concurrent_trials=2
+            )
+        except ImportError:
+            return
 
     def test_parallel_xgboost(self, hpo_method=None):
         automl_experiment = AutoML()
