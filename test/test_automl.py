@@ -646,6 +646,13 @@ class TestAutoML(unittest.TestCase):
         except ImportError:
             return
 
+    def test_parallel_classification(self):
+        from sklearn.datasets import make_classification
+
+        X, y = make_classification(1000, 10)
+        automl = AutoML()
+        automl.fit(X, y, time_budget=10, task="classification", n_concurrent_trials=2)
+
     def test_parallel_xgboost(self, hpo_method=None):
         automl_experiment = AutoML()
         automl_settings = {
