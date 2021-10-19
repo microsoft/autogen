@@ -194,6 +194,18 @@ def run(
             as a list so the optimiser can be told the results without
             needing to re-compute the trial. Must be the same length as
             points_to_evaluate.
+            e.g.,
+            .. code-block:: python
+                points_to_evaluate = [
+                    {"b": .99, "cost_related": {"a": 3}},
+                    {"b": .99, "cost_related": {"a": 2}},
+                ]
+                evaluated_rewards=[3.0, 1.0]
+
+            means that you know the reward for the two configs in
+            points_to_evaluate are 3.0 and 1.0 respectively and want to
+            inform run()
+
         prune_attr: A string of the attribute used for pruning.
             Not necessarily in space.
             When prune_attr is in space, it is a hyperparameter, e.g.,
