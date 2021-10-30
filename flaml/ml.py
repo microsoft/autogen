@@ -33,7 +33,7 @@ from .model import (
     ARIMA,
     SARIMAX,
 )
-from .data import CLASSIFICATION, group_counts
+from .data import CLASSIFICATION, group_counts, TS_FORECAST, TS_VALUE_COL
 
 import logging
 
@@ -313,8 +313,8 @@ def evaluate_model_CV(
         groups = kf.groups
         kf = kf.split(X_train_split, y_train_split, groups)
         shuffle = False
-    elif isinstance(kf, TimeSeriesSplit) and task == "forecast":
-        y_train_all = pd.DataFrame(y_train_all, columns=["y"])
+    elif isinstance(kf, TimeSeriesSplit) and task == TS_FORECAST:
+        y_train_all = pd.DataFrame(y_train_all, columns=[TS_VALUE_COL])
         train = X_train_all.join(y_train_all)
         kf = kf.split(train)
         shuffle = False

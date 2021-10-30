@@ -12,6 +12,10 @@ from .training_log import training_log_reader
 from datetime import datetime
 
 CLASSIFICATION = ("binary", "multi", "classification")
+TS_FORECAST = "ts_forecast"
+TS_TIMESTAMP_COL = "ds"
+TS_VALUE_COL = "y"
+FORECAST = "forecast"
 
 
 def load_openml_dataset(
@@ -212,6 +216,11 @@ class DataTransformer:
             n = X.shape[0]
             cat_columns, num_columns, datetime_columns = [], [], []
             drop = False
+            if task == TS_FORECAST:
+                X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
+                ds_col = X.pop(TS_TIMESTAMP_COL)
+                if isinstance(y, pd.Series):
+                    y = y.rename(TS_VALUE_COL)
             for column in X.columns:
                 # sklearn\utils\validation.py needs int/float values
                 if X[column].dtype.name in ("object", "category"):
@@ -270,6 +279,8 @@ class DataTransformer:
                             X[column] = X[column].fillna(np.nan)
                             num_columns.append(column)
             X = X[cat_columns + num_columns]
+            if task == TS_FORECAST:
+                X.insert(0, TS_TIMESTAMP_COL, ds_col)
             if cat_columns:
                 X[cat_columns] = X[cat_columns].astype("category")
             if num_columns:
@@ -312,7 +323,7 @@ class DataTransformer:
             self.label_transformer = None
         return X, y
 
-    def transform(self, X):
+    def transform(self, X, task):
         X = X.copy()
         if isinstance(X, pd.DataFrame):
             cat_columns, num_columns, datetime_columns = (
@@ -320,6 +331,9 @@ class DataTransformer:
                 self._num_columns,
                 self._datetime_columns,
             )
+            if task == TS_FORECAST:
+                X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
+                ds_col = X.pop(TS_TIMESTAMP_COL)
             if datetime_columns:
                 for column in datetime_columns:
                     tmp_dt = X[column].dt
@@ -344,6 +358,8 @@ class DataTransformer:
                     X[column] = X[column].map(datetime.toordinal)
                     del tmp_dt
             X = X[cat_columns + num_columns].copy()
+            if task == TS_FORECAST:
+                X.insert(0, TS_TIMESTAMP_COL, ds_col)
             for column in cat_columns:
                 if X[column].dtype.name == "object":
                     X[column] = X[column].fillna("__NAN__")
