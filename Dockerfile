@@ -4,8 +4,8 @@ RUN apt-get update && apt-get -y update
 RUN apt-get install -y sudo git
 
 # Setup user to not run as root
-RUN adduser --disabled-password --gecos '' hb-dev
-RUN adduser hb-dev sudo
+RUN adduser --disabled-password --gecos '' flaml-dev
+RUN adduser flaml-dev sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER flaml-dev
 
