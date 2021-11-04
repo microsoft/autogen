@@ -2,20 +2,67 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
 """
-
+from contextlib import contextmanager
+from functools import partial
+import signal
+import os
+from typing import Callable, List
 import numpy as np
 import time
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.dummy import DummyClassifier, DummyRegressor
 from scipy.sparse import issparse
 import pandas as pd
-from . import tune
-from .data import group_counts, CLASSIFICATION, TS_FORECAST, TS_TIMESTAMP_COL, TS_VALUE_COL
-
 import logging
+from . import tune
+from .data import (
+    group_counts,
+    CLASSIFICATION,
+    TS_FORECAST,
+    TS_TIMESTAMP_COL,
+    TS_VALUE_COL,
+)
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
+try:
+    import resource
+except ImportError:
+    resource = None
 
 logger = logging.getLogger("flaml.automl")
+FREE_MEM_RATIO = 0.2
+
+
+def TimeoutHandler(sig, frame):
+    raise TimeoutError(sig, frame)
+
+
+@contextmanager
+def limit_resource(memory_limit, time_limit):
+    if memory_limit > 0:
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        if soft < 0 and (hard < 0 or memory_limit <= hard) or memory_limit < soft:
+            resource.setrlimit(resource.RLIMIT_AS, (memory_limit, hard))
+    main_thread = False
+    if time_limit is not None:
+        try:
+            signal.signal(signal.SIGALRM, TimeoutHandler)
+            signal.alarm(int(time_limit) or 1)
+            main_thread = True
+        except ValueError:
+            pass
+    try:
+        yield
+    finally:
+        if main_thread:
+            signal.alarm(0)
+        if memory_limit > 0:
+            resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
 
 
 class BaseEstimator:
@@ -112,7 +159,35 @@ class BaseEstimator:
         Returns:
             train_time: A float of the training time in seconds
         """
-        return self._fit(X_train, y_train, **kwargs)
+        if (
+            getattr(self, "limit_resource", None)
+            and resource is not None
+            and (budget is not None or psutil is not None)
+        ):
+            start_time = time.time()
+            mem = psutil.virtual_memory() if psutil is not None else None
+            try:
+                with limit_resource(
+                    mem.available * (1 - FREE_MEM_RATIO)
+                    + psutil.Process(os.getpid()).memory_info().rss
+                    if mem is not None
+                    else -1,
+                    budget,
+                ):
+                    train_time = self._fit(X_train, y_train, **kwargs)
+            except (MemoryError, TimeoutError) as e:
+                logger.warning(f"{e.__class__} {e}")
+                if self._task in CLASSIFICATION:
+                    model = DummyClassifier()
+                else:
+                    model = DummyRegressor()
+                X_train = self._preprocess(X_train)
+                model.fit(X_train, y_train)
+                self._model = model
+                train_time = time.time() - start_time
+        else:
+            train_time = self._fit(X_train, y_train, **kwargs)
+        return train_time
 
     def predict(self, X_test):
         """Predict label from features
@@ -223,6 +298,9 @@ class SKLearnEstimator(BaseEstimator):
 
 
 class LGBMEstimator(BaseEstimator):
+    ITER_HP = "n_estimators"
+    HAS_CALLBACK = True
+
     @classmethod
     def search_space(cls, data_size, **params):
         upper = min(32768, int(data_size))
@@ -297,6 +375,8 @@ class LGBMEstimator(BaseEstimator):
             self.estimator_class = LGBMClassifier
         self._time_per_iter = None
         self._train_size = 0
+        self._mem_per_iter = 1
+        self.HAS_CALLBACK = self.HAS_CALLBACK and self._callbacks(0, 0) is not None
 
     def _preprocess(self, X):
         if (
@@ -316,49 +396,110 @@ class LGBMEstimator(BaseEstimator):
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
         start_time = time.time()
-        n_iter = self.params["n_estimators"]
+        deadline = start_time + budget if budget else np.inf
+        n_iter = self.params[self.ITER_HP]
         trained = False
-        if (
-            (not self._time_per_iter or abs(self._train_size - X_train.shape[0]) > 4)
-            and budget is not None
-            and n_iter > 1
-        ):
-            self.params["n_estimators"] = 1
-            self._t1 = self._fit(X_train, y_train, **kwargs)
-            if self._t1 >= budget or n_iter == 1:
-                # self.params["n_estimators"] = n_iter
-                return self._t1
-            self.params["n_estimators"] = min(n_iter, 4)
-            self._t2 = self._fit(X_train, y_train, **kwargs)
-            self._time_per_iter = (
-                (self._t2 - self._t1) / (self.params["n_estimators"] - 1)
-                if self._t2 > self._t1
-                else self._t1
-                if self._t1
-                else 0.001
-            )
-            self._train_size = X_train.shape[0]
-            if self._t1 + self._t2 >= budget or n_iter == self.params["n_estimators"]:
-                # self.params["n_estimators"] = n_iter
-                return time.time() - start_time
-            trained = True
-        if budget is not None and n_iter > 1:
-            max_iter = min(
-                n_iter,
-                int(
-                    (budget - time.time() + start_time - self._t1) / self._time_per_iter
-                    + 1
-                ),
-            )
-            if trained and max_iter <= self.params["n_estimators"]:
-                return time.time() - start_time
-            self.params["n_estimators"] = max_iter
-        if self.params["n_estimators"] > 0:
-            self._fit(X_train, y_train, **kwargs)
+        if not self.HAS_CALLBACK:
+            mem0 = psutil.virtual_memory().available if psutil is not None else 1
+            if (
+                (
+                    not self._time_per_iter
+                    or abs(self._train_size - X_train.shape[0]) > 4
+                )
+                and budget is not None
+                or self._mem_per_iter <= 1
+                and psutil is not None
+            ) and n_iter > 1:
+                self.params[self.ITER_HP] = 1
+                self._t1 = self._fit(X_train, y_train, **kwargs)
+                if budget is not None and self._t1 >= budget or n_iter == 1:
+                    # self.params[self.ITER_HP] = n_iter
+                    return self._t1
+                mem1 = psutil.virtual_memory().available if psutil is not None else 1
+                self._mem1 = mem0 - mem1
+                self.params[self.ITER_HP] = min(n_iter, 4)
+                self._t2 = self._fit(X_train, y_train, **kwargs)
+                mem2 = psutil.virtual_memory().available if psutil is not None else 1
+                self._mem2 = max(mem0 - mem2, self._mem1)
+                # if self._mem1 <= 0:
+                #     self._mem_per_iter = self._mem2 / (self.params[self.ITER_HP] + 1)
+                # elif self._mem2 <= 0:
+                #     self._mem_per_iter = self._mem1
+                # else:
+                self._mem_per_iter = min(
+                    self._mem1, self._mem2 / self.params[self.ITER_HP]
+                )
+                if self._mem_per_iter <= 1 and psutil is not None:
+                    n_iter = self.params[self.ITER_HP]
+                self._time_per_iter = (
+                    (self._t2 - self._t1) / (self.params[self.ITER_HP] - 1)
+                    if self._t2 > self._t1
+                    else self._t1
+                    if self._t1
+                    else 0.001
+                )
+                self._train_size = X_train.shape[0]
+                if (
+                    budget is not None
+                    and self._t1 + self._t2 >= budget
+                    or n_iter == self.params[self.ITER_HP]
+                ):
+                    # self.params[self.ITER_HP] = n_iter
+                    return time.time() - start_time
+                trained = True
+            # logger.debug(mem0)
+            # logger.debug(self._mem_per_iter)
+            if n_iter > 1:
+                max_iter = min(
+                    n_iter,
+                    int(
+                        (budget - time.time() + start_time - self._t1)
+                        / self._time_per_iter
+                        + 1
+                    )
+                    if budget is not None
+                    else n_iter,
+                    int((1 - FREE_MEM_RATIO) * mem0 / self._mem_per_iter)
+                    if psutil is not None
+                    else n_iter,
+                )
+                if trained and max_iter <= self.params[self.ITER_HP]:
+                    return time.time() - start_time
+                self.params[self.ITER_HP] = max_iter
+        if self.params[self.ITER_HP] > 0:
+            if self.HAS_CALLBACK:
+                self._fit(
+                    X_train, y_train, callbacks=self._callbacks(start_time, deadline), **kwargs
+                )
+                best_iteration = (
+                    self._model.get_booster().best_iteration
+                    if isinstance(self, XGBoostSklearnEstimator)
+                    else self._model.best_iteration_
+                )
+                if best_iteration is not None:
+                    self._model.set_params(n_estimators=best_iteration + 1)
+            else:
+                self._fit(X_train, y_train, **kwargs)
         else:
-            self.params["n_estimators"] = self._model.n_estimators
+            self.params[self.ITER_HP] = self._model.n_estimators
         train_time = time.time() - start_time
         return train_time
+
+    def _callbacks(self, start_time, deadline) -> List[Callable]:
+        return [partial(self._callback, start_time, deadline)]
+
+    def _callback(self, start_time, deadline, env) -> None:
+        from lightgbm.callback import EarlyStopException
+
+        now = time.time()
+        if env.iteration == 0:
+            self._time_per_iter = now - start_time
+        if now + self._time_per_iter > deadline:
+            raise EarlyStopException(env.iteration, env.evaluation_result_list)
+        if psutil is not None:
+            mem = psutil.virtual_memory()
+            if mem.available / mem.total < FREE_MEM_RATIO:
+                raise EarlyStopException(env.iteration, env.evaluation_result_list)
 
 
 class XGBoostEstimator(SKLearnEstimator):
@@ -439,6 +580,7 @@ class XGBoostEstimator(SKLearnEstimator):
         import xgboost as xgb
 
         start_time = time.time()
+        deadline = start_time + budget if budget else np.inf
         if issparse(X_train):
             self.params["tree_method"] = "auto"
         else:
@@ -456,9 +598,20 @@ class XGBoostEstimator(SKLearnEstimator):
             if "objective" in self.params:
                 del self.params["objective"]
         _n_estimators = self.params.pop("n_estimators")
-        self._model = xgb.train(self.params, dtrain, _n_estimators, obj=obj)
+        callbacks = XGBoostEstimator._callbacks(start_time, deadline)
+        if callbacks:
+            self._model = xgb.train(
+                self.params,
+                dtrain,
+                _n_estimators,
+                obj=obj,
+                callbacks=callbacks,
+            )
+            self.params["n_estimators"] = self._model.best_iteration + 1
+        else:
+            self._model = xgb.train(self.params, dtrain, _n_estimators, obj=obj)
+            self.params["n_estimators"] = _n_estimators
         self.params["objective"] = objective
-        self.params["n_estimators"] = _n_estimators
         del dtrain
         train_time = time.time() - start_time
         return train_time
@@ -470,6 +623,28 @@ class XGBoostEstimator(SKLearnEstimator):
             X_test = self._preprocess(X_test)
         dtest = xgb.DMatrix(X_test)
         return super().predict(dtest)
+
+    @classmethod
+    def _callbacks(cls, start_time, deadline):
+        try:
+            from xgboost.callback import TrainingCallback
+        except ImportError:  # for xgboost<1.3
+            return None
+
+        class ResourceLimit(TrainingCallback):
+            def after_iteration(self, model, epoch, evals_log) -> bool:
+                now = time.time()
+                if epoch == 0:
+                    self._time_per_iter = now - start_time
+                if now + self._time_per_iter > deadline:
+                    return True
+                if psutil is not None:
+                    mem = psutil.virtual_memory()
+                    if mem.available / mem.total < FREE_MEM_RATIO:
+                        return True
+                return False
+
+        return [ResourceLimit()]
 
 
 class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
@@ -513,8 +688,13 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             self.params["tree_method"] = "auto"
         return super().fit(X_train, y_train, budget, **kwargs)
 
+    def _callbacks(self, start_time, deadline) -> List[Callable]:
+        return XGBoostEstimator._callbacks(start_time, deadline)
+
 
 class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
+    HAS_CALLBACK = False
+
     @classmethod
     def search_space(cls, data_size, task, **params):
         data_size = int(data_size)
@@ -607,6 +787,8 @@ class LRL1Classifier(SKLearnEstimator):
 
 
 class LRL2Classifier(SKLearnEstimator):
+    limit_resource = True
+
     @classmethod
     def search_space(cls, **params):
         return LRL1Classifier.search_space(**params)
@@ -629,8 +811,7 @@ class LRL2Classifier(SKLearnEstimator):
 
 
 class CatBoostEstimator(BaseEstimator):
-    _time_per_iter = None
-    _train_size = 0
+    ITER_HP = "n_estimators"
 
     @classmethod
     def search_space(cls, data_size, **params):
@@ -660,11 +841,6 @@ class CatBoostEstimator(BaseEstimator):
     @classmethod
     def cost_relative2lgbm(cls):
         return 15
-
-    @classmethod
-    def init(cls):
-        CatBoostEstimator._time_per_iter = None
-        CatBoostEstimator._train_size = 0
 
     def _preprocess(self, X):
         if isinstance(X, pd.DataFrame):
@@ -719,87 +895,36 @@ class CatBoostEstimator(BaseEstimator):
         import shutil
 
         start_time = time.time()
+        deadline = start_time + budget if budget else np.inf
         train_dir = f"catboost_{str(start_time)}"
-        n_iter = self.params["n_estimators"]
         X_train = self._preprocess(X_train)
         if isinstance(X_train, pd.DataFrame):
             cat_features = list(X_train.select_dtypes(include="category").columns)
         else:
             cat_features = []
-        # from catboost import CatBoostError
-        # try:
-        trained = False
-        if (
-            (
-                not CatBoostEstimator._time_per_iter
-                or abs(CatBoostEstimator._train_size - len(y_train)) > 4
-            )
-            and budget
-            and n_iter > 4
-        ):
-            # measure the time per iteration
-            self.params["n_estimators"] = 1
-            CatBoostEstimator._smallmodel = self.estimator_class(
-                train_dir=train_dir, **self.params
-            )
-            CatBoostEstimator._smallmodel.fit(
-                X_train, y_train, cat_features=cat_features, **kwargs
-            )
-            CatBoostEstimator._t1 = time.time() - start_time
-            if CatBoostEstimator._t1 >= budget or n_iter == 1:
-                # self.params["n_estimators"] = n_iter
-                self._model = CatBoostEstimator._smallmodel
-                shutil.rmtree(train_dir, ignore_errors=True)
-                return CatBoostEstimator._t1
-            self.params["n_estimators"] = min(n_iter, 4)
-            CatBoostEstimator._smallmodel = self.estimator_class(
-                train_dir=train_dir, **self.params
-            )
-            CatBoostEstimator._smallmodel.fit(
-                X_train, y_train, cat_features=cat_features, **kwargs
-            )
-            CatBoostEstimator._time_per_iter = (
-                time.time() - start_time - CatBoostEstimator._t1
-            ) / (self.params["n_estimators"] - 1)
-            if CatBoostEstimator._time_per_iter <= 0:
-                CatBoostEstimator._time_per_iter = CatBoostEstimator._t1
-            CatBoostEstimator._train_size = len(y_train)
-            if (
-                time.time() - start_time >= budget
-                or n_iter == self.params["n_estimators"]
-            ):
-                # self.params["n_estimators"] = n_iter
-                self._model = CatBoostEstimator._smallmodel
-                shutil.rmtree(train_dir, ignore_errors=True)
-                return time.time() - start_time
-            trained = True
-        if budget and n_iter > 4:
-            train_times = 1
-            max_iter = min(
-                n_iter,
-                int(
-                    (budget - time.time() + start_time - CatBoostEstimator._t1)
-                    / train_times
-                    / CatBoostEstimator._time_per_iter
-                    + 1
-                ),
-            )
-            self._model = CatBoostEstimator._smallmodel
-            if trained and max_iter <= self.params["n_estimators"]:
-                return time.time() - start_time
-            self.params["n_estimators"] = max_iter
-        if self.params["n_estimators"] > 0:
-            n = max(int(len(y_train) * 0.9), len(y_train) - 1000)
-            X_tr, y_tr = X_train[:n], y_train[:n]
-            if "sample_weight" in kwargs:
-                weight = kwargs["sample_weight"]
-                if weight is not None:
-                    kwargs["sample_weight"] = weight[:n]
-            else:
-                weight = None
-            from catboost import Pool
+        n = max(int(len(y_train) * 0.9), len(y_train) - 1000)
+        X_tr, y_tr = X_train[:n], y_train[:n]
+        if "sample_weight" in kwargs:
+            weight = kwargs["sample_weight"]
+            if weight is not None:
+                kwargs["sample_weight"] = weight[:n]
+        else:
+            weight = None
+        from catboost import Pool, __version__
 
-            model = self.estimator_class(train_dir=train_dir, **self.params)
+        model = self.estimator_class(train_dir=train_dir, **self.params)
+        if __version__ >= "0.26":
+            model.fit(
+                X_tr,
+                y_tr,
+                cat_features=cat_features,
+                eval_set=Pool(
+                    data=X_train[n:], label=y_train[n:], cat_features=cat_features
+                ),
+                callbacks=CatBoostEstimator._callbacks(start_time, deadline),
+                **kwargs,
+            )
+        else:
             model.fit(
                 X_tr,
                 y_tr,
@@ -808,17 +933,31 @@ class CatBoostEstimator(BaseEstimator):
                     data=X_train[n:], label=y_train[n:], cat_features=cat_features
                 ),
                 **kwargs,
-            )  # model.get_best_iteration()
-            shutil.rmtree(train_dir, ignore_errors=True)
-            if weight is not None:
-                kwargs["sample_weight"] = weight
-            self._model = model
-        else:
-            self.params["n_estimators"] = self._model.tree_count_
-        # except CatBoostError:
-        #     self._model = None
+            )
+        shutil.rmtree(train_dir, ignore_errors=True)
+        if weight is not None:
+            kwargs["sample_weight"] = weight
+        self._model = model
+        self.params[self.ITER_HP] = self._model.tree_count_
         train_time = time.time() - start_time
         return train_time
+
+    @classmethod
+    def _callbacks(cls, start_time, deadline):
+        class ResourceLimit:
+            def after_iteration(self, info) -> bool:
+                now = time.time()
+                if info.iteration == 1:
+                    self._time_per_iter = now - start_time
+                if now + self._time_per_iter > deadline:
+                    return False
+                if psutil is not None:
+                    mem = psutil.virtual_memory()
+                    if mem.available / mem.total < FREE_MEM_RATIO:
+                        return False
+                return True  # can continue
+
+        return [ResourceLimit()]
 
 
 class KNeighborsEstimator(BaseEstimator):
@@ -919,7 +1058,8 @@ class Prophet(SKLearnEstimator):
         model = Prophet(**self.params)
         for regressor in cols:
             model.add_regressor(regressor)
-        model.fit(train_df)
+        with suppress_stdout_stderr():
+            model.fit(train_df)
         train_time = time.time() - current_time
         self._model = model
         return train_time
@@ -984,15 +1124,21 @@ class ARIMA(Prophet):
         regressors = cols
         if regressors:
             model = ARIMA_estimator(
-                train_df[[TS_VALUE_COL]], exog=train_df[regressors], order=(
-                    self.params["p"], self.params["d"], self.params["q"]),
-                enforce_stationarity=False, enforce_invertibility=False)
+                train_df[[TS_VALUE_COL]],
+                exog=train_df[regressors],
+                order=(self.params["p"], self.params["d"], self.params["q"]),
+                enforce_stationarity=False,
+                enforce_invertibility=False,
+            )
         else:
             model = ARIMA_estimator(
-                train_df, order=(
-                    self.params["p"], self.params["d"], self.params["q"]),
-                enforce_stationarity=False, enforce_invertibility=False)
-        model = model.fit()
+                train_df,
+                order=(self.params["p"], self.params["d"], self.params["q"]),
+                enforce_stationarity=False,
+                enforce_invertibility=False,
+            )
+        with suppress_stdout_stderr():
+            model = model.fit()
         train_time = time.time() - current_time
         self._model = model
         return train_time
@@ -1010,7 +1156,9 @@ class ARIMA(Prophet):
                     regressors = list(X_test)
                     regressors.remove(TS_TIMESTAMP_COL)
                     X_test = self._preprocess(X_test)
-                    forecast = self._model.predict(start=start, end=end, exog=X_test[regressors])
+                    forecast = self._model.predict(
+                        start=start, end=end, exog=X_test[regressors]
+                    )
                 else:
                     forecast = self._model.predict(start=start, end=end)
             else:
@@ -1077,25 +1225,64 @@ class SARIMAX(ARIMA):
         regressors.remove(TS_VALUE_COL)
         if regressors:
             model = SARIMAX_estimator(
-                train_df[[TS_VALUE_COL]], exog=train_df[regressors], order=(
-                    self.params["p"], self.params["d"], self.params["q"]),
+                train_df[[TS_VALUE_COL]],
+                exog=train_df[regressors],
+                order=(self.params["p"], self.params["d"], self.params["q"]),
                 seasonality_order=(
                     self.params["P"],
                     self.params["D"],
                     self.params["Q"],
-                    self.params["s"]),
-                enforce_stationarity=False, enforce_invertibility=False)
+                    self.params["s"],
+                ),
+                enforce_stationarity=False,
+                enforce_invertibility=False,
+            )
         else:
             model = SARIMAX_estimator(
-                train_df, order=(
-                    self.params["p"], self.params["d"], self.params["q"]),
+                train_df,
+                order=(self.params["p"], self.params["d"], self.params["q"]),
                 seasonality_order=(
                     self.params["P"],
                     self.params["D"],
                     self.params["Q"],
-                    self.params["s"]),
-                enforce_stationarity=False, enforce_invertibility=False)
-        model = model.fit()
+                    self.params["s"],
+                ),
+                enforce_stationarity=False,
+                enforce_invertibility=False,
+            )
+        with suppress_stdout_stderr():
+            model = model.fit()
         train_time = time.time() - current_time
         self._model = model
         return train_time
+
+
+class suppress_stdout_stderr(object):
+    """
+    A context manager for doing a "deep suppression" of stdout and stderr in
+    Python, i.e. will suppress all print, even if the print originates in a
+    compiled C/Fortran sub-function.
+       This will not suppress raised exceptions, since exceptions are printed
+    to stderr just before a script exits, and after the context manager has
+    exited.
+
+    """
+
+    def __init__(self):
+        # Open a pair of null files
+        self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]
+        # Save the actual stdout (1) and stderr (2) file descriptors.
+        self.save_fds = (os.dup(1), os.dup(2))
+
+    def __enter__(self):
+        # Assign the null pointers to stdout and stderr.
+        os.dup2(self.null_fds[0], 1)
+        os.dup2(self.null_fds[1], 2)
+
+    def __exit__(self, *_):
+        # Re-assign the real stdout/stderr back to (1) and (2)
+        os.dup2(self.save_fds[0], 1)
+        os.dup2(self.save_fds[1], 2)
+        # Close the null files
+        os.close(self.null_fds[0])
+        os.close(self.null_fds[1])

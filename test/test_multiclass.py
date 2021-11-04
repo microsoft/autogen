@@ -1,21 +1,12 @@
 import unittest
-
 import numpy as np
 import scipy.sparse
-from sklearn.datasets import (
-    fetch_california_housing,
-    load_iris,
-    load_wine,
-    load_breast_cancer,
-)
+from sklearn.datasets import load_iris, load_wine
 
-import pandas as pd
-from datetime import datetime
 
 from flaml import AutoML
 from flaml.data import CLASSIFICATION, get_output_from_log
-
-from flaml.model import LGBMEstimator, SKLearnEstimator, XGBoostEstimator
+from flaml.model import LGBMEstimator, XGBoostSklearnEstimator, SKLearnEstimator
 from flaml import tune
 from flaml.training_log import training_log_reader
 
@@ -72,26 +63,21 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
         return 1.0
 
 
-def logregobj(preds, dtrain):
-    labels = dtrain.get_label()
-    preds = 1.0 / (1.0 + np.exp(-preds))  # transform raw leaf weight
-    grad = preds - labels
-    hess = preds * (1.0 - preds)
-    return grad, hess
-
-
-class MyXGB1(XGBoostEstimator):
-    """XGBoostEstimator with logregobj as the objective function"""
-
-    def __init__(self, **config):
-        super().__init__(objective=logregobj, **config)
-
-
-class MyXGB2(XGBoostEstimator):
-    """XGBoostEstimator with 'reg:squarederror' as the objective function"""
-
-    def __init__(self, **config):
-        super().__init__(objective="reg:squarederror", **config)
+class MyLargeXGB(XGBoostSklearnEstimator):
+    @classmethod
+    def search_space(cls, **params):
+        return {
+            "n_estimators": {
+                "domain": tune.lograndint(lower=4, upper=32768),
+                "init_value": 32768,
+                "low_cost_init_value": 4,
+            },
+            "max_leaves": {
+                "domain": tune.lograndint(lower=4, upper=3276),
+                "init_value": 3276,
+                "low_cost_init_value": 4,
+            },
+        }
 
 
 class MyLargeLGBM(LGBMEstimator):
@@ -104,8 +90,8 @@ class MyLargeLGBM(LGBMEstimator):
                 "low_cost_init_value": 4,
             },
             "num_leaves": {
-                "domain": tune.lograndint(lower=4, upper=32768),
-                "init_value": 32768,
+                "domain": tune.lograndint(lower=4, upper=3276),
+                "init_value": 3276,
                 "low_cost_init_value": 4,
             },
         }
@@ -141,7 +127,7 @@ def custom_metric(
     }
 
 
-class TestAutoML(unittest.TestCase):
+class TestMultiClass(unittest.TestCase):
     def test_custom_learner(self):
         automl = AutoML()
         automl.add_learner(learner_name="RGF", learner_class=MyRegularizedGreedyForest)
@@ -184,123 +170,6 @@ class TestAutoML(unittest.TestCase):
 
         """The main flaml automl API"""
         automl.fit(X_train=X_train, y_train=y_train, **settings)
-
-    def test_preprocess(self):
-        automl = AutoML()
-        X = pd.DataFrame(
-            {
-                "f1": [1, -2, 3, -4, 5, -6, -7, 8, -9, -10, -11, -12, -13, -14],
-                "f2": [
-                    3.0,
-                    16.0,
-                    10.0,
-                    12.0,
-                    3.0,
-                    14.0,
-                    11.0,
-                    12.0,
-                    5.0,
-                    14.0,
-                    20.0,
-                    16.0,
-                    15.0,
-                    11.0,
-                ],
-                "f3": [
-                    "a",
-                    "b",
-                    "a",
-                    "c",
-                    "c",
-                    "b",
-                    "b",
-                    "b",
-                    "b",
-                    "a",
-                    "b",
-                    1.0,
-                    1.0,
-                    "a",
-                ],
-                "f4": [
-                    True,
-                    True,
-                    False,
-                    True,
-                    True,
-                    False,
-                    False,
-                    False,
-                    True,
-                    True,
-                    False,
-                    False,
-                    True,
-                    True,
-                ],
-            }
-        )
-        y = pd.Series([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
-
-        automl = AutoML()
-        automl_settings = {
-            "time_budget": 6,
-            "task": "classification",
-            "n_jobs": 1,
-            "estimator_list": ["catboost", "lrl2"],
-            "eval_method": "cv",
-            "n_splits": 3,
-            "metric": "accuracy",
-            "log_training_metric": True,
-            "verbose": 4,
-            "ensemble": True,
-        }
-        automl.fit(X, y, **automl_settings)
-
-        automl = AutoML()
-        automl_settings = {
-            "time_budget": 2,
-            "task": "classification",
-            "n_jobs": 1,
-            "estimator_list": ["lrl2", "kneighbor"],
-            "eval_method": "cv",
-            "n_splits": 3,
-            "metric": "accuracy",
-            "log_training_metric": True,
-            "verbose": 4,
-            "ensemble": True,
-        }
-        automl.fit(X, y, **automl_settings)
-
-        automl = AutoML()
-        automl_settings = {
-            "time_budget": 3,
-            "task": "classification",
-            "n_jobs": 1,
-            "estimator_list": ["xgboost", "catboost", "kneighbor"],
-            "eval_method": "cv",
-            "n_splits": 3,
-            "metric": "accuracy",
-            "log_training_metric": True,
-            "verbose": 4,
-            "ensemble": True,
-        }
-        automl.fit(X, y, **automl_settings)
-
-        automl = AutoML()
-        automl_settings = {
-            "time_budget": 3,
-            "task": "classification",
-            "n_jobs": 1,
-            "estimator_list": ["lgbm", "catboost", "kneighbor"],
-            "eval_method": "cv",
-            "n_splits": 3,
-            "metric": "accuracy",
-            "log_training_metric": True,
-            "verbose": 4,
-            "ensemble": True,
-        }
-        automl.fit(X, y, **automl_settings)
 
     def test_dataframe(self):
         self.test_classification(True)
@@ -348,20 +217,6 @@ class TestAutoML(unittest.TestCase):
         )
         print(metric_history)
 
-    def test_binary(self):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 1,
-            "task": "binary",
-            "log_file_name": "test/breast_cancer.log",
-            "log_training_metric": True,
-            "n_jobs": 1,
-            "model_history": True,
-        }
-        X_train, y_train = load_breast_cancer(return_X_y=True)
-        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-        _ = automl_experiment.predict(X_train)
-
     def test_classification(self, as_frame=False):
         automl_experiment = AutoML()
         automl_settings = {
@@ -400,47 +255,6 @@ class TestAutoML(unittest.TestCase):
         print(duration)
         print(automl_experiment.model)
         print(automl_experiment.predict_proba(X_train)[:5])
-
-    def test_datetime_columns(self):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 2,
-            "log_file_name": "test/datetime_columns.log",
-            "log_training_metric": True,
-            "n_jobs": 1,
-            "model_history": True,
-        }
-        fake_df = pd.DataFrame(
-            {
-                "A": [
-                    datetime(1900, 2, 3),
-                    datetime(1900, 3, 4),
-                    datetime(1900, 3, 4),
-                    datetime(1900, 3, 4),
-                    datetime(1900, 7, 2),
-                    datetime(1900, 8, 9),
-                ],
-                "B": [
-                    datetime(1900, 1, 1),
-                    datetime(1900, 1, 1),
-                    datetime(1900, 1, 1),
-                    datetime(1900, 1, 1),
-                    datetime(1900, 1, 1),
-                    datetime(1900, 1, 1),
-                ],
-                "year_A": [
-                    datetime(1900, 1, 2),
-                    datetime(1900, 8, 1),
-                    datetime(1900, 1, 4),
-                    datetime(1900, 6, 1),
-                    datetime(1900, 1, 5),
-                    datetime(1900, 4, 1),
-                ],
-            }
-        )
-        y = np.array([0, 1, 0, 1, 0, 0])
-        automl_experiment.fit(X_train=fake_df, y_train=y, **automl_settings)
-        _ = automl_experiment.predict(fake_df)
 
     def test_micro_macro_f1(self):
         automl_experiment_micro = AutoML()
@@ -501,50 +315,6 @@ class TestAutoML(unittest.TestCase):
         X_train, y_train = load_iris(return_X_y=True)
         automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
 
-    def test_regression(self):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 2,
-            "task": "regression",
-            "log_file_name": "test/california.log",
-            "log_training_metric": True,
-            "n_jobs": 1,
-            "model_history": True,
-        }
-        X_train, y_train = fetch_california_housing(return_X_y=True)
-        n = int(len(y_train) * 9 // 10)
-        automl_experiment.fit(
-            X_train=X_train[:n],
-            y_train=y_train[:n],
-            X_val=X_train[n:],
-            y_val=y_train[n:],
-            **automl_settings
-        )
-        assert automl_experiment._state.eval_method == "holdout"
-        print(automl_experiment.predict(X_train))
-        print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
-        print(get_output_from_log(automl_settings["log_file_name"], 1))
-        automl_experiment.retrain_from_log(
-            task="regression",
-            log_file_name=automl_settings["log_file_name"],
-            X_train=X_train,
-            y_train=y_train,
-            train_full=True,
-            time_budget=1,
-        )
-        automl_experiment.retrain_from_log(
-            task="regression",
-            log_file_name=automl_settings["log_file_name"],
-            X_train=X_train,
-            y_train=y_train,
-            train_full=True,
-            time_budget=0,
-        )
-
     def test_sparse_matrix_classification(self):
         automl_experiment = AutoML()
         automl_settings = {
@@ -567,236 +337,51 @@ class TestAutoML(unittest.TestCase):
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
 
-    def test_sparse_matrix_regression(self):
-        X_train = scipy.sparse.random(300, 900, density=0.0001)
-        y_train = np.random.uniform(size=300)
-        X_val = scipy.sparse.random(100, 900, density=0.0001)
-        y_val = np.random.uniform(size=100)
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 2,
-            "metric": "mae",
-            "task": "regression",
-            "log_file_name": "test/sparse_regression.log",
-            "n_jobs": 1,
-            "model_history": True,
-            "keep_search_state": True,
-            "verbose": 0,
-            "early_stop": True,
-        }
-        automl_experiment.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
-        assert automl_experiment._state.X_val.shape == X_val.shape
-        print(automl_experiment.predict(X_train))
-        print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
-        print(automl_experiment.best_config)
-        print(automl_experiment.best_loss)
-        print(automl_experiment.best_config_train_time)
-
-    def test_sparse_matrix_xgboost(self):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 3,
-            "metric": "ap",
-            "task": "classification",
-            "log_file_name": "test/sparse_classification.log",
-            "estimator_list": ["xgboost"],
-            "log_type": "all",
-            "n_jobs": 1,
-        }
-        X_train = scipy.sparse.eye(900000)
-        y_train = np.random.randint(2, size=900000)
-        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-        print(automl_experiment.predict(X_train))
-        print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
-
-    def test_parallel(self, hpo_method=None):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 10,
-            "task": "regression",
-            "log_file_name": "test/california.log",
-            "log_type": "all",
-            "n_jobs": 1,
-            "n_concurrent_trials": 10,
-            "hpo_method": hpo_method,
-        }
-        X_train, y_train = fetch_california_housing(return_X_y=True)
-        try:
-            automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-            print(automl_experiment.predict(X_train))
-            print(automl_experiment.model)
-            print(automl_experiment.config_history)
-            print(automl_experiment.model_history)
-            print(automl_experiment.best_iteration)
-            print(automl_experiment.best_estimator)
-        except ImportError:
-            return
-
-    def test_parallel_classification(self):
-        from sklearn.datasets import make_classification
-
-        X, y = make_classification(1000, 10)
-        automl = AutoML()
-        try:
-            automl.fit(
-                X, y, time_budget=10, task="classification", n_concurrent_trials=2
-            )
-        except ImportError:
-            return
-
-    def test_parallel_xgboost(self, hpo_method=None):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 10,
-            "metric": "ap",
-            "task": "classification",
-            "log_file_name": "test/sparse_classification.log",
-            "estimator_list": ["xgboost"],
-            "log_type": "all",
-            "n_jobs": 1,
-            "n_concurrent_trials": 2,
-            "hpo_method": hpo_method,
-        }
-        X_train = scipy.sparse.eye(900000)
-        y_train = np.random.randint(2, size=900000)
-        try:
-            automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-            print(automl_experiment.predict(X_train))
-            print(automl_experiment.model)
-            print(automl_experiment.config_history)
-            print(automl_experiment.model_history)
-            print(automl_experiment.best_iteration)
-            print(automl_experiment.best_estimator)
-        except ImportError:
-            return
-
-    def test_parallel_xgboost_others(self):
-        # use random search as the hpo_method
-        self.test_parallel_xgboost(hpo_method="random")
-
-    def test_random_out_of_memory(self):
+    def _test_memory_limit(self):
         automl_experiment = AutoML()
         automl_experiment.add_learner(
             learner_name="large_lgbm", learner_class=MyLargeLGBM
         )
         automl_settings = {
-            "time_budget": 2,
-            "metric": "ap",
+            "time_budget": None,
             "task": "classification",
-            "log_file_name": "test/sparse_classification_oom.log",
+            "log_file_name": "test/classification_oom.log",
             "estimator_list": ["large_lgbm"],
             "log_type": "all",
-            "n_jobs": 1,
-            "n_concurrent_trials": 2,
             "hpo_method": "random",
         }
+        X_train, y_train = load_iris(return_X_y=True, as_frame=True)
 
-        X_train = scipy.sparse.eye(900000)
-        y_train = np.random.randint(2, size=900000)
-        try:
-            automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-            print(automl_experiment.predict(X_train))
-            print(automl_experiment.model)
-            print(automl_experiment.config_history)
-            print(automl_experiment.model_history)
-            print(automl_experiment.best_iteration)
-            print(automl_experiment.best_estimator)
-        except ImportError:
-            return
-
-    def test_sparse_matrix_lr(self):
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 2,
-            "metric": "f1",
-            "task": "classification",
-            "log_file_name": "test/sparse_classification.log",
-            "estimator_list": ["lrl1", "lrl2"],
-            "log_type": "all",
-            "n_jobs": 1,
-        }
-        X_train = scipy.sparse.random(3000, 900, density=0.1)
-        y_train = np.random.randint(2, size=3000)
-        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-        print(automl_experiment.predict(X_train))
-        print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
-
-    def test_sparse_matrix_regression_holdout(self):
-        X_train = scipy.sparse.random(8, 100)
-        y_train = np.random.uniform(size=8)
-        automl_experiment = AutoML()
-        automl_settings = {
-            "time_budget": 1,
-            "eval_method": "holdout",
-            "task": "regression",
-            "log_file_name": "test/sparse_regression.log",
-            "n_jobs": 1,
-            "model_history": True,
-            "metric": "mse",
-            "sample_weight": np.ones(len(y_train)),
-            "early_stop": True,
-        }
-        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-        print(automl_experiment.predict(X_train))
-        print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
-
-    def test_regression_xgboost(self):
-        X_train = scipy.sparse.random(300, 900, density=0.0001)
-        y_train = np.random.uniform(size=300)
-        X_val = scipy.sparse.random(100, 900, density=0.0001)
-        y_val = np.random.uniform(size=100)
-        automl_experiment = AutoML()
-        automl_experiment.add_learner(learner_name="my_xgb1", learner_class=MyXGB1)
-        automl_experiment.add_learner(learner_name="my_xgb2", learner_class=MyXGB2)
-        automl_settings = {
-            "time_budget": 2,
-            "estimator_list": ["my_xgb1", "my_xgb2"],
-            "task": "regression",
-            "log_file_name": "test/regression_xgboost.log",
-            "n_jobs": 1,
-            "model_history": True,
-            "keep_search_state": True,
-            "early_stop": True,
-        }
         automl_experiment.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
+            X_train=X_train, y_train=y_train, max_iter=1, **automl_settings
         )
-        assert automl_experiment._state.X_val.shape == X_val.shape
-        print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
-        print(automl_experiment.best_config)
-        print(automl_experiment.best_loss)
-        print(automl_experiment.best_config_train_time)
+
+    def test_time_limit(self):
+        automl_experiment = AutoML()
+        automl_experiment.add_learner(
+            learner_name="large_lgbm", learner_class=MyLargeLGBM
+        )
+        automl_experiment.add_learner(
+            learner_name="large_xgb", learner_class=MyLargeXGB
+        )
+        automl_settings = {
+            "time_budget": 0.5,
+            "task": "classification",
+            "log_file_name": "test/classification_timeout.log",
+            "estimator_list": ["catboost"],
+            "log_type": "all",
+            "hpo_method": "random",
+        }
+        X_train, y_train = load_iris(return_X_y=True, as_frame=True)
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        print(automl_experiment.model.params)
+        automl_settings["estimator_list"] = ["large_xgb"]
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        print(automl_experiment.model)
+        automl_settings["estimator_list"] = ["large_lgbm"]
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        print(automl_experiment.model)
 
     def test_fit_w_starting_point(self, as_frame=True):
         automl_experiment = AutoML()

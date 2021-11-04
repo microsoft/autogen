@@ -30,6 +30,7 @@ class TestTrainingLog(unittest.TestCase):
                 # "ensemble": True,
                 "keep_search_state": True,
                 "estimator_list": estimator_list,
+                "model_history": True,
             }
             X_train, y_train = fetch_california_housing(return_X_y=True)
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)

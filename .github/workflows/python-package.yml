@@ -24,9 +24,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: If mac, install libomp to facilitate lgbm install
+      - name: If mac, install libomp to facilitate lgbm and xgboost install
         if: matrix.os == 'macOS-latest'
         run: |
+          # remove libomp version constraint after xgboost works with libomp>11.1.0
+          wget https://raw.githubusercontent.com/Homebrew/homebrew-core/679923b4eb48a8dc7ecc1f05d06063cd79b3fc00/Formula/libomp.rb -O $(find $(brew --repository) -name libomp.rb)
           brew install libomp
           export CC=/usr/bin/clang
           export CXX=/usr/bin/clang++
@@ -36,7 +38,7 @@ jobs:
           export LDFLAGS="$LDFLAGS -Wl,-rpath,/usr/local/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp"
       - name: Install packages and dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip wheel
           pip install -e .[test]
       - name: If linux or mac, install ray
         if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9'
@@ -65,7 +67,7 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
-  
+
   docs:
 
     runs-on: ubuntu-latest

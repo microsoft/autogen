@@ -60,7 +60,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
         valid_loss_history,
         config_history,
         metric_history,
-    ) = get_output_from_log(filename=settings["log_file_name"], time_budget=60)
+    ) = get_output_from_log(filename=settings["log_file_name"], time_budget=6)
     for config in config_history:
         print(config)
     print(automl.prune_attr)
