@@ -275,9 +275,8 @@ class DataTransformer:
                             X[column] = X[column].map(datetime.toordinal)
                             datetime_columns.append(column)
                             del tmp_dt
-                        else:
-                            X[column] = X[column].fillna(np.nan)
-                            num_columns.append(column)
+                        X[column] = X[column].fillna(np.nan)
+                        num_columns.append(column)
             X = X[cat_columns + num_columns]
             if task == TS_FORECAST:
                 X.insert(0, TS_TIMESTAMP_COL, ds_col)

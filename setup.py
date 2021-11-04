@@ -38,16 +38,16 @@ setuptools.setup(
         "notebook": [
             "openml==0.10.2",
             "jupyter",
-            "matplotlib==3.2.0",
+            "matplotlib",
             "rgf-python",
+            "catboost>=0.26",
         ],
         "test": [
             "flake8>=3.8.4",
             "pytest>=6.1.1",
             "coverage>=5.3",
             "pre-commit",
-            "xgboost<1.3",
-            "catboost>=0.23",
+            "catboost>=0.26",
             "rgf-python",
             "optuna==2.8.0",
             "vowpalwabbit",
@@ -58,8 +58,9 @@ setuptools.setup(
             "datasets==1.4.1",
             "azure-storage-blob",
             "statsmodels>=0.12.2",
+            "psutil==5.8.0",
         ],
-        "catboost": ["catboost>=0.23"],
+        "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
             "ray[tune]==1.6.0",
@@ -83,6 +84,7 @@ setuptools.setup(
         ],
         "ts_forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
         "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
+        "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
