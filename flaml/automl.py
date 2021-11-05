@@ -1578,7 +1578,6 @@ class AutoML:
             )
         logger.info("List of ML learners in AutoML Run: {}".format(estimator_list))
         self.estimator_list = estimator_list
-        self._hpo_method = hpo_method or ("cfo" if n_concurrent_trials == 1 else "bs")
         self._state.time_budget = time_budget or 1e10
         self._active_estimators = estimator_list.copy()
         self._ensemble = ensemble
@@ -1592,7 +1591,8 @@ class AutoML:
         self._state.n_jobs = n_jobs
         self._n_concurrent_trials = n_concurrent_trials
         self._early_stop = early_stop
-        self._use_ray = use_ray or self._n_concurrent_trials > 1
+        self._use_ray = use_ray or n_concurrent_trials > 1
+        self._hpo_method = hpo_method or ("bs" if self._use_ray else "cfo")
         if log_file_name:
             with training_log_writer(log_file_name, append_log) as save_helper:
                 self._training_log = save_helper
@@ -1709,7 +1709,7 @@ class AutoML:
             resources_per_trial=resources_per_trial,
             time_budget_s=self._state.time_budget,
             num_samples=self._max_iter,
-            verbose=max(self.verbose - 3, 0),
+            verbose=max(self.verbose - 2, 0),
             raise_on_failed_trial=False,
         )
         # logger.info([trial.last_result for trial in analysis.trials])
@@ -2297,7 +2297,7 @@ class AutoML:
                     speed = delta_loss / delta_time
                     if speed:
                         estimated_cost = max(2 * gap / speed, estimated_cost)
-                estimated_cost == estimated_cost or 1e-9
+                estimated_cost = estimated_cost or 1e-9
                 inv.append(1 / estimated_cost)
             else:
                 estimated_cost = self._eci[i]
