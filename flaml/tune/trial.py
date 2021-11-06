@@ -1,22 +1,20 @@
-'''
-Copyright 2020 The Ray Authors.
+# Copyright 2020 The Ray Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-This source file is adapted here because ray does not fully support Windows.
+# This source file is adapted here because ray does not fully support Windows.
 
-Copyright (c) Microsoft Corporation.
-'''
+# Copyright (c) Microsoft Corporation.
 import uuid
 import time
 from numbers import Number
@@ -29,7 +27,8 @@ def flatten_dict(dt, delimiter="/", prevent_delimiter=False):
         # Raise if delimiter is any of the keys
         raise ValueError(
             "Found delimiter `{}` in key when trying to flatten array."
-            "Please avoid using the delimiter in your specification.")
+            "Please avoid using the delimiter in your specification."
+        )
     while any(isinstance(v, dict) for v in dt.values()):
         remove = []
         add = {}
@@ -41,7 +40,8 @@ def flatten_dict(dt, delimiter="/", prevent_delimiter=False):
                         raise ValueError(
                             "Found delimiter `{}` in key when trying to "
                             "flatten array. Please avoid using the delimiter "
-                            "in your specification.")
+                            "in your specification."
+                        )
                     add[delimiter.join([key, str(subkey)])] = v
                 remove.append(key)
         dt.update(add)
@@ -106,31 +106,35 @@ class Trial:
                         "max": value,
                         "min": value,
                         "avg": value,
-                        "last": value
+                        "last": value,
                     }
                     self.metric_n_steps[metric] = {}
                     for n in self.n_steps:
                         key = "last-{:d}-avg".format(n)
                         self.metric_analysis[metric][key] = value
                         # Store n as string for correct restore.
-                        self.metric_n_steps[metric][str(n)] = deque(
-                            [value], maxlen=n)
+                        self.metric_n_steps[metric][str(n)] = deque([value], maxlen=n)
                 else:
                     step = result["training_iteration"] or 1
                     self.metric_analysis[metric]["max"] = max(
-                        value, self.metric_analysis[metric]["max"])
+                        value, self.metric_analysis[metric]["max"]
+                    )
                     self.metric_analysis[metric]["min"] = min(
-                        value, self.metric_analysis[metric]["min"])
-                    self.metric_analysis[metric]["avg"] = 1 / step * (
-                        value + (step - 1) * self.metric_analysis[metric]["avg"])
+                        value, self.metric_analysis[metric]["min"]
+                    )
+                    self.metric_analysis[metric]["avg"] = (
+                        1
+                        / step
+                        * (value + (step - 1) * self.metric_analysis[metric]["avg"])
+                    )
                     self.metric_analysis[metric]["last"] = value
 
                     for n in self.n_steps:
                         key = "last-{:d}-avg".format(n)
                         self.metric_n_steps[metric][str(n)].append(value)
                         self.metric_analysis[metric][key] = sum(
-                            self.metric_n_steps[metric][str(n)]) / len(
-                                self.metric_n_steps[metric][str(n)])
+                            self.metric_n_steps[metric][str(n)]
+                        ) / len(self.metric_n_steps[metric][str(n)])
 
     def set_status(self, status):
         """Sets the status of the trial."""

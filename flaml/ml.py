@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License.
-"""
-
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 import time
 import numpy as np
 import pandas as pd
@@ -27,22 +26,20 @@ from .model import (
     LRL1Classifier,
     LRL2Classifier,
     CatBoostEstimator,
-    ExtraTreeEstimator,
+    ExtraTreesEstimator,
     KNeighborsEstimator,
     Prophet,
     ARIMA,
     SARIMAX,
 )
 from .data import CLASSIFICATION, group_counts, TS_FORECAST, TS_VALUE_COL
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 def get_estimator_class(task, estimator_name):
-    """when adding a new learner, need to add an elif branch"""
-
+    # when adding a new learner, need to add an elif branch
     if "xgboost" == estimator_name:
         if "regression" == task:
             estimator_class = XGBoostEstimator
@@ -59,7 +56,7 @@ def get_estimator_class(task, estimator_name):
     elif "catboost" == estimator_name:
         estimator_class = CatBoostEstimator
     elif "extra_tree" == estimator_name:
-        estimator_class = ExtraTreeEstimator
+        estimator_class = ExtraTreesEstimator
     elif "kneighbor" == estimator_name:
         estimator_class = KNeighborsEstimator
     elif "prophet" in estimator_name:

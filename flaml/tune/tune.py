@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See LICENSE file in the
- * project root for license information.
-"""
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 from typing import Optional, Union, List, Callable, Tuple
 import numpy as np
 import datetime
@@ -32,7 +31,7 @@ _training_iteration = 0
 
 
 class ExperimentAnalysis(EA):
-    """Class for storing the experiment results"""
+    """Class for storing the experiment results."""
 
     def __init__(self, trials, metric, mode):
         try:

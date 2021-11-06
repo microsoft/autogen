@@ -1,7 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License.
-"""
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 from contextlib import contextmanager
 from functools import partial
 import signal
@@ -66,17 +66,17 @@ def limit_resource(memory_limit, time_limit):
 
 
 class BaseEstimator:
-    """The abstract class for all learners
+    """The abstract class for all learners.
 
-    Typical example:
-        XGBoostEstimator: for regression
-        XGBoostSklearnEstimator: for classification
-        LGBMEstimator, RandomForestEstimator, LRL1Classifier, LRL2Classifier:
-            for both regression and classification
+    Typical examples:
+        * XGBoostEstimator: for regression.
+        * XGBoostSklearnEstimator: for classification.
+        * LGBMEstimator, RandomForestEstimator, LRL1Classifier, LRL2Classifier:
+            for both regression and classification.
     """
 
     def __init__(self, task="binary", **config):
-        """Constructor
+        """Constructor.
 
         Args:
             task: A string of the task type, one of
@@ -111,12 +111,12 @@ class BaseEstimator:
 
     @property
     def model(self):
-        """Trained model after fit() is called, or None before fit() is called"""
+        """Trained model after fit() is called, or None before fit() is called."""
         return self._model
 
     @property
     def estimator(self):
-        """Trained model after fit() is called, or None before fit() is called"""
+        """Trained model after fit() is called, or None before fit() is called."""
         return self._model
 
     def _preprocess(self, X):
@@ -149,15 +149,15 @@ class BaseEstimator:
         return train_time
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
-        """Train the model from given training data
+        """Train the model from given training data.
 
         Args:
-            X_train: A numpy array of training data in shape n*m
-            y_train: A numpy array of labels in shape n*1
-            budget: A float of the time budget in seconds
+            X_train: A numpy array or a dataframe of training data in shape n*m.
+            y_train: A numpy array or a series of labels in shape n*1.
+            budget: A float of the time budget in seconds.
 
         Returns:
-            train_time: A float of the training time in seconds
+            train_time: A float of the training time in seconds.
         """
         if (
             getattr(self, "limit_resource", None)
@@ -190,14 +190,14 @@ class BaseEstimator:
         return train_time
 
     def predict(self, X_test):
-        """Predict label from features
+        """Predict label from features.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n*m
+            X_test: A numpy array or a dataframe of featurized instances, shape n*m.
 
         Returns:
             A numpy array of shape n*1.
-            Each element is the label for a instance
+            Each element is the label for a instance.
         """
         if self._model is not None:
             X_test = self._preprocess(X_test)
@@ -206,18 +206,17 @@ class BaseEstimator:
             return np.ones(X_test.shape[0])
 
     def predict_proba(self, X_test):
-        """Predict the probability of each class from features
+        """Predict the probability of each class from features.
 
         Only works for classification problems
 
         Args:
-            model: An object of trained model with method predict_proba()
-            X_test: A numpy array of featurized instances, shape n*m
+            X_test: A numpy array of featurized instances, shape n*m.
 
         Returns:
-            A numpy array of shape n*c. c is the # classes
+            A numpy array of shape n*c. c is the # classes.
             Each element at (i,j) is the probability for instance i to be in
-                class j
+                class j.
         """
         assert (
             self._task in CLASSIFICATION
@@ -230,7 +229,7 @@ class BaseEstimator:
 
     @classmethod
     def search_space(cls, **params):
-        """[required method] search space
+        """[required method] search space.
 
         Returns:
             A dictionary of the search space.
@@ -238,16 +237,16 @@ class BaseEstimator:
                 its domain (required) and low_cost_init_value, init_value,
                 cat_hp_cost (if applicable).
                 e.g.,
-                {'domain': tune.randint(lower=1, upper=10), 'init_value': 1}.
+                `{'domain': tune.randint(lower=1, upper=10), 'init_value': 1}.`
         """
         return {}
 
     @classmethod
     def size(cls, config: dict) -> float:
-        """[optional method] memory size of the estimator in bytes
+        """[optional method] memory size of the estimator in bytes.
 
         Args:
-            config - A dict of the hyperparameter config.
+            config: A dict of the hyperparameter config.
 
         Returns:
             A float of the memory size required by the estimator to train the
@@ -257,19 +256,19 @@ class BaseEstimator:
 
     @classmethod
     def cost_relative2lgbm(cls) -> float:
-        """[optional method] relative cost compared to lightgbm"""
+        """[optional method] relative cost compared to lightgbm."""
         return 1.0
 
     @classmethod
     def init(cls):
-        """[optional method] initialize the class"""
+        """[optional method] initialize the class."""
         pass
 
     def config2params(self, config: dict) -> dict:
         """[optional method] config dict to params dict
 
         Args:
-            config - A dict of the hyperparameter config.
+            config: A dict of the hyperparameter config.
 
         Returns:
             A dict that will be passed to self.estimator_class's constructor.
@@ -278,6 +277,8 @@ class BaseEstimator:
 
 
 class SKLearnEstimator(BaseEstimator):
+    """The base class for tuning scikit-learn estimators."""
+
     def __init__(self, task="binary", **config):
         super().__init__(task, **config)
 
@@ -298,6 +299,8 @@ class SKLearnEstimator(BaseEstimator):
 
 
 class LGBMEstimator(BaseEstimator):
+    """The class for tuning LGBM, using sklearn API."""
+
     ITER_HP = "n_estimators"
     HAS_CALLBACK = True
 
@@ -469,7 +472,10 @@ class LGBMEstimator(BaseEstimator):
         if self.params[self.ITER_HP] > 0:
             if self.HAS_CALLBACK:
                 self._fit(
-                    X_train, y_train, callbacks=self._callbacks(start_time, deadline), **kwargs
+                    X_train,
+                    y_train,
+                    callbacks=self._callbacks(start_time, deadline),
+                    **kwargs,
                 )
                 best_iteration = (
                     self._model.get_booster().best_iteration
@@ -503,7 +509,7 @@ class LGBMEstimator(BaseEstimator):
 
 
 class XGBoostEstimator(SKLearnEstimator):
-    """not using sklearn API, used for regression"""
+    """The class for tuning XGBoost regressor, not using sklearn API."""
 
     @classmethod
     def search_space(cls, data_size, **params):
@@ -648,7 +654,7 @@ class XGBoostEstimator(SKLearnEstimator):
 
 
 class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
-    """using sklearn API, used for classification"""
+    """The class for tuning XGBoost (for classification), using sklearn API."""
 
     @classmethod
     def search_space(cls, data_size, **params):
@@ -693,6 +699,8 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
 
 
 class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
+    """The class for tuning Random Forest."""
+
     HAS_CALLBACK = False
 
     @classmethod
@@ -746,7 +754,9 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
             self.estimator_class = RandomForestClassifier
 
 
-class ExtraTreeEstimator(RandomForestEstimator):
+class ExtraTreesEstimator(RandomForestEstimator):
+    """The class for tuning Extra Trees."""
+
     @classmethod
     def cost_relative2lgbm(cls):
         return 1.9
@@ -760,6 +770,8 @@ class ExtraTreeEstimator(RandomForestEstimator):
 
 
 class LRL1Classifier(SKLearnEstimator):
+    """The class for tuning Logistic Regression with L1 regularization."""
+
     @classmethod
     def search_space(cls, **params):
         return {
@@ -787,6 +799,8 @@ class LRL1Classifier(SKLearnEstimator):
 
 
 class LRL2Classifier(SKLearnEstimator):
+    """The class for tuning Logistic Regression with L2 regularization."""
+
     limit_resource = True
 
     @classmethod
@@ -811,6 +825,8 @@ class LRL2Classifier(SKLearnEstimator):
 
 
 class CatBoostEstimator(BaseEstimator):
+    """The class for tuning CatBoost."""
+
     ITER_HP = "n_estimators"
 
     @classmethod
@@ -1011,6 +1027,8 @@ class KNeighborsEstimator(BaseEstimator):
 
 
 class Prophet(SKLearnEstimator):
+    """The class for tuning Prophet."""
+
     @classmethod
     def search_space(cls, **params):
         space = {
@@ -1083,6 +1101,8 @@ class Prophet(SKLearnEstimator):
 
 
 class ARIMA(Prophet):
+    """The class for tuning ARIMA."""
+
     @classmethod
     def search_space(cls, **params):
         space = {
@@ -1172,6 +1192,8 @@ class ARIMA(Prophet):
 
 
 class SARIMAX(ARIMA):
+    """The class for tuning SARIMA."""
+
     @classmethod
     def search_space(cls, **params):
         space = {
@@ -1258,16 +1280,6 @@ class SARIMAX(ARIMA):
 
 
 class suppress_stdout_stderr(object):
-    """
-    A context manager for doing a "deep suppression" of stdout and stderr in
-    Python, i.e. will suppress all print, even if the print originates in a
-    compiled C/Fortran sub-function.
-       This will not suppress raised exceptions, since exceptions are printed
-    to stderr just before a script exits, and after the context manager has
-    exited.
-
-    """
-
     def __init__(self):
         # Open a pair of null files
         self.null_fds = [os.open(os.devnull, os.O_RDWR) for x in range(2)]

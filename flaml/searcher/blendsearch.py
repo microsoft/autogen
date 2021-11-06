@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See LICENSE file in the
- * project root for license information.
-"""
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 from typing import Dict, Optional, List, Tuple, Callable, Union
 import numpy as np
 import time
@@ -22,14 +21,13 @@ from ..tune.trial import unflatten_dict, flatten_dict
 from .search_thread import SearchThread
 from .flow2 import FLOW2
 from ..tune.space import add_cost_to_space, indexof, normalize, define_by_run_func
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class BlendSearch(Searcher):
-    """class for BlendSearch algorithm"""
+    """class for BlendSearch algorithm."""
 
     cost_attr = "time_total_s"  # cost attribute in result
     lagrange = "_lagrange"  # suffix for lagrange-modified metric
@@ -59,7 +57,7 @@ class BlendSearch(Searcher):
         seed: Optional[int] = 20,
         experimental: Optional[bool] = False,
     ):
-        """Constructor
+        """Constructor.
 
         Args:
             metric: A string of the metric name to optimize for.
@@ -334,7 +332,7 @@ class BlendSearch(Searcher):
         self.best_resource = self._ls.min_resource
 
     def save(self, checkpoint_path: str):
-        """save states to a checkpoint path"""
+        """save states to a checkpoint path."""
         self._time_used += time.time() - self._start_time
         self._start_time = time.time()
         save_object = self
@@ -342,7 +340,7 @@ class BlendSearch(Searcher):
             pickle.dump(save_object, outputFile)
 
     def restore(self, checkpoint_path: str):
-        """restore states from checkpoint"""
+        """restore states from checkpoint."""
         with open(checkpoint_path, "rb") as inputFile:
             state = pickle.load(inputFile)
         self.__dict__ = state.__dict__
@@ -360,7 +358,7 @@ class BlendSearch(Searcher):
     def on_trial_complete(
         self, trial_id: str, result: Optional[Dict] = None, error: bool = False
     ):
-        """search thread updater and cleaner"""
+        """search thread updater and cleaner."""
         metric_constraint_satisfied = True
         if result and not error and self._metric_constraints:
             # account for metric constraints if any
@@ -621,7 +619,7 @@ class BlendSearch(Searcher):
         return False
 
     def on_trial_result(self, trial_id: str, result: Dict):
-        """receive intermediate result"""
+        """receive intermediate result."""
         if trial_id not in self._trial_proposed_by:
             return
         thread_id = self._trial_proposed_by[trial_id]
@@ -632,7 +630,7 @@ class BlendSearch(Searcher):
         self._search_thread_pool[thread_id].on_trial_result(trial_id, result)
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
-        """choose thread, suggest a valid config"""
+        """choose thread, suggest a valid config."""
         if self._init_used and not self._points_to_evaluate:
             choice, backup = self._select_thread()
             # if choice < 0:  # timeout
@@ -902,14 +900,15 @@ except ImportError:
 
 
 class BlendSearchTuner(BlendSearch, NNITuner):
-    """Tuner class for NNI"""
+    """Tuner class for NNI."""
 
     def receive_trial_result(self, parameter_id, parameters, value, **kwargs):
-        """
-        Receive trial's final result.
-        parameter_id: int
-        parameters: object created by 'generate_parameters()'
-        value: final metrics of the trial, including default metric
+        """Receive trial's final result.
+
+        Args:
+            parameter_id: int.
+            parameters: object created by `generate_parameters()`.
+            value: final metrics of the trial, including default metric.
         """
         result = {
             "config": parameters,
@@ -926,20 +925,24 @@ class BlendSearchTuner(BlendSearch, NNITuner):
     ...
 
     def generate_parameters(self, parameter_id, **kwargs) -> Dict:
-        """
-        Returns a set of trial (hyper-)parameters, as a serializable object
-        parameter_id: int
+        """Returns a set of trial (hyper-)parameters, as a serializable object.
+
+        Args:
+            parameter_id: int.
         """
         return self.suggest(str(parameter_id))
 
     ...
 
     def update_search_space(self, search_space):
-        """
+        """Required by NNI.
+
         Tuners are advised to support updating search space at run-time.
         If a tuner can only set search space once before generating first hyper-parameters,
         it should explicitly document this behaviour.
-        search_space: JSON object created by experiment owner
+
+        Args:
+            search_space: JSON object created by experiment owner.
         """
         config = {}
         for key, value in search_space.items():
@@ -991,7 +994,7 @@ class BlendSearchTuner(BlendSearch, NNITuner):
 
 
 class CFO(BlendSearchTuner):
-    """class for CFO algorithm"""
+    """class for CFO algorithm."""
 
     __name__ = "CFO"
 
@@ -1045,6 +1048,8 @@ class CFO(BlendSearchTuner):
 
 
 class RandomSearch(CFO):
+    """Class for random search."""
+
     def suggest(self, trial_id: str) -> Optional[Dict]:
         if self._points_to_evaluate:
             return super().suggest(trial_id)
