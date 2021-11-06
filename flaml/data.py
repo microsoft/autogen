@@ -205,7 +205,7 @@ def concat(X1, X2):
 
 
 class DataTransformer:
-    """Transform input training data"""
+    """Transform input training data."""
 
     def fit_transform(self, X, y, task):
         """Fit transformer and process the input training data according to the task type.
