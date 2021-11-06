@@ -169,7 +169,7 @@ class AutoVW:
         self._trial_runner.step(data_sample, (self._y_predict, self._best_trial))
 
     def _select_best_trial(self):
-        """Select a best trial from the running trials accoring to the _model_select_policy"""
+        """Select a best trial from the running trials accoring to the _model_select_policy."""
         best_score = (
             float("+inf") if self._model_selection_mode == "min" else float("-inf")
         )

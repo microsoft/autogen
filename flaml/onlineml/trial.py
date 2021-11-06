@@ -4,7 +4,7 @@ import time
 import math
 import copy
 import collections
-from typing import Optional
+from typing import Optional, Union
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from flaml.tune import Trial
 
@@ -113,7 +113,7 @@ class OnlineResult:
     def _update_loss_cb(
         self, bound_of_range, data_dim, bound_name="sample_complexity_bound"
     ):
-        """Calculate bound coef"""
+        """Calculate bound coef."""
         if bound_name == "sample_complexity_bound":
             # set the coefficient in the loss bound
             if "mae" in self.result_type_name:
@@ -313,7 +313,6 @@ class VowpalWabbitTrial(BaseOnlineTrial):
             is_checked_under_current_champion (bool): indicates whether this trials has
                 been paused under the current champion.
             trial_id (str): id of the trial (if None, it will be generated in the constructor).
-
         """
         try:
             from vowpalwabbit import pyvw
@@ -345,7 +344,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
 
     @staticmethod
     def _config_to_id(config):
-        """Generate an id for the provided config"""
+        """Generate an id for the provided config."""
         # sort config keys
         sorted_k_list = sorted(list(config.keys()))
         config_id_full = ""
@@ -439,7 +438,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
         return loss_func([y_true], [y_pred])
 
     def _update_y_range(self, y):
-        """Maintain running observed minimum and maximum target value"""
+        """Maintain running observed minimum and maximum target value."""
         if self._y_min_observed is None or y < self._y_min_observed:
             self._y_min_observed = y
         if self._y_max_observed is None or y > self._y_max_observed:
@@ -447,9 +446,9 @@ class VowpalWabbitTrial(BaseOnlineTrial):
 
     @staticmethod
     def _get_dim_from_ns(
-        namespace_feature_dim: dict, namespace_interactions: [set, list]
+        namespace_feature_dim: dict, namespace_interactions: Union[set, list]
     ):
-        """Get the dimensionality of the corresponding feature of input namespace set"""
+        """Get the dimensionality of the corresponding feature of input namespace set."""
         total_dim = sum(namespace_feature_dim.values())
         if namespace_interactions:
             for f in namespace_interactions:

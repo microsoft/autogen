@@ -89,7 +89,7 @@ class OnlineSuccessiveDoublingScheduler(OnlineScheduler):
 
 
 class ChaChaScheduler(OnlineSuccessiveDoublingScheduler):
-    """Keep the top performing learners running
+    """Keep the top performing learners running.
 
     Methods:
         * on_trial_result(trial_runner, trial, result):
