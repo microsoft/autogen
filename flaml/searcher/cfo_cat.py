@@ -1,15 +1,13 @@
-'''!
- * Copyright (c) 2021 Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See LICENSE file in the
- * project root for license information.
-'''
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 from .flow2 import FLOW2
 from .blendsearch import CFO
 
 
 class FLOW2Cat(FLOW2):
-    '''Local search algorithm optimized for categorical variables
-    '''
+    """Local search algorithm optimized for categorical variables."""
 
     def _init_search(self):
         super()._init_search()
@@ -25,7 +23,6 @@ class FLOW2Cat(FLOW2):
 
 
 class CFOCat(CFO):
-    '''CFO optimized for categorical variables
-    '''
+    """CFO optimized for categorical variables."""
 
     LocalSearch = FLOW2Cat

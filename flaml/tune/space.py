@@ -117,7 +117,7 @@ def define_by_run_func(trial, space: Dict, path: str = "") -> Optional[Dict[str,
 
 
 def unflatten_hierarchical(config: Dict, space: Dict) -> Tuple[Dict, Dict]:
-    """unflatten hierarchical config"""
+    """Unflatten hierarchical config."""
     hier = {}
     subspace = {}
     for key, value in config.items():
@@ -152,7 +152,7 @@ def unflatten_hierarchical(config: Dict, space: Dict) -> Tuple[Dict, Dict]:
 
 
 def add_cost_to_space(space: Dict, low_cost_point: Dict, choice_cost: Dict):
-    """Update the space in place by adding low_cost_point and choice_cost
+    """Update the space in place by adding low_cost_point and choice_cost.
 
     Returns:
         A dict with constant values.
@@ -240,8 +240,9 @@ def normalize(
     normalized_reference_config: Dict,
     recursive: bool = False,
 ):
-    """normalize config in space according to reference_config.
-    normalize each dimension in config to [0,1].
+    """Normalize config in space according to reference_config.
+
+    Normalize each dimension in config to [0,1].
     """
     config_norm = {}
     for key, value in config.items():
@@ -410,7 +411,7 @@ def denormalize(
 
 
 def indexof(domain: Dict, config: Dict) -> int:
-    """find the index of config in domain.categories"""
+    """Find the index of config in domain.categories."""
     index = config.get("_choice_")
     if index is not None:
         return index
@@ -441,10 +442,10 @@ def complete_config(
     lower: Optional[Dict] = None,
     upper: Optional[Dict] = None,
 ) -> Tuple[Dict, Dict]:
-    """Complete partial config in space
+    """Complete partial config in space.
 
     Returns:
-        config, space
+        config, space.
     """
     config = partial_config.copy()
     normalized = normalize(config, space, partial_config, {})

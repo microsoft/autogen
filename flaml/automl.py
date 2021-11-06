@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See LICENSE file in the
- * project root for license information.
-"""
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 import time
 from typing import Callable, Optional
 from functools import partial
@@ -490,7 +489,7 @@ class AutoML:
         if issparse(X):
             X = X.tocsr()
         if self._transformer:
-            X = self._transformer.transform(X, self._state.task)
+            X = self._transformer.transform(X)
         return X
 
     def _validate_data(
@@ -583,13 +582,11 @@ class AutoML:
                 X_val.shape[0] == y_val.shape[0]
             ), "# rows in X_val must match length of y_val."
             if self._transformer:
-                self._state.X_val = self._transformer.transform(X_val, self._state.task)
+                self._state.X_val = self._transformer.transform(X_val)
             else:
                 self._state.X_val = X_val
             if self._label_transformer:
-                self._state.y_val = self._label_transformer.transform(
-                    y_val, self._state.task
-                )
+                self._state.y_val = self._label_transformer.transform(y_val)
             else:
                 self._state.y_val = y_val
         else:
@@ -913,13 +910,13 @@ class AutoML:
         """Retrain from log file
 
         Args:
-            log_file_name: A string of the log file name
-            X_train: A numpy array of training data in shape n*m
+            log_file_name: A string of the log file name.
+            X_train: A numpy array or dataframe of training data in shape n*m.
                 For 'ts_forecast' task, the first column of X_train
                 must be the timestamp column (datetime type). Other
                 columns in the dataframe are assumed to be exogenous
                 variables (categorical or numeric).
-            y_train: A numpy array of labels in shape n*1
+            y_train: A numpy array or series of labels in shape n*1.
             dataframe: A dataframe of training data including label column.
                 For 'ts_forecast' task, dataframe must be specified and should
                 have at least two columns: timestamp and label, where the first

@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 class BaseSearcher:
-    """Implementation of the BaseSearcher
+    """Implementation of the BaseSearcher.
 
     Methods:
-        set_search_properties(metric, mode, config)
-        next_trial()
-        on_trial_result(trial_id, result)
-        on_trial_complete()
+        * set_search_properties(metric, mode, config)
+        * next_trial()
+        * on_trial_result(trial_id, result)
+        * on_trial_complete()
     """
 
     def __init__(
@@ -50,17 +50,17 @@ class BaseSearcher:
 
 
 class ChampionFrontierSearcher(BaseSearcher):
-    """The ChampionFrontierSearcher class
+    """The ChampionFrontierSearcher class.
 
     Methods:
-        (metric, mode, config)
-            Generate a list of new challengers, and add them to the _challenger_list
-        next_trial()
-            Pop a trial from the _challenger_list
-        on_trial_result(trial_id, result)
-            Doing nothing
-        on_trial_complete()
-            Doing nothing
+        * (metric, mode, config):
+            Generate a list of new challengers, and add them to the _challenger_list.
+        * next_trial():
+            Pop a trial from the _challenger_list.
+        * on_trial_result(trial_id, result):
+            Doing nothing.
+        * on_trial_complete()
+            Doing nothing.
 
     NOTE:
         This class serves the role of ConfigOralce.
@@ -69,7 +69,7 @@ class ChampionFrontierSearcher(BaseSearcher):
         Note that the trial_id is a unique signature of the configuraiton.
         So if two VWTrials are associated with the same config, they will have the same trial_id
         (although not the same searcher_trial_id).
-        searcher_trial_id will be used in suggest()
+        searcher_trial_id will be used in suggest().
     """
 
     # ****the following constants are used when generating new challengers in
@@ -109,17 +109,17 @@ class ChampionFrontierSearcher(BaseSearcher):
         online_trial_args: Optional[Dict] = {},
         nonpoly_searcher_name: Optional[str] = "CFO",
     ):
-        """Constructor
+        """Constructor.
 
         Args:
-            init_config: dict
-            space: dict
-            metric: str
-            mode: str
-            random_seed: int
-            online_trial_args: dict
+            init_config: dict.
+            space: dict.
+            metric: str.
+            mode: str.
+            random_seed: int.
+            online_trial_args: dict.
             nonpoly_searcher_name: A string to specify the search algorithm
-                for nonpoly hyperparameters
+                for nonpoly hyperparameters.
         """
         self._init_config = init_config
         self._space = space
@@ -154,7 +154,7 @@ class ChampionFrontierSearcher(BaseSearcher):
         setting: Optional[Dict] = {},
         init_call: Optional[bool] = False,
     ):
-        """Construct search space with given config, and setup the search"""
+        """Construct search space with given config, and setup the search."""
         super().set_search_properties(metric, mode, config)
         # *********Use ConfigOralce (i.e, self._generate_new_space to generate list of new challengers)
         logger.info("setting %s", setting)
@@ -184,7 +184,7 @@ class ChampionFrontierSearcher(BaseSearcher):
         )
 
     def next_trial(self):
-        """Return a trial from the _challenger_list"""
+        """Return a trial from the _challenger_list."""
         next_trial = None
         if self._challenger_list:
             next_trial = self._challenger_list.pop()
@@ -204,7 +204,7 @@ class ChampionFrontierSearcher(BaseSearcher):
         self, seed_config, seed_config_trial_id, seed_config_searcher_trial_id=None
     ) -> List[Trial]:
         """Give the seed config, generate a list of new configs (which are supposed to include
-        at least one config that has better performance than the input seed_config)
+        at least one config that has better performance than the input seed_config).
         """
         # group the hyperparameters according to whether the configs of them are independent
         # with the other hyperparameters

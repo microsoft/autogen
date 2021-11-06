@@ -1,22 +1,20 @@
-'''
-Copyright 2020 The Ray Authors.
+# Copyright 2020 The Ray Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-This source file is adapted here because ray does not fully support Windows.
+# This source file is adapted here because ray does not fully support Windows.
 
-Copyright (c) Microsoft Corporation.
-'''
+# Copyright (c) Microsoft Corporation.
 import os
 
 # yapf: disable
@@ -83,8 +81,13 @@ TRAINING_ITERATION = "training_iteration"
 
 DEFAULT_EXPERIMENT_INFO_KEYS = ("trainable_name", EXPERIMENT_TAG, TRIAL_ID)
 
-DEFAULT_RESULT_KEYS = (TRAINING_ITERATION, TIME_TOTAL_S, TIMESTEPS_TOTAL,
-                       MEAN_ACCURACY, MEAN_LOSS)
+DEFAULT_RESULT_KEYS = (
+    TRAINING_ITERATION,
+    TIME_TOTAL_S,
+    TIMESTEPS_TOTAL,
+    MEAN_ACCURACY,
+    MEAN_LOSS,
+)
 
 # Make sure this doesn't regress
 AUTO_RESULT_KEYS = (
@@ -120,9 +123,11 @@ STDOUT_FILE = "__stdout_file__"
 STDERR_FILE = "__stderr_file__"
 
 # Where Tune writes result files by default
-DEFAULT_RESULTS_DIR = (os.environ.get("TEST_TMPDIR")
-                       or os.environ.get("TUNE_RESULT_DIR")
-                       or os.path.expanduser("~/ray_results"))
+DEFAULT_RESULTS_DIR = (
+    os.environ.get("TEST_TMPDIR")
+    or os.environ.get("TUNE_RESULT_DIR")
+    or os.path.expanduser("~/ray_results")
+)
 
 # Meta file about status under each experiment directory, can be
 # parsed by automlboard if exists.
