@@ -12,22 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 def get_ns_feature_dim_from_vw_example(vw_example) -> dict:
-    """Get a dictionary of feature dimensionality for each namespace singleton.
+    """Get a dictionary of feature dimensionality for each namespace singleton."""
+    # *************************A NOTE about the input vwexample***********
+    # Assumption: assume the vw_example takes one of the following format
+    # depending on whether the example includes the feature names.
 
-    NOTE:
-        Assumption: assume the vw_example takes one of the following format
-        depending on whether the example includes the feature names.
+    # format 1: `y |ns1 feature1:feature_value1 feature2:feature_value2 |ns2
+    #         ns2 feature3:feature_value3 feature4:feature_value4`
+    # format 2: `y | ns1 feature_value1 feature_value2 |
+    #         ns2 feature_value3 feature_value4`
 
-        format 1: `y |ns1 feature1:feature_value1 feature2:feature_value2 |ns2
-                ns2 feature3:feature_value3 feature4:feature_value4`
-        format 2: `y | ns1 feature_value1 feature_value2 |
-                ns2 feature_value3 feature_value4`
+    # The output of both cases are `{'ns1': 2, 'ns2': 2}`.
 
-        The output of both cases are `{'ns1': 2, 'ns2': 2}`.
+    # For more information about the input formate of vw example, please refer to
+    # https://github.com/VowpalWabbit/vowpal_wabbit/wiki/Input-format.
 
-        For more information about the input formate of vw example, please refer to
-        https://github.com/VowpalWabbit/vowpal_wabbit/wiki/Input-format.
-    """
     ns_feature_dim = {}
     data = vw_example.split("|")
     for i in range(1, len(data)):
@@ -48,18 +47,7 @@ def get_ns_feature_dim_from_vw_example(vw_example) -> dict:
 
 
 class OnlineResult:
-    """Class for managing the result statistics of a trial.
-
-    Attributes:
-        observation_count: the total number of observations
-        resource_used: the sum of loss.
-
-    Methods:
-        * update_result(new_loss, new_resource_used, data_dimension):
-            Update result.
-        * get_score(score_name):
-            Get the score according to the input score_name.
-    """
+    """class for managing the result statistics of a trial."""
 
     prob_delta = 0.1
     LOSS_MIN = 0.0
@@ -75,9 +63,17 @@ class OnlineResult:
         mode: Optional[str] = "min",
         sliding_window_size: Optional[int] = 100,
     ):
-        """
+        """Constructor.
+
         Args:
-            result_type_name (str): The name of the result type.
+            result_type_name: A String to specify the name of the result type.
+            cb_coef: a string to specify the coefficient on the confidence bound.
+            init_loss: a float to specify the inital loss.
+            init_cb: a float to specify the intial confidence bound.
+            mode: A string in ['min', 'max'] to specify the objective as
+                minimization or maximization.
+            sliding_window_size: An int to specify the size of the sliding windown
+                (for experimental purpose).
         """
         self._result_type_name = result_type_name  # for example 'mse' or 'mae'
         self._mode = mode
@@ -113,7 +109,7 @@ class OnlineResult:
     def _update_loss_cb(
         self, bound_of_range, data_dim, bound_name="sample_complexity_bound"
     ):
-        """Calculate bound coef."""
+        """Calculate the coefficient of the confidence bound."""
         if bound_name == "sample_complexity_bound":
             # set the coefficient in the loss bound
             if "mae" in self.result_type_name:
@@ -169,21 +165,7 @@ class OnlineResult:
 
 
 class BaseOnlineTrial(Trial):
-    """Class for online trial.
-
-    Attributes：
-        * config: the config for this trial.
-        * trial_id: the trial_id of this trial.
-        * min_resource_lease (float): the minimum resource realse.
-        * status: the status of this trial.
-        * start_time: the start time of this trial.
-        * custom_trial_name: a custom name for this trial.
-
-    Methods:
-        * set_resource_lease(resource)
-        * set_status(status)
-        * set_checked_under_current_champion(checked_under_current_champion)
-    """
+    """Class for the online trial."""
 
     def __init__(
         self,
@@ -194,14 +176,16 @@ class BaseOnlineTrial(Trial):
         custom_trial_name: Optional[str] = "mae",
         trial_id: Optional[str] = None,
     ):
-        """
+        """Constructor.
+
         Args:
-            config: the config dict.
-            min_resource_lease: the minimum resource realse.
-            is_champion: a bool variable.
-            is_checked_under_current_champion: a bool variable.
-            custom_trial_name: custom trial name.
-            trial_id: the trial id.
+            config: The configuration dictionary.
+            min_resource_lease: A float specifying the minimum resource lease.
+            is_champion: A bool variable indicating whether the trial is champion.
+            is_checked_under_current_champion: A bool indicating whether the trial
+                has been used under the current champion.
+            custom_trial_name: A string of a custom trial name.
+            trial_id: A string for the trial id.
         """
         # ****basic variables
         self.config = config
@@ -231,21 +215,21 @@ class BaseOnlineTrial(Trial):
         return self._resource_lease
 
     def set_checked_under_current_champion(self, checked_under_current_champion: bool):
-        """This is needed because sometimes
-        we want to know whether a trial has been paused since a new champion is promoted.
-        We want to try to pause those running trials (even though they are not yet achieve
-        the next scheduling check point according to resource used and resource lease),
-        because a better trial is likely to be in the new challengers generated by the new
-        champion, so we want to try them as soon as possible.
-        If we wait until we reach the next scheduling point, we may waste a lot of resource
-        (depending on what is the current resource lease) on the old trials (note that new
-        trials is not possible to be scheduled to run until there is a slot openning).
-        Intuitively speaking, we want to squize an opening slot as soon as possible once
-        a new champion is promoted, such that we are able to try newly generated challengers.
-        """
+        # This is needed because sometimes
+        # we want to know whether a trial has been paused since a new champion is promoted.
+        # We want to try to pause those running trials (even though they are not yet achieve
+        # the next scheduling check point according to resource used and resource lease),
+        # because a better trial is likely to be in the new challengers generated by the new
+        # champion, so we want to try them as soon as possible.
+        # If we wait until we reach the next scheduling point, we may waste a lot of resource
+        # (depending on what is the current resource lease) on the old trials (note that new
+        # trials is not possible to be scheduled to run until there is a slot openning).
+        # Intuitively speaking, we want to squize an opening slot as soon as possible once
+        # a new champion is promoted, such that we are able to try newly generated challengers.
         self._is_checked_under_current_champion = checked_under_current_champion
 
     def set_resource_lease(self, resource: float):
+        """Sets the resource lease accordingly."""
         self._resource_lease = resource
 
     def set_status(self, status):
@@ -257,36 +241,17 @@ class BaseOnlineTrial(Trial):
 
 
 class VowpalWabbitTrial(BaseOnlineTrial):
-    """Implement BaseOnlineTrial for Vowpal Wabbit.
+    """The class for Vowpal Wabbit online trials."""
 
-    Attributes:
-        * model: the online model.
-        * result: the anytime result for the online model.
-        * trainable_class: the model class (set as pyvw.vw for VowpalWabbitTrial).
-        * config: the config for this trial.
-        * trial_id: the trial_id of this trial.
-        * min_resource_lease (float): the minimum resource realse.
-        * status: the status of this trial.
-        * start_time: the start time of this trial.
-        * custom_trial_name: a custom name for this trial.
+    # NOTE: 1. About namespaces in vw:
+    # - Wiki in vw:
+    # https://github.com/VowpalWabbit/vowpal_wabbit/wiki/Namespaces
+    # - Namespace vs features:
+    # https://stackoverflow.com/questions/28586225/in-vowpal-wabbit-what-is-the-difference-between-a-namespace-and-feature
 
-    Methods:
-        * set_resource_lease(resource)
-        * set_status(status)
-        * set_checked_under_current_champion(checked_under_current_champion)
-
-    NOTE:
-        About result:
-        1. training related results (need to be updated in the trainable class)
-        2. result about resources lease (need to be updated externally)
-
-        About namespaces in vw:
-        - Wiki in vw:
-        https://github.com/VowpalWabbit/vowpal_wabbit/wiki/Namespaces
-        - Namespace vs features:
-        https://stackoverflow.com/questions/28586225/in-vowpal-wabbit-what-is-the-difference-between-a-namespace-and-feature
-    """
-
+    # About result:
+    # 1. training related results (need to be updated in the trainable class)
+    # 2. result about resources lease (need to be updated externally)
     cost_unit = 1.0
     interactions_config_key = "interactions"
     MIN_RES_CONST = 5
@@ -383,7 +348,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
         )
 
     def train_eval_model_online(self, data_sample, y_pred):
-        """Train and eval model online."""
+        """Train and evaluate model online."""
         # extract info needed the first time we see the data
         if self._resource_lease == "auto" or self._resource_lease is None:
             assert self._dim is not None

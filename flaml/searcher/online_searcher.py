@@ -11,14 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseSearcher:
-    """Implementation of the BaseSearcher.
-
-    Methods:
-        * set_search_properties(metric, mode, config)
-        * next_trial()
-        * on_trial_result(trial_id, result)
-        * on_trial_complete()
-    """
+    """Abstract class for an online searcher."""
 
     def __init__(
         self,
@@ -52,25 +45,18 @@ class BaseSearcher:
 class ChampionFrontierSearcher(BaseSearcher):
     """The ChampionFrontierSearcher class.
 
-    Methods:
-        * (metric, mode, config):
-            Generate a list of new challengers, and add them to the _challenger_list.
-        * next_trial():
-            Pop a trial from the _challenger_list.
-        * on_trial_result(trial_id, result):
-            Doing nothing.
-        * on_trial_complete()
-            Doing nothing.
-
-    NOTE:
-        This class serves the role of ConfigOralce.
-        Every time we create an online trial, we generate a searcher_trial_id.
-        At the same time, we also record the trial_id of the VW trial.
-        Note that the trial_id is a unique signature of the configuraiton.
-        So if two VWTrials are associated with the same config, they will have the same trial_id
-        (although not the same searcher_trial_id).
-        searcher_trial_id will be used in suggest().
+    NOTE about the correspondence about this code and the research paper:
+    [ChaCha for Online AutoML](https://arxiv.org/pdf/2106.04815.pdf)
+    This class serves the role of ConfigOralce as described in the paper.
     """
+
+    # **************************More notes***************************
+    # Every time we create an online trial, we generate a searcher_trial_id.
+    # At the same time, we also record the trial_id of the VW trial.
+    # Note that the trial_id is a unique signature of the configuration.
+    # So if two VWTrials are associated with the same config, they will have the same trial_id
+    # (although not the same searcher_trial_id).
+    # searcher_trial_id will be used in suggest().
 
     # ****the following constants are used when generating new challengers in
     # the _query_config_oracle function
@@ -112,12 +98,14 @@ class ChampionFrontierSearcher(BaseSearcher):
         """Constructor.
 
         Args:
-            init_config: dict.
-            space: dict.
-            metric: str.
-            mode: str.
-            random_seed: int.
-            online_trial_args: dict.
+            init_config: A dictionary of initial configuration.
+            space: A dictionary to specify the search space.
+            metric: A string of the metric name to optimize for.
+            mode: A string in ['min', 'max'] to specify the objective as
+                minimization or maximization.
+            random_seed: An integer of the random seed.
+            online_trial_args: A dictionary to specify the online trial
+                arguments for experimental purpose.
             nonpoly_searcher_name: A string to specify the search algorithm
                 for nonpoly hyperparameters.
         """
@@ -154,7 +142,7 @@ class ChampionFrontierSearcher(BaseSearcher):
         setting: Optional[Dict] = {},
         init_call: Optional[bool] = False,
     ):
-        """Construct search space with given config, and setup the search."""
+        """Construct search space with the given config, and setup the search."""
         super().set_search_properties(metric, mode, config)
         # *********Use ConfigOralce (i.e, self._generate_new_space to generate list of new challengers)
         logger.info("setting %s", setting)
