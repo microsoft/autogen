@@ -8,30 +8,18 @@ logger = logging.getLogger(__name__)
 
 
 class OnlineScheduler(TrialScheduler):
-    """Implementation of the OnlineFIFOSchedulers.
-
-    Methods:
-        * on_trial_result(trial_runner, trial, result):
-            Report result and return a decision on the trial's status.
-        * choose_trial_to_run(trial_runner):
-            Decide which trial to run next.
-    """
+    """Class for the most basic OnlineScheduler."""
 
     def on_trial_result(self, trial_runner, trial: Trial, result: Dict):
-        """Report result and return a decision on the trial's status.
-
-        Always keep a trial running (return status TrialScheduler.CONTINUE).
-        """
+        """Report result and return a decision on the trial's status."""
+        # Always keep a trial running (return status TrialScheduler.CONTINUE).
         return TrialScheduler.CONTINUE
 
     def choose_trial_to_run(self, trial_runner) -> Trial:
-        """Decide which trial to run next.
-
-        Trial prioritrization according to the status:
-        PENDING (trials that have not been tried) > PAUSED (trials that have been ran).
-
-        For trials with the same status, it chooses the ones with smaller resource lease.
-        """
+        """Decide which trial to run next."""
+        # Trial prioritrization according to the status:
+        # PENDING (trials that have not been tried) > PAUSED (trials that have been ran).
+        # For trials with the same status, it chooses the ones with smaller resource lease.
         for trial in trial_runner.get_trials():
             if trial.status == Trial.PENDING:
                 return trial
@@ -50,31 +38,23 @@ class OnlineScheduler(TrialScheduler):
 
 
 class OnlineSuccessiveDoublingScheduler(OnlineScheduler):
-    """Implementation of the OnlineSuccessiveDoublingScheduler.
-
-    Methods:
-        * on_trial_result(trial_runner, trial, result):
-            Report result and return a decision on the trial's status.
-        * choose_trial_to_run(trial_runner):
-            Decide which trial to run next.
-    """
+    """class for the OnlineSuccessiveDoublingScheduler algorithm."""
 
     def __init__(self, increase_factor: float = 2.0):
-        """
+        """Constructor.
+
         Args:
-            increase_factor (float): a multiplicative factor used to increase resource lease.
-                The default value is 2.0
+            increase_factor: A float of multiplicative factor
+                used to increase resource lease. Default is 2.0.
         """
         super().__init__()
         self._increase_factor = increase_factor
 
     def on_trial_result(self, trial_runner, trial: Trial, result: Dict):
-        """Report result and return a decision on the trial's status.
-
-        1. Returns TrialScheduler.CONTINUE (i.e., keep the trial running),
-        if the resource consumed has not reached the current resource_lease.s.
-        2. otherwise double the current resource lease and return TrialScheduler.PAUSE.
-        """
+        """Report result and return a decision on the trial's status."""
+        # 1. Returns TrialScheduler.CONTINUE (i.e., keep the trial running),
+        # if the resource consumed has not reached the current resource_lease.s.
+        # 2. otherwise double the current resource lease and return TrialScheduler.PAUSE.
         if trial.result is None or trial.result.resource_used < trial.resource_lease:
             return TrialScheduler.CONTINUE
         else:
@@ -89,20 +69,14 @@ class OnlineSuccessiveDoublingScheduler(OnlineScheduler):
 
 
 class ChaChaScheduler(OnlineSuccessiveDoublingScheduler):
-    """Keep the top performing learners running.
-
-    Methods:
-        * on_trial_result(trial_runner, trial, result):
-            Report result and return a decision on the trial's status.
-        * choose_trial_to_run(trial_runner):
-            Decide which trial to run next.
-    """
+    """class for the ChaChaScheduler algorithm."""
 
     def __init__(self, increase_factor: float = 2.0, **kwargs):
-        """
+        """Constructor.
+
         Args:
-            increase_factor: a multiplicative factor used to increase resource lease.
-                The default value is 2.0.
+            increase_factor: A float of multiplicative factor
+                used to increase resource lease. Default is 2.0.
         """
         super().__init__(increase_factor)
         self._keep_champion = kwargs.get("keep_champion", True)
@@ -112,10 +86,8 @@ class ChaChaScheduler(OnlineSuccessiveDoublingScheduler):
         logger.info("Using chacha scheduler with config %s", kwargs)
 
     def on_trial_result(self, trial_runner, trial: Trial, result: Dict):
-        """Report result and return a decision on the trial's status.
-
-        Make a decision according to: SuccessiveDoubling + champion check + performance check.
-        """
+        """Report result and return a decision on the trial's status."""
+        # Make a decision according to: SuccessiveDoubling + champion check + performance check.
         # Doubling scheduler makes a decision
         decision = super().on_trial_result(trial_runner, trial, result)
         # ***********Check whether the trial has been paused since a new champion is promoted**
