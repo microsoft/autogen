@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See LICENSE file in the
- * project root for license information.
-"""
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 import time
 from typing import Callable, Optional
 from functools import partial
@@ -311,7 +310,7 @@ def size(state: AutoMLState, config: dict) -> float:
 
 
 class AutoML:
-    """The AutoML class
+    """The AutoML class.
 
     Example:
 
@@ -359,10 +358,10 @@ class AutoML:
         return self.__dict__.get("_trained_estimator")
 
     def best_model_for_estimator(self, estimator_name):
-        """Return the best model found for a particular estimator
+        """Return the best model found for a particular estimator.
 
         Args:
-            estimator_name: a str of the estimator's name
+            estimator_name: a str of the estimator's name.
 
         Returns:
             An object with `predict()` and `predict_proba()` method (for
@@ -398,7 +397,7 @@ class AutoML:
 
     @property
     def best_loss(self):
-        """A float of the best loss found"""
+        """A float of the best loss found."""
         return self._state.best_loss
 
     @property
@@ -421,7 +420,7 @@ class AutoML:
 
     @property
     def time_to_find_best_model(self) -> float:
-        """Time taken to find best model in seconds"""
+        """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
 
     def predict(self, X_test):
@@ -490,7 +489,7 @@ class AutoML:
         if issparse(X):
             X = X.tocsr()
         if self._transformer:
-            X = self._transformer.transform(X, self._state.task)
+            X = self._transformer.transform(X)
         return X
 
     def _validate_data(
@@ -583,13 +582,11 @@ class AutoML:
                 X_val.shape[0] == y_val.shape[0]
             ), "# rows in X_val must match length of y_val."
             if self._transformer:
-                self._state.X_val = self._transformer.transform(X_val, self._state.task)
+                self._state.X_val = self._transformer.transform(X_val)
             else:
                 self._state.X_val = X_val
             if self._label_transformer:
-                self._state.y_val = self._label_transformer.transform(
-                    y_val, self._state.task
-                )
+                self._state.y_val = self._label_transformer.transform(y_val)
             else:
                 self._state.y_val = y_val
         else:
@@ -852,26 +849,26 @@ class AutoML:
             )
 
     def add_learner(self, learner_name, learner_class):
-        """Add a customized learner
+        """Add a customized learner.
 
         Args:
-            learner_name: A string of the learner's name
-            learner_class: A subclass of flaml.model.BaseEstimator
+            learner_name: A string of the learner's name.
+            learner_class: A subclass of flaml.model.BaseEstimator.
         """
         self._state.learner_classes[learner_name] = learner_class
 
     def get_estimator_from_log(self, log_file_name, record_id, task):
-        """Get the estimator from log file
+        """Get the estimator from log file.
 
         Args:
-            log_file_name: A string of the log file name
+            log_file_name: A string of the log file name.
             record_id: An integer of the record ID in the file,
-                0 corresponds to the first trial
+                0 corresponds to the first trial.
             task: A string of the task type,
-                'binary', 'multi', 'regression', 'ts_forecast', 'rank'
+                'binary', 'multi', 'regression', 'ts_forecast', 'rank'.
 
         Returns:
-            An estimator object for the given configuration
+            An estimator object for the given configuration.
         """
 
         with training_log_reader(log_file_name) as reader:
@@ -910,16 +907,16 @@ class AutoML:
         auto_augment=True,
         **fit_kwargs,
     ):
-        """Retrain from log file
+        """Retrain from log file.
 
         Args:
-            log_file_name: A string of the log file name
-            X_train: A numpy array of training data in shape n*m
+            log_file_name: A string of the log file name.
+            X_train: A numpy array or dataframe of training data in shape n*m.
                 For 'ts_forecast' task, the first column of X_train
                 must be the timestamp column (datetime type). Other
                 columns in the dataframe are assumed to be exogenous
                 variables (categorical or numeric).
-            y_train: A numpy array of labels in shape n*1
+            y_train: A numpy array or series of labels in shape n*1.
             dataframe: A dataframe of training data including label column.
                 For 'ts_forecast' task, dataframe must be specified and should
                 have at least two columns: timestamp and label, where the first
@@ -1080,11 +1077,13 @@ class AutoML:
 
     @property
     def search_space(self) -> dict:
-        """Search space
-        Must be called after fit(...) (use max_iter=0 to prevent actual fitting)
+        """Search space.
+
+        Must be called after fit(...)
+        (use max_iter=0 and retrain_final=False to prevent actual fitting).
 
         Returns:
-            A dict of the search space
+            A dict of the search space.
         """
         estimator_list = self.estimator_list
         if len(estimator_list) == 1:
@@ -1101,7 +1100,7 @@ class AutoML:
 
     @property
     def low_cost_partial_config(self) -> dict:
-        """Low cost partial config
+        """Low cost partial config.
 
         Returns:
             A dict.
@@ -1112,7 +1111,6 @@ class AutoML:
             to each learner's low_cost_partial_config; the estimator index as
             an integer corresponding to the cheapest learner is appended to the
             list at the end.
-
         """
         if len(self.estimator_list) == 1:
             estimator = self.estimator_list[0]
@@ -1146,7 +1144,6 @@ class AutoML:
             a list of the cat_hp_cost's as the value, corresponding
             to each learner's cat_hp_cost; the cost relative to lgbm for each
             learner (as a list itself) is appended to the list at the end.
-
         """
         if len(self.estimator_list) == 1:
             estimator = self.estimator_list[0]
@@ -1198,28 +1195,28 @@ class AutoML:
 
     @property
     def min_resource(self) -> Optional[float]:
-        """Attribute for pruning
+        """Attribute for pruning.
 
         Returns:
-            A float for the minimal sample size or None
+            A float for the minimal sample size or None.
         """
         return self._min_sample_size if self._sample else None
 
     @property
     def max_resource(self) -> Optional[float]:
-        """Attribute for pruning
+        """Attribute for pruning.
 
         Returns:
-            A float for the maximal sample size or None
+            A float for the maximal sample size or None.
         """
         return self._state.data_size if self._sample else None
 
     @property
     def trainable(self) -> Callable[[dict], Optional[float]]:
-        """Training function
+        """Training function.
 
         Returns:
-            A function that evaluates each config and returns the loss
+            A function that evaluates each config and returns the loss.
         """
         self._state.time_from_start = 0
         for estimator in self.estimator_list:
@@ -1255,10 +1252,10 @@ class AutoML:
 
     @property
     def metric_constraints(self) -> list:
-        """Metric constraints
+        """Metric constraints.
 
         Returns:
-            A list of the metric constraints
+            A list of the metric constraints.
         """
         constraints = []
         if np.isfinite(self._pred_time_limit):
@@ -1310,7 +1307,7 @@ class AutoML:
         use_ray=False,
         **fit_kwargs,
     ):
-        """Find a model for a given task
+        """Find a model for a given task.
 
         Args:
             X_train: A numpy array or a pandas dataframe of training data in
@@ -1499,6 +1496,7 @@ class AutoML:
             and eval_method == "holdout"
             and self._state.X_val is None
             or eval_method == "cv"
+            and (max_iter > 0 or retrain_full is True)
             or max_iter == 1
         )
         self._auto_augment = auto_augment

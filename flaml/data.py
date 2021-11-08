@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License.
-"""
-
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 import numpy as np
 from scipy.sparse import vstack, issparse
 import pandas as pd
@@ -130,17 +129,15 @@ def get_output_from_log(filename, time_budget):
     """Get output from log file
 
     Args:
-        filename: A string of the log file name
-        time_budget: A float of the time budget in seconds
+        filename: A string of the log file name.
+        time_budget: A float of the time budget in seconds.
 
     Returns:
-        search_time_list: A list of the finished time of each logged iter
-        best_error_list:
-            A list of the best validation error after each logged iter
-        error_list: A list of the validation error of each logged iter
-        config_list:
-            A list of the estimator, sample size and config of each logged iter
-        logged_metric_list: A list of the logged metric of each logged iter
+        search_time_list: A list of the finished time of each logged iter.
+        best_error_list: A list of the best validation error after each logged iter.
+        error_list: A list of the validation error of each logged iter.
+        config_list: A list of the estimator, sample size and config of each logged iter.
+        logged_metric_list: A list of the logged metric of each logged iter.
     """
 
     best_config = None
@@ -208,9 +205,21 @@ def concat(X1, X2):
 
 
 class DataTransformer:
-    """transform X, y"""
+    """Transform input training data."""
 
     def fit_transform(self, X, y, task):
+        """Fit transformer and process the input training data according to the task type.
+
+        Args:
+            X: A numpy array or a pandas dataframe of training data.
+            y: A numpy array or a pandas series of labels.
+            task: A string of the task type, e.g.,
+                'classification', 'regression', 'ts_forecast', 'rank'.
+
+        Returns:
+            X: Processed numpy array or pandas dataframe of training data.
+            y: Processed numpy array or pandas series of labels.
+        """
         if isinstance(X, pd.DataFrame):
             X = X.copy()
             n = X.shape[0]
@@ -320,9 +329,22 @@ class DataTransformer:
             y = self.label_transformer.fit_transform(y)
         else:
             self.label_transformer = None
+        self._task = task
         return X, y
 
-    def transform(self, X, task):
+    def transform(self, X):
+        """Process data using fit transformer.
+
+        Args:
+            X: A numpy array or a pandas dataframe of training data.
+            y: A numpy array or a pandas series of labels.
+            task: A string of the task type, e.g.,
+                'classification', 'regression', 'ts_forecast', 'rank'.
+
+        Returns:
+            X: Processed numpy array or pandas dataframe of training data.
+            y: Processed numpy array or pandas series of labels.
+        """
         X = X.copy()
         if isinstance(X, pd.DataFrame):
             cat_columns, num_columns, datetime_columns = (
@@ -330,7 +352,7 @@ class DataTransformer:
                 self._num_columns,
                 self._datetime_columns,
             )
-            if task == TS_FORECAST:
+            if self._task == TS_FORECAST:
                 X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
                 ds_col = X.pop(TS_TIMESTAMP_COL)
             if datetime_columns:
@@ -357,7 +379,7 @@ class DataTransformer:
                     X[column] = X[column].map(datetime.toordinal)
                     del tmp_dt
             X = X[cat_columns + num_columns].copy()
-            if task == TS_FORECAST:
+            if self._task == TS_FORECAST:
                 X.insert(0, TS_TIMESTAMP_COL, ds_col)
             for column in cat_columns:
                 if X[column].dtype.name == "object":

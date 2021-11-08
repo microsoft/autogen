@@ -1,8 +1,7 @@
-"""!
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See LICENSE file in the
- * project root for license information.
-"""
+# !
+#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Licensed under the MIT License. See LICENSE file in the
+#  * project root for license information.
 from flaml.tune.sample import Domain
 from typing import Dict, Optional, Tuple
 import numpy as np
@@ -29,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 class FLOW2(Searcher):
-    """Local search algorithm FLOW2, with adaptive step size"""
+    """Local search algorithm FLOW2, with adaptive step size."""
 
     STEPSIZE = 0.1
     STEP_LOWER_BOUND = 0.0001
@@ -47,13 +46,13 @@ class FLOW2(Searcher):
         cost_attr: Optional[str] = "time_total_s",
         seed: Optional[int] = 20,
     ):
-        """Constructor
+        """Constructor.
 
         Args:
             init_config: a dictionary of a partial or full initial config,
-                e.g. from a subset of controlled dimensions
+                e.g., from a subset of controlled dimensions
                 to the initial low-cost values.
-                e.g. {'epochs': 1}
+                E.g., {'epochs': 1}.
             metric: A string of the metric name to optimize for.
             mode: A string in ['min', 'max'] to specify the objective as
                 minimization or maximization.
@@ -243,8 +242,9 @@ class FLOW2(Searcher):
         lower: Optional[Dict] = None,
         upper: Optional[Dict] = None,
     ) -> Tuple[Dict, Dict]:
-        """generate a complete config from the partial config input
-        add minimal resource to config if available
+        """Generate a complete config from the partial config input.
+
+        Add minimal resource to config if available.
         """
         disturb = self._reset_times and partial_config == self.init_config
         # if not the first time to complete init_config, use random gaussian
@@ -279,13 +279,13 @@ class FLOW2(Searcher):
         return flow2
 
     def normalize(self, config, recursive=False) -> Dict:
-        """normalize each dimension in config to [0,1]"""
+        """normalize each dimension in config to [0,1]."""
         return normalize(
             config, self._space, self.best_config, self.incumbent, recursive
         )
 
     def denormalize(self, config):
-        """denormalize each dimension in config from [0,1]"""
+        """denormalize each dimension in config from [0,1]."""
         return denormalize(
             config, self._space, self.best_config, self.incumbent, self._random
         )
@@ -314,9 +314,11 @@ class FLOW2(Searcher):
     def on_trial_complete(
         self, trial_id: str, result: Optional[Dict] = None, error: bool = False
     ):
-        # compare with incumbent
-        # if better, move, reset num_complete and num_proposed
-        # if not better and num_complete >= 2*dim, num_allowed += 2
+        """
+        Compare with incumbent.
+        If better, move, reset num_complete and num_proposed.
+        If not better and num_complete >= 2*dim, num_allowed += 2.
+        """
         self.trial_count_complete += 1
         if not error and result:
             obj = result.get(self._metric)
@@ -369,7 +371,7 @@ class FLOW2(Searcher):
         # elif proposed_by: del self._proposed_by[trial_id]
 
     def on_trial_result(self, trial_id: str, result: Dict):
-        """early update of incumbent"""
+        """Early update of incumbent."""
         if result:
             obj = result.get(self._metric)
             if obj:
@@ -401,12 +403,12 @@ class FLOW2(Searcher):
         return vec / mag
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
-        """suggest a new config, one of the following cases:
-        1. same incumbent, increase resource
-        2. same resource, move from the incumbent to a random direction
-        3. same resource, move from the incumbent to the opposite direction
-        #TODO: better decouple FLOW2 config suggestion and stepsize update
+        """Suggest a new config, one of the following cases:
+        1. same incumbent, increase resource.
+        2. same resource, move from the incumbent to a random direction.
+        3. same resource, move from the incumbent to the opposite direction.
         """
+        # TODO: better decouple FLOW2 config suggestion and stepsize update
         self.trial_count_proposed += 1
         if (
             self._num_complete4incumbent > 0
@@ -516,13 +518,13 @@ class FLOW2(Searcher):
 
     @property
     def can_suggest(self) -> bool:
-        """can't suggest if 2*dim configs have been proposed for the incumbent
-        while fewer are completed
+        """Can't suggest if 2*dim configs have been proposed for the incumbent
+        while fewer are completed.
         """
         return self._num_allowed4incumbent > 0
 
     def config_signature(self, config, space: Dict = None) -> tuple:
-        """return the signature tuple of a config"""
+        """Return the signature tuple of a config."""
         config = flatten_dict(config)
         if space:
             space = flatten_dict(space)
@@ -558,14 +560,14 @@ class FLOW2(Searcher):
 
     @property
     def converged(self) -> bool:
-        """return whether the local search has converged"""
+        """Whether the local search has converged."""
         if self._num_complete4incumbent < self.dir - 2:
             return False
         # check stepsize after enough configs are completed
         return self.step < self.step_lower_bound
 
     def reach(self, other: Searcher) -> bool:
-        """whether the incumbent can reach the incumbent of other"""
+        """whether the incumbent can reach the incumbent of other."""
         config1, config2 = self.best_config, other.best_config
         incumbent1, incumbent2 = self.incumbent, other.incumbent
         if self._resource and config1[self.prune_attr] > config2[self.prune_attr]:
