@@ -9,42 +9,25 @@ logger = logging.getLogger(__name__)
 
 
 class OnlineTrialRunner:
-    """The OnlineTrialRunner class
+    """class for the OnlineTrialRunner."""
 
-    Methods:
-        step(max_live_model_num, data_sample, prediction_trial_tuple)
-            Outputs a _max_live_model_num number of trials to run each time it is called
-        get_top_running_trials()
-            Get a list of trial ids, whose performance is among the top running trials
-        add_trial(trial)
-            Add trial to this TrialRunner.
-        stop_trial(trial)
-            Set the status of a trial to be Trial.TERMINATED and perform other subsequent operations
-        pause_trial(trial)
-            Set the status of a trial to be Trial.PAUSED and perform other subsequent operations
-        run_trial(trial)
-            Set the status of a trial to be Trial.RUNNING and perform other subsequent operations
-        get_trials()
-            Get all the trials added (whatever that status) in the the OnlineTrialRunner
-
-    NOTE about the status of a trial:
-        Trial.PENDING: All trials are set to be pending when frist added into the OnlineTrialRunner until
-            it is selected to run. By this definition, a trial with status Trial.PENDING is a challenger
-            trial added to the OnlineTrialRunner but never been selected to run.
-            It denotes the starting of trial's lifespan in the OnlineTrialRunner.
-        Trial.RUNNING: It indicates that this trial is one of the concurrently running trials.
-            The max number of Trial.RUNNING trials is running_budget.
-            The status of a trial will be set to Trial.RUNNING the next time it selected to run.
-            A trial's status may have the following change:
-            Trial.PENDING -> Trial.RUNNING
-            Trial.PAUSED - > Trial.RUNNING
-        Trial.PAUSED: The status of a trial is set to Trial.PAUSED once it is removed from the running trials.
-            Trial.RUNNING - > Trial.PAUSED
-        Trial.TERMINATED: set the status of a trial to Trial.TERMINATED when you never want to select it.
-            It denotes the real end of a trial's lifespan.
-        Status change routine of a trial
-        Trial.PENDING -> (Trial.RUNNING -> Trial.PAUSED -> Trial.RUNNING -> ...) -> Trial.TERMINATED(optional)
-    """
+    # ************NOTE about the status of a trial***************
+    # Trial.PENDING: All trials are set to be pending when frist added into the OnlineTrialRunner until
+    #     it is selected to run. By this definition, a trial with status Trial.PENDING is a challenger
+    #     trial added to the OnlineTrialRunner but never been selected to run.
+    #     It denotes the starting of trial's lifespan in the OnlineTrialRunner.
+    # Trial.RUNNING: It indicates that this trial is one of the concurrently running trials.
+    #     The max number of Trial.RUNNING trials is running_budget.
+    #     The status of a trial will be set to Trial.RUNNING the next time it selected to run.
+    #     A trial's status may have the following change:
+    #     Trial.PENDING -> Trial.RUNNING
+    #     Trial.PAUSED - > Trial.RUNNING
+    # Trial.PAUSED: The status of a trial is set to Trial.PAUSED once it is removed from the running trials.
+    #     Trial.RUNNING - > Trial.PAUSED
+    # Trial.TERMINATED: set the status of a trial to Trial.TERMINATED when you never want to select it.
+    #     It denotes the real end of a trial's lifespan.
+    # Status change routine of a trial:
+    # Trial.PENDING -> (Trial.RUNNING -> Trial.PAUSED -> Trial.RUNNING -> ...) -> Trial.TERMINATED(optional)
 
     RANDOM_SEED = 123456
     WARMSTART_NUM = 100
@@ -57,33 +40,37 @@ class OnlineTrialRunner:
         champion_test_policy="loss_ucb",
         **kwargs
     ):
-        """Constructor
+        """Constructor.
 
         Args:
             max_live_model_num: The maximum number of 'live'/running models allowed.
-            searcher: A class for generating Trial objects progressively. The ConfigOracle
-                is implemented in the searcher.
-                Required methods of the searcher:
-                - next_trial()
-                    Generate the next trial to add.
-                - set_search_properties(metric: Optional[str], mode: Optional[str], config: Optional[dict], setting: Optional[dict])
-                    Generate new challengers based on the current champion and update the challenger list
-                - on_trial_result(trial_id: str, result: Dict)
-                    Reprot results to the scheduler.
-            scheduler: A class for managing the 'live' trials and allocating the resources for the trials.
-                Required methods of the scheduler:
-                - on_trial_add(trial_runner, trial: Trial)
-                    It adds candidate trials to the scheduler. It is called inside of the add_trial
-                    function in the TrialRunner.
-                - on_trial_remove(trial_runner, trial: Trial)
-                    Remove terminated trials from the scheduler.
-                - on_trial_result(trial_runner, trial: Trial, result: Dict)
-                    Reprot results to the scheduler.
-                - choose_trial_to_run(trial_runner) -> Optional[Trial]
-                Among them, on_trial_result and choose_trial_to_run are the most important methods
-            champion_test_policy: A string to specify what test policy to test for champion.
-                Currently can choose from ['loss_ucb', 'loss_avg', 'loss_lcb', None].
+            searcher: A class for generating Trial objects progressively.
+                The ConfigOracle is implemented in the searcher.
+            scheduler: A class for managing the 'live' trials and allocating the
+                resources for the trials.
+            champion_test_policy: A string to specify what test policy to test for
+                champion. Currently can choose from ['loss_ucb', 'loss_avg', 'loss_lcb', None].
         """
+        # ************A NOTE about the input searcher and scheduler******
+        # Required methods of the searcher:
+        # - next_trial()
+        #     Generate the next trial to add.
+        # - set_search_properties(metric: Optional[str], mode: Optional[str],
+        #                         config: Optional[dict], setting: Optional[dict])
+        #     Generate new challengers based on the current champion and update the challenger list
+        # - on_trial_result(trial_id: str, result: Dict)
+        #     Reprot results to the scheduler.
+        # Required methods of the scheduler:
+        # - on_trial_add(trial_runner, trial: Trial)
+        #     It adds candidate trials to the scheduler. It is called inside of the add_trial
+        #     function in the TrialRunner.
+        # - on_trial_remove(trial_runner, trial: Trial)
+        #     Remove terminated trials from the scheduler.
+        # - on_trial_result(trial_runner, trial: Trial, result: Dict)
+        #     Reprot results to the scheduler.
+        # - choose_trial_to_run(trial_runner) -> Optional[Trial]
+        # Among them, on_trial_result and choose_trial_to_run are the most important methods
+        # *****************************************************************
         # OnlineTrialRunner setting
         self._searcher = searcher
         self._scheduler = scheduler
@@ -112,39 +99,37 @@ class OnlineTrialRunner:
 
     @property
     def champion_trial(self) -> Trial:
-        """The champion trial"""
+        """The champion trial."""
         return self._champion_trial
 
     @property
     def running_trials(self):
-        """The running/'live' trials"""
+        """The running/'live' trials."""
         return self._running_trials
 
     def step(self, data_sample=None, prediction_trial_tuple=None):
-        """Schedule up to max_live_model_num trials to run
+        """Schedule one trial to run each time it is called.
 
         Args:
-            data_sample
-            prediction_trial_tuple
-
-        NOTE:
-            It consists of the following several parts:
-            Update model:
-            0. Update running trials using observations received.
-            Tests for Champion
-            1. Test for champion (BetterThan test, and WorseThan test)
-                1.1 BetterThan test
-                1.2 WorseThan test: a trial may be removed if WroseThan test is triggered
-            Online Scheduling:
-            2. Report results to the searcher and scheduler (the scheduler will return a decision about
-                the status of the running trials).
-            3. Pause or stop a trial according to the scheduler's decision.
-            Add trial into the OnlineTrialRunner if there are opening slots.
-
-        TODO:
-            add documentation about the Args
+            data_sample: One data example.
+            prediction_trial_tuple: A list of information containing
+                (prediction_made, prediction_trial).
         """
-        # ***********Update running trials with observation***************************
+        # TODO: Will remove prediction_trial_tuple.
+        # NOTE: This function consists of the following several parts:
+        # * Update model:
+        # 0. Update running trials using observations received.
+        # * Tests for Champion:
+        # 1. Test for champion (BetterThan test, and WorseThan test)
+        #     1.1 BetterThan test
+        #     1.2 WorseThan test: a trial may be removed if WroseThan test is triggered
+        # * Online Scheduling:
+        # 2. Report results to the searcher and scheduler (the scheduler will return a decision about
+        #     the status of the running trials).
+        # 3. Pause or stop a trial according to the scheduler's decision.
+        # Add a trial into the OnlineTrialRunner if there are opening slots.
+
+        # ***********Update running trials with observation*******************
         if data_sample is not None:
             self._total_steps += 1
             prediction_made, prediction_trial = (
@@ -206,7 +191,7 @@ class OnlineTrialRunner:
                 break
 
     def get_top_running_trials(self, top_ratio=None, top_metric="ucb") -> list:
-        """Get a list of trial ids, whose performance is among the top running trials"""
+        """Get a list of trial ids, whose performance is among the top running trials."""
         running_valid_trials = [
             trial for trial in self._running_trials if trial.result is not None
         ]
@@ -250,8 +235,8 @@ class OnlineTrialRunner:
         """Add a new trial to this TrialRunner.
 
         NOTE:
-            The new trial is acquired from the input search algorithm, i.e. self._searcher
-            A 'new' trial means the trial is not in self._trial
+            The new trial is acquired from the input search algorithm, i.e. self._searcher.
+            A 'new' trial means the trial is not in self._trial.
         """
         # (optionally) upper bound the number of trials in the OnlineTrialRunner
         if self._bound_trial_num and self._first_challenger_pool_size is not None:
@@ -385,16 +370,13 @@ class OnlineTrialRunner:
 
     def add_trial(self, new_trial):
         """Add a new trial to this TrialRunner.
-
         Trials may be added at any time.
 
         Args:
-            trial (Trial): Trial to queue.
-
-        NOTE:
-            Only add the new trial when it does not exist (according to the trial_id, which is
-            the signature of the trail) in self._trials.
+            new_trial (Trial): Trial to queue.
         """
+        # Only add the new trial when it does not exist (according to the trial_id, which is
+        # the signature of the trail) in self._trials.
         for trial in self._trials:
             if trial.trial_id == new_trial.trial_id:
                 trial.set_checked_under_current_champion(True)
@@ -409,8 +391,8 @@ class OnlineTrialRunner:
         self._scheduler.on_trial_add(self, new_trial)
 
     def stop_trial(self, trial):
-        """Stop a trial: set the status of a trial to be Trial.TERMINATED and perform
-        other subsequent operations
+        """Stop a trial: set the status of a trial to be
+        Trial.TERMINATED and perform other subsequent operations.
         """
         if trial.status in [Trial.ERROR, Trial.TERMINATED]:
             return
@@ -428,8 +410,8 @@ class OnlineTrialRunner:
             self._running_trials.remove(trial)
 
     def pause_trial(self, trial):
-        """Pause a trial: set the status of a trial to be Trial.PAUSED and perform other
-        subsequent operations
+        """Pause a trial: set the status of a trial to be Trial.PAUSED
+        and perform other subsequent operations.
         """
         if trial.status in [Trial.ERROR, Trial.TERMINATED]:
             return
@@ -450,8 +432,8 @@ class OnlineTrialRunner:
             self._running_trials.remove(trial)
 
     def run_trial(self, trial):
-        """Run a trial: set the status of a trial to be Trial.RUNNING and perform other
-        subsequent operations
+        """Run a trial: set the status of a trial to be Trial.RUNNING
+        and perform other subsequent operations.
         """
         if trial.status in [Trial.ERROR, Trial.TERMINATED]:
             return
@@ -460,11 +442,11 @@ class OnlineTrialRunner:
             self._running_trials.add(trial)
 
     def _better_than_champion_test(self, trial_to_test):
-        """Test whether there is a config in the existing trials that is better than
-        the current champion config
+        """Test whether there is a config in the existing trials that
+        is better than the current champion config.
 
         Returns:
-            A bool indicating whether a new champion is found
+            A bool indicating whether a new champion is found.
         """
         if trial_to_test.result is not None and self._champion_trial.result is not None:
             if "ucb" in self._champion_test_policy:

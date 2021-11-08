@@ -1,22 +1,20 @@
-'''
-Copyright 2020 The Ray Authors.
+# Copyright 2020 The Ray Authors.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-This source file is adapted here because ray does not fully support Windows.
+# This source file is adapted here because ray does not fully support Windows.
 
-Copyright (c) Microsoft Corporation.
-'''
+# Copyright (c) Microsoft Corporation.
 import copy
 import logging
 from typing import Any, Dict, Generator, List, Tuple
@@ -31,11 +29,13 @@ logger = logging.getLogger(__name__)
 
 class TuneError(Exception):
     """General error class raised by ray.tune."""
+
     pass
 
 
 def generate_variants(
-        unresolved_spec: Dict) -> Generator[Tuple[Dict, Dict], None, None]:
+    unresolved_spec: Dict,
+) -> Generator[Tuple[Dict, Dict], None, None]:
     """Generates variants from a spec (dict) with unresolved values.
     There are two types of unresolved values:
         Grid search: These define a grid search over values. For example, the
@@ -72,8 +72,9 @@ _STANDARD_IMPORTS = {
 _MAX_RESOLUTION_PASSES = 20
 
 
-def parse_spec_vars(spec: Dict) -> Tuple[List[Tuple[Tuple, Any]], List[Tuple[
-        Tuple, Any]], List[Tuple[Tuple, Any]]]:
+def parse_spec_vars(
+    spec: Dict,
+) -> Tuple[List[Tuple[Tuple, Any]], List[Tuple[Tuple, Any]], List[Tuple[Tuple, Any]]]:
     resolved, unresolved = _split_resolved_unresolved_values(spec)
     resolved_vars = list(resolved.items())
 
@@ -107,12 +108,16 @@ def _generate_variants(spec: Dict) -> Tuple[Dict, Dict]:
             for path, value in grid_vars:
                 resolved_vars[path] = _get_value(spec, path)
             for k, v in resolved.items():
-                if (k in resolved_vars and v != resolved_vars[k]
-                        and _is_resolved(resolved_vars[k])):
+                if (
+                    k in resolved_vars
+                    and v != resolved_vars[k]
+                    and _is_resolved(resolved_vars[k])
+                ):
                     raise ValueError(
                         "The variable `{}` could not be unambiguously "
                         "resolved to a single value. Consider simplifying "
-                        "your configuration.".format(k))
+                        "your configuration.".format(k)
+                    )
                 resolved_vars[k] = v
             yield resolved_vars, spec
 
@@ -129,8 +134,7 @@ def _get_value(spec: Dict, path: Tuple) -> Any:
     return spec
 
 
-def _resolve_domain_vars(spec: Dict,
-                         domain_vars: List[Tuple[Tuple, Domain]]) -> Dict:
+def _resolve_domain_vars(spec: Dict, domain_vars: List[Tuple[Tuple, Domain]]) -> Dict:
     resolved = {}
     error = True
     num_passes = 0
@@ -146,8 +150,8 @@ def _resolve_domain_vars(spec: Dict,
                 error = e
             except Exception:
                 raise ValueError(
-                    "Failed to evaluate expression: {}: {}".format(
-                        path, domain))
+                    "Failed to evaluate expression: {}: {}".format(path, domain)
+                )
             else:
                 assign_value(spec, path, value)
                 resolved[path] = value
@@ -156,8 +160,9 @@ def _resolve_domain_vars(spec: Dict,
     return resolved
 
 
-def _grid_search_generator(unresolved_spec: Dict,
-                           grid_vars: List) -> Generator[Dict, None, None]:
+def _grid_search_generator(
+    unresolved_spec: Dict, grid_vars: List
+) -> Generator[Dict, None, None]:
     value_indices = [0] * len(grid_vars)
 
     def increment(i):
@@ -199,39 +204,44 @@ def _try_resolve(v) -> Tuple[bool, Any]:
         grid_values = v["grid_search"]
         if not isinstance(grid_values, list):
             raise TuneError(
-                "Grid search expected list of values, got: {}".format(
-                    grid_values))
+                "Grid search expected list of values, got: {}".format(grid_values)
+            )
         return False, Categorical(grid_values).grid()
     return True, v
 
 
 def _split_resolved_unresolved_values(
-        spec: Dict) -> Tuple[Dict[Tuple, Any], Dict[Tuple, Any]]:
+    spec: Dict,
+) -> Tuple[Dict[Tuple, Any], Dict[Tuple, Any]]:
     resolved_vars = {}
     unresolved_vars = {}
     for k, v in spec.items():
         resolved, v = _try_resolve(v)
         if not resolved:
-            unresolved_vars[(k, )] = v
+            unresolved_vars[(k,)] = v
         elif isinstance(v, dict):
             # Recurse into a dict
-            _resolved_children, _unresolved_children = \
-                _split_resolved_unresolved_values(v)
+            (
+                _resolved_children,
+                _unresolved_children,
+            ) = _split_resolved_unresolved_values(v)
             for (path, value) in _resolved_children.items():
-                resolved_vars[(k, ) + path] = value
+                resolved_vars[(k,) + path] = value
             for (path, value) in _unresolved_children.items():
-                unresolved_vars[(k, ) + path] = value
+                unresolved_vars[(k,) + path] = value
         elif isinstance(v, list):
             # Recurse into a list
             for i, elem in enumerate(v):
-                _resolved_children, _unresolved_children = \
-                    _split_resolved_unresolved_values({i: elem})
+                (
+                    _resolved_children,
+                    _unresolved_children,
+                ) = _split_resolved_unresolved_values({i: elem})
                 for (path, value) in _resolved_children.items():
-                    resolved_vars[(k, ) + path] = value
+                    resolved_vars[(k,) + path] = value
                 for (path, value) in _unresolved_children.items():
-                    unresolved_vars[(k, ) + path] = value
+                    unresolved_vars[(k,) + path] = value
         else:
-            resolved_vars[(k, )] = v
+            resolved_vars[(k,)] = v
     return resolved_vars, unresolved_vars
 
 
@@ -252,7 +262,8 @@ class _UnresolvedAccessGuard(dict):
         value = dict.__getattribute__(self, item)
         if not _is_resolved(value):
             raise RecursiveDependencyError(
-                "`{}` recursively depends on {}".format(item, value))
+                "`{}` recursively depends on {}".format(item, value)
+            )
         elif isinstance(value, dict):
             return _UnresolvedAccessGuard(value)
         else:
