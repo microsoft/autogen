@@ -1804,7 +1804,7 @@ class AutoML:
         better = True  # whether we find a better model in one trial
         if self._ensemble:
             self.best_model = {}
-        if self._max_iter < 2 and self.estimator_list:
+        if self._max_iter < 2 and self.estimator_list and self._retrain_final:
             # when max_iter is 1, no need to search
             # TODO: otherwise, need to make sure SearchStates.init_config is inside search space
             self._max_iter = 0

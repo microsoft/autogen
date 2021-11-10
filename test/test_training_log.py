@@ -67,6 +67,16 @@ class TestTrainingLog(unittest.TestCase):
                     and str(model.estimator.get_all_params())
                     == str(automl.model.estimator.get_all_params())
                 )
+                automl.fit(
+                    X_train=X_train,
+                    y_train=y_train,
+                    max_iter=1,
+                    task="regression",
+                    estimator_list=[estimator],
+                    n_jobs=1,
+                    starting_points={estimator: {}},
+                )
+                print(automl.best_config)
 
                 with training_log_reader(filename) as reader:
                     count = 0
