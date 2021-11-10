@@ -96,8 +96,8 @@ automl.fit(X_train=X_train, y_train=y_train,
            **automl_settings)
 # Predict
 print(automl.predict_proba(X_train))
-# Export the best model
-print(automl.model)
+# Print the best model
+print(automl.model.estimator)
 ```
 
 * A basic regression example.
@@ -120,8 +120,8 @@ automl.fit(X_train=X_train, y_train=y_train,
            **automl_settings)
 # Predict
 print(automl.predict(X_train))
-# Export the best model
-print(automl.model)
+# Print the best model
+print(automl.model.estimator)
 ```
 
 * Time series forecasting.
