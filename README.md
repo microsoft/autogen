@@ -158,6 +158,36 @@ automl.fit(
 )
 ```
 
+* Fine tuning language model
+
+```python
+from flaml import AutoML
+from datasets import load_dataset
+
+train_dataset = load_dataset("glue", "mrpc", split="train").to_pandas()
+dev_dataset = load_dataset("glue", "mrpc", split="validation").to_pandas()
+test_dataset = load_dataset("glue", "mrpc", split="test").to_pandas()
+
+custom_sent_keys = ["sentence1", "sentence2"]
+label_key = "label"
+
+X_train, y_train = train_dataset[custom_sent_keys], train_dataset[label_key]
+X_val, y_val = dev_dataset[custom_sent_keys], dev_dataset[label_key]
+X_test = test_dataset[custom_sent_keys]
+
+automl = AutoML()
+automl_settings = {
+    "max_iter": 3,
+    "time_budget": 100,
+    "model_history": True,
+    "task": "seq-classification"
+}
+automl_settings["custom_hpo_args"] = {
+    "output_dir": "data/output/",
+}
+automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
+```
+
 More examples can be found in [notebooks](https://github.com/microsoft/FLAML/tree/main/notebook/).
 
 ## Documentation

@@ -1,11 +1,12 @@
-'''Require: pip install flaml[test,ray]
-'''
+"""Require: pip install flaml[test,ray]
+"""
 from flaml.searcher.blendsearch import BlendSearch
 import time
 import os
 from sklearn.model_selection import train_test_split
 import sklearn.metrics
 import sklearn.datasets
+
 try:
     from ray.tune.integration.xgboost import TuneReportCheckpointCallback
 except ImportError:
@@ -13,9 +14,10 @@ except ImportError:
 import xgboost as xgb
 
 import logging
+
 logger = logging.getLogger(__name__)
-os.makedirs('logs', exist_ok=True)
-logger.addHandler(logging.FileHandler('logs/tune.log'))
+os.makedirs("logs", exist_ok=True)
+logger.addHandler(logging.FileHandler("logs/tune.log"))
 logger.setLevel(logging.INFO)
 
 
@@ -24,8 +26,7 @@ def train_breast_cancer(config: dict):
     # Load dataset
     data, labels = sklearn.datasets.load_breast_cancer(return_X_y=True)
     # Split into train and test set
-    train_x, test_x, train_y, test_y = train_test_split(
-        data, labels, test_size=0.25)
+    train_x, test_x, train_y, test_y = train_test_split(data, labels, test_size=0.25)
     # Build input matrices for XGBoost
     train_set = xgb.DMatrix(train_x, label=train_y)
     test_set = xgb.DMatrix(test_x, label=test_y)
@@ -39,24 +40,26 @@ def train_breast_cancer(config: dict):
         train_set,
         evals=[(test_set, "eval")],
         verbose_eval=False,
-        callbacks=[TuneReportCheckpointCallback(filename="model.xgb")])
+        callbacks=[TuneReportCheckpointCallback(filename="model.xgb")],
+    )
 
 
-def _test_xgboost(method='BlendSearch'):
+def _test_xgboost(method="BlendSearch"):
     try:
         import ray
     except ImportError:
         return
-    if method == 'BlendSearch':
+    if method == "BlendSearch":
         from flaml import tune
     else:
         from ray import tune
     search_space = {
-        "max_depth": tune.randint(1, 9) if method in [
-            "BlendSearch", "BOHB", "Optuna"] else tune.randint(1, 9),
+        "max_depth": tune.randint(1, 9)
+        if method in ["BlendSearch", "BOHB", "Optuna"]
+        else tune.randint(1, 9),
         "min_child_weight": tune.choice([1, 2, 3]),
         "subsample": tune.uniform(0.5, 1.0),
-        "eta": tune.loguniform(1e-4, 1e-1)
+        "eta": tune.loguniform(1e-4, 1e-1),
     }
     max_iter = 10
     for num_samples in [128]:
@@ -66,7 +69,7 @@ def _test_xgboost(method='BlendSearch'):
             ray.shutdown()
             ray.init(num_cpus=n_cpu, num_gpus=0)
             # ray.init(address='auto')
-            if method == 'BlendSearch':
+            if method == "BlendSearch":
                 analysis = tune.run(
                     train_breast_cancer,
                     config=search_space,
@@ -83,70 +86,89 @@ def _test_xgboost(method='BlendSearch'):
                     report_intermediate_result=True,
                     # You can add "gpu": 0.1 to allocate GPUs
                     resources_per_trial={"cpu": 1},
-                    local_dir='logs/',
+                    local_dir="logs/",
                     num_samples=num_samples * n_cpu,
                     time_budget_s=time_budget_s,
-                    use_ray=True)
+                    use_ray=True,
+                )
             else:
-                if 'ASHA' == method:
+                if "ASHA" == method:
                     algo = None
-                elif 'BOHB' == method:
+                elif "BOHB" == method:
                     from ray.tune.schedulers import HyperBandForBOHB
                     from ray.tune.suggest.bohb import TuneBOHB
+
                     algo = TuneBOHB(max_concurrent=n_cpu)
                     scheduler = HyperBandForBOHB(max_t=max_iter)
-                elif 'Optuna' == method:
+                elif "Optuna" == method:
                     from ray.tune.suggest.optuna import OptunaSearch
+
                     algo = OptunaSearch()
-                elif 'CFO' == method:
+                elif "CFO" == method:
                     from flaml import CFO
-                    algo = CFO(low_cost_partial_config={
-                        "max_depth": 1,
-                    }, cat_hp_cost={
-                        "min_child_weight": [6, 3, 2],
-                    })
-                elif 'CFOCat' == method:
+
+                    algo = CFO(
+                        low_cost_partial_config={
+                            "max_depth": 1,
+                        },
+                        cat_hp_cost={
+                            "min_child_weight": [6, 3, 2],
+                        },
+                    )
+                elif "CFOCat" == method:
                     from flaml.searcher.cfo_cat import CFOCat
-                    algo = CFOCat(low_cost_partial_config={
-                        "max_depth": 1,
-                    }, cat_hp_cost={
-                        "min_child_weight": [6, 3, 2],
-                    })
-                elif 'Dragonfly' == method:
+
+                    algo = CFOCat(
+                        low_cost_partial_config={
+                            "max_depth": 1,
+                        },
+                        cat_hp_cost={
+                            "min_child_weight": [6, 3, 2],
+                        },
+                    )
+                elif "Dragonfly" == method:
                     from ray.tune.suggest.dragonfly import DragonflySearch
+
                     algo = DragonflySearch()
-                elif 'SkOpt' == method:
+                elif "SkOpt" == method:
                     from ray.tune.suggest.skopt import SkOptSearch
+
                     algo = SkOptSearch()
-                elif 'Nevergrad' == method:
+                elif "Nevergrad" == method:
                     from ray.tune.suggest.nevergrad import NevergradSearch
                     import nevergrad as ng
+
                     algo = NevergradSearch(optimizer=ng.optimizers.OnePlusOne)
-                elif 'ZOOpt' == method:
+                elif "ZOOpt" == method:
                     from ray.tune.suggest.zoopt import ZOOptSearch
+
                     algo = ZOOptSearch(budget=num_samples * n_cpu)
-                elif 'Ax' == method:
+                elif "Ax" == method:
                     from ray.tune.suggest.ax import AxSearch
+
                     algo = AxSearch()
-                elif 'HyperOpt' == method:
+                elif "HyperOpt" == method:
                     from ray.tune.suggest.hyperopt import HyperOptSearch
+
                     algo = HyperOptSearch()
                     scheduler = None
-                if method != 'BOHB':
+                if method != "BOHB":
                     from ray.tune.schedulers import ASHAScheduler
-                    scheduler = ASHAScheduler(
-                        max_t=max_iter,
-                        grace_period=1)
+
+                    scheduler = ASHAScheduler(max_t=max_iter, grace_period=1)
                 analysis = tune.run(
                     train_breast_cancer,
                     metric="eval-logloss",
                     mode="min",
                     # You can add "gpu": 0.1 to allocate GPUs
                     resources_per_trial={"cpu": 1},
-                    config=search_space, local_dir='logs/',
+                    config=search_space,
+                    local_dir="logs/",
                     num_samples=num_samples * n_cpu,
                     time_budget_s=time_budget_s,
-                    scheduler=scheduler, search_alg=algo)
+                    scheduler=scheduler,
+                    search_alg=algo,
+                )
             ray.shutdown()
             # # Load the best model checkpoint
             # import os
@@ -154,7 +176,7 @@ def _test_xgboost(method='BlendSearch'):
             # best_bst.load_model(os.path.join(analysis.best_checkpoint,
             #  "model.xgb"))
             best_trial = analysis.get_best_trial("eval-logloss", "min", "all")
-            accuracy = 1. - best_trial.metric_analysis["eval-error"]["min"]
+            accuracy = 1.0 - best_trial.metric_analysis["eval-error"]["min"]
             logloss = best_trial.metric_analysis["eval-logloss"]["min"]
             logger.info(f"method={method}")
             logger.info(f"n_samples={num_samples*n_cpu}")
@@ -166,6 +188,7 @@ def _test_xgboost(method='BlendSearch'):
 
 def test_nested():
     from flaml import tune, CFO
+
     search_space = {
         # test nested search space
         "cost_related": {
@@ -175,27 +198,30 @@ def test_nested():
     }
 
     def simple_func(config):
-        obj = (config["cost_related"]["a"] - 4)**2 \
-            + (config["b"] - config["cost_related"]["a"])**2
+        obj = (config["cost_related"]["a"] - 4) ** 2 + (
+            config["b"] - config["cost_related"]["a"]
+        ) ** 2
         tune.report(obj=obj)
         tune.report(obj=obj, ab=config["cost_related"]["a"] * config["b"])
 
     analysis = tune.run(
         simple_func,
         search_alg=CFO(
-            space=search_space, metric="obj", mode="min",
-            low_cost_partial_config={
-                "cost_related": {"a": 1}
-            },
+            space=search_space,
+            metric="obj",
+            mode="min",
+            low_cost_partial_config={"cost_related": {"a": 1}},
             points_to_evaluate=[
-                {"b": .99, "cost_related": {"a": 3}},
-                {"b": .99, "cost_related": {"a": 2}},
-                {"cost_related": {"a": 8}}
+                {"b": 0.99, "cost_related": {"a": 3}},
+                {"b": 0.99, "cost_related": {"a": 2}},
+                {"cost_related": {"a": 8}},
             ],
-            metric_constraints=[("ab", "<=", 4)]),
-        local_dir='logs/',
+            metric_constraints=[("ab", "<=", 4)],
+        ),
+        local_dir="logs/",
         num_samples=-1,
-        time_budget_s=1)
+        time_budget_s=1,
+    )
 
     best_trial = analysis.get_best_trial()
     logger.info(f"CFO best config: {best_trial.config}")
@@ -205,46 +231,47 @@ def test_nested():
         simple_func,
         search_alg=BlendSearch(
             experimental=True,
-            space=search_space, metric="obj", mode="min",
-            low_cost_partial_config={
-                "cost_related": {"a": 1}
-            },
+            space=search_space,
+            metric="obj",
+            mode="min",
+            low_cost_partial_config={"cost_related": {"a": 1}},
             points_to_evaluate=[
-                {"b": .99, "cost_related": {"a": 3}},
-                {"b": .99, "cost_related": {"a": 2}},
-                {"cost_related": {"a": 8}}
+                {"b": 0.99, "cost_related": {"a": 3}},
+                {"b": 0.99, "cost_related": {"a": 2}},
+                {"cost_related": {"a": 8}},
             ],
-            metric_constraints=[("ab", "<=", 4)]),
-        local_dir='logs/',
+            metric_constraints=[("ab", "<=", 4)],
+        ),
+        local_dir="logs/",
         num_samples=-1,
-        time_budget_s=1)
+        time_budget_s=1,
+    )
 
     best_trial = analysis.get_best_trial()
     logger.info(f"BlendSearch exp best config: {best_trial.config}")
     logger.info(f"BlendSearch exp best result: {best_trial.last_result}")
 
     points_to_evaluate = [
-        {"b": .99, "cost_related": {"a": 3}},
-        {"b": .99, "cost_related": {"a": 2}},
+        {"b": 0.99, "cost_related": {"a": 3}},
+        {"b": 0.99, "cost_related": {"a": 2}},
     ]
     analysis = tune.run(
         simple_func,
         config=search_space,
-        low_cost_partial_config={
-            "cost_related": {"a": 1}
-        },
+        low_cost_partial_config={"cost_related": {"a": 1}},
         points_to_evaluate=points_to_evaluate,
         evaluated_rewards=[
-            (config["cost_related"]["a"] - 4)**2
-            + (config["b"] - config["cost_related"]["a"])**2
+            (config["cost_related"]["a"] - 4) ** 2
+            + (config["b"] - config["cost_related"]["a"]) ** 2
             for config in points_to_evaluate
         ],
         metric="obj",
         mode="min",
         metric_constraints=[("ab", "<=", 4)],
-        local_dir='logs/',
+        local_dir="logs/",
         num_samples=-1,
-        time_budget_s=1)
+        time_budget_s=1,
+    )
 
     best_trial = analysis.get_best_trial()
     logger.info(f"BlendSearch best config: {best_trial.config}")
@@ -256,31 +283,33 @@ def test_run_training_function_return_value():
 
     # Test dict return value
     def evaluate_config_dict(config):
-        metric = (round(config['x']) - 85000)**2 - config['x'] / config['y']
+        metric = (round(config["x"]) - 85000) ** 2 - config["x"] / config["y"]
         return {"metric": metric}
 
     tune.run(
         evaluate_config_dict,
         config={
-            'x': tune.qloguniform(lower=1, upper=100000, q=1),
-            'y': tune.qrandint(lower=2, upper=100000, q=2)
+            "x": tune.qloguniform(lower=1, upper=100000, q=1),
+            "y": tune.qrandint(lower=2, upper=100000, q=2),
         },
-        metric='metric', mode='max',
+        metric="metric",
+        mode="max",
         num_samples=100,
     )
 
     # Test scalar return value
     def evaluate_config_scalar(config):
-        metric = (round(config['x']) - 85000)**2 - config['x'] / config['y']
+        metric = (round(config["x"]) - 85000) ** 2 - config["x"] / config["y"]
         return metric
 
     tune.run(
         evaluate_config_scalar,
         config={
-            'x': tune.qloguniform(lower=1, upper=100000, q=1),
-            'y': tune.qlograndint(lower=2, upper=100000, q=2)
+            "x": tune.qloguniform(lower=1, upper=100000, q=1),
+            "y": tune.qlograndint(lower=2, upper=100000, q=2),
         },
-        num_samples=100, mode='max',
+        num_samples=100,
+        mode="max",
     )
 
 
@@ -289,47 +318,47 @@ def test_xgboost_bs():
 
 
 def _test_xgboost_cfo():
-    _test_xgboost('CFO')
+    _test_xgboost("CFO")
 
 
 def test_xgboost_cfocat():
-    _test_xgboost('CFOCat')
+    _test_xgboost("CFOCat")
 
 
 def _test_xgboost_dragonfly():
-    _test_xgboost('Dragonfly')
+    _test_xgboost("Dragonfly")
 
 
 def _test_xgboost_skopt():
-    _test_xgboost('SkOpt')
+    _test_xgboost("SkOpt")
 
 
 def _test_xgboost_nevergrad():
-    _test_xgboost('Nevergrad')
+    _test_xgboost("Nevergrad")
 
 
 def _test_xgboost_zoopt():
-    _test_xgboost('ZOOpt')
+    _test_xgboost("ZOOpt")
 
 
 def _test_xgboost_ax():
-    _test_xgboost('Ax')
+    _test_xgboost("Ax")
 
 
 def __test_xgboost_hyperopt():
-    _test_xgboost('HyperOpt')
+    _test_xgboost("HyperOpt")
 
 
 def _test_xgboost_optuna():
-    _test_xgboost('Optuna')
+    _test_xgboost("Optuna")
 
 
 def _test_xgboost_asha():
-    _test_xgboost('ASHA')
+    _test_xgboost("ASHA")
 
 
 def _test_xgboost_bohb():
-    _test_xgboost('BOHB')
+    _test_xgboost("BOHB")
 
 
 if __name__ == "__main__":

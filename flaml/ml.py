@@ -30,6 +30,7 @@ from .model import (
     Prophet,
     ARIMA,
     SARIMAX,
+    TransformersEstimator,
 )
 from .data import CLASSIFICATION, group_counts, TS_FORECAST, TS_VALUE_COL
 import logging
@@ -61,6 +62,8 @@ def get_estimator_class(task, estimator_name):
         estimator_class = ARIMA
     elif estimator_name == "sarimax":
         estimator_class = SARIMAX
+    elif estimator_name == "transformer":
+        estimator_class = TransformersEstimator
     else:
         raise ValueError(
             estimator_name + " is not a built-in learner. "
@@ -415,7 +418,11 @@ def compute_estimator(
     fit_kwargs={},
 ):
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
-    estimator = estimator_class(**config_dic, task=task, n_jobs=n_jobs)
+    estimator = estimator_class(
+        **config_dic,
+        task=task,
+        n_jobs=n_jobs,
+    )
     if "holdout" == eval_method:
         val_loss, metric_for_logging, train_time, pred_time = get_test_loss(
             config_dic,
@@ -450,9 +457,9 @@ def compute_estimator(
 
 
 def train_estimator(
+    config_dic,
     X_train,
     y_train,
-    config_dic,
     task,
     estimator_name,
     n_jobs=1,
@@ -462,7 +469,11 @@ def train_estimator(
 ):
     start_time = time.time()
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
-    estimator = estimator_class(**config_dic, task=task, n_jobs=n_jobs)
+    estimator = estimator_class(
+        **config_dic,
+        task=task,
+        n_jobs=n_jobs,
+    )
     if X_train is not None:
         train_time = estimator.fit(X_train, y_train, budget, **fit_kwargs)
     else:

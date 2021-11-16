@@ -12,38 +12,37 @@ dataset = "credit-g"
 
 
 class XGBoost2D(XGBoostSklearnEstimator):
-
     @classmethod
     def search_space(cls, data_size, task):
         upper = min(32768, int(data_size))
         return {
-            'n_estimators': {
-                'domain': tune.lograndint(lower=4, upper=upper),
-                'init_value': 4,
+            "n_estimators": {
+                "domain": tune.lograndint(lower=4, upper=upper),
+                "init_value": 4,
             },
-            'max_leaves': {
-                'domain': tune.lograndint(lower=4, upper=upper),
-                'init_value': 4,
+            "max_leaves": {
+                "domain": tune.lograndint(lower=4, upper=upper),
+                "init_value": 4,
             },
         }
 
 
 def _test_simple(method=None, size_ratio=1.0):
     automl = AutoML()
-    automl.add_learner(learner_name='XGBoost2D',
-                       learner_class=XGBoost2D)
+    automl.add_learner(learner_name="XGBoost2D", learner_class=XGBoost2D)
 
     X, y = fetch_openml(name=dataset, return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33,
-                                                        random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.33, random_state=42
+    )
 
     final_size = int(len(y_train) * size_ratio)
     X_train = X_train[:final_size]
     y_train = y_train[:final_size]
     automl_settings = {
-        "estimator_list": ['XGBoost2D'],
+        "estimator_list": ["XGBoost2D"],
         # "metric": 'accuracy',
-        "task": 'classification',
+        "task": "classification",
         "log_file_name": f"test/xgboost2d_{dataset}_{method}_{final_size}.log",
         # "model_history": True,
         # "log_training_metric": True,

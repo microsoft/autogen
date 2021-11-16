@@ -1,13 +1,14 @@
-'''Require: pip install torchvision ray flaml[blendsearch]
-'''
+"""Require: pip install torchvision ray flaml[blendsearch]
+"""
 import os
 import time
 import numpy as np
 
 import logging
+
 logger = logging.getLogger(__name__)
-os.makedirs('logs', exist_ok=True)
-logger.addHandler(logging.FileHandler('logs/tune_pytorch_cifar10.log'))
+os.makedirs("logs", exist_ok=True)
+logger.addHandler(logging.FileHandler("logs/tune_pytorch_cifar10.log"))
 logger.setLevel(logging.INFO)
 
 
@@ -22,7 +23,6 @@ try:
 
     # __net_begin__
     class Net(nn.Module):
-
         def __init__(self, l1=120, l2=84):
             super(Net, self).__init__()
             self.conv1 = nn.Conv2d(3, 6, 5)
@@ -40,6 +40,7 @@ try:
             x = F.relu(self.fc2(x))
             x = self.fc3(x)
             return x
+
     # __net_end__
 except ImportError:
     print("skip test_pytorch because torchvision cannot be imported.")
@@ -47,18 +48,21 @@ except ImportError:
 
 # __load_data_begin__
 def load_data(data_dir="test/data"):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    )
 
     trainset = torchvision.datasets.CIFAR10(
-        root=data_dir, train=True, download=True, transform=transform)
+        root=data_dir, train=True, download=True, transform=transform
+    )
 
     testset = torchvision.datasets.CIFAR10(
-        root=data_dir, train=False, download=True, transform=transform)
+        root=data_dir, train=False, download=True, transform=transform
+    )
 
     return trainset, testset
+
+
 # __load_data_end__
 
 
@@ -90,22 +94,27 @@ def train_cifar(config, checkpoint_dir=None, data_dir=None):
 
     test_abs = int(len(trainset) * 0.8)
     train_subset, val_subset = random_split(
-        trainset, [test_abs, len(trainset) - test_abs])
+        trainset, [test_abs, len(trainset) - test_abs]
+    )
 
     trainloader = torch.utils.data.DataLoader(
         train_subset,
-        batch_size=int(2**config["batch_size"]),
+        batch_size=int(2 ** config["batch_size"]),
         shuffle=True,
-        num_workers=4)
+        num_workers=4,
+    )
     valloader = torch.utils.data.DataLoader(
         val_subset,
-        batch_size=int(2**config["batch_size"]),
+        batch_size=int(2 ** config["batch_size"]),
         shuffle=True,
-        num_workers=4)
+        num_workers=4,
+    )
 
     from ray import tune
 
-    for epoch in range(int(round(config["num_epochs"]))):  # loop over the dataset multiple times
+    for epoch in range(
+        int(round(config["num_epochs"]))
+    ):  # loop over the dataset multiple times
         running_loss = 0.0
         epoch_steps = 0
         for i, data in enumerate(trainloader, 0):
@@ -126,8 +135,10 @@ def train_cifar(config, checkpoint_dir=None, data_dir=None):
             running_loss += loss.item()
             epoch_steps += 1
             if i % 2000 == 1999:  # print every 2000 mini-batches
-                print("[%d, %5d] loss: %.3f" % (epoch + 1, i + 1,
-                                                running_loss / epoch_steps))
+                print(
+                    "[%d, %5d] loss: %.3f"
+                    % (epoch + 1, i + 1, running_loss / epoch_steps)
+                )
                 running_loss = 0.0
 
         # Validation loss
@@ -154,11 +165,12 @@ def train_cifar(config, checkpoint_dir=None, data_dir=None):
         # parameter in future iterations.
         with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
             path = os.path.join(checkpoint_dir, "checkpoint")
-            torch.save(
-                (net.state_dict(), optimizer.state_dict()), path)
+            torch.save((net.state_dict(), optimizer.state_dict()), path)
 
         tune.report(loss=(val_loss / val_steps), accuracy=correct / total)
     print("Finished Training")
+
+
 # __train_end__
 
 
@@ -167,7 +179,8 @@ def _test_accuracy(net, device="cpu"):
     trainset, testset = load_data()
 
     testloader = torch.utils.data.DataLoader(
-        testset, batch_size=4, shuffle=False, num_workers=2)
+        testset, batch_size=4, shuffle=False, num_workers=2
+    )
 
     correct = 0
     total = 0
@@ -181,26 +194,28 @@ def _test_accuracy(net, device="cpu"):
             correct += (predicted == labels).sum().item()
 
     return correct / total
+
+
 # __test_acc_end__
 
 
 # __main_begin__
 def cifar10_main(
-    method='BlendSearch', num_samples=10, max_num_epochs=100, gpus_per_trial=1
+    method="BlendSearch", num_samples=10, max_num_epochs=100, gpus_per_trial=1
 ):
     data_dir = os.path.abspath("test/data")
     load_data(data_dir)  # Download data for all trials before starting the run
-    if method == 'BlendSearch':
+    if method == "BlendSearch":
         from flaml import tune
     else:
         from ray import tune
-    if method in ['BOHB']:
+    if method in ["BOHB"]:
         config = {
             "l1": tune.randint(2, 8),
             "l2": tune.randint(2, 8),
             "lr": tune.loguniform(1e-4, 1e-1),
             "num_epochs": tune.qloguniform(1, max_num_epochs, q=1),
-            "batch_size": tune.randint(1, 4)
+            "batch_size": tune.randint(1, 4),
         }
     else:
         config = {
@@ -208,13 +223,14 @@ def cifar10_main(
             "l2": tune.randint(2, 9),
             "lr": tune.loguniform(1e-4, 1e-1),
             "num_epochs": tune.loguniform(1, max_num_epochs),
-            "batch_size": tune.randint(1, 5)
+            "batch_size": tune.randint(1, 5),
         }
     import ray
+
     time_budget_s = 600
     np.random.seed(7654321)
     start_time = time.time()
-    if method == 'BlendSearch':
+    if method == "BlendSearch":
         result = tune.run(
             ray.tune.with_parameters(train_cifar, data_dir=data_dir),
             config=config,
@@ -225,43 +241,51 @@ def cifar10_main(
             min_resource=1,
             report_intermediate_result=True,
             resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
-            local_dir='logs/',
+            local_dir="logs/",
             num_samples=num_samples,
             time_budget_s=time_budget_s,
-            use_ray=True)
+            use_ray=True,
+        )
     else:
-        if 'ASHA' == method:
+        if "ASHA" == method:
             algo = None
-        elif 'BOHB' == method:
+        elif "BOHB" == method:
             from ray.tune.schedulers import HyperBandForBOHB
             from ray.tune.suggest.bohb import TuneBOHB
+
             algo = TuneBOHB()
             scheduler = HyperBandForBOHB(max_t=max_num_epochs)
-        elif 'Optuna' == method:
+        elif "Optuna" == method:
             from ray.tune.suggest.optuna import OptunaSearch
+
             algo = OptunaSearch(seed=10)
-        elif 'CFO' == method:
+        elif "CFO" == method:
             from flaml import CFO
-            algo = CFO(low_cost_partial_config={
-                "num_epochs": 1,
-            })
-        elif 'Nevergrad' == method:
+
+            algo = CFO(
+                low_cost_partial_config={
+                    "num_epochs": 1,
+                }
+            )
+        elif "Nevergrad" == method:
             from ray.tune.suggest.nevergrad import NevergradSearch
             import nevergrad as ng
+
             algo = NevergradSearch(optimizer=ng.optimizers.OnePlusOne)
-        if method != 'BOHB':
+        if method != "BOHB":
             from ray.tune.schedulers import ASHAScheduler
-            scheduler = ASHAScheduler(
-                max_t=max_num_epochs,
-                grace_period=1)
+
+            scheduler = ASHAScheduler(max_t=max_num_epochs, grace_period=1)
         result = tune.run(
             tune.with_parameters(train_cifar, data_dir=data_dir),
             resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
             config=config,
             metric="loss",
             mode="min",
-            num_samples=num_samples, time_budget_s=time_budget_s,
-            scheduler=scheduler, search_alg=algo
+            num_samples=num_samples,
+            time_budget_s=time_budget_s,
+            scheduler=scheduler,
+            search_alg=algo,
         )
     ray.shutdown()
 
@@ -270,13 +294,18 @@ def cifar10_main(
     logger.info(f"time={time.time()-start_time}")
     best_trial = result.get_best_trial("loss", "min", "all")
     logger.info("Best trial config: {}".format(best_trial.config))
-    logger.info("Best trial final validation loss: {}".format(
-        best_trial.metric_analysis["loss"]["min"]))
-    logger.info("Best trial final validation accuracy: {}".format(
-        best_trial.metric_analysis["accuracy"]["max"]))
+    logger.info(
+        "Best trial final validation loss: {}".format(
+            best_trial.metric_analysis["loss"]["min"]
+        )
+    )
+    logger.info(
+        "Best trial final validation accuracy: {}".format(
+            best_trial.metric_analysis["accuracy"]["max"]
+        )
+    )
 
-    best_trained_model = Net(2**best_trial.config["l1"],
-                             2**best_trial.config["l2"])
+    best_trained_model = Net(2 ** best_trial.config["l1"], 2 ** best_trial.config["l2"])
     device = "cpu"
     if torch.cuda.is_available():
         device = "cuda:0"
@@ -291,6 +320,8 @@ def cifar10_main(
 
     test_acc = _test_accuracy(best_trained_model, device)
     logger.info("Best trial test set accuracy: {}".format(test_acc))
+
+
 # __main_end__
 
 
@@ -303,28 +334,23 @@ def _test_cifar10_bs():
 
 
 def _test_cifar10_cfo():
-    cifar10_main('CFO',
-                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+    cifar10_main("CFO", num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_optuna():
-    cifar10_main('Optuna',
-                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+    cifar10_main("Optuna", num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_asha():
-    cifar10_main('ASHA',
-                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+    cifar10_main("ASHA", num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_bohb():
-    cifar10_main('BOHB',
-                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+    cifar10_main("BOHB", num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 def _test_cifar10_nevergrad():
-    cifar10_main('Nevergrad',
-                 num_samples=num_samples, gpus_per_trial=gpus_per_trial)
+    cifar10_main("Nevergrad", num_samples=num_samples, gpus_per_trial=gpus_per_trial)
 
 
 if __name__ == "__main__":

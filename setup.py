@@ -54,6 +54,10 @@ setuptools.setup(
             "openml",
             "statsmodels>=0.12.2",
             "psutil==5.8.0",
+            "dataclasses",
+            "transformers",
+            "datasets==1.4.1",
+            "torch",
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
@@ -70,6 +74,7 @@ setuptools.setup(
         "vw": [
             "vowpalwabbit",
         ],
+        "nlp": ["transformers", "datasets==1.4.1", "torch"],
         "ts_forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
         "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],

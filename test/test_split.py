@@ -124,4 +124,5 @@ def test_rank():
 
 
 if __name__ == "__main__":
-    unittest.main()
+    # unittest.main()
+    test_groups()
