@@ -5,12 +5,17 @@
 import numpy as np
 from scipy.sparse import vstack, issparse
 import pandas as pd
+from pandas import DataFrame, Series
 
 from .training_log import training_log_reader
 
 from datetime import datetime
+from typing import Dict, Union, List
 
-CLASSIFICATION = ("binary", "multi", "classification")
+SEQCLASSIFICATION = "seq-classification"
+CLASSIFICATION = ("binary", "multi", "classification", SEQCLASSIFICATION)
+SEQREGRESSION = "seq-regression"
+REGRESSION = ("regression", SEQREGRESSION)
 TS_FORECAST = "ts_forecast"
 TS_TIMESTAMP_COL = "ds"
 TS_VALUE_COL = "y"
@@ -190,10 +195,10 @@ def get_output_from_log(filename, time_budget):
 
 def concat(X1, X2):
     """concatenate two matrices vertically"""
-    if isinstance(X1, pd.DataFrame) or isinstance(X1, pd.Series):
+    if isinstance(X1, DataFrame) or isinstance(X1, Series):
         df = pd.concat([X1, X2], sort=False)
         df.reset_index(drop=True, inplace=True)
-        if isinstance(X1, pd.DataFrame):
+        if isinstance(X1, DataFrame):
             cat_columns = X1.select_dtypes(include="category").columns
             if len(cat_columns):
                 df[cat_columns] = df[cat_columns].astype("category")
@@ -207,7 +212,7 @@ def concat(X1, X2):
 class DataTransformer:
     """Transform input training data."""
 
-    def fit_transform(self, X, y, task):
+    def fit_transform(self, X: Union[DataFrame, np.array], y, task):
         """Fit transformer and process the input training data according to the task type.
 
         Args:
@@ -220,7 +225,19 @@ class DataTransformer:
             X: Processed numpy array or pandas dataframe of training data.
             y: Processed numpy array or pandas series of labels.
         """
-        if isinstance(X, pd.DataFrame):
+        from .nlp.utils import _is_nlp_task
+
+        if _is_nlp_task(task):
+            # if the mode is NLP, check the type of input, each column must be either string or
+            # ids (input ids, token type id, attention mask, etc.)
+            str_columns = []
+            for column in X.columns:
+                if isinstance(X[column].iloc[0], str):
+                    str_columns.append(column)
+            if len(str_columns) > 0:
+                X[str_columns] = X[str_columns].astype("string")
+            self._str_columns = str_columns
+        elif isinstance(X, DataFrame):
             X = X.copy()
             n = X.shape[0]
             cat_columns, num_columns, datetime_columns = [], [], []
@@ -228,7 +245,7 @@ class DataTransformer:
             if task == TS_FORECAST:
                 X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
                 ds_col = X.pop(TS_TIMESTAMP_COL)
-                if isinstance(y, pd.Series):
+                if isinstance(y, Series):
                     y = y.rename(TS_VALUE_COL)
             for column in X.columns:
                 # sklearn\utils\validation.py needs int/float values
@@ -332,7 +349,7 @@ class DataTransformer:
         self._task = task
         return X, y
 
-    def transform(self, X):
+    def transform(self, X: Union[DataFrame, np.array]):
         """Process data using fit transformer.
 
         Args:
@@ -346,7 +363,15 @@ class DataTransformer:
             y: Processed numpy array or pandas series of labels.
         """
         X = X.copy()
-        if isinstance(X, pd.DataFrame):
+
+        from .nlp.utils import _is_nlp_task
+
+        if _is_nlp_task(self._task):
+            # if the mode is NLP, check the type of input, each column must be either string or
+            # ids (input ids, token type id, attention mask, etc.)
+            if len(self._str_columns) > 0:
+                X[self._str_columns] = X[self._str_columns].astype("string")
+        elif isinstance(X, DataFrame):
             cat_columns, num_columns, datetime_columns = (
                 self._cat_columns,
                 self._num_columns,

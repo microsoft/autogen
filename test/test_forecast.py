@@ -129,7 +129,9 @@ def load_multi_dataset():
     import pandas as pd
 
     # pd.set_option("display.max_rows", None, "display.max_columns", None)
-    df = pd.read_csv("https://raw.githubusercontent.com/srivatsan88/YouTubeLI/master/dataset/nyc_energy_consumption.csv")
+    df = pd.read_csv(
+        "https://raw.githubusercontent.com/srivatsan88/YouTubeLI/master/dataset/nyc_energy_consumption.csv"
+    )
     # preprocessing data
     df["timeStamp"] = pd.to_datetime(df["timeStamp"])
     df = df.set_index("timeStamp")
@@ -150,7 +152,9 @@ def test_multivariate_forecast_num(budget=5):
     split_idx = num_samples - time_horizon
     train_df = df[:split_idx]
     test_df = df[split_idx:]
-    X_test = test_df[["timeStamp", "temp", "precip"]]  # test dataframe must contain values for the regressors / multivariate variables
+    X_test = test_df[
+        ["timeStamp", "temp", "precip"]
+    ]  # test dataframe must contain values for the regressors / multivariate variables
     y_test = test_df["demand"]
     # return
     automl = AutoML()
@@ -161,9 +165,9 @@ def test_multivariate_forecast_num(budget=5):
         "log_file_name": "test/energy_forecast_numerical.log",  # flaml log file
         "eval_method": "holdout",
         "log_type": "all",
-        "label": "demand"
+        "label": "demand",
     }
-    '''The main flaml automl API'''
+    """The main flaml automl API"""
     try:
         import prophet
 
@@ -197,8 +201,13 @@ def test_multivariate_forecast_num(budget=5):
     print("mape", "=", sklearn_metric_loss_score("mape", y_pred, y_test))
     from flaml.data import get_output_from_log
 
-    time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history = \
-        get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
+    (
+        time_history,
+        best_valid_loss_history,
+        valid_loss_history,
+        config_history,
+        metric_history,
+    ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
     for config in config_history:
         print(config)
     print(automl.prune_attr)
@@ -253,7 +262,9 @@ def load_multi_dataset_cat(time_horizon):
             return 0
 
     df["season"] = df["timeStamp"].apply(season)
-    df["above_monthly_avg"] = df.apply(lambda x: above_monthly_avg(x["timeStamp"], x["temp"]), axis=1)
+    df["above_monthly_avg"] = df.apply(
+        lambda x: above_monthly_avg(x["timeStamp"], x["temp"]), axis=1
+    )
 
     # split data into train and test
     num_samples = df.shape[0]
@@ -270,7 +281,9 @@ def test_multivariate_forecast_cat(budget=5):
     time_horizon = 180
     train_df, test_df = load_multi_dataset_cat(time_horizon)
     print(train_df)
-    X_test = test_df[["timeStamp", "season", "above_monthly_avg"]]  # test dataframe must contain values for the regressors / multivariate variables
+    X_test = test_df[
+        ["timeStamp", "season", "above_monthly_avg"]
+    ]  # test dataframe must contain values for the regressors / multivariate variables
     y_test = test_df["demand"]
     automl = AutoML()
     settings = {
@@ -280,9 +293,9 @@ def test_multivariate_forecast_cat(budget=5):
         "log_file_name": "test/energy_forecast_numerical.log",  # flaml log file
         "eval_method": "holdout",
         "log_type": "all",
-        "label": "demand"
+        "label": "demand",
     }
-    '''The main flaml automl API'''
+    """The main flaml automl API"""
     try:
         import prophet
 
@@ -319,8 +332,13 @@ def test_multivariate_forecast_cat(budget=5):
     print("mae", "=", sklearn_metric_loss_score("mae", y_pred, y_test))
     from flaml.data import get_output_from_log
 
-    time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history = \
-        get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
+    (
+        time_history,
+        best_valid_loss_history,
+        valid_loss_history,
+        config_history,
+        metric_history,
+    ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
     for config in config_history:
         print(config)
     print(automl.prune_attr)

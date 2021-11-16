@@ -2,11 +2,12 @@ import time
 
 
 def evaluation_fn(step, width, height):
-    return (0.1 + width * step / 100)**(-1) + height * 0.1
+    return (0.1 + width * step / 100) ** (-1) + height * 0.1
 
 
 def easy_objective(config):
     from ray import tune
+
     # Hyperparameters
     width, height = config["width"], config["height"]
 
@@ -25,7 +26,7 @@ def test_blendsearch_tune(smoke_test=True):
         from ray.tune.schedulers import AsyncHyperBandScheduler
         from ray.tune.suggest.flaml import BlendSearch
     except ImportError:
-        print('ray[tune] is not installed, skipping test')
+        print("ray[tune] is not installed, skipping test")
         return
     import numpy as np
 
@@ -46,7 +47,8 @@ def test_blendsearch_tune(smoke_test=True):
             # This is an ignored parameter.
             "activation": tune.choice(["relu", "tanh"]),
             "test4": np.zeros((3, 1)),
-        })
+        },
+    )
 
     print("Best hyperparameters found were: ", analysis.best_config)
 
