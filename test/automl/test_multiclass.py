@@ -198,7 +198,7 @@ class TestMultiClass(unittest.TestCase):
         print(automl_experiment.classes_)
         print(automl_experiment.model)
         print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
+        print(automl_experiment.best_model_for_estimator("rf"))
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
         automl_experiment = AutoML()
@@ -238,13 +238,13 @@ class TestMultiClass(unittest.TestCase):
         print(automl_experiment.predict(X_train)[:5])
         print(automl_experiment.model)
         print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
+        print(automl_experiment.best_model_for_estimator("catboost"))
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
         del automl_settings["metric"]
         del automl_settings["model_history"]
         del automl_settings["log_training_metric"]
-        automl_experiment = AutoML()
+        automl_experiment = AutoML(task="classification")
         duration = automl_experiment.retrain_from_log(
             log_file_name=automl_settings["log_file_name"],
             X_train=X_train,
@@ -333,7 +333,7 @@ class TestMultiClass(unittest.TestCase):
         print(automl_experiment.predict_proba(X_train))
         print(automl_experiment.model)
         print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
+        print(automl_experiment.best_model_for_estimator("extra_tree"))
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
 
@@ -343,7 +343,7 @@ class TestMultiClass(unittest.TestCase):
             learner_name="large_lgbm", learner_class=MyLargeLGBM
         )
         automl_settings = {
-            "time_budget": None,
+            "time_budget": -1,
             "task": "classification",
             "log_file_name": "test/classification_oom.log",
             "estimator_list": ["large_lgbm"],

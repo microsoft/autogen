@@ -2,7 +2,6 @@ import unittest
 
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
-import numpy as np
 from flaml.automl import AutoML
 from flaml.model import XGBoostSklearnEstimator
 from flaml import tune
@@ -44,7 +43,6 @@ def _test_simple(method=None, size_ratio=1.0):
         # "metric": 'accuracy',
         "task": "classification",
         "log_file_name": f"test/xgboost2d_{dataset}_{method}_{final_size}.log",
-        # "model_history": True,
         # "log_training_metric": True,
         # "split_type": split_type,
         "n_jobs": 1,

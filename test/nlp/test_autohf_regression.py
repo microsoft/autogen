@@ -1,17 +1,18 @@
+import os
+import pytest
+
+
+@pytest.mark.skipif(os.name == "posix", reason="do not run on mac os")
 def test_regression():
-    try:
-        import ray
-    except ImportError:
-        return
     from flaml import AutoML
 
     from datasets import load_dataset
 
     train_dataset = (
-        load_dataset("glue", "stsb", split="train[:1%]").to_pandas().iloc[0:4]
+        load_dataset("glue", "stsb", split="train[:1%]").to_pandas().iloc[:20]
     )
     dev_dataset = (
-        load_dataset("glue", "stsb", split="train[1%:2%]").to_pandas().iloc[0:4]
+        load_dataset("glue", "stsb", split="train[1%:2%]").to_pandas().iloc[:20]
     )
 
     custom_sent_keys = ["sentence1", "sentence2"]
@@ -27,16 +28,16 @@ def test_regression():
 
     automl_settings = {
         "gpu_per_trial": 0,
-        "max_iter": 3,
-        "time_budget": 20,
+        "max_iter": 2,
+        "time_budget": 5,
         "task": "seq-regression",
         "metric": "rmse",
-        "model_history": True,
+        "starting_points": {"transformer": {"num_train_epochs": 1}},
     }
 
     automl_settings["custom_hpo_args"] = {
         "model_path": "google/electra-small-discriminator",
-        "output_dir": "data/output/",
+        "output_dir": "test/data/output/",
         "ckpt_per_epoch": 5,
         "fp16": False,
     }
@@ -44,3 +45,7 @@ def test_regression():
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
+
+
+if __name__ == "main":
+    test_regression()

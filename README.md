@@ -127,7 +127,7 @@ print(automl.model.estimator)
 * A basic time series forecasting example.
 
 ```python
-# pip install flaml[ts_forecast]
+# pip install "flaml[ts_forecast]"
 import numpy as np
 from flaml import AutoML
 X_train = np.arange('2014-01', '2021-01', dtype='datetime64[M]')
@@ -148,7 +148,6 @@ print(automl.predict(X_train[72:]))
 from sklearn.datasets import fetch_openml
 from flaml import AutoML
 X_train, y_train = fetch_openml(name="credit-g", return_X_y=True, as_frame=False)
-y_train = y_train.cat.codes
 # not a real learning to rank dataaset
 groups = [200] * 4 + [100] * 2    # group counts
 automl = AutoML()
@@ -161,31 +160,28 @@ automl.fit(
 * Fine tuning language model
 
 ```python
+# pip install "flaml[nlp]"
 from flaml import AutoML
 from datasets import load_dataset
 
 train_dataset = load_dataset("glue", "mrpc", split="train").to_pandas()
 dev_dataset = load_dataset("glue", "mrpc", split="validation").to_pandas()
 test_dataset = load_dataset("glue", "mrpc", split="test").to_pandas()
-
 custom_sent_keys = ["sentence1", "sentence2"]
 label_key = "label"
-
 X_train, y_train = train_dataset[custom_sent_keys], train_dataset[label_key]
 X_val, y_val = dev_dataset[custom_sent_keys], dev_dataset[label_key]
 X_test = test_dataset[custom_sent_keys]
 
 automl = AutoML()
 automl_settings = {
-    "max_iter": 3,
     "time_budget": 100,
-    "model_history": True,
-    "task": "seq-classification"
-}
-automl_settings["custom_hpo_args"] = {
-    "output_dir": "data/output/",
+    "task": "seq-classification",
+    "custom_hpo_args": {"output_dir": "data/output/"},
+    "gpu_per_trial": 1,  # set to 0 if no GPU is available
 }
 automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
+automl.predict(X_test)
 ```
 
 More examples can be found in [notebooks](https://github.com/microsoft/FLAML/tree/main/notebook/).

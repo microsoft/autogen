@@ -6,7 +6,6 @@ An example:
 
 ```python
 from flaml import AutoML
-
 import pandas as pd
 
 train_dataset = pd.read_csv("data/input/train.tsv", delimiter="\t", quoting=3)
