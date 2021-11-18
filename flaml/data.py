@@ -269,40 +269,35 @@ class DataTransformer:
                     else:
                         X[column] = X[column].fillna("__NAN__")
                         cat_columns.append(column)
-                else:
-                    # print(X[column].dtype.name)
-                    if X[column].nunique(dropna=True) < 2:
-                        X.drop(columns=column, inplace=True)
-                        drop = True
-                    else:
-                        if X[column].dtype.name == "datetime64[ns]":
-                            tmp_dt = X[column].dt
-                            new_columns_dict = {
-                                f"year_{column}": tmp_dt.year,
-                                f"month_{column}": tmp_dt.month,
-                                f"day_{column}": tmp_dt.day,
-                                f"hour_{column}": tmp_dt.hour,
-                                f"minute_{column}": tmp_dt.minute,
-                                f"second_{column}": tmp_dt.second,
-                                f"dayofweek_{column}": tmp_dt.dayofweek,
-                                f"dayofyear_{column}": tmp_dt.dayofyear,
-                                f"quarter_{column}": tmp_dt.quarter,
-                            }
-                            for new_col_name in new_columns_dict.keys():
-                                if (
-                                    new_col_name not in X.columns
-                                    and new_columns_dict.get(new_col_name).nunique(
-                                        dropna=False
-                                    )
-                                    >= 2
-                                ):
-                                    X[new_col_name] = new_columns_dict.get(new_col_name)
-                                    num_columns.append(new_col_name)
-                            X[column] = X[column].map(datetime.toordinal)
-                            datetime_columns.append(column)
-                            del tmp_dt
-                        X[column] = X[column].fillna(np.nan)
-                        num_columns.append(column)
+                elif X[column].nunique(dropna=True) < 2:
+                    X.drop(columns=column, inplace=True)
+                    drop = True
+                else:  # datetime or numeric
+                    if X[column].dtype.name == "datetime64[ns]":
+                        tmp_dt = X[column].dt
+                        new_columns_dict = {
+                            f"year_{column}": tmp_dt.year,
+                            f"month_{column}": tmp_dt.month,
+                            f"day_{column}": tmp_dt.day,
+                            f"hour_{column}": tmp_dt.hour,
+                            f"minute_{column}": tmp_dt.minute,
+                            f"second_{column}": tmp_dt.second,
+                            f"dayofweek_{column}": tmp_dt.dayofweek,
+                            f"dayofyear_{column}": tmp_dt.dayofyear,
+                            f"quarter_{column}": tmp_dt.quarter,
+                        }
+                        for key, value in new_columns_dict.items():
+                            if (
+                                key not in X.columns
+                                and value.nunique(dropna=False) >= 2
+                            ):
+                                X[key] = value
+                                num_columns.append(key)
+                        X[column] = X[column].map(datetime.toordinal)
+                        datetime_columns.append(column)
+                        del tmp_dt
+                    X[column] = X[column].fillna(np.nan)
+                    num_columns.append(column)
             X = X[cat_columns + num_columns]
             if task == TS_FORECAST:
                 X.insert(0, TS_TIMESTAMP_COL, ds_col)
@@ -380,29 +375,24 @@ class DataTransformer:
             if self._task == TS_FORECAST:
                 X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
                 ds_col = X.pop(TS_TIMESTAMP_COL)
-            if datetime_columns:
-                for column in datetime_columns:
-                    tmp_dt = X[column].dt
-                    new_columns_dict = {
-                        f"year_{column}": tmp_dt.year,
-                        f"month_{column}": tmp_dt.month,
-                        f"day_{column}": tmp_dt.day,
-                        f"hour_{column}": tmp_dt.hour,
-                        f"minute_{column}": tmp_dt.minute,
-                        f"second_{column}": tmp_dt.second,
-                        f"dayofweek_{column}": tmp_dt.dayofweek,
-                        f"dayofyear_{column}": tmp_dt.dayofyear,
-                        f"quarter_{column}": tmp_dt.quarter,
-                    }
-                    for new_col_name in new_columns_dict.keys():
-                        if (
-                            new_col_name not in X.columns
-                            and new_columns_dict.get(new_col_name).nunique(dropna=False)
-                            >= 2
-                        ):
-                            X[new_col_name] = new_columns_dict.get(new_col_name)
-                    X[column] = X[column].map(datetime.toordinal)
-                    del tmp_dt
+            for column in datetime_columns:
+                tmp_dt = X[column].dt
+                new_columns_dict = {
+                    f"year_{column}": tmp_dt.year,
+                    f"month_{column}": tmp_dt.month,
+                    f"day_{column}": tmp_dt.day,
+                    f"hour_{column}": tmp_dt.hour,
+                    f"minute_{column}": tmp_dt.minute,
+                    f"second_{column}": tmp_dt.second,
+                    f"dayofweek_{column}": tmp_dt.dayofweek,
+                    f"dayofyear_{column}": tmp_dt.dayofyear,
+                    f"quarter_{column}": tmp_dt.quarter,
+                }
+                for new_col_name, new_col_value in new_columns_dict.items():
+                    if new_col_name not in X.columns and new_col_name in num_columns:
+                        X[new_col_name] = new_col_value
+                X[column] = X[column].map(datetime.toordinal)
+                del tmp_dt
             X = X[cat_columns + num_columns].copy()
             if self._task == TS_FORECAST:
                 X.insert(0, TS_TIMESTAMP_COL, ds_col)
