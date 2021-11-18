@@ -412,6 +412,7 @@ class TestMultiClass(unittest.TestCase):
 
         starting_points = automl_experiment.best_config_per_estimator
         print("starting_points", starting_points)
+        print("loss of the starting_points", automl_experiment.best_loss_per_estimator)
         automl_settings_resume = {
             "time_budget": 2,
             "metric": "accuracy",

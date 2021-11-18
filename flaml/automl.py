@@ -461,6 +461,14 @@ class AutoML:
         }
 
     @property
+    def best_loss_per_estimator(self):
+        """A dictionary of all estimators' best loss."""
+        return {
+            e: e_search_state.best_loss
+            for e, e_search_state in self._search_states.items()
+        }
+
+    @property
     def best_loss(self):
         """A float of the best loss found."""
         return self._state.best_loss
