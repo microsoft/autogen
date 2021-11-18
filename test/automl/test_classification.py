@@ -216,7 +216,7 @@ class TestClassification(unittest.TestCase):
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
         print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
+        print(automl_experiment.best_model_for_estimator("xgboost"))
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
 
@@ -253,7 +253,7 @@ class TestClassification(unittest.TestCase):
             print(automl_experiment.predict(X_train))
             print(automl_experiment.model)
             print(automl_experiment.config_history)
-            print(automl_experiment.model_history)
+            print(automl_experiment.best_model_for_estimator("xgboost"))
             print(automl_experiment.best_iteration)
             print(automl_experiment.best_estimator)
         except ImportError:
@@ -286,7 +286,7 @@ class TestClassification(unittest.TestCase):
             print(automl_experiment.predict(X_train))
             print(automl_experiment.model)
             print(automl_experiment.config_history)
-            print(automl_experiment.model_history)
+            print(automl_experiment.best_model_for_estimator("large_lgbm"))
             print(automl_experiment.best_iteration)
             print(automl_experiment.best_estimator)
         except ImportError:
@@ -314,7 +314,7 @@ class TestClassification(unittest.TestCase):
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
         print(automl_experiment.config_history)
-        print(automl_experiment.model_history)
+        print(automl_experiment.best_model_for_estimator("lrl2"))
         print(automl_experiment.best_iteration)
         print(automl_experiment.best_estimator)
 
