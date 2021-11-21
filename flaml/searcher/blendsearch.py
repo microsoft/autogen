@@ -219,7 +219,7 @@ class BlendSearch(Searcher):
         else:
             self._candidate_start_points = None
         self._time_budget_s, self._num_samples = time_budget_s, num_samples
-        if space:
+        if space is not None:
             self._init_search()
 
     def set_search_properties(
