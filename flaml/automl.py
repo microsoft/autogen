@@ -17,6 +17,7 @@ from sklearn.model_selection import (
     GroupShuffleSplit,
 )
 from sklearn.utils import shuffle
+from sklearn.base import BaseEstimator
 import pandas as pd
 import logging
 from typing import List, Union
@@ -374,7 +375,7 @@ def size(state: AutoMLState, config: dict) -> float:
     return learner_class.size(config)
 
 
-class AutoML:
+class AutoML(BaseEstimator):
     """The AutoML class.
 
     Example:
@@ -543,9 +544,7 @@ class AutoML:
         settings["sample"] = settings.get("sample", True)
         settings["ensemble"] = settings.get("ensemble", False)
         settings["log_type"] = settings.get("log_type", "better")
-        settings["model_history"] = settings.get(
-            "model_history", False
-        )
+        settings["model_history"] = settings.get("model_history", False)
         settings["log_training_metric"] = settings.get("log_training_metric", False)
         settings["mem_thres"] = settings.get("mem_thres", MEM_THRES)
         settings["pred_time_limit"] = settings.get("pred_time_limit", np.inf)
@@ -562,6 +561,12 @@ class AutoML:
         settings["append_log"] = settings.get("append_log", False)
         settings["min_sample_size"] = settings.get("min_sample_size", MIN_SAMPLE_TRAIN)
         settings["use_ray"] = settings.get("use_ray", False)
+        self._estimator_type = (
+            "classifier" if settings["task"] in CLASSIFICATION else "regressor"
+        )
+
+    def get_params(self, deep=False):
+        return self._settings.copy()
 
     @property
     def config_history(self):
@@ -684,32 +689,6 @@ class AutoML:
                 "No estimator is trained. Please run fit with enough budget."
             )
             return None
-        if isinstance(X_test, List) and isinstance(X_test[0], List):
-            unzipped_X_test = [x for x in zip(*X_test)]
-            try:
-                X_test = DataFrame(
-                    {
-                        self._transformer._str_columns[idx]: unzipped_X_test[idx]
-                        for idx in range(len(unzipped_X_test))
-                    }
-                )
-            except IndexError:
-                raise IndexError(
-                    "Test data contains more columns than training data, exiting"
-                )
-        elif isinstance(X_test, List):
-            try:
-                X_test = DataFrame(
-                    {
-                        self._transformer._str_columns[idx]: [X_test[idx]]
-                        for idx in range(len(X_test))
-                    }
-                )
-            except IndexError:
-                raise IndexError(
-                    "Test data contains more columns than training data, exiting"
-                )
-
         X_test = self._preprocess(X_test)
         y_pred = estimator.predict(X_test)
         if y_pred.ndim > 1 and isinstance(y_pred, np.ndarray):
@@ -732,18 +711,37 @@ class AutoML:
             A numpy array of shape n * c. c is the  # classes. Each element at
             (i, j) is the probability for instance i to be in class j.
         """
+        estimator = getattr(self, "_trained_estimator", None)
+        if estimator is None:
+            logger.warning(
+                "No estimator is trained. Please run fit with enough budget."
+            )
+            return None
         X_test = self._preprocess(X_test)
         proba = self._trained_estimator.predict_proba(X_test)
         return proba
 
     def _preprocess(self, X):
-
-        if isinstance(X, int):
+        if isinstance(X, List):
+            try:
+                if isinstance(X[0], List):
+                    X = [x for x in zip(*X)]
+                X = DataFrame(
+                    {
+                        self._transformer._str_columns[idx]: X[idx]
+                        for idx in range(len(X))
+                    }
+                )
+            except IndexError:
+                raise IndexError(
+                    "Test data contains more columns than training data, exiting"
+                )
+        elif isinstance(X, int):
             return X
+        elif issparse(X):
+            X = X.tocsr()
         if self._state.task == TS_FORECAST:
             X = pd.DataFrame(X)
-        if issparse(X):
-            X = X.tocsr()
         if self._transformer:
             X = self._transformer.transform(X)
         return X
@@ -1256,6 +1254,8 @@ class AutoML:
             self._settings.get("auto_augment") if auto_augment is None else auto_augment
         )
         self._state.task = TS_FORECAST if task == FORECAST else task
+        self._estimator_type = "classifier" if task in CLASSIFICATION else "regressor"
+
         self._state.fit_kwargs = fit_kwargs
         self._validate_data(X_train, y_train, dataframe, label, groups=groups)
 
@@ -1311,7 +1311,6 @@ class AutoML:
         )
         # Partially copied from fit() function
         # Initilize some attributes required for retrain_from_log
-        self._state.task = task
         self._decide_split_type(split_type)
         if record_id >= 0:
             eval_method = "cv"
@@ -1766,6 +1765,7 @@ class AutoML:
 
         self._state._start_time_flag = self._start_time_flag = time.time()
         task = task or self._settings.get("task")
+        self._estimator_type = "classifier" if task in CLASSIFICATION else "regressor"
         time_budget = time_budget or self._settings.get("time_budget")
         n_jobs = n_jobs or self._settings.get("n_jobs")
         gpu_per_trial = (
@@ -1856,6 +1856,7 @@ class AutoML:
             _ch = logging.StreamHandler()
             _ch.setFormatter(logger_formatter)
             logger.addHandler(_ch)
+        logger.info(f"task = {task}")
         self._decide_split_type(split_type)
         logger.info(f"Data split method: {self._split_type}")
         if eval_method == "auto" or self._state.X_val is not None:
