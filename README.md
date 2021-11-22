@@ -157,7 +157,7 @@ automl.fit(
 )
 ```
 
-* Fine tuning language model
+* Fine tuning language model.
 
 ```python
 # pip install "flaml[nlp]"
