@@ -22,6 +22,13 @@ TS_VALUE_COL = "y"
 FORECAST = "forecast"
 
 
+def _is_nlp_task(task):
+    if task in [SEQCLASSIFICATION, SEQREGRESSION]:
+        return True
+    else:
+        return False
+
+
 def load_openml_dataset(
     dataset_id, data_dir=None, random_state=0, dataset_format="dataframe"
 ):
@@ -225,8 +232,6 @@ class DataTransformer:
             X: Processed numpy array or pandas dataframe of training data.
             y: Processed numpy array or pandas series of labels.
         """
-        from .nlp.utils import _is_nlp_task
-
         if _is_nlp_task(task):
             # if the mode is NLP, check the type of input, each column must be either string or
             # ids (input ids, token type id, attention mask, etc.)
@@ -358,8 +363,6 @@ class DataTransformer:
             y: Processed numpy array or pandas series of labels.
         """
         X = X.copy()
-
-        from .nlp.utils import _is_nlp_task
 
         if _is_nlp_task(self._task):
             # if the mode is NLP, check the type of input, each column must be either string or

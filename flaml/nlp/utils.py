@@ -1,20 +1,22 @@
 import argparse
 from dataclasses import dataclass, field
-from ..data import SEQCLASSIFICATION, SEQREGRESSION
+from typing import Dict, Any
 
 
-def _is_nlp_task(task):
-    if task in [SEQCLASSIFICATION, SEQREGRESSION]:
-        return True
-    else:
-        return False
+def load_default_huggingface_metric_for_task(task):
+    from ..data import SEQCLASSIFICATION, SEQREGRESSION
+
+    if task == SEQCLASSIFICATION:
+        return "accuracy", "max"
+    elif task == SEQREGRESSION:
+        return "rmse", "max"
 
 
 global tokenized_column_names
 
 
 def tokenize_text(X, task, custom_hpo_task):
-    from ..data import SEQCLASSIFICATION
+    from ..data import SEQCLASSIFICATION, SEQREGRESSION
 
     if task in (SEQCLASSIFICATION, SEQREGRESSION):
         return tokenize_text_seqclassification(X, custom_hpo_task)
@@ -71,10 +73,72 @@ def separate_config(config):
 
 
 def get_num_labels(task, y_train):
+    from ..data import SEQCLASSIFICATION, SEQREGRESSION
+
     if task == SEQREGRESSION:
         return 1
     elif task == SEQCLASSIFICATION:
         return len(set(y_train))
+
+
+def _clean_value(value: Any) -> str:
+    if isinstance(value, float):
+        return "{:.5}".format(value)
+    else:
+        return str(value).replace("/", "_")
+
+
+def format_vars(resolved_vars: Dict) -> str:
+    """Formats the resolved variable dict into a single string."""
+    out = []
+    for path, value in sorted(resolved_vars.items()):
+        if path[0] in ["run", "env", "resources_per_trial"]:
+            continue  # TrialRunner already has these in the experiment_tag
+        pieces = []
+        last_string = True
+        for k in path[::-1]:
+            if isinstance(k, int):
+                pieces.append(str(k))
+            elif last_string:
+                last_string = False
+                pieces.append(k)
+        pieces.reverse()
+        out.append(_clean_value("_".join(pieces)) + "=" + _clean_value(value))
+    return ",".join(out)
+
+
+counter = 0
+
+
+def date_str():
+    from datetime import datetime
+
+    return datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+
+
+def _generate_dirname(experiment_tag, trial_id):
+    generated_dirname = f"train_{str(trial_id)}_{experiment_tag}"
+    generated_dirname = generated_dirname[:130]
+    generated_dirname += f"_{date_str()}"
+    return generated_dirname.replace("/", "_")
+
+
+def get_logdir_name(dirname, local_dir):
+    import os
+
+    local_dir = os.path.expanduser(local_dir)
+    logdir = os.path.join(local_dir, dirname)
+    return logdir
+
+
+def get_trial_fold_name(local_dir, trial_config, trial_id):
+    global counter
+    counter = counter + 1
+    experiment_tag = "{0}_{1}".format(str(counter), format_vars(trial_config))
+    logdir = get_logdir_name(
+        _generate_dirname(experiment_tag, trial_id=trial_id), local_dir
+    )
+    return logdir
 
 
 def load_model(checkpoint_path, task, num_labels, per_model_config=None):
@@ -83,6 +147,7 @@ def load_model(checkpoint_path, task, num_labels, per_model_config=None):
         AutoSeqClassificationHead,
         MODEL_CLASSIFICATION_HEAD_MAPPING,
     )
+    from ..data import SEQCLASSIFICATION, SEQREGRESSION
 
     this_model_type = AutoConfig.from_pretrained(checkpoint_path).model_type
     this_vocab_size = AutoConfig.from_pretrained(checkpoint_path).vocab_size

@@ -22,7 +22,7 @@ import pandas as pd
 import logging
 from typing import List, Union
 from pandas import DataFrame
-from .nlp.utils import _is_nlp_task
+from .data import _is_nlp_task
 
 from .ml import (
     compute_estimator,
@@ -161,6 +161,8 @@ class SearchState:
                 self.trained_estimator.cleanup()
             if trained_estimator:
                 self.trained_estimator = trained_estimator
+        elif trained_estimator:
+            trained_estimator.cleanup()
         self.metric_for_logging = metric_for_logging
         self.val_loss, self.config = obj, config
 
@@ -349,6 +351,9 @@ class AutoMLState:
             estimator, train_time = result["estimator"], result["train_time"]
 
         else:
+            if _is_nlp_task(self.task):
+                use_ray = self.fit_kwargs.get("use_ray")
+                self.fit_kwargs["use_ray"] = False
             estimator, train_time = train_estimator(
                 X_train=sampled_X_train,
                 y_train=sampled_y_train,
@@ -360,6 +365,11 @@ class AutoMLState:
                 budget=budget,
                 fit_kwargs=self.fit_kwargs,
             )
+            if _is_nlp_task(self.task):
+                if use_ray:
+                    self.fit_kwargs["use_ray"] = use_ray
+                else:
+                    del self.fit_kwargs["use_ray"]
         if sampled_weight is not None:
             self.fit_kwargs["sample_weight"] = weight
         return estimator, train_time
@@ -753,10 +763,14 @@ class AutoML(BaseEstimator):
                 if isinstance(X[0], List):
                     X = [x for x in zip(*X)]
                 X = DataFrame(
-                    {
-                        self._transformer._str_columns[idx]: X[idx]
-                        for idx in range(len(X))
-                    }
+                    dict(
+                        [
+                            (self._transformer._str_columns[idx], X[idx])
+                            if isinstance(X[0], List)
+                            else (self._transformer._str_columns[idx], [X[idx]])
+                            for idx in range(len(X))
+                        ]
+                    )
                 )
             except IndexError:
                 raise IndexError(
@@ -1942,6 +1956,7 @@ class AutoML(BaseEstimator):
 
         if _is_nlp_task(self._state.task):
             self._state.fit_kwargs["metric"] = metric
+            self._state.fit_kwargs["use_ray"] = self._use_ray
 
         self._sample = (
             sample
@@ -2164,6 +2179,8 @@ class AutoML(BaseEstimator):
             num_samples=self._max_iter,
             verbose=max(self.verbose - 2, 0),
             raise_on_failed_trial=False,
+            keep_checkpoints_num=1,
+            checkpoint_score_attr="min-val_loss",
         )
         # logger.info([trial.last_result for trial in analysis.trials])
         trials = sorted(
