@@ -20,6 +20,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import RepeatedStratifiedKFold, GroupKFold, TimeSeriesSplit
 from .model import (
     XGBoostSklearnEstimator,
+    XGBoostLimitDepthEstimator,
     RandomForestEstimator,
     LGBMEstimator,
     LRL1Classifier,
@@ -42,6 +43,8 @@ def get_estimator_class(task, estimator_name):
     # when adding a new learner, need to add an elif branch
     if "xgboost" == estimator_name:
         estimator_class = XGBoostSklearnEstimator
+    elif "xgb_limitdepth" == estimator_name:
+        estimator_class = XGBoostLimitDepthEstimator
     elif "rf" == estimator_name:
         estimator_class = RandomForestEstimator
     elif "lgbm" == estimator_name:

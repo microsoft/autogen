@@ -625,7 +625,13 @@ class LGBMEstimator(BaseEstimator):
 
     @classmethod
     def size(cls, config):
-        num_leaves = int(round(config.get("num_leaves") or config["max_leaves"]))
+        num_leaves = int(
+            round(
+                config.get("num_leaves")
+                or config.get("max_leaves")
+                or 1 << config["max_depth"]
+            )
+        )
         n_estimators = int(round(config["n_estimators"]))
         return (num_leaves * 3 + (num_leaves - 1) * 4 + 1.0) * n_estimators * 8
 
@@ -794,6 +800,10 @@ class XGBoostEstimator(SKLearnEstimator):
                 "init_value": 4,
                 "low_cost_init_value": 4,
             },
+            "max_depth": {
+                "domain": tune.choice([0, 6, 12]),
+                "init_value": 0,
+            },
             "min_child_weight": {
                 "domain": tune.loguniform(lower=0.001, upper=128),
                 "init_value": 1,
@@ -834,11 +844,12 @@ class XGBoostEstimator(SKLearnEstimator):
 
     def config2params(cls, config: dict) -> dict:
         params = config.copy()
-        params["max_depth"] = params.get("max_depth", 0)
-        params["grow_policy"] = params.get("grow_policy", "lossguide")
-        params["booster"] = params.get("booster", "gbtree")
+        max_depth = params["max_depth"] = params.get("max_depth", 0)
+        if max_depth == 0:
+            params["grow_policy"] = params.get("grow_policy", "lossguide")
+            params["tree_method"] = params.get("tree_method", "hist")
+        # params["booster"] = params.get("booster", "gbtree")
         params["use_label_encoder"] = params.get("use_label_encoder", False)
-        params["tree_method"] = params.get("tree_method", "hist")
         if "n_jobs" in config:
             params["nthread"] = params.pop("n_jobs")
         return params
@@ -923,24 +934,25 @@ class XGBoostEstimator(SKLearnEstimator):
 
 
 class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
-    """The class for tuning XGBoost (for classification), using sklearn API."""
+    """The class for tuning XGBoost with unlimited depth, using sklearn API."""
 
     @classmethod
     def search_space(cls, data_size, **params):
-        return XGBoostEstimator.search_space(data_size)
+        space = XGBoostEstimator.search_space(data_size)
+        space.pop("max_depth")
+        return space
 
     @classmethod
     def cost_relative2lgbm(cls):
         return XGBoostEstimator.cost_relative2lgbm()
 
     def config2params(cls, config: dict) -> dict:
-        # TODO: test
         params = config.copy()
-        params["max_depth"] = 0
-        params["grow_policy"] = params.get("grow_policy", "lossguide")
-        params["booster"] = params.get("booster", "gbtree")
+        max_depth = params["max_depth"] = params.get("max_depth", 0)
+        if max_depth == 0:
+            params["grow_policy"] = params.get("grow_policy", "lossguide")
+            params["tree_method"] = params.get("tree_method", "hist")
         params["use_label_encoder"] = params.get("use_label_encoder", False)
-        params["tree_method"] = params.get("tree_method", "hist")
         return params
 
     def __init__(
@@ -966,6 +978,28 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
 
     def _callbacks(self, start_time, deadline) -> List[Callable]:
         return XGBoostEstimator._callbacks(start_time, deadline)
+
+
+class XGBoostLimitDepthEstimator(XGBoostSklearnEstimator):
+    """The class for tuning XGBoost with limited depth, using sklearn API."""
+
+    @classmethod
+    def search_space(cls, data_size, **params):
+        space = XGBoostEstimator.search_space(data_size)
+        space.pop("max_leaves")
+        upper = max(6, int(np.log2(data_size)))
+        space["max_depth"] = {
+            "domain": tune.randint(lower=1, upper=min(upper, 16)),
+            "init_value": 6,
+            "low_cost_init_value": 1,
+        }
+        space["learning_rate"]["init_value"] = 0.3
+        space["n_estimators"]["init_value"] = 10
+        return space
+
+    @classmethod
+    def cost_relative2lgbm(cls):
+        return 64
 
 
 class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
