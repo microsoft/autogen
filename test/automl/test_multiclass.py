@@ -98,30 +98,30 @@ class MyLargeLGBM(LGBMEstimator):
 
 
 def custom_metric(
-    X_test,
-    y_test,
+    X_val,
+    y_val,
     estimator,
     labels,
     X_train,
     y_train,
-    weight_test=None,
+    weight_val=None,
     weight_train=None,
     config=None,
-    groups_test=None,
+    groups_val=None,
     groups_train=None,
 ):
     from sklearn.metrics import log_loss
     import time
 
     start = time.time()
-    y_pred = estimator.predict_proba(X_test)
-    pred_time = (time.time() - start) / len(X_test)
-    test_loss = log_loss(y_test, y_pred, labels=labels, sample_weight=weight_test)
+    y_pred = estimator.predict_proba(X_val)
+    pred_time = (time.time() - start) / len(X_val)
+    val_loss = log_loss(y_val, y_pred, labels=labels, sample_weight=weight_val)
     y_pred = estimator.predict_proba(X_train)
     train_loss = log_loss(y_train, y_pred, labels=labels, sample_weight=weight_train)
     alpha = 0.5
-    return test_loss * (1 + alpha) - alpha * train_loss, {
-        "test_loss": test_loss,
+    return val_loss * (1 + alpha) - alpha * train_loss, {
+        "val_loss": val_loss,
         "train_loss": train_loss,
         "pred_time": pred_time,
     }
