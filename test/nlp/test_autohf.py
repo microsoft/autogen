@@ -4,10 +4,6 @@ import pytest
 
 @pytest.mark.skipif(os.name == "posix", reason="do not run on mac os")
 def test_hf_data():
-    try:
-        import ray
-    except ImportError:
-        return
     from flaml import AutoML
 
     from datasets import load_dataset
@@ -73,6 +69,9 @@ def test_hf_data():
         ]
     )
 
+    automl.predict_proba(X_test)
+    print(automl.classes_)
+
 
 def _test_custom_data():
     from flaml import AutoML
@@ -122,3 +121,7 @@ def _test_custom_data():
             ["test test", "test test"],
         ]
     )
+
+
+if __name__ == "__main__":
+    test_hf_data()

@@ -15,6 +15,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from scipy.sparse import issparse
 import logging
+import shutil
 from . import tune
 from .data import (
     group_counts,
@@ -26,6 +27,7 @@ from .data import (
 
 import pandas as pd
 from pandas import DataFrame, Series
+import sys
 
 try:
     import psutil
@@ -287,6 +289,9 @@ class TransformersEstimator(BaseEstimator):
 
     def __init__(self, task="seq-classification", **config):
         super().__init__(task, **config)
+        import uuid
+
+        self.trial_id = str(uuid.uuid1().hex)[:8]
 
     def _join(self, X_train, y_train):
         y_train = DataFrame(y_train, columns=["label"], index=X_train.index)
@@ -295,29 +300,32 @@ class TransformersEstimator(BaseEstimator):
 
     @classmethod
     def search_space(cls, **params):
-        import sys
-
         return {
             "learning_rate": {
                 "domain": tune.loguniform(lower=1e-6, upper=1e-3),
+                "init_value": 1e-5,
             },
             "num_train_epochs": {
                 "domain": tune.loguniform(lower=0.1, upper=10.0),
             },
             "per_device_train_batch_size": {
                 "domain": tune.choice([4, 8, 16, 32]),
+                "init_value": 32,
             },
             "warmup_ratio": {
                 "domain": tune.uniform(lower=0.0, upper=0.3),
+                "init_value": 0.0,
             },
             "weight_decay": {
                 "domain": tune.uniform(lower=0.0, upper=0.3),
+                "init_value": 0.0,
             },
             "adam_epsilon": {
                 "domain": tune.loguniform(lower=1e-8, upper=1e-6),
+                "init_value": 1e-6,
             },
-            "seed": {"domain": tune.choice(list(range(40, 45)))},
-            "global_max_steps": {"domain": sys.maxsize},
+            "seed": {"domain": tune.choice(list(range(40, 45))), "init_value": 42},
+            "global_max_steps": {"domain": sys.maxsize, "init_value": sys.maxsize},
         }
 
     def _init_hpo_args(self, automl_fit_kwargs: dict = None):
@@ -342,8 +350,20 @@ class TransformersEstimator(BaseEstimator):
             return X
 
     def fit(self, X_train: DataFrame, y_train: Series, budget=None, **kwargs):
-        # TODO: when self.param = {}, ie max_iter = 1, fix the bug
         from transformers import EarlyStoppingCallback
+        from transformers.trainer_utils import set_seed
+        from transformers import AutoTokenizer, TrainingArguments
+        import transformers
+        from datasets import Dataset
+        from .nlp.utils import (
+            get_num_labels,
+            separate_config,
+            load_model,
+            compute_checkpoint_freq,
+            get_trial_fold_name,
+            date_str,
+        )
+        from .nlp.huggingface.trainer import TrainerForAuto
 
         this_params = self.params
 
@@ -373,26 +393,17 @@ class TransformersEstimator(BaseEstimator):
             def on_epoch_end(self, args, state, control, **callback_kwargs):
                 if (
                     control.should_training_stop
-                    or state.epoch + 1 >= this_params["num_train_epochs"]
+                    or state.epoch + 1 >= args.num_train_epochs
                 ):
                     control.should_save = True
                     control.should_evaluate = True
 
-        import transformers
-        from transformers import TrainingArguments
-        from transformers.trainer_utils import set_seed
-        from transformers import AutoTokenizer
-        from .nlp.utils import (
-            separate_config,
-            load_model,
-            get_num_labels,
-            compute_checkpoint_freq,
-        )
-        from .nlp.huggingface.trainer import TrainerForAuto
-        from datasets import Dataset
+        set_seed(self.params.get("seed", TrainingArguments.seed))
 
         self._init_hpo_args(kwargs)
         self._metric_name = kwargs["metric"]
+        if hasattr(self, "use_ray") is False:
+            self.use_ray = kwargs["use_ray"]
 
         X_val = kwargs.get("X_val")
         y_val = kwargs.get("y_val")
@@ -408,7 +419,6 @@ class TransformersEstimator(BaseEstimator):
         tokenizer = AutoTokenizer.from_pretrained(
             self.custom_hpo_args.model_path, use_fast=True
         )
-        set_seed(self.params["seed"])
 
         num_labels = get_num_labels(self._task, y_train)
 
@@ -422,13 +432,31 @@ class TransformersEstimator(BaseEstimator):
         ckpt_freq = compute_checkpoint_freq(
             train_data_size=len(X_train),
             custom_hpo_args=self.custom_hpo_args,
-            num_train_epochs=self.params["num_train_epochs"],
-            batch_size=self.params["per_device_train_batch_size"],
+            num_train_epochs=training_args_config.get(
+                "num_train_epochs", TrainingArguments.num_train_epochs
+            ),
+            batch_size=training_args_config.get(
+                "per_device_train_batch_size",
+                TrainingArguments.per_device_train_batch_size,
+            ),
         )
+
+        local_dir = os.path.join(
+            self.custom_hpo_args.output_dir, "train_{}".format(date_str())
+        )
+
+        if not self.use_ray:
+            # if self.params = {}, don't include configuration in trial fold name
+            trial_dir = get_trial_fold_name(local_dir, self.params, self.trial_id)
+        else:
+            import ray
+
+            trial_dir = ray.tune.get_trial_dir()
 
         if transformers.__version__.startswith("3"):
             training_args = TrainingArguments(
-                output_dir=self.custom_hpo_args.output_dir,
+                report_to=[],
+                output_dir=trial_dir,
                 do_train=True,
                 do_eval=True,
                 eval_steps=ckpt_freq,
@@ -443,7 +471,8 @@ class TransformersEstimator(BaseEstimator):
             from transformers import IntervalStrategy
 
             training_args = TrainingArguments(
-                output_dir=self.custom_hpo_args.output_dir,
+                report_to=[],
+                output_dir=trial_dir,
                 do_train=True,
                 do_eval=True,
                 per_device_eval_batch_size=1,
@@ -464,7 +493,7 @@ class TransformersEstimator(BaseEstimator):
                 per_model_config=per_model_config,
             )
 
-        trainer = TrainerForAuto(
+        self._model = TrainerForAuto(
             model=this_model,
             args=training_args,
             model_init=_model_init,
@@ -475,25 +504,45 @@ class TransformersEstimator(BaseEstimator):
             callbacks=[EarlyStoppingCallbackForAuto],
         )
 
-        trainer.train()
+        setattr(self._model, "_use_ray", self.use_ray)
+        self._model.train()
 
-        self.params[self.ITER_HP] = trainer.state.global_step
-        self._checkpoint_path = self._select_checkpoint(trainer)
+        self.params[self.ITER_HP] = self._model.state.global_step
+        self._checkpoint_path = self._select_checkpoint(self._model)
 
         self._kwargs = kwargs
         self._num_labels = num_labels
         self._per_model_config = per_model_config
 
+        self._ckpt_remains = list(self._model.ckpt_to_metric.keys())
+
+    def _delete_one_ckpt(self, ckpt_location):
+        if self.use_ray is False:
+            try:
+                shutil.rmtree(ckpt_location)
+            except FileNotFoundError:
+                logger.warning("checkpoint {} not found".format(ckpt_location))
+
+    def cleanup(self):
+        if hasattr(self, "_ckpt_remains"):
+            for each_ckpt in self._ckpt_remains:
+                self._delete_one_ckpt(each_ckpt)
+
     def _select_checkpoint(self, trainer):
+        from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
+
         if trainer.ckpt_to_metric:
             best_ckpt, _ = min(
-                trainer.ckpt_to_metric.items(), key=lambda x: x[1][self._metric_name]
+                trainer.ckpt_to_metric.items(), key=lambda x: x[1]["val_loss"]
             )
             best_ckpt_global_step = trainer.ckpt_to_global_step[best_ckpt]
+            for each_ckpt in list(trainer.ckpt_to_metric):
+                if each_ckpt != best_ckpt:
+                    del trainer.ckpt_to_metric[each_ckpt]
+                    del trainer.ckpt_to_global_step[each_ckpt]
+                    self._delete_one_ckpt(each_ckpt)
         else:
             best_ckpt_global_step = trainer.state.global_step
-            from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
-
             best_ckpt = os.path.join(
                 trainer.args.output_dir,
                 f"{PREFIX_CHECKPOINT_DIR}-{best_ckpt_global_step}",
@@ -506,6 +555,8 @@ class TransformersEstimator(BaseEstimator):
     def _compute_metrics_by_dataset_name(self, eval_pred):
         from .ml import sklearn_metric_loss_score
         from .data import SEQREGRESSION
+        import datasets
+        from .nlp.utils import load_default_huggingface_metric_for_task
 
         predictions, labels = eval_pred
         predictions = (
@@ -513,21 +564,39 @@ class TransformersEstimator(BaseEstimator):
             if self._task == SEQREGRESSION
             else np.argmax(predictions, axis=1)
         )
-        return {
-            self._metric_name: sklearn_metric_loss_score(
-                metric_name=self._metric_name, y_predict=predictions, y_true=labels
-            )
-        }
 
-    def predict(self, X_test):
+        if isinstance(self._metric_name, str):
+            return {
+                "val_loss": sklearn_metric_loss_score(
+                    metric_name=self._metric_name, y_predict=predictions, y_true=labels
+                )
+            }
+        else:
+            (
+                default_metric_name,
+                default_metric_mode,
+            ) = load_default_huggingface_metric_for_task(self._task)
+            metric = datasets.load_metric(default_metric_name)
+            multiplier = -1 if default_metric_mode == "max" else 1
+            return {
+                "val_loss": metric.compute(predictions=predictions, references=labels)[
+                    default_metric_name
+                ]
+                * multiplier
+            }
+
+    def predict_proba(self, X_test):
         from datasets import Dataset
-        from .nlp.utils import load_model
-        from transformers import TrainingArguments
         from .nlp.huggingface.trainer import TrainerForAuto
+        from transformers import TrainingArguments
+        from .nlp.utils import load_model
 
-        if X_test.dtypes[0] == "string":
-            X_test = self._preprocess(X_test, self._task, **self._kwargs)
-            test_dataset = Dataset.from_pandas(X_test)
+        assert (
+            self._task in CLASSIFICATION
+        ), "predict_proba is only available in classification tasks"
+
+        X_test = self._preprocess(X_test, self._task, **self._kwargs)
+        test_dataset = Dataset.from_pandas(X_test)
 
         best_model = load_model(
             checkpoint_path=self._checkpoint_path,
@@ -539,8 +608,31 @@ class TransformersEstimator(BaseEstimator):
             per_device_eval_batch_size=1,
             output_dir=self.custom_hpo_args.output_dir,
         )
-        test_trainer = TrainerForAuto(model=best_model, args=training_args)
-        predictions = test_trainer.predict(test_dataset)
+        self._model = TrainerForAuto(model=best_model, args=training_args)
+        predictions = self._model.predict(test_dataset)
+        return predictions.predictions
+
+    def predict(self, X_test):
+        from datasets import Dataset
+        from transformers import TrainingArguments
+        from .nlp.utils import load_model
+        from .nlp.huggingface.trainer import TrainerForAuto
+
+        X_test = self._preprocess(X_test, self._task, **self._kwargs)
+        test_dataset = Dataset.from_pandas(X_test)
+
+        best_model = load_model(
+            checkpoint_path=self._checkpoint_path,
+            task=self._task,
+            num_labels=self._num_labels,
+            per_model_config=self._per_model_config,
+        )
+        training_args = TrainingArguments(
+            per_device_eval_batch_size=1,
+            output_dir=self.custom_hpo_args.output_dir,
+        )
+        self._model = TrainerForAuto(model=best_model, args=training_args)
+        predictions = self._model.predict(test_dataset)
 
         return np.argmax(predictions.predictions, axis=1)
 
@@ -621,6 +713,9 @@ class LGBMEstimator(BaseEstimator):
         params = config.copy()
         if "log_max_bin" in params:
             params["max_bin"] = (1 << params.pop("log_max_bin")) - 1
+        params[TransformersEstimator.ITER_HP] = params.get(
+            TransformersEstimator.ITER_HP, sys.maxsize
+        )
         return params
 
     @classmethod
@@ -1212,8 +1307,6 @@ class CatBoostEstimator(BaseEstimator):
             self.estimator_class = CatBoostClassifier
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
-        import shutil
-
         start_time = time.time()
         deadline = start_time + budget if budget else np.inf
         train_dir = f"catboost_{str(start_time)}"

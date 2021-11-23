@@ -43,16 +43,3 @@ Online AutoML
 
 .. autoclass:: flaml.AutoVW
    :members:
-
-NLP
----
-
-.. autoclass:: flaml.nlp.HPOArgs
-   :members:
-
-.. Indices and tables
-.. ==================
-
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
