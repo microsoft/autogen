@@ -198,7 +198,7 @@ class TestRegression(unittest.TestCase):
 def test_multioutput():
     from sklearn.datasets import make_regression
     from sklearn.model_selection import train_test_split
-    from sklearn.multioutput import MultiOutputRegressor
+    from sklearn.multioutput import MultiOutputRegressor, RegressorChain
 
     # create regression data
     X, y = make_regression(n_targets=3)
@@ -214,7 +214,15 @@ def test_multioutput():
 
     # predict
     print(model.predict(X_test))
+    
+    #train the model
+    model = RegressorChain(AutoML(task="regression", time_budget=1))
+    model.fit(X_train, y_train)
+    
+    # predict
+    print(model.predict(X_test))
 
+ 
 
 if __name__ == "__main__":
     unittest.main()
