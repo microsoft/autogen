@@ -636,6 +636,13 @@ class TransformersEstimator(BaseEstimator):
 
         return np.argmax(predictions.predictions, axis=1)
 
+    def config2params(cls, config: dict) -> dict:
+        params = config.copy()
+        params[TransformersEstimator.ITER_HP] = params.get(
+            TransformersEstimator.ITER_HP, sys.maxsize
+        )
+        return params
+
 
 class SKLearnEstimator(BaseEstimator):
     """The base class for tuning scikit-learn estimators."""
@@ -713,9 +720,6 @@ class LGBMEstimator(BaseEstimator):
         params = config.copy()
         if "log_max_bin" in params:
             params["max_bin"] = (1 << params.pop("log_max_bin")) - 1
-        params[TransformersEstimator.ITER_HP] = params.get(
-            TransformersEstimator.ITER_HP, sys.maxsize
-        )
         return params
 
     @classmethod
