@@ -1128,6 +1128,9 @@ class AutoML(BaseEstimator):
         self._state.X_val, self._state.y_val = X_val, y_val
         self._state.X_train_all = X_train_all
         self._state.y_train_all = y_train_all
+        if eval_method == "holdout":
+            self._state.kf = None
+            return
         if self._split_type == "group":
             # logger.info("Using GroupKFold")
             assert (
