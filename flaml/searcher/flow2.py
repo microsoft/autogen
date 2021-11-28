@@ -169,8 +169,7 @@ class FLOW2(Searcher):
         if lb > self.step:
             self.step = lb * 2
         # upper bound
-        if self.step > self.step_ub:
-            self.step = self.step_ub
+        self.step = min(self.step, self.step_ub)
         # maximal # consecutive no improvements
         self.dir = 2 ** (min(9, self.dim))
         self._configs = {}  # dict from trial_id to (config, stepsize)
@@ -233,8 +232,7 @@ class FLOW2(Searcher):
         return resource
 
     def rand_vector_gaussian(self, dim, std=1.0):
-        vec = self._random.normal(0, std, dim)
-        return vec
+        return self._random.normal(0, std, dim)
 
     def complete_config(
         self,
@@ -339,8 +337,7 @@ class FLOW2(Searcher):
                     if self._K > 0:
                         # self._oldK must have been set when self._K>0
                         self.step *= np.sqrt(self._K / self._oldK)
-                    if self.step > self.step_ub:
-                        self.step = self.step_ub
+                    self.step = min(self.step, self.step_ub)
                     self._iter_best_config = self.trial_count_complete
                     if self._trunc:
                         self._trunc = min(self._trunc + 1, self.dim)
@@ -366,9 +363,7 @@ class FLOW2(Searcher):
             ):
                 # check stuck condition if using max resource
                 self._num_complete4incumbent -= 2
-                if self._num_allowed4incumbent < 2:
-                    self._num_allowed4incumbent = 2
-        # elif proposed_by: del self._proposed_by[trial_id]
+                self._num_allowed4incumbent = max(self._num_allowed4incumbent, 2)
 
     def on_trial_result(self, trial_id: str, result: Dict):
         """Early update of incumbent."""
@@ -420,16 +415,7 @@ class FLOW2(Searcher):
                 >= self.cost_incumbent * self.resource_multiple_factor
             )
         ):
-            # consider increasing resource using sum eval cost of complete
-            # configs
-            old_resource = self._resource
-            self._resource = self._round(self._resource * self.resource_multiple_factor)
-            self.cost_incumbent *= self._resource / old_resource
-            config = self.best_config.copy()
-            config[self.prune_attr] = self._resource
-            self._direction_tried = None
-            self._configs[trial_id] = (config, self.step)
-            return unflatten_dict(config)
+            return self._increase_resource(trial_id)
         self._num_allowed4incumbent -= 1
         move = self.incumbent.copy()
         if self._direction_tried is not None:
@@ -453,24 +439,21 @@ class FLOW2(Searcher):
         if self._init_phase:
             if self._direction_tried is None:
                 if self._same:
-                    # check if the new config is different from best_config
-                    same = True
-                    for key, value in config.items():
-                        if key not in best_config or value != best_config[key]:
-                            same = False
-                            break
+                    same = not any(
+                        key not in best_config or value != best_config[key]
+                        for key, value in config.items()
+                    )
+
                     if same:
                         # increase step size
                         self.step += self.STEPSIZE
-                        if self.step > self.step_ub:
-                            self.step = self.step_ub
+                        self.step = min(self.step, self.step_ub)
             else:
-                # check if the new config is different from best_config
-                same = True
-                for key, value in config.items():
-                    if key not in best_config or value != best_config[key]:
-                        same = False
-                        break
+                same = not any(
+                    key not in best_config or value != best_config[key]
+                    for key, value in config.items()
+                )
+
                 self._same = same
         if self._num_proposedby_incumbent == self.dir and (
             not self._resource or self._resource == self.max_resource
@@ -478,13 +461,12 @@ class FLOW2(Searcher):
             # check stuck condition if using max resource
             self._num_proposedby_incumbent -= 2
             self._init_phase = False
-            if self.step >= self.step_lower_bound:
-                # decrease step size
-                self._oldK = self._K if self._K else self._iter_best_config
-                self._K = self.trial_count_proposed + 1
-                self.step *= np.sqrt(self._oldK / self._K)
-            else:
+            if self.step < self.step_lower_bound:
                 return None
+                # decrease step size
+            self._oldK = self._K or self._iter_best_config
+            self._K = self.trial_count_proposed + 1
+            self.step *= np.sqrt(self._oldK / self._K)
         if self._init_phase:
             return unflatten_dict(config)
         if self._trunc == 1 and self._direction_tried is not None:
@@ -498,14 +480,24 @@ class FLOW2(Searcher):
                             config[key] = generated["config"][key]
                             return unflatten_dict(config)
                         break
-        else:
-            # check if config == best_config
-            if len(config) == len(best_config):
-                for key, value in best_config.items():
-                    if value != config[key]:
-                        return unflatten_dict(config)
-                # print('move to', move)
-                self.incumbent = move
+        elif len(config) == len(best_config):
+            for key, value in best_config.items():
+                if value != config[key]:
+                    return unflatten_dict(config)
+            # print('move to', move)
+            self.incumbent = move
+        return unflatten_dict(config)
+
+    def _increase_resource(self, trial_id):
+        # consider increasing resource using sum eval cost of complete
+        # configs
+        old_resource = self._resource
+        self._resource = self._round(self._resource * self.resource_multiple_factor)
+        self.cost_incumbent *= self._resource / old_resource
+        config = self.best_config.copy()
+        config[self.prune_attr] = self._resource
+        self._direction_tried = None
+        self._configs[trial_id] = (config, self.step)
         return unflatten_dict(config)
 
     def _project(self, config):
@@ -526,10 +518,7 @@ class FLOW2(Searcher):
     def config_signature(self, config, space: Dict = None) -> tuple:
         """Return the signature tuple of a config."""
         config = flatten_dict(config)
-        if space:
-            space = flatten_dict(space)
-        else:
-            space = self._space
+        space = flatten_dict(space) if space else self._space
         value_list = []
         # self._space_keys doesn't contain keys with const values,
         # e.g., "eval_metric": ["logloss", "error"].
@@ -541,17 +530,14 @@ class FLOW2(Searcher):
             else:
                 # key must be in space
                 domain = space[key]
-                if self.hierarchical:
-                    # can't remove constant for hierarchical search space,
-                    # e.g., learner
-                    if not (
-                        domain is None
-                        or type(domain) in (str, int, float)
-                        or isinstance(domain, sample.Domain)
-                    ):
-                        # not domain or hashable
-                        # get rid of list type for hierarchical search space.
-                        continue
+                if self.hierarchical and not (
+                    domain is None
+                    or type(domain) in (str, int, float)
+                    or isinstance(domain, sample.Domain)
+                ):
+                    # not domain or hashable
+                    # get rid of list type for hierarchical search space.
+                    continue
                 if isinstance(domain, sample.Integer):
                     value_list.append(int(round(value)))
                 else:

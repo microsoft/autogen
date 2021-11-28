@@ -202,7 +202,7 @@ def get_output_from_log(filename, time_budget):
 
 def concat(X1, X2):
     """concatenate two matrices vertically"""
-    if isinstance(X1, DataFrame) or isinstance(X1, Series):
+    if isinstance(X1, (DataFrame, Series)):
         df = pd.concat([X1, X2], sort=False)
         df.reset_index(drop=True, inplace=True)
         if isinstance(X1, DataFrame):
