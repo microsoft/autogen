@@ -233,8 +233,12 @@ class BaseEstimator:
         self._model = None
 
     @classmethod
-    def search_space(cls, **params):
+    def search_space(cls, data_size, task, **params):
         """[required method] search space.
+
+        Args:
+            data_size: A tuple of two integers, number of rows and columns.
+            task: A str of the task type, e.g., "binary", "multi", "regression".
 
         Returns:
             A dictionary of the search space.
@@ -674,7 +678,7 @@ class LGBMEstimator(BaseEstimator):
 
     @classmethod
     def search_space(cls, data_size, **params):
-        upper = min(32768, int(data_size))
+        upper = min(32768, int(data_size[0]))
         return {
             "n_estimators": {
                 "domain": tune.lograndint(lower=4, upper=upper),
@@ -728,7 +732,7 @@ class LGBMEstimator(BaseEstimator):
             round(
                 config.get("num_leaves")
                 or config.get("max_leaves")
-                or 1 << config["max_depth"]
+                or 1 << config.get("max_depth", 16)
             )
         )
         n_estimators = int(round(config["n_estimators"]))
@@ -752,7 +756,7 @@ class LGBMEstimator(BaseEstimator):
             self.estimator_class = LGBMClassifier
         self._time_per_iter = None
         self._train_size = 0
-        self._mem_per_iter = 1
+        self._mem_per_iter = -1
         self.HAS_CALLBACK = self.HAS_CALLBACK and self._callbacks(0, 0) is not None
 
     def _preprocess(self, X):
@@ -784,7 +788,7 @@ class LGBMEstimator(BaseEstimator):
                     or abs(self._train_size - X_train.shape[0]) > 4
                 )
                 and budget is not None
-                or self._mem_per_iter <= 1
+                or self._mem_per_iter < 0
                 and psutil is not None
             ) and n_iter > 1:
                 self.params[self.ITER_HP] = 1
@@ -806,8 +810,8 @@ class LGBMEstimator(BaseEstimator):
                 self._mem_per_iter = min(
                     self._mem1, self._mem2 / self.params[self.ITER_HP]
                 )
-                if self._mem_per_iter <= 1 and psutil is not None:
-                    n_iter = self.params[self.ITER_HP]
+                # if self._mem_per_iter <= 1 and psutil is not None:
+                #     n_iter = self.params[self.ITER_HP]
                 self._time_per_iter = (
                     (self._t2 - self._t1) / (self.params[self.ITER_HP] - 1)
                     if self._t2 > self._t1
@@ -837,7 +841,7 @@ class LGBMEstimator(BaseEstimator):
                     if budget is not None
                     else n_iter,
                     int((1 - FREE_MEM_RATIO) * mem0 / self._mem_per_iter)
-                    if psutil is not None
+                    if psutil is not None and self._mem_per_iter > 0
                     else n_iter,
                 )
                 if trained and max_iter <= self.params[self.ITER_HP]:
@@ -887,7 +891,7 @@ class XGBoostEstimator(SKLearnEstimator):
 
     @classmethod
     def search_space(cls, data_size, **params):
-        upper = min(32768, int(data_size))
+        upper = min(32768, int(data_size[0]))
         return {
             "n_estimators": {
                 "domain": tune.lograndint(lower=4, upper=upper),
@@ -1086,7 +1090,7 @@ class XGBoostLimitDepthEstimator(XGBoostSklearnEstimator):
     def search_space(cls, data_size, **params):
         space = XGBoostEstimator.search_space(data_size)
         space.pop("max_leaves")
-        upper = max(6, int(np.log2(data_size)))
+        upper = max(6, int(np.log2(data_size[0])))
         space["max_depth"] = {
             "domain": tune.randint(lower=1, upper=min(upper, 16)),
             "init_value": 6,
@@ -1105,11 +1109,14 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
     """The class for tuning Random Forest."""
 
     HAS_CALLBACK = False
+    nrows = 101
 
     @classmethod
     def search_space(cls, data_size, task, **params):
-        data_size = int(data_size)
-        upper = min(2048, data_size)
+        RandomForestEstimator.nrows = int(data_size[0])
+        upper = min(2048, RandomForestEstimator.nrows)
+        init = 1 / np.sqrt(data_size[1]) if task in CLASSIFICATION else 1
+        lower = min(0.1, init)
         space = {
             "n_estimators": {
                 "domain": tune.lograndint(lower=4, upper=upper),
@@ -1117,11 +1124,13 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
                 "low_cost_init_value": 4,
             },
             "max_features": {
-                "domain": tune.loguniform(lower=0.1, upper=1.0),
-                "init_value": 1.0,
+                "domain": tune.loguniform(lower=lower, upper=1.0),
+                "init_value": init,
             },
             "max_leaves": {
-                "domain": tune.lograndint(lower=4, upper=min(32768, data_size)),
+                "domain": tune.lograndint(
+                    lower=4, upper=min(32768, RandomForestEstimator.nrows >> 1)
+                ),
                 "init_value": 4,
                 "low_cost_init_value": 4,
             },
@@ -1129,13 +1138,13 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         if task in CLASSIFICATION:
             space["criterion"] = {
                 "domain": tune.choice(["gini", "entropy"]),
-                # 'init_value': 'gini',
+                # "init_value": "gini",
             }
         return space
 
     @classmethod
     def cost_relative2lgbm(cls):
-        return 2.0
+        return 2
 
     def config2params(cls, config: dict) -> dict:
         params = config.copy()
@@ -1234,7 +1243,7 @@ class CatBoostEstimator(BaseEstimator):
 
     @classmethod
     def search_space(cls, data_size, **params):
-        upper = max(min(round(1500000 / data_size), 150), 12)
+        upper = max(min(round(1500000 / data_size[0]), 150), 12)
         return {
             "early_stopping_rounds": {
                 "domain": tune.lograndint(lower=10, upper=upper),
@@ -1380,7 +1389,7 @@ class CatBoostEstimator(BaseEstimator):
 class KNeighborsEstimator(BaseEstimator):
     @classmethod
     def search_space(cls, data_size, **params):
-        upper = min(512, int(data_size / 2))
+        upper = min(512, int(data_size[0] / 2))
         return {
             "n_neighbors": {
                 "domain": tune.lograndint(lower=1, upper=upper),
