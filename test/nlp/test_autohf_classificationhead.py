@@ -1,10 +1,17 @@
 def test_classification_head():
     from flaml import AutoML
-
+    import requests
     from datasets import load_dataset
 
-    train_dataset = load_dataset("emotion", split="train[:1%]").to_pandas().iloc[0:10]
-    dev_dataset = load_dataset("emotion", split="train[1%:2%]").to_pandas().iloc[0:10]
+    try:
+        train_dataset = (
+            load_dataset("emotion", split="train[:1%]").to_pandas().iloc[0:10]
+        )
+        dev_dataset = (
+            load_dataset("emotion", split="train[1%:2%]").to_pandas().iloc[0:10]
+        )
+    except requests.exceptions.ConnectionError:
+        return
 
     custom_sent_keys = ["text"]
     label_key = "label"
