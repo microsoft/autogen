@@ -10,6 +10,14 @@ def load_default_huggingface_metric_for_task(task):
         return "accuracy", "max"
     elif task == SEQREGRESSION:
         return "rmse", "max"
+    # TODO: elif task == your task, return the default metric name for your task,
+    #  e.g., if task == MULTIPLECHOICE, return "accuracy"
+    #  notice this metric name has to be in ['accuracy', 'bertscore', 'bleu', 'bleurt',
+    #  'cer', 'chrf', 'code_eval', 'comet', 'competition_math', 'coval', 'cuad',
+    #  'f1', 'gleu', 'glue', 'google_bleu', 'indic_glue', 'matthews_correlation',
+    #  'meteor', 'pearsonr', 'precision', 'recall', 'rouge', 'sacrebleu', 'sari',
+    #  'seqeval', 'spearmanr', 'squad', 'squad_v2', 'super_glue', 'ter', 'wer',
+    #  'wiki_split', 'xnli']
 
 
 global tokenized_column_names
@@ -20,6 +28,11 @@ def tokenize_text(X, task, custom_hpo_task):
 
     if task in (SEQCLASSIFICATION, SEQREGRESSION):
         return tokenize_text_seqclassification(X, custom_hpo_task)
+    # TODO: elif task == your task, return the tokenized result
+    #  for example, if your task == MULTIPLE CHOICE, you should
+    #  create a function named tokenize_text_multiplechoice(X, custom_hpo_args)
+    #  and what it does is the same as preprocess_function at
+    #  https://github.com/huggingface/transformers/blob/master/examples/pytorch/multiple-choice/run_swag.py#L329
 
 
 def tokenize_text_seqclassification(X, custom_hpo_args):
@@ -79,6 +92,8 @@ def get_num_labels(task, y_train):
         return 1
     elif task == SEQCLASSIFICATION:
         return len(set(y_train))
+    else:
+        return None
 
 
 def _clean_value(value: Any) -> str:
@@ -155,25 +170,43 @@ def load_model(checkpoint_path, task, num_labels, per_model_config=None):
     def get_this_model():
         from transformers import AutoModelForSequenceClassification
 
-        return AutoModelForSequenceClassification.from_pretrained(
-            checkpoint_path, config=model_config
-        )
+        if task in (SEQCLASSIFICATION, SEQREGRESSION):
+            return AutoModelForSequenceClassification.from_pretrained(
+                checkpoint_path, config=model_config
+            )
+        # TODO: elif task == your task, fill in the line in your transformers example
+        #  that loads the model, e.g., if task == MULTIPLE CHOICE, according to
+        #  https://github.com/huggingface/transformers/blob/master/examples/pytorch/multiple-choice/run_swag.py#L298
+        #  you can return AutoModelForMultipleChoice.from_pretrained(checkpoint_path, config=model_config)
 
     def is_pretrained_model_in_classification_head_list(model_type):
         return model_type in MODEL_CLASSIFICATION_HEAD_MAPPING
 
     def _set_model_config(checkpoint_path):
-        if per_model_config and len(per_model_config) > 0:
-            model_config = AutoConfig.from_pretrained(
-                checkpoint_path,
-                num_labels=model_config_num_labels,
-                **per_model_config,
-            )
-        else:
-            model_config = AutoConfig.from_pretrained(
-                checkpoint_path, num_labels=model_config_num_labels
-            )
-        return model_config
+        if task in (SEQCLASSIFICATION, SEQREGRESSION):
+            if per_model_config and len(per_model_config) > 0:
+                model_config = AutoConfig.from_pretrained(
+                    checkpoint_path,
+                    num_labels=model_config_num_labels,
+                    **per_model_config,
+                )
+            else:
+                model_config = AutoConfig.from_pretrained(
+                    checkpoint_path, num_labels=model_config_num_labels
+                )
+            return model_config
+        # TODO: elif task == your task, uncomment the code below:
+        # else:
+        #     if per_model_config and len(per_model_config) > 0:
+        #         model_config = AutoConfig.from_pretrained(
+        #             checkpoint_path,
+        #             **per_model_config,
+        #         )
+        #     else:
+        #         model_config = AutoConfig.from_pretrained(
+        #             checkpoint_path
+        #         )
+        #     return model_config
 
     if task == SEQCLASSIFICATION:
         num_labels_old = AutoConfig.from_pretrained(checkpoint_path).num_labels
@@ -199,8 +232,9 @@ def load_model(checkpoint_path, task, num_labels, per_model_config=None):
             this_model = get_this_model()
         this_model.resize_token_embeddings(this_vocab_size)
         return this_model
-    elif task == SEQREGRESSION:
-        model_config_num_labels = 1
+    else:
+        if task == SEQREGRESSION:
+            model_config_num_labels = 1
         model_config = _set_model_config(checkpoint_path)
         this_model = get_this_model()
         return this_model

@@ -23,6 +23,8 @@ from .data import (
     TS_FORECAST,
     TS_TIMESTAMP_COL,
     TS_VALUE_COL,
+    SEQCLASSIFICATION,
+    SEQREGRESSION,
 )
 
 import pandas as pd
@@ -303,8 +305,8 @@ class TransformersEstimator(BaseEstimator):
         return train_df
 
     @classmethod
-    def search_space(cls, **params):
-        return {
+    def search_space(cls, data_size, task, **params):
+        search_space_dict = {
             "learning_rate": {
                 "domain": tune.loguniform(lower=1e-6, upper=1e-3),
                 "init_value": 1e-5,
@@ -331,6 +333,14 @@ class TransformersEstimator(BaseEstimator):
             "seed": {"domain": tune.choice(list(range(40, 45))), "init_value": 42},
             "global_max_steps": {"domain": sys.maxsize, "init_value": sys.maxsize},
         }
+        #   TODO: if self._task == SUMMARIZATION, uncomment the code below, SET the search space for
+        #    "num_beams" in search_space_dict using
+        #    search_space_dict["num_beams"] = {...}
+
+        # if task in NLG_TASKS:
+        #     search_space_dict["num_beams"] = {"domain": tune.choice(...)}
+
+        return search_space_dict
 
     def _init_hpo_args(self, automl_fit_kwargs: dict = None):
         from .nlp.utils import HPOArgs
@@ -356,7 +366,15 @@ class TransformersEstimator(BaseEstimator):
     def fit(self, X_train: DataFrame, y_train: Series, budget=None, **kwargs):
         from transformers import EarlyStoppingCallback
         from transformers.trainer_utils import set_seed
-        from transformers import AutoTokenizer, TrainingArguments
+        from transformers import AutoTokenizer
+
+        #   TODO: if self._task == SUMMARIZATION, uncomment the code below (add indentation before
+        #         from transformers import TrainingArguments)
+        # if self._task in NLG_TASKS:
+        #     from transformers import Seq2SeqTrainingArguments as TrainingArguments
+        # else:
+        from transformers import TrainingArguments
+
         import transformers
         from datasets import Dataset
         from .nlp.utils import (
@@ -367,6 +385,13 @@ class TransformersEstimator(BaseEstimator):
             get_trial_fold_name,
             date_str,
         )
+
+        # TODO: if self._task == QUESTIONANSWERING, uncomment the code below (add indentation before
+        #  from .nlp.huggingface.trainer import TrainerForAuto)
+
+        # if self._task in NLG_TASKS:
+        #     from .nlp.huggingface.trainer import Seq2SeqTrainerForAuto as TrainerForAuto
+        # else:
         from .nlp.huggingface.trainer import TrainerForAuto
 
         this_params = self.params
@@ -414,6 +439,13 @@ class TransformersEstimator(BaseEstimator):
 
         X_train = self._preprocess(X_train, self._task, **kwargs)
         train_dataset = Dataset.from_pandas(self._join(X_train, y_train))
+
+        # TODO: set a breakpoint here, observe the resulting train_dataset,
+        #  compare it with the output of the tokenized results in your transformer example
+        #  for example, if your task is MULTIPLECHOICE, you need to compare train_dataset with
+        #  the output of https://github.com/huggingface/transformers/blob/master/examples/pytorch/multiple-choice/run_swag.py#L329
+        #  make sure they are the same
+
         if X_val is not None:
             X_val = self._preprocess(X_val, self._task, **kwargs)
             eval_dataset = Dataset.from_pandas(self._join(X_val, y_val))
@@ -528,6 +560,7 @@ class TransformersEstimator(BaseEstimator):
                 logger.warning("checkpoint {} not found".format(ckpt_location))
 
     def cleanup(self):
+        super().cleanup()
         if hasattr(self, "_ckpt_remains"):
             for each_ckpt in self._ckpt_remains:
                 self._delete_one_ckpt(each_ckpt)
@@ -558,7 +591,6 @@ class TransformersEstimator(BaseEstimator):
 
     def _compute_metrics_by_dataset_name(self, eval_pred):
         from .ml import sklearn_metric_loss_score
-        from .data import SEQREGRESSION
         import datasets
         from .nlp.utils import load_default_huggingface_metric_for_task
 
@@ -638,7 +670,13 @@ class TransformersEstimator(BaseEstimator):
         self._model = TrainerForAuto(model=best_model, args=training_args)
         predictions = self._model.predict(test_dataset)
 
-        return np.argmax(predictions.predictions, axis=1)
+        if self._task == SEQCLASSIFICATION:
+            return np.argmax(predictions.predictions, axis=1)
+        elif self._task == SEQREGRESSION:
+            return predictions.predictions
+        # TODO: elif self._task == your task, return the corresponding prediction
+        #  e.g., if your task == QUESTIONANSWERING, you need to return the answer instead
+        #  of the index
 
     def config2params(cls, config: dict) -> dict:
         params = config.copy()
