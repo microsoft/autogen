@@ -29,11 +29,11 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
     def search_space(cls, data_size, task):
         space = {
             "max_leaf": {
-                "domain": tune.lograndint(lower=4, upper=data_size),
+                "domain": tune.lograndint(lower=4, upper=data_size[0]),
                 "init_value": 4,
             },
             "n_iter": {
-                "domain": tune.lograndint(lower=1, upper=data_size),
+                "domain": tune.lograndint(lower=1, upper=data_size[0]),
                 "init_value": 1,
             },
             "n_tree_search": {

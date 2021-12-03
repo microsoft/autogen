@@ -13,7 +13,7 @@ dataset = "credit-g"
 class XGBoost2D(XGBoostSklearnEstimator):
     @classmethod
     def search_space(cls, data_size, task):
-        upper = min(32768, int(data_size))
+        upper = min(32768, int(data_size[0]))
         return {
             "n_estimators": {
                 "domain": tune.lograndint(lower=4, upper=upper),
