@@ -119,3 +119,4 @@ class TestLogging(unittest.TestCase):
         pred2 = automl.predict(X_train)
         delta = pred1 - pred2
         assert max(delta) == 0 and min(delta) == 0
+        automl.save_best_config("test/housing.json")
