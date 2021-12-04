@@ -206,7 +206,7 @@ def _eval_estimator(
         val_loss = sklearn_metric_loss_score(
             eval_metric, val_pred_y, y_val, labels, weight_val, groups_val
         )
-        metric_for_logging = {}
+        metric_for_logging = {"pred_time": pred_time}
         if log_training_metric:
             train_pred_y = get_y_pred(estimator, X_train, eval_metric, obj)
             metric_for_logging["train_loss"] = sklearn_metric_loss_score(

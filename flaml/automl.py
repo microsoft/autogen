@@ -495,6 +495,7 @@ class AutoML(BaseEstimator):
                 metric for each model.
             mem_thres: A float of the memory size constraint in bytes.
             pred_time_limit: A float of the prediction latency constraint in seconds.
+                It refers to the average prediction time per row in validation data.
             train_time_limit: A float of the training time constraint in seconds.
             verbose: int, default=3 | Controls the verbosity, higher means more
                 messages.
@@ -1751,6 +1752,7 @@ class AutoML(BaseEstimator):
                 metric for each model.
             mem_thres: A float of the memory size constraint in bytes.
             pred_time_limit: A float of the prediction latency constraint in seconds.
+                It refers to the average prediction time per row in validation data.
             train_time_limit: A float of the training time constraint in seconds.
             X_val: None or a numpy array or a pandas dataframe of validation data.
             y_val: None or a numpy array or a pandas series of validation labels.
