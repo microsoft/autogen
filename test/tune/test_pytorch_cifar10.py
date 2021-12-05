@@ -239,7 +239,7 @@ def cifar10_main(
             low_cost_partial_config={"num_epochs": 1},
             max_resource=max_num_epochs,
             min_resource=1,
-            report_intermediate_result=True,
+            scheduler="asha",
             resources_per_trial={"cpu": 1, "gpu": gpus_per_trial},
             local_dir="logs/",
             num_samples=num_samples,

@@ -83,7 +83,7 @@ def _test_xgboost(method="BlendSearch"):
                     mode="min",
                     max_resource=max_iter,
                     min_resource=1,
-                    report_intermediate_result=True,
+                    scheduler="asha",
                     # You can add "gpu": 0.1 to allocate GPUs
                     resources_per_trial={"cpu": 1},
                     local_dir="logs/",

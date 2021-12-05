@@ -39,7 +39,7 @@ class FLOW2(Searcher):
         metric: Optional[str] = None,
         mode: Optional[str] = None,
         space: Optional[dict] = None,
-        prune_attr: Optional[str] = None,
+        resource_attr: Optional[str] = None,
         min_resource: Optional[float] = None,
         max_resource: Optional[float] = None,
         resource_multiple_factor: Optional[float] = 4,
@@ -67,17 +67,10 @@ class FLOW2(Searcher):
                 i.e., the relative cost of the
                 three choices of 'tree_method' is 1, 1 and 2 respectively.
             space: A dictionary to specify the search space.
-            prune_attr: A string of the attribute used for pruning.
-                Not necessarily in space.
-                When prune_attr is in space, it is a hyperparameter, e.g.,
-                    'n_iters', and the best value is unknown.
-                When prune_attr is not in space, it is a resource dimension,
-                    e.g., 'sample_size', and the peak performance is assumed
-                    to be at the max_resource.
-            min_resource: A float of the minimal resource to use for the
-                prune_attr; only valid if prune_attr is not in space.
-            max_resource: A float of the maximal resource to use for the
-                prune_attr; only valid if prune_attr is not in space.
+            resource_attr: A string to specify the resource dimension and the best
+                performance is assumed to be at the max_resource.
+            min_resource: A float of the minimal resource to use for the resource_attr.
+            max_resource: A float of the maximal resource to use for the resource_attr.
             resource_multiple_factor: A float of the multiplicative factor
                 used for increasing resource.
             cost_attr: A string of the attribute used for cost.
@@ -100,7 +93,7 @@ class FLOW2(Searcher):
         self.seed = seed
         self.init_config = init_config
         self.best_config = flatten_dict(init_config)
-        self.prune_attr = prune_attr
+        self.resource_attr = resource_attr
         self.min_resource = min_resource
         self.resource_multiple_factor = resource_multiple_factor or 4
         self.cost_attr = cost_attr
@@ -148,11 +141,15 @@ class FLOW2(Searcher):
         if not hier:
             self._space_keys = sorted(self._tunable_keys)
         self.hierarchical = hier
-        if self.prune_attr and self.prune_attr not in self._space and self.max_resource:
+        if (
+            self.resource_attr
+            and self.resource_attr not in self._space
+            and self.max_resource
+        ):
             self.min_resource = self.min_resource or self._min_resource()
             self._resource = self._round(self.min_resource)
             if not hier:
-                self._space_keys.append(self.prune_attr)
+                self._space_keys.append(self.resource_attr)
         else:
             self._resource = None
         self.incumbent = {}
@@ -252,7 +249,7 @@ class FLOW2(Searcher):
         if partial_config == self.init_config:
             self._reset_times += 1
         if self._resource:
-            config[self.prune_attr] = self.min_resource
+            config[self.resource_attr] = self.min_resource
         return config, space
 
     def create(
@@ -264,7 +261,7 @@ class FLOW2(Searcher):
             self.metric,
             self.mode,
             space,
-            self.prune_attr,
+            self.resource_attr,
             self.min_resource,
             self.max_resource,
             self.resource_multiple_factor,
@@ -328,7 +325,7 @@ class FLOW2(Searcher):
                     self.incumbent = self.normalize(self.best_config)
                     self.cost_incumbent = result.get(self.cost_attr)
                     if self._resource:
-                        self._resource = self.best_config[self.prune_attr]
+                        self._resource = self.best_config[self.resource_attr]
                     self._num_complete4incumbent = 0
                     self._cost_complete4incumbent = 0
                     self._num_proposedby_incumbent = 0
@@ -377,7 +374,7 @@ class FLOW2(Searcher):
                     if self.best_config != config:
                         self.best_config = config
                         if self._resource:
-                            self._resource = config[self.prune_attr]
+                            self._resource = config[self.resource_attr]
                         self.incumbent = self.normalize(self.best_config)
                         self.cost_incumbent = result.get(self.cost_attr)
                         self._cost_complete4incumbent = 0
@@ -495,18 +492,18 @@ class FLOW2(Searcher):
         self._resource = self._round(self._resource * self.resource_multiple_factor)
         self.cost_incumbent *= self._resource / old_resource
         config = self.best_config.copy()
-        config[self.prune_attr] = self._resource
+        config[self.resource_attr] = self._resource
         self._direction_tried = None
         self._configs[trial_id] = (config, self.step)
         return unflatten_dict(config)
 
     def _project(self, config):
-        """project normalized config in the feasible region and set prune_attr"""
+        """project normalized config in the feasible region and set resource_attr"""
         for key in self._bounded_keys:
             value = config[key]
             config[key] = max(0, min(1, value))
         if self._resource:
-            config[self.prune_attr] = self._resource
+            config[self.resource_attr] = self._resource
 
     @property
     def can_suggest(self) -> bool:
@@ -525,7 +522,7 @@ class FLOW2(Searcher):
         keys = sorted(config.keys()) if self.hierarchical else self._space_keys
         for key in keys:
             value = config[key]
-            if key == self.prune_attr:
+            if key == self.resource_attr:
                 value_list.append(value)
             else:
                 # key must be in space
@@ -556,7 +553,7 @@ class FLOW2(Searcher):
         """whether the incumbent can reach the incumbent of other."""
         config1, config2 = self.best_config, other.best_config
         incumbent1, incumbent2 = self.incumbent, other.incumbent
-        if self._resource and config1[self.prune_attr] > config2[self.prune_attr]:
+        if self._resource and config1[self.resource_attr] > config2[self.resource_attr]:
             # resource will not decrease
             return False
         for key in self._unordered_cat_hp:
