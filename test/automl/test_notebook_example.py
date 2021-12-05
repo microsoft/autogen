@@ -64,7 +64,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     ) = get_output_from_log(filename=settings["log_file_name"], time_budget=6)
     for config in config_history:
         print(config)
-    print(automl.prune_attr)
+    print(automl.resource_attr)
     print(automl.max_resource)
     print(automl.min_resource)
 

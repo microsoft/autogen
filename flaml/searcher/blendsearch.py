@@ -45,7 +45,7 @@ class BlendSearch(Searcher):
         evaluated_rewards: Optional[List] = None,
         time_budget_s: Union[int, float] = None,
         num_samples: Optional[int] = None,
-        prune_attr: Optional[str] = None,
+        resource_attr: Optional[str] = None,
         min_resource: Optional[float] = None,
         max_resource: Optional[float] = None,
         reduction_factor: Optional[float] = None,
@@ -91,17 +91,10 @@ class BlendSearch(Searcher):
                 points_to_evaluate.
             time_budget_s: int or float | Time budget in seconds.
             num_samples: int | The number of configs to try.
-            prune_attr: A string of the attribute used for pruning.
-                Not necessarily in space.
-                When prune_attr is in space, it is a hyperparameter, e.g.,
-                    'n_iters', and the best value is unknown.
-                When prune_attr is not in space, it is a resource dimension,
-                    e.g., 'sample_size', and the peak performance is assumed
-                    to be at the max_resource.
-            min_resource: A float of the minimal resource to use for the
-                prune_attr; only valid if prune_attr is not in space.
-            max_resource: A float of the maximal resource to use for the
-                prune_attr; only valid if prune_attr is not in space.
+            resource_attr: A string to specify the resource dimension and the best
+                performance is assumed to be at the max_resource.
+            min_resource: A float of the minimal resource to use for the resource_attr.
+            max_resource: A float of the maximal resource to use for the resource_attr.
             reduction_factor: A float of the reduction factor used for
                 incremental pruning.
             global_search_alg: A Searcher instance as the global search
@@ -160,7 +153,7 @@ class BlendSearch(Searcher):
             metric,
             mode,
             space,
-            prune_attr,
+            resource_attr,
             min_resource,
             max_resource,
             reduction_factor,
@@ -409,7 +402,7 @@ class BlendSearch(Searcher):
                 if (objective - self._metric_target) * self._ls.metric_op < 0:
                     self._metric_target = objective
                     if self._ls.resource:
-                        self._best_resource = config[self._ls.prune_attr]
+                        self._best_resource = config[self._ls.resource_attr]
                 if thread_id:
                     if not self._metric_constraint_satisfied:
                         # no point has been found to satisfy metric constraint
@@ -637,7 +630,7 @@ class BlendSearch(Searcher):
             #     return None
             config = self._search_thread_pool[choice].suggest(trial_id)
             if not choice and config is not None and self._ls.resource:
-                config[self._ls.prune_attr] = self.best_resource
+                config[self._ls.resource_attr] = self.best_resource
             elif choice and config is None:
                 # local search thread finishes
                 if self._search_thread_pool[choice].converged:
@@ -975,7 +968,7 @@ class BlendSearchTuner(BlendSearch, NNITuner):
             self._ls.metric,
             self._mode,
             config,
-            self._ls.prune_attr,
+            self._ls.resource_attr,
             self._ls.min_resource,
             self._ls.max_resource,
             self._ls.resource_multiple_factor,

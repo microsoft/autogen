@@ -71,7 +71,7 @@ def test_forecast_automl(budget=5):
     ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
     for config in config_history:
         print(config)
-    print(automl.prune_attr)
+    print(automl.resource_attr)
     print(automl.max_resource)
     print(automl.min_resource)
 
@@ -210,7 +210,7 @@ def test_multivariate_forecast_num(budget=5):
     ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
     for config in config_history:
         print(config)
-    print(automl.prune_attr)
+    print(automl.resource_attr)
     print(automl.max_resource)
     print(automl.min_resource)
 
@@ -341,7 +341,7 @@ def test_multivariate_forecast_cat(budget=5):
     ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
     for config in config_history:
         print(config)
-    print(automl.prune_attr)
+    print(automl.resource_attr)
     print(automl.max_resource)
     print(automl.min_resource)
 

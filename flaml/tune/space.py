@@ -247,7 +247,7 @@ def normalize(
     config_norm = {}
     for key, value in config.items():
         domain = space.get(key)
-        if domain is None:  # e.g., prune_attr
+        if domain is None:  # e.g., resource_attr
             config_norm[key] = value
             continue
         if not callable(getattr(domain, "get_sampler", None)):
@@ -405,7 +405,7 @@ def denormalize(
                 # Handle int (4.6 -> 5)
                 if isinstance(domain, sample.Integer):
                     config_denorm[key] = int(round(config_denorm[key]))
-        else:  # prune_attr
+        else:  # resource_attr
             config_denorm[key] = value
     return config_denorm
 

@@ -17,6 +17,7 @@ try:
 except (ImportError, AssertionError):
     ray_import = False
     from .analysis import ExperimentAnalysis as EA
+
 from .result import DEFAULT_METRIC
 import logging
 
@@ -117,11 +118,11 @@ def run(
     time_budget_s: Union[int, float] = None,
     points_to_evaluate: Optional[List[dict]] = None,
     evaluated_rewards: Optional[List] = None,
-    prune_attr: Optional[str] = None,
+    resource_attr: Optional[str] = None,
     min_resource: Optional[float] = None,
     max_resource: Optional[float] = None,
     reduction_factor: Optional[float] = None,
-    report_intermediate_result: Optional[bool] = False,
+    scheduler: Optional = None,
     search_alg=None,
     verbose: Optional[int] = 2,
     local_dir: Optional[str] = None,
@@ -205,21 +206,29 @@ def run(
             points_to_evaluate are 3.0 and 1.0 respectively and want to
             inform run()
 
-        prune_attr: A string of the attribute used for pruning.
-            Not necessarily in space.
-            When prune_attr is in space, it is a hyperparameter, e.g.,
-            'n_iters', and the best value is unknown.
-            When prune_attr is not in space, it is a resource dimension,
-            e.g., 'sample_size', and the peak performance is assumed
-            to be at the max_resource.
-        min_resource: A float of the minimal resource to use for the
-            prune_attr; only valid if prune_attr is not in space.
-        max_resource: A float of the maximal resource to use for the
-            prune_attr; only valid if prune_attr is not in space.
+        resource_attr: A string to specify the resource dimension used by
+            the scheduler via "scheduler".
+        min_resource: A float of the minimal resource to use for the resource_attr.
+        max_resource: A float of the maximal resource to use for the resource_attr.
         reduction_factor: A float of the reduction factor used for incremental
             pruning.
-        report_intermediate_result: A boolean of whether intermediate results
-            are reported. If so, early stopping and pruning can be used.
+        scheduler: A scheduler for executing the experiment. Can be None, 'flaml',
+            'asha' or a custom instance of the TrialScheduler class. Default is None:
+            in this case when resource_attr is provided, the 'flaml' scheduler will be
+            used, otherwise no scheduler will be used. When set 'flaml', an
+            authentic scheduler implemented in FLAML will be used. It does not
+            require users to report intermediate results in training_function.
+            Find more details abuot this scheduler in this paper
+            https://arxiv.org/pdf/1911.04706.pdf).
+            When set 'asha', the input for arguments "resource_attr",
+            "min_resource", "max_resource" and "reduction_factor" will be passed
+            to ASHA's "time_attr",  "max_t", "grace_period" and "reduction_factor"
+            respectively. You can also provide a self-defined scheduler instance
+            of the TrialScheduler class. When 'asha' or self-defined scheduler is
+            used, you usually need to report intermediate results in the training
+            function. Please find examples using different types of schedulers
+            and how to set up the corresponding training functions in
+            test/tune/test_scheduler.py. TODO: point to notebook examples.
         search_alg: An instance of BlendSearch as the search algorithm
             to be used. The same instance can be used for iterative tuning.
             e.g.,
@@ -295,6 +304,20 @@ def run(
     from ..searcher.blendsearch import BlendSearch
 
     if search_alg is None:
+        flaml_scheduler_resource_attr = (
+            flaml_scheduler_min_resource
+        ) = flaml_scheduler_max_resource = flaml_scheduler_reduction_factor = None
+        if scheduler in (None, "flaml"):
+
+            # when scheduler is set 'flaml', we will use a scheduler that is
+            # authentic to the search algorithms in flaml. After setting up
+            # the search algorithm accordingly, we need to set scheduler to
+            # None in case it is later used in the trial runner.
+            flaml_scheduler_resource_attr = resource_attr
+            flaml_scheduler_min_resource = min_resource
+            flaml_scheduler_max_resource = max_resource
+            flaml_scheduler_reduction_factor = reduction_factor
+            scheduler = None
         search_alg = BlendSearch(
             metric=metric or DEFAULT_METRIC,
             mode=mode,
@@ -305,10 +328,10 @@ def run(
             cat_hp_cost=cat_hp_cost,
             time_budget_s=time_budget_s,
             num_samples=num_samples,
-            prune_attr=prune_attr,
-            min_resource=min_resource,
-            max_resource=max_resource,
-            reduction_factor=reduction_factor,
+            resource_attr=flaml_scheduler_resource_attr,
+            min_resource=flaml_scheduler_min_resource,
+            max_resource=flaml_scheduler_max_resource,
+            reduction_factor=flaml_scheduler_reduction_factor,
             config_constraints=config_constraints,
             metric_constraints=metric_constraints,
         )
@@ -334,12 +357,11 @@ def run(
             searcher.set_search_properties(metric, mode, config, setting)
         else:
             searcher.set_search_properties(metric, mode, config)
-    scheduler = None
-    if report_intermediate_result:
+    if scheduler == "asha":
         params = {}
-        # scheduler resource_dimension=prune_attr
-        if prune_attr:
-            params["time_attr"] = prune_attr
+        # scheduler resource_dimension=resource_attr
+        if resource_attr:
+            params["time_attr"] = resource_attr
         if max_resource:
             params["max_t"] = max_resource
         if min_resource:
