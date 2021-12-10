@@ -590,9 +590,7 @@ class TransformersEstimator(BaseEstimator):
         return best_ckpt
 
     def _compute_metrics_by_dataset_name(self, eval_pred):
-        from .ml import sklearn_metric_loss_score
-        import datasets
-        from .nlp.utils import load_default_huggingface_metric_for_task
+        from .ml import metric_loss_score
 
         predictions, labels = eval_pred
         predictions = (
@@ -601,24 +599,10 @@ class TransformersEstimator(BaseEstimator):
             else np.argmax(predictions, axis=1)
         )
 
-        if isinstance(self._metric_name, str):
-            return {
-                "val_loss": sklearn_metric_loss_score(
-                    metric_name=self._metric_name, y_predict=predictions, y_true=labels
+        return {
+            "val_loss": metric_loss_score(
+                metric_name=self._metric_name, y_predict=predictions, y_true=labels
                 )
-            }
-        else:
-            (
-                default_metric_name,
-                default_metric_mode,
-            ) = load_default_huggingface_metric_for_task(self._task)
-            metric = datasets.load_metric(default_metric_name)
-            multiplier = -1 if default_metric_mode == "max" else 1
-            return {
-                "val_loss": metric.compute(predictions=predictions, references=labels)[
-                    default_metric_name
-                ]
-                * multiplier
             }
 
     def predict_proba(self, X_test):
@@ -673,7 +657,7 @@ class TransformersEstimator(BaseEstimator):
         if self._task == SEQCLASSIFICATION:
             return np.argmax(predictions.predictions, axis=1)
         elif self._task == SEQREGRESSION:
-            return predictions.predictions
+            return predictions.predictions.reshape((len(predictions.predictions),))
         # TODO: elif self._task == your task, return the corresponding prediction
         #  e.g., if your task == QUESTIONANSWERING, you need to return the answer instead
         #  of the index
