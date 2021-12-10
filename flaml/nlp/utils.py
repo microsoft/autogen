@@ -2,14 +2,23 @@ import argparse
 from dataclasses import dataclass, field
 from typing import Dict, Any
 
+from ..data import (
+    SUMMARIZATION,
+    SEQREGRESSION,
+    SEQCLASSIFICATION,
+    NLG_TASKS
+)
+
 
 def load_default_huggingface_metric_for_task(task):
     from ..data import SEQCLASSIFICATION, SEQREGRESSION
 
     if task == SEQCLASSIFICATION:
-        return "accuracy", "max"
+        return "accuracy"
     elif task == SEQREGRESSION:
-        return "rmse", "max"
+        return "rmse"
+    elif task == SUMMARIZATION:
+        return "rouge"
     # TODO: elif task == your task, return the default metric name for your task,
     #  e.g., if task == MULTIPLECHOICE, return "accuracy"
     #  notice this metric name has to be in ['accuracy', 'bertscore', 'bleu', 'bleurt',

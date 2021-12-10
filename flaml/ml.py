@@ -38,6 +38,52 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+sklearn_metric_name_set = {
+    "r2",
+    "rmse",
+    "mae",
+    "mse",
+    "accuracy",
+    "roc_auc",
+    "roc_auc_ovr",
+    "roc_auc_ovo",
+    "log_loss",
+    "mape",
+    "f1",
+    "ap",
+    "ndcg",
+    "micro_f1",
+    "macro_f1",
+}
+huggingface_metric_to_mode = {
+    "accuracy": "max",
+    "bertscore": "max",
+    "bleu": "max",
+    "bleurt": "max",
+    "cer": "min",
+    "chrf": "min",
+    "code_eval": "max",
+    "comet": "max",
+    "competition_math": "max",
+    "coval": "max",
+    "cuad": "max",
+    "f1": "max",
+    "gleu": "max",
+    "google_bleu": "max",
+    "matthews_correlation": "max",
+    "meteor": "max",
+    "pearsonr": "max",
+    "precision": "max",
+    "recall": "max",
+    "rouge": "max",
+    "sacrebleu": "max",
+    "sari": "max",
+    "seqeval": "max",
+    "spearmanr": "max",
+    "ter": "min",
+    "wer": "min",
+}
+
 
 def get_estimator_class(task, estimator_name):
     # when adding a new learner, need to add an elif branch
@@ -75,6 +121,74 @@ def get_estimator_class(task, estimator_name):
     return estimator_class
 
 
+def metric_loss_score(
+    metric_name,
+    y_predict,
+    y_true,
+    labels=None,
+    sample_weight=None,
+    groups=None,
+):
+    if is_in_sklearn_metric_name_set(metric_name):
+        return sklearn_metric_loss_score(
+            metric_name, y_predict, y_true, labels, sample_weight, groups
+        )
+    else:
+        """
+        hf's datasets.load_metric("pearsonr") returns nan (hf's bug), overwriting it here
+        """
+        if metric_name == "spearmanr":
+            from scipy.stats import spearmanr
+
+            y_true = y_true.to_list() if type(y_true) == pd.Series else list(y_true)
+            score = spearmanr(list(y_predict), y_true)[0]
+            metric_mode = "max"
+        elif metric_name == "pearsonr":
+            from scipy.stats import pearsonr
+
+            y_true = y_true.to_list() if type(y_true) == pd.Series else list(y_true)
+            score = pearsonr(list(y_predict), y_true)[0]
+            metric_mode = "max"
+        else:
+            try:
+                import datasets
+
+                metric = datasets.load_metric(metric_name)
+                metric_mode = huggingface_metric_to_mode[metric_name]
+                score = metric.compute(predictions=y_predict, references=y_true)[
+                    metric_name
+                ]
+            except ImportError:
+                raise Exception(
+                    metric_name
+                    + " is not an built-in sklearn metric and nlp is not installed. "
+                    "Currently built-in sklearn metrics are: "
+                    "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
+                    "log_loss, mape, f1, micro_f1, macro_f1, ap. "
+                    "If the metric is an nlp metric, please pip install flaml[nlp] ",
+                    "or pass a customized metric function to AutoML.fit(metric=func)",
+                )
+            # If the metric is not found from huggingface dataset metric list (i.e., FileNotFoundError)
+            # ask the user to provide a custom metric
+            except FileNotFoundError:
+                raise Exception(
+                    metric_name
+                    + " is neither an sklearn metric nor a huggingface metric. "
+                    "Currently built-in sklearn metrics are: "
+                    "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
+                    "log_loss, mape, f1, micro_f1, macro_f1, ap. "
+                    "Currently built-in huggingface metrics are: "
+                    + ", ".join(huggingface_metric_to_mode.keys())
+                    + ". Please pass a customized metric function to AutoML.fit(metric=func)"
+                )
+        multiplier = -1 if metric_mode == "max" else 1
+        return score * multiplier
+
+
+def is_in_sklearn_metric_name_set(metric_name):
+    return metric_name.startswith("ndcg") or metric_name in sklearn_metric_name_set
+
+
 def sklearn_metric_loss_score(
     metric_name,
     y_predict,
@@ -102,6 +216,7 @@ def sklearn_metric_loss_score(
         score: A float number of the loss, the lower the better.
     """
     metric_name = metric_name.lower()
+
     if "r2" == metric_name:
         score = 1.0 - r2_score(y_true, y_predict, sample_weight=sample_weight)
     elif metric_name == "rmse":
@@ -162,14 +277,6 @@ def sklearn_metric_loss_score(
             score += 1
         else:
             score = 1 - ndcg_score([y_true], [y_predict])
-    else:
-        raise ValueError(
-            metric_name + " is not a built-in metric, "
-            "currently built-in metrics are: "
-            "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
-            "log_loss, mape, f1, micro_f1, macro_f1, ap. "
-            "please pass a customized metric function to AutoML.fit(metric=func)"
-        )
     return score
 
 
@@ -203,13 +310,13 @@ def _eval_estimator(
         pred_start = time.time()
         val_pred_y = get_y_pred(estimator, X_val, eval_metric, obj)
         pred_time = (time.time() - pred_start) / X_val.shape[0]
-        val_loss = sklearn_metric_loss_score(
+        val_loss = metric_loss_score(
             eval_metric, val_pred_y, y_val, labels, weight_val, groups_val
         )
         metric_for_logging = {"pred_time": pred_time}
         if log_training_metric:
             train_pred_y = get_y_pred(estimator, X_train, eval_metric, obj)
-            metric_for_logging["train_loss"] = sklearn_metric_loss_score(
+            metric_for_logging["train_loss"] = metric_loss_score(
                 eval_metric,
                 train_pred_y,
                 y_train,

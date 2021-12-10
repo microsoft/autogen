@@ -1974,10 +1974,6 @@ class AutoML(BaseEstimator):
         self._min_sample_size = min_sample_size
         self._prepare_data(eval_method, split_ratio, n_splits)
 
-        if _is_nlp_task(self._state.task):
-            self._state.fit_kwargs["metric"] = metric
-            self._state.fit_kwargs["use_ray"] = self._use_ray
-
         self._sample = (
             sample
             and task != "rank"
@@ -1996,24 +1992,50 @@ class AutoML(BaseEstimator):
                 metric = "mape"
             elif self._state.task == "rank":
                 metric = "ndcg"
+            elif _is_nlp_task(self._state.task):
+                from .nlp.utils import load_default_huggingface_metric_for_task
+
+                metric = load_default_huggingface_metric_for_task(self._state.task)
             else:
                 metric = "r2"
+
+        if _is_nlp_task(self._state.task):
+            self._state.fit_kwargs["metric"] = metric
+            self._state.fit_kwargs["use_ray"] = self._use_ray
+
         self._state.metric = metric
-        if metric in [
-            "r2",
-            "accuracy",
-            "roc_auc",
-            "roc_auc_ovr",
-            "roc_auc_ovo",
-            "f1",
-            "ap",
-            "micro_f1",
-            "macro_f1",
-            "ndcg",
-        ]:
-            error_metric = f"1-{metric}"
-        elif isinstance(metric, str):
-            error_metric = metric
+
+        def is_to_reverse_metric(metric, task):
+            if metric.startswith("ndcg"):
+                return True, f"1-{metric}"
+            if metric in [
+                "r2",
+                "accuracy",
+                "roc_auc",
+                "roc_auc_ovr",
+                "roc_auc_ovo",
+                "f1",
+                "ap",
+                "micro_f1",
+                "macro_f1",
+            ]:
+                return True, f"1-{metric}"
+            if _is_nlp_task(task):
+                from .ml import huggingface_metric_to_mode
+
+                if (
+                    metric in huggingface_metric_to_mode
+                    and huggingface_metric_to_mode[metric] == "max"
+                ):
+                    return True, f"-{metric}"
+            return False, None
+
+        if isinstance(metric, str):
+            is_reverse, reverse_metric = is_to_reverse_metric(metric, task)
+            if is_reverse:
+                error_metric = reverse_metric
+            else:
+                error_metric = metric
         else:
             error_metric = "customized metric"
         logger.info(f"Minimizing error metric: {error_metric}")
