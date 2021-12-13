@@ -308,7 +308,7 @@ def run(
         else:
             logger.setLevel(logging.CRITICAL)
 
-    from ..searcher.blendsearch import BlendSearch
+    from ..searcher.blendsearch import BlendSearch, CFO
 
     if search_alg is None:
         flaml_scheduler_resource_attr = (
@@ -325,7 +325,17 @@ def run(
             flaml_scheduler_max_resource = max_resource
             flaml_scheduler_reduction_factor = reduction_factor
             scheduler = None
-        search_alg = BlendSearch(
+        try:
+            import optuna
+
+            SearchAlgorithm = BlendSearch
+        except ImportError:
+            SearchAlgorithm = CFO
+            logger.warning(
+                "Using CFO for search. To use BlendSearch, run: pip install flaml[blendsearch]"
+            )
+
+        search_alg = SearchAlgorithm(
             metric=metric or DEFAULT_METRIC,
             mode=mode,
             space=config,
