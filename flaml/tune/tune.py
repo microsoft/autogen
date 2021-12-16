@@ -30,6 +30,8 @@ _verbose = 0
 _running_trial = None
 _training_iteration = 0
 
+INCUMBENT_RESULT = "__incumbent_result__"
+
 
 class ExperimentAnalysis(EA):
     """Class for storing the experiment results."""
@@ -96,6 +98,8 @@ def report(_metric=None, **kwargs):
             _running_trial = trial
         result["training_iteration"] = _training_iteration
         result["config"] = trial.config
+        if INCUMBENT_RESULT in result["config"]:
+            del result["config"][INCUMBENT_RESULT]
         for key, value in trial.config.items():
             result["config/" + key] = value
         _runner.process_trial_result(_runner.running_trial, result)
@@ -134,6 +138,7 @@ def run(
     metric_constraints: Optional[List[Tuple[str, str, float]]] = None,
     max_failure: Optional[int] = 100,
     use_ray: Optional[bool] = False,
+    use_incumbent_result_in_evaluation: Optional[bool] = None,
 ):
     """The trigger for HPO.
 
@@ -351,6 +356,7 @@ def run(
             reduction_factor=flaml_scheduler_reduction_factor,
             config_constraints=config_constraints,
             metric_constraints=metric_constraints,
+            use_incumbent_result_in_evaluation=use_incumbent_result_in_evaluation,
         )
     else:
         if metric is None or mode is None:
@@ -360,6 +366,18 @@ def run(
             from ray.tune.suggest import ConcurrencyLimiter
         else:
             from flaml.searcher.suggestion import ConcurrencyLimiter
+        if (
+            search_alg.__class__.__name__
+            in [
+                "BlendSearch",
+                "CFO",
+                "CFOCat",
+            ]
+            and use_incumbent_result_in_evaluation is not None
+        ):
+            search_alg.use_incumbent_result_in_evaluation = (
+                use_incumbent_result_in_evaluation
+            )
         searcher = (
             search_alg.searcher
             if isinstance(search_alg, ConcurrencyLimiter)

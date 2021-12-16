@@ -18,6 +18,7 @@ except (ImportError, AssertionError):
     from .suggestion import Searcher
     from .suggestion import OptunaSearch as GlobalSearch
 from ..tune.trial import unflatten_dict, flatten_dict
+from ..tune import INCUMBENT_RESULT
 from .search_thread import SearchThread
 from .flow2 import FLOW2
 from ..tune.space import add_cost_to_space, indexof, normalize, define_by_run_func
@@ -56,6 +57,7 @@ class BlendSearch(Searcher):
         metric_constraints: Optional[List[Tuple[str, str, float]]] = None,
         seed: Optional[int] = 20,
         experimental: Optional[bool] = False,
+        use_incumbent_result_in_evaluation=False,
     ):
         """Constructor.
 
@@ -118,6 +120,7 @@ class BlendSearch(Searcher):
             experimental: A bool of whether to use experimental features.
         """
         self._metric, self._mode = metric, mode
+        self._use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
         init_config = low_cost_partial_config or {}
         if not init_config:
             logger.info(
@@ -734,6 +737,12 @@ class BlendSearch(Searcher):
                 result = {self._metric: reward, self.cost_attr: 1, "config": config}
                 self.on_trial_complete(trial_id, result)
                 return None
+        if self._use_incumbent_result_in_evaluation:
+            if self._trial_proposed_by[trial_id] > 0:
+                choice_thread = self._search_thread_pool[
+                    self._trial_proposed_by[trial_id]
+                ]
+                config[INCUMBENT_RESULT] = choice_thread.best_result
         return config
 
     def _should_skip(self, choice, trial_id, config, space) -> bool:
