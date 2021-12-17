@@ -412,7 +412,7 @@ def evaluate_model_CV(
     else:
         labels = None
     groups = None
-    shuffle = True
+    shuffle = False if task == TS_FORECAST else True
     if isinstance(kf, RepeatedStratifiedKFold):
         kf = kf.split(X_train_split, y_train_split)
     elif isinstance(kf, GroupKFold):
@@ -423,7 +423,6 @@ def evaluate_model_CV(
         y_train_all = pd.DataFrame(y_train_all, columns=[TS_VALUE_COL])
         train = X_train_all.join(y_train_all)
         kf = kf.split(train)
-        shuffle = False
     elif isinstance(kf, TimeSeriesSplit):
         kf = kf.split(X_train_split, y_train_split)
     else:
