@@ -1,5 +1,3 @@
-import unittest
-
 from sklearn.datasets import fetch_openml
 from flaml.automl import AutoML
 from sklearn.model_selection import train_test_split, KFold
@@ -88,11 +86,11 @@ def test_rank():
 
     try:
         X, y = fetch_openml(name=dataset, return_X_y=True)
+        y = y.cat.codes
     except (ArffException, ValueError):
         from sklearn.datasets import load_wine
 
         X, y = load_wine(return_X_y=True)
-    y = y.cat.codes
     import numpy as np
 
     automl = AutoML()
@@ -163,5 +161,4 @@ def test_object():
 
 
 if __name__ == "__main__":
-    # unittest.main()
     test_groups()

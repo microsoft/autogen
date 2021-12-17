@@ -46,7 +46,7 @@ class ChampionFrontierSearcher(BaseSearcher):
     """The ChampionFrontierSearcher class.
 
     NOTE about the correspondence about this code and the research paper:
-    [ChaCha for Online AutoML](https://arxiv.org/pdf/2106.04815.pdf)
+    [ChaCha for Online AutoML](https://arxiv.org/pdf/2106.04815.pdf).
     This class serves the role of ConfigOralce as described in the paper.
     """
 

@@ -1,7 +1,7 @@
 # basic setup
 FROM python:3.7
 RUN apt-get update && apt-get -y update
-RUN apt-get install -y sudo git
+RUN apt-get install -y sudo git npm
 
 # Setup user to not run as root
 RUN adduser --disabled-password --gecos '' flaml-dev
@@ -18,6 +18,12 @@ RUN sudo pip install -e .[test,notebook]
 
 # Install precommit hooks
 RUN pre-commit install
+
+# For docs
+RUN npm install --global yarn
+RUN pip install pydoc-markdown
+RUN cd website
+RUN yarn install --frozen-lockfile
 
 # override default image starting point
 CMD /bin/bash

@@ -28,7 +28,7 @@ setuptools.setup(
     version=__version__,
     author="Microsoft Corporation",
     author_email="hpo@microsoft.com",
-    description="A fast and lightweight autoML system",
+    description="A fast library for automated machine learning and tuning",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/FLAML",

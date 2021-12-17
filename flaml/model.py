@@ -75,10 +75,10 @@ class BaseEstimator:
     """The abstract class for all learners.
 
     Typical examples:
-        * XGBoostEstimator: for regression.
-        * XGBoostSklearnEstimator: for classification.
-        * LGBMEstimator, RandomForestEstimator, LRL1Classifier, LRL2Classifier:
-            for both regression and classification.
+    * XGBoostEstimator: for regression.
+    * XGBoostSklearnEstimator: for classification.
+    * LGBMEstimator, RandomForestEstimator, LRL1Classifier, LRL2Classifier:
+        for both regression and classification.
     """
 
     def __init__(self, task="binary", **config):
@@ -86,7 +86,7 @@ class BaseEstimator:
 
         Args:
             task: A string of the task type, one of
-                'binary', 'multi', 'regression', 'rank', 'forecast'
+                'binary', 'multi', 'regression', 'rank', 'forecast'.
             config: A dictionary containing the hyperparameter names, 'n_jobs' as keys.
                 n_jobs is the number of parallel threads.
         """
@@ -209,6 +209,9 @@ class BaseEstimator:
             X_test = self._preprocess(X_test)
             return self._model.predict(X_test)
         else:
+            logger.warning(
+                "Estimator is not fit yet. Please run fit() before predict()."
+            )
             return np.ones(X_test.shape[0])
 
     def predict_proba(self, X_test):
@@ -247,8 +250,7 @@ class BaseEstimator:
             Each key is the name of a hyperparameter, and value is a dict with
                 its domain (required) and low_cost_init_value, init_value,
                 cat_hp_cost (if applicable).
-                e.g.,
-                `{'domain': tune.randint(lower=1, upper=10), 'init_value': 1}.`
+                e.g., ```{'domain': tune.randint(lower=1, upper=10), 'init_value': 1}```.
         """
         return {}
 
@@ -602,8 +604,8 @@ class TransformersEstimator(BaseEstimator):
         return {
             "val_loss": metric_loss_score(
                 metric_name=self._metric_name, y_predict=predictions, y_true=labels
-                )
-            }
+            )
+        }
 
     def predict_proba(self, X_test):
         from datasets import Dataset

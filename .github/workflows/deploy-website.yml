@@ -1,0 +1,88 @@
+name: docs
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  checks:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14.x
+          # cache: yarn
+          # cache-dependency-path: '**/yarn.lock'
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: pydoc-markdown install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydoc-markdown
+      - name: pydoc-markdown run
+        run: |
+          pydoc-markdown
+      - name: Test Build
+        run: |
+          if [ -e yarn.lock ]; then
+          yarn install --frozen-lockfile
+          yarn build
+          elif [ -e package-lock.json ]; then
+          npm ci
+          npm run build
+          else
+          npm i --legacy-peer-deps
+          npm run build
+          fi
+  gh-release:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14.x
+          # cache: yarn
+          # cache-dependency-path: '**/yarn.lock'
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: pydoc-markdown install
+        run: |
+          python -m pip install --upgrade pip
+          pip install pydoc-markdown
+      - name: pydoc-markdown run
+        run: |
+          pydoc-markdown
+      - name: Build website
+        run: |
+          if [ -e yarn.lock ]; then
+          yarn install --frozen-lockfile
+          yarn build
+          elif [ -e package-lock.json ]; then
+          npm ci
+          npm run build
+          else
+          npm i --legacy-peer-deps
+          npm run build
+          fi
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Build output to publish to the `gh-pages` branch:
+          publish_dir: ./website/build

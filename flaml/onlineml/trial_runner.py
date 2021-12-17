@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class OnlineTrialRunner:
-    """class for the OnlineTrialRunner."""
+    """Class for the OnlineTrialRunner."""
 
     # ************NOTE about the status of a trial***************
     # Trial.PENDING: All trials are set to be pending when frist added into the OnlineTrialRunner until

@@ -47,7 +47,7 @@ def get_ns_feature_dim_from_vw_example(vw_example) -> dict:
 
 
 class OnlineResult:
-    """class for managing the result statistics of a trial."""
+    """Class for managing the result statistics of a trial."""
 
     prob_delta = 0.1
     LOSS_MIN = 0.0

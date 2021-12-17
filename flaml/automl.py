@@ -379,10 +379,10 @@ class AutoMLState:
 
 
 def size(state: AutoMLState, config: dict) -> float:
-    """Size function
+    """Size function.
 
     Returns:
-        The mem size in bytes for a config
+        The mem size in bytes for a config.
     """
     config = config.get("ml", config)
     estimator = config["learner"]
@@ -392,20 +392,18 @@ def size(state: AutoMLState, config: dict) -> float:
 
 class AutoML(BaseEstimator):
     """The AutoML class.
-
     Example:
 
-        .. code-block:: python
-
-            automl = AutoML()
-            automl_settings = {
-                "time_budget": 60,
-                "metric": 'accuracy',
-                "task": 'classification',
-                "log_file_name": 'mylog.log',
-            }
-            automl.fit(X_train = X_train, y_train = y_train,
-                **automl_settings)
+    ```python
+    automl = AutoML()
+    automl_settings = {
+        "time_budget": 60,
+        "metric": 'accuracy',
+        "task": 'classification',
+        "log_file_name": 'mylog.log',
+    }
+    automl.fit(X_train = X_train, y_train = y_train, **automl_settings)
+    ```
 
     """
 
@@ -425,42 +423,40 @@ class AutoML(BaseEstimator):
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
                 have the follwing signature:
-
-                .. code-block:: python
-
-                    def custom_metric(
-                        X_val, y_val, estimator, labels,
-                        X_train, y_train, weight_val=None, weight_train=None,
-                        config=None, groups_val=None, groups_train=None,
-                    ):
-                        return metric_to_minimize, metrics_to_log
+        ```python
+        def custom_metric(
+            X_test, y_test, estimator, labels,
+            X_train, y_train, weight_test=None, weight_train=None,
+            config=None, groups_test=None, groups_train=None,
+        ):
+            return metric_to_minimize, metrics_to_log
+        ```
 
                 which returns a float number as the minimization objective,
                 and a dictionary as the metrics to log. E.g.,
 
-                .. code-block:: python
+        ```python
+        def custom_metric(
+            X_val, y_val, estimator, labels,
+            X_train, y_train, weight_val=None, weight_train=None,
+            **args,
+        ):
+            from sklearn.metrics import log_loss
+            import time
 
-                    def custom_metric(
-                        X_val, y_val, estimator, labels,
-                        X_train, y_train, weight_val=None, weight_train=None,
-                        **args,
-                    ):
-                        from sklearn.metrics import log_loss
-                        import time
-
-                        start = time.time()
-                        y_pred = estimator.predict_proba(X_val)
-                        pred_time = (time.time() - start) / len(X_val)
-                        val_loss = log_loss(y_val, y_pred, labels=labels, sample_weight=weight_val)
-                        y_pred = estimator.predict_proba(X_train)
-                        train_loss = log_loss(y_train, y_pred, labels=labels, sample_weight=weight_train)
-                        alpha = 0.5
-                        return val_loss * (1 + alpha) - alpha * train_loss, {
-                            "val_loss": val_loss,
-                            "train_loss": train_loss,
-                            "pred_time": pred_time,
-                        }
-
+            start = time.time()
+            y_pred = estimator.predict_proba(X_val)
+            pred_time = (time.time() - start) / len(X_val)
+            val_loss = log_loss(y_val, y_pred, labels=labels, sample_weight=weight_val)
+            y_pred = estimator.predict_proba(X_train)
+            train_loss = log_loss(y_train, y_pred, labels=labels, sample_weight=weight_train)
+            alpha = 0.5
+            return val_loss * (1 + alpha) - alpha * train_loss, {
+                "val_loss": val_loss,
+                "train_loss": train_loss,
+                "pred_time": pred_time,
+            }
+        ```
             task: A string of the task type, e.g.,
                 'classification', 'regression', 'ts_forecast', 'rank',
                 'seq-classification', 'seq-regression'.
@@ -469,11 +465,7 @@ class AutoML(BaseEstimator):
             log_file_name: A string of the log file name. To disable logging,
                 set it to be an empty string "".
             estimator_list: A list of strings for estimator names, or 'auto'
-                e.g.,
-
-                .. code-block:: python
-
-                    ['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']
+                e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
 
             time_budget: A float number of the time budget in seconds.
                 Use -1 if no time limit.
@@ -533,28 +525,28 @@ class AutoML(BaseEstimator):
                 The value can be a single hyperparamter configuration dict or a list
                 of hyperparamter configuration dicts.
                 In the following code example, we get starting_points from the
-                automl_experiment and use them in the new_automl_experiment.
+                `automl` object and use them in the `new_automl` object.
                 e.g.,
 
-                .. code-block:: python
 
-                    from flaml import AutoML
-                    automl_experiment = AutoML()
-                    X_train, y_train = load_iris(return_X_y=True)
-                    automl_experiment.fit(X_train, y_train)
-                    starting_points = automl_experiment.best_config_per_estimator
+        ```python
+        from flaml import AutoML
+        automl = AutoML()
+        X_train, y_train = load_iris(return_X_y=True)
+        automl.fit(X_train, y_train)
+        starting_points = automl.best_config_per_estimator
 
-                    new_automl_experiment = AutoML()
-                    new_automl_experiment.fit(X_train, y_train,
-                        starting_points=starting_points)
+        new_automl = AutoML()
+        new_automl.fit(X_train, y_train, starting_points=starting_points)
+        ```
 
             seed: int or None, default=None | The random seed for np.random.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. For n_concurrent_trials > 1, installation of
                 ray is required: `pip install flaml[ray]`.
-            keep_search_state: boolean, default=False | Whether to keep search
-                state after fit(). By default the state is deleted for space
-                saving.
+            keep_search_state: boolean, default=False | Whether to keep data needed
+                for model search after fit(). By default the state is deleted for
+                space saving.
             early_stop: boolean, default=False | Whether to stop early if the
                 search is considered to converge.
             append_log: boolean, default=False | Whetehr to directly append the log
@@ -634,8 +626,10 @@ class AutoML(BaseEstimator):
             estimator_name: a str of the estimator's name.
 
         Returns:
-            An object with `predict()` and `predict_proba()` method (for
-            classification), storing the best trained model for estimator_name.
+            An object storing the best model for estimator_name.
+            If `model_history` was set to False during fit(), then the returned model
+            is untrained unless estimator_name is the best estimator.
+            If `model_history` was set to True, then the returned model is trained.
         """
         state = self._search_states.get(estimator_name)
         return state and getattr(state, "trained_estimator", None)
@@ -725,17 +719,17 @@ class AutoML(BaseEstimator):
                     are assumed to be exogenous variables (categorical
                     or numeric).
 
-                    .. code-block:: python
-
-                        multivariate_X_test = pd.DataFrame({
-                            'timeStamp': pd.date_range(start='1/1/2022', end='1/07/2022'),
-                            'categorical_col': ['yes', 'yes', 'no', 'no', 'yes', 'no', 'yes'],
-                            'continuous_col': [105, 107, 120, 118, 110, 112, 115]
-                        })
-                        model.predict(multivariate_X_test)
+        ```python
+        multivariate_X_test = pd.DataFrame({
+            'timeStamp': pd.date_range(start='1/1/2022', end='1/07/2022'),
+            'categorical_col': ['yes', 'yes', 'no', 'no', 'yes', 'no', 'yes'],
+            'continuous_col': [105, 107, 120, 118, 110, 112, 115]
+        })
+        model.predict(multivariate_X_test)
+        ```
 
         Returns:
-            A array-like of shape n * 1 - - each element is a predicted
+            A array-like of shape n * 1: each element is a predicted
             label for an instance.
         """
         estimator = getattr(self, "_trained_estimator", None)
@@ -1542,10 +1536,10 @@ class AutoML(BaseEstimator):
 
     @property
     def points_to_evaluate(self) -> dict:
-        """Initial points to evaluate
+        """Initial points to evaluate.
 
         Returns:
-            A list of dicts. Each dict is the initial point for each learner
+            A list of dicts. Each dict is the initial point for each learner.
         """
         points = []
         for estimator in self.estimator_list:
@@ -1711,14 +1705,14 @@ class AutoML(BaseEstimator):
                 If passing a customized metric function, the function needs to
                 have the follwing signature:
 
-                .. code-block:: python
-
-                    def custom_metric(
-                        X_val, y_val, estimator, labels,
-                        X_train, y_train, weight_val=None, weight_train=None,
-                        config=None, groups_val=None, groups_train=None,
-                    ):
-                        return metric_to_minimize, metrics_to_log
+        ```python
+        def custom_metric(
+            X_test, y_test, estimator, labels,
+            X_train, y_train, weight_test=None, weight_train=None,
+            config=None, groups_test=None, groups_train=None,
+        ):
+            return metric_to_minimize, metrics_to_log
+        ```
 
                 which returns a float number as the minimization objective,
                 and a dictionary as the metrics to log. E.g.,
@@ -1754,11 +1748,7 @@ class AutoML(BaseEstimator):
             log_file_name: A string of the log file name. To disable logging,
                 set it to be an empty string "".
             estimator_list: A list of strings for estimator names, or 'auto'
-                e.g.,
-
-                .. code-block:: python
-
-                    ['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']
+                e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
 
             time_budget: A float number of the time budget in seconds.
                 Use -1 if no time limit.
@@ -1777,8 +1767,10 @@ class AutoML(BaseEstimator):
                 ['better', 'all'].
                 'better' only logs configs with better loss than previos iters
                 'all' logs all the tried configs.
-            model_history: A boolean of whether to keep the best
+            model_history: A boolean of whether to keep the trained best
                 model per estimator. Make sure memory is large enough if setting to True.
+                Default value is False: best_model_for_estimator would return a
+                untrained model for non-best learner.
             log_training_metric: A boolean of whether to log the training
                 metric for each model.
             mem_thres: A float of the memory size constraint in bytes.
@@ -1828,28 +1820,27 @@ class AutoML(BaseEstimator):
                 The value can be a single hyperparamter configuration dict or a list
                 of hyperparamter configuration dicts.
                 In the following code example, we get starting_points from the
-                automl_experiment and use them in the new_automl_experiment.
+                `automl` object and use them in the `new_automl` object.
                 e.g.,
 
-                .. code-block:: python
+        ```python
+        from flaml import AutoML
+        automl = AutoML()
+        X_train, y_train = load_iris(return_X_y=True)
+        automl.fit(X_train, y_train)
+        starting_points = automl.best_config_per_estimator
 
-                    from flaml import AutoML
-                    automl_experiment = AutoML()
-                    X_train, y_train = load_iris(return_X_y=True)
-                    automl_experiment.fit(X_train, y_train)
-                    starting_points = automl_experiment.best_config_per_estimator
-
-                    new_automl_experiment = AutoML()
-                    new_automl_experiment.fit(X_train, y_train,
-                        starting_points=starting_points)
+        new_automl = AutoML()
+        new_automl.fit(X_train, y_train, starting_points=starting_points)
+        ```
 
             seed: int or None, default=None | The random seed for np.random.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. For n_concurrent_trials > 1, installation of
                 ray is required: `pip install flaml[ray]`.
-            keep_search_state: boolean, default=False | Whether to keep search
-                state after fit(). By default the state is deleted for space
-                saving.
+            keep_search_state: boolean, default=False | Whether to keep data needed
+                for model search after fit(). By default the state is deleted for
+                space saving.
             early_stop: boolean, default=False | Whether to stop early if the
                 search is considered to converge.
             append_log: boolean, default=False | Whetehr to directly append the log
