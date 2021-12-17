@@ -44,4 +44,4 @@ autovw = AutoVW(max_live_model_num=5, search_space=search_space_nilr, init_confi
 A user can use the resulting AutoVW instances `autovw` in a similar way to a vanilla Vowpal Wabbit instance, i.e., `pyvw.vw`, to perform online learning by iteratively calling its `predict(data_example)` and `learn(data_example)` functions at each data example.
 
 For more examples, please check out
-[AutoVW notebook](https://github.com/microsoft/FLAML/blob/main/notebook/flaml_autovw.ipynb).
+[AutoVW notebook](https://github.com/microsoft/FLAML/blob/main/notebook/autovw.ipynb).

@@ -44,18 +44,19 @@ def load_openml_dataset(
     If the file is not cached locally, download it from open ML.
 
     Args:
-        dataset_id: An integer of the dataset id in openml
-        data_dir: A string of the path to store and load the data
-        random_state: An integer of the random seed for splitting data
+        dataset_id: An integer of the dataset id in openml.
+        data_dir: A string of the path to store and load the data.
+        random_state: An integer of the random seed for splitting data.
         dataset_format: A string specifying the format of returned dataset. Default is 'dataframe'.
             Can choose from ['dataframe', 'array'].
             If 'dataframe', the returned dataset will be a Pandas DataFrame.
             If 'array', the returned dataset will be a NumPy array or a SciPy sparse matrix.
+
     Returns:
-        X_train: Training data
-        X_test:  Test data
-        y_train: A series or array of labels for training data
-        y_test:  A series or array of labels for test data
+        X_train: Training data.
+        X_test:  Test data.
+        y_train: A series or array of labels for training data.
+        y_test:  A series or array of labels for test data.
     """
     import os
     import openml
@@ -98,14 +99,14 @@ def load_openml_task(task_id, data_dir):
     If the file is not cached locally, download it from open ML.
 
     Args:
-        task_id: An integer of the task id in openml
-        data_dir: A string of the path to store and load the data
+        task_id: An integer of the task id in openml.
+        data_dir: A string of the path to store and load the data.
 
     Returns:
-        X_train: A dataframe of training data
-        X_test:  A dataframe of test data
-        y_train: A series of labels for training data
-        y_test:  A series of labels for test data
+        X_train: A dataframe of training data.
+        X_test:  A dataframe of test data.
+        y_train: A series of labels for training data.
+        y_test:  A series of labels for test data.
     """
     import os
     import openml
@@ -145,7 +146,7 @@ def load_openml_task(task_id, data_dir):
 
 
 def get_output_from_log(filename, time_budget):
-    """Get output from log file
+    """Get output from log file.
 
     Args:
         filename: A string of the log file name.
@@ -208,7 +209,7 @@ def get_output_from_log(filename, time_budget):
 
 
 def concat(X1, X2):
-    """concatenate two matrices vertically"""
+    """concatenate two matrices vertically."""
     if isinstance(X1, (DataFrame, Series)):
         df = pd.concat([X1, X2], sort=False)
         df.reset_index(drop=True, inplace=True)

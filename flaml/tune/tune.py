@@ -51,27 +51,27 @@ def report(_metric=None, **kwargs):
 
     Example:
 
-    .. code-block:: python
+    ```python
+    import time
+    from flaml import tune
 
-        import time
-        from flaml import tune
+    def compute_with_config(config):
+        current_time = time.time()
+        metric2minimize = (round(config['x'])-95000)**2
+        time2eval = time.time() - current_time
+        tune.report(metric2minimize=metric2minimize, time2eval=time2eval)
 
-        def compute_with_config(config):
-            current_time = time.time()
-            metric2minimize = (round(config['x'])-95000)**2
-            time2eval = time.time() - current_time
-            tune.report(metric2minimize=metric2minimize, time2eval=time2eval)
+    analysis = tune.run(
+        compute_with_config,
+        config={
+            'x': tune.lograndint(lower=1, upper=1000000),
+            'y': tune.randint(lower=1, upper=1000000)
+        },
+        metric='metric2minimize', mode='min',
+        num_samples=1000000, time_budget_s=60, use_ray=False)
 
-        analysis = tune.run(
-            compute_with_config,
-            config={
-                'x': tune.lograndint(lower=1, upper=1000000),
-                'y': tune.randint(lower=1, upper=1000000)
-            },
-            metric='metric2minimize', mode='min',
-            num_samples=1000000, time_budget_s=60, use_ray=False)
-
-        print(analysis.trials[-1].last_result)
+    print(analysis.trials[-1].last_result)
+    ```
 
     Args:
         _metric: Optional default anonymous metric for ``tune.report(value)``.
@@ -144,27 +144,27 @@ def run(
 
     Example:
 
-    .. code-block:: python
+    ```python
+    import time
+    from flaml import tune
 
-        import time
-        from flaml import tune
+    def compute_with_config(config):
+        current_time = time.time()
+        metric2minimize = (round(config['x'])-95000)**2
+        time2eval = time.time() - current_time
+        tune.report(metric2minimize=metric2minimize, time2eval=time2eval)
 
-        def compute_with_config(config):
-            current_time = time.time()
-            metric2minimize = (round(config['x'])-95000)**2
-            time2eval = time.time() - current_time
-            tune.report(metric2minimize=metric2minimize, time2eval=time2eval)
+    analysis = tune.run(
+        compute_with_config,
+        config={
+            'x': tune.lograndint(lower=1, upper=1000000),
+            'y': tune.randint(lower=1, upper=1000000)
+        },
+        metric='metric2minimize', mode='min',
+        num_samples=-1, time_budget_s=60, use_ray=False)
 
-        analysis = tune.run(
-            compute_with_config,
-            config={
-                'x': tune.lograndint(lower=1, upper=1000000),
-                'y': tune.randint(lower=1, upper=1000000)
-            },
-            metric='metric2minimize', mode='min',
-            num_samples=-1, time_budget_s=60, use_ray=False)
-
-        print(analysis.trials[-1].last_result)
+    print(analysis.trials[-1].last_result)
+    ```
 
     Args:
         evaluation_function: A user-defined evaluation function.
@@ -176,20 +176,11 @@ def run(
         config: A dictionary to specify the search space.
         low_cost_partial_config: A dictionary from a subset of
             controlled dimensions to the initial low-cost values.
-            e.g.,
-
-            .. code-block:: python
-
-                {'n_estimators': 4, 'max_leaves': 4}
+            e.g., ```{'n_estimators': 4, 'max_leaves': 4}```
 
         cat_hp_cost: A dictionary from a subset of categorical dimensions
             to the relative cost of each choice.
-            e.g.,
-
-            .. code-block:: python
-
-                {'tree_method': [1, 1, 2]}
-
+            e.g., ```{'tree_method': [1, 1, 2]}```
             i.e., the relative cost of the
             three choices of 'tree_method' is 1, 1 and 2 respectively
         metric: A string of the metric name to optimize for.
@@ -206,13 +197,13 @@ def run(
             points_to_evaluate.
             e.g.,
 
-            .. code-block:: python
-
-                points_to_evaluate = [
-                    {"b": .99, "cost_related": {"a": 3}},
-                    {"b": .99, "cost_related": {"a": 2}},
-                ]
-                evaluated_rewards=[3.0, 1.0]
+    ```python
+    points_to_evaluate = [
+        {"b": .99, "cost_related": {"a": 3}},
+        {"b": .99, "cost_related": {"a": 2}},
+    ]
+    evaluated_rewards=[3.0, 1.0]
+    ```
 
             means that you know the reward for the two configs in
             points_to_evaluate are 3.0 and 1.0 respectively and want to
@@ -245,16 +236,16 @@ def run(
             to be used. The same instance can be used for iterative tuning.
             e.g.,
 
-            .. code-block:: python
-
-                from flaml import BlendSearch
-                algo = BlendSearch(metric='val_loss', mode='min',
-                        space=search_space,
-                        low_cost_partial_config=low_cost_partial_config)
-                for i in range(10):
-                    analysis = tune.run(compute_with_config,
-                        search_alg=algo, use_ray=False)
-                    print(analysis.trials[-1].last_result)
+    ```python
+    from flaml import BlendSearch
+    algo = BlendSearch(metric='val_loss', mode='min',
+            space=search_space,
+            low_cost_partial_config=low_cost_partial_config)
+    for i in range(10):
+        analysis = tune.run(compute_with_config,
+            search_alg=algo, use_ray=False)
+        print(analysis.trials[-1].last_result)
+    ```
 
         verbose: 0, 1, 2, or 3. Verbosity mode for ray if ray backend is used.
             0 = silent, 1 = only status updates, 2 = status and brief trial
@@ -265,11 +256,7 @@ def run(
         resources_per_trial: A dictionary of the hardware resources to allocate
             per trial, e.g., `{'cpu': 1}`. Only valid when using ray backend.
         config_constraints: A list of config constraints to be satisfied.
-            e.g.,
-
-            .. code-block: python
-
-                config_constraints = [(mem_size, '<=', 1024**3)]
+            e.g., ```config_constraints = [(mem_size, '<=', 1024**3)]```
 
             mem_size is a function which produces a float number for the bytes
             needed for a config.

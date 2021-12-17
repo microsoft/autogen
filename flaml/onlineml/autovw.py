@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class AutoVW:
-    """class for the AutoVW algorithm."""
+    """Class for the AutoVW algorithm."""
 
     WARMSTART_NUM = 100
     AUTOMATIC = "_auto"
@@ -53,23 +53,27 @@ class AutoVW:
             automl_runner_args: A dictionary of configuration for the OnlineTrialRunner.
                 If set {}, default values will be used, which is equivalent to using
                 the following configs.
-                .. code-block:: python
+                Example:
 
-                    automl_runner_args =
-                    {"champion_test_policy": 'loss_ucb',# the statistic test for a better champion
-                    "remove_worse": False,              # whether to do worse than test
-                    }
+        ```python
+        automl_runner_args = {
+            "champion_test_policy": 'loss_ucb', # the statistic test for a better champion
+            "remove_worse": False,              # whether to do worse than test
+        }
+        ```
 
             scheduler_args: A dictionary of configuration for the scheduler.
                 If set {}, default values will be used, which is equivalent to using the
                 following config.
-                .. code-block:: python
+                Example:
 
-                    scheduler_args =
-                    {"keep_challenger_metric": 'ucb', # what metric to use when deciding the top performing challengers
-                    "keep_challenger_ratio": 0.5,     # denotes the ratio of top performing challengers to keep live
-                    "keep_champion": True,            # specifcies whether to keep the champion always running
-                    }
+        ```python
+        scheduler_args = {
+            "keep_challenger_metric": 'ucb',  # what metric to use when deciding the top performing challengers
+            "keep_challenger_ratio": 0.5,     # denotes the ratio of top performing challengers to keep live
+            "keep_champion": True,            # specifcies whether to keep the champion always running
+        }
+        ```
 
             model_select_policy: A string in ['threshold_loss_ucb',
                 'threshold_loss_lcb', 'threshold_loss_avg', 'loss_ucb', 'loss_lcb',

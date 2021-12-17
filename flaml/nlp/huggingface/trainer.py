@@ -15,7 +15,7 @@ class TrainerForAuto(TFTrainer):
         metric_key_prefix="eval",
         is_seq2seq=False,
     ):
-        """Overriding transformers.Trainer.evaluate by saving metrics and checkpoint path"""
+        """Overriding transformers.Trainer.evaluate by saving metrics and checkpoint path."""
         from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
         ckpt_dir = os.path.join(

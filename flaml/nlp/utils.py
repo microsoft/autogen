@@ -269,20 +269,16 @@ def compute_checkpoint_freq(
 
 @dataclass
 class HPOArgs:
-    """The HPO setting
+    """The HPO setting.
 
     Args:
-        output_dir (:obj:`str`):
-            data root directory for outputing the log, etc.
-        model_path (:obj:`str`, `optional`, defaults to :obj:`facebook/muppet-roberta-base`):
-            A string, the path of the language model file, either a path from huggingface
-            model card huggingface.co/models, or a local path for the model
-        fp16 (:obj:`bool`, `optional`, defaults to :obj:`False`):
-            A bool, whether to use FP16
-        max_seq_length (:obj:`int`, `optional`, defaults to :obj:`128`):
-            An integer, the max length of the sequence
-        ckpt_per_epoch (:obj:`int`, `optional`, defaults to :obj:`1`):
-            An integer, the number of checkpoints per epoch
+        output_dir (str): data root directory for outputing the log, etc.
+        model_path (str, optional, defaults to "facebook/muppet-roberta-base"): A string,
+            the path of the language model file, either a path from huggingface
+            model card huggingface.co/models, or a local path for the model.
+        fp16 (bool, optional, defaults to "False"): A bool, whether to use FP16.
+        max_seq_length (int, optional, defaults to 128): An integer, the max length of the sequence.
+        ckpt_per_epoch (int, optional, defaults to 1): An integer, the number of checkpoints per epoch.
 
     """
 

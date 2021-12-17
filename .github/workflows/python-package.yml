@@ -70,27 +70,27 @@ jobs:
           file: ./coverage.xml
           flags: unittests
 
-  docs:
+  # docs:
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-      - name: Compile documentation
-        run: |
-            pip install -e .
-            python -m pip install sphinx sphinx_rtd_theme
-            cd docs
-            make html
-      - name: Deploy to GitHub pages
-        if: ${{ github.ref == 'refs/heads/main' }}
-        uses: JamesIves/github-pages-deploy-action@3.6.2
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: gh-pages
-          FOLDER: docs/_build/html
-          CLEAN: true
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Setup Python
+  #       uses: actions/setup-python@v2
+  #       with:
+  #         python-version: '3.8'
+  #     - name: Compile documentation
+  #       run: |
+  #           pip install -e .
+  #           python -m pip install sphinx sphinx_rtd_theme
+  #           cd docs
+  #           make html
+  #     - name: Deploy to GitHub pages
+  #       if: ${{ github.ref == 'refs/heads/main' }}
+  #       uses: JamesIves/github-pages-deploy-action@3.6.2
+  #       with:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #         BRANCH: gh-pages
+  #         FOLDER: docs/_build/html
+  #         CLEAN: true

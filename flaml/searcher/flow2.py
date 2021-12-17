@@ -58,14 +58,8 @@ class FLOW2(Searcher):
                 minimization or maximization.
             cat_hp_cost: A dictionary from a subset of categorical dimensions
                 to the relative cost of each choice.
-                e.g.,
-
-                .. code-block:: python
-
-                    {'tree_method': [1, 1, 2]}
-
-                i.e., the relative cost of the
-                three choices of 'tree_method' is 1, 1 and 2 respectively.
+                E.g., ```{'tree_method': [1, 1, 2]}```. I.e., the relative cost
+                of the three choices of 'tree_method' is 1, 1 and 2 respectively.
             space: A dictionary to specify the search space.
             resource_attr: A string to specify the resource dimension and the best
                 performance is assumed to be at the max_resource.
