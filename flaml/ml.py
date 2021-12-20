@@ -83,6 +83,7 @@ huggingface_metric_to_mode = {
     "ter": "min",
     "wer": "min",
 }
+huggingface_submetric_to_metric = {"rouge1": "rouge", "rouge2": "rouge"}
 
 
 def get_estimator_class(task, estimator_name):
@@ -153,11 +154,21 @@ def metric_loss_score(
             try:
                 import datasets
 
-                metric = datasets.load_metric(metric_name)
-                metric_mode = huggingface_metric_to_mode[metric_name]
-                score = metric.compute(predictions=y_predict, references=y_true)[
-                    metric_name
-                ]
+                datasets_metric_name = huggingface_submetric_to_metric.get(
+                    metric_name, metric_name
+                )
+                metric = datasets.load_metric(datasets_metric_name)
+                metric_mode = huggingface_metric_to_mode[datasets_metric_name]
+
+                if "rouge" in metric_name:
+                    score = metric.compute(predictions=y_predict, references=y_true)[
+                        metric_name
+                    ].mid.fmeasure
+                else:
+                    score = metric.compute(predictions=y_predict, references=y_true)[
+                        metric_name
+                    ]
+
             except ImportError:
                 raise Exception(
                     metric_name
