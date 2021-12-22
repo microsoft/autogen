@@ -502,12 +502,13 @@ class AutoML(BaseEstimator):
                 'budget' - do best effort to retrain without violating the time
                 budget.
             split_type: str or splitter object, default="auto" | the data split type.
-                A valid splitter object is an instance of a derived class of scikit-learn KFold
-                (https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
+                * A valid splitter object is an instance of a derived class of scikit-learn
+                [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
                 and have ``split`` and ``get_n_splits`` methods with the same signatures.
-                Valid str options depend on different tasks.
-                For classification tasks, valid choices are [
-                    "auto", 'stratified', 'uniform', 'time']. "auto" -> stratified.
+                Set eval_method to "cv" to use the splitter object.
+                * Valid str options depend on different tasks.
+                For classification tasks, valid choices are
+                    ["auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
                 For regression tasks, valid choices are ["auto", 'uniform', 'time'].
                     "auto" -> uniform.
                 For ts_forecast tasks, must be "auto" or 'time'.
@@ -1287,12 +1288,13 @@ class AutoML(BaseEstimator):
             split_ratio: A float of the validation data percentage for holdout.
             n_splits: An integer of the number of folds for cross-validation.
             split_type: str or splitter object, default="auto" | the data split type.
-                A valid splitter object is an instance of a derived class of scikit-learn KFold
-                (https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
+                * A valid splitter object is an instance of a derived class of scikit-learn
+                [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
                 and have ``split`` and ``get_n_splits`` methods with the same signatures.
-                Valid str options depend on different tasks.
-                For classification tasks, valid choices are [
-                    "auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
+                Set eval_method to "cv" to use the splitter object.
+                * Valid str options depend on different tasks.
+                For classification tasks, valid choices are
+                    ["auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
                 For regression tasks, valid choices are ["auto", 'uniform', 'time'].
                     "auto" -> uniform.
                 For ts_forecast tasks, must be "auto" or 'time'.
@@ -1806,12 +1808,13 @@ class AutoML(BaseEstimator):
                 'budget' - do best effort to retrain without violating the time
                 budget.
             split_type: str or splitter object, default="auto" | the data split type.
-                A valid splitter object is an instance of a derived class of scikit-learn KFold
-                (https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
+                * A valid splitter object is an instance of a derived class of scikit-learn
+                [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
                 and have ``split`` and ``get_n_splits`` methods with the same signatures.
-                Valid str options depend on different tasks.
-                For classification tasks, valid choices are [
-                    "auto", 'stratified', 'uniform', 'time']. "auto" -> stratified.
+                Set eval_method to "cv" to use the splitter object.
+                * Valid str options depend on different tasks.
+                For classification tasks, valid choices are
+                    ["auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
                 For regression tasks, valid choices are ["auto", 'uniform', 'time'].
                     "auto" -> uniform.
                 For ts_forecast tasks, must be "auto" or 'time'.
