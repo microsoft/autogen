@@ -178,7 +178,7 @@ class ConcurrencyLimiter(Searcher):
         batch (bool): Whether to wait for all concurrent samples
             to finish before updating the underlying searcher.
     Example:
-    ```python 
+    ```python
     from ray.tune.suggest import ConcurrencyLimiter
     search_alg = HyperOptSearch(metric="accuracy")
     search_alg = ConcurrencyLimiter(search_alg, max_concurrent=2)
@@ -366,81 +366,81 @@ class _OptunaTrialSuggestCaptor:
 
 class OptunaSearch(Searcher):
     """A wrapper around Optuna to provide trial suggestions.
-    [Optuna](https://optuna.org/)
-    is a hyperparameter optimization library.
-    In contrast to other libraries, it employs define-by-run style
-    hyperparameter definitions.
-    This Searcher is a thin wrapper around Optuna's search algorithms.
-    You can pass any Optuna sampler, which will be used to generate
-    hyperparameter suggestions.
-    Args:
-        space (dict|Callable): Hyperparameter search space definition for
-            Optuna's sampler. This can be either a class `dict` with
-            parameter names as keys and ``optuna.distributions`` as values,
-            or a Callable - in which case, it should be a define-by-run
-            function using ``optuna.trial`` to obtain the hyperparameter
-            values. The function should return either a class `dict` of
-            constant values with names as keys, or None.
-            For more information, see 
-            [tutorial](https://optuna.readthedocs.io/en/stable/tutorial/10_key_features/002_configurations.html).
-            Warning - No actual computation should take place in the define-by-run
-            function. Instead, put the training logic inside the function
-            or class trainable passed to tune.run.
-        metric (str): The training result objective value attribute. If None
-            but a mode was passed, the anonymous metric `_metric` will be used
-            per default.
-        mode (str): One of {min, max}. Determines whether objective is
-            minimizing or maximizing the metric attribute.
-        points_to_evaluate (list): Initial parameter suggestions to be run
-            first. This is for when you already have some good parameters
-            you want to run first to help the algorithm make better suggestions
-            for future parameters. Needs to be a list of dicts containing the
-            configurations.
-        sampler (optuna.samplers.BaseSampler): Optuna sampler used to
-            draw hyperparameter configurations. Defaults to ``TPESampler``.
-        seed (int): Seed to initialize sampler with. This parameter is only
-            used when ``sampler=None``. In all other cases, the sampler
-            you pass should be initialized with the seed already.
-        evaluated_rewards (list): If you have previously evaluated the
-            parameters passed in as points_to_evaluate you can avoid
-            re-running those trials by passing in the reward attributes
-            as a list so the optimiser can be told the results without
-            needing to re-compute the trial. Must be the same length as
-            points_to_evaluate.
+        [Optuna](https://optuna.org/)
+        is a hyperparameter optimization library.
+        In contrast to other libraries, it employs define-by-run style
+        hyperparameter definitions.
+        This Searcher is a thin wrapper around Optuna's search algorithms.
+        You can pass any Optuna sampler, which will be used to generate
+        hyperparameter suggestions.
+        Args:
+            space (dict|Callable): Hyperparameter search space definition for
+                Optuna's sampler. This can be either a class `dict` with
+                parameter names as keys and ``optuna.distributions`` as values,
+                or a Callable - in which case, it should be a define-by-run
+                function using ``optuna.trial`` to obtain the hyperparameter
+                values. The function should return either a class `dict` of
+                constant values with names as keys, or None.
+                For more information, see
+                [tutorial](https://optuna.readthedocs.io/en/stable/tutorial/10_key_features/002_configurations.html).
+                Warning - No actual computation should take place in the define-by-run
+                function. Instead, put the training logic inside the function
+                or class trainable passed to tune.run.
+            metric (str): The training result objective value attribute. If None
+                but a mode was passed, the anonymous metric `_metric` will be used
+                per default.
+            mode (str): One of {min, max}. Determines whether objective is
+                minimizing or maximizing the metric attribute.
+            points_to_evaluate (list): Initial parameter suggestions to be run
+                first. This is for when you already have some good parameters
+                you want to run first to help the algorithm make better suggestions
+                for future parameters. Needs to be a list of dicts containing the
+                configurations.
+            sampler (optuna.samplers.BaseSampler): Optuna sampler used to
+                draw hyperparameter configurations. Defaults to ``TPESampler``.
+            seed (int): Seed to initialize sampler with. This parameter is only
+                used when ``sampler=None``. In all other cases, the sampler
+                you pass should be initialized with the seed already.
+            evaluated_rewards (list): If you have previously evaluated the
+                parameters passed in as points_to_evaluate you can avoid
+                re-running those trials by passing in the reward attributes
+                as a list so the optimiser can be told the results without
+                needing to re-compute the trial. Must be the same length as
+                points_to_evaluate.
 
-    Tune automatically converts search spaces to Optuna's format:
+        Tune automatically converts search spaces to Optuna's format:
 
-````python
-from ray.tune.suggest.optuna import OptunaSearch
-config = { "a": tune.uniform(6, 8),
-           "b": tune.loguniform(1e-4, 1e-2)}
-optuna_search = OptunaSearch(metric="loss", mode="min")
-tune.run(trainable, config=config, search_alg=optuna_search)
-````
+    ````python
+    from ray.tune.suggest.optuna import OptunaSearch
+    config = { "a": tune.uniform(6, 8),
+               "b": tune.loguniform(1e-4, 1e-2)}
+    optuna_search = OptunaSearch(metric="loss", mode="min")
+    tune.run(trainable, config=config, search_alg=optuna_search)
+    ````
 
-    If you would like to pass the search space manually, the code would
-    look like this:
+        If you would like to pass the search space manually, the code would
+        look like this:
 
-```python
-from ray.tune.suggest.optuna import OptunaSearch
-import optuna
-config = { "a": optuna.distributions.UniformDistribution(6, 8),
-           "b": optuna.distributions.LogUniformDistribution(1e-4, 1e-2)}
-optuna_search = OptunaSearch(space,metric="loss",mode="min")
-tune.run(trainable, search_alg=optuna_search)
-# Equivalent Optuna define-by-run function approach:
-def define_search_space(trial: optuna.Trial):
-    trial.suggest_float("a", 6, 8)
-    trial.suggest_float("b", 1e-4, 1e-2, log=True)
-    # training logic goes into trainable, this is just
-    # for search space definition
-optuna_search = OptunaSearch(
-    define_search_space,
-    metric="loss",
-    mode="min")
-tune.run(trainable, search_alg=optuna_search)
-.. versionadded:: 0.8.8
-```
+    ```python
+    from ray.tune.suggest.optuna import OptunaSearch
+    import optuna
+    config = { "a": optuna.distributions.UniformDistribution(6, 8),
+               "b": optuna.distributions.LogUniformDistribution(1e-4, 1e-2)}
+    optuna_search = OptunaSearch(space,metric="loss",mode="min")
+    tune.run(trainable, search_alg=optuna_search)
+    # Equivalent Optuna define-by-run function approach:
+    def define_search_space(trial: optuna.Trial):
+        trial.suggest_float("a", 6, 8)
+        trial.suggest_float("b", 1e-4, 1e-2, log=True)
+        # training logic goes into trainable, this is just
+        # for search space definition
+    optuna_search = OptunaSearch(
+        define_search_space,
+        metric="loss",
+        mode="min")
+    tune.run(trainable, search_alg=optuna_search)
+    .. versionadded:: 0.8.8
+    ```
 
     """
 

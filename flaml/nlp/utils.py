@@ -1,7 +1,6 @@
 import argparse
 from dataclasses import dataclass, field
 from typing import Dict, Any
-
 from ..data import SUMMARIZATION, SEQREGRESSION, SEQCLASSIFICATION, NLG_TASKS
 
 

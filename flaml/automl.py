@@ -542,7 +542,7 @@ class AutoML(BaseEstimator):
         new_automl.fit(X_train, y_train, starting_points=starting_points)
         ```
 
-            seed: int or None, default=None | The random seed for np.random.
+            seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. For n_concurrent_trials > 1, installation of
                 ray is required: `pip install flaml[ray]`.
@@ -1845,7 +1845,7 @@ class AutoML(BaseEstimator):
         new_automl.fit(X_train, y_train, starting_points=starting_points)
         ```
 
-            seed: int or None, default=None | The random seed for np.random.
+            seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. For n_concurrent_trials > 1, installation of
                 ray is required: `pip install flaml[ray]`.
@@ -1949,13 +1949,10 @@ class AutoML(BaseEstimator):
         )
         self._search_states = {}  # key: estimator name; value: SearchState
         self._random = np.random.RandomState(RANDOM_SEED)
-        if seed is not None:
-            np.random.seed(seed)
-        self._seed = seed + 19823 if seed is not None else 20
+        self._seed = seed if seed is not None else 20
         self._learner_selector = learner_selector
         old_level = logger.getEffectiveLevel()
         self.verbose = verbose
-        # if verbose == 0:
         logger.setLevel(50 - verbose * 10)
         if (not mlflow or not mlflow.active_run()) and not logger.handlers:
             # Add the console handler.

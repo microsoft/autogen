@@ -214,15 +214,14 @@ def test_multioutput():
 
     # predict
     print(model.predict(X_test))
-    
-    #train the model
+
+    # train the model
     model = RegressorChain(AutoML(task="regression", time_budget=1))
     model.fit(X_train, y_train)
-    
+
     # predict
     print(model.predict(X_test))
 
- 
 
 if __name__ == "__main__":
     unittest.main()
