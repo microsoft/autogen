@@ -113,7 +113,7 @@ class BlendSearch(Searcher):
                 "For cost-frugal search, "
                 "consider providing low-cost values for cost-related hps via "
                 "'low_cost_partial_config'. More info can be found at "
-                "https://github.com/microsoft/FLAML/wiki/About-%60low_cost_partial_config%60"
+                "https://microsoft.github.io/FLAML/docs/FAQ#about-low_cost_partial_config-in-tune"
             )
         if evaluated_rewards and mode:
             self._points_to_evaluate = []

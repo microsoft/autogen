@@ -11,8 +11,8 @@ def test_package_minimum():
     # Specify automl goal and constraint
     automl_settings = {
         "time_budget": 10,  # in seconds
-        "metric": 'accuracy',
-        "task": 'classification',
+        "metric": "accuracy",
+        "task": "classification",
         "log_file_name": "iris.log",
     }
     X_train, y_train = load_iris(return_X_y=True)
@@ -27,4 +27,3 @@ def test_package_minimum():
     preds = automl.predict_proba(X_train)
     assert preds.shape == (150, 3)
     print(preds)
-
