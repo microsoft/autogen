@@ -2,6 +2,10 @@
 
 This example uses flaml to finetune a transformer model from Huggingface transformers library.
 
+*Note*: `flaml.AutoML` has built-in support for certain finetuning tasks with a
+[higher-level API](AutoML-NLP).
+It may be easier to use that API unless you have special requirements not handled by that API.
+
 ### Requirements
 
 This example requires GPU. Install dependencies:

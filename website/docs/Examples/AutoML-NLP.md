@@ -88,7 +88,7 @@ automl.fit(
 )
 ```
 
-### Sample output
+#### Sample output
 
 ```
 [flaml.automl: 12-20 11:47:28] {1965} INFO - task = seq-regression
@@ -137,7 +137,7 @@ automl.fit(
     X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
 )
 ```
-### Sample Output
+#### Sample Output
 
 ```
 [flaml.automl: 12-20 11:44:03] {1965} INFO - task = summarization
@@ -204,3 +204,5 @@ Model config T5Config {
   "vocab_size": 32128
 }
 ```
+
+For tasks that are not currently supported, use `flaml.tune` for [customized tuning](Tune-HuggingFace).
