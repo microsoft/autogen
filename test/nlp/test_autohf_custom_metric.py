@@ -2,8 +2,28 @@ import sys
 import pytest
 
 
+def toy_metric(
+    X_test,
+    y_test,
+    estimator,
+    labels,
+    X_train,
+    y_train,
+    weight_test=None,
+    weight_train=None,
+    config=None,
+    groups_test=None,
+    groups_train=None,
+):
+    return 0, {
+        "val_loss": 0,
+        "train_loss": 0,
+        "pred_time": 0,
+    }
+
+
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
-def test_max_iter_1():
+def test_custom_metric():
     from flaml import AutoML
     import requests
     from datasets import load_dataset
@@ -27,24 +47,7 @@ def test_max_iter_1():
 
     automl = AutoML()
 
-    def toy_metric(
-        X_test,
-        y_test,
-        estimator,
-        labels,
-        X_train,
-        y_train,
-        weight_test=None,
-        weight_train=None,
-        config=None,
-        groups_test=None,
-        groups_train=None,
-    ):
-        return 0, {
-            "test_loss": 0,
-            "train_loss": 0,
-            "pred_time": 0,
-        }
+    # testing when max_iter=1 and do retrain only without hpo
 
     automl_settings = {
         "gpu_per_trial": 0,
@@ -65,4 +68,12 @@ def test_max_iter_1():
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
+
+    # testing calling custom metric in TransformersEstimator._compute_metrics_by_dataset_name
+
+    automl_settings["max_iter"] = 3
+    automl.fit(
+        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
+    )
+
     del automl
