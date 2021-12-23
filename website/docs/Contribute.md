@@ -71,7 +71,11 @@ If all the tests are passed, please also test run [notebook/automl_classificatio
 
 ### Documentation
 
-To build and test documentation locally, install [Node.js](https://nodejs.org/en/download/).
+To build and test documentation locally, install [Node.js](https://nodejs.org/en/download/). For example,
+
+```bash
+nvm install --lts
+```
 
 Then:
 
@@ -79,7 +83,7 @@ Then:
 npm install --global yarn
 pip install pydoc-markdown
 cd website
-yarn install
+yarn install --frozen-lockfile
 pydoc-markdown
 yarn start
 ```
