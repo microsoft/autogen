@@ -13,9 +13,8 @@ train_x, test_x, train_y, test_y = train_test_split(data, target, test_size=0.25
 
 def train_breast_cancer(config):
     params = LGBMEstimator(**config).params
-    num_boost_round = params.pop("n_estimators")
     train_set = lgb.Dataset(train_x, label=train_y)
-    gbm = lgb.train(params, train_set, num_boost_round)
+    gbm = lgb.train(params, train_set)
     preds = gbm.predict(test_x)
     pred_labels = np.rint(preds)
     tune.report(

@@ -14,10 +14,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 def train_lgbm(config: dict) -> dict:
     # convert config dict to lgbm params
     params = LGBMEstimator(**config).params
-    num_boost_round = params.pop("n_estimators")
     # train the model
     train_set = lightgbm.Dataset(X_train, y_train)
-    model = lightgbm.train(params, train_set, num_boost_round)
+    model = lightgbm.train(params, train_set)
     # evaluate the model
     pred = model.predict(X_test)
     mse = mean_squared_error(y_test, pred)
