@@ -2,7 +2,7 @@ import sys
 import pytest
 
 
-def toy_metric(
+def custom_metric(
     X_test,
     y_test,
     estimator,
@@ -15,11 +15,25 @@ def toy_metric(
     groups_test=None,
     groups_train=None,
 ):
-    return 0, {
-        "val_loss": 0,
-        "train_loss": 0,
-        "pred_time": 0,
-    }
+    from datasets import Dataset
+    from flaml.model import TransformersEstimator
+
+    if y_test is not None:
+        X_test, _ = estimator._preprocess(X_test)
+        eval_dataset = Dataset.from_pandas(TransformersEstimator._join(X_test, y_test))
+    else:
+        X_test, _ = estimator._preprocess(X_test)
+        eval_dataset = Dataset.from_pandas(X_test)
+
+    trainer = estimator._model
+
+    trainer_compute_metrics_cache = trainer.compute_metrics
+    trainer.compute_metrics = None
+
+    metrics = trainer.evaluate(eval_dataset)
+    trainer.compute_metrics = trainer_compute_metrics_cache
+
+    return metrics["eval_loss"], metrics
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -54,7 +68,7 @@ def test_custom_metric():
         "max_iter": 1,
         "time_budget": 5,
         "task": "seq-classification",
-        "metric": toy_metric,
+        "metric": custom_metric,
         "log_file_name": "seqclass.log",
     }
 
@@ -77,3 +91,7 @@ def test_custom_metric():
     )
 
     del automl
+
+
+if __name__ == "__main__":
+    test_custom_metric()
