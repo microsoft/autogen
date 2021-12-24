@@ -307,7 +307,8 @@ class TransformersEstimator(BaseEstimator):
             from transformers import TrainingArguments
         self._TrainingArguments = TrainingArguments
 
-    def _join(self, X_train, y_train):
+    @staticmethod
+    def _join(X_train, y_train):
         y_train = DataFrame(y_train, columns=["label"], index=X_train.index)
         train_df = X_train.join(y_train)
         return train_df
@@ -367,12 +368,20 @@ class TransformersEstimator(BaseEstimator):
             setattr(custom_hpo_args, key, val)
         self.custom_hpo_args = custom_hpo_args
 
-    def _preprocess(self, X, y=None, task=None, **kwargs):
+    def _preprocess(self, X, y=None, **kwargs):
         from .nlp.utils import tokenize_text
 
-        if X.dtypes[0] == "string":
+        # is_str = False
+        # for each_type in ["string", "str"]:
+        #     try:
+        #         is_str = is_str or (X.dtypes[0] == each_type)
+        #     except TypeError:
+        #         pass
+        is_str = str(X.dtypes[0]) in ("string", "str")
+
+        if is_str:
             return tokenize_text(
-                X=X, Y=y, task=task, custom_hpo_args=self.custom_hpo_args
+                X=X, Y=y, task=self._task, custom_hpo_args=self.custom_hpo_args
             )
         else:
             return X, None
@@ -445,14 +454,16 @@ class TransformersEstimator(BaseEstimator):
         y_val = kwargs.get("y_val")
 
         if self._task not in NLG_TASKS:
-            self._X_train, _ = self._preprocess(X=X_train, task=self._task, **kwargs)
+            self._X_train, _ = self._preprocess(X=X_train, **kwargs)
             self._y_train = y_train
         else:
             self._X_train, self._y_train = self._preprocess(
-                X=X_train, y=y_train, task=self._task, **kwargs
+                X=X_train, y=y_train, **kwargs
             )
 
-        train_dataset = Dataset.from_pandas(self._join(self._X_train, self._y_train))
+        train_dataset = Dataset.from_pandas(
+            TransformersEstimator._join(self._X_train, self._y_train)
+        )
 
         # TODO: set a breakpoint here, observe the resulting train_dataset,
         #  compare it with the output of the tokenized results in your transformer example
@@ -462,13 +473,13 @@ class TransformersEstimator(BaseEstimator):
 
         if X_val is not None:
             if self._task not in NLG_TASKS:
-                self._X_val, _ = self._preprocess(X=X_val, task=self._task, **kwargs)
+                self._X_val, _ = self._preprocess(X=X_val, **kwargs)
                 self._y_val = y_val
             else:
-                self._X_val, self._y_val = self._preprocess(
-                    X=X_val, y=y_val, task=self._task, **kwargs
-                )
-            eval_dataset = Dataset.from_pandas(self._join(self._X_val, self._y_val))
+                self._X_val, self._y_val = self._preprocess(X=X_val, y=y_val, **kwargs)
+            eval_dataset = Dataset.from_pandas(
+                TransformersEstimator._join(self._X_val, self._y_val)
+            )
         else:
             eval_dataset = None
 
@@ -589,7 +600,7 @@ class TransformersEstimator(BaseEstimator):
 
         if trainer.ckpt_to_metric:
             best_ckpt, _ = min(
-                trainer.ckpt_to_metric.items(), key=lambda x: x[1]["val_loss"]
+                trainer.ckpt_to_metric.items(), key=lambda x: x[1]["eval_loss"]
             )
             best_ckpt_global_step = trainer.ckpt_to_global_step[best_ckpt]
             for each_ckpt in list(trainer.ckpt_to_metric):
@@ -609,30 +620,28 @@ class TransformersEstimator(BaseEstimator):
         return best_ckpt
 
     def _compute_metrics_by_dataset_name(self, eval_pred):
-        from .ml import metric_loss_score
-        from .nlp.utils import postprocess_text
-
-        predictions, labels = eval_pred
-
-        if self._task in NLG_TASKS:
-            if isinstance(predictions, tuple):
-                predictions = np.argmax(predictions[0], axis=2)
-            decoded_preds = self._tokenizer.batch_decode(
-                predictions, skip_special_tokens=True
-            )
-            labels = np.where(labels != -100, labels, self._tokenizer.pad_token_id)
-            decoded_labels = self._tokenizer.batch_decode(
-                labels, skip_special_tokens=True
-            )
-            predictions, labels = postprocess_text(decoded_preds, decoded_labels)
-        else:
-            predictions = (
-                np.squeeze(predictions)
-                if self._task == SEQREGRESSION
-                else np.argmax(predictions, axis=1)
-            )
-
         if isinstance(self._metric, str):
+            from .ml import metric_loss_score
+            from .nlp.utils import postprocess_text
+
+            predictions, labels = eval_pred
+            if self._task in NLG_TASKS:
+                if isinstance(predictions, tuple):
+                    predictions = np.argmax(predictions[0], axis=2)
+                decoded_preds = self._tokenizer.batch_decode(
+                    predictions, skip_special_tokens=True
+                )
+                labels = np.where(labels != -100, labels, self._tokenizer.pad_token_id)
+                decoded_labels = self._tokenizer.batch_decode(
+                    labels, skip_special_tokens=True
+                )
+                predictions, labels = postprocess_text(decoded_preds, decoded_labels)
+            else:
+                predictions = (
+                    np.squeeze(predictions)
+                    if self._task == SEQREGRESSION
+                    else np.argmax(predictions, axis=1)
+                )
             return {
                 "val_loss": metric_loss_score(
                     metric_name=self._metric, y_predict=predictions, y_true=labels
@@ -659,7 +668,7 @@ class TransformersEstimator(BaseEstimator):
         from transformers import TrainingArguments
         from .nlp.utils import load_model
 
-        X_test, _ = self._preprocess(X_test, task=self._task, **self._kwargs)
+        X_test, _ = self._preprocess(X_test, **self._kwargs)
         test_dataset = Dataset.from_pandas(X_test)
 
         best_model = load_model(
@@ -681,7 +690,7 @@ class TransformersEstimator(BaseEstimator):
         from .nlp.utils import load_model
         from .nlp.huggingface.trainer import TrainerForAuto
 
-        X_test, _ = self._preprocess(X=X_test, task=self._task, **self._kwargs)
+        X_test, _ = self._preprocess(X=X_test, **self._kwargs)
         test_dataset = Dataset.from_pandas(X_test)
 
         best_model = load_model(

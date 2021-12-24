@@ -74,10 +74,10 @@ class TrainerForAuto(Seq2SeqTrainer):
                 ignore_keys,
                 metric_key_prefix,
             )
-        if metrics:
-            for key in list(metrics.keys()):
-                if key.startswith("eval_"):
-                    metrics[key[5:]] = metrics.pop(key)
+        # if metrics:
+        #     for key in list(metrics.keys()):
+        #         if key.startswith("eval_"):
+        #             metrics[key[5:]] = metrics.pop(key)
         if hasattr(self, "ckpt_to_global_step"):
             self.ckpt_to_global_step[ckpt_dir] = self.state.global_step
             if metrics:
@@ -85,7 +85,7 @@ class TrainerForAuto(Seq2SeqTrainer):
         else:
             self.ckpt_to_global_step = {ckpt_dir: self.state.global_step}
             self.ckpt_to_metric = {ckpt_dir: metrics} if metrics else {}
-
+        return metrics
 
 # TODO: if your task is SUMMARIZATION, you need a different
 #  class Seq2SeqTrainerForAuto, uncomment the code below
