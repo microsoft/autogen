@@ -433,10 +433,8 @@ class AutoML(BaseEstimator):
         ):
             return metric_to_minimize, metrics_to_log
         ```
-
                 which returns a float number as the minimization objective,
                 and a dictionary as the metrics to log. E.g.,
-
         ```python
         def custom_metric(
             X_val, y_val, estimator, labels,
@@ -468,7 +466,6 @@ class AutoML(BaseEstimator):
                 set it to be an empty string "".
             estimator_list: A list of strings for estimator names, or 'auto'
                 e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
-
             time_budget: A float number of the time budget in seconds.
                 Use -1 if no time limit.
             max_iter: An integer of the maximal number of iterations.
@@ -530,7 +527,6 @@ class AutoML(BaseEstimator):
                 In the following code example, we get starting_points from the
                 `automl` object and use them in the `new_automl` object.
                 e.g.,
-
 
         ```python
         from flaml import AutoML
@@ -1717,7 +1713,6 @@ class AutoML(BaseEstimator):
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
                 have the follwing signature:
-
         ```python
         def custom_metric(
             X_test, y_test, estimator, labels,
@@ -1726,33 +1721,30 @@ class AutoML(BaseEstimator):
         ):
             return metric_to_minimize, metrics_to_log
         ```
-
                 which returns a float number as the minimization objective,
                 and a dictionary as the metrics to log. E.g.,
+        ```python
+        def custom_metric(
+            X_val, y_val, estimator, labels,
+            X_train, y_train, weight_val=None, weight_train=None,
+            **args,
+        ):
+            from sklearn.metrics import log_loss
+            import time
 
-                .. code-block:: python
-
-                    def custom_metric(
-                        X_val, y_val, estimator, labels,
-                        X_train, y_train, weight_val=None, weight_train=None,
-                        **args,
-                    ):
-                        from sklearn.metrics import log_loss
-                        import time
-
-                        start = time.time()
-                        y_pred = estimator.predict_proba(X_val)
-                        pred_time = (time.time() - start) / len(X_val)
-                        val_loss = log_loss(y_val, y_pred, labels=labels, sample_weight=weight_val)
-                        y_pred = estimator.predict_proba(X_train)
-                        train_loss = log_loss(y_train, y_pred, labels=labels, sample_weight=weight_train)
-                        alpha = 0.5
-                        return val_loss * (1 + alpha) - alpha * train_loss, {
-                            "val_loss": val_loss,
-                            "train_loss": train_loss,
-                            "pred_time": pred_time,
-                        }
-
+            start = time.time()
+            y_pred = estimator.predict_proba(X_val)
+            pred_time = (time.time() - start) / len(X_val)
+            val_loss = log_loss(y_val, y_pred, labels=labels, sample_weight=weight_val)
+            y_pred = estimator.predict_proba(X_train)
+            train_loss = log_loss(y_train, y_pred, labels=labels, sample_weight=weight_train)
+            alpha = 0.5
+            return val_loss * (1 + alpha) - alpha * train_loss, {
+                "val_loss": val_loss,
+                "train_loss": train_loss,
+                "pred_time": pred_time,
+            }
+        ```
             task: A string of the task type, e.g.,
                 'classification', 'regression', 'ts_forecast', 'rank',
                 'seq-classification', 'seq-regression', 'summarization'

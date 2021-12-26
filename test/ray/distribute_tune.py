@@ -1,30 +1,28 @@
 import ray
 import lightgbm as lgb
 import numpy as np
-import sklearn.datasets
-import sklearn.metrics
+from sklearn.datasets import load_breast_cancer
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from flaml import tune
 from flaml.model import LGBMEstimator
 
-data, target = sklearn.datasets.load_breast_cancer(return_X_y=True)
-train_x, test_x, train_y, test_y = train_test_split(data, target, test_size=0.25)
+X, y = load_breast_cancer(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 
 
 def train_breast_cancer(config):
     params = LGBMEstimator(**config).params
-    train_set = lgb.Dataset(train_x, label=train_y)
+    train_set = lgb.Dataset(X_train, label=y_train)
     gbm = lgb.train(params, train_set)
-    preds = gbm.predict(test_x)
+    preds = gbm.predict(X_test)
     pred_labels = np.rint(preds)
-    tune.report(
-        mean_accuracy=sklearn.metrics.accuracy_score(test_y, pred_labels), done=True
-    )
+    tune.report(mean_accuracy=accuracy_score(y_test, pred_labels), done=True)
 
 
 if __name__ == "__main__":
     ray.init(address="auto")
-    flaml_lgbm_search_space = LGBMEstimator.search_space(train_x.shape)
+    flaml_lgbm_search_space = LGBMEstimator.search_space(X_train.shape)
     config_search_space = {
         hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()
     }

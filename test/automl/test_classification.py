@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import scipy.sparse
 from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
 import pandas as pd
 from datetime import datetime
 from flaml import AutoML
@@ -221,14 +222,28 @@ class TestClassification(unittest.TestCase):
         print(automl_experiment.best_estimator)
 
     def test_ray_classification(self):
-        from sklearn.datasets import make_classification
+        X, y = load_breast_cancer(return_X_y=True)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 
-        X, y = make_classification(1000, 10)
         automl = AutoML()
         try:
-            automl.fit(X, y, time_budget=10, task="classification", use_ray=True)
             automl.fit(
-                X, y, time_budget=10, task="classification", n_concurrent_trials=2
+                X_train,
+                y_train,
+                X_val=X_test,
+                y_val=y_test,
+                time_budget=10,
+                task="classification",
+                use_ray=True,
+            )
+            automl.fit(
+                X_train,
+                y_train,
+                X_val=X_test,
+                y_val=y_test,
+                time_budget=10,
+                task="classification",
+                n_concurrent_trials=2,
             )
         except ImportError:
             return
