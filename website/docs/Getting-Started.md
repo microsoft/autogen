@@ -74,7 +74,7 @@ analysis = tune.run(
     low_cost_partial_config=low_cost_partial_config, time_budget_s=3, num_samples=-1,
 )
 ```
-Please see this [script](https://github.com/microsoft/FLAML/blob/main/test/tune.py) for the complete version of the above example.
+Please see this [script](https://github.com/microsoft/FLAML/blob/main/test/tune_example.py) for the complete version of the above example.
 
 ### Where to Go Next?
 
