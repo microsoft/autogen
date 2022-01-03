@@ -164,11 +164,21 @@ def metric_loss_score(
                     score = metric.compute(predictions=y_predict, references=y_true)[
                         metric_name
                     ].mid.fmeasure
+                elif metric_name == "seqeval":
+                    y_true = [
+                        [x for x in each_y_true if x != -100] for each_y_true in y_true
+                    ]
+                    y_pred = [
+                        y_predict[each_idx][: len(y_true[each_idx])]
+                        for each_idx in range(len(y_predict))
+                    ]
+                    score = metric.compute(predictions=y_pred, references=y_true)[
+                        "overall_accuracy"
+                    ]
                 else:
                     score = metric.compute(predictions=y_predict, references=y_true)[
                         metric_name
                     ]
-
             except ImportError:
                 raise Exception(
                     metric_name
@@ -226,6 +236,7 @@ def sklearn_metric_loss_score(
     Returns:
         score: A float number of the loss, the lower the better.
     """
+
     metric_name = metric_name.lower()
 
     if "r2" == metric_name:

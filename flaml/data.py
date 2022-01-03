@@ -15,12 +15,14 @@ from typing import Dict, Union, List
 # TODO: if your task is not specified in here, define your task as an all-capitalized word
 SEQCLASSIFICATION = "seq-classification"
 MULTICHOICECLASSIFICATION = "multichoice-classification"
+TOKENCLASSIFICATION = "token-classification"
 CLASSIFICATION = (
     "binary",
     "multi",
     "classification",
     SEQCLASSIFICATION,
     MULTICHOICECLASSIFICATION,
+    TOKENCLASSIFICATION,
 )
 SEQREGRESSION = "seq-regression"
 REGRESSION = ("regression", SEQREGRESSION)
@@ -34,6 +36,7 @@ NLU_TASKS = (
     SEQREGRESSION,
     SEQCLASSIFICATION,
     MULTICHOICECLASSIFICATION,
+    TOKENCLASSIFICATION,
 )
 
 
@@ -354,11 +357,10 @@ class DataTransformer:
                 datetime_columns,
             )
             self._drop = drop
-
         if (
-            task in CLASSIFICATION
-            or not pd.api.types.is_numeric_dtype(y)
+            (task in CLASSIFICATION or not pd.api.types.is_numeric_dtype(y))
             and task not in NLG_TASKS
+            and task != TOKENCLASSIFICATION
         ):
             from sklearn.preprocessing import LabelEncoder
 
