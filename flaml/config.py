@@ -1,7 +1,7 @@
-'''!
+"""!
  * Copyright (c) 2020-2021 Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License.
-'''
+"""
 
 N_SPLITS = 5
 RANDOM_SEED = 1
