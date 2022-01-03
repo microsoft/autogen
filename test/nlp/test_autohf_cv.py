@@ -40,3 +40,7 @@ def test_cv():
     }
 
     automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+
+
+if __name__ == "__main__":
+    test_cv()

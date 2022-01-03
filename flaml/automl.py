@@ -40,6 +40,7 @@ from .config import (
 from .data import (
     concat,
     CLASSIFICATION,
+    TOKENCLASSIFICATION,
     TS_FORECAST,
     FORECAST,
     REGRESSION,
@@ -866,6 +867,8 @@ class AutoML(BaseEstimator):
 
         # check the validity of input dimensions under the nlp mode
         if _is_nlp_task(self._state.task):
+            from .nlp.utils import is_a_list_of_str
+
             is_all_str = True
             is_all_list = True
             for column in X.columns:
@@ -874,17 +877,25 @@ class AutoML(BaseEstimator):
                     "string",
                 ), "If the task is an NLP task, X can only contain text columns"
                 for each_cell in X[column]:
-                    if each_cell:
+                    if each_cell is not None:
                         is_str = isinstance(each_cell, str)
                         is_list_of_int = isinstance(each_cell, list) and all(
                             isinstance(x, int) for x in each_cell
                         )
-                        assert is_str or is_list_of_int, (
-                            "Each column of the input must either be str (untokenized) "
-                            "or a list of integers (tokenized)"
-                        )
+                        is_list_of_str = is_a_list_of_str(each_cell)
+                        if self._state.task == TOKENCLASSIFICATION:
+                            assert is_list_of_str, (
+                                "For the token-classification task, the input column needs to be a list of string,"
+                                "instead of string, e.g., ['EU', 'rejects','German', 'call','to','boycott','British','lamb','.',].",
+                                "For more examples, please refer to test/nlp/test_autohf_tokenclassification.py",
+                            )
+                        else:
+                            assert is_str or is_list_of_int, (
+                                "Each column of the input must either be str (untokenized) "
+                                "or a list of integers (tokenized)"
+                            )
                         is_all_str &= is_str
-                        is_all_list &= is_list_of_int
+                        is_all_list &= is_list_of_int or is_list_of_str
             assert is_all_str or is_all_list, (
                 "Currently FLAML only supports two modes for NLP: either all columns of X are string (non-tokenized), "
                 "or all columns of X are integer ids (tokenized)"
@@ -963,6 +974,7 @@ class AutoML(BaseEstimator):
             and self._auto_augment
             and self._state.fit_kwargs.get("sample_weight") is None
             and self._split_type in ["stratified", "uniform"]
+            and self._state.task != TOKENCLASSIFICATION
         ):
             # logger.info(f"label {pd.unique(y_train_all)}")
             label_set, counts = np.unique(y_train_all, return_counts=True)

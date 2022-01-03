@@ -25,6 +25,7 @@ from .data import (
     TS_VALUE_COL,
     SEQCLASSIFICATION,
     SEQREGRESSION,
+    TOKENCLASSIFICATION,
     SUMMARIZATION,
     NLG_TASKS,
     MULTICHOICECLASSIFICATION,
@@ -310,7 +311,8 @@ class TransformersEstimator(BaseEstimator):
 
     @staticmethod
     def _join(X_train, y_train):
-        y_train = DataFrame(y_train, columns=["label"], index=X_train.index)
+        y_train = DataFrame(y_train, index=X_train.index)
+        y_train.columns = ["label"]
         train_df = X_train.join(y_train)
         return train_df
 
@@ -370,17 +372,12 @@ class TransformersEstimator(BaseEstimator):
         self.custom_hpo_args = custom_hpo_args
 
     def _preprocess(self, X, y=None, **kwargs):
-        from .nlp.utils import tokenize_text
+        from .nlp.utils import tokenize_text, is_a_list_of_str
 
-        # is_str = False
-        # for each_type in ["string", "str"]:
-        #     try:
-        #         is_str = is_str or (X.dtypes[0] == each_type)
-        #     except TypeError:
-        #         pass
         is_str = str(X.dtypes[0]) in ("string", "str")
+        is_list_of_str = is_a_list_of_str(X[list(X.keys())[0]].to_list()[0])
 
-        if is_str:
+        if is_str or is_list_of_str:
             return tokenize_text(
                 X=X, Y=y, task=self._task, custom_hpo_args=self.custom_hpo_args
             )
@@ -391,6 +388,7 @@ class TransformersEstimator(BaseEstimator):
         from transformers import EarlyStoppingCallback
         from transformers.trainer_utils import set_seed
         from transformers import AutoTokenizer
+        from transformers.data import DataCollatorWithPadding
 
         import transformers
         from datasets import Dataset
@@ -455,7 +453,7 @@ class TransformersEstimator(BaseEstimator):
         X_val = kwargs.get("X_val")
         y_val = kwargs.get("y_val")
 
-        if self._task not in NLG_TASKS:
+        if (self._task not in NLG_TASKS) and (self._task != TOKENCLASSIFICATION):
             self._X_train, _ = self._preprocess(X=X_train, **kwargs)
             self._y_train = y_train
         else:
@@ -474,7 +472,7 @@ class TransformersEstimator(BaseEstimator):
         #  make sure they are the same
 
         if X_val is not None:
-            if self._task not in NLG_TASKS:
+            if (self._task not in NLG_TASKS) and (self._task != TOKENCLASSIFICATION):
                 self._X_val, _ = self._preprocess(X=X_val, **kwargs)
                 self._y_val = y_val
             else:
@@ -648,6 +646,8 @@ class TransformersEstimator(BaseEstimator):
                 predictions = (
                     np.squeeze(predictions)
                     if self._task == SEQREGRESSION
+                    else np.argmax(predictions, axis=2)
+                    if self._task == TOKENCLASSIFICATION
                     else np.argmax(predictions, axis=1)
                 )
             return {
@@ -724,7 +724,9 @@ class TransformersEstimator(BaseEstimator):
         if self._task == SEQCLASSIFICATION:
             return np.argmax(predictions.predictions, axis=1)
         elif self._task == SEQREGRESSION:
-            return predictions.predictions
+            return predictions.predictions.reshape((len(predictions.predictions),))
+        elif self._task == TOKENCLASSIFICATION:
+            return np.argmax(predictions.predictions, axis=2)
         # TODO: elif self._task == your task, return the corresponding prediction
         #  e.g., if your task == QUESTIONANSWERING, you need to return the answer instead
         #  of the index
