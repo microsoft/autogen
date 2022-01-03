@@ -99,6 +99,7 @@ class TestClassification(unittest.TestCase):
             "ensemble": True,
         }
         automl.fit(X, y, **automl_settings)
+        assert automl.model is not None
 
         automl = AutoML()
         automl_settings = {

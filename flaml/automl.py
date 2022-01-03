@@ -699,6 +699,10 @@ class AutoML(BaseEstimator):
         return None
 
     @property
+    def n_features_in_(self):
+        return self._trained_estimator.n_features_in_
+
+    @property
     def time_to_find_best_model(self) -> float:
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
@@ -2160,7 +2164,6 @@ class AutoML(BaseEstimator):
             del self._state.y_train, self._state.y_train_all, self._state.y_val
             del self._sample_weight_full, self._state.fit_kwargs
             del self._state.groups, self._state.groups_all, self._state.groups_val
-        # if verbose == 0:
         logger.setLevel(old_level)
 
     def _search_parallel(self):
@@ -2247,7 +2250,7 @@ class AutoML(BaseEstimator):
                 trial
                 for trial in analysis.trials
                 if trial.last_result
-                and trial.last_result["wall_clock_time"] is not None
+                and trial.last_result.get("wall_clock_time") is not None
             ),
             key=lambda x: x.last_result["wall_clock_time"],
         )
@@ -2259,8 +2262,9 @@ class AutoML(BaseEstimator):
                 estimator = config.get("ml", config)["learner"]
                 search_state = self._search_states[estimator]
                 search_state.update(result, 0)
-                if result["wall_clock_time"] is not None:
-                    self._state.time_from_start = result["wall_clock_time"]
+                wall_time = result.get("wall_clock_time")
+                if wall_time is not None:
+                    self._state.time_from_start = wall_time
                 if search_state.sample_size == self._state.data_size[0]:
                     self._iter_per_learner[estimator] += 1
                     if not self._fullsize_reached:
@@ -2278,17 +2282,34 @@ class AutoML(BaseEstimator):
                     self._time_taken_best_iter = self._state.time_from_start
                     better = True
                     self._search_states[estimator].best_config = config
-                if (better or self._log_type == "all") and self._training_log:
-                    self._training_log.append(
-                        self._iter_per_learner[estimator],
-                        search_state.metric_for_logging,
-                        search_state.trial_time,
-                        self._state.time_from_start,
-                        search_state.val_loss,
-                        config,
-                        estimator,
-                        search_state.sample_size,
-                    )
+                if better or self._log_type == "all":
+                    self._log_trial(search_state, estimator)
+
+    def _log_trial(self, search_state, estimator):
+        if self._training_log:
+            self._training_log.append(
+                self._iter_per_learner[estimator],
+                search_state.metric_for_logging,
+                search_state.trial_time,
+                self._state.time_from_start,
+                search_state.val_loss,
+                search_state.config,
+                estimator,
+                search_state.sample_size,
+            )
+        if mlflow is not None and mlflow.active_run():
+            with mlflow.start_run(nested=True):
+                mlflow.log_metric("iter_counter", self._iter_per_learner[estimator])
+                mlflow.log_param("metric_for_logging", search_state.metric_for_logging)
+                mlflow.log_metric("trial_time", search_state.trial_time)
+                mlflow.log_metric("wall_clock_time", self._state.time_from_start)
+                mlflow.log_metric("validation_loss", search_state.val_loss)
+                mlflow.log_param("config", search_state.config)
+                mlflow.log_param("learner", estimator)
+                mlflow.log_param("sample_size", search_state.sample_size)
+                mlflow.log_metric("best_validation_loss", search_state.best_loss)
+                mlflow.log_param("best_config", search_state.best_config)
+                mlflow.log_param("best_learner", self._best_estimator)
 
     def _search_sequential(self):
         try:
@@ -2461,8 +2482,9 @@ class AutoML(BaseEstimator):
                         f"Estimated sufficient time budget={max_budget:.0f}s."
                         f" Estimated necessary time budget={min_budget:.0f}s."
                     )
-                if result["wall_clock_time"] is not None:
-                    self._state.time_from_start = result["wall_clock_time"]
+                wall_time = result.get("wall_clock_time")
+                if wall_time is not None:
+                    self._state.time_from_start = wall_time
                 # logger.info(f"{self._search_states[estimator].sample_size}, {data_size}")
                 if search_state.sample_size == self._state.data_size[0]:
                     self._iter_per_learner[estimator] += 1
@@ -2500,38 +2522,8 @@ class AutoML(BaseEstimator):
                 ):
                     search_state.trained_estimator.cleanup()
                 if better or self._log_type == "all":
-                    if self._training_log:
-                        self._training_log.append(
-                            self._iter_per_learner[estimator],
-                            search_state.metric_for_logging,
-                            search_state.trial_time,
-                            self._state.time_from_start,
-                            search_state.val_loss,
-                            search_state.config,
-                            estimator,
-                            search_state.sample_size,
-                        )
-                    if mlflow is not None and mlflow.active_run():
-                        with mlflow.start_run(nested=True):
-                            mlflow.log_metric(
-                                "iter_counter", self._iter_per_learner[estimator]
-                            )
-                            mlflow.log_param(
-                                "metric_for_logging", search_state.metric_for_logging
-                            )
-                            mlflow.log_metric("trial_time", search_state.trial_time)
-                            mlflow.log_metric(
-                                "wall_clock_time", self._state.time_from_start
-                            )
-                            mlflow.log_metric("validation_loss", search_state.val_loss)
-                            mlflow.log_param("config", search_state.config)
-                            mlflow.log_param("learner", estimator)
-                            mlflow.log_param("sample_size", search_state.sample_size)
-                            mlflow.log_metric(
-                                "best_validation_loss", search_state.best_loss
-                            )
-                            mlflow.log_param("best_config", search_state.best_config)
-                            mlflow.log_param("best_learner", self._best_estimator)
+                    self._log_trial(search_state, estimator)
+
                 logger.info(
                     " at {:.1f}s,\testimator {}'s best error={:.4f},\tbest estimator {}'s best error={:.4f}".format(
                         self._state.time_from_start,
@@ -2640,6 +2632,7 @@ class AutoML(BaseEstimator):
             )
             if self._trained_estimator:
                 logger.info(f"selected model: {self._trained_estimator.model}")
+            estimators = []
             if self._ensemble and self._state.task in (
                 "binary",
                 "multi",
@@ -2673,8 +2666,7 @@ class AutoML(BaseEstimator):
                     if x[1].best_loss < 4 * self._selected.best_loss
                 ]
                 logger.info(estimators)
-                if len(estimators) <= 1:
-                    return
+            if len(estimators) > 1:
                 if self._state.task in CLASSIFICATION:
                     from sklearn.ensemble import StackingClassifier as Stacker
                 else:
@@ -2732,6 +2724,7 @@ class AutoML(BaseEstimator):
                 if (
                     self._state.task == TS_FORECAST
                     or self._trained_estimator is None
+                    or self._trained_estimator.model is None
                     or (
                         self._state.time_budget - self._state.time_from_start
                         > self._selected.est_retrain_time(self.data_size_full)
@@ -2758,8 +2751,6 @@ class AutoML(BaseEstimator):
                         logger.info(f"retrained model: {self._trained_estimator.model}")
                 else:
                     logger.info("not retraining because the time budget is too small.")
-        if self.model and mlflow is not None and mlflow.active_run():
-            mlflow.sklearn.log_model(self.model, "best_model")
 
     def __del__(self):
         if (
