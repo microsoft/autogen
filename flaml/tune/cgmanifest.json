@@ -1,8 +1,8 @@
 {
-    "Registrations": [ 
+    "Registrations": [
         {
-            "Component": { 
-                "Type": "pip", 
+            "Component": {
+                "Type": "pip",
                 "pip": {"Name": "ray[tune]", "Version": "1.5.1" }
             },
             "DevelopmentDependency": false
