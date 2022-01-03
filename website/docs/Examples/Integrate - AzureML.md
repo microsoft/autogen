@@ -28,11 +28,10 @@ mlflow.set_tracking_uri(ws.get_mlflow_tracking_uri())
 
 ```python
 from flaml.data import load_openml_dataset
+from flaml import AutoML
 
 # Download [Airlines dataset](https://www.openml.org/d/1169) from OpenML. The task is to predict whether a given flight will be delayed, given the information of the scheduled departure.
 X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=1169, data_dir="./")
-
-from flaml import AutoML
 
 automl = AutoML()
 settings = {
@@ -41,12 +40,23 @@ settings = {
     "task": "classification",  # task type  
     "log_file_name": "airlines_experiment.log",  # flaml log file
 }
-mlflow.set_experiment("flaml")  # the experiment name in AzureML workspace
+experiment = mlflow.set_experiment("flaml")  # the experiment name in AzureML workspace
 with mlflow.start_run() as run:  # create a mlflow run
     automl.fit(X_train=X_train, y_train=y_train, **settings)
+    mlflow.sklearn.log_model(automl, "automl")
 ```
 
-The metrics in the run will be automatically logged in an experiment named "flaml" in your AzureML workspace.
+The metrics in the run will be automatically logged in an experiment named "flaml" in your AzureML workspace. They can be retrieved by `mlflow.search_runs`:
+
+```python
+mlflow.search_runs(experiment_ids=[experiment.experiment_id], filter_string="params.learner = 'xgboost'")
+```
+
+The logged model can be loaded and used to make predictions:
+```python
+automl = mlflow.sklearn.load_model(f"{run.info.artifact_uri}/automl")
+print(automl.predict(X_test))
+```
 
 [Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/integrate_azureml.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/integrate_azureml.ipynb)
 
