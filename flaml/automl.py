@@ -45,7 +45,6 @@ from .data import (
     FORECAST,
     REGRESSION,
     _is_nlp_task,
-    SUMMARIZATION,
     NLG_TASKS,
 )
 from . import tune
@@ -322,60 +321,61 @@ class AutoMLState:
             if self.time_budget is None
             else self.time_budget - self.time_from_start
         )
-        if self.resources_per_trial.get("gpu", 0) > 0:
+        # if self.resources_per_trial.get("gpu", 0) > 0:
 
-            def _trainable_function_wrapper(config: dict):
+        #     def _trainable_function_wrapper(config: dict):
 
-                return_estimator, train_time = train_estimator(
-                    X_train=sampled_X_train,
-                    y_train=sampled_y_train,
-                    config_dic=config,
-                    task=self.task,
-                    estimator_name=estimator,
-                    n_jobs=self.n_jobs,
-                    estimator_class=self.learner_classes.get(estimator),
-                    budget=budget,
-                    fit_kwargs=self.fit_kwargs,
-                )
-                return {"estimator": return_estimator, "train_time": train_time}
+        #         return_estimator, train_time = train_estimator(
+        #             X_train=sampled_X_train,
+        #             y_train=sampled_y_train,
+        #             config_dic=config,
+        #             task=self.task,
+        #             estimator_name=estimator,
+        #             n_jobs=self.n_jobs,
+        #             estimator_class=self.learner_classes.get(estimator),
+        #             budget=budget,
+        #             fit_kwargs=self.fit_kwargs,
+        #         )
+        #         return {"estimator": return_estimator, "train_time": train_time}
 
-            if estimator not in self.learner_classes:
-                self.learner_classes[estimator] = get_estimator_class(
-                    self.task, estimator
-                )
+        #     if estimator not in self.learner_classes:
+        #         self.learner_classes[estimator] = get_estimator_class(
+        #             self.task, estimator
+        #         )
 
-            analysis = tune.run(
-                _trainable_function_wrapper,
-                config=config_w_resource,
-                metric="train_time",
-                mode="min",
-                resources_per_trial=self.resources_per_trial,
-                num_samples=1,
-                use_ray=True,
-            )
-            result = list(analysis.results.values())[0]
-            estimator, train_time = result["estimator"], result["train_time"]
+        #     analysis = tune.run(
+        #         _trainable_function_wrapper,
+        #         config=config_w_resource,
+        #         metric="train_time",
+        #         mode="min",
+        #         resources_per_trial=self.resources_per_trial,
+        #         num_samples=1,
+        #         use_ray=True,
+        #     )
+        #     result = list(analysis.results.values())[0]
+        #     estimator, train_time = result["estimator"], result["train_time"]
 
-        else:
-            if _is_nlp_task(self.task):
-                use_ray = self.fit_kwargs.get("use_ray")
-                self.fit_kwargs["use_ray"] = False
-            estimator, train_time = train_estimator(
-                X_train=sampled_X_train,
-                y_train=sampled_y_train,
-                config_dic=config,
-                task=self.task,
-                estimator_name=estimator,
-                n_jobs=self.n_jobs,
-                estimator_class=self.learner_classes.get(estimator),
-                budget=budget,
-                fit_kwargs=self.fit_kwargs,
-            )
-            if _is_nlp_task(self.task):
-                if use_ray:
-                    self.fit_kwargs["use_ray"] = use_ray
-                else:
-                    del self.fit_kwargs["use_ray"]
+        # else:
+        if _is_nlp_task(self.task):
+            use_ray = self.fit_kwargs.get("use_ray")
+            self.fit_kwargs["use_ray"] = False
+        # TODO: limit number of GPUs
+        estimator, train_time = train_estimator(
+            X_train=sampled_X_train,
+            y_train=sampled_y_train,
+            config_dic=config,
+            task=self.task,
+            estimator_name=estimator,
+            n_jobs=self.n_jobs,
+            estimator_class=self.learner_classes.get(estimator),
+            budget=budget,
+            fit_kwargs=self.fit_kwargs,
+        )
+        if _is_nlp_task(self.task):
+            if use_ray is None:
+                del self.fit_kwargs["use_ray"]
+            else:
+                self.fit_kwargs["use_ray"] = use_ray
         if sampled_weight is not None:
             self.fit_kwargs["sample_weight"] = weight
         return estimator, train_time
@@ -1984,11 +1984,18 @@ class AutoML(BaseEstimator):
         self._use_ray = use_ray or n_concurrent_trials > 1
         # use the following condition if we have an estimation of average_trial_time and average_trial_overhead
         # self._use_ray = use_ray or n_concurrent_trials > ( average_trail_time + average_trial_overhead) / (average_trial_time)
-        self._state.resources_per_trial = (
-            {"cpu": int(os.cpu_count() / n_concurrent_trials), "gpu": gpu_per_trial}
-            if n_jobs < 0
-            else {"cpu": n_jobs, "gpu": gpu_per_trial}
-        )
+        if self._use_ray:
+            import ray
+
+            n_cpus = use_ray and ray.available_resources()["CPU"] or os.cpu_count()
+            self._state.resources_per_trial = (
+                # when using gpu, default cpu is 1 per job; otherwise, default cpu is n_cpus / n_concurrent_trials
+                {"cpu": max(int(n_cpus / n_concurrent_trials), 1), "gpu": gpu_per_trial}
+                if gpu_per_trial == 0
+                else {"cpu": 1, "gpu": gpu_per_trial}
+                if n_jobs < 0
+                else {"cpu": n_jobs, "gpu": gpu_per_trial}
+            )
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
         )
