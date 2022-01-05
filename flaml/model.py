@@ -447,8 +447,7 @@ class TransformersEstimator(BaseEstimator):
 
         self._init_hpo_args(kwargs)
         self._metric = kwargs["metric"]
-        if hasattr(self, "use_ray") is False:
-            self.use_ray = kwargs["use_ray"]
+        self.use_ray = kwargs.get("use_ray")
 
         X_val = kwargs.get("X_val")
         y_val = kwargs.get("y_val")
