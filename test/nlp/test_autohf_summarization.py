@@ -1,8 +1,8 @@
-import os
+import sys
 import pytest
 
 
-@pytest.mark.skipif(os.name == "darwin", reason="do not run on mac os")
+@pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
 def test_summarization():
     from flaml import AutoML
     from pandas import DataFrame

@@ -18,6 +18,12 @@ def custom_metric(
     from datasets import Dataset
     from flaml.model import TransformersEstimator
 
+    if estimator._trainer is None:
+        estimator._init_model_for_predict(X_test)
+        trainer = estimator._trainer
+        estimator._trainer = None
+    else:
+        trainer = estimator._trainer
     if y_test is not None:
         X_test, _ = estimator._preprocess(X_test)
         eval_dataset = Dataset.from_pandas(TransformersEstimator._join(X_test, y_test))
@@ -25,14 +31,11 @@ def custom_metric(
         X_test, _ = estimator._preprocess(X_test)
         eval_dataset = Dataset.from_pandas(X_test)
 
-    trainer = estimator._model
-
     trainer_compute_metrics_cache = trainer.compute_metrics
     trainer.compute_metrics = None
 
     metrics = trainer.evaluate(eval_dataset)
     trainer.compute_metrics = trainer_compute_metrics_cache
-
     return metrics["eval_loss"], metrics
 
 

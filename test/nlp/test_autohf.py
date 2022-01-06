@@ -1,5 +1,7 @@
 import sys
 import pytest
+import pickle
+import shutil
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -53,6 +55,7 @@ def test_hf_data():
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
+
     automl = AutoML()
     automl.retrain_from_log(
         X_train=X_train,
@@ -61,7 +64,11 @@ def test_hf_data():
         record_id=0,
         **automl_settings
     )
-
+    with open("automl.pkl", "wb") as f:
+        pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
+    with open("automl.pkl", "rb") as f:
+        automl = pickle.load(f)
+    shutil.rmtree("test/data/output/")
     automl.predict(X_test)
     automl.predict(["test test", "test test"])
     automl.predict(
