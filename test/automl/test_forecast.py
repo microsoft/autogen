@@ -105,6 +105,7 @@ def test_numpy():
             task="ts_forecast",
             time_budget=3,  # time budget in seconds
             log_file_name="test/ts_forecast.log",
+            n_splits=3,  # number of splits
         )
         print(automl.predict(X_train[72:]))
     except ImportError:
@@ -280,7 +281,6 @@ def load_multi_dataset_cat(time_horizon):
 def test_multivariate_forecast_cat(budget=5):
     time_horizon = 180
     train_df, test_df = load_multi_dataset_cat(time_horizon)
-    print(train_df)
     X_test = test_df[
         ["timeStamp", "season", "above_monthly_avg"]
     ]  # test dataframe must contain values for the regressors / multivariate variables
@@ -290,7 +290,7 @@ def test_multivariate_forecast_cat(budget=5):
         "time_budget": budget,  # total running time in seconds
         "metric": "mape",  # primary metric
         "task": "ts_forecast",  # task type
-        "log_file_name": "test/energy_forecast_numerical.log",  # flaml log file
+        "log_file_name": "test/energy_forecast_categorical.log",  # flaml log file
         "eval_method": "holdout",
         "log_type": "all",
         "label": "demand",
@@ -360,3 +360,4 @@ if __name__ == "__main__":
     test_forecast_automl(60)
     test_multivariate_forecast_num(60)
     test_multivariate_forecast_cat(60)
+    test_numpy()
