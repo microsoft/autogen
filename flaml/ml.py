@@ -20,13 +20,18 @@ from sklearn.metrics import (
 from sklearn.model_selection import RepeatedStratifiedKFold, GroupKFold, TimeSeriesSplit
 from .model import (
     XGBoostSklearnEstimator,
+    XGBoost_TS_Regressor,
     XGBoostLimitDepthEstimator,
+    XGBoostLimitDepth_TS_Regressor,
     RandomForestEstimator,
+    RF_TS_Regressor,
     LGBMEstimator,
+    LGBM_TS_Regressor,
     LRL1Classifier,
     LRL2Classifier,
     CatBoostEstimator,
     ExtraTreesEstimator,
+    ExtraTrees_TS_Regressor,
     KNeighborsEstimator,
     Prophet,
     ARIMA,
@@ -89,13 +94,13 @@ huggingface_submetric_to_metric = {"rouge1": "rouge", "rouge2": "rouge"}
 def get_estimator_class(task, estimator_name):
     # when adding a new learner, need to add an elif branch
     if "xgboost" == estimator_name:
-        estimator_class = XGBoostSklearnEstimator
+        estimator_class = XGBoost_TS_Regressor if TS_FORECAST == task else XGBoostSklearnEstimator
     elif "xgb_limitdepth" == estimator_name:
-        estimator_class = XGBoostLimitDepthEstimator
+        estimator_class = XGBoostLimitDepth_TS_Regressor if TS_FORECAST == task else XGBoostLimitDepthEstimator
     elif "rf" == estimator_name:
-        estimator_class = RandomForestEstimator
+        estimator_class = RF_TS_Regressor if TS_FORECAST == task else RandomForestEstimator
     elif "lgbm" == estimator_name:
-        estimator_class = LGBMEstimator
+        estimator_class = LGBM_TS_Regressor if TS_FORECAST == task else LGBMEstimator
     elif "lrl1" == estimator_name:
         estimator_class = LRL1Classifier
     elif "lrl2" == estimator_name:
@@ -103,7 +108,7 @@ def get_estimator_class(task, estimator_name):
     elif "catboost" == estimator_name:
         estimator_class = CatBoostEstimator
     elif "extra_tree" == estimator_name:
-        estimator_class = ExtraTreesEstimator
+        estimator_class = ExtraTrees_TS_Regressor if TS_FORECAST == task else ExtraTreesEstimator
     elif "kneighbor" == estimator_name:
         estimator_class = KNeighborsEstimator
     elif "prophet" in estimator_name:
@@ -441,10 +446,6 @@ def evaluate_model_CV(
         groups = kf.groups
         kf = kf.split(X_train_split, y_train_split, groups)
         shuffle = False
-    elif isinstance(kf, TimeSeriesSplit) and task == TS_FORECAST:
-        y_train_all = pd.DataFrame(y_train_all, columns=[TS_VALUE_COL])
-        train = X_train_all.join(y_train_all)
-        kf = kf.split(train)
     elif isinstance(kf, TimeSeriesSplit):
         kf = kf.split(X_train_split, y_train_split)
     else:

@@ -73,7 +73,7 @@ class SearchState:
             self.total_time_used - self.time_best_found,
         )
 
-    def __init__(self, learner_class, data_size, task, starting_point=None):
+    def __init__(self, learner_class, data_size, task, starting_point=None, period=None):
         self.init_eci = learner_class.cost_relative2lgbm()
         self._search_space_domain = {}
         self.init_config = {}
@@ -82,7 +82,10 @@ class SearchState:
         self.data_size = data_size
         self.ls_ever_converged = False
         self.learner_class = learner_class
-        search_space = learner_class.search_space(data_size=data_size, task=task)
+        if task == TS_FORECAST:
+            search_space = learner_class.search_space(data_size=data_size, task=task, pred_horizon=period)
+        else:
+            search_space = learner_class.search_space(data_size=data_size, task=task)
         for name, space in search_space.items():
             assert (
                 "domain" in space
@@ -808,6 +811,38 @@ class AutoML(BaseEstimator):
             X = self._transformer.transform(X)
         return X
 
+    def _validate_ts_data(
+        self,
+        dataframe,
+        y_train_all=None,
+    ):
+        assert (
+            dataframe[dataframe.columns[0]].dtype.name == "datetime64[ns]"
+        ), f"For '{TS_FORECAST}' task, the first column must contain timestamp values."
+        if y_train_all is not None:
+            y_df = pd.DataFrame(y_train_all) if isinstance(y_train_all, pd.Series) else pd.DataFrame(y_train_all, columns=['labels'])
+            dataframe = dataframe.join(y_df)
+        duplicates = dataframe.duplicated()
+        if any(duplicates):
+            logger.warning(
+                "Duplicate timestamp values found in timestamp column. "
+                f"\n{dataframe.loc[duplicates, dataframe][dataframe.columns[0]]}"
+            )
+            dataframe = dataframe.drop_duplicates()
+            logger.warning("Removed duplicate rows based on all columns")
+            assert (
+                dataframe[[dataframe.columns[0]]].duplicated() is None
+            ), "Duplicate timestamp values with different values for other columns."
+        ts_series = pd.to_datetime(dataframe[dataframe.columns[0]])
+        inferred_freq = pd.infer_freq(ts_series)
+        if inferred_freq is None:
+            logger.warning(
+                "Missing timestamps detected. To avoid error with estimators, set estimator list to ['prophet']. "
+            )
+        if y_train_all is not None:
+            return dataframe.iloc[:, :-1], dataframe.iloc[:, -1]
+        return dataframe
+
     def _validate_data(
         self,
         X_train_all,
@@ -846,9 +881,7 @@ class AutoML(BaseEstimator):
             self._nrow, self._ndim = X_train_all.shape
             if self._state.task == TS_FORECAST:
                 X_train_all = pd.DataFrame(X_train_all)
-                assert (
-                    X_train_all[X_train_all.columns[0]].dtype.name == "datetime64[ns]"
-                ), f"For '{TS_FORECAST}' task, the first column must contain timestamp values."
+                X_train_all, y_train_all = self._validate_ts_data(X_train_all, y_train_all)
             X, y = X_train_all, y_train_all
         elif dataframe is not None and label is not None:
             assert isinstance(
@@ -857,9 +890,7 @@ class AutoML(BaseEstimator):
             assert label in dataframe.columns, "label must a column name in dataframe"
             self._df = True
             if self._state.task == TS_FORECAST:
-                assert (
-                    dataframe[dataframe.columns[0]].dtype.name == "datetime64[ns]"
-                ), f"For '{TS_FORECAST}' task, the first column must contain timestamp values."
+                dataframe = self._validate_ts_data(dataframe)
             X = dataframe.drop(columns=label)
             self._nrow, self._ndim = X.shape
             y = dataframe[label]
@@ -2079,14 +2110,7 @@ class AutoML(BaseEstimator):
         logger.info(f"Minimizing error metric: {error_metric}")
 
         if "auto" == estimator_list:
-            if self._state.task == TS_FORECAST:
-                try:
-                    import prophet
-
-                    estimator_list = ["prophet", "arima", "sarimax"]
-                except ImportError:
-                    estimator_list = ["arima", "sarimax"]
-            elif self._state.task == "rank":
+            if self._state.task == "rank":
                 estimator_list = ["lgbm", "xgboost", "xgb_limitdepth"]
             elif _is_nlp_task(self._state.task):
                 estimator_list = ["transformer"]
@@ -2110,8 +2134,18 @@ class AutoML(BaseEstimator):
                         "extra_tree",
                         "xgb_limitdepth",
                     ]
-                if "regression" != self._state.task:
+                if TS_FORECAST == self._state.task:
+                    # catboost is removed because it has a `name` parameter, making it incompatible with hcrystalball
+                    estimator_list.remove("catboost")
+                    try:
+                        import prophet
+
+                        estimator_list += ["prophet", "arima", "sarimax"]
+                    except ImportError:
+                        estimator_list += ["arima", "sarimax"]
+                elif "regression" != self._state.task:
                     estimator_list += ["lrl1"]
+
         for estimator_name in estimator_list:
             if estimator_name not in self._state.learner_classes:
                 self.add_learner(
@@ -2127,6 +2161,7 @@ class AutoML(BaseEstimator):
                 data_size=self._state.data_size,
                 task=self._state.task,
                 starting_point=starting_points.get(estimator_name),
+                period=self._state.fit_kwargs.get("period"),
             )
         logger.info("List of ML learners in AutoML Run: {}".format(estimator_list))
         self.estimator_list = estimator_list

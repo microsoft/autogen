@@ -60,6 +60,7 @@ setuptools.setup(
             "torch",
             "nltk",
             "rouge_score",
+            "hcrystalball==0.1.10",
             "seqeval",
         ],
         "catboost": ["catboost>=0.26"],
@@ -85,8 +86,8 @@ setuptools.setup(
             "nltk",
             "rouge_score",
         ],
-        "ts_forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
-        "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2"],
+        "ts_forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2", "hcrystalball==0.1.10"],
+        "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2", "hcrystalball==0.1.10"],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
     },
     classifiers=[
