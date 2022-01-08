@@ -73,7 +73,9 @@ class SearchState:
             self.total_time_used - self.time_best_found,
         )
 
-    def __init__(self, learner_class, data_size, task, starting_point=None, period=None):
+    def __init__(
+        self, learner_class, data_size, task, starting_point=None, period=None
+    ):
         self.init_eci = learner_class.cost_relative2lgbm()
         self._search_space_domain = {}
         self.init_config = {}
@@ -83,7 +85,9 @@ class SearchState:
         self.ls_ever_converged = False
         self.learner_class = learner_class
         if task == TS_FORECAST:
-            search_space = learner_class.search_space(data_size=data_size, task=task, pred_horizon=period)
+            search_space = learner_class.search_space(
+                data_size=data_size, task=task, pred_horizon=period
+            )
         else:
             search_space = learner_class.search_space(data_size=data_size, task=task)
         for name, space in search_space.items():
@@ -820,7 +824,11 @@ class AutoML(BaseEstimator):
             dataframe[dataframe.columns[0]].dtype.name == "datetime64[ns]"
         ), f"For '{TS_FORECAST}' task, the first column must contain timestamp values."
         if y_train_all is not None:
-            y_df = pd.DataFrame(y_train_all) if isinstance(y_train_all, pd.Series) else pd.DataFrame(y_train_all, columns=['labels'])
+            y_df = (
+                pd.DataFrame(y_train_all)
+                if isinstance(y_train_all, pd.Series)
+                else pd.DataFrame(y_train_all, columns=["labels"])
+            )
             dataframe = dataframe.join(y_df)
         duplicates = dataframe.duplicated()
         if any(duplicates):
@@ -881,7 +889,9 @@ class AutoML(BaseEstimator):
             self._nrow, self._ndim = X_train_all.shape
             if self._state.task == TS_FORECAST:
                 X_train_all = pd.DataFrame(X_train_all)
-                X_train_all, y_train_all = self._validate_ts_data(X_train_all, y_train_all)
+                X_train_all, y_train_all = self._validate_ts_data(
+                    X_train_all, y_train_all
+                )
             X, y = X_train_all, y_train_all
         elif dataframe is not None and label is not None:
             assert isinstance(

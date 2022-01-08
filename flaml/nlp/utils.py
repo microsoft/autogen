@@ -16,15 +16,15 @@ from ..data import (
 def load_default_huggingface_metric_for_task(task):
 
     if task == SEQCLASSIFICATION:
-        return "accuracy", "max"
+        return "accuracy"
     elif task == SEQREGRESSION:
-        return "rmse", "max"
+        return "rmse"
     elif task == SUMMARIZATION:
-        return "rouge", "max"
+        return "rouge"
     elif task == MULTICHOICECLASSIFICATION:
-        return "accuracy", "max"
+        return "accuracy"
     elif task == TOKENCLASSIFICATION:
-        return "seqeval", "max"
+        return "seqeval"
 
 
 global tokenized_column_names
