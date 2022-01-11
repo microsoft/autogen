@@ -325,6 +325,7 @@ class TransformersEstimator(BaseEstimator):
             },
             "num_train_epochs": {
                 "domain": tune.loguniform(lower=0.1, upper=10.0),
+                "init_value": 3,
             },
             "per_device_train_batch_size": {
                 "domain": tune.choice([4, 8, 16, 32]),
@@ -536,8 +537,8 @@ class TransformersEstimator(BaseEstimator):
                 evaluate_during_training=True,
                 save_steps=ckpt_freq,
                 save_total_limit=0,
+                metric_for_best_model="loss",
                 fp16=self.custom_hpo_args.fp16,
-                load_best_model_at_end=True,
                 **training_args_config,
             )
         else:
@@ -553,8 +554,8 @@ class TransformersEstimator(BaseEstimator):
                 evaluation_strategy=IntervalStrategy.STEPS,
                 save_steps=ckpt_freq,
                 save_total_limit=0,
+                metric_for_best_model="loss",
                 fp16=self.custom_hpo_args.fp16,
-                load_best_model_at_end=True,
                 **training_args_config,
             )
 
