@@ -49,10 +49,9 @@ from flaml.model import LGBMEstimator
 def train_lgbm(config: dict) -> dict:
     # convert config dict to lgbm params
     params = LGBMEstimator(**config).params
-    num_boost_round = params.pop("n_estimators")
     # train the model
     train_set = lightgbm.Dataset(X_train, y_train)
-    model = lightgbm.train(params, train_set, num_boost_round)
+    model = lightgbm.train(params, train_set)
     # evaluate the model
     pred = model.predict(X_test)
     mse = mean_squared_error(y_test, pred)
@@ -75,6 +74,7 @@ analysis = tune.run(
     low_cost_partial_config=low_cost_partial_config, time_budget_s=3, num_samples=-1,
 )
 ```
+Please see this [script](https://github.com/microsoft/FLAML/blob/main/test/tune_example.py) for the complete version of the above example.
 
 ### Where to Go Next?
 

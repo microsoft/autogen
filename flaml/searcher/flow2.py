@@ -2,27 +2,28 @@
 #  * Copyright (c) Microsoft Corporation. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
-from flaml.tune.sample import Domain
 from typing import Dict, Optional, Tuple
 import numpy as np
+import logging
 
 try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.0.0"
     from ray.tune.suggest import Searcher
-    from ray.tune.suggest.variant_generator import generate_variants
     from ray.tune import sample
     from ray.tune.utils.util import flatten_dict, unflatten_dict
 except (ImportError, AssertionError):
     from .suggestion import Searcher
-    from .variant_generator import generate_variants
     from ..tune import sample
     from ..tune.trial import flatten_dict, unflatten_dict
-from ..tune.space import complete_config, denormalize, normalize
-
-
-import logging
+from flaml.tune.sample import _BackwardsCompatibleNumpyRng
+from ..tune.space import (
+    complete_config,
+    denormalize,
+    normalize,
+    generate_variants_compatible,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ class FLOW2(Searcher):
         self.space = space or {}
         self._space = flatten_dict(self.space, prevent_delimiter=True)
         self._random = np.random.RandomState(seed)
+        self.rs_random = _BackwardsCompatibleNumpyRng(seed + 19823)
         self.seed = seed
         self.init_config = init_config
         self.best_config = flatten_dict(init_config)
@@ -464,8 +466,8 @@ class FLOW2(Searcher):
             # random
             for i, key in enumerate(self._tunable_keys):
                 if self._direction_tried[i] != 0:
-                    for _, generated in generate_variants(
-                        {"config": {key: self._space[key]}}
+                    for _, generated in generate_variants_compatible(
+                        {"config": {key: self._space[key]}}, random_state=self.rs_random
                     ):
                         if generated["config"][key] != best_config[key]:
                             config[key] = generated["config"][key]
