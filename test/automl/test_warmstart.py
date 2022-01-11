@@ -38,7 +38,7 @@ class TestWarmStart(unittest.TestCase):
         starting_points = automl_experiment.best_config_per_estimator
         print("starting_points", starting_points)
         print("loss of the starting_points", automl_experiment.best_loss_per_estimator)
-        starting_point = starting_points['lgbm']
+        starting_point = starting_points["lgbm"]
         hps_to_freeze = ["colsample_bytree", "reg_alpha", "reg_lambda", "log_max_bin"]
 
         # 2. Constrct a new class:
@@ -55,17 +55,13 @@ class TestWarmStart(unittest.TestCase):
                     # if an hp is specifed to be freezed, use tine value provided in the starting_point
                     # otherwise use the setting from the original search space
                     if hp_name in starting_point:
-                        space[hp_name] = {
-                            "domain": starting_point[hp_name]
-                        }
+                        space[hp_name] = {"domain": starting_point[hp_name]}
                 # (3.1) Configure the search space for hps that are in the original search space
                 #  but you want to change something, for example the range.
                 revised_hps_to_search = {
                     "n_estimators": {
                         "domain": tune.lograndint(lower=10, upper=32768),
-                        "init_value": starting_point.get(
-                            "n_estimators"
-                        )
+                        "init_value": starting_point.get("n_estimators")
                         or space["n_estimators"].get("init_value", 10),
                         "low_cost_init_value": space["n_estimators"].get(
                             "low_cost_init_value", 10
@@ -73,9 +69,7 @@ class TestWarmStart(unittest.TestCase):
                     },
                     "num_leaves": {
                         "domain": tune.lograndint(lower=10, upper=3276),
-                        "init_value": starting_point.get(
-                            "num_leaves"
-                        )
+                        "init_value": starting_point.get("num_leaves")
                         or space["num_leaves"].get("init_value", 10),
                         "low_cost_init_value": space["num_leaves"].get(
                             "low_cost_init_value", 10
@@ -95,7 +89,7 @@ class TestWarmStart(unittest.TestCase):
         new_automl_experiment.add_learner(
             learner_name=new_estimator_name, learner_class=MyPartiallyFreezedLargeLGBM
         )
-        
+
         automl_settings_resume = {
             "time_budget": 3,
             "metric": "accuracy",

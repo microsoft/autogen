@@ -101,12 +101,24 @@ def test_mlflow():
         "log_file_name": "adult.log",  # flaml log file
     }
     mlflow.set_experiment("flaml")
-    with mlflow.start_run():
-        """The main flaml automl API"""
+    with mlflow.start_run() as run:
         automl.fit(X_train=X_train, y_train=y_train, **settings)
-    # subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "mlflow"])
+        mlflow.sklearn.log_model(automl, "automl")
+    loaded_model = mlflow.pyfunc.load_model(f"{run.info.artifact_uri}/automl")
+    print(loaded_model.predict(X_test))
     automl._mem_thres = 0
     print(automl.trainable(automl.points_to_evaluate[0]))
+
+    settings["use_ray"] = True
+    try:
+        with mlflow.start_run() as run:
+            automl.fit(X_train=X_train, y_train=y_train, **settings)
+            mlflow.sklearn.log_model(automl, "automl")
+        automl = mlflow.sklearn.load_model(f"{run.info.artifact_uri}/automl")
+        print(automl.predict_proba(X_test))
+    except ImportError:
+        pass
+    # subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "mlflow"])
 
 
 if __name__ == "__main__":

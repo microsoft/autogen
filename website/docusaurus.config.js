@@ -95,7 +95,7 @@ module.exports = {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           editUrl:
-            'https://github.com/microsoft/FLAML/edit/master/website/',
+            'https://github.com/microsoft/FLAML/edit/main/website/',
           remarkPlugins: [math],
           rehypePlugins: [katex],
         },

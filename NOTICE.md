@@ -1,6 +1,6 @@
 NOTICES
 
-This repository incorporates material as listed below or described in the code. 
+This repository incorporates material as listed below or described in the code.
 
 #
 ## Component. Ray.
@@ -11,7 +11,7 @@ https://github.com/ray-project/ray/blob/master/python/ray/tune/
 
 
 
-## Open Source License/Copyright Notice. 
+## Open Source License/Copyright Notice.
 
  Apache License
                            Version 2.0, January 2004

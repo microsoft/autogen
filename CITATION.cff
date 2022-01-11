@@ -1,0 +1,18 @@
+preferred-citation:
+  type: inproceedings
+  authors:
+  - family-names: "Wang"
+    given-names: "Chi"
+    affiliation: "Microsoft Research, Redmond WA USA"
+  - family-names: "Wu"
+    given-names: "Qingyun"
+    affiliation: "Microsoft Research, Redmond WA USA"
+  - family-names: "Weimer"
+    given-names: "Markus"
+    affiliation: "Microsoft Corporation, Redmond WA USA"
+  - family-names: "Zhu"
+    given-names: "Eric"
+    affiliation: "Microsoft Research, Redmond WA USA"
+  booktitle: "Proceedings of the 4th MLSys Conference"
+  title: "FLAML: A Fast and Lightweight AutoML Library"
+  year: 2021

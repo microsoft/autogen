@@ -14,10 +14,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 def train_lgbm(config: dict) -> dict:
     # convert config dict to lgbm params
     params = LGBMEstimator(**config).params
-    num_boost_round = params.pop("n_estimators")
     # train the model
     train_set = lightgbm.Dataset(X_train, y_train)
-    model = lightgbm.train(params, train_set, num_boost_round)
+    model = lightgbm.train(params, train_set)
     # evaluate the model
     pred = model.predict(X_test)
     mse = mean_squared_error(y_test, pred)
@@ -37,6 +36,14 @@ low_cost_partial_config = {
     for hp, space in flaml_lgbm_search_space.items()
     if "low_cost_init_value" in space
 }
+# initial points to evaluate
+points_to_evaluate = [
+    {
+        hp: space["init_value"]
+        for hp, space in flaml_lgbm_search_space.items()
+        if "init_value" in space
+    }
+]
 # run the tuning, minimizing mse, with total time budget 3 seconds
 analysis = tune.run(
     train_lgbm,
@@ -44,6 +51,7 @@ analysis = tune.run(
     mode="min",
     config=config_search_space,
     low_cost_partial_config=low_cost_partial_config,
+    points_to_evaluate=points_to_evaluate,
     time_budget_s=3,
     num_samples=-1,
 )

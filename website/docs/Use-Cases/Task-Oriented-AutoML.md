@@ -14,6 +14,7 @@
     - 'rank': learning to rank.
     - 'seq-classification': sequence classification.
     - 'seq-regression': sequence regression.
+    - 'summarization': text summarization.
 
 An optional input is `time_budget` for searching models and hyperparameters. When not specified, a default budget of 60 seconds will be used.
 
@@ -302,6 +303,10 @@ By default, flaml uses the following method to split the data:
 
 The data split method for classification can be changed into uniform split by setting `split_type="uniform"`. For both classification and regression, time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`.
 
+When `eval_method="cv"`, `split_type` can also be set as a custom splitter. It needs to be an instance of a derived class of scikit-learn
+[KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
+and have ``split`` and ``get_n_splits`` methods with the same signatures.
+
 ### Parallel tuning
 
 When you have parallel resources, you can either spend them in training and keep the model search sequential, or perform parallel search. Following scikit-learn, the parameter `n_jobs` specifies how many CPU cores to use for each training job. The number of parallel trials is specified via the parameter `n_concurrent_trials`. By default, `n_jobs=-1, n_concurrent_trials=1`. That is, all the CPU cores (in a single compute node) are used for training a single model and the search is sequential. When you have more resources than what each single training job needs, you can consider increasing `n_concurrent_trials`.
@@ -462,9 +467,9 @@ The curve suggests that increasing the time budget may further improve the accur
 1. set t1 as the time budget, and check the message in the console log in the end. If the budget is too small, you will see a warning like
 > WARNING - Time taken to find the best model is 91% of the provided time budget and not all estimators' hyperparameter search converged. Consider increasing the time budget.
 2. set t2 as the time budget, and also set `early_stop=True`. If the early stopping is triggered, you will see a warning like
-    > WARNING - All estimator hyperparameters local search has converged at least once, and the total search time exceeds 10 times the time taken to find the best model.
+> WARNING - All estimator hyperparameters local search has converged at least once, and the total search time exceeds 10 times the time taken to find the best model.
 
-    > WARNING - Stopping search as early_stop is set to True.
+> WARNING - Stopping search as early_stop is set to True.
 
 ### How much time is needed to find the best model
 
