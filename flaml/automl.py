@@ -2146,7 +2146,8 @@ class AutoML(BaseEstimator):
                     ]
                 if TS_FORECAST == self._state.task:
                     # catboost is removed because it has a `name` parameter, making it incompatible with hcrystalball
-                    estimator_list.remove("catboost")
+                    if "catboost" in estimator_list:
+                        estimator_list.remove("catboost")
                     try:
                         import prophet
 
