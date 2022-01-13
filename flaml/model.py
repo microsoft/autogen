@@ -675,6 +675,9 @@ class TransformersEstimator(BaseEstimator):
                 X_train=self._X_train,
                 y_train=self._y_train,
             )
+            if not hasattr(self, "intermediate_results"):
+                self.intermediate_results = []
+            self.intermediate_results.append(metric_dict)
             return metric_dict
 
     def _init_model_for_predict(self, X_test):
@@ -702,6 +705,7 @@ class TransformersEstimator(BaseEstimator):
             )
             if self._task == MULTICHOICECLASSIFICATION
             else None,
+            compute_metrics=self._compute_metrics_by_dataset_name,
         )
         return test_dataset, training_args
 
