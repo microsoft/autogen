@@ -94,11 +94,19 @@ huggingface_submetric_to_metric = {"rouge1": "rouge", "rouge2": "rouge"}
 def get_estimator_class(task, estimator_name):
     # when adding a new learner, need to add an elif branch
     if "xgboost" == estimator_name:
-        estimator_class = XGBoost_TS_Regressor if TS_FORECAST == task else XGBoostSklearnEstimator
+        estimator_class = (
+            XGBoost_TS_Regressor if TS_FORECAST == task else XGBoostSklearnEstimator
+        )
     elif "xgb_limitdepth" == estimator_name:
-        estimator_class = XGBoostLimitDepth_TS_Regressor if TS_FORECAST == task else XGBoostLimitDepthEstimator
+        estimator_class = (
+            XGBoostLimitDepth_TS_Regressor
+            if TS_FORECAST == task
+            else XGBoostLimitDepthEstimator
+        )
     elif "rf" == estimator_name:
-        estimator_class = RF_TS_Regressor if TS_FORECAST == task else RandomForestEstimator
+        estimator_class = (
+            RF_TS_Regressor if TS_FORECAST == task else RandomForestEstimator
+        )
     elif "lgbm" == estimator_name:
         estimator_class = LGBM_TS_Regressor if TS_FORECAST == task else LGBMEstimator
     elif "lrl1" == estimator_name:
@@ -108,7 +116,9 @@ def get_estimator_class(task, estimator_name):
     elif "catboost" == estimator_name:
         estimator_class = CatBoostEstimator
     elif "extra_tree" == estimator_name:
-        estimator_class = ExtraTrees_TS_Regressor if TS_FORECAST == task else ExtraTreesEstimator
+        estimator_class = (
+            ExtraTrees_TS_Regressor if TS_FORECAST == task else ExtraTreesEstimator
+        )
     elif "kneighbor" == estimator_name:
         estimator_class = KNeighborsEstimator
     elif "prophet" in estimator_name:
@@ -207,8 +217,10 @@ def metric_loss_score(
                     + ", ".join(huggingface_metric_to_mode.keys())
                     + ". Please pass a customized metric function to AutoML.fit(metric=func)"
                 )
-        multiplier = -1 if metric_mode == "max" else 1
-        return score * multiplier
+        if metric_mode == "max":
+            return 1 - score
+        else:
+            return score
 
 
 def is_in_sklearn_metric_name_set(metric_name):
@@ -409,6 +421,8 @@ def get_val_loss(
         log_training_metric,
         fit_kwargs,
     )
+    if hasattr(estimator, "intermediate_results"):
+        metric_for_logging["intermediate_results"] = estimator.intermediate_results
     train_time = time.time() - start
     return val_loss, metric_for_logging, train_time, pred_time
 
