@@ -17,7 +17,6 @@ def custom_metric(
 ):
     from datasets import Dataset
     from flaml.model import TransformersEstimator
-    from flaml.nlp.utils import load_default_huggingface_metric_for_task
 
     if estimator._trainer is None:
         estimator._init_model_for_predict(X_test)
@@ -32,13 +31,12 @@ def custom_metric(
         X_test, _ = estimator._preprocess(X_test)
         eval_dataset = Dataset.from_pandas(X_test)
 
-    estimator_metric_cache = estimator._metric
-    estimator._metric = load_default_huggingface_metric_for_task(estimator._task)
-
+    estimator_metric_backup = estimator._metric
+    estimator._metric = "rmse"
     metrics = trainer.evaluate(eval_dataset)
-    estimator._metric = estimator_metric_cache
+    estimator._metric = estimator_metric_backup
 
-    return metrics["eval_val_loss"], metrics
+    return metrics.pop("eval_val_loss"), metrics
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")

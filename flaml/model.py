@@ -16,6 +16,8 @@ from sklearn.dummy import DummyClassifier, DummyRegressor
 from scipy.sparse import issparse
 import logging
 import shutil
+from pandas import DataFrame, Series, to_datetime
+import sys
 from . import tune
 from .data import (
     group_counts,
@@ -30,10 +32,6 @@ from .data import (
     NLG_TASKS,
     MULTICHOICECLASSIFICATION,
 )
-
-import pandas as pd
-from pandas import DataFrame, Series
-import sys
 
 try:
     import psutil
@@ -477,12 +475,6 @@ class TransformersEstimator(BaseEstimator):
             TransformersEstimator._join(self._X_train, self._y_train)
         )
 
-        # TODO: set a breakpoint here, observe the resulting train_dataset,
-        #  compare it with the output of the tokenized results in your transformer example
-        #  for example, if your task is MULTIPLECHOICE, you need to compare train_dataset with
-        #  the output of https://github.com/huggingface/transformers/blob/master/examples/pytorch/multiple-choice/run_swag.py#L329
-        #  make sure they are the same
-
         if X_val is not None:
             if (self._task not in NLG_TASKS) and (self._task != TOKENCLASSIFICATION):
                 self._X_val, _ = self._preprocess(X=X_val, **kwargs)
@@ -634,8 +626,8 @@ class TransformersEstimator(BaseEstimator):
                 f"{PREFIX_CHECKPOINT_DIR}-{best_ckpt_global_step}",
             )
         self.params[self.ITER_HP] = best_ckpt_global_step
-        print(trainer.state.global_step)
-        print(trainer.ckpt_to_global_step)
+        logger.debug(trainer.state.global_step)
+        logger.debug(trainer.ckpt_to_global_step)
         return best_ckpt
 
     def _compute_metrics_by_dataset_name(self, eval_pred):
@@ -663,13 +655,13 @@ class TransformersEstimator(BaseEstimator):
                     if self._task == TOKENCLASSIFICATION
                     else np.argmax(predictions, axis=1)
                 )
-            return {
+            metric_dict = {
                 "val_loss": metric_loss_score(
                     metric_name=self._metric, y_predict=predictions, y_true=labels
                 )
             }
         else:
-            agg_metric, metric_dict = self._metric(
+            loss, metric_dict = self._metric(
                 X_test=self._X_val,
                 y_test=self._y_val,
                 estimator=self,
@@ -677,10 +669,11 @@ class TransformersEstimator(BaseEstimator):
                 X_train=self._X_train,
                 y_train=self._y_train,
             )
-            if not hasattr(self, "intermediate_results"):
-                self.intermediate_results = []
-            self.intermediate_results.append(metric_dict)
-            return metric_dict
+            metric_dict["val_loss"] = loss
+        if not hasattr(self, "intermediate_results"):
+            self.intermediate_results = []
+        self.intermediate_results.append(metric_dict)
+        return metric_dict
 
     def _init_model_for_predict(self, X_test):
         from datasets import Dataset
@@ -738,9 +731,6 @@ class TransformersEstimator(BaseEstimator):
             return predictions.predictions.reshape((len(predictions.predictions),))
         elif self._task == TOKENCLASSIFICATION:
             return np.argmax(predictions.predictions, axis=2)
-        # TODO: elif self._task == your task, return the corresponding prediction
-        #  e.g., if your task == QUESTIONANSWERING, you need to return the answer instead
-        #  of the index
         elif self._task == SUMMARIZATION:
             if isinstance(predictions.predictions, tuple):
                 predictions = np.argmax(predictions.predictions[0], axis=2)
@@ -1648,7 +1638,7 @@ class ARIMA(Prophet):
 
     def _join(self, X_train, y_train):
         train_df = super()._join(X_train, y_train)
-        train_df.index = pd.to_datetime(train_df[TS_TIMESTAMP_COL])
+        train_df.index = to_datetime(train_df[TS_TIMESTAMP_COL])
         train_df = train_df.drop(TS_TIMESTAMP_COL, axis=1)
         return train_df
 
@@ -1829,7 +1819,7 @@ class TS_SKLearn_Regressor(SKLearnEstimator):
         cols = list(X)
         if len(cols) == 1:
             ds_col = cols[0]
-            X = pd.DataFrame(index=X[ds_col])
+            X = DataFrame(index=X[ds_col])
         elif len(cols) > 1:
             ds_col = cols[0]
             exog_cols = cols[1:]
@@ -1896,7 +1886,7 @@ class TS_SKLearn_Regressor(SKLearnEstimator):
                         X_test.iloc[:i, :]
                     )
                     preds.append(self._model[i - 1].predict(X_pred)[-1])
-                forecast = pd.DataFrame(
+                forecast = DataFrame(
                     data=np.asarray(preds).reshape(-1, 1),
                     columns=[self.hcrystaball_model.name],
                     index=X_test.index,
