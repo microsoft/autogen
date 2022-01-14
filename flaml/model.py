@@ -580,6 +580,8 @@ class TransformersEstimator(BaseEstimator):
         setattr(self._trainer, "_use_ray", self.use_ray)
         if self._task in NLG_TASKS:
             setattr(self._trainer, "_is_seq2seq", True)
+        if kwargs.get("gpu_per_trial"):
+            self._trainer.args._n_gpu = kwargs.get("gpu_per_trial")
         self._trainer.train()
 
         self.params[self.ITER_HP] = self._trainer.state.global_step
