@@ -38,7 +38,7 @@ def test_regression():
         "max_iter": 2,
         "time_budget": 5,
         "task": "seq-regression",
-        "metric": "rmse",
+        "metric": "pearsonr",
         "starting_points": {"transformer": {"num_train_epochs": 1}},
         "use_ray": True,
     }

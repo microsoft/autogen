@@ -86,28 +86,3 @@ class TrainerForAuto(Seq2SeqTrainer):
             self.ckpt_to_global_step = {ckpt_dir: self.state.global_step}
             self.ckpt_to_metric = {ckpt_dir: metrics} if metrics else {}
         return metrics
-
-# TODO: if your task is SUMMARIZATION, you need a different
-#  class Seq2SeqTrainerForAuto, uncomment the code below
-#  Note: I have implemented it here,
-#  but I don't know whether it's correct, you need to debug
-#  Seq2SeqTrainerForAuto to make sure it's correct
-
-
-# class Seq2SeqTrainerForAuto(TrainerForAuto):
-#     def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix="eval"):
-#         """Overriding transformers.Trainer.evaluate by saving metrics and checkpoint path"""
-#         self._is_seq2seq = True
-#         TrainerForAuto.evaluate(self, eval_dataset, ignore_keys, metric_key_prefix)
-#         # super(TrainerForAuto, self).evaluate(
-#         #     eval_dataset, ignore_keys, metric_key_prefix
-#         # )
-
-
-# TODO: if your task is QUESTIONANSWERING, uncomment the code below
-#  by adapting the code in https://github.com/huggingface/transformers/blob/master/examples/pytorch/question-answering/trainer_qa.py#L28
-
-
-# class QATrainerForAuto(TrainerForAuto):
-#     pass
-# TODO: if your task is QUESTIONANSWERING, do the post processing here
