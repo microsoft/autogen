@@ -325,6 +325,7 @@ class TransformersEstimator(BaseEstimator):
             },
             "num_train_epochs": {
                 "domain": tune.loguniform(lower=0.1, upper=10.0),
+                "init_value": 3,
             },
             "per_device_train_batch_size": {
                 "domain": tune.choice([4, 8, 16, 32]),
@@ -395,12 +396,14 @@ class TransformersEstimator(BaseEstimator):
         )
 
     def fit(self, X_train: DataFrame, y_train: Series, budget=None, **kwargs):
+        import transformers
+
+        transformers.logging.set_verbosity_error()
+
         from transformers import EarlyStoppingCallback
         from transformers.trainer_utils import set_seed
         from transformers import AutoTokenizer
-        from transformers.data import DataCollatorWithPadding
 
-        import transformers
         from datasets import Dataset
         from .nlp.utils import (
             get_num_labels,
@@ -536,8 +539,8 @@ class TransformersEstimator(BaseEstimator):
                 evaluate_during_training=True,
                 save_steps=ckpt_freq,
                 save_total_limit=0,
+                metric_for_best_model="loss",
                 fp16=self.custom_hpo_args.fp16,
-                load_best_model_at_end=True,
                 **training_args_config,
             )
         else:
@@ -553,8 +556,8 @@ class TransformersEstimator(BaseEstimator):
                 evaluation_strategy=IntervalStrategy.STEPS,
                 save_steps=ckpt_freq,
                 save_total_limit=0,
+                metric_for_best_model="loss",
                 fp16=self.custom_hpo_args.fp16,
-                load_best_model_at_end=True,
                 **training_args_config,
             )
 
@@ -577,6 +580,8 @@ class TransformersEstimator(BaseEstimator):
         setattr(self._trainer, "_use_ray", self.use_ray)
         if self._task in NLG_TASKS:
             setattr(self._trainer, "_is_seq2seq", True)
+        if kwargs.get("gpu_per_trial"):
+            self._trainer.args._n_gpu = kwargs.get("gpu_per_trial")
         self._trainer.train()
 
         self.params[self.ITER_HP] = self._trainer.state.global_step
@@ -672,6 +677,9 @@ class TransformersEstimator(BaseEstimator):
                 X_train=self._X_train,
                 y_train=self._y_train,
             )
+            if not hasattr(self, "intermediate_results"):
+                self.intermediate_results = []
+            self.intermediate_results.append(metric_dict)
             return metric_dict
 
     def _init_model_for_predict(self, X_test):
@@ -699,6 +707,7 @@ class TransformersEstimator(BaseEstimator):
             )
             if self._task == MULTICHOICECLASSIFICATION
             else None,
+            compute_metrics=self._compute_metrics_by_dataset_name,
         )
         return test_dataset, training_args
 
