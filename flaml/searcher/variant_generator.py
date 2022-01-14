@@ -22,6 +22,11 @@ import numpy
 import random
 from ..tune.sample import Categorical, Domain, RandomState
 
+try:
+    from ray.tune.sample import Domain as RayDomain
+except ImportError:
+    RayDomain = Domain
+
 logger = logging.getLogger(__name__)
 
 
@@ -192,10 +197,10 @@ def _resolve_domain_vars(
                 )
             except RecursiveDependencyError as e:
                 error = e
-            except Exception:
-                raise ValueError(
-                    "Failed to evaluate expression: {}: {}".format(path, domain)
-                )
+            # except Exception:
+            #     raise ValueError(
+            #         "Failed to evaluate expression: {}: {}".format(path, domain)
+            #     )
             else:
                 assign_value(spec, path, value)
                 resolved[path] = value
@@ -243,7 +248,7 @@ def _is_resolved(v) -> bool:
 
 
 def _try_resolve(v) -> Tuple[bool, Any]:
-    if isinstance(v, Domain):
+    if isinstance(v, (Domain, RayDomain)):
         # Domain to sample from
         return False, v
     elif isinstance(v, dict) and len(v) == 1 and "grid_search" in v:

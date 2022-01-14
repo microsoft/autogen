@@ -221,7 +221,7 @@ def run(
             used, otherwise no scheduler will be used. When set 'flaml', an
             authentic scheduler implemented in FLAML will be used. It does not
             require users to report intermediate results in evaluation_function.
-            Find more details abuot this scheduler in this paper
+            Find more details about this scheduler in this paper
             https://arxiv.org/pdf/1911.04706.pdf).
             When set 'asha', the input for arguments "resource_attr",
             "min_resource", "max_resource" and "reduction_factor" will be passed
@@ -262,7 +262,7 @@ def run(
             needed for a config.
             It is used to skip configs which do not fit in memory.
         metric_constraints: A list of metric constraints to be satisfied.
-            e.g., `['precision', '>=', 0.9]`.
+            e.g., `['precision', '>=', 0.9]`. The sign can be ">=" or "<=".
         max_failure: int | the maximal consecutive number of failures to sample
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
