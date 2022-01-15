@@ -74,6 +74,9 @@ class TrainerForAuto(Seq2SeqTrainer):
                 ignore_keys,
                 metric_key_prefix,
             )
+        if not hasattr(self, "intermediate_results"):
+            self.intermediate_results = []
+        self.intermediate_results.append(metrics)
         # if metrics:
         #     for key in list(metrics.keys()):
         #         if key.startswith("eval_"):
