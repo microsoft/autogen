@@ -591,6 +591,8 @@ class TransformersEstimator(BaseEstimator):
             num_labels=self._num_labels,
             per_model_config=self._per_model_config,
         )
+        if hasattr(self._trainer, "intermediate_results"):
+            self._intermediate_results = self._trainer.intermediate_results
         self._trainer = None
 
     def _delete_one_ckpt(self, ckpt_location):
@@ -656,7 +658,7 @@ class TransformersEstimator(BaseEstimator):
                     else np.argmax(predictions, axis=1)
                 )
             metric_dict = {
-                "val_loss": metric_loss_score(
+                "automl_metric": metric_loss_score(
                     metric_name=self._metric, y_predict=predictions, y_true=labels
                 )
             }
@@ -669,10 +671,7 @@ class TransformersEstimator(BaseEstimator):
                 X_train=self._X_train,
                 y_train=self._y_train,
             )
-            metric_dict["val_loss"] = loss
-        if not hasattr(self, "intermediate_results"):
-            self.intermediate_results = []
-        self.intermediate_results.append(metric_dict)
+            metric_dict["automl_metric"] = loss
         return metric_dict
 
     def _init_model_for_predict(self, X_test):

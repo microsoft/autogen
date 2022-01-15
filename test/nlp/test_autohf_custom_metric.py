@@ -36,7 +36,7 @@ def custom_metric(
     metrics = trainer.evaluate(eval_dataset)
     estimator._metric = estimator_metric_backup
 
-    return metrics.pop("eval_val_loss"), metrics
+    return metrics.pop("eval_automl_metric"), metrics
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
