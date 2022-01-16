@@ -30,34 +30,61 @@ def load_default_huggingface_metric_for_task(task):
 global tokenized_column_names
 
 
-def tokenize_text(X, Y=None, task=None, custom_hpo_args=None):
+def get_auto_tokenizer(model_path, task):
+    from transformers import AutoTokenizer
+
+    if task == SUMMARIZATION:
+        return AutoTokenizer.from_pretrained(
+            model_path,  # 'roberta-base'
+            cache_dir=None,
+            use_fast=True,
+            revision="main",
+            use_auth_token=None,
+        )
+    else:
+        return AutoTokenizer.from_pretrained(model_path, use_fast=True)
+
+
+def tokenize_text(X, Y=None, task=None, custom_hpo_args=None, tokenizer=None):
     if task in (SEQCLASSIFICATION, SEQREGRESSION):
-        X_tokenized, _ = tokenize_onedataframe(
-            X, this_tokenizer=None, task=task, custom_hpo_args=custom_hpo_args
+        X_tokenized = tokenize_onedataframe(
+            X,
+            tokenizer=tokenizer,
+            task=task,
+            custom_hpo_args=custom_hpo_args,
+            prefix_str="",
         )
         return X_tokenized, None
     elif task == TOKENCLASSIFICATION:
-        return tokenize_text_tokclassification(X, Y, custom_hpo_args)
+        return tokenize_text_tokclassification(
+            X, Y, tokenizer=tokenizer, custom_hpo_args=custom_hpo_args
+        )
     elif task in NLG_TASKS:
-        return tokenize_seq2seq(X, Y, task=task, custom_hpo_args=custom_hpo_args)
+        return tokenize_seq2seq(
+            X, Y, tokenizer=tokenizer, task=task, custom_hpo_args=custom_hpo_args
+        )
     elif task == MULTICHOICECLASSIFICATION:
-        return tokenize_text_multiplechoice(X, custom_hpo_args)
+        return tokenize_text_multiplechoice(
+            X, tokenizer=tokenizer, custom_hpo_args=custom_hpo_args
+        )
 
 
-def tokenize_seq2seq(X, Y, task=None, custom_hpo_args=None):
-    model_inputs, tokenizer = tokenize_onedataframe(
+def tokenize_seq2seq(X, Y, tokenizer, task=None, custom_hpo_args=None):
+    model_inputs = tokenize_onedataframe(
         X,
-        this_tokenizer=None,
+        tokenizer=tokenizer,
         task=task,
         custom_hpo_args=custom_hpo_args,
+        prefix_str="summarize: ",
     )
     labels = None
     if Y is not None:
-        labels, _ = tokenize_onedataframe(
+        labels = tokenize_onedataframe(
             Y.to_frame(),
-            this_tokenizer=tokenizer,
+            tokenizer=tokenizer,
             task=task,
             custom_hpo_args=custom_hpo_args,
+            prefix_str="",
         )
         labels["label"] = [
             [(each_l if each_l != tokenizer.pad_token_id else -100) for each_l in label]
@@ -70,7 +97,7 @@ def tokenize_seq2seq(X, Y, task=None, custom_hpo_args=None):
 
 
 def tokenize_and_align_labels(
-    examples, tokenizer, custom_hpo_args, X_sent_key, Y_sent_key=None
+    examples, tokenizer, custom_hpo_args=None, X_sent_key=None, Y_sent_key=None
 ):
     global tokenized_column_names
 
@@ -115,14 +142,10 @@ def tokenize_and_align_labels(
     return tokenized_input_and_labels
 
 
-def tokenize_text_tokclassification(X, Y, custom_hpo_args):
-    from transformers import AutoTokenizer
+def tokenize_text_tokclassification(X, Y, tokenizer, custom_hpo_args=None):
     import pandas as pd
 
     global tokenized_column_names
-    this_tokenizer = AutoTokenizer.from_pretrained(
-        custom_hpo_args.model_path, use_fast=True
-    )
     if Y is not None:
         X_and_Y = pd.concat([X, Y.to_frame()], axis=1)
         X_key = list(X.keys())[0]
@@ -130,7 +153,7 @@ def tokenize_text_tokclassification(X, Y, custom_hpo_args):
         X_and_Y_tokenized = X_and_Y.apply(
             lambda x: tokenize_and_align_labels(
                 x,
-                tokenizer=this_tokenizer,
+                tokenizer=tokenizer,
                 custom_hpo_args=custom_hpo_args,
                 X_sent_key=X_key,
                 Y_sent_key=Y_key,
@@ -150,7 +173,7 @@ def tokenize_text_tokclassification(X, Y, custom_hpo_args):
         d = X.apply(
             lambda x: tokenize_and_align_labels(
                 x,
-                tokenizer=this_tokenizer,
+                tokenizer=tokenizer,
                 custom_hpo_args=custom_hpo_args,
                 X_sent_key=X_key,
                 Y_sent_key=None,
@@ -167,37 +190,21 @@ def tokenize_text_tokclassification(X, Y, custom_hpo_args):
 
 def tokenize_onedataframe(
     X,
-    this_tokenizer=None,
+    tokenizer,
     task=None,
     custom_hpo_args=None,
+    prefix_str=None,
 ):
-    from transformers import AutoTokenizer
     import pandas
 
     global tokenized_column_names
 
-    if this_tokenizer:
-        with this_tokenizer.as_target_tokenizer():
-            d = X.apply(
-                lambda x: tokenize_row(
-                    x,
-                    this_tokenizer,
-                    prefix=("",) if task is SUMMARIZATION else None,
-                    task=task,
-                    custom_hpo_args=custom_hpo_args,
-                ),
-                axis=1,
-                result_type="expand",
-            )
-    else:
-        this_tokenizer = AutoTokenizer.from_pretrained(
-            custom_hpo_args.model_path, use_fast=True
-        )
+    with tokenizer.as_target_tokenizer():
         d = X.apply(
             lambda x: tokenize_row(
                 x,
-                this_tokenizer,
-                prefix=("summarize: ",) if task is SUMMARIZATION else None,
+                tokenizer,
+                prefix=(prefix_str,) if task is SUMMARIZATION else None,
                 task=task,
                 custom_hpo_args=custom_hpo_args,
             ),
@@ -206,7 +213,7 @@ def tokenize_onedataframe(
         )
     X_tokenized = pandas.DataFrame(columns=tokenized_column_names)
     X_tokenized[tokenized_column_names] = d
-    return X_tokenized, this_tokenizer
+    return X_tokenized
 
 
 def postprocess_text(preds, labels):
@@ -223,9 +230,7 @@ def postprocess_text(preds, labels):
     return preds, labels
 
 
-def tokenize_row(
-    this_row, this_tokenizer, prefix=None, task=None, custom_hpo_args=None
-):
+def tokenize_row(this_row, tokenizer, prefix=None, task=None, custom_hpo_args=None):
     global tokenized_column_names
     assert (
         "max_seq_length" in custom_hpo_args.__dict__
@@ -234,7 +239,7 @@ def tokenize_row(
     if prefix:
         this_row = tuple(["".join(x) for x in zip(prefix, this_row)])
 
-    tokenized_example = this_tokenizer(
+    tokenized_example = tokenizer(
         *tuple(this_row),
         padding="max_length",
         max_length=custom_hpo_args.max_seq_length,
@@ -246,22 +251,14 @@ def tokenize_row(
     return [tokenized_example[x] for x in tokenized_column_names]
 
 
-def tokenize_text_multiplechoice(X, custom_hpo_args):
-    from transformers import AutoTokenizer
+def tokenize_text_multiplechoice(X, tokenizer, custom_hpo_args=None):
     import pandas
 
     global tokenized_column_names
 
-    this_tokenizer = AutoTokenizer.from_pretrained(
-        custom_hpo_args.model_path,  # 'roberta-base'
-        cache_dir=None,
-        use_fast=True,
-        revision="main",
-        use_auth_token=None,
-    )
     t = X[["sent1", "sent2", "ending0", "ending1", "ending2", "ending3"]]
     d = t.apply(
-        lambda x: tokenize_swag(x, this_tokenizer, custom_hpo_args),
+        lambda x: tokenize_swag(x, tokenizer, custom_hpo_args),
         axis=1,
         result_type="expand",
     )
@@ -272,7 +269,7 @@ def tokenize_text_multiplechoice(X, custom_hpo_args):
     return output, None
 
 
-def tokenize_swag(this_row, this_tokenizer, custom_hpo_args):
+def tokenize_swag(this_row, tokenizer, custom_hpo_args=None):
     global tokenized_column_names
 
     first_sentences = [[this_row["sent1"]] * 4]
@@ -289,7 +286,7 @@ def tokenize_swag(this_row, this_tokenizer, custom_hpo_args):
     # From 2 dimension to 1 dimension array
     first_sentences = list(chain(*first_sentences))
 
-    tokenized_example = this_tokenizer(
+    tokenized_example = tokenizer(
         *tuple([first_sentences, second_sentences]),
         truncation=True,
         max_length=custom_hpo_args.max_seq_length,
