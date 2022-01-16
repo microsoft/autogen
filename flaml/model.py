@@ -197,32 +197,32 @@ class BaseEstimator:
             train_time = self._fit(X_train, y_train, **kwargs)
         return train_time
 
-    def predict(self, X_test):
+    def predict(self, X):
         """Predict label from features.
 
         Args:
-            X_test: A numpy array or a dataframe of featurized instances, shape n*m.
+            X: A numpy array or a dataframe of featurized instances, shape n*m.
 
         Returns:
             A numpy array of shape n*1.
             Each element is the label for a instance.
         """
         if self._model is not None:
-            X_test = self._preprocess(X_test)
-            return self._model.predict(X_test)
+            X = self._preprocess(X)
+            return self._model.predict(X)
         else:
             logger.warning(
                 "Estimator is not fit yet. Please run fit() before predict()."
             )
-            return np.ones(X_test.shape[0])
+            return np.ones(X.shape[0])
 
-    def predict_proba(self, X_test):
+    def predict_proba(self, X):
         """Predict the probability of each class from features.
 
         Only works for classification problems
 
         Args:
-            X_test: A numpy array of featurized instances, shape n*m.
+            X: A numpy array of featurized instances, shape n*m.
 
         Returns:
             A numpy array of shape n*c. c is the # classes.
@@ -231,8 +231,8 @@ class BaseEstimator:
         """
         assert self._task in CLASSIFICATION, "predict_proba() only for classification."
 
-        X_test = self._preprocess(X_test)
-        return self._model.predict_proba(X_test)
+        X = self._preprocess(X)
+        return self._model.predict_proba(X)
 
     def cleanup(self):
         del self._model
@@ -708,18 +708,18 @@ class TransformersEstimator(BaseEstimator):
         )
         return test_dataset, training_args
 
-    def predict_proba(self, X_test):
+    def predict_proba(self, X):
         assert (
             self._task in CLASSIFICATION
         ), "predict_proba() only for classification tasks."
 
-        test_dataset, _ = self._init_model_for_predict(X_test)
+        test_dataset, _ = self._init_model_for_predict(X)
         predictions = self._trainer.predict(test_dataset)
         self._trainer = None
         return predictions.predictions
 
-    def predict(self, X_test):
-        test_dataset, training_args = self._init_model_for_predict(X_test)
+    def predict(self, X):
+        test_dataset, training_args = self._init_model_for_predict(X)
         if self._task not in NLG_TASKS:
             predictions = self._trainer.predict(test_dataset)
         else:
@@ -1108,12 +1108,12 @@ class XGBoostEstimator(SKLearnEstimator):
         train_time = time.time() - start_time
         return train_time
 
-    def predict(self, X_test):
+    def predict(self, X):
         import xgboost as xgb
 
-        if not issparse(X_test):
-            X_test = self._preprocess(X_test)
-        dtest = xgb.DMatrix(X_test)
+        if not issparse(X):
+            X = self._preprocess(X)
+        dtest = xgb.DMatrix(X)
         return super().predict(dtest)
 
     @classmethod
@@ -1598,22 +1598,22 @@ class Prophet(SKLearnEstimator):
         self._model = model
         return train_time
 
-    def predict(self, X_test):
-        if isinstance(X_test, int):
+    def predict(self, X):
+        if isinstance(X, int):
             raise ValueError(
                 "predict() with steps is only supported for arima/sarimax."
                 " For Prophet, pass a dataframe with the first column containing"
                 " the timestamp values."
             )
         if self._model is not None:
-            X_test = self._preprocess(X_test)
-            forecast = self._model.predict(X_test)
+            X = self._preprocess(X)
+            forecast = self._model.predict(X)
             return forecast["yhat"]
         else:
             logger.warning(
                 "Estimator is not fit yet. Please run fit() before predict()."
             )
-            return np.ones(X_test.shape[0])
+            return np.ones(X.shape[0])
 
 
 class ARIMA(Prophet):
@@ -1678,30 +1678,30 @@ class ARIMA(Prophet):
         self._model = model
         return train_time
 
-    def predict(self, X_test):
+    def predict(self, X):
         if self._model is not None:
-            if isinstance(X_test, int):
-                forecast = self._model.forecast(steps=X_test)
-            elif isinstance(X_test, DataFrame):
-                start = X_test[TS_TIMESTAMP_COL].iloc[0]
-                end = X_test[TS_TIMESTAMP_COL].iloc[-1]
-                if len(X_test.columns) > 1:
-                    X_test = self._preprocess(X_test.drop(columns=TS_TIMESTAMP_COL))
-                    regressors = list(X_test)
-                    print(start, end, X_test.shape)
+            if isinstance(X, int):
+                forecast = self._model.forecast(steps=X)
+            elif isinstance(X, DataFrame):
+                start = X[TS_TIMESTAMP_COL].iloc[0]
+                end = X[TS_TIMESTAMP_COL].iloc[-1]
+                if len(X.columns) > 1:
+                    X = self._preprocess(X.drop(columns=TS_TIMESTAMP_COL))
+                    regressors = list(X)
+                    print(start, end, X.shape)
                     forecast = self._model.predict(
-                        start=start, end=end, exog=X_test[regressors]
+                        start=start, end=end, exog=X[regressors]
                     )
                 else:
                     forecast = self._model.predict(start=start, end=end)
             else:
                 raise ValueError(
-                    "X_test needs to be either a pandas Dataframe with dates as the first column"
+                    "X needs to be either a pandas Dataframe with dates as the first column"
                     " or an int number of periods for predict()."
                 )
             return forecast
         else:
-            return np.ones(X_test if isinstance(X_test, int) else X_test.shape[0])
+            return np.ones(X if isinstance(X, int) else X.shape[0])
 
 
 class SARIMAX(ARIMA):
@@ -1873,42 +1873,40 @@ class TS_SKLearn_Regressor(SKLearnEstimator):
         train_time = time.time() - current_time
         return train_time
 
-    def predict(self, X_test):
+    def predict(self, X):
         if self._model is not None:
-            X_test = self.transform_X(X_test)
-            X_test = self._preprocess(X_test)
+            X = self.transform_X(X)
+            X = self._preprocess(X)
             if isinstance(self._model, list):
                 assert len(self._model) == len(
-                    X_test
-                ), "Model is optimized for horizon, length of X_test must be equal to `period`."
+                    X
+                ), "Model is optimized for horizon, length of X must be equal to `period`."
                 preds = []
                 for i in range(1, len(self._model) + 1):
                     (
                         X_pred,
                         _,
                     ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(
-                        X_test.iloc[:i, :]
+                        X.iloc[:i, :]
                     )
                     preds.append(self._model[i - 1].predict(X_pred)[-1])
                 forecast = DataFrame(
                     data=np.asarray(preds).reshape(-1, 1),
                     columns=[self.hcrystaball_model.name],
-                    index=X_test.index,
+                    index=X.index,
                 )
             else:
                 (
                     X_pred,
                     _,
-                ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(
-                    X_test
-                )
+                ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(X)
                 forecast = self._model.predict(X_pred)
             return forecast
         else:
             logger.warning(
                 "Estimator is not fit yet. Please run fit() before predict()."
             )
-            return np.ones(X_test.shape[0])
+            return np.ones(X.shape[0])
 
 
 class LGBM_TS_Regressor(TS_SKLearn_Regressor):

@@ -714,13 +714,11 @@ class AutoML(BaseEstimator):
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
 
-    def predict(
-        self, X_test: Union[np.array, pd.DataFrame, List[str], List[List[str]]]
-    ):
+    def predict(self, X: Union[np.array, pd.DataFrame, List[str], List[List[str]]]):
         """Predict label from features.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n * m,
+            X: A numpy array of featurized instances, shape n * m,
                 or for 'ts_forecast' task:
                     a pandas dataframe with the first column containing
                     timestamp values (datetime type) or an integer n for
@@ -748,8 +746,8 @@ class AutoML(BaseEstimator):
                 "No estimator is trained. Please run fit with enough budget."
             )
             return None
-        X_test = self._preprocess(X_test)
-        y_pred = estimator.predict(X_test)
+        X = self._preprocess(X)
+        y_pred = estimator.predict(X)
         if (
             isinstance(y_pred, np.ndarray)
             and y_pred.ndim > 1
@@ -763,12 +761,12 @@ class AutoML(BaseEstimator):
         else:
             return y_pred
 
-    def predict_proba(self, X_test):
+    def predict_proba(self, X):
         """Predict the probability of each class from features, only works for
         classification problems.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n * m.
+            X: A numpy array of featurized instances, shape n * m.
 
         Returns:
             A numpy array of shape n * c. c is the  # classes. Each element at
@@ -780,8 +778,8 @@ class AutoML(BaseEstimator):
                 "No estimator is trained. Please run fit with enough budget."
             )
             return None
-        X_test = self._preprocess(X_test)
-        proba = self._trained_estimator.predict_proba(X_test)
+        X = self._preprocess(X)
+        proba = self._trained_estimator.predict_proba(X)
         return proba
 
     def _preprocess(self, X):
