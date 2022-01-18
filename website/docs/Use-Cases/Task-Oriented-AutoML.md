@@ -2,7 +2,7 @@
 
 ## Overview
 
-`flaml.AutoML` is a class for task-oriented AutoML. It can be used as a scikit-learn style estimator with the standard `fit` and `predict` functions. The minimal inputs from users are the training data and the task type.
+[`flaml.AutoML`](../reference/automl#automl-objects) is a class for task-oriented AutoML. It can be used as a scikit-learn style estimator with the standard `fit` and `predict` functions. The minimal inputs from users are the training data and the task type.
 
 * Training data:
     - numpy array. When the input data are stored in numpy array, they are passed to `fit()` as `X_train` and `y_train`.
@@ -122,7 +122,7 @@ The estimator list can contain one or more estimator names, each corresponding t
 
 To tune a custom estimator that is not built-in, you need to:
 
-1. Build a custom estimator by inheritting `flaml.model.BaseEstimator` or a derived class.
+1. Build a custom estimator by inheritting [`flaml.model.BaseEstimator`](../reference/model#baseestimator-objects) or a derived class.
 For example, if you have a estimator class with scikit-learn style `fit()` and `predict()` functions, you only need to set `self.estimator_class` to be that class in your constructor.
 
 ```python
@@ -163,7 +163,7 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
         return space
 ```
 
-In the constructor, we set `self.estimator_class` as `RGFClassifier` or `RGFRegressor` according to the task type. If the estimator you want to tune does not have a scikit-learn style `fit()` and `predict()` API, you can override the `fit()` and `predict()` function of `flaml.model.BaseEstimator`, like [XGBoostEstimator](https://github.com/microsoft/FLAML/blob/59083fbdcb95c15819a0063a355969203022271c/flaml/model.py#L511).
+In the constructor, we set `self.estimator_class` as `RGFClassifier` or `RGFRegressor` according to the task type. If the estimator you want to tune does not have a scikit-learn style `fit()` and `predict()` API, you can override the `fit()` and `predict()` function of `flaml.model.BaseEstimator`, like [XGBoostEstimator](../reference/model#xgboostestimator-objects).
 
 2. Give the custom estimator a name and add it in AutoML. E.g.,
 
@@ -377,7 +377,7 @@ print(automl.mdoel)
 # <flaml.model.LGBMEstimator object at 0x7f9b502c4550>
 ```
 
-`flaml.model.LGBMEstimator` is a wrapper class for LightGBM models. To access the underlying model, use the `estimator` property of the `flaml.model.LGBMEstimator` instance.
+[`flaml.model.LGBMEstimator`](../reference/model#lgbmestimator-objects) is a wrapper class for LightGBM models. To access the underlying model, use the `estimator` property of the `flaml.model.LGBMEstimator` instance.
 
 ```python
 print(automl.model.estimator)

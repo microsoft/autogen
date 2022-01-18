@@ -1,3 +1,4 @@
+from time import sleep
 import numpy as np
 
 try:
@@ -12,22 +13,38 @@ except (ImportError, AssertionError):
 
     use_ray = False
 
-from flaml.searcher.suggestion import OptunaSearch, Searcher, ConcurrencyLimiter
-from flaml.searcher.blendsearch import BlendSearch, CFO, RandomSearch
-
 
 def define_search_space(trial):
     trial.suggest_float("a", 6, 8)
     trial.suggest_float("b", 1e-4, 1e-2, log=True)
 
 
+def long_define_search_space(trial):
+    sleep(1)
+    return 3
+
+
+def wrong_define_search_space(trial):
+    return {1: 1}
+
+
 def test_searcher():
+    from flaml.searcher.suggestion import OptunaSearch, Searcher, ConcurrencyLimiter
+    from flaml.searcher.blendsearch import BlendSearch, CFO, RandomSearch
+    from flaml.tune import sample as flamlsample
+
     searcher = Searcher()
+    try:
+        searcher = Searcher(metric=1, mode=1)
+    except ValueError:
+        # Mode must either be a list or string
+        pass
     searcher = Searcher(metric=["m1", "m2"], mode=["max", "min"])
     searcher.set_search_properties(None, None, None)
     searcher.suggest = searcher.on_pause = searcher.on_unpause = lambda _: {}
     searcher.on_trial_complete = lambda trial_id, result, error: None
     searcher = ConcurrencyLimiter(searcher, max_concurrent=2, batch=True)
+    searcher.on_trial_complete("t0")
     searcher.suggest("t1")
     searcher.suggest("t2")
     searcher.on_pause("t1")
@@ -43,6 +60,12 @@ def test_searcher():
         "a": optuna.distributions.UniformDistribution(6, 8),
         "b": optuna.distributions.LogUniformDistribution(1e-4, 1e-2),
     }
+    searcher = OptunaSearch(["a", config["a"]], metric="m", mode="max")
+    try:
+        searcher.suggest("t0")
+    except ValueError:
+        # not enough values to unpack (expected 3, got 1)
+        pass
     searcher = OptunaSearch(
         config,
         points_to_evaluate=[{"a": 6, "b": 1e-3}],
@@ -50,14 +73,105 @@ def test_searcher():
         metric="m",
         mode="max",
     )
+    try:
+        searcher.add_evaluated_point({}, None, error=True)
+    except ValueError:
+        # nconsistent parameters set() and distributions {'b', 'a'}.
+        pass
+    try:
+        searcher.add_evaluated_point({"a", 1, "b", 0.01}, None, pruned=True)
+    except AttributeError:
+        # 'set' object has no attribute 'keys'
+        pass
+    try:
+        searcher.add_evaluated_point(
+            {"a": 1, "b": 0.01}, None, intermediate_values=[0.1]
+        )
+    except ValueError:
+        # `value` is supposed to be set for a complete trial.
+        pass
+    try:
+        searcher = OptunaSearch(config, points_to_evaluate=1)
+    except TypeError:
+        # points_to_evaluate expected to be a list, got <class 'int'>
+        pass
+    try:
+        searcher = OptunaSearch(config, points_to_evaluate=[1])
+    except TypeError:
+        # points_to_evaluate expected to include list or dict
+        pass
+    try:
+        searcher = OptunaSearch(config, points_to_evaluate=[{"a": 1}])
+    except ValueError:
+        # Dim of point {'a': 1} and parameter_names {'a': UniformDistribution(high=8.0, low=6.0), 'b': LogUniformDistribution(high=0.01, low=0.0001)} do not match.
+        pass
+    try:
+        searcher = OptunaSearch(
+            config, points_to_evaluate=[{"a": 1, "b": 0.01}], evaluated_rewards=1
+        )
+    except TypeError:
+        # valuated_rewards expected to be a list, got <class 'int'>.
+        pass
+    try:
+        searcher = OptunaSearch(
+            config, points_to_evaluate=[{"a": 1, "b": 0.01}], evaluated_rewards=[1, 2]
+        )
+    except ValueError:
+        # Dim of evaluated_rewards [1, 2] and points_to_evaluate [{'a': 1, 'b': 0.01}] do not match.
+        pass
     config = {"a": sample.uniform(6, 8), "b": sample.loguniform(1e-4, 1e-2)}
-    # searcher = OptunaSearch(
-    #     config,
-    #     points_to_evaluate=[{"a": 6, "b": 1e-3}],
-    #     evaluated_rewards=[{"m": 2}],
-    #     metric="m",
-    #     mode="max",
-    # )
+    OptunaSearch.convert_search_space({"a": 1})
+    try:
+        OptunaSearch.convert_search_space({"a": {"grid_search": [1, 2]}})
+    except ValueError:
+        # Grid search parameters cannot be automatically converted to an Optuna search space.
+        pass
+    OptunaSearch.convert_search_space({"a": flamlsample.quniform(1, 3, 1)})
+    try:
+        searcher = OptunaSearch(
+            config,
+            points_to_evaluate=[{"a": 6, "b": 1e-3}],
+            evaluated_rewards=[{"m": 2}],
+            metric="m",
+            mode="max",
+        )
+    except ValueError:
+        # Optuna search does not support parameters of type `Float` with samplers of type `_Uniform`
+        pass
+    searcher = OptunaSearch(long_define_search_space, metric="m", mode="min")
+    try:
+        searcher.suggest("t0")
+    except TypeError:
+        # The return value of the define-by-run function passed in the `space` argument should be either None or a `dict` with `str` keys.
+        pass
+    searcher = OptunaSearch(wrong_define_search_space, metric="m", mode="min")
+    try:
+        searcher.suggest("t0")
+    except TypeError:
+        # At least one of the keys in the dict returned by the define-by-run function passed in the `space` argument was not a `str`.
+        pass
+    searcher = OptunaSearch(metric="m", mode="min")
+    try:
+        searcher.suggest("t0")
+    except RuntimeError:
+        # Trying to sample a configuration from OptunaSearch, but no search space has been defined.
+        pass
+    try:
+        searcher.add_evaluated_point({}, 1)
+    except RuntimeError:
+        # Trying to sample a configuration from OptunaSearch, but no search space has been defined.
+        pass
+    searcher = OptunaSearch(define_search_space)
+    try:
+        searcher.suggest("t0")
+    except RuntimeError:
+        # Trying to sample a configuration from OptunaSearch, but the `metric` (None) or `mode` (None) parameters have not been set.
+        pass
+    try:
+        searcher.add_evaluated_point({}, 1)
+    except RuntimeError:
+        # Trying to sample a configuration from OptunaSearch, but the `metric` (None) or `mode` (None) parameters have not been set.
+        pass
     searcher = OptunaSearch(
         define_search_space,
         points_to_evaluate=[{"a": 6, "b": 1e-3}],
@@ -166,3 +280,13 @@ def test_searcher():
     from flaml import tune
 
     tune.run(lambda x: 1, config={}, use_ray=use_ray)
+
+
+def test_no_optuna():
+    import subprocess
+    import sys
+
+    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "optuna"])
+    import flaml.searcher.suggestion
+
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "optuna==2.8.0"])

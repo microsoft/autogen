@@ -1,6 +1,6 @@
 # Tune User Defined Function
 
-`flaml.tune` is a module for economical hyperparameter tuning. It is used internally by `flaml.AutoML`. It can also be used to directly tune a user-defined function (UDF), which is not limited to machine learning model training. You can use `flaml.tune` instead of `flaml.AutoML` if one of the following is true:
+[`flaml.tune`](../reference/tune/tune) is a module for economical hyperparameter tuning. It is used internally by `flaml.AutoML`. It can also be used to directly tune a user-defined function (UDF), which is not limited to machine learning model training. You can use `flaml.tune` instead of `flaml.AutoML` if one of the following is true:
 
 1. Your machine learning task is not one of the built-in tasks from `flaml.AutoML`.
 1. Your input cannot be represented as X_train + y_train or dataframe + label.
@@ -75,8 +75,8 @@ config_search_space = {
     "y": tune.randint(lower=1, upper=100000)
 }  
 
-# provide the search space to flaml.tune
-flaml.tune.run(..., config=config_search_space, ...)
+# provide the search space to tune.run
+tune.run(..., config=config_search_space, ...)
 ```
 
 #### More details about the search space domain
@@ -121,9 +121,9 @@ config = {
     # while sampling in log space
     "lograndint": tune.lograndint(1, 10),
 
-    # Sample a integer uniformly between 1 (inclusive) and 10 (inclusive (!)),
+    # Sample a integer uniformly between 2 (inclusive) and 10 (inclusive (!)),
     # while sampling in log space and rounding to increments of 2
-    "qlograndint": tune.qlograndint(1, 10, 2),
+    "qlograndint": tune.qlograndint(2, 10, 2),
 
     # Sample an option uniformly from the specified choices
     "choice": tune.choice(["a", "b", "c"]),
@@ -170,7 +170,7 @@ Optionally, you can provide a list of config constraints to be satisfied through
 
 
 ### Put together
-After the aforementioned key steps, one is ready to perform a tuning task by calling `flaml.tune.run()`. Below is a quick sequential tuning example using the pre-defined search space `config_search_space` and a minimization (`mode='min'`) objective for the `score` metric evaluated in `evaluate_config`, using the default serach algorithm in flaml. The time budget is 10 seconds (`time_budget_s=10`).
+After the aforementioned key steps, one is ready to perform a tuning task by calling [`flaml.tune.run()`](../reference/tune/tune#run). Below is a quick sequential tuning example using the pre-defined search space `config_search_space` and a minimization (`mode='min'`) objective for the `score` metric evaluated in `evaluate_config`, using the default serach algorithm in flaml. The time budget is 10 seconds (`time_budget_s=10`).
 ```python
 # require: pip install flaml[blendsearch]
 analysis = tune.run(
@@ -209,7 +209,7 @@ There are several advanced tuning options worth mentioning.
 
 ### More constraints on the tuning
 
-A user can specify constraints on the configurations to be satisfied via the argument `config_constraints`. The `config_constraints` receives a list of such constraints to be satisfied. Specifically, each constraint is a tuple that consists of (1) a function that takes a configuration as input and returns a numerical value; (2) an operation chosen from "<="  or ">"; (3) a numerical threshold.
+A user can specify constraints on the configurations to be satisfied via the argument `config_constraints`. The `config_constraints` receives a list of such constraints to be satisfied. Specifically, each constraint is a tuple that consists of (1) a function that takes a configuration as input and returns a numerical value; (2) an operation chosen from "<=", ">=", "<" or ">"; (3) a numerical threshold.
 
 In the following code example, we constrain the output of `area`, which takes a configuration as input and outputs a numerical value, to be no larger than 1000.
 
@@ -222,7 +222,7 @@ flaml.tune.run(evaluation_function=evaluate_config, mode="min",
                config_constraints=[(area, "<=", 1000)], ...)
 ```
 
- You can also specify a list of metric constraints to be satisfied via the argument `metric_constraints`. Each element in the `metric_constraints` list is a tuple that consists of (1) a string specifying the name of the metric (the metric name must be defined and returned in the user-defined `evaluation_function`); (2) an operation chosen from "<="  or ">"; (3) a numerical threshold.  
+ You can also specify a list of metric constraints to be satisfied via the argument `metric_constraints`. Each element in the `metric_constraints` list is a tuple that consists of (1) a string specifying the name of the metric (the metric name must be defined and returned in the user-defined `evaluation_function`); (2) an operation chosen from "<=" or ">="; (3) a numerical threshold.  
 
  In the following code example, we constrain the metric `score` to be no larger than 0.4.
 

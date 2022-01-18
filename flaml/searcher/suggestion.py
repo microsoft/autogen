@@ -123,7 +123,7 @@ class Searcher:
                 mod in ["min", "max", "obs"] for mod in mode
             ), "All of mode must be 'min' or 'max' or 'obs'!"
         else:
-            raise ValueError("Mode most either be a list or string")
+            raise ValueError("Mode must either be a list or string")
 
     def set_search_properties(
         self, metric: Optional[str], mode: Optional[str], config: Dict
