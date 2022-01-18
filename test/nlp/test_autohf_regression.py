@@ -13,11 +13,9 @@ def test_regression():
     from datasets import load_dataset
 
     try:
-        train_dataset = (
-            load_dataset("glue", "stsb", split="train[:1%]").to_pandas().iloc[:20]
-        )
+        train_dataset = load_dataset("glue", "stsb", split="train[:2%]").to_pandas()
         dev_dataset = (
-            load_dataset("glue", "stsb", split="train[1%:2%]").to_pandas().iloc[:20]
+            load_dataset("glue", "stsb", split="train[2%:3%]").to_pandas().iloc[:32]
         )
     except requests.exceptions.ConnectionError:
         return
@@ -50,9 +48,12 @@ def test_regression():
         "fp16": False,
     }
 
+    ray.shutdown()
+    ray.init()
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
+    automl.predict(X_val)
 
 
 if __name__ == "__main__":

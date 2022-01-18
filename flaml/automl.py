@@ -470,7 +470,7 @@ class AutoML(BaseEstimator):
                 'classification', 'regression', 'ts_forecast', 'rank',
                 'seq-classification', 'seq-regression', 'summarization'.
             n_jobs: An integer of the number of threads for training.
-            log_file_name: A string of the log file name. To disable logging,
+            log_file_name: A string of the log file name | default="". To disable logging,
                 set it to be an empty string "".
             estimator_list: A list of strings for estimator names, or 'auto'
                 e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
@@ -714,13 +714,11 @@ class AutoML(BaseEstimator):
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
 
-    def predict(
-        self, X_test: Union[np.array, pd.DataFrame, List[str], List[List[str]]]
-    ):
+    def predict(self, X: Union[np.array, pd.DataFrame, List[str], List[List[str]]]):
         """Predict label from features.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n * m,
+            X: A numpy array of featurized instances, shape n * m,
                 or for 'ts_forecast' task:
                     a pandas dataframe with the first column containing
                     timestamp values (datetime type) or an integer n for
@@ -748,8 +746,8 @@ class AutoML(BaseEstimator):
                 "No estimator is trained. Please run fit with enough budget."
             )
             return None
-        X_test = self._preprocess(X_test)
-        y_pred = estimator.predict(X_test)
+        X = self._preprocess(X)
+        y_pred = estimator.predict(X)
         if (
             isinstance(y_pred, np.ndarray)
             and y_pred.ndim > 1
@@ -763,12 +761,12 @@ class AutoML(BaseEstimator):
         else:
             return y_pred
 
-    def predict_proba(self, X_test):
+    def predict_proba(self, X):
         """Predict the probability of each class from features, only works for
         classification problems.
 
         Args:
-            X_test: A numpy array of featurized instances, shape n * m.
+            X: A numpy array of featurized instances, shape n * m.
 
         Returns:
             A numpy array of shape n * c. c is the  # classes. Each element at
@@ -780,8 +778,8 @@ class AutoML(BaseEstimator):
                 "No estimator is trained. Please run fit with enough budget."
             )
             return None
-        X_test = self._preprocess(X_test)
-        proba = self._trained_estimator.predict_proba(X_test)
+        X = self._preprocess(X)
+        proba = self._trained_estimator.predict_proba(X)
         return proba
 
     def _preprocess(self, X):
@@ -1804,7 +1802,7 @@ class AutoML(BaseEstimator):
                 'classification', 'regression', 'ts_forecast', 'rank',
                 'seq-classification', 'seq-regression', 'summarization'
             n_jobs: An integer of the number of threads for training.
-            log_file_name: A string of the log file name. To disable logging,
+            log_file_name: A string of the log file name | default="". To disable logging,
                 set it to be an empty string "".
             estimator_list: A list of strings for estimator names, or 'auto'
                 e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
@@ -2001,7 +1999,7 @@ class AutoML(BaseEstimator):
         old_level = logger.getEffectiveLevel()
         self.verbose = verbose
         logger.setLevel(50 - verbose * 10)
-        if (not mlflow or not mlflow.active_run()) and not logger.handlers:
+        if not logger.handlers:
             # Add the console handler.
             _ch = logging.StreamHandler()
             _ch.setFormatter(logger_formatter)
@@ -2315,7 +2313,7 @@ class AutoML(BaseEstimator):
             ),
             key=lambda x: x.last_result["wall_clock_time"],
         )
-        for _track_iter, trial in enumerate(trials):
+        for self._track_iter, trial in enumerate(trials):
             result = trial.last_result
             better = False
             if result:
@@ -2326,20 +2324,20 @@ class AutoML(BaseEstimator):
                 wall_time = result.get("wall_clock_time")
                 if wall_time is not None:
                     self._state.time_from_start = wall_time
+                self._iter_per_learner[estimator] += 1
                 if search_state.sample_size == self._state.data_size[0]:
-                    self._iter_per_learner[estimator] += 1
                     if not self._fullsize_reached:
                         self._fullsize_reached = True
                 if search_state.best_loss < self._state.best_loss:
                     self._state.best_loss = search_state.best_loss
                     self._best_estimator = estimator
-                    self._config_history[_track_iter] = (
+                    self._config_history[self._track_iter] = (
                         self._best_estimator,
                         config,
                         self._time_taken_best_iter,
                     )
                     self._trained_estimator = search_state.trained_estimator
-                    self._best_iteration = _track_iter
+                    self._best_iteration = self._track_iter
                     self._time_taken_best_iter = self._state.time_from_start
                     better = True
                     self._search_states[estimator].best_config = config
@@ -2360,7 +2358,7 @@ class AutoML(BaseEstimator):
             )
         if mlflow is not None and mlflow.active_run():
             with mlflow.start_run(nested=True):
-                mlflow.log_metric("iter_counter", self._iter_per_learner[estimator])
+                mlflow.log_metric("iter_counter", self._track_iter)
                 if "intermediate_results" in search_state.metric_for_logging:
                     for each_entry in search_state.metric_for_logging[
                         "intermediate_results"
@@ -2558,8 +2556,9 @@ class AutoML(BaseEstimator):
                     self._state.time_from_start = wall_time
                 # logger.info(f"{self._search_states[estimator].sample_size}, {data_size}")
                 if search_state.sample_size == self._state.data_size[0]:
-                    self._iter_per_learner[estimator] += 1
+                    self._iter_per_learner_fullsize[estimator] += 1
                     self._fullsize_reached = True
+                self._iter_per_learner[estimator] += 1
                 if search_state.best_loss < self._state.best_loss:
                     best_config_sig = estimator + search_state.get_hist_config_sig(
                         self.data_size_full, search_state.best_config
@@ -2681,6 +2680,7 @@ class AutoML(BaseEstimator):
         self._config_history = {}
         self._max_iter_per_learner = 10000
         self._iter_per_learner = dict([(e, 0) for e in self.estimator_list])
+        self._iter_per_learner_fullsize = dict([(e, 0) for e in self.estimator_list])
         self._fullsize_reached = False
         self._trained_estimator = None
         self._best_estimator = None
@@ -2849,7 +2849,8 @@ class AutoML(BaseEstimator):
                 if (
                     self._search_states[estimator].time2eval_best
                     > self._state.time_budget - self._state.time_from_start
-                    or self._iter_per_learner[estimator] >= self._max_iter_per_learner
+                    or self._iter_per_learner_fullsize[estimator]
+                    >= self._max_iter_per_learner
                 ):
                     inv.append(0)
                     continue

@@ -11,14 +11,12 @@ def test_hf_data():
     from datasets import load_dataset
 
     try:
-        train_dataset = (
-            load_dataset("glue", "mrpc", split="train[:1%]").to_pandas().iloc[0:4]
-        )
+        train_dataset = load_dataset("glue", "mrpc", split="train[:1%]").to_pandas()
         dev_dataset = (
-            load_dataset("glue", "mrpc", split="train[1%:2%]").to_pandas().iloc[0:4]
+            load_dataset("glue", "mrpc", split="train[1%:2%]").to_pandas().iloc[:4]
         )
         test_dataset = (
-            load_dataset("glue", "mrpc", split="test[1%:2%]").to_pandas().iloc[0:4]
+            load_dataset("glue", "mrpc", split="test[2%:3%]").to_pandas().iloc[:4]
         )
     except requests.exceptions.ConnectionError:
         return
@@ -39,7 +37,7 @@ def test_hf_data():
     automl_settings = {
         "gpu_per_trial": 0,
         "max_iter": 3,
-        "time_budget": 5,
+        "time_budget": 10,
         "task": "seq-classification",
         "metric": "accuracy",
         "log_file_name": "seqclass.log",
