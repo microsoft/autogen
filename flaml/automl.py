@@ -333,6 +333,10 @@ class AutoMLState:
             and self.resources_per_trial.get("gpu", 0) > 0
         ):
 
+            if _is_nlp_task(self.task):
+                use_ray = self.fit_kwargs.get("use_ray")
+                self.fit_kwargs["use_ray"] = True
+
             def _trainable_function_wrapper(config: dict):
 
                 return_estimator, train_time = train_estimator(
@@ -364,6 +368,13 @@ class AutoMLState:
             )
             result = list(analysis.results.values())[0]
             estimator, train_time = result["estimator"], result["train_time"]
+
+            if _is_nlp_task(self.task):
+                if use_ray is None:
+                    del self.fit_kwargs["use_ray"]
+                else:
+                    self.fit_kwargs["use_ray"] = use_ray
+                estimator.use_ray = False
         else:
             if _is_nlp_task(self.task):
                 use_ray = self.fit_kwargs.get("use_ray")

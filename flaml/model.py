@@ -715,7 +715,8 @@ class TransformersEstimator(BaseEstimator):
 
         test_dataset, _ = self._init_model_for_predict(X)
         predictions = self._trainer.predict(test_dataset)
-        self._trainer = None
+        if self.use_ray is True:
+            self._trainer = None
         return predictions.predictions
 
     def predict(self, X):
@@ -728,7 +729,8 @@ class TransformersEstimator(BaseEstimator):
                 max_length=training_args.generation_max_length,
                 num_beams=training_args.generation_num_beams,
             )
-        self._trainer = None
+        if self.use_ray is True:
+            self._trainer = None
         if self._task == SEQCLASSIFICATION:
             return np.argmax(predictions.predictions, axis=1)
         elif self._task == SEQREGRESSION:
