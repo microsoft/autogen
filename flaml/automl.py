@@ -2424,20 +2424,6 @@ class AutoML(BaseEstimator):
         est_retrain_time = next_trial_time = 0
         best_config_sig = None
         better = True  # whether we find a better model in one trial
-        if self._ensemble:
-            self.best_model = {}
-        if self._max_iter < 2 and self.estimator_list and self._state.retrain_final:
-            # when max_iter is 1, no need to search
-            # TODO: otherwise, need to make sure SearchStates.init_config is inside search space
-            self._max_iter = 0
-            self._best_estimator = estimator = self.estimator_list[0]
-            self._selected = state = self._search_states[estimator]
-            state.best_config_sample_size = self._state.data_size[0]
-            state.best_config = (
-                state.init_config
-                if isinstance(state.init_config, dict)
-                else state.init_config[0]
-            )
         for self._track_iter in range(self._max_iter):
             if self._estimator_index is None:
                 estimator = self._active_estimators[0]
@@ -2699,8 +2685,20 @@ class AutoML(BaseEstimator):
         self._warn_threshold = 10
         self._selected = None
         self.modelcount = 0
-
-        if not self._use_ray:
+        if self._max_iter < 2 and self.estimator_list and self._state.retrain_final:
+            # when max_iter is 1, no need to search
+            # TODO: otherwise, need to make sure SearchStates.init_config is inside search space
+            self.modelcount = self._max_iter
+            self._max_iter = 0
+            self._best_estimator = estimator = self.estimator_list[0]
+            self._selected = state = self._search_states[estimator]
+            state.best_config_sample_size = self._state.data_size[0]
+            state.best_config = (
+                state.init_config
+                if isinstance(state.init_config, dict)
+                else state.init_config[0]
+            )
+        elif not self._use_ray:
             self._search_sequential()
         else:
             self._search_parallel()

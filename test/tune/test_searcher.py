@@ -189,8 +189,15 @@ def test_searcher():
     searcher.on_trial_complete("t3", {"m": np.nan})
     searcher.save("test/tune/optuna.pickle")
     searcher.restore("test/tune/optuna.pickle")
+    try:
+        searcher = BlendSearch(
+            metric="m", global_search_alg=searcher, metric_constraints=[("c", "<", 1)]
+        )
+    except AssertionError:
+        # sign of metric constraints must be <= or >=.
+        pass
     searcher = BlendSearch(
-        metric="m", global_search_alg=searcher, metric_constraints=[("c", "<", 1)]
+        metric="m", global_search_alg=searcher, metric_constraints=[("c", "<=", 1)]
     )
     searcher.set_search_properties(
         metric="m2", config=config, setting={"time_budget_s": 0}
