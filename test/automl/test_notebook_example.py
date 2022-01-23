@@ -67,6 +67,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     print(automl.resource_attr)
     print(automl.max_resource)
     print(automl.min_resource)
+    automl.fit(X_train=X_train, y_train=y_train, ensemble=True, **settings)
 
 
 def test_automl_array():
