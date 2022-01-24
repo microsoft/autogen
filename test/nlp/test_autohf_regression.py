@@ -9,16 +9,43 @@ def test_regression():
     except ImportError:
         return
     from flaml import AutoML
-    import requests
-    from datasets import load_dataset
+    import pandas as pd
 
-    try:
-        train_dataset = load_dataset("glue", "stsb", split="train[:2%]").to_pandas()
-        dev_dataset = (
-            load_dataset("glue", "stsb", split="train[2%:3%]").to_pandas().iloc[:32]
-        )
-    except requests.exceptions.ConnectionError:
-        return
+    train_data = {
+        "sentence1": [
+            "A plane is taking off.",
+            "A man is playing a large flute.",
+            "A man is spreading shreded cheese on a pizza.",
+            "Three men are playing chess.",
+        ],
+        "sentence2": [
+            "An air plane is taking off.",
+            "A man is playing a flute.",
+            "A man is spreading shredded cheese on an uncooked pizza.",
+            "Two men are playing chess.",
+        ],
+        "label": [5.0, 3.799999952316284, 3.799999952316284, 2.5999999046325684],
+        "idx": [0, 1, 2, 3],
+    }
+    train_dataset = pd.DataFrame(train_data)
+
+    dev_data = {
+        "sentence1": [
+            "A man is playing the cello.",
+            "Some men are fighting.",
+            "A man is smoking.",
+            "The man is playing the piano.",
+        ],
+        "sentence2": [
+            "A man seated is playing the cello.",
+            "Two men are fighting.",
+            "A man is skating.",
+            "The man is playing the guitar.",
+        ],
+        "label": [4.25, 4.25, 0.5, 1.600000023841858],
+        "idx": [4, 5, 6, 7],
+    }
+    dev_dataset = pd.DataFrame(dev_data)
 
     custom_sent_keys = ["sentence1", "sentence2"]
     label_key = "label"
