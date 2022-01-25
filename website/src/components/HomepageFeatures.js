@@ -21,7 +21,7 @@ const FeatureList = [
     description: (
       <>
         FLAML is designed easy to extend, such as adding custom learners or metrics.
-        The customization level ranges from minimal
+        The customization level ranges smoothly from minimal
 (training data and task type as only input) to full (tuning a user-defined function).
       </>
     ),
