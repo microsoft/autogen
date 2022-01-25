@@ -352,8 +352,81 @@ def test_multivariate_forecast_cat(budget=5):
     # plt.show()
 
 
+def test_forecast_classification(budget=5):
+    from hcrystalball.utils import get_sales_data
+    from hcrystalball.wrappers import get_sklearn_wrapper
+
+    time_horizon = 30
+    df = get_sales_data(n_dates=180, n_assortments=1, n_states=1, n_stores=1)
+    df = df[["Sales", "Open", "Promo", "Promo2"]]
+    # feature engineering
+    import numpy as np
+
+    df["above_mean_sales"] = np.where(df["Sales"] > df["Sales"].mean(), 1, 0)
+    df.reset_index(inplace=True)
+    train_df = df[:-time_horizon]
+    test_df = df[-time_horizon:]
+    X_train, X_test = (
+        train_df[["Date", "Open", "Promo", "Promo2"]],
+        test_df[["Date", "Open", "Promo", "Promo2"]],
+    )
+    y_train, y_test = train_df["above_mean_sales"], test_df["above_mean_sales"]
+    automl = AutoML()
+    settings = {
+        "time_budget": budget,  # total running time in seconds
+        "metric": "accuracy",  # primary metric
+        "task": "ts_forecast_classification",  # task type
+        "log_file_name": "test/sales_classification_forecast.log",  # flaml log file
+        "eval_method": "holdout",
+    }
+    """The main flaml automl API"""
+    automl.fit(X_train=X_train, y_train=y_train, **settings, period=time_horizon)
+    """ retrieve best config and best learner"""
+    print("Best ML leaner:", automl.best_estimator)
+    print("Best hyperparmeter config:", automl.best_config)
+    print(f"Best mape on validation data: {automl.best_loss}")
+    print(f"Training duration of best run: {automl.best_config_train_time}s")
+    print(automl.model.estimator)
+    """ pickle and save the automl object """
+    import pickle
+
+    with open("automl.pkl", "wb") as f:
+        pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
+    """ compute predictions of testing dataset """
+    y_pred = automl.predict(X_test)
+    """ compute different metric values on testing dataset"""
+    from flaml.ml import sklearn_metric_loss_score
+
+    print(y_test)
+    print(y_pred)
+    print("accuracy", "=", 1 - sklearn_metric_loss_score("accuracy", y_test, y_pred))
+    from flaml.data import get_output_from_log
+
+    (
+        time_history,
+        best_valid_loss_history,
+        valid_loss_history,
+        config_history,
+        metric_history,
+    ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
+    for config in config_history:
+        print(config)
+    print(automl.resource_attr)
+    print(automl.max_resource)
+    print(automl.min_resource)
+    # import matplotlib.pyplot as plt
+    #
+    # plt.title("Learning Curve")
+    # plt.xlabel("Wall Clock Time (s)")
+    # plt.ylabel("Validation Accuracy")
+    # plt.scatter(time_history, 1 - np.array(valid_loss_history))
+    # plt.step(time_history, 1 - np.array(best_valid_loss_history), where="post")
+    # plt.show()
+
+
 if __name__ == "__main__":
     test_forecast_automl(60)
     test_multivariate_forecast_num(60)
     test_multivariate_forecast_cat(60)
     test_numpy()
+    test_forecast_classification()

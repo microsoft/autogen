@@ -86,7 +86,11 @@ setuptools.setup(
             "nltk",
             "rouge_score",
         ],
-        "ts_forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2", "hcrystalball==0.1.10"],
+        "ts_forecast": [
+            "prophet>=1.0.1",
+            "statsmodels>=0.12.2",
+            "hcrystalball==0.1.10",
+        ],
         "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2", "hcrystalball==0.1.10"],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
     },

@@ -20,18 +20,18 @@ from sklearn.metrics import (
 from sklearn.model_selection import RepeatedStratifiedKFold, GroupKFold, TimeSeriesSplit
 from .model import (
     XGBoostSklearnEstimator,
-    XGBoost_TS_Regressor,
+    XGBoost_TS,
     XGBoostLimitDepthEstimator,
-    XGBoostLimitDepth_TS_Regressor,
+    XGBoostLimitDepth_TS,
     RandomForestEstimator,
-    RF_TS_Regressor,
+    RF_TS,
     LGBMEstimator,
-    LGBM_TS_Regressor,
+    LGBM_TS,
     LRL1Classifier,
     LRL2Classifier,
     CatBoostEstimator,
     ExtraTreesEstimator,
-    ExtraTrees_TS_Regressor,
+    ExtraTrees_TS,
     KNeighborsEstimator,
     Prophet,
     ARIMA,
@@ -94,21 +94,15 @@ huggingface_submetric_to_metric = {"rouge1": "rouge", "rouge2": "rouge"}
 def get_estimator_class(task, estimator_name):
     # when adding a new learner, need to add an elif branch
     if "xgboost" == estimator_name:
-        estimator_class = (
-            XGBoost_TS_Regressor if TS_FORECAST == task else XGBoostSklearnEstimator
-        )
+        estimator_class = XGBoost_TS if task in TS_FORECAST else XGBoostSklearnEstimator
     elif "xgb_limitdepth" == estimator_name:
         estimator_class = (
-            XGBoostLimitDepth_TS_Regressor
-            if TS_FORECAST == task
-            else XGBoostLimitDepthEstimator
+            XGBoostLimitDepth_TS if task in TS_FORECAST else XGBoostLimitDepthEstimator
         )
     elif "rf" == estimator_name:
-        estimator_class = (
-            RF_TS_Regressor if TS_FORECAST == task else RandomForestEstimator
-        )
+        estimator_class = RF_TS if task in TS_FORECAST else RandomForestEstimator
     elif "lgbm" == estimator_name:
-        estimator_class = LGBM_TS_Regressor if TS_FORECAST == task else LGBMEstimator
+        estimator_class = LGBM_TS if task in TS_FORECAST else LGBMEstimator
     elif "lrl1" == estimator_name:
         estimator_class = LRL1Classifier
     elif "lrl2" == estimator_name:
@@ -116,9 +110,7 @@ def get_estimator_class(task, estimator_name):
     elif "catboost" == estimator_name:
         estimator_class = CatBoostEstimator
     elif "extra_tree" == estimator_name:
-        estimator_class = (
-            ExtraTrees_TS_Regressor if TS_FORECAST == task else ExtraTreesEstimator
-        )
+        estimator_class = ExtraTrees_TS if task in TS_FORECAST else ExtraTreesEstimator
     elif "kneighbor" == estimator_name:
         estimator_class = KNeighborsEstimator
     elif "prophet" in estimator_name:
@@ -453,7 +445,7 @@ def evaluate_model_CV(
     else:
         labels = None
     groups = None
-    shuffle = False if task == TS_FORECAST else True
+    shuffle = False if task in TS_FORECAST else True
     if isinstance(kf, RepeatedStratifiedKFold):
         kf = kf.split(X_train_split, y_train_split)
     elif isinstance(kf, GroupKFold):

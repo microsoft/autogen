@@ -42,7 +42,7 @@ from .data import (
     CLASSIFICATION,
     TOKENCLASSIFICATION,
     TS_FORECAST,
-    FORECAST,
+    TS_FORECASTREGRESSION,
     REGRESSION,
     _is_nlp_task,
     NLG_TASKS,
@@ -84,7 +84,7 @@ class SearchState:
         self.data_size = data_size
         self.ls_ever_converged = False
         self.learner_class = learner_class
-        if task == TS_FORECAST:
+        if task in TS_FORECAST:
             search_space = learner_class.search_space(
                 data_size=data_size, task=task, pred_horizon=period
             )
@@ -816,7 +816,7 @@ class AutoML(BaseEstimator):
             return X
         elif issparse(X):
             X = X.tocsr()
-        if self._state.task == TS_FORECAST:
+        if self._state.task in TS_FORECAST:
             X = pd.DataFrame(X)
         if self._transformer:
             X = self._transformer.transform(X)
@@ -894,7 +894,7 @@ class AutoML(BaseEstimator):
             ), "# rows in X_train must match length of y_train."
             self._df = isinstance(X_train_all, pd.DataFrame)
             self._nrow, self._ndim = X_train_all.shape
-            if self._state.task == TS_FORECAST:
+            if self._state.task in TS_FORECAST:
                 X_train_all = pd.DataFrame(X_train_all)
                 X_train_all, y_train_all = self._validate_ts_data(
                     X_train_all, y_train_all
@@ -906,7 +906,7 @@ class AutoML(BaseEstimator):
             ), "dataframe must be a pandas DataFrame"
             assert label in dataframe.columns, "label must a column name in dataframe"
             self._df = True
-            if self._state.task == TS_FORECAST:
+            if self._state.task in TS_FORECAST:
                 dataframe = self._validate_ts_data(dataframe)
             X = dataframe.drop(columns=label)
             self._nrow, self._ndim = X.shape
@@ -1078,7 +1078,7 @@ class AutoML(BaseEstimator):
         if X_val is None and eval_method == "holdout":
             # if eval_method = holdout, make holdout data
             if self._split_type == "time":
-                if self._state.task == TS_FORECAST:
+                if self._state.task in TS_FORECAST:
                     num_samples = X_train_all.shape[0]
                     period = self._state.fit_kwargs["period"]
                     assert (
@@ -1239,7 +1239,7 @@ class AutoML(BaseEstimator):
             )
         elif self._split_type == "time":
             # logger.info("Using TimeSeriesSplit")
-            if self._state.task == TS_FORECAST:
+            if self._state.task in TS_FORECAST:
                 period = self._state.fit_kwargs["period"]
                 if period * (n_splits + 1) > y_train_all.size:
                     n_splits = int(y_train_all.size / period - 1)
@@ -1386,7 +1386,7 @@ class AutoML(BaseEstimator):
         auto_augment = (
             self._settings.get("auto_augment") if auto_augment is None else auto_augment
         )
-        self._state.task = TS_FORECAST if task == FORECAST else task
+        self._state.task = task
         self._estimator_type = "classifier" if task in CLASSIFICATION else "regressor"
 
         self._state.fit_kwargs = fit_kwargs
@@ -1489,7 +1489,7 @@ class AutoML(BaseEstimator):
         elif self._state.task in REGRESSION:
             assert split_type in ["auto", "uniform", "time", "group"]
             self._split_type = split_type if split_type != "auto" else "uniform"
-        elif self._state.task == TS_FORECAST:
+        elif self._state.task in TS_FORECAST:
             assert split_type in ["auto", "time"]
             self._split_type = "time"
             assert isinstance(
@@ -1994,7 +1994,7 @@ class AutoML(BaseEstimator):
         min_sample_size = min_sample_size or self._settings.get("min_sample_size")
         use_ray = self._settings.get("use_ray") if use_ray is None else use_ray
 
-        self._state.task = TS_FORECAST if task == FORECAST else task
+        self._state.task = task
         self._state.log_training_metric = log_training_metric
 
         self._state.fit_kwargs = fit_kwargs
@@ -2070,7 +2070,7 @@ class AutoML(BaseEstimator):
                 metric = "roc_auc"
             elif "multi" in self._state.task:
                 metric = "log_loss"
-            elif self._state.task == TS_FORECAST:
+            elif self._state.task in TS_FORECAST:
                 metric = "mape"
             elif self._state.task == "rank":
                 metric = "ndcg"
@@ -2148,16 +2148,17 @@ class AutoML(BaseEstimator):
                         "extra_tree",
                         "xgb_limitdepth",
                     ]
-                if TS_FORECAST == self._state.task:
+                if self._state.task in TS_FORECAST:
                     # catboost is removed because it has a `name` parameter, making it incompatible with hcrystalball
                     if "catboost" in estimator_list:
                         estimator_list.remove("catboost")
-                    try:
-                        import prophet
+                    if self._state.task in TS_FORECASTREGRESSION:
+                        try:
+                            import prophet
 
-                        estimator_list += ["prophet", "arima", "sarimax"]
-                    except ImportError:
-                        estimator_list += ["arima", "sarimax"]
+                            estimator_list += ["prophet", "arima", "sarimax"]
+                        except ImportError:
+                            estimator_list += ["arima", "sarimax"]
                 elif "regression" != self._state.task:
                     estimator_list += ["lrl1"]
 
@@ -2802,7 +2803,7 @@ class AutoML(BaseEstimator):
                 if self._max_iter > 1:
                     self._state.time_from_start -= self._state.time_budget
                 if (
-                    self._state.task == TS_FORECAST
+                    self._state.task in TS_FORECAST
                     or self._trained_estimator is None
                     or self._trained_estimator.model is None
                     or (
