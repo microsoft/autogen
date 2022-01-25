@@ -7,6 +7,7 @@ class DataCollatorForAuto(DataCollatorWithPadding):
     def __call__(self, features):
         from itertools import chain
         import torch
+
         label_name = "label" if "label" in features[0].keys() else "labels"
         labels = [feature.pop(label_name) for feature in features]
         batch_size = len(features)
@@ -27,6 +28,7 @@ class DataCollatorForAuto(DataCollatorWithPadding):
 class DataCollatorForPredict(DataCollatorWithPadding):
     def __call__(self, features):
         from itertools import chain
+
         batch_size = len(features)
         num_choices = len(features[0]["input_ids"])
         flattened_features = [

@@ -23,6 +23,7 @@ from .data import (
     group_counts,
     CLASSIFICATION,
     TS_FORECAST,
+    TS_FORECASTREGRESSION,
     TS_TIMESTAMP_COL,
     TS_VALUE_COL,
     SEQCLASSIFICATION,
@@ -1571,7 +1572,7 @@ class Prophet(SKLearnEstimator):
         }
         return space
 
-    def __init__(self, task=TS_FORECAST, n_jobs=1, **params):
+    def __init__(self, task="ts_forecast", n_jobs=1, **params):
         super().__init__(task, **params)
 
     def _join(self, X_train, y_train):
@@ -1796,7 +1797,7 @@ class SARIMAX(ARIMA):
         return train_time
 
 
-class TS_SKLearn_Regressor(SKLearnEstimator):
+class TS_SKLearn(SKLearnEstimator):
     """The class for tuning SKLearn Regressors for time-series forecasting, using hcrystalball"""
 
     base_class = SKLearnEstimator
@@ -1819,9 +1820,12 @@ class TS_SKLearn_Regressor(SKLearnEstimator):
         )
         return space
 
-    def __init__(self, task=TS_FORECAST, **params):
+    def __init__(self, task="ts_forecast", **params):
         super().__init__(task, **params)
         self.hcrystaball_model = None
+        self.ts_task = (
+            "regression" if task in TS_FORECASTREGRESSION else "classification"
+        )
 
     def transform_X(self, X):
         cols = list(X)
@@ -1842,7 +1846,7 @@ class TS_SKLearn_Regressor(SKLearnEstimator):
         params = self.params.copy()
         lags = params.pop("lags")
         optimize_for_horizon = params.pop("optimize_for_horizon")
-        estimator = self.base_class(task="regression", **params)
+        estimator = self.base_class(task=self.ts_task, **params)
         self.hcrystaball_model = get_sklearn_wrapper(estimator.estimator_class)
         self.hcrystaball_model.lags = int(lags)
         self.hcrystaball_model.fit(X_train, y_train)
@@ -1913,13 +1917,13 @@ class TS_SKLearn_Regressor(SKLearnEstimator):
             return np.ones(X.shape[0])
 
 
-class LGBM_TS_Regressor(TS_SKLearn_Regressor):
+class LGBM_TS(TS_SKLearn):
     """The class for tuning LGBM Regressor for time-series forecasting"""
 
     base_class = LGBMEstimator
 
 
-class XGBoost_TS_Regressor(TS_SKLearn_Regressor):
+class XGBoost_TS(TS_SKLearn):
     """The class for tuning XGBoost Regressor for time-series forecasting"""
 
     base_class = XGBoostSklearnEstimator
@@ -1930,19 +1934,19 @@ class XGBoost_TS_Regressor(TS_SKLearn_Regressor):
 #     base_class = CatBoostEstimator
 
 
-class RF_TS_Regressor(TS_SKLearn_Regressor):
+class RF_TS(TS_SKLearn):
     """The class for tuning Random Forest Regressor for time-series forecasting"""
 
     base_class = RandomForestEstimator
 
 
-class ExtraTrees_TS_Regressor(TS_SKLearn_Regressor):
+class ExtraTrees_TS(TS_SKLearn):
     """The class for tuning Extra Trees Regressor for time-series forecasting"""
 
     base_class = ExtraTreesEstimator
 
 
-class XGBoostLimitDepth_TS_Regressor(TS_SKLearn_Regressor):
+class XGBoostLimitDepth_TS(TS_SKLearn):
     """The class for tuning XGBoost Regressor with unlimited depth for time-series forecasting"""
 
     base_class = XGBoostLimitDepthEstimator

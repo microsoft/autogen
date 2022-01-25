@@ -26,10 +26,18 @@ CLASSIFICATION = (
 )
 SEQREGRESSION = "seq-regression"
 REGRESSION = ("regression", SEQREGRESSION)
-TS_FORECAST = "ts_forecast"
+TS_FORECASTREGRESSION = (
+    "forecast",
+    "ts_forecast",
+    "ts_forecast_regression",
+)
+TS_FORECASTCLASSIFICATION = "ts_forecast_classification"
+TS_FORECAST = (
+    *TS_FORECASTREGRESSION,
+    TS_FORECASTCLASSIFICATION,
+)
 TS_TIMESTAMP_COL = "ds"
 TS_VALUE_COL = "y"
-FORECAST = "forecast"
 SUMMARIZATION = "summarization"
 NLG_TASKS = (SUMMARIZATION,)
 NLU_TASKS = (
@@ -266,7 +274,7 @@ class DataTransformer:
             n = X.shape[0]
             cat_columns, num_columns, datetime_columns = [], [], []
             drop = False
-            if task == TS_FORECAST:
+            if task in TS_FORECAST:
                 X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
                 ds_col = X.pop(TS_TIMESTAMP_COL)
                 if isinstance(y, Series):
@@ -323,7 +331,7 @@ class DataTransformer:
                     X[column] = X[column].fillna(np.nan)
                     num_columns.append(column)
             X = X[cat_columns + num_columns]
-            if task == TS_FORECAST:
+            if task in TS_FORECAST:
                 X.insert(0, TS_TIMESTAMP_COL, ds_col)
             if cat_columns:
                 X[cat_columns] = X[cat_columns].astype("category")
@@ -397,7 +405,7 @@ class DataTransformer:
                 self._num_columns,
                 self._datetime_columns,
             )
-            if self._task == TS_FORECAST:
+            if self._task in TS_FORECAST:
                 X = X.rename(columns={X.columns[0]: TS_TIMESTAMP_COL})
                 ds_col = X.pop(TS_TIMESTAMP_COL)
             for column in datetime_columns:
@@ -419,7 +427,7 @@ class DataTransformer:
                 X[column] = X[column].map(datetime.toordinal)
                 del tmp_dt
             X = X[cat_columns + num_columns].copy()
-            if self._task == TS_FORECAST:
+            if self._task in TS_FORECAST:
                 X.insert(0, TS_TIMESTAMP_COL, ds_col)
             for column in cat_columns:
                 if X[column].dtype.name == "object":
