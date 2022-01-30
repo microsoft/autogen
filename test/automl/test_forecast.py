@@ -121,6 +121,23 @@ def test_numpy():
     print(automl.predict(12))
 
 
+def test_numpy_large():
+    import numpy as np
+    import pandas as pd
+    from flaml import AutoML
+
+    X_train = pd.date_range("2017-01-01", periods=70000, freq="T")
+    y_train = pd.DataFrame(np.random.randint(6500, 7500, 70000))
+    automl = AutoML()
+    automl.fit(
+        X_train=X_train[:-10].values,  # a single column of timestamp
+        y_train=y_train[:-10].values,  # value for each timestamp
+        period=10,  # time horizon to forecast, e.g., 12 months
+        task="ts_forecast",
+        time_budget=10,  # time budget in seconds
+    )
+
+
 def load_multi_dataset():
     """multivariate time series forecasting dataset"""
     import pandas as pd
@@ -429,4 +446,4 @@ if __name__ == "__main__":
     test_multivariate_forecast_num(60)
     test_multivariate_forecast_cat(60)
     test_numpy()
-    test_forecast_classification()
+    test_forecast_classification(60)

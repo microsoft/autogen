@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 try:
     from ray.tune.sample import _BackwardsCompatibleNumpyRng
 except ImportError:
+
     class _BackwardsCompatibleNumpyRng:
         """Thin wrapper to ensure backwards compatibility between
         new and old numpy randomness generators.
