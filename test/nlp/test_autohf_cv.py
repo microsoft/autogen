@@ -6,6 +6,7 @@ import pytest
 def test_cv():
     from flaml import AutoML
     import pandas as pd
+    import requests
 
     train_data = {
         "sentence1": [
@@ -49,7 +50,10 @@ def test_cv():
         "fp16": False,
     }
 
-    automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+    try:
+        automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+    except requests.exceptions.HTTPError:
+        return
 
 
 if __name__ == "__main__":

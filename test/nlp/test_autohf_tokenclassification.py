@@ -1,5 +1,6 @@
 import sys
 import pytest
+import requests
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -728,13 +729,20 @@ def test_tokenclassification():
     automl_settings["custom_hpo_args"] = {
         "model_path": "bert-base-uncased",
         "output_dir": "test/data/output/",
-        "ckpt_per_epoch": 5,
+        "ckpt_per_epoch": 1,
         "fp16": False,
     }
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    try:
+        automl.fit(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            **automl_settings
+        )
+    except requests.exceptions.HTTPError:
+        return
 
 
 if __name__ == "__main__":

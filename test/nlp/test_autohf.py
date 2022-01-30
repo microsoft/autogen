@@ -2,6 +2,7 @@ import sys
 import pytest
 import pickle
 import shutil
+import requests
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -92,9 +93,16 @@ def test_hf_data():
         "fp16": False,
     }
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    try:
+        automl.fit(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            **automl_settings
+        )
+    except requests.exceptions.HTTPError:
+        return
 
     automl = AutoML()
     automl.retrain_from_log(
@@ -132,8 +140,8 @@ def _test_custom_data():
         train_dataset = pd.read_csv("data/input/train.tsv", delimiter="\t", quoting=3)
         dev_dataset = pd.read_csv("data/input/dev.tsv", delimiter="\t", quoting=3)
         test_dataset = pd.read_csv("data/input/test.tsv", delimiter="\t", quoting=3)
-    except requests.exceptions.ConnectionError:
-        pass
+    except requests.exceptions.HTTPError:
+        return
 
     custom_sent_keys = ["#1 String", "#2 String"]
     label_key = "Quality"

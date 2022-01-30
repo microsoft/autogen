@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
 def test_mcc():
     from flaml import AutoML
-
+    import requests
     import pandas as pd
 
     train_data = {
@@ -219,13 +219,20 @@ def test_mcc():
     automl_settings["custom_hpo_args"] = {
         "model_path": "google/electra-small-discriminator",
         "output_dir": "test/data/output/",
-        "ckpt_per_epoch": 5,
+        "ckpt_per_epoch": 1,
         "fp16": False,
     }
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    try:
+        automl.fit(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            **automl_settings
+        )
+    except requests.exceptions.HTTPError:
+        return
 
     y_pred = automl.predict(X_test)
     proba = automl.predict_proba(X_test)
