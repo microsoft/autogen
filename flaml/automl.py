@@ -1926,7 +1926,7 @@ class AutoML(BaseEstimator):
                 the searched learners, such as sample_weight. Include:
                     period: int | forecast horizon for 'ts_forecast' task.
                     gpu_per_trial: float, default = 0 | A float of the number of gpus per trial,
-                    only used by TransformersEstimator.
+                    only used by TransformersEstimator and XGBoostSklearnEstimator.
         """
 
         self._state._start_time_flag = self._start_time_flag = time.time()
@@ -2084,7 +2084,6 @@ class AutoML(BaseEstimator):
         if _is_nlp_task(self._state.task):
             self._state.fit_kwargs["metric"] = metric
             self._state.fit_kwargs["use_ray"] = self._use_ray
-            self._state.fit_kwargs["gpu_per_trial"] = gpu_per_trial
 
         self._state.metric = metric
 

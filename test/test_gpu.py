@@ -4,6 +4,47 @@ import pickle
 import shutil
 
 
+def test_xgboost():
+    from flaml import AutoML
+    from sklearn.datasets import make_moons
+    import scipy.sparse
+    import numpy as np
+    from xgboost.core import XGBoostError
+
+    try:
+        X_train = scipy.sparse.eye(900000)
+        y_train = np.random.randint(2, size=900000)
+        automl = AutoML()
+        automl.fit(
+            X_train,
+            y_train,
+            estimator_list=["xgb_limitdepth", "xgboost"],
+            time_budget=5,
+            gpu_per_trial=1,
+        )
+
+        train, label = make_moons(
+            n_samples=300000, shuffle=True, noise=0.3, random_state=None
+        )
+        automl = AutoML()
+        automl.fit(
+            train,
+            label,
+            estimator_list=["xgb_limitdepth", "xgboost"],
+            time_budget=5,
+            gpu_per_trial=1,
+        )
+        automl.fit(
+            train,
+            label,
+            estimator_list=["xgb_limitdepth", "xgboost"],
+            time_budget=5,
+        )
+    except XGBoostError:
+        # No visible GPU is found for XGBoost.
+        return
+
+
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
 def _test_hf_data():
     from flaml import AutoML
