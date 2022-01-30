@@ -1,6 +1,7 @@
 def test_classification_head():
     from flaml import AutoML
     import pandas as pd
+    import requests
 
     train_data = {
         "text": [
@@ -54,10 +55,17 @@ def test_classification_head():
     automl_settings["custom_hpo_args"] = {
         "model_path": "google/electra-small-discriminator",
         "output_dir": "test/data/output/",
-        "ckpt_per_epoch": 5,
+        "ckpt_per_epoch": 1,
         "fp16": False,
     }
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    try:
+        automl.fit(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            **automl_settings
+        )
+    except requests.exceptions.HTTPError:
+        return
