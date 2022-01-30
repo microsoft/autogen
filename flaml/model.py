@@ -1,5 +1,5 @@
 # !
-#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Copyright (c) FLAML authors. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
 from contextlib import contextmanager
@@ -22,7 +22,6 @@ from . import tune
 from .data import (
     group_counts,
     CLASSIFICATION,
-    TS_FORECAST,
     TS_FORECASTREGRESSION,
     TS_TIMESTAMP_COL,
     TS_VALUE_COL,
@@ -1185,6 +1184,9 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
     def fit(self, X_train, y_train, budget=None, **kwargs):
         if issparse(X_train):
             self.params["tree_method"] = "auto"
+        if kwargs.get("gpu_per_trial"):
+            self.params["tree_method"] = "gpu_hist"
+            kwargs.pop("gpu_per_trial")
         return super().fit(X_train, y_train, budget, **kwargs)
 
     def _callbacks(self, start_time, deadline) -> List[Callable]:

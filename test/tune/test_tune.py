@@ -6,14 +6,13 @@ import os
 from sklearn.model_selection import train_test_split
 import sklearn.metrics
 import sklearn.datasets
+import xgboost as xgb
+import logging
 
 try:
     from ray.tune.integration.xgboost import TuneReportCheckpointCallback
 except ImportError:
     print("skip test_xgboost because ray tune cannot be imported.")
-import xgboost as xgb
-
-import logging
 
 logger = logging.getLogger(__name__)
 os.makedirs("logs", exist_ok=True)
@@ -66,8 +65,6 @@ def _test_xgboost(method="BlendSearch"):
         time_budget_s = 60
         for n_cpu in [2]:
             start_time = time.time()
-            ray.shutdown()
-            ray.init(num_cpus=n_cpu, num_gpus=0)
             # ray.init(address='auto')
             if method == "BlendSearch":
                 analysis = tune.run(
@@ -169,7 +166,6 @@ def _test_xgboost(method="BlendSearch"):
                     scheduler=scheduler,
                     search_alg=algo,
                 )
-            ray.shutdown()
             # # Load the best model checkpoint
             # import os
             # best_bst = xgb.Booster()
