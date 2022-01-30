@@ -1813,7 +1813,10 @@ class TS_SKLearn(SKLearnEstimator):
                     "low_cost_init_value": False,
                 },
                 "lags": {
-                    "domain": tune.randint(lower=1, upper=data_size[0] - pred_horizon),
+                    "domain": tune.randint(
+                        lower=1, upper=int(np.sqrt(data_size[0]))
+
+                    ),
                     "init_value": 3,
                 },
             }
