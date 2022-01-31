@@ -160,7 +160,7 @@ The line
 `
 config.run_config.environment_variables["_AZUREML_CR_START_RAY"] = "true"
 `
-tells AzureML to start ray on each node of the cluster.
+tells AzureML to start ray on each node of the cluster. This ia a feature in preview and it is subject to change in future. It is applicable to dedicated VMs only.
 
 #### Run distributed tune job
 
