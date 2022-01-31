@@ -216,6 +216,15 @@ class TestMultiClass(unittest.TestCase):
             filename=automl_settings["log_file_name"], time_budget=6
         )
         print(metric_history)
+        try:
+            import ray
+
+            df = ray.put(df)
+            automl_settings["dataframe"] = df
+            automl_settings["use_ray"] = True
+            automl_experiment.fit(**automl_settings)
+        except ImportError:
+            pass
 
     def test_classification(self, as_frame=False):
         automl_experiment = AutoML()

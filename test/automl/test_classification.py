@@ -265,7 +265,12 @@ class TestClassification(unittest.TestCase):
         X_train = scipy.sparse.eye(900000)
         y_train = np.random.randint(2, size=900000)
         try:
-            automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+            import ray
+
+            X_train_ref = ray.put(X_train)
+            automl_experiment.fit(
+                X_train=X_train_ref, y_train=y_train, **automl_settings
+            )
             print(automl_experiment.predict(X_train))
             print(automl_experiment.model)
             print(automl_experiment.config_history)

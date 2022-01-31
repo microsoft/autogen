@@ -50,7 +50,7 @@ def train_lgbm(config: dict) -> dict:
     # convert config dict to lgbm params
     params = LGBMEstimator(**config).params
     # train the model
-    train_set = lightgbm.Dataset(X_train, y_train)
+    train_set = lightgbm.Dataset(csv_file_name)
     model = lightgbm.train(params, train_set)
     # evaluate the model
     pred = model.predict(X_test)

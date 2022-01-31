@@ -1667,9 +1667,18 @@ class AutoML(BaseEstimator):
         for estimator in self.estimator_list:
             search_state = self._search_states[estimator]
             if not hasattr(search_state, "training_function"):
-                search_state.training_function = partial(
-                    AutoMLState._compute_with_config_base, self._state, estimator
-                )
+                if self._use_ray:
+                    from ray.tune import with_parameters
+
+                    search_state.training_function = with_parameters(
+                        AutoMLState._compute_with_config_base,
+                        self=self._state,
+                        estimator=estimator,
+                    )
+                else:
+                    search_state.training_function = partial(
+                        AutoMLState._compute_with_config_base, self._state, estimator
+                    )
         states = self._search_states
         mem_res = self._mem_thres
 
@@ -1761,12 +1770,14 @@ class AutoML(BaseEstimator):
                 shape (n, m). For 'ts_forecast' task, the first column of X_train
                 must be the timestamp column (datetime type). Other columns in
                 the dataframe are assumed to be exogenous variables (categorical or numeric).
+                When using ray, X_train can be a ray.ObjectRef.
             y_train: A numpy array or a pandas series of labels in shape (n, ).
             dataframe: A dataframe of training data including label column.
                 For 'ts_forecast' task, dataframe must be specified and must have
                 at least two columns, timestamp and label, where the first
                 column is the timestamp column (datetime type). Other columns in
                 the dataframe are assumed to be exogenous variables (categorical or numeric).
+                When using ray, dataframe can be a ray.ObjectRef.
             label: A str of the label column name for, e.g., 'label';
                 Note: If X_train and y_train are provided,
                 dataframe and label are ignored;
@@ -1993,6 +2004,28 @@ class AutoML(BaseEstimator):
         )
         min_sample_size = min_sample_size or self._settings.get("min_sample_size")
         use_ray = self._settings.get("use_ray") if use_ray is None else use_ray
+        self._state.n_jobs = n_jobs
+        self._n_concurrent_trials = n_concurrent_trials
+        self._early_stop = early_stop
+        self._use_ray = use_ray or n_concurrent_trials > 1
+        # use the following condition if we have an estimation of average_trial_time and average_trial_overhead
+        # self._use_ray = use_ray or n_concurrent_trials > ( average_trail_time + average_trial_overhead) / (average_trial_time)
+        if self._use_ray:
+            import ray
+
+            n_cpus = use_ray and ray.available_resources()["CPU"] or os.cpu_count()
+            self._state.resources_per_trial = (
+                # when using gpu, default cpu is 1 per job; otherwise, default cpu is n_cpus / n_concurrent_trials
+                {"cpu": max(int(n_cpus / n_concurrent_trials), 1), "gpu": gpu_per_trial}
+                if gpu_per_trial == 0
+                else {"cpu": 1, "gpu": gpu_per_trial}
+                if n_jobs < 0
+                else {"cpu": n_jobs, "gpu": gpu_per_trial}
+            )
+            if isinstance(X_train, ray.ObjectRef):
+                X_train = ray.get(X_train)
+            elif isinstance(dataframe, ray.ObjectRef):
+                dataframe = ray.get(dataframe)
 
         self._state.task = task
         self._state.log_training_metric = log_training_metric
@@ -2023,24 +2056,6 @@ class AutoML(BaseEstimator):
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
 
-        self._state.n_jobs = n_jobs
-        self._n_concurrent_trials = n_concurrent_trials
-        self._early_stop = early_stop
-        self._use_ray = use_ray or n_concurrent_trials > 1
-        # use the following condition if we have an estimation of average_trial_time and average_trial_overhead
-        # self._use_ray = use_ray or n_concurrent_trials > ( average_trail_time + average_trial_overhead) / (average_trial_time)
-        if self._use_ray:
-            import ray
-
-            n_cpus = use_ray and ray.available_resources()["CPU"] or os.cpu_count()
-            self._state.resources_per_trial = (
-                # when using gpu, default cpu is 1 per job; otherwise, default cpu is n_cpus / n_concurrent_trials
-                {"cpu": max(int(n_cpus / n_concurrent_trials), 1), "gpu": gpu_per_trial}
-                if gpu_per_trial == 0
-                else {"cpu": 1, "gpu": gpu_per_trial}
-                if n_jobs < 0
-                else {"cpu": n_jobs, "gpu": gpu_per_trial}
-            )
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
         )
