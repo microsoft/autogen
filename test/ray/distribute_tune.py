@@ -9,10 +9,13 @@ from flaml.model import LGBMEstimator
 
 X, y = load_breast_cancer(return_X_y=True)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+ray.init(address="auto")
+X_train_ref = ray.put(X_train)
 
 
 def train_breast_cancer(config):
     params = LGBMEstimator(**config).params
+    X_train = ray.get(X_train_ref)
     train_set = lgb.Dataset(X_train, label=y_train)
     gbm = lgb.train(params, train_set)
     preds = gbm.predict(X_test)
@@ -21,7 +24,6 @@ def train_breast_cancer(config):
 
 
 if __name__ == "__main__":
-    ray.init(address="auto")
     flaml_lgbm_search_space = LGBMEstimator.search_space(X_train.shape)
     config_search_space = {
         hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()

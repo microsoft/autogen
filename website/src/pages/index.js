@@ -29,7 +29,7 @@ export default function Home() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`Hello from ${siteConfig.title}`}
+      title={`AutoML & Tuning`}
       description="A Fast Library for Automated Machine Learning and Tuning">
       <HomepageHeader />
       <main>
