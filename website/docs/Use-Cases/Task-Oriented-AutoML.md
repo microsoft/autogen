@@ -373,7 +373,7 @@ The best model can be obtained by the `model` property of an `AutoML` instance. 
 
 ```python
 automl.fit(X_train, y_train, task="regression")
-print(automl.mdoel)
+print(automl.model)
 # <flaml.model.LGBMEstimator object at 0x7f9b502c4550>
 ```
 
