@@ -57,7 +57,7 @@ The optimization metric is specified via the `metric` argument. It can be either
     - 'roc_auc_ovo': minimize 1 - roc_auc_score with `multi_class="ovo"`.
     - 'f1': minimize 1 - f1_score.
     - 'micro_f1': minimize 1 - f1_score with `average="micro"`.
-    - 'micro_f1': minimize 1 - f1_score with `average="micro"`.
+    - 'macro_f1': minimize 1 - f1_score with `average="macro"`.
     - 'ap': minimize 1 - average_precision_score.
     - 'ndcg': minimize 1 - ndcg_score.
     - 'ndcg@k': minimize 1 - ndcg_score@k. k is an integer.
