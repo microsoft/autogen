@@ -232,7 +232,7 @@ flaml.tune.run(evaluation_function=evaluate_config, mode="min",
                metric_constraints=[("score", "<=", 0.4)],...)
 ```
 
-### Paralle tuning
+### Parallel tuning
 
 Related arguments:
 
