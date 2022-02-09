@@ -66,8 +66,7 @@ setuptools.setup(
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
-            "ray[tune]==1.6.0",
-            "pyyaml<5.3.1",
+            "ray[tune]~=1.10",
         ],
         "azureml": [
             "azureml-mlflow",
