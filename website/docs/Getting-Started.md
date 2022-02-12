@@ -31,7 +31,7 @@ automl = AutoML()
 automl.fit(X_train, y_train, task="classification")
 ```
 
-It automatically tunes the hyparparameters and selects the best model from default learners such as LightGBM, XGBoost, random forest etc. [Customizing](Use-Cases/task-oriented-automl#customize-automlfit) the optimization metrics, learners and search spaces etc. is very easy. For example,
+It automatically tunes the hyperparameters and selects the best model from default learners such as LightGBM, XGBoost, random forest etc. [Customizing](Use-Cases/task-oriented-automl#customize-automlfit) the optimization metrics, learners and search spaces etc. is very easy. For example,
 
 ```python
 automl.add_learner("mylgbm", MyLGBMEstimator)
