@@ -1,5 +1,6 @@
 import time
 from azureml.core import Workspace, Experiment, ScriptRunConfig, Environment
+from azureml.core.runconfig import RunConfiguration, DockerConfiguration
 
 ws = Workspace.from_config()
 ray_environment_name = "aml-ray-cpu"
@@ -18,20 +19,21 @@ while ray_cpu_build_details.status not in ["Succeeded", "Failed"]:
     )
     time.sleep(10)
 
+command = ["python distribute_tune.py"]
 env = Environment.get(workspace=ws, name=ray_environment_name)
 compute_target = ws.compute_targets["cpucluster"]
-command = ["python distribute_tune.py"]
+aml_run_config = RunConfiguration(communicator="OpenMpi")
+aml_run_config.target = compute_target
+aml_run_config.docker = DockerConfiguration(use_docker=True)
+aml_run_config.environment = env
+aml_run_config.node_count = 2
 config = ScriptRunConfig(
     source_directory="ray/",
     command=command,
-    compute_target=compute_target,
-    environment=env,
+    run_config=aml_run_config,
 )
-config.run_config.node_count = 2
-config.run_config.environment_variables["_AZUREML_CR_START_RAY"] = "true"
-config.run_config.environment_variables["AZUREML_COMPUTE_USE_COMMON_RUNTIME"] = "true"
 
-exp = Experiment(ws, "test-ray")
+exp = Experiment(ws, "distribute-tune")
 run = exp.submit(config)
 print(run.get_portal_url())  # link to ml.azure.com
 run.wait_for_completion(show_output=True)

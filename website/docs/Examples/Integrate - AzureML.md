@@ -128,39 +128,34 @@ If the computer target "cpucluster" already exists, it will not be recreated.
 
 #### Run distributed AutoML job
 
-Assuming you have an automl script like [ray/distribute_automl.py](https://github.com/microsoft/FLAML/blob/main/test/ray/distribute_automl.py). It uses `ray.init(address="auto")` to initialize the cluster, and uses `n_concurrent_trials=k` to inform `AutoML.fit()` to perform k concurrent trials in parallel.
+Assuming you have an automl script like [ray/distribute_automl.py](https://github.com/microsoft/FLAML/blob/main/test/ray/distribute_automl.py). It uses `n_concurrent_trials=k` to inform `AutoML.fit()` to perform k concurrent trials in parallel.
 
 Submit an AzureML job as the following:
 
 ```python
 from azureml.core import Workspace, Experiment, ScriptRunConfig, Environment
+from azureml.core.runconfig import RunConfiguration, DockerConfiguration
 
 command = ["python distribute_automl.py"]
-ray_environment_name = 'aml-ray-cpu'
+ray_environment_name = "aml-ray-cpu"
 env = Environment.get(workspace=ws, name=ray_environment_name)
+aml_run_config = RunConfiguration(communicator="OpenMpi")
+aml_run_config.target = compute_target
+aml_run_config.docker = DockerConfiguration(use_docker=True)
+aml_run_config.environment = env
+aml_run_config.node_count = 2
 config = ScriptRunConfig(
-    source_directory='ray/',
+    source_directory="ray/",
     command=command,
-    compute_target=compute_target,
-    environment=env,
+    run_config=aml_run_config,
 )
 
-config.run_config.node_count = 2
-config.run_config.environment_variables["_AZUREML_CR_START_RAY"] = "true"
-config.run_config.environment_variables["AZUREML_COMPUTE_USE_COMMON_RUNTIME"] = "true"
-
-exp = Experiment(ws, 'distribute-automl')
+exp = Experiment(ws, "distribute-automl")
 run = exp.submit(config)
 
 print(run.get_portal_url())  # link to ml.azure.com
 run.wait_for_completion(show_output=True)
 ```
-
-The line
-`
-config.run_config.environment_variables["_AZUREML_CR_START_RAY"] = "true"
-`
-tells AzureML to start ray on each node of the cluster. This ia a feature in preview and it is subject to change in future. It is applicable to dedicated VMs only.
 
 #### Run distributed tune job
 

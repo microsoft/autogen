@@ -213,41 +213,42 @@ class AutoMLState:
                 groups = self.groups_all
         return sampled_X_train, sampled_y_train, sampled_weight, groups
 
-    def _compute_with_config_base(self, estimator, config_w_resource):
+    @staticmethod
+    def _compute_with_config_base(config_w_resource, state, estimator):
         if "FLAML_sample_size" in config_w_resource:
             sample_size = int(config_w_resource["FLAML_sample_size"])
         else:
-            sample_size = self.data_size[0]
+            sample_size = state.data_size[0]
         (
             sampled_X_train,
             sampled_y_train,
             sampled_weight,
             groups,
-        ) = self._prepare_sample_train_data(sample_size)
+        ) = state._prepare_sample_train_data(sample_size)
         if sampled_weight is not None:
-            weight = self.fit_kwargs["sample_weight"]
-            self.fit_kwargs["sample_weight"] = sampled_weight
+            weight = state.fit_kwargs["sample_weight"]
+            state.fit_kwargs["sample_weight"] = sampled_weight
         else:
             weight = None
         if groups is not None:
-            self.fit_kwargs["groups"] = groups
+            state.fit_kwargs["groups"] = groups
         config = config_w_resource.copy()
         if "FLAML_sample_size" in config:
             del config["FLAML_sample_size"]
         budget = (
             None
-            if self.time_budget is None
-            else self.time_budget - self.time_from_start
-            if sample_size == self.data_size[0]
-            else (self.time_budget - self.time_from_start)
+            if state.time_budget is None
+            else state.time_budget - state.time_from_start
+            if sample_size == state.data_size[0]
+            else (state.time_budget - state.time_from_start)
             / 2
             * sample_size
-            / self.data_size[0]
+            / state.data_size[0]
         )
 
-        if _is_nlp_task(self.task):
-            self.fit_kwargs["X_val"] = self.X_val
-            self.fit_kwargs["y_val"] = self.y_val
+        if _is_nlp_task(state.task):
+            state.fit_kwargs["X_val"] = state.X_val
+            state.fit_kwargs["y_val"] = state.y_val
 
         (
             trained_estimator,
@@ -258,41 +259,42 @@ class AutoMLState:
         ) = compute_estimator(
             sampled_X_train,
             sampled_y_train,
-            self.X_val,
-            self.y_val,
-            self.weight_val,
-            self.groups_val,
-            self.train_time_limit
+            state.X_val,
+            state.y_val,
+            state.weight_val,
+            state.groups_val,
+            state.train_time_limit
             if budget is None
-            else min(budget, self.train_time_limit),
-            self.kf,
+            else min(budget, state.train_time_limit),
+            state.kf,
             config,
-            self.task,
+            state.task,
             estimator,
-            self.eval_method,
-            self.metric,
-            self.best_loss,
-            self.n_jobs,
-            self.learner_classes.get(estimator),
-            self.log_training_metric,
-            self.fit_kwargs,
+            state.eval_method,
+            state.metric,
+            state.best_loss,
+            state.n_jobs,
+            state.learner_classes.get(estimator),
+            state.log_training_metric,
+            state.fit_kwargs,
         )
-        if self.retrain_final and not self.model_history:
+        if state.retrain_final and not state.model_history:
             trained_estimator.cleanup()
 
-        if _is_nlp_task(self.task):
-            del self.fit_kwargs["X_val"]
-            del self.fit_kwargs["y_val"]
+        if _is_nlp_task(state.task):
+            del state.fit_kwargs["X_val"]
+            del state.fit_kwargs["y_val"]
 
         result = {
             "pred_time": pred_time,
-            "wall_clock_time": time.time() - self._start_time_flag,
+            "wall_clock_time": time.time() - state._start_time_flag,
             "metric_for_logging": metric_for_logging,
             "val_loss": val_loss,
             "trained_estimator": trained_estimator,
         }
         if sampled_weight is not None:
-            self.fit_kwargs["sample_weight"] = weight
+            state.fit_kwargs["sample_weight"] = weight
+        tune.report(**result)
         return result
 
     def _train_with_config(
@@ -1672,12 +1674,14 @@ class AutoML(BaseEstimator):
 
                     search_state.training_function = with_parameters(
                         AutoMLState._compute_with_config_base,
-                        self=self._state,
+                        state=self._state,
                         estimator=estimator,
                     )
                 else:
                     search_state.training_function = partial(
-                        AutoMLState._compute_with_config_base, self._state, estimator
+                        AutoMLState._compute_with_config_base,
+                        state=self._state,
+                        estimator=estimator,
                     )
         states = self._search_states
         mem_res = self._mem_thres
@@ -2461,7 +2465,9 @@ class AutoML(BaseEstimator):
             )
             if not search_state.search_alg:
                 search_state.training_function = partial(
-                    AutoMLState._compute_with_config_base, self._state, estimator
+                    AutoMLState._compute_with_config_base,
+                    state=self._state,
+                    estimator=estimator,
                 )
                 search_space = search_state.search_space
                 if self._sample:
