@@ -125,3 +125,7 @@ class SequentialTrialRunner(BaseTrialRunner):
             trial = None
         self.running_trial = trial
         return trial
+
+    def stop_trial(self, trial):
+        super().stop_trial(trial)
+        self.running_trial = None

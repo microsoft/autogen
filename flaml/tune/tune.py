@@ -90,7 +90,9 @@ def report(_metric=None, **kwargs):
         result = kwargs
         if _metric:
             result[DEFAULT_METRIC] = _metric
-        trial = _runner.running_trial
+        trial = getattr(_runner, "running_trial", None)
+        if not trial:
+            return None
         if _running_trial == trial:
             _training_iteration += 1
         else:
@@ -102,11 +104,11 @@ def report(_metric=None, **kwargs):
             del result["config"][INCUMBENT_RESULT]
         for key, value in trial.config.items():
             result["config/" + key] = value
-        _runner.process_trial_result(_runner.running_trial, result)
+        _runner.process_trial_result(trial, result)
         result["time_total_s"] = trial.last_update_time - trial.start_time
         if _verbose > 2:
             logger.info(f"result: {result}")
-        if _runner.running_trial.is_finished():
+        if trial.is_finished():
             return None
         else:
             return True
