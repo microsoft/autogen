@@ -256,7 +256,9 @@ def run(
             used; or a local dir to save the tuning log.
         num_samples: An integer of the number of configs to try. Defaults to 1.
         resources_per_trial: A dictionary of the hardware resources to allocate
-            per trial, e.g., `{'cpu': 1}`. Only valid when using ray backend.
+            per trial, e.g., `{'cpu': 1}`. It is only valid when using ray backend
+            (by setting 'use_ray = True'). It shall be used when you need to do
+            [parallel tuning](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#parallel-tuning).
         config_constraints: A list of config constraints to be satisfied.
             e.g., ```config_constraints = [(mem_size, '<=', 1024**3)]```
 
