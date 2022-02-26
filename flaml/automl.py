@@ -711,13 +711,13 @@ class AutoML(BaseEstimator):
 
     @property
     def classes_(self):
-        """A list of n_classes elements for class labels."""
+        """A numpy array of shape (n_classes,) for class labels."""
         attr = getattr(self, "_label_transformer", None)
         if attr:
-            return attr.classes_.tolist()
+            return attr.classes_
         attr = getattr(self, "_trained_estimator", None)
         if attr:
-            return attr.classes_.tolist()
+            return attr.classes_
         return None
 
     @property
