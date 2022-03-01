@@ -784,6 +784,7 @@ class LGBMEstimator(BaseEstimator):
 
     ITER_HP = "n_estimators"
     HAS_CALLBACK = True
+    DEFAULT_ITER = 100
 
     @classmethod
     def search_space(cls, data_size, **params):
@@ -887,7 +888,7 @@ class LGBMEstimator(BaseEstimator):
     def fit(self, X_train, y_train, budget=None, **kwargs):
         start_time = time.time()
         deadline = start_time + budget if budget else np.inf
-        n_iter = self.params[self.ITER_HP]
+        n_iter = self.params.get(self.ITER_HP, self.DEFAULT_ITER)
         trained = False
         if not self.HAS_CALLBACK:
             mem0 = psutil.virtual_memory().available if psutil is not None else 1
@@ -995,6 +996,8 @@ class LGBMEstimator(BaseEstimator):
 
 class XGBoostEstimator(SKLearnEstimator):
     """The class for tuning XGBoost regressor, not using sklearn API."""
+
+    DEFAULT_ITER = 10
 
     @classmethod
     def search_space(cls, data_size, **params):
@@ -1145,6 +1148,8 @@ class XGBoostEstimator(SKLearnEstimator):
 
 class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
     """The class for tuning XGBoost with unlimited depth, using sklearn API."""
+
+    DEFAULT_ITER = 10
 
     @classmethod
     def search_space(cls, data_size, **params):
@@ -1352,6 +1357,7 @@ class CatBoostEstimator(BaseEstimator):
     """The class for tuning CatBoost."""
 
     ITER_HP = "n_estimators"
+    DEFAULT_ITER = 1000
 
     @classmethod
     def search_space(cls, data_size, **params):

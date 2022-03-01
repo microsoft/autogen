@@ -1,0 +1,13 @@
+Dataset,NumberOfInstances,NumberOfFeatures,NumberOfClasses,PercentageOfNumericFeatures
+2dplanes,36691,10,0,1.0
+adult,43957,14,2,0.42857142857142855
+Airlines,485444,7,2,0.42857142857142855
+Albert,382716,78,2,0.3333333333333333
+Amazon_employee_access,29492,9,2,0.0
+bng_breastTumor,104976,9,0,0.1111111111111111
+bng_pbc,900000,18,0,0.5555555555555556
+car,1555,6,4,0.0
+connect-4,60801,42,3,0.0
+dilbert,9000,2000,5,1.0
+Dionis,374569,60,355,1.0
+poker,922509,10,0,1.0

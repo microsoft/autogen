@@ -19,7 +19,7 @@ and learner selection method invented by Microsoft Research.
 
 Install FLAML from pip: `pip install flaml`. Find more options in [Installation](Installation).
 
-There are two ways of using flaml:
+There are several ways of using flaml:
 
 #### [Task-oriented AutoML](Use-Cases/task-oriented-automl)
 
@@ -75,6 +75,16 @@ analysis = tune.run(
 )
 ```
 Please see this [script](https://github.com/microsoft/FLAML/blob/main/test/tune_example.py) for the complete version of the above example.
+
+#### [Zero-shot AutoML](Use-Cases/Zero-Shot-AutoML)
+
+FLAML offers a unique, seamless and effortless way to leverage AutoML for the commonly used classifiers and regressors such as LightGBM and XGBoost. For example, if you are using `lightgbm.LGBMClassifier` as your current learner, all you need to do is to replace `from ligthgbm import LGBMClassifier` by:
+
+```python
+from flaml.default import LGBMClassifier
+```
+
+Then, you can use it just like you use the original `LGMBClassifier`. Your other code can remain unchanged. When you call the `fit()` function from `flaml.default.LGBMClassifier`, it will automatically instantiate a good data-dependent hyperparameter configuration for your dataset, which is expected to work better than the default configuration.
 
 ### Where to Go Next?
 
