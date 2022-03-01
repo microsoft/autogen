@@ -1,0 +1,1 @@
+{"class": "xgboost", "hyperparameters": {"n_estimators": 6458, "max_leaves": 196, "min_child_weight": 0.020541449256787844, "learning_rate": 0.0067240405208345, "subsample": 0.5764514509827234, "colsample_bylevel": 1.0, "colsample_bytree": 0.9478632468968712, "reg_alpha": 0.08196899811780128, "reg_lambda": 1.3914579996946315}}
