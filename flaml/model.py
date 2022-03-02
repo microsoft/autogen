@@ -959,10 +959,16 @@ class LGBMEstimator(BaseEstimator):
                 # when not trained, train at least one iter
                 self.params[self.ITER_HP] = max(max_iter, 1)
         if self.HAS_CALLBACK:
+            kwargs_callbacks = kwargs.get("callbacks")
+            if kwargs_callbacks:
+                callbacks = kwargs_callbacks + self._callbacks(start_time, deadline)
+                kwargs.pop("callbacks")
+            else:
+                callbacks = self._callbacks(start_time, deadline)
             self._fit(
                 X_train,
                 y_train,
-                callbacks=self._callbacks(start_time, deadline),
+                callbacks=callbacks,
                 **kwargs,
             )
             best_iteration = (
@@ -1821,10 +1827,7 @@ class TS_SKLearn(SKLearnEstimator):
                     "low_cost_init_value": False,
                 },
                 "lags": {
-                    "domain": tune.randint(
-                        lower=1, upper=int(np.sqrt(data_size[0]))
-
-                    ),
+                    "domain": tune.randint(lower=1, upper=int(np.sqrt(data_size[0]))),
                     "init_value": 3,
                 },
             }
