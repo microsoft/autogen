@@ -171,6 +171,7 @@ class BlendSearch(Searcher):
             else:
                 sampler = None
             try:
+                assert evaluated_rewards
                 self._gs = GlobalSearch(
                     space=gs_space,
                     metric=metric,
@@ -180,7 +181,7 @@ class BlendSearch(Searcher):
                     points_to_evaluate=points_to_evaluate,
                     evaluated_rewards=evaluated_rewards,
                 )
-            except ValueError:
+            except (AssertionError, ValueError):
                 self._gs = GlobalSearch(
                     space=gs_space,
                     metric=metric,

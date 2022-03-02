@@ -197,14 +197,21 @@ def test_searcher():
         # sign of metric constraints must be <= or >=.
         pass
     searcher = BlendSearch(
-        metric="m", global_search_alg=searcher, metric_constraints=[("c", "<=", 1)]
+        metric="m",
+        global_search_alg=searcher,
+        metric_constraints=[("c", "<=", 1)],
+        points_to_evaluate=[{"a": 1, "b": 0.01}],
     )
     searcher.set_search_properties(
         metric="m2", config=config, setting={"time_budget_s": 0}
     )
     c = searcher.suggest("t1")
-    searcher.on_trial_complete("t1", {"config": c}, True)
+    print("t1", c)
     c = searcher.suggest("t2")
+    print("t2", c)
+    c = searcher.suggest("t3")
+    print("t3", c)
+    searcher.on_trial_complete("t1", {"config": c}, True)
     searcher.on_trial_complete("t2", {"config": c, "m2": 1, "c": 2, "time_total_s": 1})
     config1 = config.copy()
     config1["_choice_"] = 0

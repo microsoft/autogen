@@ -214,7 +214,12 @@ class TestClassification(unittest.TestCase):
         }
         X_train = scipy.sparse.eye(900000)
         y_train = np.random.randint(2, size=900000)
-        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        import xgboost as xgb
+
+        callback = xgb.callback.TrainingCallback()
+        automl_experiment.fit(
+            X_train=X_train, y_train=y_train, callbacks=[callback], **automl_settings
+        )
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
         print(automl_experiment.config_history)
