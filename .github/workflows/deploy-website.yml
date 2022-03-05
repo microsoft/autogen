@@ -28,7 +28,7 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip install pydoc-markdown
+          pip install pydoc-markdown==4.5.0
       - name: pydoc-markdown run
         run: |
           pydoc-markdown
@@ -64,7 +64,7 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip install pydoc-markdown
+          pip install pydoc-markdown==4.5.0
       - name: pydoc-markdown run
         run: |
           pydoc-markdown

@@ -33,7 +33,7 @@ FLAML requires **Python version >= 3.6**. It can be installed from pip:
 pip install flaml
 ```
 
-To run the [`notebook example`](https://github.com/microsoft/FLAML/tree/main/notebook),
+To run the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/notebook),
 install flaml with the [notebook] option:
 
 ```bash
@@ -43,7 +43,7 @@ pip install flaml[notebook]
 ## Quickstart
 
 * With three lines of code, you can start using this economical and fast
-AutoML engine as a scikit-learn style estimator.
+AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).
 
 ```python
 from flaml import AutoML
@@ -52,17 +52,27 @@ automl.fit(X_train, y_train, task="classification")
 ```
 
 * You can restrict the learners and use FLAML as a fast hyperparameter tuning
-tool for XGBoost, LightGBM, Random Forest etc. or a customized learner.
+tool for XGBoost, LightGBM, Random Forest etc. or a [customized learner](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#estimator-and-search-space).
 
 ```python
 automl.fit(X_train, y_train, task="classification", estimator_list=["lgbm"])
 ```
 
-* You can also run generic hyperparameter tuning for a custom function.
+* You can also run generic hyperparameter tuning for a [custom function](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function).
 
 ```python
 from flaml import tune
 tune.run(evaluation_function, config={…}, low_cost_partial_config={…}, time_budget_s=3600)
+```
+
+* [Zero-shot AutoML](https://microsoft.github.io/FLAML/docs/Use-Cases/Zero-Shot-AutoML) allows using the existing training API from lightgbm, xgboost etc. while getting the benefit of AutoML in choosing high-performance hyperparameter configurations per task.
+
+```python
+from flaml.default import LGBMRegressor
+# Use LGBMRegressor in the same way as you use lightgbm.LGBMRegressor.
+estimator = LGBMRegressor()
+# The hyperparameters are automatically set according to the training data.
+estimator.fit(X_train, y_train)
 ```
 
 ## Documentation
