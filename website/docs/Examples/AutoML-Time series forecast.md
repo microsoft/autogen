@@ -7,7 +7,7 @@ Install the [ts_forecast] option.
 pip install "flaml[ts_forecast]"
 ```
 
-### Univariate time series
+### Simple NumPy Example
 
 ```python
 import numpy as np
@@ -239,7 +239,7 @@ print(automl.predict(X_train[84:]))
 [flaml.automl: 01-21 08:01:28] {2594} INFO -  at 7.3s,  estimator xgb_limitdepth's best error=0.9683,   best estimator sarimax's best error=0.5600
 ```
 
-### Multivariate time series
+### Univariate time series
 
 ```python
 import statsmodels.api as sm
@@ -425,5 +425,258 @@ plt.legend()
 ```
 
 ![png](images/CO2.png)
+
+### Multivariate Time Series (Forecasting with Exogeneous Variables)
+```python
+import pandas as pd
+
+# pd.set_option("display.max_rows", None, "display.max_columns", None)
+multi_df = pd.read_csv(
+    "https://raw.githubusercontent.com/srivatsan88/YouTubeLI/master/dataset/nyc_energy_consumption.csv"
+)
+
+# preprocessing data
+multi_df["timeStamp"] = pd.to_datetime(multi_df["timeStamp"])
+multi_df = multi_df.set_index("timeStamp")
+multi_df = multi_df.resample("D").mean()
+multi_df["temp"] = multi_df["temp"].fillna(method="ffill")
+multi_df["precip"] = multi_df["precip"].fillna(method="ffill")
+multi_df = multi_df[:-2]  # last two rows are NaN for 'demand' column so remove them
+multi_df = multi_df.reset_index()
+
+# Using temperature values create categorical values
+# where 1 denotes daily tempurature is above monthly average and 0 is below.
+def get_monthly_avg(data):
+    data["month"] = data["timeStamp"].dt.month
+    data = data[["month", "temp"]].groupby("month")
+    data = data.agg({"temp": "mean"})
+    return data
+
+monthly_avg = get_monthly_avg(multi_df).to_dict().get("temp")
+
+def above_monthly_avg(date, temp):
+    month = date.month
+    if temp > monthly_avg.get(month):
+        return 1
+    else:
+        return 0
+
+multi_df["temp_above_monthly_avg"] = multi_df.apply(
+    lambda x: above_monthly_avg(x["timeStamp"], x["temp"]), axis=1
+)
+
+del multi_df["temp"], multi_df["month"]  # remove temperature column to reduce redundancy
+
+# split data into train and test
+num_samples = multi_df.shape[0]
+multi_time_horizon = 180
+split_idx = num_samples - multi_time_horizon
+multi_train_df = multi_df[:split_idx]
+multi_test_df = multi_df[split_idx:]
+
+multi_X_test = multi_test_df[
+    ["timeStamp", "precip", "temp_above_monthly_avg"]
+]  # test dataframe must contain values for the regressors / multivariate variables
+multi_y_test = multi_test_df["demand"]
+
+# initialize AutoML instance
+automl = AutoML()
+
+# configure AutoML settings
+settings = {
+    "time_budget": 10,  # total running time in seconds
+    "metric": "mape",  # primary metric
+    "task": "ts_forecast",  # task type
+    "log_file_name": "energy_forecast_categorical.log",  # flaml log file
+    "eval_method": "holdout",
+    "log_type": "all",
+    "label": "demand",
+}
+
+# train the model
+automl.fit(dataframe=df, **settings, period=time_horizon)
+
+# predictions
+print(automl.predict(multi_X_test))
+```
+
+#### Sample Output
+
+```python
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 15, current learner xgboost
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.2s,	estimator xgboost's best error=0.0959,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 16, current learner extra_tree
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.2s,	estimator extra_tree's best error=0.0961,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 17, current learner extra_tree
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.2s,	estimator extra_tree's best error=0.0961,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 18, current learner xgboost
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.2s,	estimator xgboost's best error=0.0959,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 19, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.3s,	estimator xgb_limitdepth's best error=0.0820,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 20, current learner xgboost
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.3s,	estimator xgboost's best error=0.0834,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 21, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.4s,	estimator xgb_limitdepth's best error=0.0820,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 22, current learner lgbm
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.4s,	estimator lgbm's best error=0.0925,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 23, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.4s,	estimator xgb_limitdepth's best error=0.0820,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 24, current learner extra_tree
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.5s,	estimator extra_tree's best error=0.0922,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 25, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.5s,	estimator xgb_limitdepth's best error=0.0820,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 26, current learner rf
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.5s,	estimator rf's best error=0.0862,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 27, current learner rf
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.6s,	estimator rf's best error=0.0856,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 28, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.6s,	estimator xgb_limitdepth's best error=0.0820,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:27] {2458} INFO - iteration 29, current learner sarimax
+[flaml.automl: 02-28 21:32:28] {2620} INFO -  at 7.9s,	estimator sarimax's best error=0.5313,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:28] {2458} INFO - iteration 30, current learner xgboost
+[flaml.automl: 02-28 21:32:28] {2620} INFO -  at 8.0s,	estimator xgboost's best error=0.0834,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:28] {2458} INFO - iteration 31, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:32:28] {2620} INFO -  at 8.0s,	estimator xgb_limitdepth's best error=0.0791,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:28] {2458} INFO - iteration 32, current learner arima
+[flaml.automl: 02-28 21:32:30] {2620} INFO -  at 10.3s,	estimator arima's best error=0.5998,	best estimator prophet's best error=0.0592
+[flaml.automl: 02-28 21:32:32] {2850} INFO - retrain prophet for 2.2s
+[flaml.automl: 02-28 21:32:32] {2857} INFO - retrained model: <prophet.forecaster.Prophet object at 0x000001B1D3EE2B80>
+[flaml.automl: 02-28 21:32:32] {2234} INFO - fit succeeded
+[flaml.automl: 02-28 21:32:32] {2235} INFO - Time taken to find the best model: 4.351356506347656
+```
+
+### Forecasting Discrete Variables
+```python
+from hcrystalball.utils import get_sales_data
+import numpy as np
+from flaml import AutoML
+
+time_horizon = 30
+df = get_sales_data(n_dates=180, n_assortments=1, n_states=1, n_stores=1)
+df = df[["Sales", "Open", "Promo", "Promo2"]]
+
+# feature engineering - create a discrete value column
+# 1 denotes above mean and 0 denotes below mean
+df["above_mean_sales"] = np.where(df["Sales"] > df["Sales"].mean(), 1, 0)
+df.reset_index(inplace=True)
+
+# train-test split
+discrete_train_df = df[:-time_horizon]
+discrete_test_df = df[-time_horizon:]
+discrete_X_train, discrete_X_test = (
+    discrete_train_df[["Date", "Open", "Promo", "Promo2"]],
+    discrete_test_df[["Date", "Open", "Promo", "Promo2"]],
+)
+discrete_y_train, discrete_y_test = discrete_train_df["above_mean_sales"], discrete_test_df["above_mean_sales"]
+
+# initialize AutoML instance
+automl = AutoML()
+
+# configure the settings
+settings = {
+    "time_budget": 15,  # total running time in seconds
+    "metric": "accuracy",  # primary metric
+    "task": "ts_forecast_classification",  # task type
+    "log_file_name": "sales_classification_forecast.log",  # flaml log file
+    "eval_method": "holdout",
+}
+
+# train the model
+automl.fit(X_train=discrete_X_train,
+           y_train=discrete_y_train,
+           **settings,
+           period=time_horizon)
+
+# make predictions
+discrete_y_pred = automl.predict(discrete_X_test)
+print("Predicted label", discrete_y_pred)
+print("True label", discrete_y_test)
+```
+
+#### Sample Output
+```python
+[flaml.automl: 02-28 21:53:03] {2060} INFO - task = ts_forecast_classification
+[flaml.automl: 02-28 21:53:03] {2062} INFO - Data split method: time
+[flaml.automl: 02-28 21:53:03] {2066} INFO - Evaluation method: holdout
+[flaml.automl: 02-28 21:53:03] {2147} INFO - Minimizing error metric: 1-accuracy
+[flaml.automl: 02-28 21:53:03] {2205} INFO - List of ML learners in AutoML Run: ['lgbm', 'rf', 'xgboost', 'extra_tree', 'xgb_limitdepth']
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 0, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2573} INFO - Estimated sufficient time budget=269s. Estimated necessary time budget=0s.
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.1s,	estimator lgbm's best error=0.2667,	best estimator lgbm's best error=0.2667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 1, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.1s,	estimator lgbm's best error=0.2667,	best estimator lgbm's best error=0.2667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 2, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.1s,	estimator lgbm's best error=0.1333,	best estimator lgbm's best error=0.1333
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 3, current learner rf
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.2s,	estimator rf's best error=0.1333,	best estimator lgbm's best error=0.1333
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 4, current learner xgboost
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.2s,	estimator xgboost's best error=0.1333,	best estimator lgbm's best error=0.1333
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 5, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.2s,	estimator lgbm's best error=0.1333,	best estimator lgbm's best error=0.1333
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 6, current learner rf
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.3s,	estimator rf's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 7, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.3s,	estimator lgbm's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 8, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.3s,	estimator lgbm's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 9, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.4s,	estimator lgbm's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 10, current learner rf
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.4s,	estimator rf's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 11, current learner rf
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.4s,	estimator rf's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 12, current learner xgboost
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.5s,	estimator xgboost's best error=0.1333,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 13, current learner extra_tree
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.5s,	estimator extra_tree's best error=0.1333,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 14, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.5s,	estimator xgb_limitdepth's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 15, current learner xgboost
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.6s,	estimator xgboost's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 16, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.6s,	estimator xgb_limitdepth's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 17, current learner rf
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.6s,	estimator rf's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 18, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.7s,	estimator xgb_limitdepth's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 19, current learner lgbm
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.7s,	estimator lgbm's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 20, current learner extra_tree
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.7s,	estimator extra_tree's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 21, current learner xgboost
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.7s,	estimator xgboost's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 22, current learner extra_tree
+[flaml.automl: 02-28 21:53:03] {2620} INFO -  at 0.8s,	estimator extra_tree's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:03] {2458} INFO - iteration 23, current learner rf
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 0.8s,	estimator rf's best error=0.0667,	best estimator rf's best error=0.0667
+[flaml.automl: 02-28 21:53:04] {2458} INFO - iteration 24, current learner xgboost
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 0.9s,	estimator xgboost's best error=0.0333,	best estimator xgboost's best error=0.0333
+[flaml.automl: 02-28 21:53:04] {2458} INFO - iteration 25, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 0.9s,	estimator xgb_limitdepth's best error=0.0667,	best estimator xgboost's best error=0.0333
+[flaml.automl: 02-28 21:53:04] {2458} INFO - iteration 26, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 0.9s,	estimator xgb_limitdepth's best error=0.0667,	best estimator xgboost's best error=0.0333
+[flaml.automl: 02-28 21:53:04] {2458} INFO - iteration 27, current learner xgboost
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 0.9s,	estimator xgboost's best error=0.0333,	best estimator xgboost's best error=0.0333
+[flaml.automl: 02-28 21:53:04] {2458} INFO - iteration 28, current learner extra_tree
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 1.0s,	estimator extra_tree's best error=0.0667,	best estimator xgboost's best error=0.0333
+[flaml.automl: 02-28 21:53:04] {2458} INFO - iteration 29, current learner xgb_limitdepth
+[flaml.automl: 02-28 21:53:04] {2620} INFO -  at 1.0s,	estimator xgb_limitdepth's best error=0.0667,	best estimator xgboost's best error=0.0333
+[flaml.automl: 02-28 21:53:04] {2850} INFO - retrain xgboost for 0.0s
+[flaml.automl: 02-28 21:53:04] {2857} INFO - retrained model: XGBClassifier(base_score=0.5, booster='gbtree',
+              colsample_bylevel=0.9826753651836615, colsample_bynode=1,
+              colsample_bytree=0.9725493834064914, gamma=0, gpu_id=-1,
+              grow_policy='lossguide', importance_type='gain',
+              interaction_constraints='', learning_rate=0.1665803484560213,
+              max_delta_step=0, max_depth=0, max_leaves=4,
+              min_child_weight=0.5649012460525115, missing=nan,
+              monotone_constraints='()', n_estimators=4, n_jobs=-1,
+              num_parallel_tree=1, objective='binary:logistic', random_state=0,
+              reg_alpha=0.009638363373006869, reg_lambda=0.143703802530408,
+              scale_pos_weight=1, subsample=0.9643606787051899,
+              tree_method='hist', use_label_encoder=False,
+              validate_parameters=1, verbosity=0)
+[flaml.automl: 02-28 21:53:04] {2234} INFO - fit succeeded
+[flaml.automl: 02-28 21:53:04] {2235} INFO - Time taken to find the best model: 0.8547139167785645
+```
 
 [Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/automl_time_series_forecast.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/automl_time_series_forecast.ipynb)

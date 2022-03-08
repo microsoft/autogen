@@ -1707,7 +1707,6 @@ class ARIMA(Prophet):
                 if len(X.columns) > 1:
                     X = self._preprocess(X.drop(columns=TS_TIMESTAMP_COL))
                     regressors = list(X)
-                    print(start, end, X.shape)
                     forecast = self._model.predict(
                         start=start, end=end, exog=X[regressors]
                     )

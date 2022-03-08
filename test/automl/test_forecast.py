@@ -371,7 +371,6 @@ def test_multivariate_forecast_cat(budget=5):
 
 def test_forecast_classification(budget=5):
     from hcrystalball.utils import get_sales_data
-    from hcrystalball.wrappers import get_sklearn_wrapper
 
     time_horizon = 30
     df = get_sales_data(n_dates=180, n_assortments=1, n_states=1, n_stores=1)
