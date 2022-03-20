@@ -15,7 +15,7 @@ Zero-shot AutoML has several benefits:
 The easiest way to leverage this technique is to import a "flamlized" learner of your favorite choice and use it just as how you use the learner before. The automation is done behind the scene and you are not required to change your code. For example, if you are currently using:
 
 ```python
-from lgbm import LGBMRegressor
+from lightgbm import LGBMRegressor
 
 estimator = LGBMRegressor()
 estimator.fit(X_train, y_train)
@@ -38,7 +38,7 @@ The current list of "flamlized" learners are:
 
 ### What's the magic behind the scene?
 
-`flaml.default.LGBMRegressor` inherits `lgbm.LGBMRegressor`, so all the APIs in `lgbm.LGBMRegressor` are still valid in `flaml.default.LGBMRegressor`. The difference is, `flaml.default.LGBMRegressor` decides the hyperparameter configurations based on the training data. It would use a different configuration if it is predicted to outperform the original data-independent default. If you inspect the params of the fitted estimator, you can find what configuration is used. If the original default configuration is used, then it is equivalent to the original estimator.
+`flaml.default.LGBMRegressor` inherits `lightgbm.LGBMRegressor`, so all the APIs in `lightgbm.LGBMRegressor` are still valid in `flaml.default.LGBMRegressor`. The difference is, `flaml.default.LGBMRegressor` decides the hyperparameter configurations based on the training data. It would use a different configuration if it is predicted to outperform the original data-independent default. If you inspect the params of the fitted estimator, you can find what configuration is used. If the original default configuration is used, then it is equivalent to the original estimator.
 
 The recommendation of which configuration should be used is based on offline AutoML run results. Information about the training dataset, such as the size of the dataset will be used to recommend a data-dependent configuration. The recommendation is done instantly in negligible time. The training can be faster or slower than using the original default configuration depending on the recommended configuration. Note that there is no tuning involved. Only one model is trained.
 
