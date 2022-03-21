@@ -726,7 +726,7 @@ def test_tokenclassification():
         "metric": "seqeval",
     }
 
-    automl_settings["custom_hpo_args"] = {
+    automl_settings["hf_args"] = {
         "model_path": "bert-base-uncased",
         "output_dir": "test/data/output/",
         "ckpt_per_epoch": 1,

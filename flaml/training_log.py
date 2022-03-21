@@ -79,7 +79,7 @@ class TrainingLogWriter(object):
         sample_size,
     ):
         if self.file is None:
-            raise IOError("Call open() to open the outpute file first.")
+            raise IOError("Call open() to open the output file first.")
         if validation_loss is None:
             raise ValueError("TEST LOSS NONE ERROR!!!")
         record = TrainingLogRecord(
@@ -109,7 +109,7 @@ class TrainingLogWriter(object):
 
     def checkpoint(self):
         if self.file is None:
-            raise IOError("Call open() to open the outpute file first.")
+            raise IOError("Call open() to open the output file first.")
         if self.current_best_loss_record_id is None:
             logger.warning(
                 "flaml.training_log: checkpoint() called before any record is written, skipped."

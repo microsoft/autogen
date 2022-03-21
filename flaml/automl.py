@@ -246,6 +246,7 @@ class AutoMLState:
             * sample_size
             / state.data_size[0]
         )
+        # raise Exception("bbbbb", state.time_budget, budget)
 
         if _is_nlp_task(state.task):
             state.fit_kwargs["X_val"] = state.X_val
@@ -326,80 +327,29 @@ class AutoMLState:
             weight = None
         if groups is not None:
             self.fit_kwargs["groups"] = groups
+
         budget = (
             None
             if self.time_budget is None
             else self.time_budget - self.time_from_start
         )
-        if (
-            hasattr(self, "resources_per_trial")
-            and self.resources_per_trial.get("gpu", 0) > 0
-        ):
 
-            if _is_nlp_task(self.task):
-                use_ray = self.fit_kwargs.get("use_ray")
-                self.fit_kwargs["use_ray"] = True
+        estimator, train_time = train_estimator(
+            X_train=sampled_X_train,
+            y_train=sampled_y_train,
+            config_dic=config,
+            task=self.task,
+            estimator_name=estimator,
+            n_jobs=self.n_jobs,
+            estimator_class=self.learner_classes.get(estimator),
+            budget=budget,
+            fit_kwargs=self.fit_kwargs,
+            eval_metric="train_time",
+        )
 
-            def _trainable_function_wrapper(config: dict):
-
-                return_estimator, train_time = train_estimator(
-                    X_train=sampled_X_train,
-                    y_train=sampled_y_train,
-                    config_dic=config,
-                    task=self.task,
-                    estimator_name=estimator,
-                    n_jobs=self.n_jobs,
-                    estimator_class=self.learner_classes.get(estimator),
-                    budget=budget,
-                    fit_kwargs=self.fit_kwargs,
-                )
-                return {"estimator": return_estimator, "train_time": train_time}
-
-            if estimator not in self.learner_classes:
-                self.learner_classes[estimator] = get_estimator_class(
-                    self.task, estimator
-                )
-
-            analysis = tune.run(
-                _trainable_function_wrapper,
-                config=config_w_resource,
-                metric="train_time",
-                mode="min",
-                resources_per_trial=self.resources_per_trial,
-                num_samples=1,
-                use_ray=True,
-            )
-            result = list(analysis.results.values())[0]
-            estimator, train_time = result["estimator"], result["train_time"]
-
-            if _is_nlp_task(self.task):
-                if use_ray is None:
-                    del self.fit_kwargs["use_ray"]
-                else:
-                    self.fit_kwargs["use_ray"] = use_ray
-                estimator.use_ray = False
-        else:
-            if _is_nlp_task(self.task):
-                use_ray = self.fit_kwargs.get("use_ray")
-                self.fit_kwargs["use_ray"] = False
-            estimator, train_time = train_estimator(
-                X_train=sampled_X_train,
-                y_train=sampled_y_train,
-                config_dic=config,
-                task=self.task,
-                estimator_name=estimator,
-                n_jobs=self.n_jobs,
-                estimator_class=self.learner_classes.get(estimator),
-                budget=budget,
-                fit_kwargs=self.fit_kwargs,
-            )
-            if _is_nlp_task(self.task):
-                if use_ray is None:
-                    del self.fit_kwargs["use_ray"]
-                else:
-                    self.fit_kwargs["use_ray"] = use_ray
         if sampled_weight is not None:
             self.fit_kwargs["sample_weight"] = weight
+
         return estimator, train_time
 
 
@@ -749,7 +699,11 @@ class AutoML(BaseEstimator):
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
 
-    def predict(self, X: Union[np.array, pd.DataFrame, List[str], List[List[str]]]):
+    def predict(
+        self,
+        X: Union[np.array, pd.DataFrame, List[str], List[List[str]]],
+        **pred_kwargs,
+    ):
         """Predict label from features.
 
         Args:
@@ -761,6 +715,8 @@ class AutoML(BaseEstimator):
                     arima or sarimax). Other columns in the dataframe
                     are assumed to be exogenous variables (categorical
                     or numeric).
+            **pred_kwargs: Other key word arguments to pass to predict() function of
+                the searched learners, such as per_device_eval_batch_size.
 
         ```python
         multivariate_X_test = pd.DataFrame({
@@ -782,7 +738,7 @@ class AutoML(BaseEstimator):
             )
             return None
         X = self._preprocess(X)
-        y_pred = estimator.predict(X)
+        y_pred = estimator.predict(X, **pred_kwargs)
         if (
             isinstance(y_pred, np.ndarray)
             and y_pred.ndim > 1
@@ -796,12 +752,14 @@ class AutoML(BaseEstimator):
         else:
             return y_pred
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, **pred_kwargs):
         """Predict the probability of each class from features, only works for
         classification problems.
 
         Args:
             X: A numpy array of featurized instances, shape n * m.
+            **pred_kwargs: Other key word arguments to pass to predict_proba() function of
+                the searched learners, such as per_device_eval_batch_size.
 
         Returns:
             A numpy array of shape n * c. c is the  # classes. Each element at
@@ -814,7 +772,7 @@ class AutoML(BaseEstimator):
             )
             return None
         X = self._preprocess(X)
-        proba = self._trained_estimator.predict_proba(X)
+        proba = self._trained_estimator.predict_proba(X, **pred_kwargs)
         return proba
 
     def _preprocess(self, X):
@@ -1319,6 +1277,7 @@ class AutoML(BaseEstimator):
             task=task,
             estimator_name=estimator,
             estimator_class=self._state.learner_classes.get(estimator),
+            eval_metric="train_time",
         )
         return estimator
 
@@ -1680,6 +1639,17 @@ class AutoML(BaseEstimator):
         """
         return self._state.data_size[0] if self._sample else None
 
+    def pickle(self, output_file_name):
+        import pickle
+
+        estimator_to_training_function = {}
+        for estimator in self.estimator_list:
+            search_state = self._search_states[estimator]
+            estimator_to_training_function[estimator] = search_state.training_function
+            del search_state.training_function
+        with open(output_file_name, "wb") as f:
+            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+
     @property
     def trainable(self) -> Callable[[dict], Optional[float]]:
         """Training function.
@@ -1960,10 +1930,10 @@ class AutoML(BaseEstimator):
                 augment rare classes.
             min_sample_size: int, default=MIN_SAMPLE_TRAIN | the minimal sample
                 size when sample=True.
-            use_ray: boolean, default=False | Whether to use ray to run the training
+            use_ray: boolean or dict
+                If boolean: default=False | Whether to use ray to run the training
                 in separate processes. This can be used to prevent OOM for large
-                datasets, but will incur more overhead in time. Only use it if
-                you run into OOM failures.
+                datasets, but will incur more overhead in time.
             metric_constraints: list, default=[] | The list of metric constraints.
                 Each element in this list is a 3-tuple, which shall be expressed
                 in the following format: the first element of the 3-tuple is the name of the
@@ -2064,14 +2034,21 @@ class AutoML(BaseEstimator):
             import ray
 
             n_cpus = use_ray and ray.available_resources()["CPU"] or os.cpu_count()
+
             self._state.resources_per_trial = (
                 # when using gpu, default cpu is 1 per job; otherwise, default cpu is n_cpus / n_concurrent_trials
-                {"cpu": max(int(n_cpus / n_concurrent_trials), 1), "gpu": gpu_per_trial}
-                if gpu_per_trial == 0
-                else {"cpu": 1, "gpu": gpu_per_trial}
+                (
+                    {
+                        "cpu": max(int((n_cpus - 2) / 2 / n_concurrent_trials), 1),
+                        "gpu": gpu_per_trial,
+                    }
+                    if gpu_per_trial == 0
+                    else {"cpu": 1, "gpu": gpu_per_trial}
+                )
                 if n_jobs < 0
                 else {"cpu": n_jobs, "gpu": gpu_per_trial}
             )
+
             if isinstance(X_train, ray.ObjectRef):
                 X_train = ray.get(X_train)
             elif isinstance(dataframe, ray.ObjectRef):
@@ -2131,7 +2108,11 @@ class AutoML(BaseEstimator):
             )
         )
         if "auto" == metric:
-            if "binary" in self._state.task:
+            if _is_nlp_task(self._state.task):
+                from .nlp.utils import load_default_huggingface_metric_for_task
+
+                metric = load_default_huggingface_metric_for_task(self._state.task)
+            elif "binary" in self._state.task:
                 metric = "roc_auc"
             elif "multi" in self._state.task:
                 metric = "log_loss"
@@ -2139,16 +2120,8 @@ class AutoML(BaseEstimator):
                 metric = "mape"
             elif self._state.task == "rank":
                 metric = "ndcg"
-            elif _is_nlp_task(self._state.task):
-                from .nlp.utils import load_default_huggingface_metric_for_task
-
-                metric = load_default_huggingface_metric_for_task(self._state.task)
             else:
                 metric = "r2"
-
-        if _is_nlp_task(self._state.task):
-            self._state.fit_kwargs["metric"] = metric
-            self._state.fit_kwargs["use_ray"] = self._use_ray
 
         self._state.metric = metric
 
@@ -2355,6 +2328,14 @@ class AutoML(BaseEstimator):
         elif "random" == self._hpo_method:
             from ray.tune.suggest import BasicVariantGenerator as SearchAlgo
             from ray.tune.sample import Domain
+        elif "optuna" == self._hpo_method:
+            try:
+                from ray import __version__ as ray_version
+
+                assert ray_version >= "1.0.0"
+                from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
+            except (ImportError, AssertionError):
+                from .searcher.suggestion import OptunaSearch as SearchAlgo
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "
@@ -2382,24 +2363,48 @@ class AutoML(BaseEstimator):
         else:
             self._state.time_from_start = time.time() - self._start_time_flag
             time_left = self._state.time_budget - self._state.time_from_start
-            search_alg = SearchAlgo(
-                metric="val_loss",
-                space=space,
-                low_cost_partial_config=self.low_cost_partial_config,
-                points_to_evaluate=self.points_to_evaluate,
-                cat_hp_cost=self.cat_hp_cost,
-                resource_attr=self.resource_attr,
-                min_resource=self.min_resource,
-                max_resource=self.max_resource,
-                config_constraints=[
-                    (partial(size, self._state), "<=", self._mem_thres)
-                ],
-                metric_constraints=self.metric_constraints,
-                seed=self._seed,
-                time_budget_s=time_left,
-            )
+            if self._hpo_method != "optuna":
+                search_alg = SearchAlgo(
+                    metric="val_loss",
+                    space=space,
+                    low_cost_partial_config=self.low_cost_partial_config,
+                    points_to_evaluate=self.points_to_evaluate,
+                    cat_hp_cost=self.cat_hp_cost,
+                    resource_attr=self.resource_attr,
+                    min_resource=self.min_resource,
+                    max_resource=self.max_resource,
+                    config_constraints=[
+                        (partial(size, self._state), "<=", self._mem_thres)
+                    ],
+                    metric_constraints=self.metric_constraints,
+                    seed=self._seed,
+                    time_budget_s=time_left,
+                )
+            else:
+                # if self._hpo_method is bo, sometimes the search space and the initial config dimension do not match
+                # need to remove the extra keys from the search space to be consistent with the initial config
+                converted_space = SearchAlgo.convert_search_space(space)
+
+                removed_keys = set(space.keys()).difference(converted_space.keys())
+                new_points_to_evaluate = []
+                for idx in range(len(self.points_to_evaluate)):
+                    r = self.points_to_evaluate[idx].copy()
+                    for each_key in removed_keys:
+                        r.pop(each_key)
+                    new_points_to_evaluate.append(r)
+
+                search_alg = SearchAlgo(
+                    metric="val_loss",
+                    mode="min",
+                    points_to_evaluate=[
+                        p
+                        for p in new_points_to_evaluate
+                        if len(p) == len(converted_space)
+                    ],
+                )
             search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
         resources_per_trial = self._state.resources_per_trial
+
         analysis = ray.tune.run(
             self.trainable,
             search_alg=search_alg,
@@ -2413,6 +2418,7 @@ class AutoML(BaseEstimator):
             raise_on_failed_trial=False,
             keep_checkpoints_num=1,
             checkpoint_score_attr="min-val_loss",
+            **self._use_ray if isinstance(self._use_ray, dict) else {},
         )
         # logger.info([trial.last_result for trial in analysis.trials])
         trials = sorted(
@@ -2579,6 +2585,7 @@ class AutoML(BaseEstimator):
                         if isinstance(search_state.init_config, list)
                         else [search_state.init_config]
                     )
+
                     low_cost_partial_config = search_state.low_cost_partial_config
                 if self._hpo_method in ("bs", "cfo", "grid", "cfocat", "random"):
                     algo = SearchAlgo(
@@ -2598,6 +2605,20 @@ class AutoML(BaseEstimator):
                         seed=self._seed,
                     )
                 else:
+                    # if self._hpo_method is bo, sometimes the search space and the initial config dimension do not match
+                    # need to remove the extra keys from the search space to be consistent with the initial config
+                    converted_space = SearchAlgo.convert_search_space(search_space)
+                    removed_keys = set(search_space.keys()).difference(
+                        converted_space.keys()
+                    )
+                    new_points_to_evaluate = []
+                    for idx in range(len(points_to_evaluate)):
+                        r = points_to_evaluate[idx].copy()
+                        for each_key in removed_keys:
+                            r.pop(each_key)
+                        new_points_to_evaluate.append(r)
+                    points_to_evaluate = new_points_to_evaluate
+
                     algo = SearchAlgo(
                         metric="val_loss",
                         mode="min",

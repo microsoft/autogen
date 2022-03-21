@@ -26,8 +26,8 @@ automl = AutoML()
 automl_settings = {
     "time_budget": 100,
     "task": "seq-classification",
-    "custom_hpo_args": {"output_dir": "data/output/"},
-    "gpu_per_trial": 1,  # set to 0 if no GPU is available
+    "hf_args": {"output_dir": "data/output/"},  # setting the huggingface arguments: output directory
+    "gpu_per_trial": 1,                         # set to 0 if no GPU is available
 }
 automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
 automl.predict(X_test)
@@ -77,11 +77,11 @@ automl_settings = {
     "task": "seq-regression",
     "metric": "rmse",
 }
-automl_settings["custom_hpo_args"] = {
-    "model_path": "google/electra-small-discriminator",
-    "output_dir": "data/output/",
-    "ckpt_per_epoch": 5,
-    "fp16": False,
+automl_settings["hf_args"] = {                          # setting the huggingface arguments
+    "model_path": "google/electra-small-discriminator", # setting the language model
+    "output_dir": "data/output/",                       # setting the output directory
+    "ckpt_per_epoch": 5,                                # setting the number of checkpoints per epoch
+    "fp16": False,                                      # setting whether to use FP16
 }
 automl.fit(
     X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
@@ -127,11 +127,11 @@ automl_settings = {
     "task": "summarization",
     "metric": "rouge1",
 }
-automl_settings["custom_hpo_args"] = {
-    "model_path": "t5-small",
-    "output_dir": "data/output/",
-    "ckpt_per_epoch": 5,
-    "fp16": False,
+automl_settings["hf_args"] = {            # setting the huggingface arguments
+    "model_path": "t5-small",             # setting the language model
+    "output_dir": "data/output/",         # setting the output directory
+    "ckpt_per_epoch": 5,                  # setting the number of checkpoints per epoch
+    "fp16": False,                        # setting whether to use FP16
 }
 automl.fit(
     X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
@@ -206,3 +206,9 @@ Model config T5Config {
 ```
 
 For tasks that are not currently supported, use `flaml.tune` for [customized tuning](Tune-HuggingFace).
+
+### Link to Jupyter notebook
+
+To run these examples in our Jupyter notebook, please go to:
+
+[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/automl_nlp.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/automl_nlp.ipynb)

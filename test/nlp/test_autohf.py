@@ -84,9 +84,10 @@ def test_hf_data():
         "task": "seq-classification",
         "metric": "accuracy",
         "log_file_name": "seqclass.log",
+        "use_ray": False,
     }
 
-    automl_settings["custom_hpo_args"] = {
+    automl_settings["hf_args"] = {
         "model_path": "google/electra-small-discriminator",
         "output_dir": "test/data/output/",
         "ckpt_per_epoch": 5,
@@ -116,7 +117,6 @@ def test_hf_data():
         pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
     with open("automl.pkl", "rb") as f:
         automl = pickle.load(f)
-    shutil.rmtree("test/data/output/")
     automl.predict(X_test)
     automl.predict(["test test", "test test"])
     automl.predict(
@@ -164,7 +164,7 @@ def _test_custom_data():
         "metric": "accuracy",
     }
 
-    automl_settings["custom_hpo_args"] = {
+    automl_settings["hf_args"] = {
         "model_path": "google/electra-small-discriminator",
         "output_dir": "data/output/",
         "ckpt_per_epoch": 1,
@@ -182,6 +182,16 @@ def _test_custom_data():
             ["test test", "test test"],
         ]
     )
+
+    import pickle
+
+    automl.pickle("automl.pkl")
+
+    with open("automl.pkl", "rb") as f:
+        automl = pickle.load(f)
+    config = automl.best_config.copy()
+    config["learner"] = automl.best_estimator
+    automl.trainable(config)
 
 
 if __name__ == "__main__":

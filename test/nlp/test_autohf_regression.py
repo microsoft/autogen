@@ -6,6 +6,9 @@ import pytest
 def test_regression():
     try:
         import ray
+
+        if not ray.is_initialized():
+            ray.init()
     except ImportError:
         return
     from flaml import AutoML
@@ -65,10 +68,10 @@ def test_regression():
         "task": "seq-regression",
         "metric": "pearsonr",
         "starting_points": {"transformer": {"num_train_epochs": 1}},
-        "use_ray": True,
+        "use_ray": {"local_dir": "data/outut/"},
     }
 
-    automl_settings["custom_hpo_args"] = {
+    automl_settings["hf_args"] = {
         "model_path": "google/electra-small-discriminator",
         "output_dir": "test/data/output/",
         "ckpt_per_epoch": 1,
@@ -77,6 +80,7 @@ def test_regression():
 
     ray.shutdown()
     ray.init()
+
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
