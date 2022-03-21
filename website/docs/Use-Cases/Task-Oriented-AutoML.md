@@ -301,7 +301,8 @@ By default, flaml uses the following method to split the data:
 * time-based split for time series forecasting;
 * group-based split for learning to rank.
 
-The data split method for classification can be changed into uniform split by setting `split_type="uniform"`. For both classification and regression, time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`.
+The data split method for classification can be changed into uniform split by setting `split_type="uniform"`. The data are shuffled when `split_type in ("uniform", "stratified")`.
+For both classification and regression, time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`.
 
 When `eval_method="cv"`, `split_type` can also be set as a custom splitter. It needs to be an instance of a derived class of scikit-learn
 [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
