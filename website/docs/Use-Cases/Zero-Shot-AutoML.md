@@ -19,7 +19,7 @@ from lightgbm import LGBMRegressor
 
 estimator = LGBMRegressor()
 estimator.fit(X_train, y_train)
-estimator.predict(X_test, y_test)
+estimator.predict(X_test)
 ```
 
 Simply replace the first line with:
