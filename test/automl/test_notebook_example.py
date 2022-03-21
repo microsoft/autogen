@@ -4,12 +4,17 @@ from requests.exceptions import ChunkedEncodingError
 
 def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     from flaml.data import load_openml_dataset
+    import urllib3
 
     try:
         X_train, X_test, y_train, y_test = load_openml_dataset(
             dataset_id=1169, data_dir="test/", dataset_format=dataset_format
         )
-    except (OpenMLServerException, ChunkedEncodingError) as e:
+    except (
+        OpenMLServerException,
+        ChunkedEncodingError,
+        urllib3.exceptions.ReadTimeoutError,
+    ) as e:
         print(e)
         return
     """ import AutoML class from flaml package """

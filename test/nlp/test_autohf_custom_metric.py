@@ -19,8 +19,7 @@ def custom_metric(
     from flaml.model import TransformersEstimator
 
     if estimator._trainer is None:
-        estimator._init_model_for_predict(X_test)
-        trainer = estimator._trainer
+        trainer, _, _ = estimator._init_model_for_predict(X_test)
         estimator._trainer = None
     else:
         trainer = estimator._trainer
@@ -103,7 +102,7 @@ def test_custom_metric():
         "log_file_name": "seqclass.log",
     }
 
-    automl_settings["custom_hpo_args"] = {
+    automl_settings["hf_args"] = {
         "model_path": "google/electra-small-discriminator",
         "output_dir": "data/output/",
         "ckpt_per_epoch": 1,

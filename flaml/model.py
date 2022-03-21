@@ -197,7 +197,7 @@ class BaseEstimator:
             train_time = self._fit(X_train, y_train, **kwargs)
         return train_time
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         """Predict label from features.
 
         Args:
@@ -216,7 +216,7 @@ class BaseEstimator:
             )
             return np.ones(X.shape[0])
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, **kwargs):
         """Predict the probability of each class from features.
 
         Only works for classification problems
@@ -325,7 +325,7 @@ class TransformersEstimator(BaseEstimator):
             },
             "num_train_epochs": {
                 "domain": tune.loguniform(lower=0.1, upper=10.0),
-                "init_value": 3,
+                "init_value": 1,
             },
             "per_device_train_batch_size": {
                 "domain": tune.choice([4, 8, 16, 32]),
@@ -344,33 +344,38 @@ class TransformersEstimator(BaseEstimator):
                 "init_value": 1e-6,
             },
             "seed": {"domain": tune.choice(list(range(40, 45))), "init_value": 42},
-            "global_max_steps": {"domain": sys.maxsize, "init_value": sys.maxsize},
+            "global_max_steps": {
+                "domain": sys.maxsize,
+                "init_value": sys.maxsize,
+            },
         }
-
-        if task in NLG_TASKS:
-            search_space_dict["generation_num_beams"] = {
-                "domain": tune.randint(2, 5),
-                "init_value": 3,
-            }
-            search_space_dict["generation_max_length"] = {
-                "domain": tune.choice([16, 32, 64, 128]),
-                "init_value": 64,
-            }
 
         return search_space_dict
 
-    def _init_hpo_args(self, automl_fit_kwargs: dict = None):
-        from .nlp.utils import HPOArgs
+    def _init_hf_args(self, automl_fit_kwargs: dict = None):
+        from .nlp.utils import HFArgs
 
-        custom_hpo_args = HPOArgs()
-        for key, val in automl_fit_kwargs["custom_hpo_args"].items():
+        hf_args = HFArgs()
+        for key, val in automl_fit_kwargs["hf_args"].items():
             assert (
-                key in custom_hpo_args.__dict__
-            ), "The specified key {} is not in the argument list of flaml.nlp.utils::HPOArgs".format(
+                key in hf_args.__dict__
+            ), "The specified key {} is not in the argument list of flaml.nlp.utils::HFArgs".format(
                 key
             )
-            setattr(custom_hpo_args, key, val)
-        self.custom_hpo_args = custom_hpo_args
+            setattr(hf_args, key, val)
+        self.hf_args = hf_args
+
+    def _update_hf_args(self, automl_pred_kwargs: dict = None):
+        if automl_pred_kwargs:
+            hf_args = automl_pred_kwargs.get("hf_args")
+            if hf_args:
+                for key, val in hf_args.items():
+                    assert (
+                        key in self.hf_args.__dict__
+                    ), "The specified key {} is not in the argument list of flaml.nlp.utils::HFArgs".format(
+                        key
+                    )
+                    setattr(self.hf_args, key, val)
 
     def _preprocess(self, X, y=None, **kwargs):
         from .nlp.utils import tokenize_text, is_a_list_of_str
@@ -383,7 +388,7 @@ class TransformersEstimator(BaseEstimator):
                 X=X,
                 Y=y,
                 task=self._task,
-                custom_hpo_args=self.custom_hpo_args,
+                hf_args=self.hf_args,
                 tokenizer=self._tokenizer,
             )
         else:
@@ -392,12 +397,63 @@ class TransformersEstimator(BaseEstimator):
     def _model_init(self, num_labels, per_model_config):
         from .nlp.utils import load_model
 
-        return load_model(
-            checkpoint_path=self.custom_hpo_args.model_path,
+        this_model = load_model(
+            checkpoint_path=self.hf_args.model_path,
             task=self._task,
             num_labels=num_labels,
             per_model_config=per_model_config,
         )
+        return this_model
+
+    def _get_training_args(self, local_rank=-1):
+        import transformers
+
+        if self._task in NLG_TASKS:
+            self._training_args_config["predict_with_generate"] = True
+
+        if transformers.__version__.startswith("3"):
+            training_args = self._TrainingArguments(
+                report_to=[],
+                output_dir=self._trial_dir,
+                do_train=True,
+                do_eval=True,
+                eval_steps=self._ckpt_freq,
+                evaluate_during_training=True,
+                save_steps=self._ckpt_freq,
+                logging_steps=self._ckpt_freq,
+                save_total_limit=0,
+                metric_for_best_model="loss",
+                fp16=self.hf_args.fp16
+                if self._kwargs.get("gpu_per_trial") > 0
+                else False,
+                no_cuda=True if self._kwargs.get("gpu_per_trial") == 0 else False,
+                local_rank=local_rank,
+                per_device_eval_batch_size=self.hf_args.per_device_eval_batch_size,
+                **self._training_args_config,
+            )
+        else:
+            from transformers import IntervalStrategy
+
+            training_args = self._TrainingArguments(
+                report_to=[],
+                output_dir=self._trial_dir,
+                do_train=True,
+                do_eval=True,
+                eval_steps=self._ckpt_freq,
+                logging_steps=self._ckpt_freq,
+                evaluation_strategy=IntervalStrategy.STEPS,
+                save_steps=self._ckpt_freq,
+                save_total_limit=0,
+                metric_for_best_model="loss",
+                fp16=self.hf_args.fp16
+                if self._kwargs.get("gpu_per_trial") > 0
+                else False,
+                local_rank=local_rank,
+                no_cuda=True if self._kwargs.get("gpu_per_trial") == 0 else False,
+                per_device_eval_batch_size=self.hf_args.per_device_eval_batch_size,
+                **self._training_args_config,
+            )
+        return training_args
 
     def fit(self, X_train: DataFrame, y_train: Series, budget=None, **kwargs):
         import transformers
@@ -411,18 +467,11 @@ class TransformersEstimator(BaseEstimator):
         from .nlp.utils import (
             get_num_labels,
             separate_config,
-            load_model,
             compute_checkpoint_freq,
-            get_trial_fold_name,
+            Counter,
             date_str,
         )
 
-        # TODO: if self._task == QUESTIONANSWERING, uncomment the code below (add indentation before
-        #  from .nlp.huggingface.trainer import TrainerForAuto)
-
-        # if self._task in NLG_TASKS:
-        #     from .nlp.huggingface.trainer import Seq2SeqTrainerForAuto as TrainerForAuto
-        # else:
         from .nlp.huggingface.trainer import TrainerForAuto
         from .nlp.huggingface.data_collator import DataCollatorForAuto
         from .nlp.utils import get_auto_tokenizer
@@ -462,13 +511,22 @@ class TransformersEstimator(BaseEstimator):
 
         set_seed(self.params.get("seed", self._TrainingArguments.seed))
 
-        self._init_hpo_args(kwargs)
+        self._init_hf_args(kwargs)
         self._tokenizer = get_auto_tokenizer(
-            self.custom_hpo_args.model_path, self._task
+            self.hf_args.tokenizer_model_path
+            if self.hf_args.tokenizer_model_path
+            else self.hf_args.model_path,
+            self._task,
         )
 
         self._metric = kwargs["metric"]
-        self.use_ray = kwargs.get("use_ray")
+
+        try:
+            from ray.tune import is_session_enabled
+
+            self.use_ray = is_session_enabled()
+        except ImportError:
+            self.use_ray = False
 
         X_val = kwargs.get("X_val")
         y_val = kwargs.get("y_val")
@@ -498,70 +556,41 @@ class TransformersEstimator(BaseEstimator):
             eval_dataset = None
 
         num_labels = get_num_labels(self._task, self._y_train)
-        training_args_config, per_model_config = separate_config(
+        self._training_args_config, self._per_model_config = separate_config(
             self.params, self._task
         )
-        ckpt_freq = compute_checkpoint_freq(
+        self._ckpt_freq = compute_checkpoint_freq(
             train_data_size=len(self._X_train),
-            custom_hpo_args=self.custom_hpo_args,
-            num_train_epochs=training_args_config.get(
+            hf_args=self.hf_args,
+            num_train_epochs=self._training_args_config.get(
                 "num_train_epochs", self._TrainingArguments.num_train_epochs
             ),
-            batch_size=training_args_config.get(
+            batch_size=self._training_args_config.get(
                 "per_device_train_batch_size",
                 self._TrainingArguments.per_device_train_batch_size,
             ),
         )
 
-        local_dir = os.path.join(
-            self.custom_hpo_args.output_dir, "train_{}".format(date_str())
-        )
+        local_dir = os.path.join(self.hf_args.output_dir, "train_{}".format(date_str()))
 
-        if not self.use_ray:
-            # if self.params = {}, don't include configuration in trial fold name
-            trial_dir = get_trial_fold_name(local_dir, self.params, self.trial_id)
-        else:
+        if self.use_ray is True:
             import ray
 
-            trial_dir = ray.tune.get_trial_dir()
-
-        if transformers.__version__.startswith("3"):
-            training_args = self._TrainingArguments(
-                report_to=[],
-                output_dir=trial_dir,
-                do_train=True,
-                do_eval=True,
-                eval_steps=ckpt_freq,
-                evaluate_during_training=True,
-                save_steps=ckpt_freq,
-                logging_steps=ckpt_freq,
-                save_total_limit=0,
-                metric_for_best_model="loss",
-                fp16=self.custom_hpo_args.fp16,
-                **training_args_config,
-            )
+            self._trial_dir = ray.tune.get_trial_dir()
         else:
-            from transformers import IntervalStrategy
-
-            training_args = self._TrainingArguments(
-                report_to=[],
-                output_dir=trial_dir,
-                do_train=True,
-                do_eval=True,
-                per_device_eval_batch_size=1,
-                eval_steps=ckpt_freq,
-                logging_steps=ckpt_freq,
-                evaluation_strategy=IntervalStrategy.STEPS,
-                save_steps=ckpt_freq,
-                save_total_limit=0,
-                metric_for_best_model="loss",
-                fp16=self.custom_hpo_args.fp16,
-                **training_args_config,
+            # if self.params = {}, don't include configuration in trial fold name
+            self._trial_dir = Counter.get_trial_fold_name(
+                local_dir, self.params, self.trial_id
             )
+
+        self._kwargs = kwargs
+        self._num_labels = num_labels
+
+        training_args = self._get_training_args(local_rank=-1)
 
         self._trainer = TrainerForAuto(
             args=training_args,
-            model_init=partial(self._model_init, num_labels, per_model_config),
+            model_init=partial(self._model_init, num_labels, self._per_model_config),
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=self._tokenizer,
@@ -575,28 +604,33 @@ class TransformersEstimator(BaseEstimator):
             callbacks=[EarlyStoppingCallbackForAuto],
         )
 
-        setattr(self._trainer, "_use_ray", self.use_ray)
         if self._task in NLG_TASKS:
             setattr(self._trainer, "_is_seq2seq", True)
-        if kwargs.get("gpu_per_trial"):
-            self._trainer.args._n_gpu = kwargs.get("gpu_per_trial")
+
+        gpu_per_trial = kwargs.get("gpu_per_trial", None)
+        if gpu_per_trial:
+            tmp_cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+            self._trainer.args._n_gpu = gpu_per_trial
+            # if gpu_per_trial == 0:
+            #     os.environ["CUDA_VISIBLE_DEVICES"] = ""
+            if tmp_cuda_visible_devices.count(",") != gpu_per_trial - 1:
+                os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(
+                    [str(x) for x in range(gpu_per_trial)]
+                )
+
+        import time
+
+        start_time = time.time()
         self._trainer.train()
 
+        if gpu_per_trial:
+            os.environ["CUDA_VISIBLE_DEVICES"] = tmp_cuda_visible_devices
+
         self.params[self.ITER_HP] = self._trainer.state.global_step
+
         self._checkpoint_path = self._select_checkpoint(self._trainer)
-
-        self._kwargs = kwargs
-        self._num_labels = num_labels
-        self._per_model_config = per_model_config
-        self._training_args_config = training_args_config
-
         self._ckpt_remains = list(self._trainer.ckpt_to_metric.keys())
-        self._model = load_model(
-            checkpoint_path=self._checkpoint_path,
-            task=self._task,
-            num_labels=self._num_labels,
-            per_model_config=self._per_model_config,
-        )
+
         if hasattr(self._trainer, "intermediate_results"):
             self.intermediate_results = [
                 x[1]
@@ -605,6 +639,7 @@ class TransformersEstimator(BaseEstimator):
                 )
             ]
         self._trainer = None
+        return time.time() - start_time
 
     def _delete_one_ckpt(self, ckpt_location):
         if self.use_ray is False:
@@ -689,16 +724,21 @@ class TransformersEstimator(BaseEstimator):
         from datasets import Dataset
         from .nlp.huggingface.trainer import TrainerForAuto
         from .nlp.huggingface.data_collator import DataCollatorForPredict
+        from .nlp.utils import load_model
 
         X_test, _ = self._preprocess(X_test, **self._kwargs)
         test_dataset = Dataset.from_pandas(X_test)
-        training_args = self._TrainingArguments(
-            per_device_eval_batch_size=1,
-            output_dir=self.custom_hpo_args.output_dir,
-            **self._training_args_config,
+
+        this_model = load_model(
+            checkpoint_path=self._checkpoint_path,
+            task=self._task,
+            num_labels=self._num_labels,
+            per_model_config=self._per_model_config,
         )
-        self._trainer = TrainerForAuto(
-            model=self._model,
+        training_args = self._get_training_args(local_rank=-1)
+
+        new_trainer = TrainerForAuto(
+            model=this_model,
             args=training_args,
             data_collator=DataCollatorForPredict(
                 tokenizer=self._tokenizer,
@@ -708,31 +748,36 @@ class TransformersEstimator(BaseEstimator):
             else None,
             compute_metrics=self._compute_metrics_by_dataset_name,
         )
-        return test_dataset, training_args
+        if self._task in NLG_TASKS:
+            setattr(new_trainer, "_is_seq2seq", True)
+        return new_trainer, test_dataset, training_args
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, **kwargs):
+        self._update_hf_args(kwargs)
         assert (
             self._task in CLASSIFICATION
         ), "predict_proba() only for classification tasks."
 
-        test_dataset, _ = self._init_model_for_predict(X)
-        predictions = self._trainer.predict(test_dataset)
-        if self.use_ray is True:
-            self._trainer = None
+        new_trainer, test_dataset, _ = self._init_model_for_predict(X)
+        predictions = new_trainer.predict(test_dataset)
         return predictions.predictions
 
-    def predict(self, X):
-        test_dataset, training_args = self._init_model_for_predict(X)
+    def predict(self, X, **kwargs):
+        import transformers
+
+        transformers.logging.set_verbosity_error()
+
+        self._update_hf_args(kwargs)
+        new_trainer, test_dataset, training_args = self._init_model_for_predict(X)
+
         if self._task not in NLG_TASKS:
-            predictions = self._trainer.predict(test_dataset)
+            predictions = new_trainer.predict(test_dataset)
         else:
-            predictions = self._trainer.predict(
+            predictions = new_trainer.predict(
                 test_dataset,
-                max_length=training_args.generation_max_length,
-                num_beams=training_args.generation_num_beams,
+                metric_key_prefix="predict",
             )
-        if self.use_ray is True:
-            self._trainer = None
+
         if self._task == SEQCLASSIFICATION:
             return np.argmax(predictions.predictions, axis=1)
         elif self._task == SEQREGRESSION:
@@ -740,10 +785,8 @@ class TransformersEstimator(BaseEstimator):
         elif self._task == TOKENCLASSIFICATION:
             return np.argmax(predictions.predictions, axis=2)
         elif self._task == SUMMARIZATION:
-            if isinstance(predictions.predictions, tuple):
-                predictions = np.argmax(predictions.predictions[0], axis=2)
             decoded_preds = self._tokenizer.batch_decode(
-                predictions, skip_special_tokens=True
+                predictions.predictions, skip_special_tokens=True
             )
             return decoded_preds
         elif self._task == MULTICHOICECLASSIFICATION:
@@ -1121,7 +1164,7 @@ class XGBoostEstimator(SKLearnEstimator):
         train_time = time.time() - start_time
         return train_time
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         import xgboost as xgb
 
         if not issparse(X):
@@ -1617,7 +1660,7 @@ class Prophet(SKLearnEstimator):
         self._model = model
         return train_time
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         if isinstance(X, int):
             raise ValueError(
                 "predict() with steps is only supported for arima/sarimax."
@@ -1697,7 +1740,7 @@ class ARIMA(Prophet):
         self._model = model
         return train_time
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         if self._model is not None:
             if isinstance(X, int):
                 forecast = self._model.forecast(steps=X)
@@ -1894,7 +1937,7 @@ class TS_SKLearn(SKLearnEstimator):
         train_time = time.time() - current_time
         return train_time
 
-    def predict(self, X):
+    def predict(self, X, **kwargs):
         if self._model is not None:
             X = self.transform_X(X)
             X = self._preprocess(X)

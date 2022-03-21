@@ -1,7 +1,7 @@
 def test_load_args_sub():
-    from flaml.nlp.utils import HPOArgs
+    from flaml.nlp.utils import HFArgs
 
-    HPOArgs.load_args()
+    HFArgs.load_args()
 
 
 if __name__ == "__main__":
