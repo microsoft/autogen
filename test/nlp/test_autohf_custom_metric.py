@@ -19,7 +19,7 @@ def custom_metric(
     from flaml.model import TransformersEstimator
 
     if estimator._trainer is None:
-        trainer, _, _ = estimator._init_model_for_predict(X_test)
+        trainer, _ = estimator._init_model_for_predict()
         estimator._trainer = None
     else:
         trainer = estimator._trainer
@@ -93,6 +93,14 @@ def test_custom_metric():
 
     # testing when max_iter=1 and do retrain only without hpo
 
+    try:
+        import ray
+
+        if not ray.is_initialized():
+            ray.init()
+    except ImportError:
+        return
+
     automl_settings = {
         "gpu_per_trial": 0,
         "max_iter": 1,
@@ -100,6 +108,7 @@ def test_custom_metric():
         "task": "seq-classification",
         "metric": custom_metric,
         "log_file_name": "seqclass.log",
+        "use_ray": {"local_dir": "data/outut/"},
     }
 
     automl_settings["hf_args"] = {
@@ -126,6 +135,8 @@ def test_custom_metric():
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
+    automl.score(X_val, y_val, **{"metric": custom_metric})
+    automl.pickle("automl.pkl")
 
     del automl
 

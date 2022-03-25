@@ -25,7 +25,7 @@ def load_config_predictor(estimator_name, task, location=None):
     predictor = CONFIG_PREDICTORS.get(key)
     if predictor:
         return predictor
-    task = "multiclass" if task == "multi" else task
+    task = "multiclass" if task == "multi" else task  # TODO: multi -> multiclass?
     try:
         location = location or LOCATION
         with open(f"{location}/{estimator_name}/{task}.json", "r") as f:

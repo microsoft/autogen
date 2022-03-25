@@ -88,7 +88,9 @@ class BaseEstimator:
 
         Args:
             task: A string of the task type, one of
-                'binary', 'multi', 'regression', 'rank', 'forecast'.
+                'binary', 'multiclass', 'regression', 'rank', 'seq-classification',
+                'seq-regression', 'token-classification', 'multichoice-classification',
+                'summarization', 'ts_forecast', 'ts_forecast_classification'.
             config: A dictionary containing the hyperparameter names, 'n_jobs' as keys.
                 n_jobs is the number of parallel threads.
         """
@@ -234,6 +236,56 @@ class BaseEstimator:
         X = self._preprocess(X)
         return self._model.predict_proba(X)
 
+    def score(self, X_val: DataFrame, y_val: Series, **kwargs):
+        """Report the evaluation score of a trained estimator.
+
+
+        Args:
+            X_val: A pandas dataframe of the validation input data.
+            y_val: A pandas series of the validation label.
+            kwargs: keyword argument of the evaluation function, for example:
+                - metric: A string of the metric name or a function
+                e.g., 'accuracy', 'roc_auc', 'roc_auc_ovr', 'roc_auc_ovo',
+                'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2',
+                'mape'. Default is 'auto'.
+                If metric is given, the score will report the user specified metric.
+                If metric is not given, the metric is set to accuracy for classification and r2
+                for regression.
+                You can also pass a customized metric function, for examples on how to pass a
+                customized metric function, please check
+                [test/nlp/test_autohf_custom_metric.py](https://github.com/microsoft/FLAML/blob/main/test/nlp/test_autohf_custom_metric.py) and
+                [test/automl/test_multiclass.py](https://github.com/microsoft/FLAML/blob/main/test/automl/test_multiclass.py).
+
+                ```
+
+        Returns:
+            The evaluation score on the validation dataset.
+        """
+        from .ml import metric_loss_score
+        from .ml import is_min_metric
+
+        if self._model is not None:
+            if self._task == "rank":
+                raise NotImplementedError(
+                    "AutoML.score() is not implemented for ranking"
+                )
+            else:
+                X_val = self._preprocess(X_val)
+                metric = kwargs.get("metric", None)
+                if metric:
+                    y_pred = self.predict(X_val, **kwargs)
+                    if is_min_metric(metric):
+                        return metric_loss_score(metric, y_pred, y_val)
+                    else:
+                        return 1.0 - metric_loss_score(metric, y_pred, y_val)
+                else:
+                    return self._model.score(X_val, y_val, **kwargs)
+        else:
+            logger.warning(
+                "Estimator is not fit yet. Please run fit() before predict()."
+            )
+            return 0.0
+
     def cleanup(self):
         del self._model
         self._model = None
@@ -244,7 +296,7 @@ class BaseEstimator:
 
         Args:
             data_size: A tuple of two integers, number of rows and columns.
-            task: A str of the task type, e.g., "binary", "multi", "regression".
+            task: A str of the task type, e.g., "binary", "multiclass", "regression".
 
         Returns:
             A dictionary of the search space.
@@ -518,7 +570,6 @@ class TransformersEstimator(BaseEstimator):
             else self.hf_args.model_path,
             self._task,
         )
-
         self._metric = kwargs["metric"]
 
         try:
@@ -720,14 +771,10 @@ class TransformersEstimator(BaseEstimator):
             metric_dict["automl_metric"] = loss
         return metric_dict
 
-    def _init_model_for_predict(self, X_test):
-        from datasets import Dataset
+    def _init_model_for_predict(self):
         from .nlp.huggingface.trainer import TrainerForAuto
         from .nlp.huggingface.data_collator import DataCollatorForPredict
         from .nlp.utils import load_model
-
-        X_test, _ = self._preprocess(X_test, **self._kwargs)
-        test_dataset = Dataset.from_pandas(X_test)
 
         this_model = load_model(
             checkpoint_path=self._checkpoint_path,
@@ -750,25 +797,56 @@ class TransformersEstimator(BaseEstimator):
         )
         if self._task in NLG_TASKS:
             setattr(new_trainer, "_is_seq2seq", True)
-        return new_trainer, test_dataset, training_args
+        return new_trainer, training_args
 
     def predict_proba(self, X, **kwargs):
+        from datasets import Dataset
+
         self._update_hf_args(kwargs)
         assert (
             self._task in CLASSIFICATION
         ), "predict_proba() only for classification tasks."
 
-        new_trainer, test_dataset, _ = self._init_model_for_predict(X)
+        X_test, _ = self._preprocess(X, **self._kwargs)
+        test_dataset = Dataset.from_pandas(X_test)
+
+        new_trainer, _ = self._init_model_for_predict()
         predictions = new_trainer.predict(test_dataset)
         return predictions.predictions
 
+    def score(self, X_val: DataFrame, y_val: Series, **kwargs):
+        import transformers
+        from datasets import Dataset
+
+        transformers.logging.set_verbosity_error()
+
+        self._metric = kwargs["metric"]
+
+        if (self._task not in NLG_TASKS) and (self._task != TOKENCLASSIFICATION):
+            self._X_val, _ = self._preprocess(X=X_val)
+            self._y_val = y_val
+        else:
+            self._X_val, self._y_val = self._preprocess(X=X_val, y=y_val)
+
+        eval_dataset = Dataset.from_pandas(
+            TransformersEstimator._join(self._X_val, self._y_val)
+        )
+
+        new_trainer, training_args = self._init_model_for_predict()
+        return new_trainer.evaluate(eval_dataset)
+
     def predict(self, X, **kwargs):
         import transformers
+        from datasets import Dataset
 
         transformers.logging.set_verbosity_error()
 
         self._update_hf_args(kwargs)
-        new_trainer, test_dataset, training_args = self._init_model_for_predict(X)
+
+        X_test, _ = self._preprocess(X, **self._kwargs)
+        test_dataset = Dataset.from_pandas(X_test)
+
+        new_trainer, training_args = self._init_model_for_predict()
 
         if self._task not in NLG_TASKS:
             predictions = new_trainer.predict(test_dataset)
@@ -1676,6 +1754,17 @@ class Prophet(SKLearnEstimator):
                 "Estimator is not fit yet. Please run fit() before predict()."
             )
             return np.ones(X.shape[0])
+
+    def score(self, X_val: DataFrame, y_val: Series, **kwargs):
+        from sklearn.metrics import r2_score
+        from .ml import metric_loss_score
+
+        y_pred = self.predict(X_val)
+        self._metric = kwargs.get("metric", None)
+        if self._metric:
+            return metric_loss_score(self._metric, y_pred, y_val)
+        else:
+            return r2_score(y_pred, y_val)
 
 
 class ARIMA(Prophet):
