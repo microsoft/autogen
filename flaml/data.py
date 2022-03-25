@@ -18,7 +18,7 @@ MULTICHOICECLASSIFICATION = "multichoice-classification"
 TOKENCLASSIFICATION = "token-classification"
 CLASSIFICATION = (
     "binary",
-    "multi",
+    "multiclass",
     "classification",
     SEQCLASSIFICATION,
     MULTICHOICECLASSIFICATION,

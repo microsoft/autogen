@@ -156,3 +156,7 @@ automl.pkl
 
 .idea/*
 .DS_Store
+
+test/nlp/testtmp.py
+test/nlp/testtmpfl.py
+

@@ -102,6 +102,8 @@ def test_hf_data():
             y_val=y_val,
             **automl_settings
         )
+        automl.score(X_val, y_val, **{"metric": "accuracy"})
+        automl.pickle("automl.pkl")
     except requests.exceptions.HTTPError:
         return
 
@@ -113,10 +115,6 @@ def test_hf_data():
         record_id=0,
         **automl_settings
     )
-    with open("automl.pkl", "wb") as f:
-        pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
-    with open("automl.pkl", "rb") as f:
-        automl = pickle.load(f)
     automl.predict(X_test)
     automl.predict(["test test", "test test"])
     automl.predict(
@@ -182,8 +180,6 @@ def _test_custom_data():
             ["test test", "test test"],
         ]
     )
-
-    import pickle
 
     automl.pickle("automl.pkl")
 

@@ -246,11 +246,6 @@ class AutoMLState:
             * sample_size
             / state.data_size[0]
         )
-        # raise Exception("bbbbb", state.time_budget, budget)
-
-        if _is_nlp_task(state.task):
-            state.fit_kwargs["X_val"] = state.X_val
-            state.fit_kwargs["y_val"] = state.y_val
 
         (
             trained_estimator,
@@ -344,7 +339,7 @@ class AutoMLState:
             estimator_class=self.learner_classes.get(estimator),
             budget=budget,
             fit_kwargs=self.fit_kwargs,
-            eval_metric="train_time",
+            eval_metric=self.metric if hasattr(self, "metric") else "train_time",
         )
 
         if sampled_weight is not None:
@@ -698,6 +693,16 @@ class AutoML(BaseEstimator):
     def time_to_find_best_model(self) -> float:
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
+
+    def score(self, X: pd.DataFrame, y: pd.Series, **kwargs):
+        estimator = getattr(self, "_trained_estimator", None)
+        if estimator is None:
+            logger.warning(
+                "No estimator is trained. Please run fit with enough budget."
+            )
+            return None
+        X = self._preprocess(X)
+        return estimator.score(X, y, **kwargs)
 
     def predict(
         self,
@@ -1259,7 +1264,7 @@ class AutoML(BaseEstimator):
             record_id: An integer of the record ID in the file,
                 0 corresponds to the first trial.
             task: A string of the task type,
-                'binary', 'multi', 'regression', 'ts_forecast', 'rank'.
+                'binary', 'multiclass', 'regression', 'ts_forecast', 'rank'.
 
         Returns:
             An estimator object for the given configuration.
@@ -1645,8 +1650,12 @@ class AutoML(BaseEstimator):
         estimator_to_training_function = {}
         for estimator in self.estimator_list:
             search_state = self._search_states[estimator]
-            estimator_to_training_function[estimator] = search_state.training_function
-            del search_state.training_function
+            if hasattr(search_state, "training_function"):
+                estimator_to_training_function[
+                    estimator
+                ] = search_state.training_function
+                del search_state.training_function
+
         with open(output_file_name, "wb") as f:
             pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
 
@@ -1781,7 +1790,7 @@ class AutoML(BaseEstimator):
                 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2',
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
-                have the follwing signature:
+                have the following signature:
         ```python
         def custom_metric(
             X_test, y_test, estimator, labels,
@@ -2114,7 +2123,7 @@ class AutoML(BaseEstimator):
                 metric = load_default_huggingface_metric_for_task(self._state.task)
             elif "binary" in self._state.task:
                 metric = "roc_auc"
-            elif "multi" in self._state.task:
+            elif "multiclass" in self._state.task:
                 metric = "log_loss"
             elif self._state.task in TS_FORECAST:
                 metric = "mape"
@@ -2838,7 +2847,7 @@ class AutoML(BaseEstimator):
             estimators = []
             if self._ensemble and self._state.task in (
                 "binary",
-                "multi",
+                "multiclass",
                 "regression",
             ):
                 search_states = list(
