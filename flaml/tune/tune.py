@@ -10,7 +10,7 @@ import time
 try:
     from ray import __version__ as ray_version
 
-    assert ray_version >= "1.0.0"
+    assert ray_version >= "1.10.0"
     from ray.tune.analysis import ExperimentAnalysis as EA
 
     ray_import = True
