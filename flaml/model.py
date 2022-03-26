@@ -407,14 +407,16 @@ class TransformersEstimator(BaseEstimator):
     def _init_hf_args(self, automl_fit_kwargs: dict = None):
         from .nlp.utils import HFArgs
 
-        hf_args = HFArgs()
-        for key, val in automl_fit_kwargs["hf_args"].items():
-            assert (
-                key in hf_args.__dict__
-            ), "The specified key {} is not in the argument list of flaml.nlp.utils::HFArgs".format(
-                key
-            )
-            setattr(hf_args, key, val)
+        hf_args = HFArgs(task=self._task)
+        fit_kwargs = automl_fit_kwargs.get("hf_args", None)
+        if fit_kwargs:
+            for key, val in fit_kwargs.items():
+                assert (
+                    key in hf_args.__dict__
+                ), "The specified key {} is not in the argument list of flaml.nlp.utils::HFArgs".format(
+                    key
+                )
+                setattr(hf_args, key, val)
         self.hf_args = hf_args
 
     def _update_hf_args(self, automl_pred_kwargs: dict = None):

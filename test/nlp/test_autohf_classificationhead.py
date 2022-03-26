@@ -69,3 +69,7 @@ def test_classification_head():
         )
     except requests.exceptions.HTTPError:
         return
+
+
+if __name__ == "__main__":
+    test_classification_head()
