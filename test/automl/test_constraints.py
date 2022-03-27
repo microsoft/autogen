@@ -97,7 +97,11 @@ def custom_metric(
 
 def test_metric_constraints_custom():
     automl = AutoML()
-
+    # When you are providing a custom metric function, you can also specify constraints
+    # on one or more of the metrics reported via the second object, i.e., a metrics_to_log dictionary,
+    # returned by the custom metric function.
+    # For example, in the following code, we add a constraint on the `pred_time` metrics and `val_train_loss_gap` metric
+    # reported in `custom_metric` defined above, respectively.
     automl_settings = {
         "estimator_list": ["xgboost"],
         "task": "classification",
@@ -128,6 +132,22 @@ def test_metric_constraints_custom():
     print(automl.estimator_list)
     print(automl.search_space)
     print(automl.points_to_evaluate)
+    print(
+        "Best minimization objective on validation data: {0:.4g}".format(
+            automl.best_loss
+        )
+    )
+    print(
+        "pred_time of the best config on validation data: {0:.4g}".format(
+            automl.metrics_for_best_config[1]["pred_time"]
+        )
+    )
+    print(
+        "val_train_loss_gap of the best config on validation data: {0:.4g}".format(
+            automl.metrics_for_best_config[1]["val_train_loss_gap"]
+        )
+    )
+
     config = automl.best_config.copy()
     config["learner"] = automl.best_estimator
     automl.trainable(config)

@@ -59,4 +59,4 @@ print(automl.model.estimator)
 
 ### A more advanced example including custom learner and metric
 
-[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/flaml_automl.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/flaml_automl.ipynb)
+[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/automl_classification.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/automl_classification.ipynb)
