@@ -115,6 +115,7 @@ class SearchState:
         self._hp_names = list(self._search_space_domain.keys())
         self.search_alg = None
         self.best_config = None
+        self.best_result = None
         self.best_loss = self.best_loss_old = np.inf
         self.total_time_used = 0
         self.total_iter = 0
@@ -157,6 +158,7 @@ class SearchState:
         if (obj is not None) and (self.best_loss is None or obj < self.best_loss):
             self.best_loss_old = self.best_loss if self.best_loss < np.inf else 2 * obj
             self.best_loss = obj
+            self.best_result = result
             self.time_best_found_old = self.time_best_found
             self.time_best_found = self.total_time_used
             self.iter_best_found = self.total_iter
@@ -535,12 +537,12 @@ class AutoML(BaseEstimator):
                 Each element in this list is a 3-tuple, which shall be expressed
                 in the following format: the first element of the 3-tuple is the name of the
                 metric, the second element is the inequality sign chosen from ">=" and "<=",
-                and the third element is the constraint value. E.g., `('precision', '>=', 0.9)`.
+                and the third element is the constraint value. E.g., `('val_loss', '<=', 0.1)`.
                 Note that all the metric names in metric_constraints need to be reported via
                 the metrics_to_log dictionary returned by a customized metric function.
                 The customized metric function shall be provided via the `metric` key word
                 argument of the fit() function or the automl constructor.
-                Find examples in this [test](https://github.com/microsoft/FLAML/tree/main/test/automl/test_constraints.py).
+                Find an example in the 4th constraint type in this [doc](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#constraint).
                 If `pred_time_limit` is provided as one of keyword arguments to fit() function or
                 the automl constructor, flaml will automatically (and under the hood)
                 add it as an additional element in the metric_constraints. Essentially 'pred_time_limit'
@@ -657,6 +659,22 @@ class AutoML(BaseEstimator):
     def best_loss(self):
         """A float of the best loss found."""
         return self._state.best_loss
+
+    @property
+    def best_result(self):
+        """Result dictionary for model trained with the best config."""
+        state = self._search_states.get(self._best_estimator)
+        return state and getattr(state, "best_result", None)
+
+    @property
+    def metrics_for_best_config(self):
+        """Returns a float of the best loss, and a dictionary of the auxiliary metrics to log
+        associated with the best config. These two objects correspond to the returned
+        objects by the customized metric function for the config with the best loss."""
+        state = self._search_states.get(self._best_estimator)
+        return self._state.best_loss, state and getattr(state, "best_result", {}).get(
+            "metric_for_logging"
+        )
 
     @property
     def best_config_train_time(self):

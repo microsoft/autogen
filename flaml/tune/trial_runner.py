@@ -82,6 +82,8 @@ class BaseTrialRunner:
 
     def process_trial_result(self, trial, result):
         trial.update_last_result(result)
+        if "time_total_s" not in result.keys():
+            result["time_total_s"] = trial.last_update_time - trial.start_time
         self._search_alg.on_trial_result(trial.trial_id, result)
         if self._scheduler_alg:
             decision = self._scheduler_alg.on_trial_result(self, trial, result)
