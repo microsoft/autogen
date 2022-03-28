@@ -103,6 +103,10 @@ class BaseTrialRunner:
             trial.set_status(Trial.TERMINATED)
         elif self._scheduler_alg:
             self._scheduler_alg.on_trial_remove(self, trial)
+            if trial.status == Trial.ERROR:
+                self._search_alg.on_trial_complete(
+                    trial.trial_id, trial.last_result, error=True
+                )
 
 
 class SequentialTrialRunner(BaseTrialRunner):
