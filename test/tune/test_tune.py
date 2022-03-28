@@ -308,6 +308,20 @@ def test_run_training_function_return_value():
         mode="max",
     )
 
+    # Test empty return value
+    def evaluate_config_empty(config):
+        return {}
+
+    tune.run(
+        evaluate_config_empty,
+        config={
+            "x": tune.qloguniform(lower=1, upper=100000, q=1),
+            "y": tune.qlograndint(lower=2, upper=100000, q=2),
+        },
+        num_samples=10,
+        mode="max",
+    )
+
 
 def test_xgboost_bs():
     _test_xgboost()

@@ -1,7 +1,6 @@
 import sys
 import pytest
 import pickle
-import shutil
 import requests
 
 
