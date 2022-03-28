@@ -609,7 +609,7 @@ class HFArgs:
 
     def __post_init__(self):
         if self.task in NLG_TASKS:
-            HFArgs.model_path = "t5-small"
+            self.model_path = "t5-small"
 
     @staticmethod
     def load_args_from_console():
