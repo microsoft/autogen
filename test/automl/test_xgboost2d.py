@@ -56,6 +56,8 @@ def test_simple(method=None):
     print(automl.estimator_list)
     print(automl.search_space)
     print(automl.points_to_evaluate)
+    if not automl.best_config:
+        return
     config = automl.best_config.copy()
     config["learner"] = automl.best_estimator
     automl.trainable(config)
