@@ -247,7 +247,7 @@ import statsmodels.api as sm
 data = sm.datasets.co2.load_pandas().data
 # data is given in weeks, but the task is to predict monthly, so use monthly averages instead
 data = data['co2'].resample('MS').mean()
-data = data.fillna(data.bfill())  # makes sure there are no missing values
+data = data.bfill().ffill()  # makes sure there are no missing values
 data = data.to_frame().reset_index()
 num_samples = data.shape[0]
 time_horizon = 12

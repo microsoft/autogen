@@ -8,7 +8,8 @@ def test_forecast_automl(budget=5):
 
     data = sm.datasets.co2.load_pandas().data["co2"].resample("MS").mean()
     data = (
-        data.fillna(data.bfill())
+        data.bfill()
+        .ffill()
         .to_frame()
         .reset_index()
         .rename(columns={"index": "ds", "co2": "y"})
