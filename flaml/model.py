@@ -18,6 +18,7 @@ import logging
 import shutil
 from pandas import DataFrame, Series, to_datetime
 import sys
+import math
 from . import tune
 from .data import (
     group_counts,
@@ -661,14 +662,18 @@ class TransformersEstimator(BaseEstimator):
             setattr(self._trainer, "_is_seq2seq", True)
 
         gpu_per_trial = kwargs.get("gpu_per_trial", None)
+        """
+            When not using ray for tuning, set the limit of CUDA_VISIBLE_DEVICES to math.ceil(gpu_per_trial),
+            so each estimator does not see all the GPUs
+        """
         if gpu_per_trial:
             tmp_cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", "")
             self._trainer.args._n_gpu = gpu_per_trial
             # if gpu_per_trial == 0:
             #     os.environ["CUDA_VISIBLE_DEVICES"] = ""
-            if tmp_cuda_visible_devices.count(",") != gpu_per_trial - 1:
+            if tmp_cuda_visible_devices.count(",") != math.ceil(gpu_per_trial) - 1:
                 os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(
-                    [str(x) for x in range(gpu_per_trial)]
+                    [str(x) for x in range(math.ceil(gpu_per_trial))]
                 )
 
         import time
