@@ -39,8 +39,8 @@ def flamlize_estimator(super_class, name: str, task: str, alternatives=None):
             self._params = params
             super().__init__(**params)
 
-        @wraps(super_class._get_param_names)
         @classmethod
+        @wraps(super_class._get_param_names)
         def _get_param_names(cls):
             return super_class._get_param_names()
 
