@@ -223,26 +223,27 @@ def test_nested():
     logger.info(f"CFO best config: {best_trial.config}")
     logger.info(f"CFO best result: {best_trial.last_result}")
 
+    bs = BlendSearch(
+        experimental=True,
+        space=search_space,
+        metric="obj",
+        mode="min",
+        low_cost_partial_config={"cost_related": {"a": 1}},
+        points_to_evaluate=[
+            {"b": 0.99, "cost_related": {"a": 3}},
+            {"b": 0.99, "cost_related": {"a": 2}},
+            {"cost_related": {"a": 8}},
+        ],
+        metric_constraints=[("ab", "<=", 4)],
+    )
     analysis = tune.run(
         simple_func,
-        search_alg=BlendSearch(
-            experimental=True,
-            space=search_space,
-            metric="obj",
-            mode="min",
-            low_cost_partial_config={"cost_related": {"a": 1}},
-            points_to_evaluate=[
-                {"b": 0.99, "cost_related": {"a": 3}},
-                {"b": 0.99, "cost_related": {"a": 2}},
-                {"cost_related": {"a": 8}},
-            ],
-            metric_constraints=[("ab", "<=", 4)],
-        ),
+        search_alg=bs,
         local_dir="logs/",
         num_samples=-1,
         time_budget_s=1,
     )
-
+    print(bs.results)
     best_trial = analysis.get_best_trial()
     logger.info(f"BlendSearch exp best config: {best_trial.config}")
     logger.info(f"BlendSearch exp best result: {best_trial.last_result}")
@@ -250,6 +251,7 @@ def test_nested():
     points_to_evaluate = [
         {"b": 0.99, "cost_related": {"a": 3}},
         {"b": 0.99, "cost_related": {"a": 2}},
+        {"cost_related": {"a": 8}},
     ]
     analysis = tune.run(
         simple_func,
@@ -259,7 +261,7 @@ def test_nested():
         evaluated_rewards=[
             (config["cost_related"]["a"] - 4) ** 2
             + (config["b"] - config["cost_related"]["a"]) ** 2
-            for config in points_to_evaluate
+            for config in points_to_evaluate[:-1]
         ],
         metric="obj",
         mode="min",

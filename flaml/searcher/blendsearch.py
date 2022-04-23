@@ -79,8 +79,8 @@ class BlendSearch(Searcher):
                 parameters passed in as points_to_evaluate you can avoid
                 re-running those trials by passing in the reward attributes
                 as a list so the optimiser can be told the results without
-                needing to re-compute the trial. Must be the same length as
-                points_to_evaluate.
+                needing to re-compute the trial. Must be the same or shorter length than
+                points_to_evaluate. When provided, `mode` must be specified.
             time_budget_s: int or float | Time budget in seconds.
             num_samples: int | The number of configs to try.
             resource_attr: A string to specify the resource dimension and the best
@@ -115,9 +115,14 @@ class BlendSearch(Searcher):
                 "'low_cost_partial_config'. More info can be found at "
                 "https://microsoft.github.io/FLAML/docs/FAQ#about-low_cost_partial_config-in-tune"
             )
-        if evaluated_rewards and mode:
+        if evaluated_rewards:
+            assert mode, "mode must be specified when evaluted_rewards is provided."
             self._points_to_evaluate = []
             self._evaluated_rewards = []
+            n = len(evaluated_rewards)
+            self._evaluated_points = points_to_evaluate[:n]
+            new_points_to_evaluate = points_to_evaluate[n:]
+            self._all_rewards = evaluated_rewards
             best = max(evaluated_rewards) if mode == "max" else min(evaluated_rewards)
             # only keep the best points as start points
             for i, r in enumerate(evaluated_rewards):
@@ -125,6 +130,7 @@ class BlendSearch(Searcher):
                     p = points_to_evaluate[i]
                     self._points_to_evaluate.append(p)
                     self._evaluated_rewards.append(r)
+            self._points_to_evaluate.extend(new_points_to_evaluate)
         else:
             self._points_to_evaluate = points_to_evaluate or []
             self._evaluated_rewards = evaluated_rewards or []
@@ -178,7 +184,7 @@ class BlendSearch(Searcher):
                     mode=mode,
                     seed=gs_seed,
                     sampler=sampler,
-                    points_to_evaluate=points_to_evaluate,
+                    points_to_evaluate=self._evaluated_points,
                     evaluated_rewards=evaluated_rewards,
                 )
             except (AssertionError, ValueError):
@@ -305,7 +311,26 @@ class BlendSearch(Searcher):
         )
         self._gs_admissible_min = self._ls_bound_min.copy()
         self._gs_admissible_max = self._ls_bound_max.copy()
-        self._result = {}  # config_signature: tuple -> result: Dict
+        # config_signature: tuple -> result: Dict
+        self._result = (
+            {
+                self._ls.config_signature(
+                    *self._ls.complete_config(
+                        self._evaluated_points[i],
+                        self._ls_bound_min,
+                        self._ls_bound_max,
+                    )
+                ): {
+                    self._metric: r,
+                    self.cost_attr: 1,
+                    "config": self._evaluated_points[i],
+                }
+                for i, r in enumerate(self._all_rewards)
+            }
+            if self._evaluated_rewards  # store all the evaluated rewards
+            else {}
+        )
+
         if self._metric_constraints:
             self._metric_constraint_satisfied = False
             self._metric_constraint_penalty = [
@@ -708,8 +733,8 @@ class BlendSearch(Searcher):
             config, space = self._ls.complete_config(
                 init_config, self._ls_bound_min, self._ls_bound_max
             )
+            config_signature = self._ls.config_signature(config, space)
             if reward is None:
-                config_signature = self._ls.config_signature(config, space)
                 result = self._result.get(config_signature)
                 if result:  # tried before
                     return None
@@ -722,7 +747,8 @@ class BlendSearch(Searcher):
             self._search_thread_pool[0].running += 1
             self._subspace[trial_id] = space
             if reward is not None:
-                result = {self._metric: reward, self.cost_attr: 1, "config": config}
+                # result = {self._metric: reward, self.cost_attr: 1, "config": config}
+                result = self._result[config_signature]
                 self.on_trial_complete(trial_id, result)
                 return None
         if self._use_incumbent_result_in_evaluation:
@@ -851,6 +877,15 @@ class BlendSearch(Searcher):
                 ):
                     return False
         return True
+
+    @property
+    def results(self) -> List[Dict]:
+        """A list of dicts of results for each evaluated configuration.
+
+        Each dict has "config" and metric names as keys.
+        The returned dict includes the initial results provided via `evaluated_reward`.
+        """
+        return [x for x in getattr(self, "_result", {}).values() if x]
 
 
 try:

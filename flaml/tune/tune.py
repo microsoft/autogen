@@ -201,7 +201,7 @@ def run(
             parameters passed in as points_to_evaluate you can avoid
             re-running those trials by passing in the reward attributes
             as a list so the optimiser can be told the results without
-            needing to re-compute the trial. Must be the same length as
+            needing to re-compute the trial. Must be the same or shorter length than
             points_to_evaluate.
             e.g.,
 
@@ -210,12 +210,11 @@ def run(
         {"b": .99, "cost_related": {"a": 3}},
         {"b": .99, "cost_related": {"a": 2}},
     ]
-    evaluated_rewards=[3.0, 1.0]
+    evaluated_rewards = [3.0]
     ```
 
-            means that you know the reward for the two configs in
-            points_to_evaluate are 3.0 and 1.0 respectively and want to
-            inform run().
+            means that you know the reward for the first config in
+            points_to_evaluate is 3.0 and want to inform run().
 
         resource_attr: A string to specify the resource dimension used by
             the scheduler via "scheduler".
