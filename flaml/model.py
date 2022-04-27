@@ -257,8 +257,6 @@ class BaseEstimator:
                 [test/nlp/test_autohf_custom_metric.py](https://github.com/microsoft/FLAML/blob/main/test/nlp/test_autohf_custom_metric.py) and
                 [test/automl/test_multiclass.py](https://github.com/microsoft/FLAML/blob/main/test/automl/test_multiclass.py).
 
-                ```
-
         Returns:
             The evaluation score on the validation dataset.
         """
