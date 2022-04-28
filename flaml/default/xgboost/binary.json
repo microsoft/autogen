@@ -1,5 +1,8 @@
 {
-    "version": "default",
+    "version": "1.0.2",
+    "meta_feature_names": [
+        "NumberOfInstances","NumberOfFeatures","NumberOfClasses","PercentageOfNumericFeatures"
+    ],
     "portfolio": [
         {
             "class": "xgboost",

@@ -11,13 +11,27 @@ logger = logging.getLogger(__name__)
 CONFIG_PREDICTORS = {}
 
 
-def meta_feature(task, X_train, y_train):
-    is_classification = task in CLASSIFICATION
+def meta_feature(task, X_train, y_train, meta_feature_names):
+    this_feature = []
     n_row = X_train.shape[0]
     n_feat = X_train.shape[1]
-    n_class = len(np.unique(y_train)) if is_classification else 0
-    percent_num = X_train.select_dtypes(include=np.number).shape[1] / n_feat
-    return (n_row, n_feat, n_class, percent_num)
+
+    is_classification = task in CLASSIFICATION
+    for each_feature_name in meta_feature_names:
+        if each_feature_name == "NumberOfInstances":
+            this_feature.append(n_row)
+        elif each_feature_name == "NumberOfFeatures":
+            this_feature.append(n_feat)
+        elif each_feature_name == "NumberOfClasses":
+            this_feature.append(len(np.unique(y_train)) if is_classification else 0)
+        elif each_feature_name == "PercentageOfNumericFeatures":
+            this_feature.append(
+                X_train.select_dtypes(include=np.number).shape[1] / n_feat
+            )
+        else:
+            raise ValueError("Feature {} not implemented. ".format(each_feature_name))
+
+    return this_feature
 
 
 def load_config_predictor(estimator_name, task, location=None):
@@ -53,9 +67,15 @@ def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None):
         if isinstance(estimator_or_predictor, str)
         else estimator_or_predictor
     )
-    assert predictor["version"] == "default"
+    from flaml import __version__
+
+    older_version = "1.0.2"
+    # TODO: update older_version when the newer code can no longer handle the older version json file
+    assert __version__ >= predictor["version"] >= older_version
     prep = predictor["preprocessing"]
-    feature = meta_feature(task, X, y)
+    feature = meta_feature(
+        task, X_train=X, y_train=y, meta_feature_names=predictor["meta_feature_names"]
+    )
     feature = (np.array(feature) - np.array(prep["center"])) / np.array(prep["scale"])
     neighbors = predictor["neighbors"]
     nn = NearestNeighbors(n_neighbors=1)
@@ -211,13 +231,16 @@ def preprocess_and_suggest_hyperparams(
     model_class = get_estimator_class(task, estimator)
     hyperparams = config["hyperparameters"]
     model = model_class(task=task, **hyperparams)
-    estimator_class = model.estimator_class
-    X = model._preprocess(X)
-    hyperparams = hyperparams and model.params
+    if model.estimator_class is None:
+        return hyperparams, model_class, X, y, None, None
+    else:
+        estimator_class = model.estimator_class
+        X = model._preprocess(X)
+        hyperparams = hyperparams and model.params
 
-    class AutoMLTransformer:
-        def transform(self, X):
-            return model._preprocess(dt.transform(X))
+        class AutoMLTransformer:
+            def transform(self, X):
+                return model._preprocess(dt.transform(X))
 
-    transformer = AutoMLTransformer()
-    return hyperparams, estimator_class, X, y, transformer, dt.label_transformer
+        transformer = AutoMLTransformer()
+        return hyperparams, estimator_class, X, y, transformer, dt.label_transformer

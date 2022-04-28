@@ -1,7 +1,7 @@
 def test_load_args_sub():
-    from flaml.nlp.utils import HFArgs
+    from flaml.nlp.utils import TrainingArgumentsForAuto
 
-    HFArgs.load_args_from_console()
+    TrainingArgumentsForAuto.load_args_from_console()
 
 
 if __name__ == "__main__":
