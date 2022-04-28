@@ -1,69 +1,24 @@
 import sys
 import pytest
 import requests
+from utils import get_toy_data_summarization, get_automl_settings
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
 def test_summarization():
     from flaml import AutoML
-    from pandas import DataFrame
 
-    train_dataset = DataFrame(
-        [
-            ("The cat is alive", "The cat is dead"),
-            ("The cat is alive", "The cat is dead"),
-            ("The cat is alive", "The cat is dead"),
-            ("The cat is alive", "The cat is dead"),
-        ]
-    )
-    dev_dataset = DataFrame(
-        [
-            ("The old woman is beautiful", "The old woman is ugly"),
-            ("The old woman is beautiful", "The old woman is ugly"),
-            ("The old woman is beautiful", "The old woman is ugly"),
-            ("The old woman is beautiful", "The old woman is ugly"),
-        ]
-    )
-    test_dataset = DataFrame(
-        [
-            ("The purse is cheap", "The purse is expensive"),
-            ("The purse is cheap", "The purse is expensive"),
-            ("The purse is cheap", "The purse is expensive"),
-            ("The purse is cheap", "The purse is expensive"),
-        ]
-    )
-
-    for each_dataset in [train_dataset, dev_dataset, test_dataset]:
-        each_dataset.columns = ["document", "summary"]
-
-    custom_sent_keys = ["document"]
-    label_key = "summary"
-
-    X_train = train_dataset[custom_sent_keys]
-    y_train = train_dataset[label_key]
-
-    X_val = dev_dataset[custom_sent_keys]
-    y_val = dev_dataset[label_key]
-
-    X_test = test_dataset[custom_sent_keys]
+    X_train, y_train, X_val, y_val, X_test = get_toy_data_summarization()
 
     automl = AutoML()
+    automl_settings = get_automl_settings()
 
-    automl_settings = {
-        "gpu_per_trial": 0,
-        "max_iter": 3,
-        "time_budget": 20,
-        "task": "summarization",
-        "metric": "rouge1",
-        "log_file_name": "seqclass.log",
-    }
-
-    automl_settings["hf_args"] = {
-        "model_path": "patrickvonplaten/t5-tiny-random",
-        "output_dir": "test/data/output/",
-        "ckpt_per_epoch": 1,
-        "fp16": False,
-    }
+    automl_settings["task"] = "summarization"
+    automl_settings["metric"] = "rouge1"
+    automl_settings["time_budget"] = 2 * automl_settings["time_budget"]
+    automl_settings["fit_kwargs_by_estimator"]["transformer"][
+        "model_path"
+    ] = "patrickvonplaten/t5-tiny-random"
 
     try:
         automl.fit(
@@ -75,7 +30,11 @@ def test_summarization():
         )
     except requests.exceptions.HTTPError:
         return
-    automl = AutoML()
+
+    automl_settings.pop("max_iter", None)
+    automl_settings.pop("use_ray", None)
+    automl_settings.pop("estimator_list", None)
+
     automl.retrain_from_log(
         X_train=X_train,
         y_train=y_train,

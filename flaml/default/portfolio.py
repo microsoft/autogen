@@ -113,8 +113,11 @@ def serialize(configs, regret, meta_features, output_file, config_path):
     )
     portfolio = [load_json(config_path.joinpath(m + ".json")) for m in configs]
     regret = regret.loc[configs]
+    from flaml import __version__
+
     meta_predictor = {
-        "version": "default",
+        "version": __version__,
+        "meta_feature_names": list(meta_features.columns),
         "portfolio": portfolio,
         "preprocessing": proc,
         "neighbors": [

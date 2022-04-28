@@ -9,7 +9,12 @@ class DataCollatorForAuto(DataCollatorWithPadding):
         import torch
 
         label_name = "label" if "label" in features[0].keys() else "labels"
-        labels = [feature.pop(label_name) for feature in features]
+        labels = (
+            [feature.pop(label_name) for feature in features]
+            if label_name in features[0]
+            else None
+        )
+
         batch_size = len(features)
         num_choices = len(features[0]["input_ids"])
         flattened_features = [
@@ -21,7 +26,8 @@ class DataCollatorForAuto(DataCollatorWithPadding):
         # Un-flatten
         batch = {k: v.view(batch_size, num_choices, -1) for k, v in batch.items()}
         # Add back labels
-        batch["labels"] = torch.tensor(labels, dtype=torch.int64)
+        if labels:
+            batch["labels"] = torch.tensor(labels, dtype=torch.int64)
         return batch
 
 

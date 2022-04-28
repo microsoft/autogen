@@ -1,5 +1,6 @@
 import sys
 import pytest
+from utils import get_toy_data_seqregression, get_automl_settings
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -12,71 +13,16 @@ def test_regression():
     except ImportError:
         return
     from flaml import AutoML
-    import pandas as pd
 
-    train_data = {
-        "sentence1": [
-            "A plane is taking off.",
-            "A man is playing a large flute.",
-            "A man is spreading shreded cheese on a pizza.",
-            "Three men are playing chess.",
-        ],
-        "sentence2": [
-            "An air plane is taking off.",
-            "A man is playing a flute.",
-            "A man is spreading shredded cheese on an uncooked pizza.",
-            "Two men are playing chess.",
-        ],
-        "label": [5.0, 3.799999952316284, 3.799999952316284, 2.5999999046325684],
-        "idx": [0, 1, 2, 3],
-    }
-    train_dataset = pd.DataFrame(train_data)
-
-    dev_data = {
-        "sentence1": [
-            "A man is playing the cello.",
-            "Some men are fighting.",
-            "A man is smoking.",
-            "The man is playing the piano.",
-        ],
-        "sentence2": [
-            "A man seated is playing the cello.",
-            "Two men are fighting.",
-            "A man is skating.",
-            "The man is playing the guitar.",
-        ],
-        "label": [4.25, 4.25, 0.5, 1.600000023841858],
-        "idx": [4, 5, 6, 7],
-    }
-    dev_dataset = pd.DataFrame(dev_data)
-
-    custom_sent_keys = ["sentence1", "sentence2"]
-    label_key = "label"
-
-    X_train = train_dataset[custom_sent_keys]
-    y_train = train_dataset[label_key]
-
-    X_val = dev_dataset[custom_sent_keys]
-    y_val = dev_dataset[label_key]
+    X_train, y_train, X_val, y_val = get_toy_data_seqregression()
 
     automl = AutoML()
+    automl_settings = get_automl_settings()
 
-    automl_settings = {
-        "gpu_per_trial": 0,
-        "max_iter": 2,
-        "time_budget": 5,
-        "task": "seq-regression",
-        "metric": "pearsonr",
-        "starting_points": {"transformer": {"num_train_epochs": 1}},
-        "use_ray": {"local_dir": "data/outut/"},
-    }
-
-    automl_settings["hf_args"] = {
-        "model_path": "google/electra-small-discriminator",
-        "output_dir": "test/data/output/",
-        "ckpt_per_epoch": 1,
-        "fp16": False,
-    }
+    automl_settings["task"] = "seq-regression"
+    automl_settings["metric"] = "pearsonr"
+    automl_settings["starting_points"] = {"transformer": {"num_train_epochs": 1}}
+    automl_settings["use_ray"] = {"local_dir": "data/outut/"}
 
     ray.shutdown()
     ray.init()

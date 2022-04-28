@@ -1,5 +1,3 @@
-import argparse
-from dataclasses import dataclass, field
 from itertools import chain
 from typing import Dict, Any
 import numpy as np
@@ -26,21 +24,6 @@ def load_default_huggingface_metric_for_task(task):
         return "accuracy"
     elif task == TOKENCLASSIFICATION:
         return "seqeval"
-
-
-def get_auto_tokenizer(tokenizer_model_path, task):
-    from transformers import AutoTokenizer
-
-    if task == SUMMARIZATION:
-        return AutoTokenizer.from_pretrained(
-            pretrained_model_name_or_path=tokenizer_model_path,
-            cache_dir=None,
-            use_fast=True,
-            revision="main",
-            use_auth_token=None,
-        )
-    else:
-        return AutoTokenizer.from_pretrained(tokenizer_model_path, use_fast=True)
 
 
 def tokenize_text(X, Y=None, task=None, hf_args=None, tokenizer=None):
@@ -332,42 +315,6 @@ def tokenize_swag(this_row, tokenizer, hf_args=None, return_column_name=False):
         return [tokenized_example[x] for x in tmp_column_names]
 
 
-def separate_config(config, task):
-    if task in NLG_TASKS:
-        from transformers import Seq2SeqTrainingArguments, TrainingArguments
-
-        trainargs_class_list = [Seq2SeqTrainingArguments, TrainingArguments]
-    else:
-        from transformers import TrainingArguments
-
-        trainargs_class_list = [TrainingArguments]
-
-    training_args_config = {}
-    per_model_config = {}
-
-    for key, val in config.items():
-        is_in_training_args = any(key in x.__dict__ for x in trainargs_class_list)
-        if is_in_training_args:
-            training_args_config[key] = val
-        else:
-            per_model_config[key] = val
-
-    return training_args_config, per_model_config
-
-
-def get_num_labels(task, y_train):
-    from ..data import SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION
-
-    if task == SEQREGRESSION:
-        return 1
-    elif task == SEQCLASSIFICATION:
-        return len(set(y_train))
-    elif task == TOKENCLASSIFICATION:
-        return len(set([a for b in y_train.tolist() for a in b]))
-    else:
-        return None
-
-
 def is_a_list_of_str(this_obj):
     return (isinstance(this_obj, list) or isinstance(this_obj, np.ndarray)) and all(
         isinstance(x, str) for x in this_obj
@@ -439,7 +386,7 @@ class Counter:
         return logdir
 
 
-def load_model(checkpoint_path, task, num_labels=None, per_model_config=None):
+def load_model(checkpoint_path, task, num_labels=None):
     import transformers
 
     transformers.logging.set_verbosity_error()
@@ -479,25 +426,13 @@ def load_model(checkpoint_path, task, num_labels=None, per_model_config=None):
 
     def _set_model_config(checkpoint_path):
         if task in (SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION):
-            if per_model_config:
-                model_config = AutoConfig.from_pretrained(
-                    checkpoint_path,
-                    num_labels=model_config_num_labels,
-                    **per_model_config,
-                )
-            else:
-                model_config = AutoConfig.from_pretrained(
-                    checkpoint_path, num_labels=model_config_num_labels
-                )
+            model_config = AutoConfig.from_pretrained(
+                checkpoint_path,
+                num_labels=model_config_num_labels,
+            )
             return model_config
         else:
-            if per_model_config:
-                model_config = AutoConfig.from_pretrained(
-                    checkpoint_path,
-                    **per_model_config,
-                )
-            else:
-                model_config = AutoConfig.from_pretrained(checkpoint_path)
+            model_config = AutoConfig.from_pretrained(checkpoint_path)
             return model_config
 
     current_config = AutoConfig.from_pretrained(checkpoint_path)
@@ -538,97 +473,3 @@ def load_model(checkpoint_path, task, num_labels=None, per_model_config=None):
         model_config = _set_model_config(checkpoint_path)
         this_model = get_this_model(checkpoint_path, task, model_config)
         return this_model
-
-
-def compute_checkpoint_freq(
-    train_data_size,
-    hf_args,
-    num_train_epochs,
-    batch_size,
-):
-    ckpt_step_freq = (
-        int(
-            min(num_train_epochs, 1)
-            * train_data_size
-            / batch_size
-            / hf_args.ckpt_per_epoch
-        )
-        + 1
-    )
-    return ckpt_step_freq
-
-
-@dataclass
-class HFArgs:
-    """The HPO setting.
-    Args:
-        output_dir (str): data root directory for outputing the log, etc.
-        model_path (str, optional, defaults to "facebook/muppet-roberta-base"): A string,
-            the path of the language model file, either a path from huggingface
-            model card huggingface.co/models, or a local path for the model.
-        fp16 (bool, optional, defaults to "False"): A bool, whether to use FP16.
-        max_seq_length (int, optional, defaults to 128): An integer, the max length of the sequence.
-        ckpt_per_epoch (int, optional, defaults to 1): An integer, the number of checkpoints per epoch.
-    """
-
-    task: str = field(default="seq-classification")
-
-    output_dir: str = field(
-        default="data/output/", metadata={"help": "data dir", "required": True}
-    )
-
-    model_path: str = field(
-        default="facebook/muppet-roberta-base",
-        metadata={"help": "model path for HPO"},
-    )
-
-    tokenizer_model_path: str = field(
-        default=None,
-        metadata={"help": "tokenizer model path for HPO"},
-    )
-
-    fp16: bool = field(default=True, metadata={"help": "whether to use the FP16 mode"})
-
-    max_seq_length: int = field(default=128, metadata={"help": "max seq length"})
-
-    pad_to_max_length: bool = field(
-        default=True,
-        metadata={
-            "help": "Whether to pad all samples to model maximum sentence length. "
-            "If False, will pad the samples dynamically when batching to the maximum length in the batch. More "
-            "efficient on GPU but very bad for TPU."
-        },
-    )
-
-    ckpt_per_epoch: int = field(default=1, metadata={"help": "checkpoint per epoch"})
-
-    per_device_eval_batch_size: int = field(
-        default=1,
-        metadata={"help": "per gpu evaluation batch size"},
-    )
-
-    def __post_init__(self):
-        if self.task in NLG_TASKS:
-            self.model_path = "t5-small"
-
-    @staticmethod
-    def load_args_from_console():
-        from dataclasses import fields
-
-        arg_parser = argparse.ArgumentParser()
-        for each_field in fields(HFArgs):
-            print(each_field)
-            arg_parser.add_argument(
-                "--" + each_field.name,
-                type=each_field.type,
-                help=each_field.metadata["help"],
-                required=each_field.metadata["required"]
-                if "required" in each_field.metadata
-                else False,
-                choices=each_field.metadata["choices"]
-                if "choices" in each_field.metadata
-                else None,
-                default=each_field.default,
-            )
-        console_args, unknown = arg_parser.parse_known_args()
-        return console_args
