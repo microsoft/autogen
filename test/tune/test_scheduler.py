@@ -1,10 +1,8 @@
 """Require: pip install flaml[test,ray]
 """
-from logging import raiseExceptions
 from flaml.scheduler.trial_scheduler import TrialScheduler
 import numpy as np
 from flaml import tune
-import time
 
 
 def rand_vector_unit_sphere(dim):
