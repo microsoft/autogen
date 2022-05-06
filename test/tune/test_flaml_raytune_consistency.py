@@ -58,7 +58,6 @@ def _test_flaml_raytune_consistency(
             "skip _test_flaml_raytune_consistency because ray tune cannot be imported."
         )
         return
-    np.random.seed(100)
     searcher = setup_searcher(searcher_name)
     analysis = tune.run(
         evaluate_config,  # the function to evaluate a config
@@ -78,7 +77,6 @@ def _test_flaml_raytune_consistency(
     flaml_time_in_results = [v["time_total_s"] for v in analysis.results.values()]
     print(analysis.best_trial.last_result)  # the best trial's result
 
-    np.random.seed(100)
     searcher = setup_searcher(searcher_name)
     from ray.tune.suggest import ConcurrencyLimiter
 

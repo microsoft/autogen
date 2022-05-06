@@ -47,6 +47,7 @@ class ExperimentAnalysis(EA):
 
 
 def report(_metric=None, **kwargs):
+
     """A function called by the HPO application to report final or intermediate
     results.
 
@@ -78,6 +79,10 @@ def report(_metric=None, **kwargs):
         _metric: Optional default anonymous metric for ``tune.report(value)``.
             (For compatibility with ray.tune.report)
         **kwargs: Any key value pair to be reported.
+
+    Raises:
+        StopIteration (when not using ray, i.e., _use_ray=False):
+            A StopIteration exception is raised if the trial has been signaled to stop.
     """
     global _use_ray
     global _verbose
@@ -109,9 +114,7 @@ def report(_metric=None, **kwargs):
         if _verbose > 2:
             logger.info(f"result: {result}")
         if trial.is_finished():
-            return None
-        else:
-            return True
+            raise StopIteration
 
 
 def run(
@@ -223,7 +226,7 @@ def run(
         reduction_factor: A float of the reduction factor used for incremental
             pruning.
         scheduler: A scheduler for executing the experiment. Can be None, 'flaml',
-            'asha' or a custom instance of the TrialScheduler class. Default is None:
+            'asha' (or  'async_hyperband', 'asynchyperband') or a custom instance of the TrialScheduler class. Default is None:
             in this case when resource_attr is provided, the 'flaml' scheduler will be
             used, otherwise no scheduler will be used. When set 'flaml', an
             authentic scheduler implemented in FLAML will be used. It does not
@@ -236,9 +239,22 @@ def run(
             respectively. You can also provide a self-defined scheduler instance
             of the TrialScheduler class. When 'asha' or self-defined scheduler is
             used, you usually need to report intermediate results in the evaluation
-            function. Please find examples using different types of schedulers
+            function via 'tune.report()'. In addition, when 'use_ray' is not enabled,
+            you also need to stop the evaluation function by explicitly catching the
+            `StopIteration` exception, as shown in the following example.
+            Please find more examples using different types of schedulers
             and how to set up the corresponding evaluation functions in
-            test/tune/test_scheduler.py. TODO: point to notebook examples.
+            test/tune/test_scheduler.py, and test/tune/example_scheduler.py.
+    ```python
+    def easy_objective(config):
+        width, height = config["width"], config["height"]
+        for step in range(config["steps"]):
+            intermediate_score = evaluation_fn(step, width, height)
+            try:
+                tune.report(iterations=step, mean_loss=intermediate_score)
+            except StopIteration:
+                return
+    ```
         search_alg: An instance of BlendSearch as the search algorithm
             to be used. The same instance can be used for iterative tuning.
             e.g.,
@@ -316,8 +332,7 @@ def run(
             flaml_scheduler_min_resource
         ) = flaml_scheduler_max_resource = flaml_scheduler_reduction_factor = None
         if scheduler in (None, "flaml"):
-
-            # when scheduler is set 'flaml', we will use a scheduler that is
+            # when scheduler is set 'flaml' or None, we will use a scheduler that is
             # authentic to the search algorithms in flaml. After setting up
             # the search algorithm accordingly, we need to set scheduler to
             # None in case it is later used in the trial runner.
@@ -388,7 +403,7 @@ def run(
             searcher.set_search_properties(metric, mode, config, setting)
         else:
             searcher.set_search_properties(metric, mode, config)
-    if scheduler == "asha":
+    if scheduler in ("asha", "asynchyperband", "async_hyperband"):
         params = {}
         # scheduler resource_dimension=resource_attr
         if resource_attr:
