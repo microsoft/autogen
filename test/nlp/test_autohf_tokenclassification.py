@@ -13,7 +13,18 @@ def test_tokenclassification():
 
     automl_settings = get_automl_settings()
     automl_settings["task"] = "token-classification"
-    automl_settings["metric"] = "seqeval"
+    automl_settings["metric"] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
+    automl_settings["fit_kwargs_by_estimator"]["transformer"]["label_list"] = [
+        "O",
+        "B-PER",
+        "I-PER",
+        "B-ORG",
+        "I-ORG",
+        "B-LOC",
+        "I-LOC",
+        "B-MISC",
+        "I-MISC",
+    ]
 
     try:
         automl.fit(
