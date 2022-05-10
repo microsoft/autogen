@@ -83,7 +83,9 @@ def tokenize_and_align_labels(
 ):
     tokenized_inputs = tokenizer(
         [list(examples[X_sent_key])],
-        padding="max_length",
+        padding="max_length"
+        if hf_args.pad_to_max_length
+        else False,  # to be consistent with https://github.com/huggingface/transformers/blob/main/examples/pytorch/token-classification/run_ner.py#L394
         truncation=True,
         max_length=hf_args.max_seq_length,
         # We use this argument because the texts in our dataset are lists of words (with a label for each word).
@@ -113,11 +115,11 @@ def tokenize_and_align_labels(
                 # else:
                 #     label_ids.append(b_to_i_label[label_to_id[label[word_idx]]])
             previous_word_idx = word_idx
-        tokenized_inputs["label"] = label_ids
+        tokenized_inputs["labels"] = label_ids
     tmp_column_names = sorted(tokenized_inputs.keys())
     tokenized_input_and_labels = [tokenized_inputs[x] for x in tmp_column_names]
     for key_idx, each_key in enumerate(tmp_column_names):
-        if each_key != "label":
+        if each_key != "labels":
             tokenized_input_and_labels[key_idx] = tokenized_input_and_labels[key_idx][0]
     if return_column_name:
         return tokenized_input_and_labels, tmp_column_names
@@ -151,7 +153,7 @@ def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
             axis=1,
             result_type="expand",
         )
-        label_idx = tokenized_column_names.index("label")
+        label_idx = tokenized_column_names.index("labels")
         other_indices = sorted(
             set(range(len(tokenized_column_names))).difference({label_idx})
         )

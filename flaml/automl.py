@@ -1569,7 +1569,10 @@ class AutoML(BaseEstimator):
         ```
 
             **fit_kwargs: Other key word arguments to pass to fit() function of
-                the searched learners, such as sample_weight.
+                the searched learners, such as sample_weight. Include:
+                    period: int | forecast horizon for ts_forecast tasks.
+                    gpu_per_trial: float, default = 0 | A float of the number of gpus per trial,
+                    only used by TransformersEstimator and XGBoostSklearnEstimator.
         """
         task = task or self._settings.get("task")
         eval_method = eval_method or self._settings.get("eval_method")
@@ -2198,6 +2201,8 @@ class AutoML(BaseEstimator):
             }
         }
             fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
+                For TransformersEstimator, available fit_kwargs can be found from
+                [flaml/nlp/training_args.py:TrainingArgumentsForAuto](https://microsoft.github.io/FLAML/docs/reference/nlp/huggingface/training_args).
                 e.g.,
 
         ```python

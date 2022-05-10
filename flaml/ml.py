@@ -165,7 +165,7 @@ def metric_loss_score(
                 import datasets
 
                 datasets_metric_name = huggingface_submetric_to_metric.get(
-                    metric_name, metric_name
+                    metric_name, metric_name.split(":")[0]
                 )
                 metric = datasets.load_metric(datasets_metric_name)
                 metric_mode = huggingface_metric_to_mode[datasets_metric_name]
@@ -174,17 +174,30 @@ def metric_loss_score(
                     score = metric.compute(predictions=y_predict, references=y_true)[
                         metric_name
                     ].mid.fmeasure
-                elif metric_name == "seqeval":
-                    y_true = [
-                        [x for x in each_y_true if x != -100] for each_y_true in y_true
+                elif metric_name.startswith("seqeval"):
+
+                    zip_pred_true = [
+                        [(p, lb) for (p, lb) in zip(prediction, label) if lb != -100]
+                        for (prediction, label) in zip(y_predict, y_true)
                     ]
                     y_pred = [
-                        y_predict[each_idx][: len(y_true[each_idx])]
-                        for each_idx in range(len(y_predict))
+                        [labels[p] for (p, l) in each_list]
+                        for each_list in zip_pred_true
+                    ]  # To compute precision and recall, y_pred and y_true must be converted to string labels
+                    # (B-PER, I-PER, etc.), so that the category-based precision/recall (i.e., PER, LOC, etc.) scores can be computed
+                    y_true = [
+                        [labels[l] for (p, l) in each_list]
+                        for each_list in zip_pred_true
                     ]
+
+                    metric_submetric_names = metric_name.split(":")
+
                     score = metric.compute(predictions=y_pred, references=y_true)[
-                        "overall_accuracy"
+                        metric_submetric_names[1]
+                        if len(metric_submetric_names) > 1
+                        else "overall_accuracy"
                     ]
+
                 else:
                     score = metric.compute(predictions=y_predict, references=y_true)[
                         metric_name
@@ -454,7 +467,9 @@ def evaluate_model_CV(
     if task in CLASSIFICATION:
         labels = np.unique(y_train_all)
     else:
-        labels = None
+        labels = fit_kwargs.get(
+            "label_list"
+        )  # pass the label list on to compute the evaluation metric
     groups = None
     shuffle = False if task in TS_FORECAST else True
     if isinstance(kf, RepeatedStratifiedKFold):
@@ -586,6 +601,9 @@ def compute_estimator(
             groups_val,
             eval_metric,
             task,
+            labels=fit_kwargs.get(
+                "label_list"
+            ),  # pass the label list on to compute the evaluation metric
             budget=budget,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
