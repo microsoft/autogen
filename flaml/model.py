@@ -542,7 +542,13 @@ class TransformersEstimator(BaseEstimator):
             )
         else:
             return AutoTokenizer.from_pretrained(
-                self._training_args.model_path, use_fast=True
+                self._training_args.model_path,
+                use_fast=True,
+                add_prefix_space=True
+                if "roberta" in self._training_args.model_path
+                else False,  # If roberta model, must set add_prefix_space to True to avoid the assertion error at
+
+                # https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/tokenization_roberta_fast.py#L249
             )
 
     @property
