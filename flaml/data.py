@@ -384,13 +384,9 @@ class DataTransformer:
 
         Args:
             X: A numpy array or a pandas dataframe of training data.
-            y: A numpy array or a pandas series of labels.
-            task: A string of the task type, e.g.,
-                'classification', 'regression', 'ts_forecast', 'rank'.
 
         Returns:
             X: Processed numpy array or pandas dataframe of training data.
-            y: Processed numpy array or pandas series of labels.
         """
         X = X.copy()
 

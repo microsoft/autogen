@@ -848,6 +848,8 @@ class AutoML(BaseEstimator):
             )
             return None
         X = self._preprocess(X)
+        if self._label_transformer:
+            y = self._label_transformer.transform(y)
         return estimator.score(X, y, **kwargs)
 
     def predict(
