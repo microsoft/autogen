@@ -2207,7 +2207,9 @@ class AutoML(BaseEstimator):
                 }
             }
         }
-            fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
+        ```
+
+        fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [flaml/nlp/training_args.py:TrainingArgumentsForAuto](https://microsoft.github.io/FLAML/docs/reference/nlp/huggingface/training_args).
                 e.g.,
