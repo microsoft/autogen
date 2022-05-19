@@ -534,10 +534,11 @@ class AutoML(BaseEstimator):
              max_iter: An integer of the maximal number of iterations.
              sample: A boolean of whether to sample the training data during
                  search.
-             ensemble: boolean or dict | default=False. Whether to perform
-                 ensemble after search. Can be a dict with keys 'passthrough'
-                 and 'final_estimator' to specify the passthrough and
-                 final_estimator in the stacker.
+            ensemble: boolean or dict | default=False. Whether to perform
+                ensemble after search. Can be a dict with keys 'passthrough'
+                and 'final_estimator' to specify the passthrough and
+                final_estimator in the stacker. The dict can also contain
+                'n_jobs' as the key to specify the number of jobs for the stacker.
              eval_method: A string of resampling strategy, one of
                  ['auto', 'cv', 'holdout'].
              split_ratio: A float of the valiation data percentage for holdout.
@@ -1667,7 +1668,10 @@ class AutoML(BaseEstimator):
         import os
 
         self._state.resources_per_trial = (
-            {"cpu": os.cpu_count(), "gpu": fit_kwargs.get("gpu_per_trial", 0)}
+            {
+                "cpu": max(1, os.cpu_count() >> 1),
+                "gpu": fit_kwargs.get("gpu_per_trial", 0),
+            }
             if self._state.n_jobs < 0
             else {"cpu": self._state.n_jobs, "gpu": fit_kwargs.get("gpu_per_trial", 0)}
         )
@@ -2070,7 +2074,8 @@ class AutoML(BaseEstimator):
             ensemble: boolean or dict | default=False. Whether to perform
                 ensemble after search. Can be a dict with keys 'passthrough'
                 and 'final_estimator' to specify the passthrough and
-                final_estimator in the stacker.
+                final_estimator in the stacker. The dict can also contain
+                'n_jobs' as the key to specify the number of jobs for the stacker.
             eval_method: A string of resampling strategy, one of
                 ['auto', 'cv', 'holdout'].
             split_ratio: A float of the valiation data percentage for holdout.
@@ -2300,7 +2305,11 @@ class AutoML(BaseEstimator):
         if self._use_ray is not False:
             import ray
 
-            n_cpus = use_ray and ray.available_resources()["CPU"] or os.cpu_count()
+            n_cpus = (
+                ray.is_initialized()
+                and ray.available_resources()["CPU"]
+                or os.cpu_count()
+            )
 
             self._state.resources_per_trial = (
                 # when using gpu, default cpu is 1 per job; otherwise, default cpu is n_cpus / n_concurrent_trials
@@ -3174,18 +3183,36 @@ class AutoML(BaseEstimator):
                     from sklearn.ensemble import StackingClassifier as Stacker
                 else:
                     from sklearn.ensemble import StackingRegressor as Stacker
+                if self._use_ray is not False:
+                    import ray
+
+                    n_cpus = (
+                        ray.is_initialized()
+                        and ray.available_resources()["CPU"]
+                        or os.cpu_count()
+                    )
+                else:
+                    n_cpus = os.cpu_count()
+                ensemble_n_jobs = (
+                    -self._state.n_jobs  # maximize total parallelization degree
+                    if abs(self._state.n_jobs)
+                    == 1  # 1 and -1 correspond to min/max parallelization
+                    else max(1, int(n_cpus / 2 / self._state.n_jobs))
+                    # the total degree of parallelization = parallelization degree per estimator * parallelization degree of ensemble
+                )
                 if isinstance(self._ensemble, dict):
                     final_estimator = self._ensemble.get(
                         "final_estimator", self._trained_estimator
                     )
                     passthrough = self._ensemble.get("passthrough", True)
+                    ensemble_n_jobs = self._ensemble.get("n_jobs", ensemble_n_jobs)
                 else:
                     final_estimator = self._trained_estimator
                     passthrough = True
                 stacker = Stacker(
                     estimators,
                     final_estimator,
-                    n_jobs=self._state.n_jobs,
+                    n_jobs=ensemble_n_jobs,
                     passthrough=passthrough,
                 )
                 sample_weight_dict = (
@@ -3195,6 +3222,8 @@ class AutoML(BaseEstimator):
                 )
                 for e in estimators:
                     e[1].__class__.init()
+                import joblib
+
                 try:
                     stacker.fit(
                         self._X_train_all,
@@ -3225,6 +3254,11 @@ class AutoML(BaseEstimator):
                         self._trained_estimator.model = stacker
                     else:
                         raise e
+                except joblib.externals.loky.process_executor.TerminatedWorkerError:
+                    logger.error(
+                        "No enough memory to build the ensemble."
+                        " Please try increasing available RAM, decreasing n_jobs for ensemble, or disabling ensemble."
+                    )
             elif self._state.retrain_final:
                 # reset time budget for retraining
                 if self._max_iter > 1:

@@ -102,6 +102,12 @@ class TestClassification(unittest.TestCase):
         assert automl.model is not None
 
         automl = AutoML()
+        try:
+            import ray
+
+            n_concurrent_trials = 2
+        except ImportError:
+            n_concurrent_trials = 1
         automl_settings = {
             "time_budget": 2,
             "task": "classification",
@@ -113,6 +119,7 @@ class TestClassification(unittest.TestCase):
             "log_training_metric": True,
             "verbose": 4,
             "ensemble": True,
+            "n_concurrent_trials": n_concurrent_trials,
         }
         automl.fit(X, y, **automl_settings)
 
