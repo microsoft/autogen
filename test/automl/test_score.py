@@ -212,6 +212,64 @@ class TestScore:
             except NotImplementedError:
                 pass
 
+    def test_class(self):
+        # to test classification task with labels need encoding
+        X = pd.DataFrame(
+            {
+                "f1": [1, -2, 3, -4, 5, -6, -7, 8, -9, -10, -11, -12, -13, -14],
+                "f2": [
+                    3.0,
+                    16.0,
+                    10.0,
+                    12.0,
+                    3.0,
+                    14.0,
+                    11.0,
+                    12.0,
+                    5.0,
+                    14.0,
+                    20.0,
+                    16.0,
+                    15.0,
+                    11.0,
+                ],
+            }
+        )
+        y = pd.Series(
+            [
+                "a",
+                "b",
+                "c",
+                "d",
+                "a",
+                "b",
+                "c",
+                "d",
+                "a",
+                "b",
+                "c",
+                "d",
+                "a",
+                "b",
+            ]
+        )
+
+        automl = AutoML()
+
+        automl_settings = {
+            "time_budget": 6,
+            "task": "classification",
+            "n_jobs": 1,
+            "estimator_list": ["xgboost"],
+            "metric": "accuracy",
+            "log_training_metric": True,
+        }
+
+        automl.fit(X, y, **automl_settings)
+        assert automl._label_transformer is not None
+        assert automl.score(X, y) > 0
+        automl.pickle("automl.pkl")
+
 
 if __name__ == "__main__":
     test = TestScore()
