@@ -14,7 +14,7 @@ with open(os.path.join(here, "flaml/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "NumPy>=1.16.2",
+    "NumPy>=1.17.0rc1",
     "lightgbm>=2.3.1",
     "xgboost>=0.90,<=1.3.3",
     "scipy>=1.4.1",
