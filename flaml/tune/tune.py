@@ -371,7 +371,7 @@ def run(
         )
     else:
         if metric is None or mode is None:
-            metric = metric or search_alg.metric
+            metric = metric or search_alg.metric or DEFAULT_METRIC
             mode = mode or search_alg.mode
         if ray_import:
             from ray.tune.suggest import ConcurrencyLimiter

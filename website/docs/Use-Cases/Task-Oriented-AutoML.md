@@ -357,7 +357,8 @@ automl2 = AutoML()
 automl2.fit(X_train, y_train, time_budget=7200, starting_points=automl1.best_config_per_estimator)
 ```
 
-`starting_points` is a dictionary. The keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively.
+`starting_points` is a dictionary or a str to specify the starting hyperparameter config. (1) When it is a dictionary, the keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively. (2) When it is a str: if "data", use data-dependent defaults; if "data:path", use data-dependent defaults which are stored at path; if "static", use data-independent defaults. Please find more details about data-dependent defaults in [zero shot AutoML](https://microsoft.github.io/FLAML/docs/Use-Cases/Zero-Shot-AutoML#combine-zero-shot-automl-and-hyperparameter-tuning).
+
 
 ### Log the trials
 
