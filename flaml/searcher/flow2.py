@@ -58,10 +58,6 @@ class FLOW2(Searcher):
             metric: A string of the metric name to optimize for.
             mode: A string in ['min', 'max'] to specify the objective as
                 minimization or maximization.
-            cat_hp_cost: A dictionary from a subset of categorical dimensions
-                to the relative cost of each choice.
-                E.g., ```{'tree_method': [1, 1, 2]}```. I.e., the relative cost
-                of the three choices of 'tree_method' is 1, 1 and 2 respectively.
             space: A dictionary to specify the search space.
             resource_attr: A string to specify the resource dimension and the best
                 performance is assumed to be at the max_resource.
