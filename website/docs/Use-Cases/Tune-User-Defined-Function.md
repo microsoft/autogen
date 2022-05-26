@@ -4,7 +4,8 @@
 
 1. Your machine learning task is not one of the built-in tasks from `flaml.AutoML`.
 1. Your input cannot be represented as X_train + y_train or dataframe + label.
-1. You want to tune a function that may not even be a machine learning procedure.
+1. The optimization metric is not measurable via validation data only. For example, when you want to directly optimize a downstream application instead of a model accuracy metric.
+1. You need to tune a function that may not even be a machine learning procedure.
 
 ## Basic Tuning Procedure
 
