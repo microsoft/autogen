@@ -167,9 +167,8 @@ def test_multivariate_forecast_num(budget=5):
     split_idx = num_samples - time_horizon
     train_df = df[:split_idx]
     test_df = df[split_idx:]
-    X_test = test_df[
-        ["timeStamp", "temp", "precip"]
-    ]  # test dataframe must contain values for the regressors / multivariate variables
+    # test dataframe must contain values for the regressors / multivariate variables
+    X_test = test_df[["timeStamp", "temp", "precip"]]
     y_test = test_df["demand"]
     # return
     automl = AutoML()

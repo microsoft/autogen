@@ -62,6 +62,7 @@ setuptools.setup(
             "rouge_score",
             "hcrystalball==0.1.10",
             "seqeval",
+            "protobuf<4",  # to prevent TypeError in ray
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
