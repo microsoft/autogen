@@ -1,7 +1,7 @@
 try:
     from ray import __version__ as ray_version
 
-    assert ray_version >= "1.0.0"
+    assert ray_version >= "1.10.0"
     from ray.tune import sample
     from ray.tune.suggest.variant_generator import generate_variants
 except (ImportError, AssertionError):
@@ -369,7 +369,9 @@ def denormalize(
                     n = len(domain.categories)
                     if isinstance(value, list):
                         # denormalize list
-                        choice = int(np.floor(value[-1] * n))
+                        choice = min(
+                            n - 1, int(np.floor(value[-1] * n))
+                        )  # max choice is n-1
                         config_denorm[key] = point = value[choice]
                         point["_choice_"] = choice
                         continue
@@ -379,8 +381,8 @@ def denormalize(
                         ]
                     else:
                         assert key in normalized_reference_config
-                        if np.floor(value * n) == np.floor(
-                            normalized_reference_config[key] * n
+                        if min(n - 1, np.floor(value * n)) == min(
+                            n - 1, np.floor(normalized_reference_config[key] * n)
                         ):
                             config_denorm[key] = reference_config[key]
                         else:  # ****random value each time!****

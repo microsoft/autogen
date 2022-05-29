@@ -82,6 +82,8 @@ class BaseTrialRunner:
 
     def process_trial_result(self, trial, result):
         trial.update_last_result(result)
+        if "time_total_s" not in result.keys():
+            result["time_total_s"] = trial.last_update_time - trial.start_time
         self._search_alg.on_trial_result(trial.trial_id, result)
         if self._scheduler_alg:
             decision = self._scheduler_alg.on_trial_result(self, trial, result)
@@ -101,6 +103,10 @@ class BaseTrialRunner:
             trial.set_status(Trial.TERMINATED)
         elif self._scheduler_alg:
             self._scheduler_alg.on_trial_remove(self, trial)
+            if trial.status == Trial.ERROR:
+                self._search_alg.on_trial_complete(
+                    trial.trial_id, trial.last_result, error=True
+                )
 
 
 class SequentialTrialRunner(BaseTrialRunner):
@@ -125,3 +131,7 @@ class SequentialTrialRunner(BaseTrialRunner):
             trial = None
         self.running_trial = trial
         return trial
+
+    def stop_trial(self, trial):
+        super().stop_trial(trial)
+        self.running_trial = None

@@ -11,12 +11,15 @@
     - 'classification': classification.
     - 'regression': regression.
     - 'ts_forecast': time series forecasting.
+    - 'ts_forecast_classification': time series forecasting for classification.
     - 'rank': learning to rank.
     - 'seq-classification': sequence classification.
     - 'seq-regression': sequence regression.
     - 'summarization': text summarization.
+    - 'token-classification': token classification.
+    - 'multichoice-classification': multichoice classification.
 
-An optional input is `time_budget` for searching models and hyperparameters. When not specified, a default budget of 60 seconds will be used.
+Two optional inputs are `time_budget` and `max_iter` for searching models and hyperparameters. When both are unspecified, only one model per estimator will be trained (using our [zero-shot](Zero-Shot-AutoML) technique).
 
 A typical way to use `flaml.AutoML`:
 
@@ -36,7 +39,7 @@ with open("automl.pkl", "rb") as f:
 pred = automl.predict(X_test)
 ```
 
-If users provide the minimal inputs only, `AutoML` uses the default settings for time budget, optimization metric, estimator list etc.
+If users provide the minimal inputs only, `AutoML` uses the default settings for optimization metric, estimator list etc.
 
 ## Customize AutoML.fit()
 
@@ -57,7 +60,7 @@ The optimization metric is specified via the `metric` argument. It can be either
     - 'roc_auc_ovo': minimize 1 - roc_auc_score with `multi_class="ovo"`.
     - 'f1': minimize 1 - f1_score.
     - 'micro_f1': minimize 1 - f1_score with `average="micro"`.
-    - 'micro_f1': minimize 1 - f1_score with `average="micro"`.
+    - 'macro_f1': minimize 1 - f1_score with `average="macro"`.
     - 'ap': minimize 1 - average_precision_score.
     - 'ndcg': minimize 1 - ndcg_score.
     - 'ndcg@k': minimize 1 - ndcg_score@k. k is an integer.
@@ -104,18 +107,18 @@ The estimator list can contain one or more estimator names, each corresponding t
 
 #### Estimator
 * Built-in estimator.
-    - 'lgbm': LGBMEstimator. Hyperparameters: n_estimators, num_leaves, min_child_samples, learning_rate, log_max_bin (logarithm of (max_bin + 1) with base 2), colsample_bytree, reg_alpha, reg_lambda.
-    - 'xgboost': XGBoostSkLearnEstimator. Hyperparameters: n_estimators, max_leaves, max_depth, min_child_weight, learning_rate, subsample, colsample_bylevel, colsample_bytree, reg_alpha, reg_lambda.
-    - 'rf': RandomForestEstimator. Hyperparameters: n_estimators, max_features, max_leaves, criterion (for classification only).
-    - 'extra_tree': ExtraTreesEstimator. Hyperparameters: n_estimators, max_features, max_leaves, criterion (for classification only).
-    - 'lrl1': LRL1Classifier (sklearn.LogisticRegression with L1 regularization). Hyperparameters: C.
-    - 'lrl2': LRL2Classifier (sklearn.LogisticRegression with L2 regularization). Hyperparameters: C.
-    - 'catboost': CatBoostEstimator. Hyperparameters: early_stopping_rounds, learning_rate, n_estimators.
-    - 'kneighbor': KNeighborsEstimator. Hyperparameters: n_neighbors.
-    - 'prophet': Prophet. Hyperparameters: changepoint_prior_scale, seasonality_prior_scale, holidays_prior_scale, seasonality_mode.
-    - 'arima': ARIMA. Hyperparameters: p, d, q.
-    - 'sarimax': SARIMAX. Hyperparameters: p, d, q, P, D, Q, s.
-    - 'transformer': Huggingface transformer models. Hyperparameters: learning_rate, num_train_epochs, per_device_train_batch_size, warmup_ratio, weight_decay, adam_epsilon, seed.
+    - 'lgbm': LGBMEstimator for task "classification", "regression", "rank", "ts_forecast" and "ts_forecast_classification". Hyperparameters: n_estimators, num_leaves, min_child_samples, learning_rate, log_max_bin (logarithm of (max_bin + 1) with base 2), colsample_bytree, reg_alpha, reg_lambda.
+    - 'xgboost': XGBoostSkLearnEstimator for task "classification", "regression", "rank", "ts_forecast" and "ts_forecast_classification". Hyperparameters: n_estimators, max_leaves, max_depth, min_child_weight, learning_rate, subsample, colsample_bylevel, colsample_bytree, reg_alpha, reg_lambda.
+    - 'rf': RandomForestEstimator for task "classification", "regression", "ts_forecast" and "ts_forecast_classification". Hyperparameters: n_estimators, max_features, max_leaves, criterion (for classification only).
+    - 'extra_tree': ExtraTreesEstimator for task "classification", "regression", "ts_forecast" and "ts_forecast_classification". Hyperparameters: n_estimators, max_features, max_leaves, criterion (for classification only).
+    - 'lrl1': LRL1Classifier (sklearn.LogisticRegression with L1 regularization) for task "classification". Hyperparameters: C.
+    - 'lrl2': LRL2Classifier (sklearn.LogisticRegression with L2 regularization) for task "classification". Hyperparameters: C.
+    - 'catboost': CatBoostEstimator for task "classification" and "regression". Hyperparameters: early_stopping_rounds, learning_rate, n_estimators.
+    - 'kneighbor': KNeighborsEstimator for task "classification" and "regression". Hyperparameters: n_neighbors.
+    - 'prophet': Prophet for task "ts_forecast". Hyperparameters: changepoint_prior_scale, seasonality_prior_scale, holidays_prior_scale, seasonality_mode.
+    - 'arima': ARIMA for task "ts_forecast". Hyperparameters: p, d, q.
+    - 'sarimax': SARIMAX for task "ts_forecast". Hyperparameters: p, d, q, P, D, Q, s.
+    - 'transformer': Huggingface transformer models for task "seq-classification", "seq-regression", "multichoice-classification", "token-classification" and "summarization". Hyperparameters: learning_rate, num_train_epochs, per_device_train_batch_size, warmup_ratio, weight_decay, adam_epsilon, seed.
 * Custom estimator. Use custom estimator for:
     - tuning an estimator that is not built-in;
     - customizing search space for a built-in estimator.
@@ -188,9 +191,6 @@ Each estimator class, built-in or not, must have a `search_space` function. In t
 
 In the example above, we tune four hyperparameters, three integers and one float. They all follow a log-uniform distribution. "max_leaf" and "n_iter" have "low_cost_init_value" specified as their values heavily influence the training cost.
 
-
-
-
 To customize the search space for a built-in estimator, use a similar approach to define a class that inherits the existing estimator. For example,
 
 ```python
@@ -231,17 +231,46 @@ class XGBoost2D(XGBoostSklearnEstimator):
 
 We override the `search_space` function to tune two hyperparameters only, "n_estimators" and "max_leaves". They are both random integers in the log space, ranging from 4 to data-dependent upper bound. The lower bound for each corresponds to low training cost, hence the "low_cost_init_value" for each is set to 4.
 
+##### A shortcut to override the search space
+
+One can use the `custom_hp` argument in [`AutoML.fit()`](../reference/automl#fit) to override the search space for an existing estimator quickly. For example, if you would like to temporarily change the search range of "n_estimators" of xgboost, disable searching "max_leaves" in random forest, and add "subsample" in the search space of lightgbm, you can set:
+
+```python
+custom_hp = {
+    "xgboost": {
+        "n_estimators": {
+            "domain": tune.lograndint(lower=new_lower, upper=new_upper),
+            "low_cost_init_value": new_lower,
+        },
+    },
+    "rf": {
+        "max_leaves": {
+            "domain": None,  # disable search
+        },
+    },
+    "lgbm": {
+        "subsample": {
+            "domain": tune.uniform(lower=0.1, upper=1.0),
+            "init_value": 1.0,
+        },
+        "subsample_freq": {
+            "domain": 1,  # subsample_freq must > 0 to enable subsample
+        },
+    },
+}
+```
+
 ### Constraint
 
 There are several types of constraints you can impose.
 
-1. End-to-end constraints on the AutoML process.
+1. Constraints on the AutoML process.
 
 - `time_budget`: constrains the wall-clock time (seconds) used by the AutoML process. We provide some tips on [how to set time budget](#how-to-set-time-budget).
 
 - `max_iter`: constrains the maximal number of models to try in the AutoML process.
 
-2. Constraints on the (hyperparameters of) the estimators.
+2. Constraints on the constructor arguments of the estimators.
 
 Some constraints on the estimator can be implemented via the custom learner. For example,
 
@@ -252,7 +281,18 @@ class MonotonicXGBoostEstimator(XGBoostSklearnEstimator):
         return super().search_space(**args).update({"monotone_constraints": "(1, -1)"})
 ```
 
-It adds a monotonicity constraint to XGBoost. This approach can be used to set any constraint that is a parameter in the underlying estimator's constructor.
+It adds a monotonicity constraint to XGBoost. This approach can be used to set any constraint that is an argument in the underlying estimator's constructor.
+A shortcut to do this is to use the [`custom_hp`](#a-shortcut-to-override-the-search-space) argument:
+
+```python
+custom_hp = {
+    "xgboost": {
+        "monotone_constraints": {
+            "domain": "(1, -1)"  # fix the domain as a constant
+        }
+    }
+}
+```
 
 3. Constraints on the models tried in AutoML.
 
@@ -263,6 +303,22 @@ Users can set constraints such as the maximal number of models to try, limit on 
 For example,
 ```python
 automl.fit(X_train, y_train, max_iter=100, train_time_limit=1, pred_time_limit=1e-3)
+```
+
+4. Constraints on the metrics of the ML model tried in AutoML.
+
+When users provide a [custom metric function](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#optimization-metric), which returns a primary optimization metric and a dictionary of additional metrics (typically also about the model) to log, users can also specify constraints on one or more of the metrics in the dictionary of additional metrics.
+
+Users need to provide a list of such constraints in the following format:
+Each element in this list is a 3-tuple, which shall be expressed
+in the following format: the first element of the 3-tuple is the name of the
+metric, the second element is the inequality sign chosen from ">=" and "<=",
+and the third element is the constraint value. E.g., `('val_loss', '<=', 0.1)`.
+
+For example,
+```python
+metric_constraints = [("train_loss", "<=", 0.1), ("val_loss", "<=", 0.1)]
+automl.fit(X_train, y_train, max_iter=100, train_time_limit=1, metric_constraints=metric_constraints)
 ```
 
 ### Ensemble
@@ -301,7 +357,8 @@ By default, flaml uses the following method to split the data:
 * time-based split for time series forecasting;
 * group-based split for learning to rank.
 
-The data split method for classification can be changed into uniform split by setting `split_type="uniform"`. For both classification and regression, time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`.
+The data split method for classification can be changed into uniform split by setting `split_type="uniform"`. The data are shuffled when `split_type in ("uniform", "stratified")`.
+For both classification and regression, time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`.
 
 When `eval_method="cv"`, `split_type` can also be set as a custom splitter. It needs to be an instance of a derived class of scikit-learn
 [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
@@ -338,7 +395,8 @@ automl2 = AutoML()
 automl2.fit(X_train, y_train, time_budget=7200, starting_points=automl1.best_config_per_estimator)
 ```
 
-`starting_points` is a dictionary. The keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively.
+`starting_points` is a dictionary or a str to specify the starting hyperparameter config. (1) When it is a dictionary, the keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively. (2) When it is a str: if "data", use data-dependent defaults; if "data:path", use data-dependent defaults which are stored at path; if "static", use data-independent defaults. Please find more details about data-dependent defaults in [zero shot AutoML](https://microsoft.github.io/FLAML/docs/Use-Cases/Zero-Shot-AutoML#combine-zero-shot-automl-and-hyperparameter-tuning).
+
 
 ### Log the trials
 
@@ -373,7 +431,7 @@ The best model can be obtained by the `model` property of an `AutoML` instance. 
 
 ```python
 automl.fit(X_train, y_train, task="regression")
-print(automl.mdoel)
+print(automl.model)
 # <flaml.model.LGBMEstimator object at 0x7f9b502c4550>
 ```
 

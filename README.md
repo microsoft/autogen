@@ -17,9 +17,9 @@ learning models automatically, efficiently and economically. It frees users from
 learners and hyperparameters for each learner.
 
 1. For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources. It supports both classifcal machine learning models and deep neural networks.
-1. It is easy to customize or extend. Users can choose their desired customizability: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training and evaluation code).
+1. It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training and evaluation code).
 1. It supports fast automatic tuning, capable of handling complex constraints/guidance/early stopping. FLAML is powered by a new, [cost-effective
-hyperparameter optimization](https://microsoft.github.io/FLAML/Use-Cases/Tune-User-Defined-Function#hyperparameter-optimization-algorithm)
+hyperparameter optimization](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function/#hyperparameter-optimization-algorithm)
 and learner selection method invented by Microsoft Research.
 
 FLAML has a .NET implementation as well from [ML.NET Model Builder](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet/model-builder) in [Visual Studio](https://visualstudio.microsoft.com/) 2022. This [ML.NET blog](https://devblogs.microsoft.com/dotnet/ml-net-june-updates/#new-and-improved-automl) describes the improvement brought by FLAML.
@@ -33,7 +33,7 @@ FLAML requires **Python version >= 3.6**. It can be installed from pip:
 pip install flaml
 ```
 
-To run the [`notebook example`](https://github.com/microsoft/FLAML/tree/main/notebook),
+To run the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/notebook),
 install flaml with the [notebook] option:
 
 ```bash
@@ -43,7 +43,7 @@ pip install flaml[notebook]
 ## Quickstart
 
 * With three lines of code, you can start using this economical and fast
-AutoML engine as a scikit-learn style estimator.
+AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).
 
 ```python
 from flaml import AutoML
@@ -52,17 +52,27 @@ automl.fit(X_train, y_train, task="classification")
 ```
 
 * You can restrict the learners and use FLAML as a fast hyperparameter tuning
-tool for XGBoost, LightGBM, Random Forest etc. or a customized learner.
+tool for XGBoost, LightGBM, Random Forest etc. or a [customized learner](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#estimator-and-search-space).
 
 ```python
 automl.fit(X_train, y_train, task="classification", estimator_list=["lgbm"])
 ```
 
-* You can also run generic hyperparameter tuning for a custom function.
+* You can also run generic hyperparameter tuning for a [custom function](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function).
 
 ```python
 from flaml import tune
 tune.run(evaluation_function, config={…}, low_cost_partial_config={…}, time_budget_s=3600)
+```
+
+* [Zero-shot AutoML](https://microsoft.github.io/FLAML/docs/Use-Cases/Zero-Shot-AutoML) allows using the existing training API from lightgbm, xgboost etc. while getting the benefit of AutoML in choosing high-performance hyperparameter configurations per task.
+
+```python
+from flaml.default import LGBMRegressor
+# Use LGBMRegressor in the same way as you use lightgbm.LGBMRegressor.
+estimator = LGBMRegressor()
+# The hyperparameters are automatically set according to the training data.
+estimator.fit(X_train, y_train)
 ```
 
 ## Documentation

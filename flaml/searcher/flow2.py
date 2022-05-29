@@ -18,6 +18,7 @@ except (ImportError, AssertionError):
     from ..tune import sample
     from ..tune.trial import flatten_dict, unflatten_dict
 from flaml.tune.sample import _BackwardsCompatibleNumpyRng
+from flaml.config import SAMPLE_MULTIPLY_FACTOR
 from ..tune.space import (
     complete_config,
     denormalize,
@@ -43,7 +44,7 @@ class FLOW2(Searcher):
         resource_attr: Optional[str] = None,
         min_resource: Optional[float] = None,
         max_resource: Optional[float] = None,
-        resource_multiple_factor: Optional[float] = 4,
+        resource_multiple_factor: Optional[float] = None,
         cost_attr: Optional[str] = "time_total_s",
         seed: Optional[int] = 20,
     ):
@@ -57,10 +58,6 @@ class FLOW2(Searcher):
             metric: A string of the metric name to optimize for.
             mode: A string in ['min', 'max'] to specify the objective as
                 minimization or maximization.
-            cat_hp_cost: A dictionary from a subset of categorical dimensions
-                to the relative cost of each choice.
-                E.g., ```{'tree_method': [1, 1, 2]}```. I.e., the relative cost
-                of the three choices of 'tree_method' is 1, 1 and 2 respectively.
             space: A dictionary to specify the search space.
             resource_attr: A string to specify the resource dimension and the best
                 performance is assumed to be at the max_resource.
@@ -91,7 +88,7 @@ class FLOW2(Searcher):
         self.best_config = flatten_dict(init_config)
         self.resource_attr = resource_attr
         self.min_resource = min_resource
-        self.resource_multiple_factor = resource_multiple_factor or 4
+        self.resource_multiple_factor = resource_multiple_factor or SAMPLE_MULTIPLY_FACTOR
         self.cost_attr = cost_attr
         self.max_resource = max_resource
         self._resource = None

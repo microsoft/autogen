@@ -1,44 +1,26 @@
+from utils import get_toy_data_multiclassclassification, get_automl_settings
+
+
 def test_classification_head():
     from flaml import AutoML
     import requests
-    from datasets import load_dataset
 
-    try:
-        train_dataset = (
-            load_dataset("emotion", split="train[:1%]").to_pandas().iloc[0:10]
-        )
-        dev_dataset = (
-            load_dataset("emotion", split="train[1%:2%]").to_pandas().iloc[0:10]
-        )
-    except requests.exceptions.ConnectionError:
-        return
-
-    custom_sent_keys = ["text"]
-    label_key = "label"
-
-    X_train = train_dataset[custom_sent_keys]
-    y_train = train_dataset[label_key]
-
-    X_val = dev_dataset[custom_sent_keys]
-    y_val = dev_dataset[label_key]
-
+    X_train, y_train, X_val, y_val = get_toy_data_multiclassclassification()
     automl = AutoML()
 
-    automl_settings = {
-        "gpu_per_trial": 0,
-        "max_iter": 3,
-        "time_budget": 5,
-        "task": "seq-classification",
-        "metric": "accuracy",
-    }
+    automl_settings = get_automl_settings()
 
-    automl_settings["custom_hpo_args"] = {
-        "model_path": "google/electra-small-discriminator",
-        "output_dir": "test/data/output/",
-        "ckpt_per_epoch": 5,
-        "fp16": False,
-    }
+    try:
+        automl.fit(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            **automl_settings
+        )
+    except requests.exceptions.HTTPError:
+        return
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+
+if __name__ == "__main__":
+    test_classification_head()

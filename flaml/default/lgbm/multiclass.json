@@ -1,0 +1,416 @@
+{
+    "version": "1.0.2",
+    "meta_feature_names": [
+        "NumberOfInstances","NumberOfFeatures","NumberOfClasses","PercentageOfNumericFeatures"
+    ],
+    "portfolio": [
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 134,
+                "num_leaves": 225,
+                "min_child_samples": 21,
+                "learning_rate": 0.10182098014295998,
+                "log_max_bin": 5,
+                "colsample_bytree": 0.6103565306428956,
+                "reg_alpha": 0.0009765625,
+                "reg_lambda": 40.413729576022625
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 3726,
+                "num_leaves": 155,
+                "min_child_samples": 4,
+                "learning_rate": 0.040941607728296484,
+                "log_max_bin": 5,
+                "colsample_bytree": 0.5326256194627191,
+                "reg_alpha": 0.7408711930398492,
+                "reg_lambda": 0.5467731065349226
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 573,
+                "num_leaves": 16,
+                "min_child_samples": 52,
+                "learning_rate": 0.2422782244991656,
+                "log_max_bin": 7,
+                "colsample_bytree": 1.0,
+                "reg_alpha": 0.03433194930183514,
+                "reg_lambda": 0.03870494540146326
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 2931,
+                "num_leaves": 106,
+                "min_child_samples": 49,
+                "learning_rate": 0.007146230961642236,
+                "log_max_bin": 7,
+                "colsample_bytree": 0.46947896116006055,
+                "reg_alpha": 0.37428758811879526,
+                "reg_lambda": 23.639977131692564
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 241,
+                "num_leaves": 58,
+                "min_child_samples": 2,
+                "learning_rate": 0.022730855281657265,
+                "log_max_bin": 5,
+                "colsample_bytree": 0.5620897082415793,
+                "reg_alpha": 0.0031614554887399314,
+                "reg_lambda": 0.02175056245188971
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 8353,
+                "num_leaves": 371,
+                "min_child_samples": 71,
+                "learning_rate": 0.017965875630873252,
+                "log_max_bin": 10,
+                "colsample_bytree": 0.9002082433803926,
+                "reg_alpha": 0.4864366003694002,
+                "reg_lambda": 0.024138585745106363,
+                "FLAML_sample_size": 470619
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 320,
+                "num_leaves": 24,
+                "min_child_samples": 53,
+                "learning_rate": 0.019316895546068795,
+                "log_max_bin": 6,
+                "colsample_bytree": 0.3955693254372702,
+                "reg_alpha": 0.0013785083170001627,
+                "reg_lambda": 0.04644365636517757
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {
+                "n_estimators": 733,
+                "num_leaves": 11,
+                "min_child_samples": 94,
+                "learning_rate": 0.06276798296942972,
+                "log_max_bin": 6,
+                "colsample_bytree": 0.6341928918435795,
+                "reg_alpha": 0.5811038918218691,
+                "reg_lambda": 43.304997517523944
+            }
+        },
+        {
+            "class": "lgbm",
+            "hyperparameters": {}
+        }
+    ],
+    "preprocessing": {
+        "center": [
+            40337.0,
+            54.0,
+            7.0,
+            1.0
+        ],
+        "scale": [
+            58722.0,
+            766.0,
+            6.0,
+            1.0
+        ]
+    },
+    "neighbors": [
+        {
+            "features": [
+                8.217925138789552,
+                0.0,
+                0.0,
+                -0.8148148148148149
+            ],
+            "choice": [
+                5,
+                1,
+                0,
+                3,
+                2,
+                7,
+                4,
+                8
+            ]
+        },
+        {
+            "features": [
+                5.691767991553421,
+                0.007832898172323759,
+                58.0,
+                0.0
+            ],
+            "choice": [
+                0,
+                2,
+                4,
+                7,
+                6,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.385937127482034,
+                0.9530026109660574,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                3,
+                7,
+                0,
+                4,
+                1,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.3123020333094922,
+                -0.03524804177545692,
+                15.5,
+                0.0
+            ],
+            "choice": [
+                3,
+                0,
+                7,
+                6,
+                1,
+                4,
+                5,
+                2,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.5964033922550321,
+                0.0,
+                -0.5,
+                0.0
+            ],
+            "choice": [
+                3,
+                0,
+                7,
+                4,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.5336500800381458,
+                9.328981723237598,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                3,
+                0,
+                4,
+                1,
+                2,
+                7,
+                6,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.20201968597799802,
+                -0.0587467362924282,
+                0.0,
+                0.0
+            ],
+            "choice": [
+                4,
+                6,
+                1,
+                7,
+                5,
+                3,
+                0,
+                2,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.20677088655018563,
+                0.16449086161879894,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                3,
+                0,
+                1,
+                5,
+                7,
+                4,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.6604339089268076,
+                -0.06266318537859007,
+                -0.5,
+                -1.0
+            ],
+            "choice": [
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.6703620448894793,
+                1.0469973890339426,
+                0.3333333333333333,
+                0.0
+            ],
+            "choice": [
+                4,
+                1,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.34848949286468445,
+                -0.015665796344647518,
+                -0.6666666666666666,
+                -1.0
+            ],
+            "choice": [
+                1,
+                5,
+                2,
+                3,
+                0,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.5336500800381458,
+                2.5404699738903394,
+                -0.3333333333333333,
+                0.0
+            ],
+            "choice": [
+                2,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.5606757263036,
+                0.9738903394255874,
+                0.0,
+                0.0
+            ],
+            "choice": [
+                4,
+                1,
+                8
+            ]
+        },
+        {
+            "features": [
+                0.0,
+                -0.06266318537859007,
+                -0.6666666666666666,
+                0.0
+            ],
+            "choice": [
+                2,
+                1,
+                5,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.6562617077075031,
+                0.21148825065274152,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                2,
+                6,
+                7,
+                5,
+                3,
+                1,
+                4,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.6515105071353156,
+                -0.04960835509138381,
+                0.0,
+                0.0
+            ],
+            "choice": [
+                6,
+                1,
+                3,
+                7,
+                5,
+                4,
+                0,
+                2,
+                8
+            ]
+        },
+        {
+            "features": [
+                -0.6739552467559007,
+                -0.04699738903394256,
+                -0.5,
+                0.0
+            ],
+            "choice": [
+                6,
+                7,
+                3,
+                1,
+                0,
+                4,
+                5,
+                8
+            ]
+        }
+    ],
+    "configsource": [
+        "Helena",
+        "connect-4",
+        "jungle_chess_2pcs_raw_endgame_complete",
+        "Jannis",
+        "fabert",
+        "Covertype",
+        "segment",
+        "APSFailure",
+        "default"
+    ]
+}

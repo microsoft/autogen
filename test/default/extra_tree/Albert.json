@@ -1,0 +1,1 @@
+{"class": "extra_tree", "hyperparameters": {"n_estimators": 1733, "max_features": 0.3841826938360253, "max_leaves": 32767, "criterion": "entropy", "FLAML_sample_size": 344444}}

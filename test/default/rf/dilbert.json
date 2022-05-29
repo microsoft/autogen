@@ -1,0 +1,1 @@
+{"class": "rf", "hyperparameters": {"n_estimators": 350, "max_features": 0.748250835121453, "max_leaves": 433, "criterion": "entropy"}}

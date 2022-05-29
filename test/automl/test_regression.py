@@ -34,7 +34,7 @@ class MyXGB2(XGBoostEstimator):
 
 class TestRegression(unittest.TestCase):
     def test_regression(self):
-        automl_experiment = AutoML()
+        automl = AutoML()
         automl_settings = {
             "time_budget": 2,
             "task": "regression",
@@ -45,22 +45,23 @@ class TestRegression(unittest.TestCase):
         }
         X_train, y_train = fetch_california_housing(return_X_y=True)
         n = int(len(y_train) * 9 // 10)
-        automl_experiment.fit(
+        automl.fit(
             X_train=X_train[:n],
             y_train=y_train[:n],
             X_val=X_train[n:],
             y_val=y_train[n:],
             **automl_settings
         )
-        assert automl_experiment._state.eval_method == "holdout"
-        print(automl_experiment.predict(X_train))
-        print(automl_experiment.model)
-        print(automl_experiment.config_history)
-        print(automl_experiment.best_model_for_estimator("xgboost"))
-        print(automl_experiment.best_iteration)
-        print(automl_experiment.best_estimator)
+        assert automl._state.eval_method == "holdout"
+        y_pred = automl.predict(X_train)
+        print(y_pred)
+        print(automl.model.estimator)
+        print(automl.config_history)
+        print(automl.best_model_for_estimator("xgboost"))
+        print(automl.best_iteration)
+        print(automl.best_estimator)
         print(get_output_from_log(automl_settings["log_file_name"], 1))
-        automl_experiment.retrain_from_log(
+        automl.retrain_from_log(
             task="regression",
             log_file_name=automl_settings["log_file_name"],
             X_train=X_train,
@@ -68,14 +69,24 @@ class TestRegression(unittest.TestCase):
             train_full=True,
             time_budget=1,
         )
-        automl_experiment.retrain_from_log(
+        automl.retrain_from_log(
             task="regression",
             log_file_name=automl_settings["log_file_name"],
             X_train=X_train,
             y_train=y_train,
-            train_full=True,
             time_budget=0,
         )
+        automl = AutoML()
+        automl.retrain_from_log(
+            task="regression",
+            log_file_name=automl_settings["log_file_name"],
+            X_train=X_train[:n],
+            y_train=y_train[:n],
+            train_full=True,
+        )
+        print(automl.model.estimator)
+        y_pred2 = automl.predict(X_train)
+        assert (y_pred == y_pred2).all()
 
     def test_sparse_matrix_regression(self):
         X_train = scipy.sparse.random(300, 900, density=0.0001)

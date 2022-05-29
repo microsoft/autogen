@@ -2,8 +2,6 @@ import unittest
 import numpy as np
 import scipy.sparse
 from sklearn.datasets import load_iris, load_wine
-
-
 from flaml import AutoML
 from flaml.data import CLASSIFICATION, get_output_from_log
 from flaml.model import LGBMEstimator, XGBoostSklearnEstimator, SKLearnEstimator
@@ -141,8 +139,6 @@ class TestMultiClass(unittest.TestCase):
             "log_training_metric": True,  # whether to log training metric
             "n_jobs": 1,
         }
-
-        """The main flaml automl API"""
         automl.fit(X_train=X_train, y_train=y_train, **settings)
         # print the best model found for RGF
         print(automl.best_model_for_estimator("RGF"))
@@ -167,8 +163,6 @@ class TestMultiClass(unittest.TestCase):
             },
             "n_jobs": 1,
         }
-
-        """The main flaml automl API"""
         automl.fit(X_train=X_train, y_train=y_train, **settings)
 
     def test_dataframe(self):
@@ -203,7 +197,7 @@ class TestMultiClass(unittest.TestCase):
         print(automl_experiment.best_estimator)
         automl_experiment = AutoML()
         estimator = automl_experiment.get_estimator_from_log(
-            automl_settings["log_file_name"], record_id=0, task="multi"
+            automl_settings["log_file_name"], record_id=0, task="multiclass"
         )
         print(estimator)
         (
@@ -216,6 +210,15 @@ class TestMultiClass(unittest.TestCase):
             filename=automl_settings["log_file_name"], time_budget=6
         )
         print(metric_history)
+        try:
+            import ray
+
+            df = ray.put(df)
+            automl_settings["dataframe"] = df
+            automl_settings["use_ray"] = True
+            automl_experiment.fit(**automl_settings)
+        except ImportError:
+            pass
 
     def test_classification(self, as_frame=False):
         automl_experiment = AutoML()
