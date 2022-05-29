@@ -58,7 +58,6 @@ def _test_flaml_raytune_consistency(
             "skip _test_flaml_raytune_consistency because ray tune cannot be imported."
         )
         return
-    np.random.seed(100)
     searcher = setup_searcher(searcher_name)
     analysis = tune.run(
         evaluate_config,  # the function to evaluate a config
@@ -75,11 +74,9 @@ def _test_flaml_raytune_consistency(
     )
     flaml_best_config = analysis.best_config
     flaml_config_in_results = [v["config"] for v in analysis.results.values()]
+    flaml_time_in_results = [v["time_total_s"] for v in analysis.results.values()]
     print(analysis.best_trial.last_result)  # the best trial's result
-    print("best flaml", searcher_name, flaml_best_config)  # the best config
-    print("flaml config in results", searcher_name, flaml_config_in_results)
 
-    np.random.seed(100)
     searcher = setup_searcher(searcher_name)
     from ray.tune.suggest import ConcurrencyLimiter
 
@@ -97,8 +94,16 @@ def _test_flaml_raytune_consistency(
     )
     ray_best_config = analysis.best_config
     ray_config_in_results = [v["config"] for v in analysis.results.values()]
+    ray_time_in_results = [v["time_total_s"] for v in analysis.results.values()]
+
     print(analysis.best_trial.last_result)  # the best trial's result
-    print("ray best", searcher_name, analysis.best_config)  # the best config
+    print("time_total_s in flaml", flaml_time_in_results)  # the best trial's result
+    print("time_total_s in ray", ray_time_in_results)  # the best trial's result
+
+    print("best flaml", searcher_name, flaml_best_config)  # the best config
+    print("ray best", searcher_name, ray_best_config)  # the best config
+
+    print("flaml config in results", searcher_name, flaml_config_in_results)
     print("ray config in results", searcher_name, ray_config_in_results)
     assert ray_best_config == flaml_best_config, "best config should be the same"
     assert (

@@ -5,14 +5,10 @@ import transformers
 if transformers.__version__.startswith("3"):
     from transformers.modeling_electra import ElectraClassificationHead
     from transformers.modeling_roberta import RobertaClassificationHead
-    from transformers.models.electra.modeling_electra import ElectraForTokenClassification
-    from transformers.models.roberta.modeling_roberta import RobertaForTokenClassification
 
 else:
     from transformers.models.electra.modeling_electra import ElectraClassificationHead
     from transformers.models.roberta.modeling_roberta import RobertaClassificationHead
-    from transformers.models.electra.modeling_electra import ElectraForTokenClassification
-    from transformers.models.roberta.modeling_roberta import RobertaForTokenClassification
 
 MODEL_CLASSIFICATION_HEAD_MAPPING = OrderedDict(
     [

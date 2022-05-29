@@ -8,7 +8,7 @@ from flaml import tune
 
 class TestWarmStart(unittest.TestCase):
     def test_fit_w_freezinghp_starting_point(self, as_frame=True):
-        automl_experiment = AutoML()
+        automl = AutoML()
         automl_settings = {
             "time_budget": 1,
             "metric": "accuracy",
@@ -24,20 +24,20 @@ class TestWarmStart(unittest.TestCase):
             # test drop column
             X_train.columns = range(X_train.shape[1])
             X_train[X_train.shape[1]] = np.zeros(len(y_train))
-        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
-        automl_val_accuracy = 1.0 - automl_experiment.best_loss
-        print("Best ML leaner:", automl_experiment.best_estimator)
-        print("Best hyperparmeter config:", automl_experiment.best_config)
+        automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        automl_val_accuracy = 1.0 - automl.best_loss
+        print("Best ML leaner:", automl.best_estimator)
+        print("Best hyperparmeter config:", automl.best_config)
         print("Best accuracy on validation data: {0:.4g}".format(automl_val_accuracy))
         print(
             "Training duration of best run: {0:.4g} s".format(
-                automl_experiment.best_config_train_time
+                automl.best_config_train_time
             )
         )
         # 1. Get starting points from previous experiments.
-        starting_points = automl_experiment.best_config_per_estimator
+        starting_points = automl.best_config_per_estimator
         print("starting_points", starting_points)
-        print("loss of the starting_points", automl_experiment.best_loss_per_estimator)
+        print("loss of the starting_points", automl.best_loss_per_estimator)
         starting_point = starting_points["lgbm"]
         hps_to_freeze = ["colsample_bytree", "reg_alpha", "reg_lambda", "log_max_bin"]
 
@@ -85,8 +85,8 @@ class TestWarmStart(unittest.TestCase):
                 return space
 
         new_estimator_name = "large_lgbm"
-        new_automl_experiment = AutoML()
-        new_automl_experiment.add_learner(
+        new_automl = AutoML()
+        new_automl.add_learner(
             learner_name=new_estimator_name, learner_class=MyPartiallyFreezedLargeLGBM
         )
 
@@ -103,21 +103,25 @@ class TestWarmStart(unittest.TestCase):
             "starting_points": {new_estimator_name: starting_point},
         }
 
-        new_automl_experiment.fit(
-            X_train=X_train, y_train=y_train, **automl_settings_resume
-        )
+        new_automl.fit(X_train=X_train, y_train=y_train, **automl_settings_resume)
 
-        new_automl_val_accuracy = 1.0 - new_automl_experiment.best_loss
-        print("Best ML leaner:", new_automl_experiment.best_estimator)
-        print("Best hyperparmeter config:", new_automl_experiment.best_config)
+        new_automl_val_accuracy = 1.0 - new_automl.best_loss
+        print("Best ML leaner:", new_automl.best_estimator)
+        print("Best hyperparmeter config:", new_automl.best_config)
         print(
             "Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy)
         )
         print(
             "Training duration of best run: {0:.4g} s".format(
-                new_automl_experiment.best_config_train_time
+                new_automl.best_config_train_time
             )
         )
+
+    def test_nobudget(self):
+        automl = AutoML()
+        X_train, y_train = load_iris(return_X_y=True)
+        automl.fit(X_train, y_train)
+        print(automl.best_config_per_estimator)
 
 
 if __name__ == "__main__":

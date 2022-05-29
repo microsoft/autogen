@@ -19,7 +19,7 @@ class AbstractWarmStartTest:
         # ray.shutdown()
 
     def set_basic_conf(self):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def run_part_from_scratch(self):
         np.random.seed(162)
@@ -36,7 +36,6 @@ class AbstractWarmStartTest:
         search_alg2, cost = self.set_basic_conf()
         search_alg2 = ConcurrencyLimiter(search_alg2, 1)
         search_alg2.restore(checkpoint_path)
-        np.random.set_state(random_state)
         return tune.run(cost, num_samples=5, search_alg=search_alg2, verbose=0)
 
     def run_full(self):
@@ -82,16 +81,16 @@ class CFOWarmStartTest(AbstractWarmStartTest, unittest.TestCase):
         return search_alg, cost
 
 
-# # # Not doing test for BS because of problems with random seed in OptunaSearch
 # class BlendsearchWarmStartTest(AbstractWarmStartTest, unittest.TestCase):
 #     def set_basic_conf(self):
+#         from flaml import BlendSearch
 #         space = {
 #             "height": tune.uniform(-100, 100),
 #             "width": tune.randint(0, 100),
 #         }
 
 #         def cost(param):
-#             tune.report(loss=(param["height"] - 14)**2 - abs(param["width"] - 3))
+#             tune.report(loss=(param["height"] - 14) ** 2 - abs(param["width"] - 3))
 
 #         search_alg = BlendSearch(
 #             space=space,

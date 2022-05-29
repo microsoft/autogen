@@ -9,7 +9,9 @@ from flaml.training_log import training_log_reader
 
 
 class TestTrainingLog(unittest.TestCase):
-    def test_training_log(self, path="test_training_log.log", estimator_list="auto"):
+    def test_training_log(
+        self, path="test_training_log.log", estimator_list="auto", use_ray=False
+    ):
 
         with TemporaryDirectory() as d:
             filename = os.path.join(d, path)
@@ -54,6 +56,7 @@ class TestTrainingLog(unittest.TestCase):
                     estimator_list=[estimator],
                     n_jobs=1,
                     starting_points={estimator: config},
+                    use_ray=use_ray,
                 )
                 print(automl.best_config)
                 # then the fitted model should be equivalent to model
@@ -99,8 +102,16 @@ class TestTrainingLog(unittest.TestCase):
             print("PermissionError happens as expected in windows.")
 
     def test_each_estimator(self):
-        self.test_training_log(estimator_list=["xgboost"])
-        self.test_training_log(estimator_list=["catboost"])
-        self.test_training_log(estimator_list=["extra_tree"])
-        self.test_training_log(estimator_list=["rf"])
-        self.test_training_log(estimator_list=["lgbm"])
+        try:
+            import ray
+
+            ray.shutdown()
+            ray.init()
+            use_ray = True
+        except ImportError:
+            use_ray = False
+        self.test_training_log(estimator_list=["xgboost"], use_ray=use_ray)
+        self.test_training_log(estimator_list=["catboost"], use_ray=use_ray)
+        self.test_training_log(estimator_list=["extra_tree"], use_ray=use_ray)
+        self.test_training_log(estimator_list=["rf"], use_ray=use_ray)
+        self.test_training_log(estimator_list=["lgbm"], use_ray=use_ray)

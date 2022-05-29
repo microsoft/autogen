@@ -1,5 +1,6 @@
 import sys
 import pytest
+from utils import get_toy_data_seqclassification, get_automl_settings
 
 
 def custom_metric(
@@ -19,8 +20,7 @@ def custom_metric(
     from flaml.model import TransformersEstimator
 
     if estimator._trainer is None:
-        estimator._init_model_for_predict(X_test)
-        trainer = estimator._trainer
+        trainer = estimator._init_model_for_predict()
         estimator._trainer = None
     else:
         trainer = estimator._trainer
@@ -43,48 +43,32 @@ def custom_metric(
 def test_custom_metric():
     from flaml import AutoML
     import requests
-    from datasets import load_dataset
 
-    try:
-        train_dataset = (
-            load_dataset("glue", "mrpc", split="train").to_pandas().iloc[0:4]
-        )
-        dev_dataset = load_dataset("glue", "mrpc", split="train").to_pandas().iloc[0:4]
-    except requests.exceptions.ConnectionError:
-        return
-
-    custom_sent_keys = ["sentence1", "sentence2"]
-    label_key = "label"
-
-    X_train = train_dataset[custom_sent_keys]
-    y_train = train_dataset[label_key]
-
-    X_val = dev_dataset[custom_sent_keys]
-    y_val = dev_dataset[label_key]
-
+    X_train, y_train, X_val, y_val, X_test = get_toy_data_seqclassification()
     automl = AutoML()
 
-    # testing when max_iter=1 and do retrain only without hpo
+    try:
+        import ray
 
-    automl_settings = {
-        "gpu_per_trial": 0,
-        "max_iter": 1,
-        "time_budget": 5,
-        "task": "seq-classification",
-        "metric": custom_metric,
-        "log_file_name": "seqclass.log",
-    }
+        if not ray.is_initialized():
+            ray.init()
+    except ImportError:
+        return
 
-    automl_settings["custom_hpo_args"] = {
-        "model_path": "google/electra-small-discriminator",
-        "output_dir": "data/output/",
-        "ckpt_per_epoch": 5,
-        "fp16": False,
-    }
+    automl_settings = get_automl_settings()
+    automl_settings["metric"] = custom_metric
+    automl_settings["use_ray"] = {"local_dir": "data/output/"}
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    try:
+        automl.fit(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_val,
+            y_val=y_val,
+            **automl_settings
+        )
+    except requests.exceptions.HTTPError:
+        return
 
     # testing calling custom metric in TransformersEstimator._compute_metrics_by_dataset_name
 
@@ -92,6 +76,8 @@ def test_custom_metric():
     automl.fit(
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
+    automl.score(X_val, y_val, **{"metric": custom_metric})
+    automl.pickle("automl.pkl")
 
     del automl
 

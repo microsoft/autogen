@@ -94,4 +94,5 @@ class TrainerForAuto(Seq2SeqTrainer):
         else:
             self.ckpt_to_global_step = {ckpt_dir: self.state.global_step}
             self.ckpt_to_metric = {ckpt_dir: metrics} if metrics else {}
+
         return metrics

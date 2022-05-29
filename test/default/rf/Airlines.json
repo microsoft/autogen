@@ -1,0 +1,1 @@
+{"class": "rf", "hyperparameters": {"n_estimators": 418, "max_features": 0.5303485415288045, "max_leaves": 6452, "criterion": "entropy", "FLAML_sample_size": 436899}}

@@ -12,7 +12,7 @@ from flaml.model import (
     RandomForestEstimator,
     Prophet,
     ARIMA,
-    LGBM_TS_Regressor,
+    LGBM_TS,
 )
 
 
@@ -98,7 +98,7 @@ def test_prep():
         # X_test needs to be either a pandas Dataframe with dates as the first column or an int number of periods for predict().
         pass
 
-    lgbm = LGBM_TS_Regressor(optimize_for_horizon=True, lags=1)
+    lgbm = LGBM_TS(optimize_for_horizon=True, lags=1)
     X = DataFrame(
         {
             "A": [

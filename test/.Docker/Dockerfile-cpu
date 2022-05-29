@@ -1,8 +1,8 @@
-FROM python:3.7
+FROM mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
 
 RUN pip install azureml-core
 RUN pip install flaml[blendsearch,ray]
-
+RUN pip install ray-on-aml
 
 EXPOSE 8265
 EXPOSE 6379

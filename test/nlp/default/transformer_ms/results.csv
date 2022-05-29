@@ -1,0 +1,26 @@
+task,fold,type,result,params
+glue-rte-,0,seq-classification,0.946366,{'_modeljson': 'transformer_ms/glue-rte-.json'}
+glue-rte-,0,seq-classification,0.957774,{'_modeljson': 'transformer_ms/glue-mrpc-.json'}
+glue-rte-,0,seq-classification,0.901643,{'_modeljson': 'transformer_ms/glue-cola-.json'}
+glue-rte-,0,seq-classification,0.915098,{'_modeljson': 'transformer_ms/glue-qnli-.json'}
+glue-rte-,0,seq-classification,0.302328,{'_modeljson': 'transformer_ms/glue-sst2-.json'}
+glue-mrpc-,0,seq-classification,0.937203,{'_modeljson': 'transformer_ms/glue-rte-.json'}
+glue-mrpc-,0,seq-classification,0.932072,{'_modeljson': 'transformer_ms/glue-mrpc-.json'}
+glue-mrpc-,0,seq-classification,0.926563,{'_modeljson': 'transformer_ms/glue-cola-.json'}
+glue-mrpc-,0,seq-classification,0.928604,{'_modeljson': 'transformer_ms/glue-qnli-.json'}
+glue-mrpc-,0,seq-classification,0.911171,{'_modeljson': 'transformer_ms/glue-sst2-.json'}
+glue-cola-,0,seq-classification,0.705404,{'_modeljson': 'transformer_ms/glue-rte-.json'}
+glue-cola-,0,seq-classification,0.714521,{'_modeljson': 'transformer_ms/glue-mrpc-.json'}
+glue-cola-,0,seq-classification,0.732288,{'_modeljson': 'transformer_ms/glue-cola-.json'}
+glue-cola-,0,seq-classification,0.710273,{'_modeljson': 'transformer_ms/glue-qnli-.json'}
+glue-cola-,0,seq-classification,0.707107,{'_modeljson': 'transformer_ms/glue-sst2-.json'}
+glue-qnli-,0,seq-classification,0.744825,{'_modeljson': 'transformer_ms/glue-rte-.json'}
+glue-qnli-,0,seq-classification,0.758979,{'_modeljson': 'transformer_ms/glue-mrpc-.json'}
+glue-qnli-,0,seq-classification,0.758364,{'_modeljson': 'transformer_ms/glue-cola-.json'}
+glue-qnli-,0,seq-classification,0.770923,{'_modeljson': 'transformer_ms/glue-qnli-.json'}
+glue-qnli-,0,seq-classification,0.745091,{'_modeljson': 'transformer_ms/glue-sst2-.json'}
+glue-sst2-,0,seq-regression,0.754523,{'_modeljson': 'transformer_ms/glue-rte-.json'}
+glue-sst2-,0,seq-regression,0.759939,{'_modeljson': 'transformer_ms/glue-mrpc-.json'}
+glue-sst2-,0,seq-regression,0.765119,{'_modeljson': 'transformer_ms/glue-cola-.json'}
+glue-sst2-,0,seq-regression,0.745067,{'_modeljson': 'transformer_ms/glue-qnli-.json'}
+glue-sst2-,0,seq-regression,0.762311,{'_modeljson': 'transformer_ms/glue-sst2-.json'}

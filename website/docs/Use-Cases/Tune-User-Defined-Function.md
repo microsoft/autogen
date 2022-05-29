@@ -4,7 +4,8 @@
 
 1. Your machine learning task is not one of the built-in tasks from `flaml.AutoML`.
 1. Your input cannot be represented as X_train + y_train or dataframe + label.
-1. You want to tune a function that may not even be a machine learning procedure.
+1. The optimization metric is not measurable via validation data only. For example, when you want to directly optimize a downstream application instead of a model accuracy metric.
+1. You need to tune a function that may not even be a machine learning procedure.
 
 ## Basic Tuning Procedure
 
@@ -43,7 +44,7 @@ def evaluate_config(config: dict):
     # we can return a single float as a score on the input config:
     # return score
     # or, we can return a dictionary that maps metric name to metric value:
-    return {"score": score, "evaluation_cost": faked_evaluation_cost, "constraint_metric": x * y}
+    return {"score": score, "evaluation_cost": faked_evaluation_cost, "constraint_metric": config["x"] * config["y"]}
 ```
 
 When the evaluation function returns a dictionary of metrics, you need to specify the name of the metric to optimize via the argument `metric` (this can be skipped when the function is just returning a scalar). In addition, you need to specify a mode of your optimization/tuning task (maximization or minimization) via the argument `mode` by choosing from "min" or "max".
@@ -232,7 +233,7 @@ flaml.tune.run(evaluation_function=evaluate_config, mode="min",
                metric_constraints=[("score", "<=", 0.4)],...)
 ```
 
-### Paralle tuning
+### Parallel tuning
 
 Related arguments:
 
@@ -350,7 +351,9 @@ tune.run(.., scheduler=my_scheduler, ...)
 ```
 - Similar to the case where the `flaml` scheduler is used, you need to specify the resource dimension, use the resource dimension accordingly in your `evaluation_function`, and provide the necessary information needed for scheduling, such as `min_resource`, `max_resource` and `reduction_factor` (depending on the requirements of the specific scheduler).
 
-- Different from the case when the `flaml` scheduler is used, the amount of resources to use at each iteration is not suggested by the search algorithm through the `resource_attr` in a configuration. You need to specify the evaluation schedule explicitly by yourself in the `evaluation_function` and report intermediate results (using `tune.report()`) accordingly. In the following code example, we use the ASHA scheduler by setting `scheduler="asha"`, we specify `resource_attr`, `min_resource`, `min_resource` and `reduction_factor` the same way as in the previous example (when "flaml" is used as the scheduler). We perform the evaluation in a customized schedule.
+- Different from the case when the `flaml` scheduler is used, the amount of resources to use at each iteration is not suggested by the search algorithm through the `resource_attr` in a configuration. You need to specify the evaluation schedule explicitly by yourself in the `evaluation_function` and **report intermediate results (using `tune.report()`) accordingly**. In the following code example, we use the ASHA scheduler by setting `scheduler="asha"`. We specify `resource_attr`, `min_resource`, `min_resource` and `reduction_factor` the same way as in the previous example (when "flaml" is used as the scheduler). We perform the evaluation in a customized schedule.
+
+- Use ray backend or not? You can choose to use ray backend or not by specifying `use_ray=True` or  `use_ray=False`. When ray backend is not used, i.e., `use_ray=False`, you also need to stop the evaluation function by explicitly catching the `StopIteration` exception, as shown in the last two lines of the evaluation function `obj_w_intermediate_report()` in the following code example.
 
 ```python
 def obj_w_intermediate_report(resource_attr, X_train, X_test, y_train, y_test, min_resource, max_resource, config):
@@ -370,7 +373,10 @@ def obj_w_intermediate_report(resource_attr, X_train, X_test, y_train, y_test, m
         y_test_predict = model.predict(X_test)
         test_loss = 1.0 - accuracy_score(y_test, y_test_predict)
         # need to report the resource attribute used and the corresponding intermediate results
-        tune.report(sample_size=resource, loss=test_loss)
+        try:
+            tune.report(sample_size=resource, loss=test_loss)
+        except StopIteration:
+            return
 
 resource_attr = "sample_size"
 min_resource = 1000
@@ -398,7 +404,7 @@ analysis = tune.run(
 Related arguments:
 
 - `points_to_evaluate`: A list of initial hyperparameter configurations to run first.
-- `evaluated_rewards`: If you have previously evaluated the parameters passed in as `points_to_evaluate` , you can avoid re-running those trials by passing in the reward attributes as a list so the optimizer can be told the results without needing to re-compute the trial. Must be the same length as `points_to_evaluate`.
+- `evaluated_rewards`: If you have previously evaluated the parameters passed in as `points_to_evaluate` , you can avoid re-running those trials by passing in the reward attributes as a list so the optimizer can be told the results without needing to re-compute the trial. Must be the same length or shorter length than `points_to_evaluate`.
 
 If you are aware of some good hyperparameter configurations, you are encouraged to provide them via `points_to_evaluate`. The search algorithm will try them first and use them to bootstrap the search.
 
@@ -420,6 +426,8 @@ config_search_space = {
 points_to_evaluate = [
     {"b": .99, "a": 3},
     {"b": .99, "a": 2},
+    {"b": .80, "a": 3},
+    {"b": .80, "a": 2},
 ]
 evaluated_rewards = [3.99, 2.99]
 

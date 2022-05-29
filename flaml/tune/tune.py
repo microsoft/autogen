@@ -10,7 +10,7 @@ import time
 try:
     from ray import __version__ as ray_version
 
-    assert ray_version >= "1.0.0"
+    assert ray_version >= "1.10.0"
     from ray.tune.analysis import ExperimentAnalysis as EA
 
     ray_import = True
@@ -18,6 +18,7 @@ except (ImportError, AssertionError):
     ray_import = False
     from .analysis import ExperimentAnalysis as EA
 
+from .trial import Trial
 from .result import DEFAULT_METRIC
 import logging
 
@@ -46,6 +47,7 @@ class ExperimentAnalysis(EA):
 
 
 def report(_metric=None, **kwargs):
+
     """A function called by the HPO application to report final or intermediate
     results.
 
@@ -77,6 +79,10 @@ def report(_metric=None, **kwargs):
         _metric: Optional default anonymous metric for ``tune.report(value)``.
             (For compatibility with ray.tune.report)
         **kwargs: Any key value pair to be reported.
+
+    Raises:
+        StopIteration (when not using ray, i.e., _use_ray=False):
+            A StopIteration exception is raised if the trial has been signaled to stop.
     """
     global _use_ray
     global _verbose
@@ -90,7 +96,9 @@ def report(_metric=None, **kwargs):
         result = kwargs
         if _metric:
             result[DEFAULT_METRIC] = _metric
-        trial = _runner.running_trial
+        trial = getattr(_runner, "running_trial", None)
+        if not trial:
+            return None
         if _running_trial == trial:
             _training_iteration += 1
         else:
@@ -102,14 +110,11 @@ def report(_metric=None, **kwargs):
             del result["config"][INCUMBENT_RESULT]
         for key, value in trial.config.items():
             result["config/" + key] = value
-        _runner.process_trial_result(_runner.running_trial, result)
-        result["time_total_s"] = trial.last_update_time - trial.start_time
+        _runner.process_trial_result(trial, result)
         if _verbose > 2:
             logger.info(f"result: {result}")
-        if _runner.running_trial.is_finished():
-            return None
-        else:
-            return True
+        if trial.is_finished():
+            raise StopIteration
 
 
 def run(
@@ -153,6 +158,12 @@ def run(
         metric2minimize = (round(config['x'])-95000)**2
         time2eval = time.time() - current_time
         tune.report(metric2minimize=metric2minimize, time2eval=time2eval)
+        # if the evaluation fails unexpectedly and the exception is caught,
+        # and it doesn't inform the goodness of the config,
+        # return {}
+        # if the failure indicates a config is bad,
+        # report a bad metric value like np.inf or -np.inf
+        # depending on metric mode being min or max
 
     analysis = tune.run(
         compute_with_config,
@@ -193,7 +204,7 @@ def run(
             parameters passed in as points_to_evaluate you can avoid
             re-running those trials by passing in the reward attributes
             as a list so the optimiser can be told the results without
-            needing to re-compute the trial. Must be the same length as
+            needing to re-compute the trial. Must be the same or shorter length than
             points_to_evaluate.
             e.g.,
 
@@ -202,12 +213,11 @@ def run(
         {"b": .99, "cost_related": {"a": 3}},
         {"b": .99, "cost_related": {"a": 2}},
     ]
-    evaluated_rewards=[3.0, 1.0]
+    evaluated_rewards = [3.0]
     ```
 
-            means that you know the reward for the two configs in
-            points_to_evaluate are 3.0 and 1.0 respectively and want to
-            inform run().
+            means that you know the reward for the first config in
+            points_to_evaluate is 3.0 and want to inform run().
 
         resource_attr: A string to specify the resource dimension used by
             the scheduler via "scheduler".
@@ -216,7 +226,7 @@ def run(
         reduction_factor: A float of the reduction factor used for incremental
             pruning.
         scheduler: A scheduler for executing the experiment. Can be None, 'flaml',
-            'asha' or a custom instance of the TrialScheduler class. Default is None:
+            'asha' (or  'async_hyperband', 'asynchyperband') or a custom instance of the TrialScheduler class. Default is None:
             in this case when resource_attr is provided, the 'flaml' scheduler will be
             used, otherwise no scheduler will be used. When set 'flaml', an
             authentic scheduler implemented in FLAML will be used. It does not
@@ -229,9 +239,22 @@ def run(
             respectively. You can also provide a self-defined scheduler instance
             of the TrialScheduler class. When 'asha' or self-defined scheduler is
             used, you usually need to report intermediate results in the evaluation
-            function. Please find examples using different types of schedulers
+            function via 'tune.report()'. In addition, when 'use_ray' is not enabled,
+            you also need to stop the evaluation function by explicitly catching the
+            `StopIteration` exception, as shown in the following example.
+            Please find more examples using different types of schedulers
             and how to set up the corresponding evaluation functions in
-            test/tune/test_scheduler.py. TODO: point to notebook examples.
+            test/tune/test_scheduler.py, and test/tune/example_scheduler.py.
+    ```python
+    def easy_objective(config):
+        width, height = config["width"], config["height"]
+        for step in range(config["steps"]):
+            intermediate_score = evaluation_fn(step, width, height)
+            try:
+                tune.report(iterations=step, mean_loss=intermediate_score)
+            except StopIteration:
+                return
+    ```
         search_alg: An instance of BlendSearch as the search algorithm
             to be used. The same instance can be used for iterative tuning.
             e.g.,
@@ -254,7 +277,9 @@ def run(
             used; or a local dir to save the tuning log.
         num_samples: An integer of the number of configs to try. Defaults to 1.
         resources_per_trial: A dictionary of the hardware resources to allocate
-            per trial, e.g., `{'cpu': 1}`. Only valid when using ray backend.
+            per trial, e.g., `{'cpu': 1}`. It is only valid when using ray backend
+            (by setting 'use_ray = True'). It shall be used when you need to do
+            [parallel tuning](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#parallel-tuning).
         config_constraints: A list of config constraints to be satisfied.
             e.g., ```config_constraints = [(mem_size, '<=', 1024**3)]```
 
@@ -307,8 +332,7 @@ def run(
             flaml_scheduler_min_resource
         ) = flaml_scheduler_max_resource = flaml_scheduler_reduction_factor = None
         if scheduler in (None, "flaml"):
-
-            # when scheduler is set 'flaml', we will use a scheduler that is
+            # when scheduler is set 'flaml' or None, we will use a scheduler that is
             # authentic to the search algorithms in flaml. After setting up
             # the search algorithm accordingly, we need to set scheduler to
             # None in case it is later used in the trial runner.
@@ -347,7 +371,7 @@ def run(
         )
     else:
         if metric is None or mode is None:
-            metric = metric or search_alg.metric
+            metric = metric or search_alg.metric or DEFAULT_METRIC
             mode = mode or search_alg.mode
         if ray_import:
             from ray.tune.suggest import ConcurrencyLimiter
@@ -379,7 +403,7 @@ def run(
             searcher.set_search_properties(metric, mode, config, setting)
         else:
             searcher.set_search_properties(metric, mode, config)
-    if scheduler == "asha":
+    if scheduler in ("asha", "asynchyperband", "async_hyperband"):
         params = {}
         # scheduler resource_dimension=resource_attr
         if resource_attr:
@@ -448,7 +472,11 @@ def run(
             result = evaluation_function(trial_to_run.config)
             if result is not None:
                 if isinstance(result, dict):
-                    report(**result)
+                    if result:
+                        report(**result)
+                    else:
+                        # When the result returned is an empty dict, set the trial status to error
+                        trial_to_run.set_status(Trial.ERROR)
                 else:
                     report(_metric=result)
             _runner.stop_trial(trial_to_run)

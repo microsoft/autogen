@@ -11,7 +11,7 @@ import pickle
 try:
     from ray import __version__ as ray_version
 
-    assert ray_version >= "1.0.0"
+    assert ray_version >= "1.10.0"
     from ray.tune.suggest import Searcher
     from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
 except (ImportError, AssertionError):
@@ -79,8 +79,8 @@ class BlendSearch(Searcher):
                 parameters passed in as points_to_evaluate you can avoid
                 re-running those trials by passing in the reward attributes
                 as a list so the optimiser can be told the results without
-                needing to re-compute the trial. Must be the same length as
-                points_to_evaluate.
+                needing to re-compute the trial. Must be the same or shorter length than
+                points_to_evaluate. When provided, `mode` must be specified.
             time_budget_s: int or float | Time budget in seconds.
             num_samples: int | The number of configs to try.
             resource_attr: A string to specify the resource dimension and the best
@@ -115,9 +115,14 @@ class BlendSearch(Searcher):
                 "'low_cost_partial_config'. More info can be found at "
                 "https://microsoft.github.io/FLAML/docs/FAQ#about-low_cost_partial_config-in-tune"
             )
-        if evaluated_rewards and mode:
+        if evaluated_rewards:
+            assert mode, "mode must be specified when evaluted_rewards is provided."
             self._points_to_evaluate = []
             self._evaluated_rewards = []
+            n = len(evaluated_rewards)
+            self._evaluated_points = points_to_evaluate[:n]
+            new_points_to_evaluate = points_to_evaluate[n:]
+            self._all_rewards = evaluated_rewards
             best = max(evaluated_rewards) if mode == "max" else min(evaluated_rewards)
             # only keep the best points as start points
             for i, r in enumerate(evaluated_rewards):
@@ -125,12 +130,16 @@ class BlendSearch(Searcher):
                     p = points_to_evaluate[i]
                     self._points_to_evaluate.append(p)
                     self._evaluated_rewards.append(r)
+            self._points_to_evaluate.extend(new_points_to_evaluate)
         else:
             self._points_to_evaluate = points_to_evaluate or []
             self._evaluated_rewards = evaluated_rewards or []
         self._config_constraints = config_constraints
         self._metric_constraints = metric_constraints
-        if self._metric_constraints:
+        if metric_constraints:
+            assert all(
+                x[1] in ["<=", ">="] for x in metric_constraints
+            ), "sign of metric constraints must be <= or >=."
             # metric modified by lagrange
             metric += self.lagrange
         self._cat_hp_cost = cat_hp_cost or {}
@@ -168,16 +177,17 @@ class BlendSearch(Searcher):
             else:
                 sampler = None
             try:
+                assert evaluated_rewards
                 self._gs = GlobalSearch(
                     space=gs_space,
                     metric=metric,
                     mode=mode,
                     seed=gs_seed,
                     sampler=sampler,
-                    points_to_evaluate=points_to_evaluate,
+                    points_to_evaluate=self._evaluated_points,
                     evaluated_rewards=evaluated_rewards,
                 )
-            except ValueError:
+            except (AssertionError, ValueError):
                 self._gs = GlobalSearch(
                     space=gs_space,
                     metric=metric,
@@ -301,7 +311,7 @@ class BlendSearch(Searcher):
         )
         self._gs_admissible_min = self._ls_bound_min.copy()
         self._gs_admissible_max = self._ls_bound_max.copy()
-        self._result = {}  # config_signature: tuple -> result: Dict
+
         if self._metric_constraints:
             self._metric_constraint_satisfied = False
             self._metric_constraint_penalty = [
@@ -311,6 +321,14 @@ class BlendSearch(Searcher):
             self._metric_constraint_satisfied = True
             self._metric_constraint_penalty = None
         self.best_resource = self._ls.min_resource
+        i = 0
+        # config_signature: tuple -> result: Dict
+        self._result = {}
+        while self._evaluated_rewards:
+            # go over the evaluated rewards
+            trial_id = f"trial_for_evaluated_{i}"
+            self.suggest(trial_id)
+            i += 1
 
     def save(self, checkpoint_path: str):
         """save states to a checkpoint path."""
@@ -348,7 +366,6 @@ class BlendSearch(Searcher):
                 metric_constraint, sign, threshold = constraint
                 value = result.get(metric_constraint)
                 if value:
-                    # sign is <= or >=
                     sign_op = 1 if sign == "<=" else -1
                     violation = (value - threshold) * sign_op
                     if violation > 0:
@@ -705,8 +722,8 @@ class BlendSearch(Searcher):
             config, space = self._ls.complete_config(
                 init_config, self._ls_bound_min, self._ls_bound_max
             )
+            config_signature = self._ls.config_signature(config, space)
             if reward is None:
-                config_signature = self._ls.config_signature(config, space)
                 result = self._result.get(config_signature)
                 if result:  # tried before
                     return None
@@ -720,6 +737,7 @@ class BlendSearch(Searcher):
             self._subspace[trial_id] = space
             if reward is not None:
                 result = {self._metric: reward, self.cost_attr: 1, "config": config}
+                # result = self._result[config_signature]
                 self.on_trial_complete(trial_id, result)
                 return None
         if self._use_incumbent_result_in_evaluation:
@@ -849,11 +867,20 @@ class BlendSearch(Searcher):
                     return False
         return True
 
+    @property
+    def results(self) -> List[Dict]:
+        """A list of dicts of results for each evaluated configuration.
+
+        Each dict has "config" and metric names as keys.
+        The returned dict includes the initial results provided via `evaluated_reward`.
+        """
+        return [x for x in getattr(self, "_result", {}).values() if x]
+
 
 try:
     from ray import __version__ as ray_version
 
-    assert ray_version >= "1.0.0"
+    assert ray_version >= "1.10.0"
     from ray.tune import (
         uniform,
         quniform,

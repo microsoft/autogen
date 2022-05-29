@@ -6,14 +6,13 @@ import os
 from sklearn.model_selection import train_test_split
 import sklearn.metrics
 import sklearn.datasets
+import xgboost as xgb
+import logging
 
 try:
     from ray.tune.integration.xgboost import TuneReportCheckpointCallback
 except ImportError:
     print("skip test_xgboost because ray tune cannot be imported.")
-import xgboost as xgb
-
-import logging
 
 logger = logging.getLogger(__name__)
 os.makedirs("logs", exist_ok=True)
@@ -64,10 +63,8 @@ def _test_xgboost(method="BlendSearch"):
     max_iter = 10
     for num_samples in [128]:
         time_budget_s = 60
-        for n_cpu in [4]:
+        for n_cpu in [2]:
             start_time = time.time()
-            ray.shutdown()
-            ray.init(num_cpus=n_cpu, num_gpus=0)
             # ray.init(address='auto')
             if method == "BlendSearch":
                 analysis = tune.run(
@@ -169,7 +166,6 @@ def _test_xgboost(method="BlendSearch"):
                     scheduler=scheduler,
                     search_alg=algo,
                 )
-            ray.shutdown()
             # # Load the best model checkpoint
             # import os
             # best_bst = xgb.Booster()
@@ -227,26 +223,27 @@ def test_nested():
     logger.info(f"CFO best config: {best_trial.config}")
     logger.info(f"CFO best result: {best_trial.last_result}")
 
+    bs = BlendSearch(
+        experimental=True,
+        space=search_space,
+        metric="obj",
+        mode="min",
+        low_cost_partial_config={"cost_related": {"a": 1}},
+        points_to_evaluate=[
+            {"b": 0.99, "cost_related": {"a": 3}},
+            {"b": 0.99, "cost_related": {"a": 2}},
+            {"cost_related": {"a": 8}},
+        ],
+        metric_constraints=[("ab", "<=", 4)],
+    )
     analysis = tune.run(
         simple_func,
-        search_alg=BlendSearch(
-            experimental=True,
-            space=search_space,
-            metric="obj",
-            mode="min",
-            low_cost_partial_config={"cost_related": {"a": 1}},
-            points_to_evaluate=[
-                {"b": 0.99, "cost_related": {"a": 3}},
-                {"b": 0.99, "cost_related": {"a": 2}},
-                {"cost_related": {"a": 8}},
-            ],
-            metric_constraints=[("ab", "<=", 4)],
-        ),
+        search_alg=bs,
         local_dir="logs/",
         num_samples=-1,
         time_budget_s=1,
     )
-
+    print(bs.results)
     best_trial = analysis.get_best_trial()
     logger.info(f"BlendSearch exp best config: {best_trial.config}")
     logger.info(f"BlendSearch exp best result: {best_trial.last_result}")
@@ -254,6 +251,7 @@ def test_nested():
     points_to_evaluate = [
         {"b": 0.99, "cost_related": {"a": 3}},
         {"b": 0.99, "cost_related": {"a": 2}},
+        {"cost_related": {"a": 8}},
     ]
     analysis = tune.run(
         simple_func,
@@ -263,7 +261,7 @@ def test_nested():
         evaluated_rewards=[
             (config["cost_related"]["a"] - 4) ** 2
             + (config["b"] - config["cost_related"]["a"]) ** 2
-            for config in points_to_evaluate
+            for config in points_to_evaluate[:-1]
         ],
         metric="obj",
         mode="min",
@@ -309,6 +307,20 @@ def test_run_training_function_return_value():
             "y": tune.qlograndint(lower=2, upper=100000, q=2),
         },
         num_samples=100,
+        mode="max",
+    )
+
+    # Test empty return value
+    def evaluate_config_empty(config):
+        return {}
+
+    tune.run(
+        evaluate_config_empty,
+        config={
+            "x": tune.qloguniform(lower=1, upper=100000, q=1),
+            "y": tune.qlograndint(lower=2, upper=100000, q=2),
+        },
+        num_samples=10,
         mode="max",
     )
 

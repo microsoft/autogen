@@ -195,3 +195,20 @@ class ExperimentAnalysis:
         """
         best_trial = self.get_best_trial(metric, mode, scope)
         return best_trial.config if best_trial else None
+
+    @property
+    def best_result(self) -> Dict:
+        """Get the last result of the best trial of the experiment
+        The best trial is determined by comparing the last trial results
+        using the `metric` and `mode` parameters passed to `tune.run()`.
+        If you didn't pass these parameters, use
+        `get_best_trial(metric, mode, scope).last_result` instead.
+        """
+        if not self.default_metric or not self.default_mode:
+            raise ValueError(
+                "To fetch the `best_result`, pass a `metric` and `mode` "
+                "parameter to `tune.run()`. Alternatively, use "
+                "`get_best_trial(metric, mode).last_result` to set "
+                "the metric and mode explicitly and fetch the last result."
+            )
+        return self.best_trial.last_result

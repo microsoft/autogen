@@ -20,23 +20,24 @@ from sklearn.metrics import (
 from sklearn.model_selection import RepeatedStratifiedKFold, GroupKFold, TimeSeriesSplit
 from .model import (
     XGBoostSklearnEstimator,
-    XGBoost_TS_Regressor,
+    XGBoost_TS,
     XGBoostLimitDepthEstimator,
-    XGBoostLimitDepth_TS_Regressor,
+    XGBoostLimitDepth_TS,
     RandomForestEstimator,
-    RF_TS_Regressor,
+    RF_TS,
     LGBMEstimator,
-    LGBM_TS_Regressor,
+    LGBM_TS,
     LRL1Classifier,
     LRL2Classifier,
     CatBoostEstimator,
     ExtraTreesEstimator,
-    ExtraTrees_TS_Regressor,
+    ExtraTrees_TS,
     KNeighborsEstimator,
     Prophet,
     ARIMA,
     SARIMAX,
     TransformersEstimator,
+    TransformersEstimatorModelSelection,
 )
 from .data import CLASSIFICATION, group_counts, TS_FORECAST, TS_VALUE_COL
 import logging
@@ -94,21 +95,15 @@ huggingface_submetric_to_metric = {"rouge1": "rouge", "rouge2": "rouge"}
 def get_estimator_class(task, estimator_name):
     # when adding a new learner, need to add an elif branch
     if "xgboost" == estimator_name:
-        estimator_class = (
-            XGBoost_TS_Regressor if TS_FORECAST == task else XGBoostSklearnEstimator
-        )
+        estimator_class = XGBoost_TS if task in TS_FORECAST else XGBoostSklearnEstimator
     elif "xgb_limitdepth" == estimator_name:
         estimator_class = (
-            XGBoostLimitDepth_TS_Regressor
-            if TS_FORECAST == task
-            else XGBoostLimitDepthEstimator
+            XGBoostLimitDepth_TS if task in TS_FORECAST else XGBoostLimitDepthEstimator
         )
     elif "rf" == estimator_name:
-        estimator_class = (
-            RF_TS_Regressor if TS_FORECAST == task else RandomForestEstimator
-        )
+        estimator_class = RF_TS if task in TS_FORECAST else RandomForestEstimator
     elif "lgbm" == estimator_name:
-        estimator_class = LGBM_TS_Regressor if TS_FORECAST == task else LGBMEstimator
+        estimator_class = LGBM_TS if task in TS_FORECAST else LGBMEstimator
     elif "lrl1" == estimator_name:
         estimator_class = LRL1Classifier
     elif "lrl2" == estimator_name:
@@ -116,9 +111,7 @@ def get_estimator_class(task, estimator_name):
     elif "catboost" == estimator_name:
         estimator_class = CatBoostEstimator
     elif "extra_tree" == estimator_name:
-        estimator_class = (
-            ExtraTrees_TS_Regressor if TS_FORECAST == task else ExtraTreesEstimator
-        )
+        estimator_class = ExtraTrees_TS if task in TS_FORECAST else ExtraTreesEstimator
     elif "kneighbor" == estimator_name:
         estimator_class = KNeighborsEstimator
     elif "prophet" in estimator_name:
@@ -129,6 +122,8 @@ def get_estimator_class(task, estimator_name):
         estimator_class = SARIMAX
     elif estimator_name == "transformer":
         estimator_class = TransformersEstimator
+    elif estimator_name == "transformer_ms":
+        estimator_class = TransformersEstimatorModelSelection
     else:
         raise ValueError(
             estimator_name + " is not a built-in learner. "
@@ -170,7 +165,7 @@ def metric_loss_score(
                 import datasets
 
                 datasets_metric_name = huggingface_submetric_to_metric.get(
-                    metric_name, metric_name
+                    metric_name, metric_name.split(":")[0]
                 )
                 metric = datasets.load_metric(datasets_metric_name)
                 metric_mode = huggingface_metric_to_mode[datasets_metric_name]
@@ -179,17 +174,30 @@ def metric_loss_score(
                     score = metric.compute(predictions=y_predict, references=y_true)[
                         metric_name
                     ].mid.fmeasure
-                elif metric_name == "seqeval":
-                    y_true = [
-                        [x for x in each_y_true if x != -100] for each_y_true in y_true
+                elif metric_name.startswith("seqeval"):
+
+                    zip_pred_true = [
+                        [(p, lb) for (p, lb) in zip(prediction, label) if lb != -100]
+                        for (prediction, label) in zip(y_predict, y_true)
                     ]
                     y_pred = [
-                        y_predict[each_idx][: len(y_true[each_idx])]
-                        for each_idx in range(len(y_predict))
+                        [labels[p] for (p, l) in each_list]
+                        for each_list in zip_pred_true
+                    ]  # To compute precision and recall, y_pred and y_true must be converted to string labels
+                    # (B-PER, I-PER, etc.), so that the category-based precision/recall (i.e., PER, LOC, etc.) scores can be computed
+                    y_true = [
+                        [labels[l] for (p, l) in each_list]
+                        for each_list in zip_pred_true
                     ]
+
+                    metric_submetric_names = metric_name.split(":")
+
                     score = metric.compute(predictions=y_pred, references=y_true)[
-                        "overall_accuracy"
+                        metric_submetric_names[1]
+                        if len(metric_submetric_names) > 1
+                        else "overall_accuracy"
                     ]
+
                 else:
                     score = metric.compute(predictions=y_predict, references=y_true)[
                         metric_name
@@ -225,6 +233,13 @@ def metric_loss_score(
 
 def is_in_sklearn_metric_name_set(metric_name):
     return metric_name.startswith("ndcg") or metric_name in sklearn_metric_name_set
+
+
+def is_min_metric(metric_name):
+    return (
+        metric_name in ["rmse", "mae", "mse", "log_loss", "mape"]
+        or huggingface_metric_to_mode.get(metric_name, None) == "min"
+    )
 
 
 def sklearn_metric_loss_score(
@@ -405,6 +420,7 @@ def get_val_loss(
     #     fit_kwargs['groups_val'] = groups_val
     #     fit_kwargs['X_val'] = X_val
     #     fit_kwargs['y_val'] = y_val
+
     estimator.fit(X_train, y_train, budget, **fit_kwargs)
     val_loss, metric_for_logging, pred_time, _ = _eval_estimator(
         config,
@@ -451,9 +467,11 @@ def evaluate_model_CV(
     if task in CLASSIFICATION:
         labels = np.unique(y_train_all)
     else:
-        labels = None
+        labels = fit_kwargs.get(
+            "label_list"
+        )  # pass the label list on to compute the evaluation metric
     groups = None
-    shuffle = False if task == TS_FORECAST else True
+    shuffle = False if task in TS_FORECAST else True
     if isinstance(kf, RepeatedStratifiedKFold):
         kf = kf.split(X_train_split, y_train_split)
     elif isinstance(kf, GroupKFold):
@@ -536,10 +554,6 @@ def evaluate_model_CV(
         else:
             metric = total_metric / n
     pred_time /= n
-    # budget -= time.time() - start_time
-    # if val_loss < best_val_loss and budget > budget_per_train:
-    #     estimator.cleanup()
-    #     estimator.fit(X_train_all, y_train_all, budget, **fit_kwargs)
     return val_loss, metric, train_time, pred_time
 
 
@@ -569,6 +583,12 @@ def compute_estimator(
         task=task,
         n_jobs=n_jobs,
     )
+
+    if isinstance(estimator, TransformersEstimator):
+        fit_kwargs["metric"] = eval_metric
+        fit_kwargs["X_val"] = X_val
+        fit_kwargs["y_val"] = y_val
+
     if "holdout" == eval_method:
         val_loss, metric_for_logging, train_time, pred_time = get_val_loss(
             config_dic,
@@ -581,6 +601,9 @@ def compute_estimator(
             groups_val,
             eval_metric,
             task,
+            labels=fit_kwargs.get(
+                "label_list"
+            ),  # pass the label list on to compute the evaluation metric
             budget=budget,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
@@ -599,6 +622,10 @@ def compute_estimator(
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
         )
+
+    if isinstance(estimator, TransformersEstimator):
+        del fit_kwargs["metric"], fit_kwargs["X_val"], fit_kwargs["y_val"]
+
     return estimator, val_loss, metric_for_logging, train_time, pred_time
 
 
@@ -612,6 +639,7 @@ def train_estimator(
     estimator_class=None,
     budget=None,
     fit_kwargs={},
+    eval_metric=None,
 ):
     start_time = time.time()
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
@@ -620,6 +648,9 @@ def train_estimator(
         task=task,
         n_jobs=n_jobs,
     )
+    if isinstance(estimator, TransformersEstimator):
+        fit_kwargs["metric"] = eval_metric
+
     if X_train is not None:
         train_time = estimator.fit(X_train, y_train, budget, **fit_kwargs)
     else:
@@ -632,7 +663,7 @@ def get_classification_objective(num_labels: int) -> str:
     if num_labels == 2:
         objective_name = "binary"
     else:
-        objective_name = "multi"
+        objective_name = "multiclass"
     return objective_name
 
 
