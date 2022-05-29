@@ -547,7 +547,6 @@ class TransformersEstimator(BaseEstimator):
                 add_prefix_space=True
                 if "roberta" in self._training_args.model_path
                 else False,  # If roberta model, must set add_prefix_space to True to avoid the assertion error at
-
                 # https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/tokenization_roberta_fast.py#L249
             )
 
@@ -956,10 +955,6 @@ class LGBMEstimator(BaseEstimator):
                 "domain": tune.loguniform(lower=1 / 1024, upper=1.0),
                 "init_value": 0.1,
             },
-            # 'subsample': {
-            #     'domain': tune.uniform(lower=0.1, upper=1.0),
-            #     'init_value': 1.0,
-            # },
             "log_max_bin": {  # log transformed with base 2
                 "domain": tune.lograndint(lower=3, upper=11),
                 "init_value": 8,

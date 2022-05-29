@@ -25,9 +25,14 @@ def meta_feature(task, X_train, y_train, meta_feature_names):
         elif each_feature_name == "NumberOfClasses":
             this_feature.append(len(np.unique(y_train)) if is_classification else 0)
         elif each_feature_name == "PercentageOfNumericFeatures":
-            this_feature.append(
-                X_train.select_dtypes(include=np.number).shape[1] / n_feat
-            )
+            try:
+                # this is feature is only supported for dataframe
+                this_feature.append(
+                    X_train.select_dtypes(include=np.number).shape[1] / n_feat
+                )
+            except AttributeError:
+                # 'numpy.ndarray' object has no attribute 'select_dtypes'
+                this_feature.append(1)  # all features are numeric
         else:
             raise ValueError("Feature {} not implemented. ".format(each_feature_name))
 

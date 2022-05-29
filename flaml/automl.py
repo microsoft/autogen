@@ -164,6 +164,9 @@ class SearchState:
             assert (
                 "domain" in space
             ), f"{name}'s domain is missing in the search space spec {space}"
+            if space["domain"] is None:
+                # don't search this hp
+                continue
             self._search_space_domain[name] = space["domain"]
 
             if "low_cost_init_value" in space:
@@ -527,8 +530,8 @@ class AutoML(BaseEstimator):
                 Use all available resources when n_jobs == -1.
             log_file_name: A string of the log file name | default="". To disable logging,
                 set it to be an empty string "".
-            estimator_list: A list of strings for estimator names, or 'auto'
-                e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
+            estimator_list: A list of strings for estimator names, or 'auto'.
+                e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```.
             time_budget: A float number of the time budget in seconds.
                 Use -1 if no time limit.
             max_iter: An integer of the maximal number of iterations.
@@ -676,7 +679,8 @@ class AutoML(BaseEstimator):
         self._state = AutoMLState()
         self._state.learner_classes = {}
         self._settings = settings
-        settings["time_budget"] = settings.get("time_budget", 60)
+        # no budget by default
+        settings["time_budget"] = settings.get("time_budget", -1)
         settings["task"] = settings.get("task", "classification")
         settings["n_jobs"] = settings.get("n_jobs", -1)
         settings["eval_method"] = settings.get("eval_method", "auto")
@@ -686,7 +690,7 @@ class AutoML(BaseEstimator):
         settings["metric"] = settings.get("metric", "auto")
         settings["estimator_list"] = settings.get("estimator_list", "auto")
         settings["log_file_name"] = settings.get("log_file_name", "")
-        settings["max_iter"] = settings.get("max_iter", 1000000)
+        settings["max_iter"] = settings.get("max_iter")  # no budget by default
         settings["sample"] = settings.get("sample", True)
         settings["ensemble"] = settings.get("ensemble", False)
         settings["log_type"] = settings.get("log_type", "better")
@@ -2061,17 +2065,18 @@ class AutoML(BaseEstimator):
             task: A string of the task type, e.g.,
                 'classification', 'regression', 'ts_forecast_regression',
                 'ts_forecast_classification', 'rank', 'seq-classification',
-                'seq-regression', 'summarization'
+                'seq-regression', 'summarization'.
             n_jobs: An integer of the number of threads for training | default=-1.
                 Use all available resources when n_jobs == -1.
             log_file_name: A string of the log file name | default="". To disable logging,
                 set it to be an empty string "".
-            estimator_list: A list of strings for estimator names, or 'auto'
-                e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```
-
+            estimator_list: A list of strings for estimator names, or 'auto'.
+                e.g., ```['lgbm', 'xgboost', 'xgb_limitdepth', 'catboost', 'rf', 'extra_tree']```.
             time_budget: A float number of the time budget in seconds.
                 Use -1 if no time limit.
             max_iter: An integer of the maximal number of iterations.
+                NOTE: when both time_budget and max_iter are unspecified,
+                only one model will be trained per estimator.
             sample: A boolean of whether to sample the training data during
                 search.
             ensemble: boolean or dict | default=False. Whether to perform
@@ -2252,7 +2257,9 @@ class AutoML(BaseEstimator):
             else log_file_name
         )
         max_iter = self._settings.get("max_iter") if max_iter is None else max_iter
-        sample = self._settings.get("sample") if sample is None else sample
+        sample_is_none = sample is None
+        if sample_is_none:
+            sample = self._settings.get("sample")
         ensemble = self._settings.get("ensemble") if ensemble is None else ensemble
         log_type = log_type or self._settings.get("log_type")
         model_history = (
@@ -2280,11 +2287,9 @@ class AutoML(BaseEstimator):
         split_type = split_type or self._settings.get("split_type")
         hpo_method = hpo_method or self._settings.get("hpo_method")
         learner_selector = learner_selector or self._settings.get("learner_selector")
-        starting_points = (
-            self._settings.get("starting_points")
-            if starting_points is None
-            else starting_points
-        )
+        no_starting_points = starting_points is None
+        if no_starting_points:
+            starting_points = self._settings.get("starting_points")
         n_concurrent_trials = n_concurrent_trials or self._settings.get(
             "n_concurrent_trials"
         )
@@ -2296,6 +2301,8 @@ class AutoML(BaseEstimator):
         early_stop = (
             self._settings.get("early_stop") if early_stop is None else early_stop
         )
+        # no search budget is provided?
+        no_budget = time_budget == -1 and max_iter is None and not early_stop
         append_log = (
             self._settings.get("append_log") if append_log is None else append_log
         )
@@ -2373,14 +2380,6 @@ class AutoML(BaseEstimator):
 
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
-        )
-        self._state.retrain_final = (
-            retrain_full is True
-            and eval_method == "holdout"
-            and (self._state.X_val is None or self._use_ray is not False)
-            or eval_method == "cv"
-            and (max_iter > 0 or retrain_full is True)
-            or max_iter == 1
         )
         self._auto_augment = auto_augment
         self._min_sample_size = min_sample_size
@@ -2486,7 +2485,32 @@ class AutoML(BaseEstimator):
                             estimator_list += ["arima", "sarimax"]
                 elif "regression" != self._state.task:
                     estimator_list += ["lrl1"]
-
+        # When no search budget is specified
+        if no_budget:
+            max_iter = len(estimator_list)
+            self._learner_selector = "roundrobin"
+            if sample_is_none:
+                self._sample = False
+            if no_starting_points:
+                starting_points = "data"
+            logger.warning(
+                "No search budget is provided via time_budget or max_iter."
+                " Training only one model per estimator."
+                " To tune hyperparameters for each estimator,"
+                " please provide budget either via time_budget or max_iter."
+            )
+        elif max_iter is None:
+            # set to a large number
+            max_iter = 1000000
+        self._state.retrain_final = (
+            retrain_full is True
+            and eval_method == "holdout"
+            and (X_val is None or self._use_ray is not False)
+            or eval_method == "cv"
+            and (max_iter > 0 or retrain_full is True)
+            or max_iter == 1
+        )
+        # add custom learner
         for estimator_name in estimator_list:
             if estimator_name not in self._state.learner_classes:
                 self.add_learner(

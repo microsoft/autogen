@@ -19,7 +19,7 @@
     - 'token-classification': token classification.
     - 'multichoice-classification': multichoice classification.
 
-An optional input is `time_budget` for searching models and hyperparameters. When not specified, a default budget of 60 seconds will be used.
+Two optional inputs are `time_budget` and `max_iter` for searching models and hyperparameters. When both are unspecified, only one model per estimator will be trained (using our [zero-shot](Zero-Shot-AutoML) technique).
 
 A typical way to use `flaml.AutoML`:
 
@@ -39,7 +39,7 @@ with open("automl.pkl", "rb") as f:
 pred = automl.predict(X_test)
 ```
 
-If users provide the minimal inputs only, `AutoML` uses the default settings for time budget, optimization metric, estimator list etc.
+If users provide the minimal inputs only, `AutoML` uses the default settings for optimization metric, estimator list etc.
 
 ## Customize AutoML.fit()
 
@@ -191,9 +191,6 @@ Each estimator class, built-in or not, must have a `search_space` function. In t
 
 In the example above, we tune four hyperparameters, three integers and one float. They all follow a log-uniform distribution. "max_leaf" and "n_iter" have "low_cost_init_value" specified as their values heavily influence the training cost.
 
-
-
-
 To customize the search space for a built-in estimator, use a similar approach to define a class that inherits the existing estimator. For example,
 
 ```python
@@ -234,17 +231,46 @@ class XGBoost2D(XGBoostSklearnEstimator):
 
 We override the `search_space` function to tune two hyperparameters only, "n_estimators" and "max_leaves". They are both random integers in the log space, ranging from 4 to data-dependent upper bound. The lower bound for each corresponds to low training cost, hence the "low_cost_init_value" for each is set to 4.
 
+##### A shortcut to override the search space
+
+One can use the `custom_hp` argument in [`AutoML.fit()`](../reference/automl#fit) to override the search space for an existing estimator quickly. For example, if you would like to temporarily change the search range of "n_estimators" of xgboost, disable searching "max_leaves" in random forest, and add "subsample" in the search space of lightgbm, you can set:
+
+```python
+custom_hp = {
+    "xgboost": {
+        "n_estimators": {
+            "domain": tune.lograndint(lower=new_lower, upper=new_upper),
+            "low_cost_init_value": new_lower,
+        },
+    },
+    "rf": {
+        "max_leaves": {
+            "domain": None,  # disable search
+        },
+    },
+    "lgbm": {
+        "subsample": {
+            "domain": tune.uniform(lower=0.1, upper=1.0),
+            "init_value": 1.0,
+        },
+        "subsample_freq": {
+            "domain": 1,  # subsample_freq must > 0 to enable subsample
+        },
+    },
+}
+```
+
 ### Constraint
 
 There are several types of constraints you can impose.
 
-1. End-to-end constraints on the AutoML process.
+1. Constraints on the AutoML process.
 
 - `time_budget`: constrains the wall-clock time (seconds) used by the AutoML process. We provide some tips on [how to set time budget](#how-to-set-time-budget).
 
 - `max_iter`: constrains the maximal number of models to try in the AutoML process.
 
-2. Constraints on the (hyperparameters of) the estimators.
+2. Constraints on the constructor arguments of the estimators.
 
 Some constraints on the estimator can be implemented via the custom learner. For example,
 
@@ -255,7 +281,18 @@ class MonotonicXGBoostEstimator(XGBoostSklearnEstimator):
         return super().search_space(**args).update({"monotone_constraints": "(1, -1)"})
 ```
 
-It adds a monotonicity constraint to XGBoost. This approach can be used to set any constraint that is a parameter in the underlying estimator's constructor.
+It adds a monotonicity constraint to XGBoost. This approach can be used to set any constraint that is an argument in the underlying estimator's constructor.
+A shortcut to do this is to use the [`custom_hp`](#a-shortcut-to-override-the-search-space) argument:
+
+```python
+custom_hp = {
+    "xgboost": {
+        "monotone_constraints": {
+            "domain": "(1, -1)"  # fix the domain as a constant
+        }
+    }
+}
+```
 
 3. Constraints on the models tried in AutoML.
 
@@ -267,6 +304,7 @@ For example,
 ```python
 automl.fit(X_train, y_train, max_iter=100, train_time_limit=1, pred_time_limit=1e-3)
 ```
+
 4. Constraints on the metrics of the ML model tried in AutoML.
 
 When users provide a [custom metric function](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#optimization-metric), which returns a primary optimization metric and a dictionary of additional metrics (typically also about the model) to log, users can also specify constraints on one or more of the metrics in the dictionary of additional metrics.
