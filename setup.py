@@ -33,6 +33,10 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/FLAML",
     packages=setuptools.find_packages(include=["flaml*"]),
+    package_data={
+        "flaml.default": ["*/*.json"],
+    },
+    include_package_data=True,
     install_requires=install_requires,
     extras_require={
         "notebook": [
