@@ -18,6 +18,37 @@ Currently FLAML does several things for imbalanced data.
 2. We use stratified sampling when doing holdout and kf.
 3. We make sure no class is empty in both training and holdout data.
 4. We allow users to pass `sample_weight` to `AutoML.fit()`.
+5. User can customize the weight of each class by setting the `custom_hp` or `fit_kwargs_by_estimator` arguments. For example, the following code sets the weight for pos vs. neg as 2:1 for the RandomForest estimator:
+
+```python
+from flaml import AutoML
+from sklearn.datasets import load_iris
+
+X_train, y_train = load_iris(return_X_y=True)
+automl = AutoML()
+automl_settings = {
+    "time_budget": 2,
+    "task": "classification",
+    "log_file_name": "test/iris.log",
+    "estimator_list": ["rf", "xgboost"],
+}
+
+automl_settings["custom_hp"] = {
+    "xgboost": {
+        "scale_pos_weight": {
+            "domain": 0.5,
+            "init_value": 0.5,
+        }
+    },
+    "rf": {
+        "class_weight": {
+            "domain": "balanced",
+            "init_value": "balanced"
+        }
+    }
+}
+print(automl.model)
+```
 
 
 ### How to interpret model performance? Is it possible for me to visualize feature importance, SHAP values, optimization history?
