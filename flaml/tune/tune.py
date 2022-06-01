@@ -83,6 +83,8 @@ def report(_metric=None, **kwargs):
     Raises:
         StopIteration (when not using ray, i.e., _use_ray=False):
             A StopIteration exception is raised if the trial has been signaled to stop.
+        SystemExit (when using ray):
+            A SystemExit exception is raised if the trial has been signaled to stop by ray.
     """
     global _use_ray
     global _verbose
@@ -239,9 +241,11 @@ def run(
             respectively. You can also provide a self-defined scheduler instance
             of the TrialScheduler class. When 'asha' or self-defined scheduler is
             used, you usually need to report intermediate results in the evaluation
-            function via 'tune.report()'. In addition, when 'use_ray' is not enabled,
-            you also need to stop the evaluation function by explicitly catching the
-            `StopIteration` exception, as shown in the following example.
+            function via 'tune.report()'.
+            If you would like to do some cleanup opearation when the trial is stopped
+            by the scheduler, you can catch the `StopIteration` (when not using ray)
+            or `SystemExit` (when using ray) exception explicitly,
+            as shown in the following example.
             Please find more examples using different types of schedulers
             and how to set up the corresponding evaluation functions in
             test/tune/test_scheduler.py, and test/tune/example_scheduler.py.
@@ -252,7 +256,8 @@ def run(
             intermediate_score = evaluation_fn(step, width, height)
             try:
                 tune.report(iterations=step, mean_loss=intermediate_score)
-            except StopIteration:
+            except (StopIteration, SystemExit):
+                # do cleanup operation here
                 return
     ```
         search_alg: An instance of BlendSearch as the search algorithm
