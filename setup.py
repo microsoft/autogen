@@ -72,6 +72,7 @@ setuptools.setup(
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
             "ray[tune]~=1.10",
+            "protobuf<4",  # to prevent TypeError in ray
         ],
         "azureml": [
             "azureml-mlflow",
