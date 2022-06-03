@@ -420,7 +420,6 @@ def get_val_loss(
     #     fit_kwargs['groups_val'] = groups_val
     #     fit_kwargs['X_val'] = X_val
     #     fit_kwargs['y_val'] = y_val
-
     estimator.fit(X_train, y_train, budget, **fit_kwargs)
     val_loss, metric_for_logging, pred_time, _ = _eval_estimator(
         config,
