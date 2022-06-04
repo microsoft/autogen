@@ -421,7 +421,29 @@ with mlflow.start_run():
 
 ### Extra fit arguments
 
-Extra fit arguments that are needed by the estimators can be passed to `AutoML.fit()`. For example, if there is a weight associated with each training example, they can be passed via `sample_weight`. For another example, `period` can be passed for time series forecaster. For any extra keywork argument passed to `AutoML.fit()` which has not been explicitly listed in the function signature, it will be passed to the underlying estimators' `fit()` as is.
+Extra fit arguments that are needed by the estimators can be passed to `AutoML.fit()`. For example, if there is a weight associated with each training example, they can be passed via `sample_weight`. For another example, `period` can be passed for time series forecaster. For any extra keywork argument passed to `AutoML.fit()` which has not been explicitly listed in the function signature, it will be passed to the underlying estimators' `fit()` as is. For another example, you can set the number of gpus used by each trial with the `gpu_per_trial` argument, which is only used by TransformersEstimator and XGBoostSklearnEstimator. 
+
+In addition, you can specify the different arguments needed by different estimators using the `fit_kwargs_by_estimator` argument. For example, you can set the custom arguments for a Transformers model:
+
+```python
+from flaml.data import load_openml_dataset
+from flaml import AutoML
+
+X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=1169, data_dir="./")
+
+automl = AutoML()
+automl_settings = {
+    "task": "classification",
+    "time_budget": 10,
+    "estimator_list": ["catboost", "rf"],
+    "fit_kwargs_by_estimator": {
+        "catboost": {
+            "verbose": True,  # setting the verbosity of catboost to True
+        }
+    },
+}
+automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+```
 
 ## Retrieve and analyze the outcomes of AutoML.fit()
 
