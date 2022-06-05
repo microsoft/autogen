@@ -92,11 +92,17 @@ setuptools.setup(
             "rouge_score",
         ],
         "ts_forecast": [
+            "holidays<0.14",  # to prevent installation error for prophet
             "prophet>=1.0.1",
             "statsmodels>=0.12.2",
             "hcrystalball==0.1.10",
         ],
-        "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2", "hcrystalball==0.1.10"],
+        "forecast": [
+            "holidays<0.14",  # to prevent installation error for prophet
+            "prophet>=1.0.1",
+            "statsmodels>=0.12.2",
+            "hcrystalball==0.1.10",
+        ],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
     },
     classifiers=[
