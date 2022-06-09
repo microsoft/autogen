@@ -21,7 +21,7 @@ def test_metric_constraints():
         "log_type": "all",
         "retrain_full": "budget",
         "keep_search_state": True,
-        "time_budget": 1,
+        "time_budget": 2,
         "pred_time_limit": 5.1e-05,
     }
     from sklearn.externals._arff import ArffException

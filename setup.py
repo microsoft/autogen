@@ -33,6 +33,10 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/FLAML",
     packages=setuptools.find_packages(include=["flaml*"]),
+    package_data={
+        "flaml.default": ["*/*.json"],
+    },
+    include_package_data=True,
     install_requires=install_requires,
     extras_require={
         "notebook": [
@@ -68,6 +72,7 @@ setuptools.setup(
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
             "ray[tune]~=1.10",
+            "protobuf<4",  # to prevent TypeError in ray
         ],
         "azureml": [
             "azureml-mlflow",
@@ -87,11 +92,17 @@ setuptools.setup(
             "rouge_score",
         ],
         "ts_forecast": [
+            "holidays<0.14",  # to prevent installation error for prophet
             "prophet>=1.0.1",
             "statsmodels>=0.12.2",
             "hcrystalball==0.1.10",
         ],
-        "forecast": ["prophet>=1.0.1", "statsmodels>=0.12.2", "hcrystalball==0.1.10"],
+        "forecast": [
+            "holidays<0.14",  # to prevent installation error for prophet
+            "prophet>=1.0.1",
+            "statsmodels>=0.12.2",
+            "hcrystalball==0.1.10",
+        ],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
     },
     classifiers=[
