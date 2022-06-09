@@ -12,6 +12,7 @@ from flaml import AutoVW
 import string
 import os
 import openml
+from requests.exceptions import SSLError
 
 VW_DS_DIR = "test/data/"
 NS_LIST = list(string.ascii_lowercase) + list(string.ascii_uppercase)
@@ -96,10 +97,14 @@ def shuffle_data(X, y, seed):
 def get_oml_to_vw(did, max_ns_num, ds_dir=VW_DS_DIR):
     success = False
     print("-----getting oml dataset-------", did)
-    ds = openml.datasets.get_dataset(did)
-    target_attribute = ds.default_target_attribute
-    # if target_attribute is None and did in OML_target_attribute_dict:
-    #     target_attribute = OML_target_attribute_dict[did]
+    try:
+        ds = openml.datasets.get_dataset(did)
+        target_attribute = ds.default_target_attribute
+        # if target_attribute is None and did in OML_target_attribute_dict:
+        #     target_attribute = OML_target_attribute_dict[did]
+    except (SSLError) as e:
+        print(e)
+        return
 
     print("target=ds.default_target_attribute", target_attribute)
     data = ds.get_data(target=target_attribute, dataset_format="array")

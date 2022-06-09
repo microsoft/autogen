@@ -89,7 +89,12 @@ class SearchState:
             renamed_type = list(
                 inspect.signature(domain_one_dim.is_valid).parameters.values()
             )[0].annotation
-            type_match = renamed_type == Any or isinstance(value_one_dim, renamed_type)
+            type_match = (
+                renamed_type == Any
+                or isinstance(value_one_dim, renamed_type)
+                or isinstance(value_one_dim, int)
+                and renamed_type is float
+            )
             if not (type_match and domain_one_dim.is_valid(value_one_dim)):
                 return False
         elif value_one_dim != domain_one_dim:
@@ -1497,6 +1502,10 @@ class AutoML(BaseEstimator):
         **fit_kwargs,
     ):
         """Retrain from log file.
+
+        This function is intended to retrain the logged configurations.
+        NOTE: In some rare case, the last config is early stopped to meet time_budget and it's the best config.
+        But the logged config's ITER_HP (e.g., n_estimators) is not reduced.
 
         Args:
             log_file_name: A string of the log file name.
