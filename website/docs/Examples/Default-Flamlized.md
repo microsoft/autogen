@@ -58,6 +58,8 @@ X_test.shape: (5160, 8), y_test.shape: (5160,)
 {'n_estimators': 4797, 'num_leaves': 122, 'min_child_samples': 2, 'learning_rate': 0.022635758411078528, 'colsample_bytree': 0.7019911744574896, 'reg_alpha': 0.004252223402511765, 'reg_lambda': 0.11288241427227624, 'max_bin': 511, 'verbose': -1}
 ```
 
+[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/zeroshot_lightgbm.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/zeroshot_lightgbm.ipynb)
+
 ## Flamlized XGBClassifier
 
 ### Zero-shot AutoML
