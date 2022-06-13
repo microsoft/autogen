@@ -948,7 +948,7 @@ class LGBMEstimator(BaseEstimator):
                 "low_cost_init_value": 4,
             },
             "min_child_samples": {
-                "domain": tune.lograndint(lower=2, upper=2 ** 7 + 1),
+                "domain": tune.lograndint(lower=2, upper=2**7 + 1),
                 "init_value": 20,
             },
             "learning_rate": {
@@ -1047,7 +1047,6 @@ class LGBMEstimator(BaseEstimator):
                 self.params[self.ITER_HP] = 1
                 self._t1 = self._fit(X_train, y_train, **kwargs)
                 if budget is not None and self._t1 >= budget or n_iter == 1:
-                    # self.params[self.ITER_HP] = n_iter
                     return self._t1
                 mem1 = psutil.virtual_memory().available if psutil is not None else 1
                 self._mem1 = mem0 - mem1
@@ -1168,7 +1167,7 @@ class XGBoostEstimator(SKLearnEstimator):
             },
             "min_child_weight": {
                 "domain": tune.loguniform(lower=0.001, upper=128),
-                "init_value": 1,
+                "init_value": 1.0,
             },
             "learning_rate": {
                 "domain": tune.loguniform(lower=1 / 1024, upper=1.0),
@@ -1797,17 +1796,17 @@ class ARIMA(Prophet):
     def search_space(cls, **params):
         space = {
             "p": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 2,
                 "low_cost_init_value": 0,
             },
             "d": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 2,
                 "low_cost_init_value": 0,
             },
             "q": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 1,
                 "low_cost_init_value": 0,
             },
@@ -1884,32 +1883,32 @@ class SARIMAX(ARIMA):
     def search_space(cls, **params):
         space = {
             "p": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 2,
                 "low_cost_init_value": 0,
             },
             "d": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 2,
                 "low_cost_init_value": 0,
             },
             "q": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 1,
                 "low_cost_init_value": 0,
             },
             "P": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 1,
                 "low_cost_init_value": 0,
             },
             "D": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 1,
                 "low_cost_init_value": 0,
             },
             "Q": {
-                "domain": tune.quniform(lower=0, upper=10, q=1),
+                "domain": tune.qrandint(lower=0, upper=10, q=1),
                 "init_value": 1,
                 "low_cost_init_value": 0,
             },
