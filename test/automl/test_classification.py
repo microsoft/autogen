@@ -256,6 +256,7 @@ class TestClassification(unittest.TestCase):
                 time_budget=10,
                 task="classification",
                 n_concurrent_trials=2,
+                ensemble=True,
             )
         except ImportError:
             return
