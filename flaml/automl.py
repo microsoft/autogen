@@ -3185,6 +3185,7 @@ class AutoML(BaseEstimator):
         # Add a checkpoint for the current best config to the log.
         if self._training_log:
             self._training_log.checkpoint()
+        self._state.time_from_start = time.time() - self._start_time_flag
         if self._best_estimator:
             self._selected = self._search_states[self._best_estimator]
             self.modelcount = sum(
