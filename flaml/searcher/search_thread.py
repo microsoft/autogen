@@ -22,13 +22,12 @@ logger = logging.getLogger(__name__)
 class SearchThread:
     """Class of global or local search thread."""
 
-    _eps = 1.0
-
     def __init__(
         self,
         mode: str = "min",
         search_alg: Optional[Searcher] = None,
         cost_attr: Optional[str] = "time_total_s",
+        eps: Optional[float] = 1.0,
     ):
         """When search_alg is omitted, use local search FLOW2."""
         self._search_alg = search_alg
@@ -38,6 +37,7 @@ class SearchThread:
         self.cost_best = self.cost_last = self.cost_total = self.cost_best1 = getattr(
             search_alg, "cost_incumbent", 0
         )
+        self._eps = eps
         self.cost_best2 = 0
         self.obj_best1 = self.obj_best2 = getattr(
             search_alg, "best_obj", np.inf
@@ -58,10 +58,6 @@ class SearchThread:
             ):
                 # remember const config
                 self._const = add_cost_to_space(self.space, {}, {})
-
-    @classmethod
-    def set_eps(cls, time_budget_s):
-        cls._eps = max(min(time_budget_s / 1000.0, 1.0), 1e-9)
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
         """Use the suggest() of the underlying search algorithm."""
@@ -107,7 +103,7 @@ class SearchThread:
             self.speed = (
                 (self.obj_best2 - self.obj_best1)
                 / self.running
-                / (max(self.cost_total - self.cost_best2, SearchThread._eps))
+                / (max(self.cost_total - self.cost_best2, self._eps))
             )
         else:
             self.speed = 0
@@ -164,8 +160,9 @@ class SearchThread:
                 # rs is used in place of optuna sometimes
                 if not str(e).endswith("has already finished and can not be updated."):
                     raise e
-        if self.cost_attr in result and self.cost_last < result[self.cost_attr]:
-            self.cost_last = result[self.cost_attr]
+        new_cost = result.get(self.cost_attr, 1)
+        if self.cost_last < new_cost:
+            self.cost_last = new_cost
             # self._update_speed()
 
     @property
