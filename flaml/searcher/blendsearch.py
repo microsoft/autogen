@@ -7,7 +7,6 @@ import numpy as np
 import time
 import pickle
 
-
 try:
     from ray import __version__ as ray_version
 
@@ -22,17 +21,19 @@ from ..tune import INCUMBENT_RESULT
 from .search_thread import SearchThread
 from .flow2 import FLOW2
 from ..tune.space import add_cost_to_space, indexof, normalize, define_by_run_func
+from ..tune.result import TIME_TOTAL_S
+
 import logging
 
+SEARCH_THREAD_EPS = 1.0
+PENALTY = 1e10  # penalty term for constraints
 logger = logging.getLogger(__name__)
 
 
 class BlendSearch(Searcher):
     """class for BlendSearch algorithm."""
 
-    cost_attr = "time_total_s"  # cost attribute in result
     lagrange = "_lagrange"  # suffix for lagrange-modified metric
-    penalty = 1e10  # penalty term for constraints
     LocalSearch = FLOW2
 
     def __init__(
@@ -56,6 +57,7 @@ class BlendSearch(Searcher):
         ] = None,
         metric_constraints: Optional[List[Tuple[str, str, float]]] = None,
         seed: Optional[int] = 20,
+        cost_attr: Optional[str] = "auto",
         experimental: Optional[bool] = False,
         use_incumbent_result_in_evaluation=False,
     ):
@@ -102,8 +104,23 @@ class BlendSearch(Searcher):
             metric_constraints: A list of metric constraints to be satisfied.
                 E.g., `['precision', '>=', 0.9]`. The sign can be ">=" or "<=".
             seed: An integer of the random seed.
+            cost_attr: Choose from ["auto", None] to specify the attribute to evaluate the cost of different trials.
+                Default is "auto", which means that we will automatically chose the cost attribute to use (depending
+                on the nature of the resource budget). When cost_attr is set to None, cost differences between different trials will be omitted
+                in our search algorithm.
             experimental: A bool of whether to use experimental features.
         """
+        self._eps = SEARCH_THREAD_EPS
+        self._input_cost_attr = cost_attr
+        if cost_attr == "auto":
+            if time_budget_s is not None:
+                self.cost_attr = TIME_TOTAL_S
+            else:
+                self.cost_attr = None
+        else:
+            self.cost_attr = cost_attr
+
+        self.penalty = PENALTY  # penalty term for constraints
         self._metric, self._mode = metric, mode
         self._use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
         init_config = low_cost_partial_config or {}
@@ -263,6 +280,8 @@ class BlendSearch(Searcher):
                 self._time_used += now - self._start_time
                 self._start_time = now
                 self._set_deadline()
+                if self._input_cost_attr == "auto":
+                    self.cost_attr = TIME_TOTAL_S
             if "metric_target" in setting:
                 self._metric_target = setting.get("metric_target")
             if "num_samples" in setting:
@@ -276,9 +295,13 @@ class BlendSearch(Searcher):
     def _set_deadline(self):
         if self._time_budget_s is not None:
             self._deadline = self._time_budget_s + self._start_time
-            SearchThread.set_eps(self._time_budget_s)
+            self._set_eps()
         else:
             self._deadline = np.inf
+
+    def _set_eps(self):
+        """set eps for search threads according to time budget"""
+        self._eps = max(min(self._time_budget_s / 1000.0, 1.0), 1e-9)
 
     def _init_search(self):
         """initialize the search"""
@@ -290,7 +313,7 @@ class BlendSearch(Searcher):
         self._metric_target = np.inf * self._ls.metric_op
         self._search_thread_pool = {
             # id: int -> thread: SearchThread
-            0: SearchThread(self._ls.mode, self._gs)
+            0: SearchThread(self._ls.mode, self._gs, self.cost_attr, self._eps)
         }
         self._thread_count = 1  # total # threads created
         self._init_used = self._ls.init_config is None
@@ -462,6 +485,7 @@ class BlendSearch(Searcher):
                 space=space,
             ),
             self.cost_attr,
+            self._eps,
         )
         self._thread_count += 1
         self._update_admissible_region(
