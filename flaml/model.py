@@ -56,7 +56,11 @@ def limit_resource(memory_limit, time_limit):
     if memory_limit > 0:
         soft, hard = resource.getrlimit(resource.RLIMIT_AS)
         if soft < 0 and (hard < 0 or memory_limit <= hard) or memory_limit < soft:
-            resource.setrlimit(resource.RLIMIT_AS, (memory_limit, hard))
+            try:
+                resource.setrlimit(resource.RLIMIT_AS, (int(memory_limit), hard))
+            except ValueError:
+                # According to https://bugs.python.org/issue40518, it's a mac-specific error.
+                pass
     main_thread = False
     if time_limit is not None:
         try:
