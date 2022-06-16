@@ -235,7 +235,7 @@ class BlendSearch(Searcher):
         metric: Optional[str] = None,
         mode: Optional[str] = None,
         config: Optional[Dict] = None,
-        setting: Optional[Dict] = None,
+        **spec,
     ) -> bool:
         metric_changed = mode_changed = False
         if metric and self._metric != metric:
@@ -272,21 +272,21 @@ class BlendSearch(Searcher):
                     )
                     self._gs.space = self._ls.space
                 self._init_search()
-        if setting:
+        if spec:
             # CFO doesn't need these settings
-            if "time_budget_s" in setting:
-                self._time_budget_s = setting["time_budget_s"]  # budget from now
+            if "time_budget_s" in spec:
+                self._time_budget_s = spec["time_budget_s"]  # budget from now
                 now = time.time()
                 self._time_used += now - self._start_time
                 self._start_time = now
                 self._set_deadline()
                 if self._input_cost_attr == "auto":
                     self.cost_attr = TIME_TOTAL_S
-            if "metric_target" in setting:
-                self._metric_target = setting.get("metric_target")
-            if "num_samples" in setting:
+            if "metric_target" in spec:
+                self._metric_target = spec.get("metric_target")
+            if "num_samples" in spec:
                 self._num_samples = (
-                    setting["num_samples"]
+                    spec["num_samples"]
                     + len(self._result)
                     + len(self._trial_proposed_by)
                 )
