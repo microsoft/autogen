@@ -43,11 +43,14 @@ jobs:
           pip install -e .
           python -c "import flaml"
           pip install -e .[test]
-      - name: If linux or mac, install ray and prophet
+      - name: If linux or mac, install ray
+        if: matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest'
+        run: |
+          pip install -e .[ray]
+      - name: If linux or mac, install prophet on python < 3.9
         if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9' && matrix.python-version != '3.10'
         run: |
-          pip install -e .[ray,forecast]
-          pip install 'tensorboardX<=2.2'
+          pip install -e .[forecast]
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -55,17 +58,17 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
-        if: ${{ (matrix.python-version != '3.7' || matrix.os == 'macos-latest') && matrix.python-version != '3.10' }}
+        if: (matrix.python-version != '3.7' || matrix.os == 'macos-latest') && matrix.python-version != '3.10'
         run: |
           pytest test
       - name: Coverage
-        if: ${{ (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10' }}
+        if: (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10'
         run: |
           pip install coverage
           coverage run -a -m pytest test
           coverage xml
       - name: Upload coverage to Codecov
-        if: ${{ (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10'}}
+        if: (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10'
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
