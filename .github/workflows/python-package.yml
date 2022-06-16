@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -24,11 +24,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: If mac, install libomp to facilitate lgbm and xgboost install
-        if: matrix.os == 'macOS-latest'
+      - name: On mac + python 3.10, install libomp to facilitate lgbm and xgboost install
+        if: matrix.os == 'macOS-latest' && matrix.python-version == '3.10'
         run: |
-          # remove libomp version constraint after xgboost works with libomp>11.1.0
+          # remove libomp version constraint after xgboost works with libomp>11.1.0 on python 3.10
           wget https://raw.githubusercontent.com/Homebrew/homebrew-core/679923b4eb48a8dc7ecc1f05d06063cd79b3fc00/Formula/libomp.rb -O $(find $(brew --repository) -name libomp.rb)
+          brew unlink libomp
           brew install libomp
           export CC=/usr/bin/clang
           export CXX=/usr/bin/clang++
@@ -42,8 +43,8 @@ jobs:
           pip install -e .
           python -c "import flaml"
           pip install -e .[test]
-      - name: If linux or mac, install ray
-        if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9'
+      - name: If linux or mac, install ray and prophet
+        if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9' && matrix.python-version != '3.10'
         run: |
           pip install -e .[ray,forecast]
           pip install 'tensorboardX<=2.2'
@@ -54,17 +55,17 @@ jobs:
           # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
-        if: ${{ matrix.python-version != '3.7' || matrix.os == 'macos-latest' }}
+        if: ${{ (matrix.python-version != '3.7' || matrix.os == 'macos-latest') && matrix.python-version != '3.10' }}
         run: |
           pytest test
       - name: Coverage
-        if: ${{ matrix.python-version == '3.7' && matrix.os != 'macos-latest' }}
+        if: ${{ (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10' }}
         run: |
           pip install coverage
           coverage run -a -m pytest test
           coverage xml
       - name: Upload coverage to Codecov
-        if: ${{ matrix.python-version == '3.7' && matrix.os != 'macos-latest' }}
+        if: ${{ (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10'}}
         uses: codecov/codecov-action@v1
         with:
           file: ./coverage.xml
