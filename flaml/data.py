@@ -96,9 +96,14 @@ def load_openml_dataset(
         with open(filepath, "wb") as f:
             pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
     print("Dataset name:", dataset.name)
-    X, y, *__ = dataset.get_data(
-        target=dataset.default_target_attribute, dataset_format=dataset_format
-    )
+    try:
+        X, y, *__ = dataset.get_data(
+            target=dataset.default_target_attribute, dataset_format=dataset_format
+        )
+    except ValueError:
+        from sklearn.datasets import fetch_openml
+
+        X, y = fetch_openml(data_id=dataset_id, return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=random_state)
     print(
         "X_train.shape: {}, y_train.shape: {};\nX_test.shape: {}, y_test.shape: {}".format(

@@ -1,16 +1,16 @@
 # Contributing
 
 This project welcomes (and encourages) all forms of contributions, including but not limited to:
-- Pushing patches.
-- Code review of pull requests.
-- Documentation, examples and test cases.
-- Readability improvement, e.g., improvement on docstr and comments.
-- Community participation in [issues](https://github.com/microsoft/FLAML/issues), [discussions](https://github.com/microsoft/FLAML/discussions), and [gitter](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
-- Tutorials, blog posts, talks that promote the project.
-- Sharing application scenarios and/or related research.
+
+-  Pushing patches.
+-  Code review of pull requests.
+-  Documentation, examples and test cases.
+-  Readability improvement, e.g., improvement on docstr and comments.
+-  Community participation in [issues](https://github.com/microsoft/FLAML/issues), [discussions](https://github.com/microsoft/FLAML/discussions), and [gitter](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
+-  Tutorials, blog posts, talks that promote the project.
+-  Sharing application scenarios and/or related research.
 
 You can take a look at the [Roadmap for Upcoming Features](https://github.com/microsoft/FLAML/wiki/Roadmap-for-Upcoming-Features) to identify potential things to work on.
-
 
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -27,6 +27,7 @@ For more information see the [Code of Conduct FAQ](https://opensource.microsoft.
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## Becoming a Reviewer
+
 There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors. If you are willing to become a reviewer, you are welcome to let us know on gitter.
 
 ## Developing
@@ -35,7 +36,7 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ```bash
 git clone https://github.com/microsoft/FLAML.git
-pip install -e .[test,notebook]
+pip install -e FLAML[test,notebook]
 ```
 
 ### Docker
