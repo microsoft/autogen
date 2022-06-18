@@ -203,7 +203,9 @@ def test_searcher():
         points_to_evaluate=[{"a": 1, "b": 0.01}],
     )
     searcher.set_search_properties(
-        metric="m2", config=config, setting={"time_budget_s": 0}
+        metric="m2",
+        config=config,
+        time_budget_s=0,
     )
     c = searcher.suggest("t1")
     print("t1", c)

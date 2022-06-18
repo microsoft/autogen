@@ -88,7 +88,9 @@ class FLOW2(Searcher):
         self.best_config = flatten_dict(init_config)
         self.resource_attr = resource_attr
         self.min_resource = min_resource
-        self.resource_multiple_factor = resource_multiple_factor or SAMPLE_MULTIPLY_FACTOR
+        self.resource_multiple_factor = (
+            resource_multiple_factor or SAMPLE_MULTIPLY_FACTOR
+        )
         self.cost_attr = cost_attr
         self.max_resource = max_resource
         self._resource = None
@@ -316,7 +318,7 @@ class FLOW2(Searcher):
                     self.best_obj = obj
                     self.best_config, self.step = self._configs[trial_id]
                     self.incumbent = self.normalize(self.best_config)
-                    self.cost_incumbent = result.get(self.cost_attr)
+                    self.cost_incumbent = result.get(self.cost_attr, 1)
                     if self._resource:
                         self._resource = self.best_config[self.resource_attr]
                     self._num_complete4incumbent = 0
@@ -339,7 +341,9 @@ class FLOW2(Searcher):
             # proposed by current incumbent and no better
             self._num_complete4incumbent += 1
             cost = (
-                result.get(self.cost_attr) if result else self._trial_cost.get(trial_id)
+                result.get(self.cost_attr, 1)
+                if result
+                else self._trial_cost.get(trial_id)
             )
             if cost:
                 self._cost_complete4incumbent += cost
@@ -369,14 +373,14 @@ class FLOW2(Searcher):
                         if self._resource:
                             self._resource = config[self.resource_attr]
                         self.incumbent = self.normalize(self.best_config)
-                        self.cost_incumbent = result.get(self.cost_attr)
+                        self.cost_incumbent = result.get(self.cost_attr, 1)
                         self._cost_complete4incumbent = 0
                         self._num_complete4incumbent = 0
                         self._num_proposedby_incumbent = 0
                         self._num_allowed4incumbent = 2 * self.dim
                         self._proposed_by.clear()
                         self._iter_best_config = self.trial_count_complete
-            cost = result.get(self.cost_attr)
+            cost = result.get(self.cost_attr, 1)
             # record the cost in case it is pruned and cost info is lost
             self._trial_cost[trial_id] = cost
 
