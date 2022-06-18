@@ -3274,6 +3274,7 @@ class AutoML(BaseEstimator):
                 import joblib
 
                 try:
+                    logger.info("Building ensemble with tuned estimators")
                     stacker.fit(
                         self._X_train_all,
                         self._y_train_all,
