@@ -1,5 +1,5 @@
 # !
-#  * Copyright (c) Microsoft Corporation. All rights reserved.
+#  * Copyright (c) FLAML authors. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
 import time
@@ -39,7 +39,7 @@ from .model import (
     TransformersEstimator,
     TransformersEstimatorModelSelection,
 )
-from .data import CLASSIFICATION, group_counts, TS_FORECAST, TS_VALUE_COL
+from .data import CLASSIFICATION, group_counts, TS_FORECAST
 import logging
 
 logger = logging.getLogger(__name__)
