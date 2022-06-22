@@ -16,7 +16,7 @@ __version__ = version["__version__"]
 install_requires = [
     "NumPy>=1.17.0rc1",
     "lightgbm>=2.3.1",
-    "xgboost>=0.90,<=1.3.3",
+    "xgboost>=0.90",
     "scipy>=1.4.1",
     "pandas>=1.1.4",
     "scikit-learn>=0.24",
@@ -110,5 +110,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )
