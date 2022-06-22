@@ -24,9 +24,7 @@ def _easy_objective(use_raytune, config):
             return
 
 
-def test_tune(
-    smoke_test=True, externally_setup_searcher=False, use_ray=False, use_raytune=False
-):
+def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False):
     from flaml import tune
     from flaml.searcher.blendsearch import BlendSearch
 
@@ -95,7 +93,7 @@ def test_tune(
         metric="mean_loss",
         mode="min",
         num_samples=10,
-        time_budget_s=5,
+        # time_budget_s=5,
         use_ray=use_ray,
         config=search_space,
     )
@@ -107,14 +105,14 @@ def test_tune(
 
 
 def test_reproducibility():
-    best_config_1 = test_tune(smoke_test=True)
-    best_config_2 = test_tune(smoke_test=True)
+    best_config_1 = test_tune()
+    best_config_2 = test_tune()
     print(best_config_1)
     print(best_config_2)
     assert best_config_1 == best_config_2, "flaml.tune not reproducible"
 
-    best_config_1 = test_tune(smoke_test=True, externally_setup_searcher=True)
-    best_config_2 = test_tune(smoke_test=True, externally_setup_searcher=True)
+    best_config_1 = test_tune(externally_setup_searcher=True)
+    best_config_2 = test_tune(externally_setup_searcher=True)
     print(best_config_1)
     print(best_config_2)
     assert (

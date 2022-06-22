@@ -1,7 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/FLAML.svg)](https://badge.fury.io/py/FLAML)
 ![Conda version](https://img.shields.io/conda/vn/conda-forge/flaml)
 [![Build](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml)
-![Python Version](https://img.shields.io/badge/3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)
+![Python Version](https://img.shields.io/badge/3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)
 [![Downloads](https://pepy.tech/badge/flaml)](https://pepy.tech/project/flaml)
 [![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -27,7 +27,7 @@ FLAML has a .NET implementation as well from [ML.NET Model Builder](https://dotn
 
 ## Installation
 
-FLAML requires **Python version >= 3.6**. It can be installed from pip:
+FLAML requires **Python version >= 3.7**. It can be installed from pip:
 
 ```bash
 pip install flaml
