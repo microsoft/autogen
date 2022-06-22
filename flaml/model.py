@@ -155,7 +155,8 @@ class BaseEstimator:
         X_train = self._preprocess(X_train)
         model = self.estimator_class(**self.params)
         if logger.level == logging.DEBUG:
-            logger.debug(f"flaml.model - {model} fit started")
+            # xgboost 1.6 doesn't display all the params in the model str
+            logger.debug(f"flaml.model - {model} fit started with params {self.params}")
         model.fit(X_train, y_train, **kwargs)
         if logger.level == logging.DEBUG:
             logger.debug(f"flaml.model - {model} fit finished")
@@ -1111,12 +1112,23 @@ class LGBMEstimator(BaseEstimator):
                 kwargs.pop("callbacks")
             else:
                 callbacks = self._callbacks(start_time, deadline)
+            if isinstance(self, XGBoostSklearnEstimator):
+                from xgboost import __version__
+
+                if __version__ >= "1.6.0":
+                    # since xgboost>=1.6.0, callbacks can't be passed in fit()
+                    self.params["callbacks"] = callbacks
+                    callbacks = None
             self._fit(
                 X_train,
                 y_train,
                 callbacks=callbacks,
                 **kwargs,
             )
+            if callbacks is None:
+                # for xgboost>=1.6.0, pop callbacks to enable pickle
+                callbacks = self.params.pop("callbacks")
+                self._model.set_params(callbacks=callbacks[:-1])
             best_iteration = (
                 self._model.get_booster().best_iteration
                 if isinstance(self, XGBoostSklearnEstimator)
@@ -1233,7 +1245,9 @@ class XGBoostEstimator(SKLearnEstimator):
         start_time = time.time()
         deadline = start_time + budget if budget else np.inf
         if issparse(X_train):
-            self.params["tree_method"] = "auto"
+            if xgb.__version__ < "1.6.0":
+                # "auto" fails for sparse input since xgboost 1.6.0
+                self.params["tree_method"] = "auto"
         else:
             X_train = self._preprocess(X_train)
         if "sample_weight" in kwargs:
@@ -1337,9 +1351,11 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             self.estimator_class = xgb.XGBRanker
         elif task in CLASSIFICATION:
             self.estimator_class = xgb.XGBClassifier
+        self._xgb_version = xgb.__version__
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
-        if issparse(X_train):
+        if issparse(X_train) and self._xgb_version < "1.6.0":
+            # "auto" fails for sparse input since xgboost 1.6.0
             self.params["tree_method"] = "auto"
         if kwargs.get("gpu_per_trial"):
             self.params["tree_method"] = "gpu_hist"
