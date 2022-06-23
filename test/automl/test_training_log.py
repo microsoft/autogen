@@ -89,7 +89,8 @@ class TestTrainingLog(unittest.TestCase):
 
             automl_settings["log_file_name"] = ""
             automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
-            automl._selected.update(None, 0)
+            if automl._selected:
+                automl._selected.update(None, 0)
             automl = AutoML()
             automl.fit(X_train=X_train, y_train=y_train, max_iter=0, task="regression")
 
