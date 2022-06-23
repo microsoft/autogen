@@ -37,16 +37,17 @@ automl_pipeline
 ### Run AutoML in the pipeline
 
 ```python
-settings = {
+automl_settings = {
     "time_budget": 60,  # total running time in seconds
-    "metric": 'accuracy',  # primary metrics can be chosen from: ['accuracy','roc_auc', 'roc_auc_ovr', 'roc_auc_ovo', 'f1','log_loss','mae','mse','r2']
-    "task": 'classification',  # task type  
-    "estimator_list":['xgboost','catboost','lgbm'],
-    "log_file_name": 'airlines_experiment.log',  # flaml log file
+    "metric": "accuracy",  # primary metrics can be chosen from: ['accuracy','roc_auc', 'roc_auc_ovr', 'roc_auc_ovo', 'f1','log_loss','mae','mse','r2']
+    "task": "classification",  # task type
+    "estimator_list": ["xgboost", "catboost", "lgbm"],
+    "log_file_name": "airlines_experiment.log",  # flaml log file
 }
-automl_pipeline.fit(X_train, y_train,
-                    automl__time_budget=60,
-                    automl__metric="accuracy")
+pipeline_settings = {
+    f"automl__{key}": value for key, value in automl_settings.items()
+}
+automl_pipeline.fit(X_train, y_train, **pipeline_settings)
 ```
 
 ### Get the automl object from the pipeline
