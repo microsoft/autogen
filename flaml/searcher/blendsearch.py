@@ -281,7 +281,7 @@ class BlendSearch(Searcher):
                 self._start_time = now
                 self._set_deadline()
                 if self._input_cost_attr == "auto":
-                    self.cost_attr = TIME_TOTAL_S
+                    self.cost_attr = self._ls.cost_attr = TIME_TOTAL_S
             if "metric_target" in spec:
                 self._metric_target = spec.get("metric_target")
             if "num_samples" in spec:
@@ -820,22 +820,29 @@ class BlendSearch(Searcher):
 
     def _select_thread(self) -> Tuple:
         """thread selector; use can_suggest to check LS availability"""
-        # update priority
-        now = time.time()
-        min_eci = self._deadline - now
-        if min_eci <= 0:
-            # return -1, -1
-            # keep proposing new configs assuming no budget left
-            min_eci = 0
+        # calculate min_eci according to the budget left
+        min_eci = np.inf
+        if self.cost_attr == TIME_TOTAL_S:
+            now = time.time()
+            min_eci = self._deadline - now
+            if min_eci <= 0:
+                # return -1, -1
+                # keep proposing new configs assuming no budget left
+                min_eci = 0
+            elif self._num_samples and self._num_samples > 0:
+                # estimate time left according to num_samples limitation
+                num_finished = len(self._result)
+                num_proposed = num_finished + len(self._trial_proposed_by)
+                num_left = max(self._num_samples - num_proposed, 0)
+                if num_proposed > 0:
+                    time_used = now - self._start_time + self._time_used
+                    min_eci = min(min_eci, time_used / num_finished * num_left)
+                # print(f"{min_eci}, {time_used / num_finished * num_left}, {num_finished}, {num_left}")
         elif self._num_samples and self._num_samples > 0:
-            # estimate time left according to num_samples limitation
             num_finished = len(self._result)
             num_proposed = num_finished + len(self._trial_proposed_by)
-            num_left = max(self._num_samples - num_proposed, 0)
-            if num_proposed > 0:
-                time_used = now - self._start_time + self._time_used
-                min_eci = min(min_eci, time_used / num_finished * num_left)
-            # print(f"{min_eci}, {time_used / num_finished * num_left}, {num_finished}, {num_left}")
+            min_eci = max(self._num_samples - num_proposed, 0)
+        # update priority
         max_speed = 0
         for thread in self._search_thread_pool.values():
             if thread.speed > max_speed:
