@@ -4,7 +4,10 @@ import requests
 from utils import get_toy_data_tokenclassification, get_automl_settings
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
+@pytest.mark.skipif(
+    sys.platform == "darwin" or sys.version < "3.7",
+    reason="do not run on mac os or py<3.7",
+)
 def test_tokenclassification():
     from flaml import AutoML
 
@@ -13,7 +16,9 @@ def test_tokenclassification():
 
     automl_settings = get_automl_settings()
     automl_settings["task"] = "token-classification"
-    automl_settings["metric"] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
+    automl_settings[
+        "metric"
+    ] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
     automl_settings["fit_kwargs_by_estimator"]["transformer"]["label_list"] = [
         "O",
         "B-PER",
