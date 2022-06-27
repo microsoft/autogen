@@ -59,20 +59,17 @@ setuptools.setup(
             "statsmodels>=0.12.2",
             "psutil==5.8.0",
             "dataclasses",
-            "transformers>=4.14",
+            "transformers[torch]>=4.14",
             "datasets",
-            "torch",
             "nltk",
             "rouge_score",
             "hcrystalball==0.1.10",
             "seqeval",
-            "protobuf<4",  # to prevent TypeError in ray
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
-            "ray[tune]~=1.10",
-            "protobuf<4",  # to prevent TypeError in ray
+            "ray[tune]~=1.13",
         ],
         "azureml": [
             "azureml-mlflow",
@@ -84,12 +81,11 @@ setuptools.setup(
             "vowpalwabbit",
         ],
         "nlp": [
-            "transformers>=4.14",
+            "transformers[torch]>=4.14",
             "datasets",
-            "torch",
-            "seqeval",
             "nltk",
             "rouge_score",
+            "seqeval",
         ],
         "ts_forecast": [
             "holidays<0.14",  # to prevent installation error for prophet
@@ -110,5 +106,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.6",
 )
