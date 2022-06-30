@@ -1404,7 +1404,6 @@ class AutoML(BaseEstimator):
                 len(np.unique(self._state.groups_all)) >= n_splits
             ), "the number of groups must be equal or larger than n_splits"
             self._state.kf = GroupKFold(n_splits)
-            self._state.kf.groups = self._state.groups_all
         elif self._split_type == "stratified":
             # logger.info("Using StratifiedKFold")
             assert y_train_all.size >= n_splits, (
@@ -1442,6 +1441,9 @@ class AutoML(BaseEstimator):
         else:
             # logger.info("Using splitter object")
             self._state.kf = self._split_type
+        if isinstance(self._state.kf, GroupKFold):
+            # self._split_type is either "group" or a GroupKFold object
+            self._state.kf.groups = self._state.groups_all
 
     def add_learner(self, learner_name, learner_class):
         """Add a customized learner.
@@ -1681,10 +1683,7 @@ class AutoML(BaseEstimator):
         # Partially copied from fit() function
         # Initilize some attributes required for retrain_from_log
         self._decide_split_type(split_type)
-        if record_id >= 0:
-            eval_method = "cv"
-        elif eval_method == "auto":
-            eval_method = self._decide_eval_method(time_budget)
+        eval_method = self._decide_eval_method(eval_method, time_budget)
         self.modelcount = 0
         self._auto_augment = auto_augment
         self._prepare_data(eval_method, split_ratio, n_splits)
@@ -1717,6 +1716,9 @@ class AutoML(BaseEstimator):
             assert hasattr(split_type, "split") and hasattr(
                 split_type, "get_n_splits"
             ), "split_type must be a string or a splitter object with split and get_n_splits methods."
+            assert (
+                not isinstance(split_type, GroupKFold) or self._state.groups is not None
+            ), "GroupKFold requires groups to be provided."
             self._split_type = split_type
         elif self._state.task in CLASSIFICATION:
             assert split_type in ["auto", "stratified", "uniform", "time", "group"]
@@ -1746,9 +1748,28 @@ class AutoML(BaseEstimator):
             assert split_type in ["auto", "uniform", "time", "group"]
             self._split_type = split_type if split_type != "auto" else "uniform"
 
-    def _decide_eval_method(self, time_budget):
+    def _decide_eval_method(self, eval_method, time_budget):
+        if not isinstance(self._split_type, str):
+            assert eval_method in [
+                "auto",
+                "cv",
+            ], "eval_method must be 'auto' or 'cv' for custom data splitter."
+            assert (
+                self._state.X_val is None
+            ), "custom splitter and custom validation data can't be used together."
+            return "cv"
         if self._state.X_val is not None:
+            assert eval_method in [
+                "auto",
+                "holdout",
+            ], "eval_method must be 'auto' or 'holdout' for custom validation data."
             return "holdout"
+        if eval_method != "auto":
+            assert eval_method in [
+                "holdout",
+                "cv",
+            ], "eval_method must be 'holdout', 'cv' or 'auto'."
+            return eval_method
         nrow, dim = self._nrow, self._ndim
         if (
             time_budget is None
@@ -2390,8 +2411,7 @@ class AutoML(BaseEstimator):
         logger.info(f"task = {task}")
         self._decide_split_type(split_type)
         logger.info(f"Data split method: {self._split_type}")
-        if eval_method == "auto" or self._state.X_val is not None:
-            eval_method = self._decide_eval_method(time_budget)
+        eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
 
