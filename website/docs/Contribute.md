@@ -82,7 +82,7 @@ Then:
 
 ```console
 npm install --global yarn  # skip if you use the dev container we provided
-pip install pydoc-markdown  # skip if you use the dev container we provided
+pip install pydoc-markdown==4.5.0  # skip if you use the dev container we provided
 cd website
 yarn install --frozen-lockfile
 pydoc-markdown

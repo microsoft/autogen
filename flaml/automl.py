@@ -623,7 +623,7 @@ class AutoML(BaseEstimator):
             seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
-                [parallel tuning](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#parallel-tuning)
+                [parallel tuning](../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray is required: `pip install flaml[ray]`.
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
@@ -651,7 +651,7 @@ class AutoML(BaseEstimator):
                 the metrics_to_log dictionary returned by a customized metric function.
                 The customized metric function shall be provided via the `metric` key word
                 argument of the fit() function or the automl constructor.
-                Find an example in the 4th constraint type in this [doc](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#constraint).
+                Find an example in the 4th constraint type in this [doc](../Use-Cases/Task-Oriented-AutoML#constraint).
                 If `pred_time_limit` is provided as one of keyword arguments to fit() function or
                 the automl constructor, flaml will automatically (and under the hood)
                 add it as an additional element in the metric_constraints. Essentially 'pred_time_limit'
@@ -2203,7 +2203,7 @@ class AutoML(BaseEstimator):
             seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
-                [parallel tuning](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#parallel-tuning)
+                [parallel tuning](../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray is required: `pip install flaml[ray]`.
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
@@ -2255,7 +2255,7 @@ class AutoML(BaseEstimator):
 
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
-                [flaml/nlp/training_args.py:TrainingArgumentsForAuto](https://microsoft.github.io/FLAML/docs/reference/nlp/huggingface/training_args).
+                [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                 e.g.,
 
         ```python
