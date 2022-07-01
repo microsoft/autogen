@@ -307,7 +307,7 @@ automl.fit(X_train, y_train, max_iter=100, train_time_limit=1, pred_time_limit=1
 
 4. Constraints on the metrics of the ML model tried in AutoML.
 
-When users provide a [custom metric function](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#optimization-metric), which returns a primary optimization metric and a dictionary of additional metrics (typically also about the model) to log, users can also specify constraints on one or more of the metrics in the dictionary of additional metrics.
+When users provide a [custom metric function](#optimization-metric), which returns a primary optimization metric and a dictionary of additional metrics (typically also about the model) to log, users can also specify constraints on one or more of the metrics in the dictionary of additional metrics.
 
 Users need to provide a list of such constraints in the following format:
 Each element in this list is a 3-tuple, which shall be expressed
@@ -395,7 +395,7 @@ automl2 = AutoML()
 automl2.fit(X_train, y_train, time_budget=7200, starting_points=automl1.best_config_per_estimator)
 ```
 
-`starting_points` is a dictionary or a str to specify the starting hyperparameter config. (1) When it is a dictionary, the keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively. (2) When it is a str: if "data", use data-dependent defaults; if "data:path", use data-dependent defaults which are stored at path; if "static", use data-independent defaults. Please find more details about data-dependent defaults in [zero shot AutoML](https://microsoft.github.io/FLAML/docs/Use-Cases/Zero-Shot-AutoML#combine-zero-shot-automl-and-hyperparameter-tuning).
+`starting_points` is a dictionary or a str to specify the starting hyperparameter config. (1) When it is a dictionary, the keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively. (2) When it is a str: if "data", use data-dependent defaults; if "data:path", use data-dependent defaults which are stored at path; if "static", use data-independent defaults. Please find more details about data-dependent defaults in [zero shot AutoML](Zero-Shot-AutoML#combine-zero-shot-automl-and-hyperparameter-tuning).
 
 
 ### Log the trials
@@ -421,7 +421,7 @@ with mlflow.start_run():
 
 ### Extra fit arguments
 
-Extra fit arguments that are needed by the estimators can be passed to `AutoML.fit()`. For example, if there is a weight associated with each training example, they can be passed via `sample_weight`. For another example, `period` can be passed for time series forecaster. For any extra keywork argument passed to `AutoML.fit()` which has not been explicitly listed in the function signature, it will be passed to the underlying estimators' `fit()` as is. For another example, you can set the number of gpus used by each trial with the `gpu_per_trial` argument, which is only used by TransformersEstimator and XGBoostSklearnEstimator. 
+Extra fit arguments that are needed by the estimators can be passed to `AutoML.fit()`. For example, if there is a weight associated with each training example, they can be passed via `sample_weight`. For another example, `period` can be passed for time series forecaster. For any extra keywork argument passed to `AutoML.fit()` which has not been explicitly listed in the function signature, it will be passed to the underlying estimators' `fit()` as is. For another example, you can set the number of gpus used by each trial with the `gpu_per_trial` argument, which is only used by TransformersEstimator and XGBoostSklearnEstimator.
 
 In addition, you can specify the different arguments needed by different estimators using the `fit_kwargs_by_estimator` argument. For example, you can set the custom arguments for a Transformers model:
 
