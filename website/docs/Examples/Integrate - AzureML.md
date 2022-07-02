@@ -11,7 +11,7 @@ Setup a AzureML workspace:
 ```python
 from azureml.core import Workspace
 
-ws = Workspace.create(name='myworkspace', subscription_id='<azure-subscription-id>',resource_group='myresourcegroup')
+ws = Workspace.create(name='myworkspace', subscription_id='<azure-subscription-id>', resource_group='myresourcegroup')
 ```
 
 ### Enable mlflow in AzureML workspace
