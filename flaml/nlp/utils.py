@@ -11,6 +11,8 @@ from ..data import (
     NLG_TASKS,
 )
 
+import pandas as pd
+
 
 def load_default_huggingface_metric_for_task(task):
 
@@ -54,28 +56,30 @@ def tokenize_seq2seq(X, Y, tokenizer, task=None, hf_args=None):
         hf_args=hf_args,
         prefix_str="summarize: ",
     )
-    labels = None
+    model_outputs = None
     if Y is not None:
-        labels = tokenize_onedataframe(
+        model_outputs = tokenize_onedataframe(
             Y.to_frame(),
             tokenizer=tokenizer,
             task=task,
             hf_args=hf_args,
             prefix_str="",
         )
-        labels["label"] = [
+        model_outputs["label"] = [
             [(each_l if each_l != tokenizer.pad_token_id else -100) for each_l in label]
-            for label in labels["input_ids"]
+            for label in model_outputs["input_ids"]
         ]
-        labels = labels.drop(
+        model_outputs = model_outputs.drop(
             columns=["attention_mask", "input_ids", "decoder_input_ids"]
         )
-    return model_inputs, labels
+    return model_inputs, model_outputs
 
 
 def tokenize_and_align_labels(
     examples,
     tokenizer,
+    label_to_id,
+    b_to_i_label,
     hf_args=None,
     X_sent_key=None,
     Y_sent_key=None,
@@ -94,26 +98,22 @@ def tokenize_and_align_labels(
     if Y_sent_key is not None:
         previous_word_idx = None
         label_ids = []
-        import numbers
-
         for word_idx in tokenized_inputs.word_ids(batch_index=0):
-            # Special tokens have a word id that is None. We set the label to -100 so they are automatically
-            # ignored in the loss function.
             if word_idx is None:
                 label_ids.append(-100)
-            # We set the label for the first token of each word.
             elif word_idx != previous_word_idx:
-                if isinstance(examples[Y_sent_key][word_idx], numbers.Number):
-                    label_ids.append(examples[Y_sent_key][word_idx])
-                # else:
-                #     label_ids.append(label_to_id[label[word_idx]])
+                label_ids.append(label_to_id[examples[Y_sent_key][word_idx]])
             # For the other tokens in a word, we set the label to either the current label or -100, depending on
             # the label_all_tokens flag.
             else:
-                if isinstance(examples[Y_sent_key][word_idx], numbers.Number):
-                    label_ids.append(examples[Y_sent_key][word_idx])
-                # else:
-                #     label_ids.append(b_to_i_label[label_to_id[label[word_idx]]])
+                # Use the label_all_tokens to control whether to copy the label to all subtokens or to pad the additional tokens as -100
+                if hf_args.label_all_tokens:
+                    # If the B- word is converted into multiple subtokens, map the additional subtokens to I-
+                    label_ids.append(
+                        b_to_i_label[label_to_id[examples[Y_sent_key][word_idx]]]
+                    )
+                else:
+                    label_ids.append(-100)
             previous_word_idx = word_idx
         tokenized_inputs["labels"] = label_ids
     tmp_column_names = sorted(tokenized_inputs.keys())
@@ -128,7 +128,15 @@ def tokenize_and_align_labels(
 
 
 def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
-    import pandas as pd
+
+    # If the label_all_tokens flag is True, prepare two dicts label_to_id and b_to_i_label to convert the B- labels to I- labels
+    label_to_id = {i: i for i in range(len(hf_args.label_list))}
+    b_to_i_label = []
+    for idx, label in enumerate(hf_args.label_list):
+        if label.startswith("B-") and label.replace("B-", "I-") in hf_args.label_list:
+            b_to_i_label.append(hf_args.label_list.index(label.replace("B-", "I-")))
+        else:
+            b_to_i_label.append(idx)
 
     if Y is not None:
         X_and_Y = pd.concat([X, Y.to_frame()], axis=1)
@@ -141,6 +149,8 @@ def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
             X_sent_key=X_key,
             Y_sent_key=Y_key,
             return_column_name=True,
+            label_to_id=label_to_id,
+            b_to_i_label=b_to_i_label,
         )
         X_and_Y_tokenized = X_and_Y.apply(
             lambda x: tokenize_and_align_labels(
@@ -149,6 +159,8 @@ def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
                 hf_args=hf_args,
                 X_sent_key=X_key,
                 Y_sent_key=Y_key,
+                label_to_id=label_to_id,
+                b_to_i_label=b_to_i_label,
             ),
             axis=1,
             result_type="expand",
@@ -170,6 +182,8 @@ def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
             X_sent_key=X_key,
             Y_sent_key=None,
             return_column_name=True,
+            label_to_id=label_to_id,
+            b_to_i_label=b_to_i_label,
         )
 
         d = X.apply(
@@ -179,6 +193,8 @@ def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
                 hf_args=hf_args,
                 X_sent_key=X_key,
                 Y_sent_key=None,
+                label_to_id=label_to_id,
+                b_to_i_label=b_to_i_label,
             ),
             axis=1,
             result_type="expand",
@@ -197,7 +213,6 @@ def tokenize_onedataframe(
     hf_args=None,
     prefix_str=None,
 ):
-    import pandas
 
     with tokenizer.as_target_tokenizer():
         _, tokenized_column_names = tokenize_row(
@@ -219,23 +234,9 @@ def tokenize_onedataframe(
             axis=1,
             result_type="expand",
         )
-        X_tokenized = pandas.DataFrame(columns=tokenized_column_names)
+        X_tokenized = pd.DataFrame(columns=tokenized_column_names)
         X_tokenized[tokenized_column_names] = d
         return X_tokenized
-
-
-def postprocess_text(preds, labels):
-    import nltk
-
-    nltk.download("punkt")
-    preds = [pred.strip() for pred in preds]
-    labels = [label.strip() for label in labels]
-
-    # rougeLSum expects newline after each sentence
-    preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
-    labels = ["\n".join(nltk.sent_tokenize(label)) for label in labels]
-
-    return preds, labels
 
 
 def tokenize_row(
@@ -267,7 +268,6 @@ def tokenize_row(
 
 
 def tokenize_text_multiplechoice(X, tokenizer, hf_args=None):
-    import pandas
 
     t = X[["sent1", "sent2", "ending0", "ending1", "ending2", "ending3"]]
     _, tokenized_column_names = tokenize_swag(
@@ -282,7 +282,7 @@ def tokenize_text_multiplechoice(X, tokenizer, hf_args=None):
         result_type="expand",
     )
 
-    X_tokenized = pandas.DataFrame(columns=tokenized_column_names)
+    X_tokenized = pd.DataFrame(columns=tokenized_column_names)
     X_tokenized[tokenized_column_names] = d
     output = X_tokenized.join(X)
     return output, None
@@ -475,3 +475,98 @@ def load_model(checkpoint_path, task, num_labels=None):
         model_config = _set_model_config(checkpoint_path)
         this_model = get_this_model(checkpoint_path, task, model_config)
         return this_model
+
+
+def postprocess_prediction_and_true(
+    task, y_pred, tokenizer, hf_args, y_true=None, X=None
+):
+    # postprocess the matrix prediction y_pred and ground truth y_true into user readable format, e.g., for summarization, decode into text
+    if task == SEQCLASSIFICATION:
+        return np.argmax(y_pred, axis=1), y_true
+    elif task == SEQREGRESSION:
+        return np.squeeze(y_pred), y_true  # predictions.reshape((len(predictions),))
+    elif task == TOKENCLASSIFICATION:
+        assert (y_true is not None) or (
+            X is not None
+        ), "One of y_true and X must not be None"
+        ## If y_true is not None, we use y_true to remove the -100 in the prediction (postprocessing), and return the postprocessed y_true and prediction
+        # If y_true is None, we use X to compute y_is_pad (i.e., whether y_true is -100 in that position), and use y_is_pad to remove the -100 in the prediction, and return the postprocessed prediction (not the y_true)
+        y_predict = pd.Series(np.argmax(y_pred, axis=2).tolist())
+        if y_true is None:
+            _, y_is_pad = tokenize_text(
+                X,
+                y_predict,
+                task=task,
+                hf_args=hf_args,
+                tokenizer=tokenizer,
+            )
+        else:
+            y_is_pad = y_true
+        label_len = len(hf_args.label_list)
+        zip_pred_ispad = [
+            [(p, ispd) for (p, ispd) in zip(each_pred, each_is_pad) if ispd != -100]
+            for (each_pred, each_is_pad) in zip(y_predict, y_is_pad)
+        ]
+        y_pred_label = [
+            [
+                hf_args.label_list[p] if 0 <= p < label_len else -1
+                for (p, ispd) in each_list
+            ]
+            for each_list in zip_pred_ispad
+        ]  # To compute precision and recall, y_pred and y_true must be converted to string labels
+        # (B-PER, I-PER, etc.), so that the category-based precision/recall (i.e., PER, LOC, etc.) scores can be computed
+        if y_true is not None:
+            y_true_label = [
+                [tr for (p, tr) in each_list] for each_list in zip_pred_ispad
+            ]
+        else:
+            y_true_label = None
+        return y_pred_label, y_true_label
+    elif task == SUMMARIZATION:
+        if isinstance(y_pred, tuple):
+            y_pred = np.argmax(y_pred[0], axis=2)
+        decoded_preds = tokenizer.batch_decode(y_pred, skip_special_tokens=True)
+
+        import nltk
+
+        nltk.download("punkt")
+        decoded_preds = [pred.strip() for pred in decoded_preds]
+        decoded_preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in decoded_preds]
+
+        if y_true is not None:
+            y_true_labels = np.where(y_true != -100, y_true, tokenizer.pad_token_id)
+            decoded_y_true_labels = tokenizer.batch_decode(
+                y_true_labels, skip_special_tokens=True
+            )
+            decoded_y_true_labels = [label.strip() for label in decoded_y_true_labels]
+            decoded_y_true_labels = [
+                "\n".join(nltk.sent_tokenize(label)) for label in decoded_y_true_labels
+            ]
+        else:
+            decoded_y_true_labels = None
+
+        return decoded_preds, decoded_y_true_labels
+    elif task == MULTICHOICECLASSIFICATION:
+        return np.argmax(y_pred, axis=1), y_true
+
+
+class LabelEncoderforTokenClassification:
+    def fit_transform(self, y):
+        # if the labels are tokens, convert them to ids
+        if any(isinstance(id, str) for id in y[0]):
+            self.label_list = sorted(list(set().union(*y)))
+            self._tokenlabel_to_id = {
+                self.label_list[id]: id for id in range(len(self.label_list))
+            }
+            y = y.apply(lambda sent: [self._tokenlabel_to_id[token] for token in sent])
+        # if the labels are not tokens, they must be ids
+        else:
+            assert all(
+                isinstance(id, int) for id in y[0]
+            ), "The labels must either be tokens or ids"
+        return y
+
+    def transform(self, y):
+        if hasattr(self, "_tokenlabel_to_id"):
+            y = y.apply(lambda sent: [self._tokenlabel_to_id[token] for token in sent])
+        return y
