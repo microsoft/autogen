@@ -1108,10 +1108,21 @@ class AutoML(BaseEstimator):
             from .data import DataTransformer
 
             self._transformer = DataTransformer()
+
             self._X_train_all, self._y_train_all = self._transformer.fit_transform(
                 X, y, self._state.task
             )
             self._label_transformer = self._transformer.label_transformer
+            if hasattr(self._label_transformer, "label_list"):
+                self._state.fit_kwargs.update(
+                    {"label_list": self._label_transformer.label_list}
+                )
+            elif self._state.task == TOKENCLASSIFICATION:
+                if "label_list" not in self._state.fit_kwargs:
+                    for each_fit_kwargs in self._state.fit_kwargs_by_estimator.values():
+                        assert (
+                            "label_list" in each_fit_kwargs
+                        ), "For the token-classification task, you must either (1) pass token labels; or (2) pass id labels and the label list. Please refer to the documentation for more details: https://microsoft.github.io/FLAML/docs/Examples/AutoML-NLP#a-simple-token-classification-example"
 
         self._sample_weight_full = self._state.fit_kwargs.get(
             "sample_weight"
