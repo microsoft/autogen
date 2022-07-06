@@ -562,7 +562,7 @@ class LabelEncoderforTokenClassification:
         # if the labels are not tokens, they must be ids
         else:
             assert all(
-                isinstance(id, int) for id in y[0]
+                isinstance(id, (int, np.integer)) for id in y[0]
             ), "The labels must either be tokens or ids"
         return y
 
