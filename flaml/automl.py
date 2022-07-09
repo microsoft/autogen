@@ -102,13 +102,10 @@ class SearchState:
         return True
 
     def valid_starting_point(self, starting_point, search_space):
-        return any(
-            [
-                self.valid_starting_point_one_dim(
-                    value, search_space[name].get("domain")
-                )
-                for name, value in starting_point.items()
-            ]
+        return all(
+            self.valid_starting_point_one_dim(value, search_space[name].get("domain"))
+            for name, value in starting_point.items()
+            if name != "FLAML_sample_size"
         )
 
     def __init__(
@@ -656,9 +653,17 @@ class AutoML(BaseEstimator):
                 the automl constructor, flaml will automatically (and under the hood)
                 add it as an additional element in the metric_constraints. Essentially 'pred_time_limit'
                 specifies a constraint about the prediction latency constraint in seconds.
-            custom_hp: dict, default=None | The custom search space specified by user
-                Each key is the estimator name, each value is a dict of the custom search space for that estimator. Notice the
-                domain of the custom search space can either be a value of a sample.Domain object.
+            custom_hp: dict, default=None | The custom search space specified by user.
+                It is a nested dict with keys being the estimator names, and values being dicts
+                per estimator search space. In the per estimator search space dict,
+                the keys are the hyperparameter names, and values are dicts of info ("domain",
+                "init_value", and "low_cost_init_value") about the search space associated with
+                the hyperparameter (i.e., per hyperparameter search space dict). When custom_hp
+                is provided, the built-in search space which is also a nested dict of per estimator
+                search space dict, will be updated with custom_hp. Note that during this nested dict update,
+                the per hyperparameter search space dicts will be replaced (instead of updated) by the ones
+                provided in custom_hp. Note that the value for "domain" can either be a constant
+                or a sample.Domain object.
                 e.g.,
 
         ```python
@@ -2430,18 +2435,68 @@ class AutoML(BaseEstimator):
             eval_method == "holdout" and self._state.X_val is None
         )
         self._auto_augment = auto_augment
-        self._min_sample_size = min_sample_size
+
+        _sample_size_from_starting_points = {}
+        if isinstance(starting_points, dict):
+            for _estimator, _point_per_estimator in starting_points.items():
+                sample_size = (
+                    _point_per_estimator
+                    and isinstance(_point_per_estimator, dict)
+                    and _point_per_estimator.get("FLAML_sample_size")
+                )
+                if sample_size:
+                    _sample_size_from_starting_points[_estimator] = sample_size
+                elif _point_per_estimator and isinstance(_point_per_estimator, list):
+                    _sample_size_set = set(
+                        [
+                            config["FLAML_sample_size"]
+                            for config in _point_per_estimator
+                            if "FLAML_sample_size" in config
+                        ]
+                    )
+                    if _sample_size_set:
+                        _sample_size_from_starting_points[_estimator] = min(
+                            _sample_size_set
+                        )
+                    if len(_sample_size_set) > 1:
+                        logger.warning(
+                            "Using the min FLAML_sample_size of all the provided starting points for estimator {}. (Provided FLAML_sample_size are: {})".format(
+                                _estimator, _sample_size_set
+                            )
+                        )
+
+        if not sample and isinstance(starting_points, dict):
+            assert (
+                not _sample_size_from_starting_points
+            ), "When subsampling is disabled, do not include FLAML_sample_size in the starting point."
+        self._min_sample_size = _sample_size_from_starting_points or min_sample_size
+        self._min_sample_size_input = min_sample_size
         self._prepare_data(eval_method, split_ratio, n_splits)
 
-        self._sample = (
-            sample
-            and task != "rank"
-            and eval_method != "cv"
-            and (
-                self._min_sample_size * SAMPLE_MULTIPLY_FACTOR
-                < self._state.data_size[0]
+        if isinstance(self._min_sample_size, dict):
+            self._sample = {
+                (
+                    k,
+                    sample
+                    and task != "rank"
+                    and eval_method != "cv"
+                    and (
+                        self._min_sample_size[k] * SAMPLE_MULTIPLY_FACTOR
+                        < self._state.data_size[0]
+                    ),
+                )
+                for k in self._min_sample_size.keys()
+            }
+        else:
+            self._sample = (
+                sample
+                and task != "rank"
+                and eval_method != "cv"
+                and (
+                    self._min_sample_size * SAMPLE_MULTIPLY_FACTOR
+                    < self._state.data_size[0]
+                )
             )
-        )
         if "auto" == metric:
             if _is_nlp_task(self._state.task):
                 from .nlp.utils import load_default_huggingface_metric_for_task
@@ -2752,6 +2807,16 @@ class AutoML(BaseEstimator):
             self._state.time_from_start = time.time() - self._start_time_flag
             time_left = self._state.time_budget - self._state.time_from_start
             if self._hpo_method != "optuna":
+                min_resource = self.min_resource
+                if isinstance(min_resource, dict):
+                    _min_resource_set = set(min_resource.values())
+                    min_resource_all_estimator = min(_min_resource_set)
+                    if len(_min_resource_set) > 1:
+                        logger.warning(
+                            "Using the min FLAML_sample_size of all the provided starting points as the starting sample size in the case of parallel search."
+                        )
+                else:
+                    min_resource_all_estimator = min_resource
                 search_alg = SearchAlgo(
                     metric="val_loss",
                     space=space,
@@ -2759,7 +2824,7 @@ class AutoML(BaseEstimator):
                     points_to_evaluate=self.points_to_evaluate,
                     cat_hp_cost=self.cat_hp_cost,
                     resource_attr=self.resource_attr,
-                    min_resource=self.min_resource,
+                    min_resource=min_resource_all_estimator,
                     max_resource=self.max_resource,
                     config_constraints=[
                         (partial(size, self._state), "<=", self._mem_thres)
@@ -2947,7 +3012,12 @@ class AutoML(BaseEstimator):
                 search_space = search_state.search_space
                 if self._sample:
                     resource_attr = "FLAML_sample_size"
-                    min_resource = self._min_sample_size
+                    min_resource = (
+                        self._min_sample_size[estimator]
+                        if isinstance(self._min_sample_size, dict)
+                        and estimator in self._min_sample_size
+                        else self._min_sample_size_input
+                    )
                     max_resource = self._state.data_size[0]
                 else:
                     resource_attr = min_resource = max_resource = None

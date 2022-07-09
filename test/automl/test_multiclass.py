@@ -474,8 +474,11 @@ class TestMultiClass(unittest.TestCase):
         starting_points = {}
         log_file_name = automl_settings["log_file_name"]
         with training_log_reader(log_file_name) as reader:
+            sample_size = 1000
             for record in reader.records():
                 config = record.config
+                config["FLAML_sample_size"] = sample_size
+                sample_size += 1000
                 learner = record.learner
                 if learner not in starting_points:
                     starting_points[learner] = []
