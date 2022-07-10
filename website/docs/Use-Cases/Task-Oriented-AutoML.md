@@ -375,7 +375,7 @@ pip install flaml[ray,blendsearch]
 
 `ray` is used to manage the resources. For example,
 ```python
-ray.init(n_cpus=16)
+ray.init(num_cpus=16)
 ```
 allocates 16 CPU cores. Then, when you run:
 ```python
