@@ -134,6 +134,43 @@ class BaseEstimator:
         """Trained model after fit() is called, or None before fit() is called."""
         return self._model
 
+    @property
+    def feature_names_in_(self):
+        """
+        if self._model has attribute feature_names_in_, return it.
+        otherwise, if self._model has attribute feature_name_, return it.
+        otherwise, if self._model has attribute feature_names, return it.
+        otherwise, if self._model has method get_booster, return the feature names.
+        otherwise, return None.
+        """
+        if hasattr(self._model, "feature_names_in_"):  # for sklearn, xgboost>=1.6
+            return self._model.feature_names_in_
+        if hasattr(self._model, "feature_name_"):  # for lightgbm
+            return self._model.feature_name_
+        if hasattr(self._model, "feature_names"):  # for XGBoostEstimator
+            return self._model.feature_names
+        if hasattr(self._model, "get_booster"):
+            # get feature names for xgboost<1.6
+            # https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.feature_names
+            booster = self._model.get_booster()
+            return booster.feature_names
+        return None
+
+    @property
+    def feature_importances_(self):
+        """
+        if self._model has attribute feature_importances_, return it.
+        otherwise, if self._model has attribute coef_, return it.
+        otherwise, return None.
+        """
+        if hasattr(self._model, "feature_importances_"):
+            # for sklearn, lightgbm, catboost, xgboost
+            return self._model.feature_importances_
+        elif hasattr(self._model, "coef_"):  # for linear models
+            return self._model.coef_
+        else:
+            return None
+
     def _preprocess(self, X):
         return X
 

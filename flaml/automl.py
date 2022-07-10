@@ -857,6 +857,20 @@ class AutoML(BaseEstimator):
         return self._trained_estimator.n_features_in_
 
     @property
+    def feature_names_in_(self):
+        attr = getattr(self, "_trained_estimator", None)
+        attr = attr and getattr(attr, "feature_names_in_", None)
+        if attr is not None:
+            return attr
+        return getattr(self, "_feature_names_in_", None)
+
+    @property
+    def feature_importances_(self):
+        attr = getattr(self, "_trained_estimator", None)
+        attr = attr and getattr(attr, "feature_importances_", None)
+        return attr
+
+    @property
     def time_to_find_best_model(self) -> float:
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
@@ -1118,16 +1132,22 @@ class AutoML(BaseEstimator):
                 X, y, self._state.task
             )
             self._label_transformer = self._transformer.label_transformer
-            if hasattr(self._label_transformer, "label_list"):
-                self._state.fit_kwargs.update(
-                    {"label_list": self._label_transformer.label_list}
-                )
-            elif self._state.task == TOKENCLASSIFICATION:
-                if "label_list" not in self._state.fit_kwargs:
+            if self._state.task == TOKENCLASSIFICATION:
+                if hasattr(self._label_transformer, "label_list"):
+                    self._state.fit_kwargs.update(
+                        {"label_list": self._label_transformer.label_list}
+                    )
+                elif "label_list" not in self._state.fit_kwargs:
                     for each_fit_kwargs in self._state.fit_kwargs_by_estimator.values():
                         assert (
                             "label_list" in each_fit_kwargs
-                        ), "For the token-classification task, you must either (1) pass token labels; or (2) pass id labels and the label list. Please refer to the documentation for more details: https://microsoft.github.io/FLAML/docs/Examples/AutoML-NLP#a-simple-token-classification-example"
+                        ), "For the token-classification task, you must either (1) pass token labels; or (2) pass id labels and the label list. "
+                        "Please refer to the documentation for more details: https://microsoft.github.io/FLAML/docs/Examples/AutoML-NLP#a-simple-token-classification-example"
+            self._feature_names_in_ = (
+                self._X_train_all.columns.to_list()
+                if hasattr(self._X_train_all, "columns")
+                else None
+            )
 
         self._sample_weight_full = self._state.fit_kwargs.get(
             "sample_weight"
