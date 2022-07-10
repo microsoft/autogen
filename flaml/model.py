@@ -479,8 +479,18 @@ class TransformersEstimator(BaseEstimator):
         self._training_args.fp16 = self.fp16
         self._training_args.no_cuda = self.no_cuda
 
+        if (
+            self._task == TOKENCLASSIFICATION
+            and self._training_args.max_seq_length is not None
+        ):
+            logger.warning(
+                "For token classification task, FLAML currently does not support customizing the max_seq_length, max_seq_length will be reset to None."
+            )
+            setattr(self._training_args, "max_seq_length", None)
+
     def _preprocess(self, X, y=None, **kwargs):
-        from .nlp.utils import tokenize_text, is_a_list_of_str
+        from .nlp.huggingface.utils import tokenize_text
+        from .nlp.utils import is_a_list_of_str
 
         is_str = str(X.dtypes[0]) in ("string", "str")
         is_list_of_str = is_a_list_of_str(X[list(X.keys())[0]].to_list()[0])
@@ -497,7 +507,7 @@ class TransformersEstimator(BaseEstimator):
             return X, None
 
     def _model_init(self):
-        from .nlp.utils import load_model
+        from .nlp.huggingface.utils import load_model
 
         this_model = load_model(
             checkpoint_path=self._training_args.model_path,
@@ -735,7 +745,7 @@ class TransformersEstimator(BaseEstimator):
         # TODO: call self._metric(eval_pred, self)
         if isinstance(self._metric, str):
             from .ml import metric_loss_score
-            from .nlp.utils import postprocess_prediction_and_true
+            from .nlp.huggingface.utils import postprocess_prediction_and_true
 
             predictions, y_true = eval_pred
             # postprocess the matrix prediction and ground truth into user readable format, e.g., for summarization, decode into text
@@ -827,7 +837,7 @@ class TransformersEstimator(BaseEstimator):
     def predict(self, X, **pred_kwargs):
         import transformers
         from datasets import Dataset
-        from .nlp.utils import postprocess_prediction_and_true
+        from .nlp.huggingface.utils import postprocess_prediction_and_true
 
         transformers.logging.set_verbosity_error()
 
