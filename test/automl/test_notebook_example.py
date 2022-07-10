@@ -86,6 +86,8 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     print(automl.resource_attr)
     print(automl.max_resource)
     print(automl.min_resource)
+    print(automl.feature_names_in_)
+    print(automl.feature_importances_)
     if budget < performance_check_budget:
         automl.fit(X_train=X_train, y_train=y_train, ensemble=True, **settings)
 

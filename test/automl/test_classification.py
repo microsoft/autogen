@@ -115,6 +115,8 @@ class TestClassification(unittest.TestCase):
             "ensemble": True,
         }
         automl.fit(X, y, **automl_settings)
+        print(automl.feature_names_in_)
+        print(automl.feature_importances_)
         del automl
 
         automl = AutoML()
@@ -246,6 +248,8 @@ class TestClassification(unittest.TestCase):
         )
         automl = AutoML()
         automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        print(automl.feature_names_in_)
+        print(automl.feature_importances_)
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "-U", "xgboost", "--user"]
         )

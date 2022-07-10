@@ -14,7 +14,7 @@ settings = {
     "time_budget": 60,  # total running time in seconds
     "metric": 'r2',  # primary metrics for regression can be chosen from: ['mae','mse','r2']
     "estimator_list": ['lgbm'],  # list of ML learners; we tune lightgbm in this example
-    "task": 'regression',  # task type  
+    "task": 'regression',  # task type
     "log_file_name": 'houses_experiment.log',  # flaml log file
     "seed": 7654321,    # random seed
 }
@@ -89,7 +89,7 @@ print(automl.model.estimator)
 
 ```python
 import matplotlib.pyplot as plt
-plt.barh(automl.model.estimator.feature_name_, automl.model.estimator.feature_importances_)
+plt.barh(automl.feature_names_in_, automl.feature_importances_)
 ```
 ![png](../Use-Cases/images/feature_importance.png)
 
