@@ -134,6 +134,43 @@ class BaseEstimator:
         """Trained model after fit() is called, or None before fit() is called."""
         return self._model
 
+    @property
+    def feature_names_in_(self):
+        """
+        if self._model has attribute feature_names_in_, return it.
+        otherwise, if self._model has attribute feature_name_, return it.
+        otherwise, if self._model has attribute feature_names, return it.
+        otherwise, if self._model has method get_booster, return the feature names.
+        otherwise, return None.
+        """
+        if hasattr(self._model, "feature_names_in_"):  # for sklearn, xgboost>=1.6
+            return self._model.feature_names_in_
+        if hasattr(self._model, "feature_name_"):  # for lightgbm
+            return self._model.feature_name_
+        if hasattr(self._model, "feature_names"):  # for XGBoostEstimator
+            return self._model.feature_names
+        if hasattr(self._model, "get_booster"):
+            # get feature names for xgboost<1.6
+            # https://xgboost.readthedocs.io/en/latest/python/python_api.html#xgboost.Booster.feature_names
+            booster = self._model.get_booster()
+            return booster.feature_names
+        return None
+
+    @property
+    def feature_importances_(self):
+        """
+        if self._model has attribute feature_importances_, return it.
+        otherwise, if self._model has attribute coef_, return it.
+        otherwise, return None.
+        """
+        if hasattr(self._model, "feature_importances_"):
+            # for sklearn, lightgbm, catboost, xgboost
+            return self._model.feature_importances_
+        elif hasattr(self._model, "coef_"):  # for linear models
+            return self._model.coef_
+        else:
+            return None
+
     def _preprocess(self, X):
         return X
 
@@ -380,11 +417,13 @@ class TransformersEstimator(BaseEstimator):
     def search_space(cls, data_size, task, **params):
         search_space_dict = {
             "learning_rate": {
-                "domain": tune.loguniform(lower=1e-6, upper=1e-3),
-                "init_value": 1e-5,
+                "domain": tune.choice(
+                    [1e-6, 2e-6, 4e-6, 8e-6, 16e-6, 32e-6, 64e-6, 128e-6]
+                ),
+                "init_value": 8e-6,
             },
             "num_train_epochs": {
-                "domain": tune.loguniform(lower=0.1, upper=10.0),
+                "domain": tune.choice([1, 3, 5, 7, 9]),
                 "init_value": 3.0,  # to be consistent with roberta
             },
             "per_device_train_batch_size": {
@@ -392,18 +431,18 @@ class TransformersEstimator(BaseEstimator):
                 "init_value": 32,
             },
             "warmup_ratio": {
-                "domain": tune.uniform(lower=0.0, upper=0.3),
+                "domain": tune.choice([0, 0.1, 0.2, 0.3]),
                 "init_value": 0.0,
             },
             "weight_decay": {
-                "domain": tune.uniform(lower=0.0, upper=0.3),
+                "domain": tune.choice([0, 0.1, 0.2, 0.3]),
                 "init_value": 0.0,
             },
             "adam_epsilon": {
-                "domain": tune.loguniform(lower=1e-8, upper=1e-6),
+                "domain": tune.choice([1e-8, 1e-7, 1e-6]),
                 "init_value": 1e-6,
             },
-            "seed": {"domain": tune.choice(list(range(40, 45))), "init_value": 42},
+            "seed": {"domain": tune.randint(40, 45), "init_value": 42},
             "global_max_steps": {
                 "domain": sys.maxsize,
                 "init_value": sys.maxsize,
@@ -479,8 +518,18 @@ class TransformersEstimator(BaseEstimator):
         self._training_args.fp16 = self.fp16
         self._training_args.no_cuda = self.no_cuda
 
+        if (
+            self._task == TOKENCLASSIFICATION
+            and self._training_args.max_seq_length is not None
+        ):
+            logger.warning(
+                "For token classification task, FLAML currently does not support customizing the max_seq_length, max_seq_length will be reset to None."
+            )
+            setattr(self._training_args, "max_seq_length", None)
+
     def _preprocess(self, X, y=None, **kwargs):
-        from .nlp.utils import tokenize_text, is_a_list_of_str
+        from .nlp.huggingface.utils import tokenize_text
+        from .nlp.utils import is_a_list_of_str
 
         is_str = str(X.dtypes[0]) in ("string", "str")
         is_list_of_str = is_a_list_of_str(X[list(X.keys())[0]].to_list()[0])
@@ -497,7 +546,7 @@ class TransformersEstimator(BaseEstimator):
             return X, None
 
     def _model_init(self):
-        from .nlp.utils import load_model
+        from .nlp.huggingface.utils import load_model
 
         this_model = load_model(
             checkpoint_path=self._training_args.model_path,
@@ -522,14 +571,12 @@ class TransformersEstimator(BaseEstimator):
 
     @property
     def num_labels(self):
-        from .data import SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION
-
         if self._task == SEQREGRESSION:
             return 1
         elif self._task == SEQCLASSIFICATION:
             return len(set(self._y_train))
         elif self._task == TOKENCLASSIFICATION:
-            return len(set([a for b in self._y_train.tolist() for a in b]))
+            return len(self._training_args.label_list)
         else:
             return None
 
@@ -549,10 +596,7 @@ class TransformersEstimator(BaseEstimator):
             return AutoTokenizer.from_pretrained(
                 self._training_args.model_path,
                 use_fast=True,
-                add_prefix_space=True
-                if "roberta" in self._training_args.model_path
-                else False,  # If roberta model, must set add_prefix_space to True to avoid the assertion error at
-                # https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/tokenization_roberta_fast.py#L249
+                add_prefix_space=self._add_prefix_space,
             )
 
     @property
@@ -599,6 +643,10 @@ class TransformersEstimator(BaseEstimator):
 
         self._X_train, self._y_train = X_train, y_train
         self._set_training_args(**kwargs)
+        self._add_prefix_space = (
+            "roberta" in self._training_args.model_path
+        )  # If using roberta model, must set add_prefix_space to True to avoid the assertion error at
+        # https://github.com/huggingface/transformers/blob/main/src/transformers/models/roberta/tokenization_roberta_fast.py#L249
 
         train_dataset, self._X_train, self._y_train = self.preprocess_data(
             X_train, y_train
@@ -734,39 +782,30 @@ class TransformersEstimator(BaseEstimator):
         return best_ckpt
 
     def _compute_metrics_by_dataset_name(self, eval_pred):
+        # TODO: call self._metric(eval_pred, self)
         if isinstance(self._metric, str):
             from .ml import metric_loss_score
-            from .nlp.utils import postprocess_text
+            from .nlp.huggingface.utils import postprocess_prediction_and_true
 
-            predictions, labels = eval_pred
-            if self._task in NLG_TASKS:
-                if isinstance(predictions, tuple):
-                    predictions = np.argmax(predictions[0], axis=2)
-                decoded_preds = self.tokenizer.batch_decode(
-                    predictions, skip_special_tokens=True
-                )
-                labels = np.where(labels != -100, labels, self.tokenizer.pad_token_id)
-                decoded_labels = self.tokenizer.batch_decode(
-                    labels, skip_special_tokens=True
-                )
-                predictions, labels = postprocess_text(decoded_preds, decoded_labels)
-            else:
-                predictions = (
-                    np.squeeze(predictions)
-                    if self._task == SEQREGRESSION
-                    else np.argmax(predictions, axis=2)
-                    if self._task == TOKENCLASSIFICATION
-                    else np.argmax(predictions, axis=1)
-                )
+            predictions, y_true = eval_pred
+            # postprocess the matrix prediction and ground truth into user readable format, e.g., for summarization, decode into text
+            processed_predictions, processed_y_true = postprocess_prediction_and_true(
+                task=self._task,
+                y_pred=predictions,
+                tokenizer=self.tokenizer,
+                hf_args=self._training_args,
+                y_true=y_true,
+            )
             metric_dict = {
                 "automl_metric": metric_loss_score(
                     metric_name=self._metric,
-                    y_predict=predictions,
-                    y_true=labels,
+                    y_processed_predict=processed_predictions,
+                    y_processed_true=processed_y_true,
                     labels=self._training_args.label_list,
                 )
             }
         else:
+            # TODO: debug to see how custom metric can take both tokenized (here) and untokenized input (ml.py)
             loss, metric_dict = self._metric(
                 X_test=self._X_val,
                 y_test=self._y_val,
@@ -837,6 +876,7 @@ class TransformersEstimator(BaseEstimator):
     def predict(self, X, **pred_kwargs):
         import transformers
         from datasets import Dataset
+        from .nlp.huggingface.utils import postprocess_prediction_and_true
 
         transformers.logging.set_verbosity_error()
 
@@ -856,20 +896,14 @@ class TransformersEstimator(BaseEstimator):
                 test_dataset,
                 metric_key_prefix="predict",
             )
-
-        if self._task == SEQCLASSIFICATION:
-            return np.argmax(predictions.predictions, axis=1)
-        elif self._task == SEQREGRESSION:
-            return predictions.predictions.reshape((len(predictions.predictions),))
-        elif self._task == TOKENCLASSIFICATION:
-            return np.argmax(predictions.predictions, axis=2)
-        elif self._task == SUMMARIZATION:
-            decoded_preds = self.tokenizer.batch_decode(
-                predictions.predictions, skip_special_tokens=True
-            )
-            return decoded_preds
-        elif self._task == MULTICHOICECLASSIFICATION:
-            return np.argmax(predictions.predictions, axis=1)
+        post_y_pred, _ = postprocess_prediction_and_true(
+            task=self._task,
+            y_pred=predictions.predictions,
+            tokenizer=self.tokenizer,
+            hf_args=self._training_args,
+            X=X,
+        )
+        return post_y_pred
 
     def config2params(self, config: dict) -> dict:
         params = super().config2params(config)

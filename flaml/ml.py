@@ -134,15 +134,22 @@ def get_estimator_class(task, estimator_name):
 
 def metric_loss_score(
     metric_name,
-    y_predict,
-    y_true,
+    y_processed_predict,
+    y_processed_true,
     labels=None,
     sample_weight=None,
     groups=None,
 ):
+    # y_processed_predict and y_processed_true are processed id labels if the original were the token labels
+
     if is_in_sklearn_metric_name_set(metric_name):
         return sklearn_metric_loss_score(
-            metric_name, y_predict, y_true, labels, sample_weight, groups
+            metric_name,
+            y_processed_predict,
+            y_processed_true,
+            labels,
+            sample_weight,
+            groups,
         )
     else:
         """
@@ -151,14 +158,22 @@ def metric_loss_score(
         if metric_name == "spearmanr":
             from scipy.stats import spearmanr
 
-            y_true = y_true.to_list() if type(y_true) == pd.Series else list(y_true)
-            score = spearmanr(list(y_predict), y_true)[0]
+            y_true = (
+                y_processed_true.to_list()
+                if isinstance(y_processed_true, pd.Series)
+                else list(y_processed_true)
+            )
+            score = spearmanr(list(y_processed_predict), y_true)[0]
             metric_mode = "max"
         elif metric_name == "pearsonr":
             from scipy.stats import pearsonr
 
-            y_true = y_true.to_list() if type(y_true) == pd.Series else list(y_true)
-            score = pearsonr(list(y_predict), y_true)[0]
+            y_true = (
+                y_processed_true.to_list()
+                if type(y_processed_true) == pd.Series
+                else list(y_processed_true)
+            )
+            score = pearsonr(list(y_processed_predict), y_true)[0]
             metric_mode = "max"
         else:
             try:
@@ -171,43 +186,31 @@ def metric_loss_score(
                 metric_mode = huggingface_metric_to_mode[datasets_metric_name]
 
                 if "rouge" in metric_name:
-                    score = metric.compute(predictions=y_predict, references=y_true)[
-                        metric_name
-                    ].mid.fmeasure
+                    score = metric.compute(
+                        predictions=y_processed_predict, references=y_processed_true
+                    )[metric_name].mid.fmeasure
                 elif metric_name.startswith("seqeval"):
 
-                    label_len = len(labels)
-                    zip_pred_true = [
-                        [(p, lb) for (p, lb) in zip(prediction, label) if lb != -100]
-                        for (prediction, label) in zip(y_predict, y_true)
+                    y_processed_true = [
+                        [labels[tr] for tr in each_list]
+                        for each_list in y_processed_true
                     ]
-                    y_pred = [
-                        [
-                            labels[p] if 0 <= p < label_len else -1
-                            for (p, l) in each_list
-                        ]
-                        for each_list in zip_pred_true
-                    ]  # To compute precision and recall, y_pred and y_true must be converted to string labels
-                    # (B-PER, I-PER, etc.), so that the category-based precision/recall (i.e., PER, LOC, etc.) scores can be computed
-                    y_true = [
-                        [labels[l] for (p, l) in each_list]
-                        for each_list in zip_pred_true
-                    ]
-
                     metric_submetric_names = metric_name.split(":")
 
-                    score = metric.compute(predictions=y_pred, references=y_true)[
+                    score = metric.compute(
+                        predictions=y_processed_predict, references=y_processed_true
+                    )[
                         metric_submetric_names[1]
                         if len(metric_submetric_names) > 1
                         else "overall_accuracy"
                     ]
 
                 else:
-                    score = metric.compute(predictions=y_predict, references=y_true)[
-                        metric_name
-                    ]
+                    score = metric.compute(
+                        predictions=y_processed_predict, references=y_processed_true
+                    )[metric_name]
             except ImportError:
-                raise Exception(
+                raise ValueError(
                     metric_name
                     + " is not an built-in sklearn metric and nlp is not installed. "
                     "Currently built-in sklearn metrics are: "
@@ -219,7 +222,7 @@ def metric_loss_score(
             # If the metric is not found from huggingface dataset metric list (i.e., FileNotFoundError)
             # ask the user to provide a custom metric
             except FileNotFoundError:
-                raise Exception(
+                raise ValueError(
                     metric_name
                     + " is neither an sklearn metric nor a huggingface metric. "
                     "Currently built-in sklearn metrics are: "
@@ -265,14 +268,13 @@ def sklearn_metric_loss_score(
             used to calculate the metric. E.g., 2d for log_loss and 1d
             for others.
         y_true: A 1d numpy array of the true labels.
-        labels: A 1d numpy array of the unique labels.
+        labels: A list or an array of the unique labels.
         sample_weight: A 1d numpy array of the sample weight.
         groups: A 1d numpy array of the group labels.
 
     Returns:
         score: A float number of the loss, the lower the better.
     """
-
     metric_name = metric_name.lower()
 
     if "r2" == metric_name:
@@ -368,8 +370,14 @@ def _eval_estimator(
         pred_start = time.time()
         val_pred_y = get_y_pred(estimator, X_val, eval_metric, obj)
         pred_time = (time.time() - pred_start) / X_val.shape[0]
+
         val_loss = metric_loss_score(
-            eval_metric, val_pred_y, y_val, labels, weight_val, groups_val
+            eval_metric,
+            y_processed_predict=val_pred_y,
+            y_processed_true=y_val,
+            labels=labels,
+            sample_weight=weight_val,
+            groups=groups_val,
         )
         metric_for_logging = {"pred_time": pred_time}
         if log_training_metric:
@@ -588,6 +596,7 @@ def compute_estimator(
     )
 
     if isinstance(estimator, TransformersEstimator):
+        # TODO: move the partial function to nlp
         fit_kwargs["metric"] = eval_metric
         fit_kwargs["X_val"] = X_val
         fit_kwargs["y_val"] = y_val

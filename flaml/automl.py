@@ -102,13 +102,10 @@ class SearchState:
         return True
 
     def valid_starting_point(self, starting_point, search_space):
-        return any(
-            [
-                self.valid_starting_point_one_dim(
-                    value, search_space[name].get("domain")
-                )
-                for name, value in starting_point.items()
-            ]
+        return all(
+            self.valid_starting_point_one_dim(value, search_space[name].get("domain"))
+            for name, value in starting_point.items()
+            if name != "FLAML_sample_size"
         )
 
     def __init__(
@@ -623,7 +620,7 @@ class AutoML(BaseEstimator):
             seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
-                [parallel tuning](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#parallel-tuning)
+                [parallel tuning](../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray is required: `pip install flaml[ray]`.
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
@@ -651,14 +648,22 @@ class AutoML(BaseEstimator):
                 the metrics_to_log dictionary returned by a customized metric function.
                 The customized metric function shall be provided via the `metric` key word
                 argument of the fit() function or the automl constructor.
-                Find an example in the 4th constraint type in this [doc](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#constraint).
+                Find an example in the 4th constraint type in this [doc](../Use-Cases/Task-Oriented-AutoML#constraint).
                 If `pred_time_limit` is provided as one of keyword arguments to fit() function or
                 the automl constructor, flaml will automatically (and under the hood)
                 add it as an additional element in the metric_constraints. Essentially 'pred_time_limit'
                 specifies a constraint about the prediction latency constraint in seconds.
-            custom_hp: dict, default=None | The custom search space specified by user
-                Each key is the estimator name, each value is a dict of the custom search space for that estimator. Notice the
-                domain of the custom search space can either be a value of a sample.Domain object.
+            custom_hp: dict, default=None | The custom search space specified by user.
+                It is a nested dict with keys being the estimator names, and values being dicts
+                per estimator search space. In the per estimator search space dict,
+                the keys are the hyperparameter names, and values are dicts of info ("domain",
+                "init_value", and "low_cost_init_value") about the search space associated with
+                the hyperparameter (i.e., per hyperparameter search space dict). When custom_hp
+                is provided, the built-in search space which is also a nested dict of per estimator
+                search space dict, will be updated with custom_hp. Note that during this nested dict update,
+                the per hyperparameter search space dicts will be replaced (instead of updated) by the ones
+                provided in custom_hp. Note that the value for "domain" can either be a constant
+                or a sample.Domain object.
                 e.g.,
 
         ```python
@@ -850,6 +855,20 @@ class AutoML(BaseEstimator):
     @property
     def n_features_in_(self):
         return self._trained_estimator.n_features_in_
+
+    @property
+    def feature_names_in_(self):
+        attr = getattr(self, "_trained_estimator", None)
+        attr = attr and getattr(attr, "feature_names_in_", None)
+        if attr is not None:
+            return attr
+        return getattr(self, "_feature_names_in_", None)
+
+    @property
+    def feature_importances_(self):
+        attr = getattr(self, "_trained_estimator", None)
+        attr = attr and getattr(attr, "feature_importances_", None)
+        return attr
 
     @property
     def time_to_find_best_model(self) -> float:
@@ -1108,10 +1127,27 @@ class AutoML(BaseEstimator):
             from .data import DataTransformer
 
             self._transformer = DataTransformer()
+
             self._X_train_all, self._y_train_all = self._transformer.fit_transform(
                 X, y, self._state.task
             )
             self._label_transformer = self._transformer.label_transformer
+            if self._state.task == TOKENCLASSIFICATION:
+                if hasattr(self._label_transformer, "label_list"):
+                    self._state.fit_kwargs.update(
+                        {"label_list": self._label_transformer.label_list}
+                    )
+                elif "label_list" not in self._state.fit_kwargs:
+                    for each_fit_kwargs in self._state.fit_kwargs_by_estimator.values():
+                        assert (
+                            "label_list" in each_fit_kwargs
+                        ), "For the token-classification task, you must either (1) pass token labels; or (2) pass id labels and the label list. "
+                        "Please refer to the documentation for more details: https://microsoft.github.io/FLAML/docs/Examples/AutoML-NLP#a-simple-token-classification-example"
+            self._feature_names_in_ = (
+                self._X_train_all.columns.to_list()
+                if hasattr(self._X_train_all, "columns")
+                else None
+            )
 
         self._sample_weight_full = self._state.fit_kwargs.get(
             "sample_weight"
@@ -1404,7 +1440,6 @@ class AutoML(BaseEstimator):
                 len(np.unique(self._state.groups_all)) >= n_splits
             ), "the number of groups must be equal or larger than n_splits"
             self._state.kf = GroupKFold(n_splits)
-            self._state.kf.groups = self._state.groups_all
         elif self._split_type == "stratified":
             # logger.info("Using StratifiedKFold")
             assert y_train_all.size >= n_splits, (
@@ -1442,6 +1477,9 @@ class AutoML(BaseEstimator):
         else:
             # logger.info("Using splitter object")
             self._state.kf = self._split_type
+        if isinstance(self._state.kf, GroupKFold):
+            # self._split_type is either "group" or a GroupKFold object
+            self._state.kf.groups = self._state.groups_all
 
     def add_learner(self, learner_name, learner_class):
         """Add a customized learner.
@@ -1681,10 +1719,7 @@ class AutoML(BaseEstimator):
         # Partially copied from fit() function
         # Initilize some attributes required for retrain_from_log
         self._decide_split_type(split_type)
-        if record_id >= 0:
-            eval_method = "cv"
-        elif eval_method == "auto":
-            eval_method = self._decide_eval_method(time_budget)
+        eval_method = self._decide_eval_method(eval_method, time_budget)
         self.modelcount = 0
         self._auto_augment = auto_augment
         self._prepare_data(eval_method, split_ratio, n_splits)
@@ -1717,6 +1752,9 @@ class AutoML(BaseEstimator):
             assert hasattr(split_type, "split") and hasattr(
                 split_type, "get_n_splits"
             ), "split_type must be a string or a splitter object with split and get_n_splits methods."
+            assert (
+                not isinstance(split_type, GroupKFold) or self._state.groups is not None
+            ), "GroupKFold requires groups to be provided."
             self._split_type = split_type
         elif self._state.task in CLASSIFICATION:
             assert split_type in ["auto", "stratified", "uniform", "time", "group"]
@@ -1746,9 +1784,28 @@ class AutoML(BaseEstimator):
             assert split_type in ["auto", "uniform", "time", "group"]
             self._split_type = split_type if split_type != "auto" else "uniform"
 
-    def _decide_eval_method(self, time_budget):
+    def _decide_eval_method(self, eval_method, time_budget):
+        if not isinstance(self._split_type, str):
+            assert eval_method in [
+                "auto",
+                "cv",
+            ], "eval_method must be 'auto' or 'cv' for custom data splitter."
+            assert (
+                self._state.X_val is None
+            ), "custom splitter and custom validation data can't be used together."
+            return "cv"
         if self._state.X_val is not None:
+            assert eval_method in [
+                "auto",
+                "holdout",
+            ], "eval_method must be 'auto' or 'holdout' for custom validation data."
             return "holdout"
+        if eval_method != "auto":
+            assert eval_method in [
+                "holdout",
+                "cv",
+            ], "eval_method must be 'holdout', 'cv' or 'auto'."
+            return eval_method
         nrow, dim = self._nrow, self._ndim
         if (
             time_budget is None
@@ -2182,7 +2239,7 @@ class AutoML(BaseEstimator):
             seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
-                [parallel tuning](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML#parallel-tuning)
+                [parallel tuning](../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray is required: `pip install flaml[ray]`.
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
@@ -2234,7 +2291,7 @@ class AutoML(BaseEstimator):
 
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
-                [flaml/nlp/training_args.py:TrainingArgumentsForAuto](https://microsoft.github.io/FLAML/docs/reference/nlp/huggingface/training_args).
+                [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                 e.g.,
 
         ```python
@@ -2390,8 +2447,7 @@ class AutoML(BaseEstimator):
         logger.info(f"task = {task}")
         self._decide_split_type(split_type)
         logger.info(f"Data split method: {self._split_type}")
-        if eval_method == "auto" or self._state.X_val is not None:
-            eval_method = self._decide_eval_method(time_budget)
+        eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
 
@@ -2399,18 +2455,68 @@ class AutoML(BaseEstimator):
             eval_method == "holdout" and self._state.X_val is None
         )
         self._auto_augment = auto_augment
-        self._min_sample_size = min_sample_size
+
+        _sample_size_from_starting_points = {}
+        if isinstance(starting_points, dict):
+            for _estimator, _point_per_estimator in starting_points.items():
+                sample_size = (
+                    _point_per_estimator
+                    and isinstance(_point_per_estimator, dict)
+                    and _point_per_estimator.get("FLAML_sample_size")
+                )
+                if sample_size:
+                    _sample_size_from_starting_points[_estimator] = sample_size
+                elif _point_per_estimator and isinstance(_point_per_estimator, list):
+                    _sample_size_set = set(
+                        [
+                            config["FLAML_sample_size"]
+                            for config in _point_per_estimator
+                            if "FLAML_sample_size" in config
+                        ]
+                    )
+                    if _sample_size_set:
+                        _sample_size_from_starting_points[_estimator] = min(
+                            _sample_size_set
+                        )
+                    if len(_sample_size_set) > 1:
+                        logger.warning(
+                            "Using the min FLAML_sample_size of all the provided starting points for estimator {}. (Provided FLAML_sample_size are: {})".format(
+                                _estimator, _sample_size_set
+                            )
+                        )
+
+        if not sample and isinstance(starting_points, dict):
+            assert (
+                not _sample_size_from_starting_points
+            ), "When subsampling is disabled, do not include FLAML_sample_size in the starting point."
+        self._min_sample_size = _sample_size_from_starting_points or min_sample_size
+        self._min_sample_size_input = min_sample_size
         self._prepare_data(eval_method, split_ratio, n_splits)
 
-        self._sample = (
-            sample
-            and task != "rank"
-            and eval_method != "cv"
-            and (
-                self._min_sample_size * SAMPLE_MULTIPLY_FACTOR
-                < self._state.data_size[0]
+        if isinstance(self._min_sample_size, dict):
+            self._sample = {
+                (
+                    k,
+                    sample
+                    and task != "rank"
+                    and eval_method != "cv"
+                    and (
+                        self._min_sample_size[k] * SAMPLE_MULTIPLY_FACTOR
+                        < self._state.data_size[0]
+                    ),
+                )
+                for k in self._min_sample_size.keys()
+            }
+        else:
+            self._sample = (
+                sample
+                and task != "rank"
+                and eval_method != "cv"
+                and (
+                    self._min_sample_size * SAMPLE_MULTIPLY_FACTOR
+                    < self._state.data_size[0]
+                )
             )
-        )
         if "auto" == metric:
             if _is_nlp_task(self._state.task):
                 from .nlp.utils import load_default_huggingface_metric_for_task
@@ -2721,6 +2827,16 @@ class AutoML(BaseEstimator):
             self._state.time_from_start = time.time() - self._start_time_flag
             time_left = self._state.time_budget - self._state.time_from_start
             if self._hpo_method != "optuna":
+                min_resource = self.min_resource
+                if isinstance(min_resource, dict):
+                    _min_resource_set = set(min_resource.values())
+                    min_resource_all_estimator = min(_min_resource_set)
+                    if len(_min_resource_set) > 1:
+                        logger.warning(
+                            "Using the min FLAML_sample_size of all the provided starting points as the starting sample size in the case of parallel search."
+                        )
+                else:
+                    min_resource_all_estimator = min_resource
                 search_alg = SearchAlgo(
                     metric="val_loss",
                     space=space,
@@ -2728,7 +2844,7 @@ class AutoML(BaseEstimator):
                     points_to_evaluate=self.points_to_evaluate,
                     cat_hp_cost=self.cat_hp_cost,
                     resource_attr=self.resource_attr,
-                    min_resource=self.min_resource,
+                    min_resource=min_resource_all_estimator,
                     max_resource=self.max_resource,
                     config_constraints=[
                         (partial(size, self._state), "<=", self._mem_thres)
@@ -2916,7 +3032,12 @@ class AutoML(BaseEstimator):
                 search_space = search_state.search_space
                 if self._sample:
                     resource_attr = "FLAML_sample_size"
-                    min_resource = self._min_sample_size
+                    min_resource = (
+                        self._min_sample_size[estimator]
+                        if isinstance(self._min_sample_size, dict)
+                        and estimator in self._min_sample_size
+                        else self._min_sample_size_input
+                    )
                     max_resource = self._state.data_size[0]
                 else:
                     resource_attr = min_resource = max_resource = None
