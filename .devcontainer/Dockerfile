@@ -23,4 +23,4 @@ ENV DEBIAN_FRONTEND=dialog
 RUN pip3 --disable-pip-version-check --no-cache-dir install flaml[test,notebook]
 # For docs
 RUN npm install --global yarn
-RUN pip install pydoc-markdown
+RUN pip install pydoc-markdown==4.5.0

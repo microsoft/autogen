@@ -14,7 +14,7 @@ settings = {
     "time_budget": 60,  # total running time in seconds
     "metric": 'r2',  # primary metrics for regression can be chosen from: ['mae','mse','r2']
     "estimator_list": ['xgboost'],  # list of ML learners; we tune XGBoost in this example
-    "task": 'regression',  # task type  
+    "task": 'regression',  # task type
     "log_file_name": 'houses_experiment.log',  # flaml log file
     "seed": 7654321,    # random seed
 }
@@ -119,7 +119,7 @@ print(automl.model.estimator)
 ```python
 import matplotlib.pyplot as plt
 
-plt.barh(X_train.columns, automl.model.estimator.feature_importances_)
+plt.barh(automl.feature_names_in_, automl.feature_importances_)
 ```
 ![png](images/xgb_feature_importance.png)
 

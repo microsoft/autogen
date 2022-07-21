@@ -46,9 +46,11 @@ class TestScore:
             automl.score(X_test, y_test)
             automl.pickle("automl.pkl")
             with open("automl.pkl", "rb") as f:
-                pickle.load(f)
-        except ImportError:
-            print("not using prophet due to ImportError")
+                pickle.load(f)  # v1.1 of prophet raises RecursionError
+        except (ImportError, RecursionError):
+            print(
+                "not using prophet due to ImportError or RecursionError (when unpickling in v1.1)"
+            )
             automl.fit(
                 dataframe=df,
                 **settings,

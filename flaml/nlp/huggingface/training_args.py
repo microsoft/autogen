@@ -24,14 +24,17 @@ class TrainingArgumentsForAuto(TrainingArguments):
             model card huggingface.co/models, or a local path for the model.
         fp16 (bool, optional, defaults to "False"): A bool, whether to use FP16.
         max_seq_length (int, optional, defaults to 128): An integer, the max length of the sequence.
+            For token classification task, this argument will be ineffective.
         pad_to_max_length (bool, optional, defaults to "False"):
             whether to pad all samples to model maximum sentence length.
             If False, will pad the samples dynamically when batching to the maximum length in the batch.
         ckpt_per_epoch (int, optional, defaults to 1): An integer, the number of checkpoints per epoch.
         per_device_eval_batch_size (int, optional, defaults to 1): An integer, the per gpu evaluation batch size.
         label_list (List[str], optional, defaults to None): A list of string, the string list of the label names.
-            When the task is sequence labeling/token classification, need to set the label_list (e.g., B-PER, I-PER, B-LOC)
-            to obtain the correct evaluation metric. See the example in test/nlp/test_autohf_tokenclassification.py.
+            When the task is sequence labeling/token classification, there are two formats of the labels:
+            (1) The token labels, i.e., [B-PER, I-PER, B-LOC]; (2) Id labels. For (2), need to pass the label_list (e.g., [B-PER, I-PER, B-LOC])
+            to convert the Id to token labels when computing the metric with metric_loss_score.
+            See the example in [a simple token classification example](../../../Examples/AutoML-NLP#a-simple-token-classification-example).
     """
 
     task: str = field(default="seq-classification")
@@ -48,6 +51,13 @@ class TrainingArgumentsForAuto(TrainingArguments):
     fp16: bool = field(default=True, metadata={"help": "whether to use the FP16 mode"})
 
     max_seq_length: int = field(default=128, metadata={"help": "max seq length"})
+
+    label_all_tokens: bool = field(
+        default=False,
+        metadata={
+            "help": "For NER task, whether to set the extra tokenized labels to the same label (instead of -100)"
+        },
+    )
 
     pad_to_max_length: bool = field(
         default=False,

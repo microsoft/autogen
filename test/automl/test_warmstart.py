@@ -123,6 +123,102 @@ class TestWarmStart(unittest.TestCase):
         automl.fit(X_train, y_train)
         print(automl.best_config_per_estimator)
 
+    def test_FLAML_sample_size_in_starting_points(self):
+        from flaml.data import load_openml_dataset
+        from flaml import AutoML
+
+        X_train, X_test, y_train, y_test = load_openml_dataset(
+            dataset_id=1169, data_dir="./"
+        )
+
+        automl_settings = {
+            "time_budget": 3,
+            "task": "classification",
+        }
+
+        automl1 = AutoML()
+        print(len(y_train))
+        automl1.fit(X_train, y_train, **automl_settings)
+        print("automl1.best_config_per_estimator", automl1.best_config_per_estimator)
+
+        automl_settings["starting_points"] = automl1.best_config_per_estimator
+        automl2 = AutoML()
+        automl2.fit(X_train, y_train, **automl_settings)
+
+        automl_settings["starting_points"] = {
+            "xgboost": {
+                "n_estimators": 4,
+                "max_leaves": 4,
+                "min_child_weight": 0.26208115308159446,
+                "learning_rate": 0.25912534572860507,
+                "subsample": 0.9266743941610592,
+                "colsample_bylevel": 1.0,
+                "colsample_bytree": 1.0,
+                "reg_alpha": 0.0013933617380144255,
+                "reg_lambda": 0.18096917948292954,
+                "FLAML_sample_size": 20000,
+            },
+            "xgb_limitdepth": None,
+            "lrl1": None,
+        }
+        from flaml import tune
+
+        automl_settings["custom_hp"] = {
+            "xgboost": {
+                "n_estimators": {
+                    "domain": tune.choice([10, 20]),
+                },
+            }
+        }
+        automl2 = AutoML()
+        automl2.fit(X_train, y_train, **automl_settings)
+
+        try:
+            import ray
+
+            automl_settings["n_concurrent_trials"] = 2
+        except ImportError:
+            automl_settings["n_concurrent_trials"] = 1
+        # setting different FLAML_sample_size
+        automl_settings["starting_points"] = {
+            "catboost": {
+                "early_stopping_rounds": 10,
+                "learning_rate": 0.09999999999999996,
+                "n_estimators": 1,
+                "FLAML_sample_size": 10000,
+            },
+            "xgboost": {
+                "n_estimators": 4,
+                "max_leaves": 4,
+                "min_child_weight": 0.26208115308159446,
+                "learning_rate": 0.25912534572860507,
+                "subsample": 0.9266743941610592,
+                "colsample_bylevel": 1.0,
+                "colsample_bytree": 1.0,
+                "reg_alpha": 0.0013933617380144255,
+                "reg_lambda": 0.18096917948292954,
+                "FLAML_sample_size": 20000,
+            },
+            "xgb_limitdepth": None,
+            "lrl1": None,
+        }
+        automl3 = AutoML()
+        automl3.fit(X_train, y_train, **automl_settings)
+
+        automl_settings["sample"] = False
+        automl4 = AutoML()
+        try:
+            automl4.fit(
+                X_train,
+                y_train,
+                **automl_settings,
+            )
+            raise RuntimeError(
+                "When sample=False and starting_points contain FLAML_sample_size, AssertionError is expected but not raised."
+            )
+        except AssertionError:
+            pass
+
 
 if __name__ == "__main__":
     unittest.main()
