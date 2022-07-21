@@ -2,6 +2,11 @@
   "name": "website",
   "version": "0.0.0",
   "private": true,
+  "resolutions" :{
+    "nth-check":"2.0.1",
+    "trim":"0.0.3",
+    "got": "11.8.5"
+   },
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
@@ -42,3 +47,6 @@
     ]
   }
 }
+
+
+
