@@ -35,7 +35,7 @@ jobs:
       - name: Test Build
         run: |
           if [ -e yarn.lock ]; then
-          yarn install --frozen-lockfile
+          yarn install --frozen-lockfile --ignore-engines
           yarn build
           elif [ -e package-lock.json ]; then
           npm ci
@@ -71,7 +71,7 @@ jobs:
       - name: Build website
         run: |
           if [ -e yarn.lock ]; then
-          yarn install --frozen-lockfile
+          yarn install --frozen-lockfile --ignore-engines
           yarn build
           elif [ -e package-lock.json ]; then
           npm ci
