@@ -22,10 +22,11 @@ learners and hyperparameters for each learner.
 hyperparameter optimization](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function/#hyperparameter-optimization-algorithm)
 and learner selection method invented by Microsoft Research.
 
-FLAML has a .NET implementation as well from [ML.NET Model Builder](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet/model-builder) in [Visual Studio](https://visualstudio.microsoft.com/) 2022. This [ML.NET blog](https://devblogs.microsoft.com/dotnet/ml-net-june-updates/#new-and-improved-automl) describes the improvement brought by FLAML.
-
+FLAML has a .NET implementation in [ML.NET](http://dot.net/ml), an open-source, cross-platform machine learning framework for .NET. In ML.NET, you can use FLAML via low-code solutions like [Model Builder](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet/model-builder) Visual Studio extension and the cross-platform [ML.NET CLI](https://docs.microsoft.com/dotnet/machine-learning/automate-training-with-cli). Alternatively, you can use the [ML.NET AutoML API](https://www.nuget.org/packages/Microsoft.ML.AutoML/#versions-body-tab) for a code-first experience.
 
 ## Installation
+
+### Python
 
 FLAML requires **Python version >= 3.7**. It can be installed from pip:
 
@@ -39,6 +40,14 @@ install flaml with the [notebook] option:
 ```bash
 pip install flaml[notebook]
 ```
+
+### .NET
+
+Use the following guides to get started with FLAML in .NET:
+
+- [Install Model Builder](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-model-builder?tabs=visual-studio-2022)
+- [Install ML.NET CLI](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-ml-net-cli?tabs=windows)
+- [Microsoft.AutoML](https://www.nuget.org/packages/Microsoft.ML.AutoML/0.20.0-preview.22313.1)
 
 ## Quickstart
 
@@ -88,6 +97,8 @@ In addition, you can find:
 - FAQ [here](https://microsoft.github.io/FLAML/docs/FAQ).
 
 - Contributing guide [here](https://microsoft.github.io/FLAML/docs/Contribute).
+
+- ML.NET documentation and tutorials for [Model Builder](https://docs.microsoft.com/dotnet/machine-learning/tutorials/predict-prices-with-model-builder), [ML.NET CLI](https://docs.microsoft.com/en-us/dotnet/machine-learning/tutorials/sentiment-analysis-cli), and [AutoML API](https://github.com/dotnet/csharp-notebooks/blob/main/machine-learning/03-Training%20and%20AutoML.ipynb).
 
 ## Contributing
 
