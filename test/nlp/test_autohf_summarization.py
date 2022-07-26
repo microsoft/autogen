@@ -4,7 +4,10 @@ import requests
 from utils import get_toy_data_summarization, get_automl_settings
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
+@pytest.mark.skipif(
+    sys.platform == "darwin" or sys.version < "3.7",
+    reason="do not run on mac os or py < 3.7",
+)
 def test_summarization():
     # TODO: manual test for how effective postprocess_seq2seq_prediction_label is
     from flaml import AutoML
