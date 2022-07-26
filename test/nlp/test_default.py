@@ -63,7 +63,6 @@ def test_starting_point_not_in_search_space():
         }
     }
     automl_settings["starting_points"] = "data:test/nlp/default/"
-    del automl_settings["fit_kwargs_by_estimator"][this_estimator_name]["model_path"]
 
     automl.fit(X_train, y_train, **automl_settings)
     assert len(automl._search_states[this_estimator_name].init_config) == len(
@@ -90,10 +89,13 @@ def test_points_to_evaluate():
     automl = AutoML()
     automl_settings = get_automl_settings(estimator_name="transformer_ms")
 
-    automl_settings["estimator_list"] = ["transformer_ms"]
-    automl_settings["starting_points"] = "data"
+    automl_settings["starting_points"] = "data:test/nlp/default/"
 
-    del automl_settings["fit_kwargs_by_estimator"]["transformer_ms"]["model_path"]
+    automl_settings["custom_hp"] = {
+        "transformer_ms": {
+            "model_path": {"domain": "google/electra-small-discriminator"}
+        }
+    }
 
     automl.fit(X_train, y_train, **automl_settings)
 
@@ -108,8 +110,6 @@ def test_zero_shot_nomodel():
     X_train, y_train, X_val, y_val, X_test = get_toy_data_seqclassification()
 
     automl_settings = get_automl_settings(estimator_name)
-
-    del automl_settings["fit_kwargs_by_estimator"][estimator_name]["model_path"]
 
     (
         hyperparams,
@@ -145,10 +145,6 @@ def test_build_error_portfolio(path="./test/nlp/default", strategy="greedy"):
 
     location = "test/nlp/default"
     X_train, y_train, X_val, y_val, X_test = get_toy_data_seqclassification()
-
-    automl_settings = get_automl_settings(estimator_name)
-
-    del automl_settings["fit_kwargs_by_estimator"][estimator_name]["model_path"]
 
     try:
         (
