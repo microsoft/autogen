@@ -1514,14 +1514,23 @@ def get_automl_settings(estimator_name="transformer"):
         "use_ray": False,
     }
 
-    automl_settings["fit_kwargs_by_estimator"] = {
-        estimator_name: {
-            "model_path": "google/electra-small-discriminator",
-            "output_dir": "test/data/output/",
-            "ckpt_per_epoch": 1,
-            "fp16": False,
+    if estimator_name.endswith("ms"):
+        automl_settings["fit_kwargs_by_estimator"] = {
+            estimator_name: {
+                "output_dir": "test/data/output/",
+                "ckpt_per_epoch": 1,
+                "fp16": False,
+            }
         }
-    }
+    else:
+        automl_settings["fit_kwargs_by_estimator"] = {
+            estimator_name: {
+                "model_path": "google/electra-small-discriminator",
+                "output_dir": "test/data/output/",
+                "ckpt_per_epoch": 1,
+                "fp16": False,
+            }
+        }
 
     automl_settings["estimator_list"] = [estimator_name]
     return automl_settings
