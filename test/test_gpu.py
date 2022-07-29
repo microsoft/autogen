@@ -85,7 +85,6 @@ def _test_hf_data():
         "transformer": {
             "model_path": "facebook/muppet-roberta-base",
             "output_dir": "test/data/output/",
-            "ckpt_per_epoch": 5,
             "fp16": True,
         }
     }
