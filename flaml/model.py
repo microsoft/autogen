@@ -417,32 +417,18 @@ class TransformersEstimator(BaseEstimator):
     def search_space(cls, data_size, task, **params):
         search_space_dict = {
             "learning_rate": {
-                "domain": tune.choice(
-                    [1e-6, 2e-6, 4e-6, 8e-6, 16e-6, 32e-6, 64e-6, 128e-6]
-                ),
-                "init_value": 8e-6,
+                "domain": tune.loguniform(1e-6, 1e-4),
+                "init_value": 1e-5,
             },
             "num_train_epochs": {
-                "domain": tune.choice([1, 3, 5, 7, 9]),
+                "domain": tune.choice([1, 2, 3, 4, 5]),
                 "init_value": 3.0,  # to be consistent with roberta
             },
             "per_device_train_batch_size": {
-                "domain": tune.choice([4, 8, 16, 32]),
+                "domain": tune.choice([4, 8, 16, 32, 64]),
                 "init_value": 32,
             },
-            "warmup_ratio": {
-                "domain": tune.choice([0, 0.1, 0.2, 0.3]),
-                "init_value": 0.0,
-            },
-            "weight_decay": {
-                "domain": tune.choice([0, 0.1, 0.2, 0.3]),
-                "init_value": 0.0,
-            },
-            "adam_epsilon": {
-                "domain": tune.choice([1e-8, 1e-7, 1e-6]),
-                "init_value": 1e-6,
-            },
-            "seed": {"domain": tune.randint(40, 45), "init_value": 42},
+            "seed": {"domain": tune.randint(1, 40), "init_value": 20},
             "global_max_steps": {
                 "domain": sys.maxsize,
                 "init_value": sys.maxsize,
@@ -450,18 +436,6 @@ class TransformersEstimator(BaseEstimator):
         }
 
         return search_space_dict
-
-    @property
-    def checkpoint_freq(self):
-        return (
-            int(
-                min(self._training_args.num_train_epochs, 1)
-                * len(self._X_train)
-                / self._training_args.per_device_train_batch_size
-                / self._training_args.ckpt_per_epoch
-            )
-            + 1
-        )
 
     @property
     def fp16(self):
@@ -512,9 +486,6 @@ class TransformersEstimator(BaseEstimator):
                 local_dir, self.params, self.trial_id
             )
 
-        self._training_args.eval_steps = (
-            self._training_args.logging_steps
-        ) = self._training_args.saving_steps = self.checkpoint_freq
         self._training_args.fp16 = self.fp16
         self._training_args.no_cuda = self.no_cuda
 
@@ -762,7 +733,7 @@ class TransformersEstimator(BaseEstimator):
 
         if trainer.ckpt_to_metric:
             best_ckpt, _ = min(
-                trainer.ckpt_to_metric.items(), key=lambda x: x[1]["eval_loss"]
+                trainer.ckpt_to_metric.items(), key=lambda x: x[1]["eval_automl_metric"]
             )
             best_ckpt_global_step = trainer.ckpt_to_global_step[best_ckpt]
             for each_ckpt in list(trainer.ckpt_to_metric):

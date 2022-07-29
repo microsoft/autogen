@@ -685,7 +685,6 @@ class AutoML(BaseEstimator):
         fit_kwargs_by_estimator = {
             "transformer": {
                 "output_dir": "test/data/output/",
-                "ckpt_per_epoch": 1,
                 "fp16": False,
             }
         }
@@ -1626,7 +1625,6 @@ class AutoML(BaseEstimator):
         fit_kwargs_by_estimator = {
             "transformer": {
                 "output_dir": "test/data/output/",
-                "ckpt_per_epoch": 1,
                 "fp16": False,
             }
         }
@@ -2298,7 +2296,6 @@ class AutoML(BaseEstimator):
         fit_kwargs_by_estimator = {
             "transformer": {
                 "output_dir": "test/data/output/",
-                "ckpt_per_epoch": 1,
                 "fp16": False,
             }
         }

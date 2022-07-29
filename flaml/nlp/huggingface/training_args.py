@@ -28,7 +28,6 @@ class TrainingArgumentsForAuto(TrainingArguments):
         pad_to_max_length (bool, optional, defaults to "False"):
             whether to pad all samples to model maximum sentence length.
             If False, will pad the samples dynamically when batching to the maximum length in the batch.
-        ckpt_per_epoch (int, optional, defaults to 1): An integer, the number of checkpoints per epoch.
         per_device_eval_batch_size (int, optional, defaults to 1): An integer, the per gpu evaluation batch size.
         label_list (List[str], optional, defaults to None): A list of string, the string list of the label names.
             When the task is sequence labeling/token classification, there are two formats of the labels:
@@ -67,8 +66,6 @@ class TrainingArgumentsForAuto(TrainingArguments):
         },
     )
 
-    ckpt_per_epoch: int = field(default=1, metadata={"help": "checkpoint per epoch"})
-
     per_device_eval_batch_size: int = field(
         default=1,
         metadata={"help": "per gpu evaluation batch size"},
@@ -76,6 +73,18 @@ class TrainingArgumentsForAuto(TrainingArguments):
 
     label_list: Optional[List[str]] = field(
         default=None, metadata={"help": "The string list of the label names. "}
+    )
+
+    eval_steps: int = field(
+        default=500, metadata={"help": "Run an evaluation every X steps."}
+    )
+
+    save_steps: int = field(
+        default=500, metadata={"help": "Save checkpoint every X updates steps."}
+    )
+
+    logging_steps: int = field(
+        default=500, metadata={"help": "Log every X updates steps."}
     )
 
     @staticmethod

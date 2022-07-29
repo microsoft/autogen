@@ -24,7 +24,6 @@ def test_custom_hp_nlp():
     automl_settings["fit_kwargs_by_estimator"] = {
         "transformer": {
             "output_dir": "test/data/output/",
-            "ckpt_per_epoch": 1,
             "fp16": False,
         }
     }
