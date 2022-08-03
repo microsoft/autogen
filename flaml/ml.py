@@ -141,7 +141,6 @@ def metric_loss_score(
     groups=None,
 ):
     # y_processed_predict and y_processed_true are processed id labels if the original were the token labels
-
     if is_in_sklearn_metric_name_set(metric_name):
         return sklearn_metric_loss_score(
             metric_name,
@@ -152,86 +151,61 @@ def metric_loss_score(
             groups,
         )
     else:
-        """
-        hf's datasets.load_metric("pearsonr") returns nan (hf's bug), overwriting it here
-        """
-        if metric_name == "spearmanr":
-            from scipy.stats import spearmanr
+        try:
+            import datasets
 
-            y_true = (
-                y_processed_true.to_list()
-                if isinstance(y_processed_true, pd.Series)
-                else list(y_processed_true)
+            datasets_metric_name = huggingface_submetric_to_metric.get(
+                metric_name, metric_name.split(":")[0]
             )
-            score = spearmanr(list(y_processed_predict), y_true)[0]
-            metric_mode = "max"
-        elif metric_name == "pearsonr":
-            from scipy.stats import pearsonr
+            metric = datasets.load_metric(datasets_metric_name)
+            metric_mode = huggingface_metric_to_mode[datasets_metric_name]
 
-            y_true = (
-                y_processed_true.to_list()
-                if type(y_processed_true) == pd.Series
-                else list(y_processed_true)
+            if metric_name.startswith("seqeval"):
+                y_processed_true = [
+                    [labels[tr] for tr in each_list] for each_list in y_processed_true
+                ]
+            elif metric in ("pearsonr", "spearmanr"):
+                y_processed_true = (
+                    y_processed_true.to_list()
+                    if isinstance(y_processed_true, pd.Series)
+                    else list(y_processed_true)
+                )
+            score_dict = metric.compute(
+                predictions=y_processed_predict, references=y_processed_true
             )
-            score = pearsonr(list(y_processed_predict), y_true)[0]
-            metric_mode = "max"
-        else:
-            try:
-                import datasets
-
-                datasets_metric_name = huggingface_submetric_to_metric.get(
-                    metric_name, metric_name.split(":")[0]
-                )
-                metric = datasets.load_metric(datasets_metric_name)
-                metric_mode = huggingface_metric_to_mode[datasets_metric_name]
-
-                if "rouge" in metric_name:
-                    score = metric.compute(
-                        predictions=y_processed_predict, references=y_processed_true
-                    )[metric_name].mid.fmeasure
-                elif metric_name.startswith("seqeval"):
-
-                    y_processed_true = [
-                        [labels[tr] for tr in each_list]
-                        for each_list in y_processed_true
-                    ]
-                    metric_submetric_names = metric_name.split(":")
-
-                    score = metric.compute(
-                        predictions=y_processed_predict, references=y_processed_true
-                    )[
-                        metric_submetric_names[1]
-                        if len(metric_submetric_names) > 1
-                        else "overall_accuracy"
-                    ]
-
-                else:
-                    score = metric.compute(
-                        predictions=y_processed_predict, references=y_processed_true
-                    )[metric_name]
-            except ImportError:
-                raise ValueError(
-                    metric_name
-                    + " is not an built-in sklearn metric and nlp is not installed. "
-                    "Currently built-in sklearn metrics are: "
-                    "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
-                    "log_loss, mape, f1, micro_f1, macro_f1, ap. "
-                    "If the metric is an nlp metric, please pip install flaml[nlp] ",
-                    "or pass a customized metric function to AutoML.fit(metric=func)",
-                )
-            # If the metric is not found from huggingface dataset metric list (i.e., FileNotFoundError)
-            # ask the user to provide a custom metric
-            except FileNotFoundError:
-                raise ValueError(
-                    metric_name
-                    + " is neither an sklearn metric nor a huggingface metric. "
-                    "Currently built-in sklearn metrics are: "
-                    "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
-                    "log_loss, mape, f1, micro_f1, macro_f1, ap. "
-                    "Currently built-in huggingface metrics are: "
-                    + ", ".join(huggingface_metric_to_mode.keys())
-                    + ". Please pass a customized metric function to AutoML.fit(metric=func)"
-                )
+            if "rouge" in metric_name:
+                score = score_dict[metric_name].mid.fmeasure
+            elif metric_name.startswith("seqeval"):
+                metric_submetric_names = metric_name.split(":")
+                score = score_dict[
+                    metric_submetric_names[1]
+                    if len(metric_submetric_names) > 1
+                    else "overall_accuracy"
+                ]
+            else:
+                score = score_dict[metric_name]
+        except ImportError:
+            raise ValueError(
+                metric_name
+                + " is not an built-in sklearn metric and nlp is not installed. "
+                "Currently built-in sklearn metrics are: "
+                "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
+                "log_loss, mape, f1, micro_f1, macro_f1, ap. "
+                "If the metric is an nlp metric, please pip install flaml[nlp] ",
+                "or pass a customized metric function to AutoML.fit(metric=func)",
+            )
+        # If the metric is not found from huggingface dataset metric list (i.e., FileNotFoundError)
+        # ask the user to provide a custom metric
+        except FileNotFoundError:
+            raise ValueError(
+                metric_name + " is neither an sklearn metric nor a huggingface metric. "
+                "Currently built-in sklearn metrics are: "
+                "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
+                "log_loss, mape, f1, micro_f1, macro_f1, ap. "
+                "Currently built-in huggingface metrics are: "
+                + ", ".join(huggingface_metric_to_mode.keys())
+                + ". Please pass a customized metric function to AutoML.fit(metric=func)"
+            )
         if metric_mode == "max":
             return 1 - score
         else:
