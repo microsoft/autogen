@@ -12,7 +12,21 @@ from ...data import (
 )
 
 
+def todf(X, Y, column_name):
+    """
+    todf converts Y from any format (list, pandas.Series, numpy array) to a DataFrame before being returned
+    """
+    if Y is not None:
+        Y = pd.DataFrame(Y, index=X.index)
+        Y.columns = column_name
+    return Y
+
+
 def tokenize_text(X, Y=None, task=None, hf_args=None, tokenizer=None):
+    label_col_name = None
+    # label_col_name is the name of the label column Y, label_col_name = ['labels'] for TOKENCLASSIFICATION and SUMMARIZATION,
+    # label_col_name = ['label'] for other tasks. todf is used by all tasks except for SUMMARIZATION,
+    # because the outputs of tokenize_seq2seq are already two DataFrames so no conversion needed.
     if task in (SEQCLASSIFICATION, SEQREGRESSION):
         X_tokenized = tokenize_onedataframe(
             X,
@@ -21,15 +35,23 @@ def tokenize_text(X, Y=None, task=None, hf_args=None, tokenizer=None):
             hf_args=hf_args,
             prefix_str="",
         )
-        return X_tokenized, None
+        Y_tokenized = Y
+        label_col_name = ["label"]
     elif task == TOKENCLASSIFICATION:
-        return tokenize_text_tokclassification(
+        X_tokenized, Y_tokenized = tokenize_text_tokclassification(
             X, Y, tokenizer=tokenizer, hf_args=hf_args
         )
+        label_col_name = ["labels"]
     elif task in NLG_TASKS:
         return tokenize_seq2seq(X, Y, tokenizer=tokenizer, task=task, hf_args=hf_args)
     elif task == MULTICHOICECLASSIFICATION:
-        return tokenize_text_multiplechoice(X, tokenizer=tokenizer, hf_args=hf_args)
+        X_tokenized = tokenize_text_multiplechoice(
+            X, tokenizer=tokenizer, hf_args=hf_args
+        )
+        label_col_name = ["label"]
+        Y_tokenized = Y
+    Y_tokenized = todf(X_tokenized, Y_tokenized, label_col_name)
+    return X_tokenized, Y_tokenized
 
 
 def tokenize_seq2seq(X, Y, tokenizer, task=None, hf_args=None):
@@ -49,7 +71,7 @@ def tokenize_seq2seq(X, Y, tokenizer, task=None, hf_args=None):
             hf_args=hf_args,
             prefix_str="",
         )
-        model_outputs["label"] = [
+        model_outputs["labels"] = [
             [(each_l if each_l != tokenizer.pad_token_id else -100) for each_l in label]
             for label in model_outputs["input_ids"]
         ]
@@ -238,7 +260,7 @@ def tokenize_row(
     # tokenizer.pad_token = tokenizer.eos_token
     tokenized_example = tokenizer(
         *tuple(this_row),
-        padding="max_length",
+        padding="max_length" if hf_args and hf_args.pad_to_max_length else False,
         max_length=hf_args.max_seq_length if hf_args else None,
         truncation=True,
     )
@@ -270,7 +292,7 @@ def tokenize_text_multiplechoice(X, tokenizer, hf_args=None):
     X_tokenized = pd.DataFrame(columns=tokenized_column_names)
     X_tokenized[tokenized_column_names] = d
     output = X_tokenized.join(X)
-    return output, None
+    return output
 
 
 def tokenize_swag(this_row, tokenizer, hf_args=None, return_column_name=False):
@@ -292,7 +314,7 @@ def tokenize_swag(this_row, tokenizer, hf_args=None, return_column_name=False):
         *tuple([first_sentences, second_sentences]),
         truncation=True,
         max_length=hf_args.max_seq_length if hf_args else None,
-        padding=False,
+        padding="max_length" if hf_args and hf_args.pad_to_max_length else False,
     )
     tmp_column_names = sorted(tokenized_example.keys())
 
@@ -318,13 +340,14 @@ def postprocess_prediction_and_true(
         # If y_true is None, we use X to compute y_is_pad (i.e., whether y_true is -100 in that position), and use y_is_pad to remove the -100 in the prediction, and return the postprocessed prediction (not the y_true)
         y_predict = pd.Series(np.argmax(y_pred, axis=2).tolist())
         if y_true is None:
-            _, y_is_pad = tokenize_text(
+            _, y_is_pad_df = tokenize_text(
                 X,
                 y_predict,
                 task=task,
                 hf_args=hf_args,
                 tokenizer=tokenizer,
             )
+            y_is_pad = y_is_pad_df.iloc[:, 0]
         else:
             y_is_pad = y_true
         label_len = len(hf_args.label_list)

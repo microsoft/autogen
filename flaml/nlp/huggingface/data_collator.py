@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from transformers.data.data_collator import (
     DataCollatorWithPadding,
     DataCollatorForTokenClassification,
+    DataCollatorForSeq2Seq,
 )
 from collections import OrderedDict
 
-from flaml.data import TOKENCLASSIFICATION, MULTICHOICECLASSIFICATION
+from flaml.data import TOKENCLASSIFICATION, MULTICHOICECLASSIFICATION, SUMMARIZATION
 
 
 @dataclass
@@ -43,5 +44,6 @@ task_to_datacollator_class = OrderedDict(
     [
         (TOKENCLASSIFICATION, DataCollatorForTokenClassification),
         (MULTICHOICECLASSIFICATION, DataCollatorForMultipleChoiceClassification),
+        (SUMMARIZATION, DataCollatorForSeq2Seq),
     ]
 )
