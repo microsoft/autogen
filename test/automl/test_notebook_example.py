@@ -15,6 +15,11 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
         and "3.9" in sys.version
     ):
         budget = performance_check_budget  # revise the buget on macos
+    if budget == performance_check_budget:
+        budget = None
+        max_iter = 100
+    else:
+        max_iter = None
     try:
         X_train, X_test, y_train, y_test = load_openml_dataset(
             dataset_id=1169, data_dir="test/", dataset_format=dataset_format
@@ -33,6 +38,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     automl = AutoML()
     settings = {
         "time_budget": budget,  # total running time in seconds
+        "max_iter": max_iter,  # maximum number of iterations
         "metric": "accuracy",  # primary metrics can be chosen from: ['accuracy','roc_auc','roc_auc_ovr','roc_auc_ovo','f1','log_loss','mae','mse','r2']
         "task": "classification",  # task type
         "log_file_name": "airlines_experiment.log",  # flaml log file
@@ -70,7 +76,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
         "roc_auc", "=", 1 - sklearn_metric_loss_score("roc_auc", y_pred_proba, y_test)
     )
     print("log_loss", "=", sklearn_metric_loss_score("log_loss", y_pred_proba, y_test))
-    if budget >= performance_check_budget:
+    if budget is None:
         assert accuracy >= 0.669, "the accuracy of flaml should be larger than 0.67"
     from flaml.data import get_output_from_log
 
@@ -88,7 +94,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     print(automl.min_resource)
     print(automl.feature_names_in_)
     print(automl.feature_importances_)
-    if budget < performance_check_budget:
+    if budget is not None:
         automl.fit(X_train=X_train, y_train=y_train, ensemble=True, **settings)
 
 
