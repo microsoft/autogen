@@ -438,11 +438,14 @@ def evaluate_model_CV(
     task,
     eval_metric,
     best_val_loss,
+    cv_strategy,
     log_training_metric=False,
     fit_kwargs={},
 ):
+    if cv_strategy is None:
+        cv_strategy = lambda val_loss_folds: sum(val_loss_folds)/len(val_loss_folds)
     start_time = time.time()
-    total_val_loss = 0
+    val_loss_folds = []
     total_metric = None
     metric = None
     train_time = pred_time = 0
@@ -515,7 +518,7 @@ def evaluate_model_CV(
             fit_kwargs["sample_weight"] = weight
         valid_fold_num += 1
         total_fold_num += 1
-        total_val_loss += val_loss_i
+        val_loss_folds.append(val_loss_i)
         if log_training_metric or not isinstance(eval_metric, str):
             if isinstance(total_metric, dict):
                 total_metric = {k: total_metric[k] + v for k, v in metric_i.items()}
@@ -526,10 +529,11 @@ def evaluate_model_CV(
         train_time += train_time_i
         pred_time += pred_time_i
         if valid_fold_num == n:
-            val_loss_list.append(total_val_loss / valid_fold_num)
-            total_val_loss = valid_fold_num = 0
+            val_loss_list.append(cv_strategy(val_loss_folds))
+            val_loss_folds = []
+            valid_fold_num = 0
         elif time.time() - start_time >= budget:
-            val_loss_list.append(total_val_loss / valid_fold_num)
+            val_loss_list.append(cv_strategy(val_loss_folds))
             break
     val_loss = np.max(val_loss_list)
     n = total_fold_num
@@ -559,6 +563,7 @@ def compute_estimator(
     best_val_loss=np.Inf,
     n_jobs=1,
     estimator_class=None,
+    cv_strategy=None,
     log_training_metric=False,
     fit_kwargs={},
 ):
@@ -605,6 +610,7 @@ def compute_estimator(
             task,
             eval_metric,
             best_val_loss,
+            cv_strategy,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
         )
