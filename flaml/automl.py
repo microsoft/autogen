@@ -364,6 +364,7 @@ class AutoMLState:
             state.best_loss,
             state.n_jobs,
             state.learner_classes.get(estimator),
+            state.cv_strategy,
             state.log_training_metric,
             this_estimator_kwargs,
         )
@@ -2070,6 +2071,7 @@ class AutoML(BaseEstimator):
         use_ray=None,
         metric_constraints=None,
         custom_hp=None,
+        cv_strategy=None,
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -2287,6 +2289,17 @@ class AutoML(BaseEstimator):
         }
         ```
 
+        cv_strategy: function, the strategy of conducting cross-validation. Default to average the optimization metric across folds. 
+        We give an example here:
+
+        ```python
+        def cv_strategy(val_loss_folds):
+            return sum(val_loss_folds)/len(val_loss_folds)
+        ```
+        
+        where val_loss_folds is the list that stores the metrics values of all folds. In this example, we return the average of the optimization 
+        metric across all folds (default strategy).
+                
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [TrainingArgumentsForAuto](nlp/huggingface/training_args).
@@ -2307,7 +2320,7 @@ class AutoML(BaseEstimator):
                     gpu_per_trial: float, default = 0 | A float of the number of gpus per trial,
                     only used by TransformersEstimator and XGBoostSklearnEstimator.
         """
-
+        
         self._state._start_time_flag = self._start_time_flag = time.time()
         task = task or self._settings.get("task")
         self._estimator_type = "classifier" if task in CLASSIFICATION else "regressor"
@@ -2447,6 +2460,7 @@ class AutoML(BaseEstimator):
         eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
+        self._state.cv_strategy = cv_strategy 
 
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
