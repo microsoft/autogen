@@ -438,14 +438,28 @@ def evaluate_model_CV(
     task,
     eval_metric,
     best_val_loss,
-    cv_strategy,
+    cv_score_agg_func,
     log_training_metric=False,
     fit_kwargs={},
 ):
-    if cv_strategy is None:
-        cv_strategy = lambda val_loss_folds: sum(val_loss_folds)/len(val_loss_folds)
+    if cv_score_agg_func is None:
+        def cv_score_agg_func(metrics_across_folds):
+            metric_to_minimize = sum([tem[0] for tem in metrics_across_folds])/len(metrics_across_folds)
+            metrics_to_log = None
+            for single_fold in metrics_across_folds:
+                if single_fold[1] is None:
+                    break
+                elif metrics_to_log is None:
+                    metrics_to_log = single_fold[1]
+                else:
+                    metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold[1].items()}
+            if metrics_to_log:
+                n = len(metrics_across_folds)
+                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()}
+            return metric_to_minimize, metrics_to_log
     start_time = time.time()
     val_loss_folds = []
+    log_metric_folds = []
     total_metric = None
     metric = None
     train_time = pred_time = 0
@@ -520,8 +534,8 @@ def evaluate_model_CV(
         total_fold_num += 1
         val_loss_folds.append(val_loss_i)
         if log_training_metric or not isinstance(eval_metric, str):
-            if isinstance(total_metric, dict):
-                total_metric = {k: total_metric[k] + v for k, v in metric_i.items()}
+            if isinstance(metric_i, dict):
+                log_metric_folds.append(metric_i)
             elif total_metric is not None:
                 total_metric += metric_i
             else:
@@ -529,17 +543,17 @@ def evaluate_model_CV(
         train_time += train_time_i
         pred_time += pred_time_i
         if valid_fold_num == n:
-            val_loss_list.append(cv_strategy(val_loss_folds))
-            val_loss_folds = []
+            val_loss_list.append(cv_score_agg_func(list(zip(val_loss_folds,[None]*len(val_loss_folds))))[0])
             valid_fold_num = 0
+            val_loss_folds = []
         elif time.time() - start_time >= budget:
-            val_loss_list.append(cv_strategy(val_loss_folds))
+            val_loss_list.append(cv_score_agg_func(list(zip(val_loss_folds,[None]*len(val_loss_folds))))[0])
             break
     val_loss = np.max(val_loss_list)
     n = total_fold_num
     if log_training_metric or not isinstance(eval_metric, str):
-        if isinstance(total_metric, dict):
-            metric = {k: v / n for k, v in total_metric.items()}
+        if len(log_metric_folds):
+            metric = cv_score_agg_func(list(zip([0]*len(log_metric_folds),log_metric_folds)))[1]
         else:
             metric = total_metric / n
     pred_time /= n
@@ -563,7 +577,7 @@ def compute_estimator(
     best_val_loss=np.Inf,
     n_jobs=1,
     estimator_class=None,
-    cv_strategy=None,
+    cv_score_agg_func=None,
     log_training_metric=False,
     fit_kwargs={},
 ):
@@ -610,7 +624,7 @@ def compute_estimator(
             task,
             eval_metric,
             best_val_loss,
-            cv_strategy,
+            cv_score_agg_func,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
         )

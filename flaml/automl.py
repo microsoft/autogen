@@ -364,7 +364,7 @@ class AutoMLState:
             state.best_loss,
             state.n_jobs,
             state.learner_classes.get(estimator),
-            state.cv_strategy,
+            state.cv_score_agg_func,
             state.log_training_metric,
             this_estimator_kwargs,
         )
@@ -729,6 +729,7 @@ class AutoML(BaseEstimator):
         settings["min_sample_size"] = settings.get("min_sample_size", MIN_SAMPLE_TRAIN)
         settings["use_ray"] = settings.get("use_ray", False)
         settings["metric_constraints"] = settings.get("metric_constraints", [])
+        settings["cv_score_agg_func"] = settings.get("cv_score_agg_func", None)
         settings["fit_kwargs_by_estimator"] = settings.get(
             "fit_kwargs_by_estimator", {}
         )
@@ -2071,7 +2072,7 @@ class AutoML(BaseEstimator):
         use_ray=None,
         metric_constraints=None,
         custom_hp=None,
-        cv_strategy=None,
+        cv_score_agg_func=None,
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -2289,21 +2290,39 @@ class AutoML(BaseEstimator):
         }
         ```
 
-        cv_strategy: customized function, the strategy of conducting cross-validation. Default to average the optimization metric across folds.
-        We give an example here:
+            cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
+                have the following signature:
 
         ```python
-        def cv_strategy(val_loss_folds):
-            return sum(val_loss_folds)/len(val_loss_folds)
+        def cv_score_agg_func(metrics_across_folds):
+            return metric_to_minimize, metrics_to_log
+        ```
+                The input "metrics_across_folds" is a list of 2-tuples. Each tuple records the loss and metrics information of the corresponding fold.
+                On each tuple, the first element is a float number that represents the loss score to minimize, and the second is a dict of all the metrics to log or None.
+                It returns the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
+                E.g.,
+
+        ```python
+        def cv_score_agg_func(metrics_across_folds):
+            metric_to_minimize = sum([tem[0] for tem in metrics_across_folds])/len(metrics_across_folds)
+            metrics_to_log = None
+            for single_fold in metrics_across_folds:
+                if single_fold[1] is None:
+                    break
+                elif metrics_to_log is None:
+                    metrics_to_log = single_fold[1]
+                else:
+                    metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold[1].items()}
+            if metrics_to_log:
+                n = len(metrics_across_folds)
+                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()}
+            return metric_to_minimize, metrics_to_log
         ```
 
-        where val_loss_folds is the list that stores the metrics values of all folds. In this example, we return the average of the optimization
-        metric across all folds (default strategy).
-
-        fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
-                For TransformersEstimator, available fit_kwargs can be found from
-                [TrainingArgumentsForAuto](nlp/huggingface/training_args).
-                e.g.,
+            fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
+                    For TransformersEstimator, available fit_kwargs can be found from
+                    [TrainingArgumentsForAuto](nlp/huggingface/training_args).
+                    e.g.,
 
         ```python
         fit_kwargs_by_estimator = {
@@ -2460,7 +2479,7 @@ class AutoML(BaseEstimator):
         eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
-        self._state.cv_strategy = cv_strategy
+        self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get("cv_score_agg_func")
 
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
