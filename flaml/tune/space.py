@@ -225,15 +225,18 @@ def add_cost_to_space(space: Dict, low_cost_point: Dict, choice_cost: Dict):
                 domain.choice_cost = cost[ind]
                 domain.const = [domain.const[i] for i in ind]
                 domain.ordered = True
-            elif all(
-                isinstance(x, int) or isinstance(x, float) for x in domain.categories
-            ):
-                # sort the choices by value
-                ind = np.argsort(domain.categories)
-                domain.categories = [domain.categories[i] for i in ind]
-                domain.ordered = True
             else:
-                domain.ordered = False
+                ordered = getattr(domain, "ordered", None)
+                if ordered is None:
+                    # automatically decide whether to order the choices based on the value type
+                    domain.ordered = ordered = all(
+                        isinstance(x, (int, float)) for x in domain.categories
+                    )
+                if ordered:
+                    # sort the choices by value
+                    ind = np.argsort(domain.categories)
+                    domain.categories = [domain.categories[i] for i in ind]
+
             if low_cost and low_cost not in domain.categories:
                 assert isinstance(
                     low_cost, list
