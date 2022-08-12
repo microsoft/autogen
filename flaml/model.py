@@ -32,7 +32,6 @@ from .data import (
     TOKENCLASSIFICATION,
     SUMMARIZATION,
     NLG_TASKS,
-    MULTICHOICECLASSIFICATION,
 )
 
 try:
