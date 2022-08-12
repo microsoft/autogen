@@ -60,7 +60,9 @@ def test_forecast_automl(budget=5):
     """ compute different metric values on testing dataset"""
     from flaml.ml import sklearn_metric_loss_score
 
-    print("mape", "=", sklearn_metric_loss_score("mape", y_pred, y_test))
+    mape = sklearn_metric_loss_score("mape", y_pred, y_test)
+    print("mape", "=", mape)
+    assert mape <= 0.005, "the mape of flaml should be less than 0.005"
     from flaml.data import get_output_from_log
 
     (
@@ -415,7 +417,7 @@ def test_forecast_classification(budget=5):
 
     print(y_test)
     print(y_pred)
-    print("accuracy", "=", 1 - sklearn_metric_loss_score("accuracy", y_test, y_pred))
+    print("accuracy", "=", 1 - sklearn_metric_loss_score("accuracy", y_pred, y_test))
     from flaml.data import get_output_from_log
 
     (
@@ -440,9 +442,159 @@ def test_forecast_classification(budget=5):
     # plt.show()
 
 
+def get_stalliion_data():
+    from pytorch_forecasting.data.examples import get_stallion_data
+
+    data = get_stallion_data()
+    # add time index - For datasets with no missing values, FLAML will automate this process
+    data["time_idx"] = data["date"].dt.year * 12 + data["date"].dt.month
+    data["time_idx"] -= data["time_idx"].min()
+    # add additional features
+    data["month"] = data.date.dt.month.astype(str).astype(
+        "category"
+    )  # categories have be strings
+    data["log_volume"] = np.log(data.volume + 1e-8)
+    data["avg_volume_by_sku"] = data.groupby(
+        ["time_idx", "sku"], observed=True
+    ).volume.transform("mean")
+    data["avg_volume_by_agency"] = data.groupby(
+        ["time_idx", "agency"], observed=True
+    ).volume.transform("mean")
+    # we want to encode special days as one variable and thus need to first reverse one-hot encoding
+    special_days = [
+        "easter_day",
+        "good_friday",
+        "new_year",
+        "christmas",
+        "labor_day",
+        "independence_day",
+        "revolution_day_memorial",
+        "regional_games",
+        "beer_capital",
+        "music_fest",
+    ]
+    data[special_days] = (
+        data[special_days]
+        .apply(lambda x: x.map({0: "-", 1: x.name}))
+        .astype("category")
+    )
+    return data, special_days
+
+
+def test_forecast_panel(budget=5):
+    data, special_days = get_stalliion_data()
+    time_horizon = 6  # predict six months
+    training_cutoff = data["time_idx"].max() - time_horizon
+    data["time_idx"] = data["time_idx"].astype("int")
+    ts_col = data.pop("date")
+    data.insert(0, "date", ts_col)
+    # FLAML assumes input is not sorted, but we sort here for comparison purposes with y_test
+    data = data.sort_values(["agency", "sku", "date"])
+    X_train = data[lambda x: x.time_idx <= training_cutoff]
+    X_test = data[lambda x: x.time_idx > training_cutoff]
+    y_train = X_train.pop("volume")
+    y_test = X_test.pop("volume")
+    automl = AutoML()
+    settings = {
+        "time_budget": budget,  # total running time in seconds
+        "metric": "mape",  # primary metric
+        "task": "ts_forecast_panel",  # task type
+        "log_file_name": "test/stallion_forecast.log",  # flaml log file
+        "eval_method": "holdout",
+    }
+    fit_kwargs_by_estimator = {
+        "tft": {
+            "max_encoder_length": 24,
+            "static_categoricals": ["agency", "sku"],
+            "static_reals": ["avg_population_2017", "avg_yearly_household_income_2017"],
+            "time_varying_known_categoricals": ["special_days", "month"],
+            "variable_groups": {
+                "special_days": special_days
+            },  # group of categorical variables can be treated as one variable
+            "time_varying_known_reals": [
+                "time_idx",
+                "price_regular",
+                "discount_in_percent",
+            ],
+            "time_varying_unknown_categoricals": [],
+            "time_varying_unknown_reals": [
+                "y",  # always need a 'y' column for the target column
+                "log_volume",
+                "industry_volume",
+                "soda_volume",
+                "avg_max_temp",
+                "avg_volume_by_agency",
+                "avg_volume_by_sku",
+            ],
+            "batch_size": 256,
+            "max_epochs": 1,
+            "gpu_per_trial": -1,
+        }
+    }
+    """The main flaml automl API"""
+    automl.fit(
+        X_train=X_train,
+        y_train=y_train,
+        **settings,
+        period=time_horizon,
+        group_ids=["agency", "sku"],
+        fit_kwargs_by_estimator=fit_kwargs_by_estimator,
+    )
+    """ retrieve best config and best learner"""
+    print("Best ML leaner:", automl.best_estimator)
+    print("Best hyperparmeter config:", automl.best_config)
+    print(f"Best mape on validation data: {automl.best_loss}")
+    print(f"Training duration of best run: {automl.best_config_train_time}s")
+    print(automl.model.estimator)
+    """ pickle and save the automl object """
+    import pickle
+
+    with open("automl.pkl", "wb") as f:
+        pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
+    """ compute predictions of testing dataset """
+    y_pred = automl.predict(X_test)
+    """ compute different metric values on testing dataset"""
+    from flaml.ml import sklearn_metric_loss_score
+
+    print(y_test)
+    print(y_pred)
+    print("mape", "=", sklearn_metric_loss_score("mape", y_pred, y_test))
+
+    def smape(y_pred, y_test):
+        import numpy as np
+
+        y_test, y_pred = np.array(y_test), np.array(y_pred)
+        return round(
+            np.mean(np.abs(y_pred - y_test) / ((np.abs(y_pred) + np.abs(y_test)) / 2))
+            * 100,
+            2,
+        )
+
+    print("smape", "=", smape(y_pred, y_test))
+    # TODO: compute prediction for a specific time series
+    # """compute prediction for a specific time series"""
+    # a01_sku01_preds = automl.predict(X_test[(X_test["agency"] == "Agency_01") & (X_test["sku"] == "SKU_01")])
+    # print("Agency01 SKU_01 predictions: ", a01_sku01_preds)
+    from flaml.data import get_output_from_log
+
+    (
+        time_history,
+        best_valid_loss_history,
+        valid_loss_history,
+        config_history,
+        metric_history,
+    ) = get_output_from_log(filename=settings["log_file_name"], time_budget=budget)
+    for config in config_history:
+        print(config)
+    print(automl.resource_attr)
+    print(automl.max_resource)
+    print(automl.min_resource)
+
+
 if __name__ == "__main__":
     test_forecast_automl(60)
-    test_multivariate_forecast_num(60)
-    test_multivariate_forecast_cat(60)
+    test_multivariate_forecast_num(5)
+    test_multivariate_forecast_cat(5)
     test_numpy()
-    test_forecast_classification(60)
+    test_forecast_classification(5)
+    test_forecast_panel(5)
