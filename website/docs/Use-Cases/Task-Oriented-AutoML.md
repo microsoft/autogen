@@ -383,6 +383,26 @@ automl.fit(X_train, y_train, n_jobs=4, n_concurrent_trials=4)
 ```
 flaml will perform 4 trials in parallel, each consuming 4 CPU cores. The parallel tuning uses the [BlendSearch](Tune-User-Defined-Function##blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) algorithm.
 
+#### **Guidelines on parallel vs sequential tuning**
+
+**(1) Considerations on wall-clock time.**
+
+One common motivation for parallel tuning is to save wall-clock time. When sequential tuning and parallel tuning achieve a similar wall-clock time, sequential tuning should be preferred. This is a rule of thumb when the HPO algorithm is sequential by nature (e.g., Bayesian Optimization and FLAML's HPO algorithms CFO and BS). Sequential tuning allows the HPO algorithms to take advantage of the historical trial results. Then the question is **How to estimate the wall-clock-time needed by parallel tuning and sequential tuning**?
+
+You can use the following way to roughly estimate the wall-clock time in parallel tuning and sequential tuning: To finish $N$ trials of hyperparameter tuning, i.e., run $N$ hyperparameter configurations, the total wall-clock time needed is $N/k*(SingleTrialTime + Overhead)$, in which $SingleTrialTime$ is the trial time to evaluate a particular hyperparameter configuration, $k$ is the scale of parallelism, e.g., the number of parallel CPU/GPU cores, and $Overhead$ is the computation overhead.
+
+In sequential tuning, $k=1$, and in parallel tuning $k>1$. This may suggest that parallel tuning has a shorter wall-clock time. But it is not always the case considering the other two factors $SingleTrialTime$, and $Overhead$:
+
+- The $Overhead$ in sequential tuning is typically negligible; while in parallel tuning, it is relatively large.
+
+- You can also try to reduce the $SingleTrialTime$ to reduce the wall-clock time in sequential tuning: For example, by increasing the resource consumed by a single trial (distributed or multi-thread training), you can reduce $SingleTrialTime$. One concrete example is to use the `n_jobs` parameter that sets the number of threads the fitting process can use in many scikit-learn style algorithms.
+
+**(2) Considerations on randomness.**
+
+Potential reasons that cause randomness:
+1. Parallel tuning: In the case of parallel tuning, the order of trials' finishing time is no longer deterministic. This non-deterministic order, combined with sequential HPO algorithms, leads to a non-deterministic hyperparameter tuning trajectory.
+
+2. Distributed or multi-thread training: Distributed/multi-thread training may introduce randomness in model training, i.e., the trained model with the same hyperparameter may be different because of such randomness. This model-level randomness may be undesirable in some cases.
 
 ### Warm start
 
