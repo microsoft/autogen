@@ -155,6 +155,25 @@ class TestClassification(unittest.TestCase):
             # "verbose": 4,
             "ensemble": True,
         }
+        automl_settings["keep_search_state"] = True
+        automl.fit(X, y, **automl_settings)
+        X, y = automl._X_train_all, automl._y_train_all
+        del automl
+
+        automl = AutoML()
+        automl_settings = {
+            "time_budget": 3,
+            "task": "classification",
+            "n_jobs": 1,
+            "estimator_list": ["kneighbor"],
+            "eval_method": "cv",
+            "n_splits": 3,
+            "metric": "accuracy",
+            "log_training_metric": True,
+            # "verbose": 4,
+            "ensemble": True,
+            "skip_transform": True,
+        }
         automl.fit(X, y, **automl_settings)
         del automl
 

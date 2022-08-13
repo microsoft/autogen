@@ -5,10 +5,15 @@ import pathlib
 import json
 from flaml.data import CLASSIFICATION, DataTransformer
 from flaml.ml import get_estimator_class, get_classification_objective
+from flaml.version import __version__
 
 LOCATION = pathlib.Path(__file__).parent.resolve()
 logger = logging.getLogger(__name__)
 CONFIG_PREDICTORS = {}
+
+
+def version_parse(version):
+    return tuple(map(int, (version.split("."))))
 
 
 def meta_feature(task, X_train, y_train, meta_feature_names):
@@ -72,11 +77,14 @@ def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None):
         if isinstance(estimator_or_predictor, str)
         else estimator_or_predictor
     )
-    from flaml import __version__
 
     older_version = "1.0.2"
     # TODO: update older_version when the newer code can no longer handle the older version json file
-    assert __version__ >= predictor["version"] >= older_version
+    assert (
+        version_parse(__version__)
+        >= version_parse(predictor["version"])
+        >= version_parse(older_version)
+    )
     prep = predictor["preprocessing"]
     feature = meta_feature(
         task, X_train=X, y_train=y, meta_feature_names=predictor["meta_feature_names"]

@@ -1,0 +1,15 @@
+hydra:
+  searchpath:
+    - file://.
+
+aml_config:
+  workspace_name: your_workspace_name
+  resource_group: your_resource_group
+  subscription_id: your_subscription_id
+  cpu_target: cpucluster
+
+train_config:
+  exp_name: sklearn_breast_cancer_classification
+  test_train_ratio: 0.4
+  learning_rate: 0.05
+  n_estimators: 50

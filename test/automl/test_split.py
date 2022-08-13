@@ -174,6 +174,11 @@ def test_object():
         automl._state.eval_method == "cv"
     ), "eval_method must be 'cv' for custom data splitter"
 
+    kf = TestKFold(5)
+    kf.shuffle = True
+    automl_settings["split_type"] = kf
+    automl.fit(X, y, **automl_settings)
+
 
 if __name__ == "__main__":
     test_groups()

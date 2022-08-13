@@ -12,9 +12,12 @@
     <br>
 </p>
 
+:fire: **Update (2022/08): We will give a [hands-on tutorial on FLAML at KDD 2022](https://github.com/microsoft/FLAML/tree/tutorial/tutorial) on 08/16/2022.**
+
+## What is FLAML
 FLAML is a lightweight Python library that finds accurate machine
 learning models automatically, efficiently and economically. It frees users from selecting
-learners and hyperparameters for each learner.
+learners and hyperparameters for each learner. It can also be used to tune generic hyperparameters for MLOps workflows, pipelines, mathematical/statistical models, algorithms, computing experiments, software configurations and so on.
 
 1. For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources. It supports both classifcal machine learning models and deep neural networks.
 1. It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training and evaluation code).
@@ -23,6 +26,7 @@ hyperparameter optimization](https://microsoft.github.io/FLAML/docs/Use-Cases/Tu
 and learner selection method invented by Microsoft Research.
 
 FLAML has a .NET implementation in [ML.NET](http://dot.net/ml), an open-source, cross-platform machine learning framework for .NET. In ML.NET, you can use FLAML via low-code solutions like [Model Builder](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet/model-builder) Visual Studio extension and the cross-platform [ML.NET CLI](https://docs.microsoft.com/dotnet/machine-learning/automate-training-with-cli). Alternatively, you can use the [ML.NET AutoML API](https://www.nuget.org/packages/Microsoft.ML.AutoML/#versions-body-tab) for a code-first experience.
+
 
 ## Installation
 
