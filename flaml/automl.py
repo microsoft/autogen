@@ -2132,11 +2132,8 @@ class AutoML(BaseEstimator):
         use_ray=None,
         metric_constraints=None,
         custom_hp=None,
-<<<<<<< HEAD
         cv_score_agg_func=None,
-=======
         skip_transform=None,
->>>>>>> main
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -2356,7 +2353,6 @@ class AutoML(BaseEstimator):
         }
         ```
 
-<<<<<<< HEAD
             cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
                 have the following signature:
 
@@ -2390,13 +2386,11 @@ class AutoML(BaseEstimator):
                     For TransformersEstimator, available fit_kwargs can be found from
                     [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                     e.g.,
-=======
         skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                 e.g.,
->>>>>>> main
 
         ```python
         fit_kwargs_by_estimator = {
