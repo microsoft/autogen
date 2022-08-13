@@ -459,7 +459,7 @@ def evaluate_model_CV(
             "label_list"
         )  # pass the label list on to compute the evaluation metric
     groups = None
-    shuffle = False if task in TS_FORECAST else True
+    shuffle = getattr(kf, "shuffle", task not in TS_FORECAST)
     if isinstance(kf, RepeatedStratifiedKFold):
         kf = kf.split(X_train_split, y_train_split)
     elif isinstance(kf, GroupKFold):

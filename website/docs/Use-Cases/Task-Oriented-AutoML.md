@@ -364,7 +364,7 @@ For both classification and regression, time-based split can be enforced if the 
 
 When `eval_method="cv"`, `split_type` can also be set as a custom splitter. It needs to be an instance of a derived class of scikit-learn
 [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
-and have ``split`` and ``get_n_splits`` methods with the same signatures.
+and have ``split`` and ``get_n_splits`` methods with the same signatures.  To disable shuffling, the splitter instance must contain the attribute `shuffle=False`.
 
 ### Parallel tuning
 
