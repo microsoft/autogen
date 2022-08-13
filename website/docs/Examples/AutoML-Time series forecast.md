@@ -28,7 +28,7 @@ print(automl.predict(X_train[84:]))
 
 #### Sample output
 
-```python
+```
 [flaml.automl: 01-21 08:01:20] {2018} INFO - task = ts_forecast
 [flaml.automl: 01-21 08:01:20] {2020} INFO - Data split method: time
 [flaml.automl: 01-21 08:01:20] {2024} INFO - Evaluation method: holdout
@@ -502,7 +502,7 @@ print(automl.predict(multi_X_test))
 
 #### Sample Output
 
-```python
+```
 [flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 15, current learner xgboost
 [flaml.automl: 02-28 21:32:26] {2620} INFO -  at 6.2s,	estimator xgboost's best error=0.0959,	best estimator prophet's best error=0.0592
 [flaml.automl: 02-28 21:32:26] {2458} INFO - iteration 16, current learner extra_tree
@@ -594,7 +594,8 @@ print("True label", discrete_y_test)
 ```
 
 #### Sample Output
-```python
+
+```
 [flaml.automl: 02-28 21:53:03] {2060} INFO - task = ts_forecast_classification
 [flaml.automl: 02-28 21:53:03] {2062} INFO - Data split method: time
 [flaml.automl: 02-28 21:53:03] {2066} INFO - Evaluation method: holdout
@@ -677,6 +678,888 @@ print("True label", discrete_y_test)
               validate_parameters=1, verbosity=0)
 [flaml.automl: 02-28 21:53:04] {2234} INFO - fit succeeded
 [flaml.automl: 02-28 21:53:04] {2235} INFO - Time taken to find the best model: 0.8547139167785645
+```
+
+### Forecasting with Panel Datasets
+
+Panel time series datasets involves multiple individual time series. For example, see Stallion demand dataset from PyTorch Forecasting, orginally from Kaggle.
+
+```python
+def get_stalliion_data():
+    from pytorch_forecasting.data.examples import get_stallion_data
+
+    data = get_stallion_data()
+    # add time index - For datasets with no missing values, FLAML will automate this process
+    data["time_idx"] = data["date"].dt.year * 12 + data["date"].dt.month
+    data["time_idx"] -= data["time_idx"].min()
+    # add additional features
+    data["month"] = data.date.dt.month.astype(str).astype(
+        "category"
+    )  # categories have be strings
+    data["log_volume"] = np.log(data.volume + 1e-8)
+    data["avg_volume_by_sku"] = data.groupby(
+        ["time_idx", "sku"], observed=True
+    ).volume.transform("mean")
+    data["avg_volume_by_agency"] = data.groupby(
+        ["time_idx", "agency"], observed=True
+    ).volume.transform("mean")
+    # we want to encode special days as one variable and thus need to first reverse one-hot encoding
+    special_days = [
+        "easter_day",
+        "good_friday",
+        "new_year",
+        "christmas",
+        "labor_day",
+        "independence_day",
+        "revolution_day_memorial",
+        "regional_games",
+        "beer_capital",
+        "music_fest",
+    ]
+    data[special_days] = (
+        data[special_days]
+        .apply(lambda x: x.map({0: "-", 1: x.name}))
+        .astype("category")
+    )
+    return data, special_days
+
+data, special_days = get_stalliion_data()
+time_horizon = 6  # predict six months
+training_cutoff = data["time_idx"].max() - time_horizon
+data["time_idx"] = data["time_idx"].astype("int")
+ts_col = data.pop("date")
+data.insert(0, "date", ts_col)
+# FLAML assumes input is not sorted, but we sort here for comparison purposes with y_test
+data = data.sort_values(["agency", "sku", "date"])
+X_train = data[lambda x: x.time_idx <= training_cutoff]
+X_test = data[lambda x: x.time_idx > training_cutoff]
+y_train = X_train.pop("volume")
+y_test = X_test.pop("volume")
+automl = AutoML()
+# Configure settings for FLAML model
+settings = {
+    "time_budget": budget,  # total running time in seconds
+    "metric": "mape",  # primary metric
+    "task": "ts_forecast_panel",  # task type
+    "log_file_name": "test/stallion_forecast.log",  # flaml log file
+    "eval_method": "holdout",
+}
+# Specify kwargs for TimeSeriesDataSet used by TemporalFusionTransformerEstimator
+fit_kwargs_by_estimator = {
+    "tft": {
+        "max_encoder_length": 24,
+        "static_categoricals": ["agency", "sku"],
+        "static_reals": ["avg_population_2017", "avg_yearly_household_income_2017"],
+        "time_varying_known_categoricals": ["special_days", "month"],
+        "variable_groups": {
+            "special_days": special_days
+        },  # group of categorical variables can be treated as one variable
+        "time_varying_known_reals": [
+            "time_idx",
+            "price_regular",
+            "discount_in_percent",
+        ],
+        "time_varying_unknown_categoricals": [],
+        "time_varying_unknown_reals": [
+            "y",  # always need a 'y' column for the target column
+            "log_volume",
+            "industry_volume",
+            "soda_volume",
+            "avg_max_temp",
+            "avg_volume_by_agency",
+            "avg_volume_by_sku",
+        ],
+        "batch_size": 256,
+        "max_epochs": 1,
+        "gpu_per_trial": -1,
+    }
+}
+# Train the model
+automl.fit(
+    X_train=X_train,
+    y_train=y_train,
+    **settings,
+    period=time_horizon,
+    group_ids=["agency", "sku"],
+    fit_kwargs_by_estimator=fit_kwargs_by_estimator,
+)
+# Compute predictions of testing dataset
+y_pred = automl.predict(X_test)
+print(y_test)
+print(y_pred)
+# best model
+print(automl.model.estimator)
+```
+
+#### Sample Output
+
+```
+[flaml.automl: 07-28 21:26:03] {2478} INFO - task = ts_forecast_panel
+[flaml.automl: 07-28 21:26:03] {2480} INFO - Data split method: time
+[flaml.automl: 07-28 21:26:03] {2483} INFO - Evaluation method: holdout
+[flaml.automl: 07-28 21:26:03] {2552} INFO - Minimizing error metric: mape
+[flaml.automl: 07-28 21:26:03] {2694} INFO - List of ML learners in AutoML Run: ['tft']
+[flaml.automl: 07-28 21:26:03] {2986} INFO - iteration 0, current learner tft
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+
+   | Name                               | Type                            | Params
+----------------------------------------------------------------------------------------
+0  | loss                               | QuantileLoss                    | 0
+1  | logging_metrics                    | ModuleList                      | 0
+2  | input_embeddings                   | MultiEmbedding                  | 1.3 K
+3  | prescalers                         | ModuleDict                      | 256
+4  | static_variable_selection          | VariableSelectionNetwork        | 3.4 K
+5  | encoder_variable_selection         | VariableSelectionNetwork        | 8.0 K
+6  | decoder_variable_selection         | VariableSelectionNetwork        | 2.7 K
+7  | static_context_variable_selection  | GatedResidualNetwork            | 1.1 K
+8  | static_context_initial_hidden_lstm | GatedResidualNetwork            | 1.1 K
+9  | static_context_initial_cell_lstm   | GatedResidualNetwork            | 1.1 K
+10 | static_context_enrichment          | GatedResidualNetwork            | 1.1 K
+11 | lstm_encoder                       | LSTM                            | 4.4 K
+12 | lstm_decoder                       | LSTM                            | 4.4 K
+13 | post_lstm_gate_encoder             | GatedLinearUnit                 | 544
+14 | post_lstm_add_norm_encoder         | AddNorm                         | 32
+15 | static_enrichment                  | GatedResidualNetwork            | 1.4 K
+16 | multihead_attn                     | InterpretableMultiHeadAttention | 676
+17 | post_attn_gate_norm                | GateAddNorm                     | 576
+18 | pos_wise_ff                        | GatedResidualNetwork            | 1.1 K
+19 | pre_output_gate_norm               | GateAddNorm                     | 576
+20 | output_layer                       | Linear                          | 119
+----------------------------------------------------------------------------------------
+33.6 K    Trainable params
+0         Non-trainable params
+33.6 K    Total params
+0.135     Total estimated model params size (MB)
+
+Epoch 19: 100%|██████████| 129/129 [00:56<00:00,  2.27it/s, loss=45.9, v_num=2, train_loss_step=43.00, val_loss=65.20, train_loss_epoch=46.50]
+
+[flaml.automl: 07-28 21:46:46] {3114} INFO - Estimated sufficient time budget=12424212s. Estimated necessary time budget=12424s.
+[flaml.automl: 07-28 21:46:46] {3161} INFO -  at 1242.6s,\testimator tft's best error=1324290483134574.7500,\tbest estimator tft's best error=1324290483134574.7500
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+
+   | Name                               | Type                            | Params
+----------------------------------------------------------------------------------------
+0  | loss                               | QuantileLoss                    | 0
+1  | logging_metrics                    | ModuleList                      | 0
+2  | input_embeddings                   | MultiEmbedding                  | 1.3 K
+3  | prescalers                         | ModuleDict                      | 256
+4  | static_variable_selection          | VariableSelectionNetwork        | 3.4 K
+5  | encoder_variable_selection         | VariableSelectionNetwork        | 8.0 K
+6  | decoder_variable_selection         | VariableSelectionNetwork        | 2.7 K
+7  | static_context_variable_selection  | GatedResidualNetwork            | 1.1 K
+8  | static_context_initial_hidden_lstm | GatedResidualNetwork            | 1.1 K
+9  | static_context_initial_cell_lstm   | GatedResidualNetwork            | 1.1 K
+10 | static_context_enrichment          | GatedResidualNetwork            | 1.1 K
+11 | lstm_encoder                       | LSTM                            | 4.4 K
+12 | lstm_decoder                       | LSTM                            | 4.4 K
+13 | post_lstm_gate_encoder             | GatedLinearUnit                 | 544
+14 | post_lstm_add_norm_encoder         | AddNorm                         | 32
+15 | static_enrichment                  | GatedResidualNetwork            | 1.4 K
+16 | multihead_attn                     | InterpretableMultiHeadAttention | 676
+17 | post_attn_gate_norm                | GateAddNorm                     | 576
+18 | pos_wise_ff                        | GatedResidualNetwork            | 1.1 K
+19 | pre_output_gate_norm               | GateAddNorm                     | 576
+20 | output_layer                       | Linear                          | 119
+----------------------------------------------------------------------------------------
+33.6 K    Trainable params
+0         Non-trainable params
+33.6 K    Total params
+0.135     Total estimated model params size (MB)
+Epoch 19: 100%|██████████| 145/145 [01:03<00:00,  2.28it/s, loss=45.2, v_num=3, train_loss_step=46.30, val_loss=67.60, train_loss_epoch=48.10]
+[flaml.automl: 07-28 22:08:05] {3425} INFO - retrain tft for 1279.6s
+[flaml.automl: 07-28 22:08:05] {3432} INFO - retrained model: TemporalFusionTransformer(
+  (loss): QuantileLoss()
+  (logging_metrics): ModuleList(
+    (0): SMAPE()
+    (1): MAE()
+    (2): RMSE()
+    (3): MAPE()
+  )
+  (input_embeddings): MultiEmbedding(
+    (embeddings): ModuleDict(
+      (agency): Embedding(58, 16)
+      (sku): Embedding(25, 10)
+      (special_days): TimeDistributedEmbeddingBag(11, 6, mode=sum)
+      (month): Embedding(12, 6)
+    )
+  )
+  (prescalers): ModuleDict(
+    (avg_population_2017): Linear(in_features=1, out_features=8, bias=True)
+    (avg_yearly_household_income_2017): Linear(in_features=1, out_features=8, bias=True)
+    (encoder_length): Linear(in_features=1, out_features=8, bias=True)
+    (y_center): Linear(in_features=1, out_features=8, bias=True)
+    (y_scale): Linear(in_features=1, out_features=8, bias=True)
+    (time_idx): Linear(in_features=1, out_features=8, bias=True)
+    (price_regular): Linear(in_features=1, out_features=8, bias=True)
+    (discount_in_percent): Linear(in_features=1, out_features=8, bias=True)
+    (relative_time_idx): Linear(in_features=1, out_features=8, bias=True)
+    (y): Linear(in_features=1, out_features=8, bias=True)
+    (log_volume): Linear(in_features=1, out_features=8, bias=True)
+    (industry_volume): Linear(in_features=1, out_features=8, bias=True)
+    (soda_volume): Linear(in_features=1, out_features=8, bias=True)
+    (avg_max_temp): Linear(in_features=1, out_features=8, bias=True)
+    (avg_volume_by_agency): Linear(in_features=1, out_features=8, bias=True)
+    (avg_volume_by_sku): Linear(in_features=1, out_features=8, bias=True)
+  )
+  (static_variable_selection): VariableSelectionNetwork(
+    (flattened_grn): GatedResidualNetwork(
+      (resample_norm): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((7,), eps=1e-05, elementwise_affine=True)
+      )
+      (fc1): Linear(in_features=66, out_features=7, bias=True)
+      (elu): ELU(alpha=1.0)
+      (fc2): Linear(in_features=7, out_features=7, bias=True)
+      (gate_norm): GateAddNorm(
+        (glu): GatedLinearUnit(
+          (dropout): Dropout(p=0.1, inplace=False)
+          (fc): Linear(in_features=7, out_features=14, bias=True)
+        )
+        (add_norm): AddNorm(
+          (norm): LayerNorm((7,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (single_variable_grns): ModuleDict(
+      (agency): ResampleNorm(
+        (gate): Sigmoid()
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (sku): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (avg_population_2017): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (avg_yearly_household_income_2017): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (encoder_length): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (y_center): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (y_scale): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+    )
+    (prescalers): ModuleDict(
+      (avg_population_2017): Linear(in_features=1, out_features=8, bias=True)
+      (avg_yearly_household_income_2017): Linear(in_features=1, out_features=8, bias=True)
+      (encoder_length): Linear(in_features=1, out_features=8, bias=True)
+      (y_center): Linear(in_features=1, out_features=8, bias=True)
+      (y_scale): Linear(in_features=1, out_features=8, bias=True)
+    )
+    (softmax): Softmax(dim=-1)
+  )
+  (encoder_variable_selection): VariableSelectionNetwork(
+    (flattened_grn): GatedResidualNetwork(
+      (resample_norm): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((13,), eps=1e-05, elementwise_affine=True)
+      )
+      (fc1): Linear(in_features=100, out_features=13, bias=True)
+      (elu): ELU(alpha=1.0)
+      (context): Linear(in_features=16, out_features=13, bias=False)
+      (fc2): Linear(in_features=13, out_features=13, bias=True)
+      (gate_norm): GateAddNorm(
+        (glu): GatedLinearUnit(
+          (dropout): Dropout(p=0.1, inplace=False)
+          (fc): Linear(in_features=13, out_features=26, bias=True)
+        )
+        (add_norm): AddNorm(
+          (norm): LayerNorm((13,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (single_variable_grns): ModuleDict(
+      (special_days): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (month): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (time_idx): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (price_regular): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (discount_in_percent): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (relative_time_idx): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (y): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (log_volume): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (industry_volume): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (soda_volume): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (avg_max_temp): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (avg_volume_by_agency): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (avg_volume_by_sku): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+    )
+    (prescalers): ModuleDict(
+      (time_idx): Linear(in_features=1, out_features=8, bias=True)
+      (price_regular): Linear(in_features=1, out_features=8, bias=True)
+      (discount_in_percent): Linear(in_features=1, out_features=8, bias=True)
+      (relative_time_idx): Linear(in_features=1, out_features=8, bias=True)
+      (y): Linear(in_features=1, out_features=8, bias=True)
+      (log_volume): Linear(in_features=1, out_features=8, bias=True)
+      (industry_volume): Linear(in_features=1, out_features=8, bias=True)
+      (soda_volume): Linear(in_features=1, out_features=8, bias=True)
+      (avg_max_temp): Linear(in_features=1, out_features=8, bias=True)
+      (avg_volume_by_agency): Linear(in_features=1, out_features=8, bias=True)
+      (avg_volume_by_sku): Linear(in_features=1, out_features=8, bias=True)
+    )
+    (softmax): Softmax(dim=-1)
+  )
+  (decoder_variable_selection): VariableSelectionNetwork(
+    (flattened_grn): GatedResidualNetwork(
+      (resample_norm): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((6,), eps=1e-05, elementwise_affine=True)
+      )
+      (fc1): Linear(in_features=44, out_features=6, bias=True)
+      (elu): ELU(alpha=1.0)
+      (context): Linear(in_features=16, out_features=6, bias=False)
+      (fc2): Linear(in_features=6, out_features=6, bias=True)
+      (gate_norm): GateAddNorm(
+        (glu): GatedLinearUnit(
+          (dropout): Dropout(p=0.1, inplace=False)
+          (fc): Linear(in_features=6, out_features=12, bias=True)
+        )
+        (add_norm): AddNorm(
+          (norm): LayerNorm((6,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+    )
+    (single_variable_grns): ModuleDict(
+      (special_days): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (month): ResampleNorm(
+        (resample): TimeDistributedInterpolation()
+        (gate): Sigmoid()
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+      (time_idx): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (price_regular): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (discount_in_percent): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+      (relative_time_idx): GatedResidualNetwork(
+        (resample_norm): ResampleNorm(
+          (resample): TimeDistributedInterpolation()
+          (gate): Sigmoid()
+          (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+        )
+        (fc1): Linear(in_features=8, out_features=8, bias=True)
+        (elu): ELU(alpha=1.0)
+        (fc2): Linear(in_features=8, out_features=8, bias=True)
+        (gate_norm): GateAddNorm(
+          (glu): GatedLinearUnit(
+            (dropout): Dropout(p=0.1, inplace=False)
+            (fc): Linear(in_features=8, out_features=32, bias=True)
+          )
+          (add_norm): AddNorm(
+            (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+      )
+    )
+    (prescalers): ModuleDict(
+      (time_idx): Linear(in_features=1, out_features=8, bias=True)
+      (price_regular): Linear(in_features=1, out_features=8, bias=True)
+      (discount_in_percent): Linear(in_features=1, out_features=8, bias=True)
+      (relative_time_idx): Linear(in_features=1, out_features=8, bias=True)
+    )
+    (softmax): Softmax(dim=-1)
+  )
+  (static_context_variable_selection): GatedResidualNetwork(
+    (fc1): Linear(in_features=16, out_features=16, bias=True)
+    (elu): ELU(alpha=1.0)
+    (fc2): Linear(in_features=16, out_features=16, bias=True)
+    (gate_norm): GateAddNorm(
+      (glu): GatedLinearUnit(
+        (dropout): Dropout(p=0.1, inplace=False)
+        (fc): Linear(in_features=16, out_features=32, bias=True)
+      )
+      (add_norm): AddNorm(
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (static_context_initial_hidden_lstm): GatedResidualNetwork(
+    (fc1): Linear(in_features=16, out_features=16, bias=True)
+    (elu): ELU(alpha=1.0)
+    (fc2): Linear(in_features=16, out_features=16, bias=True)
+    (gate_norm): GateAddNorm(
+      (glu): GatedLinearUnit(
+        (dropout): Dropout(p=0.1, inplace=False)
+        (fc): Linear(in_features=16, out_features=32, bias=True)
+      )
+      (add_norm): AddNorm(
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (static_context_initial_cell_lstm): GatedResidualNetwork(
+    (fc1): Linear(in_features=16, out_features=16, bias=True)
+    (elu): ELU(alpha=1.0)
+    (fc2): Linear(in_features=16, out_features=16, bias=True)
+    (gate_norm): GateAddNorm(
+      (glu): GatedLinearUnit(
+        (dropout): Dropout(p=0.1, inplace=False)
+        (fc): Linear(in_features=16, out_features=32, bias=True)
+      )
+      (add_norm): AddNorm(
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (static_context_enrichment): GatedResidualNetwork(
+    (fc1): Linear(in_features=16, out_features=16, bias=True)
+    (elu): ELU(alpha=1.0)
+    (fc2): Linear(in_features=16, out_features=16, bias=True)
+    (gate_norm): GateAddNorm(
+      (glu): GatedLinearUnit(
+        (dropout): Dropout(p=0.1, inplace=False)
+        (fc): Linear(in_features=16, out_features=32, bias=True)
+      )
+      (add_norm): AddNorm(
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (lstm_encoder): LSTM(16, 16, num_layers=2, batch_first=True, dropout=0.1)
+  (lstm_decoder): LSTM(16, 16, num_layers=2, batch_first=True, dropout=0.1)
+  (post_lstm_gate_encoder): GatedLinearUnit(
+    (dropout): Dropout(p=0.1, inplace=False)
+    (fc): Linear(in_features=16, out_features=32, bias=True)
+  )
+  (post_lstm_gate_decoder): GatedLinearUnit(
+    (dropout): Dropout(p=0.1, inplace=False)
+    (fc): Linear(in_features=16, out_features=32, bias=True)
+  )
+  (post_lstm_add_norm_encoder): AddNorm(
+    (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+  )
+  (post_lstm_add_norm_decoder): AddNorm(
+    (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+  )
+  (static_enrichment): GatedResidualNetwork(
+    (fc1): Linear(in_features=16, out_features=16, bias=True)
+    (elu): ELU(alpha=1.0)
+    (context): Linear(in_features=16, out_features=16, bias=False)
+    (fc2): Linear(in_features=16, out_features=16, bias=True)
+    (gate_norm): GateAddNorm(
+      (glu): GatedLinearUnit(
+        (dropout): Dropout(p=0.1, inplace=False)
+        (fc): Linear(in_features=16, out_features=32, bias=True)
+      )
+      (add_norm): AddNorm(
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (multihead_attn): InterpretableMultiHeadAttention(
+    (dropout): Dropout(p=0.1, inplace=False)
+    (v_layer): Linear(in_features=16, out_features=4, bias=True)
+    (q_layers): ModuleList(
+      (0): Linear(in_features=16, out_features=4, bias=True)
+      (1): Linear(in_features=16, out_features=4, bias=True)
+      (2): Linear(in_features=16, out_features=4, bias=True)
+      (3): Linear(in_features=16, out_features=4, bias=True)
+    )
+    (k_layers): ModuleList(
+      (0): Linear(in_features=16, out_features=4, bias=True)
+      (1): Linear(in_features=16, out_features=4, bias=True)
+      (2): Linear(in_features=16, out_features=4, bias=True)
+      (3): Linear(in_features=16, out_features=4, bias=True)
+    )
+    (attention): ScaledDotProductAttention(
+      (softmax): Softmax(dim=2)
+    )
+    (w_h): Linear(in_features=4, out_features=16, bias=False)
+  )
+  (post_attn_gate_norm): GateAddNorm(
+    (glu): GatedLinearUnit(
+      (dropout): Dropout(p=0.1, inplace=False)
+      (fc): Linear(in_features=16, out_features=32, bias=True)
+    )
+    (add_norm): AddNorm(
+      (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+    )
+  )
+  (pos_wise_ff): GatedResidualNetwork(
+    (fc1): Linear(in_features=16, out_features=16, bias=True)
+    (elu): ELU(alpha=1.0)
+    (fc2): Linear(in_features=16, out_features=16, bias=True)
+    (gate_norm): GateAddNorm(
+      (glu): GatedLinearUnit(
+        (dropout): Dropout(p=0.1, inplace=False)
+        (fc): Linear(in_features=16, out_features=32, bias=True)
+      )
+      (add_norm): AddNorm(
+        (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (pre_output_gate_norm): GateAddNorm(
+    (glu): GatedLinearUnit(
+      (fc): Linear(in_features=16, out_features=32, bias=True)
+    )
+    (add_norm): AddNorm(
+      (norm): LayerNorm((16,), eps=1e-05, elementwise_affine=True)
+    )
+  )
+  (output_layer): Linear(in_features=16, out_features=7, bias=True)
+)
+[flaml.automl: 07-28 22:08:05] {2725} INFO - fit succeeded
+[flaml.automl: 07-28 22:08:05] {2726} INFO - Time taken to find the best model: 1242.6435902118683
+[flaml.automl: 07-28 22:08:05] {2737} WARNING - Time taken to find the best model is 414% of the provided time budget and not all estimators' hyperparameter search converged. Consider increasing the time budget.\n"
+     ]
+    }
+   ],
 ```
 
 [Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/automl_time_series_forecast.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/automl_time_series_forecast.ipynb)

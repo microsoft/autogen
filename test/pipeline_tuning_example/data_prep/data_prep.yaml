@@ -1,0 +1,26 @@
+$schema: https://componentsdk.azureedge.net/jsonschema/CommandComponent.json
+name: data_prep
+version: 0.0.1
+display_name: Data preparation for training
+type: CommandComponent
+inputs:
+  data:
+    type: path
+  test_train_ratio:
+    type: float
+outputs:
+  train_data:
+    type: path
+  test_data:
+    type: path
+environment:
+  conda:
+    conda_dependencies_file: env.yaml
+  os: Linux
+
+command: >-
+  python data_prep.py 
+  --data {inputs.data}
+  --test_train_ratio {inputs.test_train_ratio}
+  --train_data {outputs.train_data}
+  --test_data {outputs.test_data}

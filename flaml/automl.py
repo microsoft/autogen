@@ -44,6 +44,8 @@ from .data import (
     TOKENCLASSIFICATION,
     TS_FORECAST,
     TS_FORECASTREGRESSION,
+    TS_FORECASTPANEL,
+    TS_TIMESTAMP_COL,
     REGRESSION,
     _is_nlp_task,
     NLG_TASKS,
@@ -583,7 +585,7 @@ class AutoML(BaseEstimator):
                     ["auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
                 For regression tasks, valid choices are ["auto", 'uniform', 'time'].
                     "auto" -> uniform.
-                For ts_forecast tasks, must be "auto" or 'time'.
+                For time series forecast tasks, must be "auto" or 'time'.
                 For ranking task, must be "auto" or 'group'.
             hpo_method: str, default="auto" | The hyperparameter
                 optimization method. By default, CFO is used for sequential
@@ -679,6 +681,7 @@ class AutoML(BaseEstimator):
              }
          }
         ```
+            skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
             fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 e.g.,
 
@@ -734,6 +737,7 @@ class AutoML(BaseEstimator):
             "fit_kwargs_by_estimator", {}
         )
         settings["custom_hp"] = settings.get("custom_hp", {})
+        settings["skip_transform"] = settings.get("skip_transform", False)
 
         self._estimator_type = (
             "classifier" if settings["task"] in CLASSIFICATION else "regressor"
@@ -897,7 +901,7 @@ class AutoML(BaseEstimator):
 
         Args:
             X: A numpy array of featurized instances, shape n * m,
-                or for ts_forecast tasks:
+                or for time series forcast tasks:
                     a pandas dataframe with the first column containing
                     timestamp values (datetime type) or an integer n for
                     the predict steps (only valid when the estimator is
@@ -1121,7 +1125,7 @@ class AutoML(BaseEstimator):
                 "or all columns of X are integer ids (tokenized)"
             )
 
-        if issparse(X_train_all):
+        if issparse(X_train_all) or self._skip_transform:
             self._transformer = self._label_transformer = False
             self._X_train_all, self._y_train_all = X, y
         else:
@@ -1275,18 +1279,38 @@ class AutoML(BaseEstimator):
             # if eval_method = holdout, make holdout data
             if self._split_type == "time":
                 if self._state.task in TS_FORECAST:
-                    num_samples = X_train_all.shape[0]
                     period = self._state.fit_kwargs[
                         "period"
                     ]  # NOTE: _prepare_data is before kwargs is updated to fit_kwargs_by_estimator
-                    assert (
-                        period < num_samples
-                    ), f"period={period}>#examples={num_samples}"
-                    split_idx = num_samples - period
-                    X_train = X_train_all[:split_idx]
-                    y_train = y_train_all[:split_idx]
-                    X_val = X_train_all[split_idx:]
-                    y_val = y_train_all[split_idx:]
+                    if self._state.task == TS_FORECASTPANEL:
+                        X_train_all["time_idx"] -= X_train_all["time_idx"].min()
+                        X_train_all["time_idx"] = X_train_all["time_idx"].astype("int")
+                        ids = self._state.fit_kwargs["group_ids"].copy()
+                        ids.append(TS_TIMESTAMP_COL)
+                        ids.append("time_idx")
+                        y_train_all = pd.DataFrame(y_train_all)
+                        y_train_all[ids] = X_train_all[ids]
+                        X_train_all = X_train_all.sort_values(ids)
+                        y_train_all = y_train_all.sort_values(ids)
+                        training_cutoff = X_train_all["time_idx"].max() - period
+                        X_train = X_train_all[lambda x: x.time_idx <= training_cutoff]
+                        y_train = y_train_all[
+                            lambda x: x.time_idx <= training_cutoff
+                        ].drop(columns=ids)
+                        X_val = X_train_all[lambda x: x.time_idx > training_cutoff]
+                        y_val = y_train_all[
+                            lambda x: x.time_idx > training_cutoff
+                        ].drop(columns=ids)
+                    else:
+                        num_samples = X_train_all.shape[0]
+                        assert (
+                            period < num_samples
+                        ), f"period={period}>#examples={num_samples}"
+                        split_idx = num_samples - period
+                        X_train = X_train_all[:split_idx]
+                        y_train = y_train_all[:split_idx]
+                        X_val = X_train_all[split_idx:]
+                        y_val = y_train_all[split_idx:]
                 else:
                     if (
                         "sample_weight" in self._state.fit_kwargs
@@ -1456,7 +1480,10 @@ class AutoML(BaseEstimator):
             )
         elif self._split_type == "time":
             # logger.info("Using TimeSeriesSplit")
-            if self._state.task in TS_FORECAST:
+            if (
+                self._state.task in TS_FORECAST
+                and self._state.task is not TS_FORECASTPANEL
+            ):
                 period = self._state.fit_kwargs[
                     "period"
                 ]  # NOTE: _prepare_data is before kwargs is updated to fit_kwargs_by_estimator
@@ -1468,6 +1495,14 @@ class AutoML(BaseEstimator):
                     )
                     logger.info(f"Using nsplits={n_splits} due to data size limit.")
                 self._state.kf = TimeSeriesSplit(n_splits=n_splits, test_size=period)
+            elif self._state.task is TS_FORECASTPANEL:
+                n_groups = X_train.groupby(
+                    self._state.fit_kwargs.get("group_ids")
+                ).ngroups
+                period = self._state.fit_kwargs.get("period")
+                self._state.kf = TimeSeriesSplit(
+                    n_splits=n_splits, test_size=period * n_groups
+                )
             else:
                 self._state.kf = TimeSeriesSplit(n_splits=n_splits)
         elif isinstance(self._split_type, str):
@@ -1542,6 +1577,7 @@ class AutoML(BaseEstimator):
         record_id=-1,
         auto_augment=None,
         custom_hp=None,
+        skip_transform=None,
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -1554,13 +1590,13 @@ class AutoML(BaseEstimator):
         Args:
             log_file_name: A string of the log file name.
             X_train: A numpy array or dataframe of training data in shape n*m.
-                For ts_forecast tasks, the first column of X_train
+                For time series forecast tasks, the first column of X_train
                 must be the timestamp column (datetime type). Other
                 columns in the dataframe are assumed to be exogenous
                 variables (categorical or numeric).
             y_train: A numpy array or series of labels in shape n*1.
             dataframe: A dataframe of training data including label column.
-                For ts_forecast tasks, dataframe must be specified and should
+                For time series forecast tasks, dataframe must be specified and should
                 have at least two columns: timestamp and label, where the first
                 column is the timestamp column (datetime type). Other columns
                 in the dataframe are assumed to be exogenous variables
@@ -1587,7 +1623,7 @@ class AutoML(BaseEstimator):
                     ["auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
                 For regression tasks, valid choices are ["auto", 'uniform', 'time'].
                     "auto" -> uniform.
-                For ts_forecast tasks, must be "auto" or 'time'.
+                For time series forecast tasks, must be "auto" or 'time'.
                 For ranking task, must be "auto" or 'group'.
             groups: None or array-like | Group labels (with matching length to
                 y_train) or groups counts (with sum equal to length of y_train)
@@ -1633,10 +1669,29 @@ class AutoML(BaseEstimator):
         ```
 
             **fit_kwargs: Other key word arguments to pass to fit() function of
-                the searched learners, such as sample_weight. Include:
-                    period: int | forecast horizon for ts_forecast tasks.
+                the searched learners, such as sample_weight. Below are a few examples of
+                estimator-specific parameters:
+                    period: int | forecast horizon for all time series forecast tasks.
                     gpu_per_trial: float, default = 0 | A float of the number of gpus per trial,
-                    only used by TransformersEstimator and XGBoostSklearnEstimator.
+                        only used by TransformersEstimator, XGBoostSklearnEstimator, and
+                        TemporalFusionTransformerEstimator.
+                    group_ids: list of strings of column names identifying a time series, only
+                        used by TemporalFusionTransformerEstimator, required for
+                        'ts_forecast_panel' task. `group_ids` is a parameter for TimeSeriesDataSet object
+                        from PyTorchForecasting.
+                        For other parameters to describe your dataset, refer to
+                        [TimeSeriesDataSet PyTorchForecasting](https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.data.timeseries.TimeSeriesDataSet.html).
+                        To specify your variables, use `static_categoricals`, `static_reals`,
+                        `time_varying_known_categoricals`, `time_varying_known_reals`,
+                        `time_varying_unknown_categoricals`, `time_varying_unknown_reals`,
+                        `variable_groups`. To provide more information on your data, use
+                        `max_encoder_length`, `min_encoder_length`, `lags`.
+                    log_dir: str, default = "lightning_logs" | Folder into which to log results
+                        for tensorboard, only used by TemporalFusionTransformerEstimator.
+                    max_epochs: int, default = 20 | Maximum number of epochs to run training,
+                        only used by TemporalFusionTransformerEstimator.
+                    batch_size: int, default = 64 | Batch size for training model, only
+                        used by TemporalFusionTransformerEstimator.
         """
         task = task or self._settings.get("task")
         eval_method = eval_method or self._settings.get("eval_method")
@@ -1651,6 +1706,7 @@ class AutoML(BaseEstimator):
 
         self._state.fit_kwargs = fit_kwargs
         self._state.custom_hp = custom_hp or self._settings.get("custom_hp")
+        self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
         self._state.fit_kwargs_by_estimator = (
             fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
         )
@@ -1769,11 +1825,15 @@ class AutoML(BaseEstimator):
         elif self._state.task in TS_FORECAST:
             assert split_type in ["auto", "time"]
             self._split_type = "time"
-
             assert isinstance(
                 self._state.fit_kwargs.get("period"),
                 int,  # NOTE: _decide_split_type is before kwargs is updated to fit_kwargs_by_estimator
             ), f"missing a required integer 'period' for '{TS_FORECAST}' task."
+            if self._state.fit_kwargs.get("group_ids"):
+                self._state.task == TS_FORECASTPANEL
+                assert isinstance(
+                    self._state.fit_kwargs.get("group_ids"), list
+                ), f"missing a required List[str] 'group_ids' for '{TS_FORECASTPANEL}' task."
         elif self._state.task == "rank":
             assert (
                 self._state.groups is not None
@@ -2072,7 +2132,11 @@ class AutoML(BaseEstimator):
         use_ray=None,
         metric_constraints=None,
         custom_hp=None,
+<<<<<<< HEAD
         cv_score_agg_func=None,
+=======
+        skip_transform=None,
+>>>>>>> main
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -2080,13 +2144,13 @@ class AutoML(BaseEstimator):
 
         Args:
             X_train: A numpy array or a pandas dataframe of training data in
-                shape (n, m). For ts_forecast tasks, the first column of X_train
+                shape (n, m). For time series forecsat tasks, the first column of X_train
                 must be the timestamp column (datetime type). Other columns in
                 the dataframe are assumed to be exogenous variables (categorical or numeric).
                 When using ray, X_train can be a ray.ObjectRef.
             y_train: A numpy array or a pandas series of labels in shape (n, ).
             dataframe: A dataframe of training data including label column.
-                For ts_forecast tasks, dataframe must be specified and must have
+                For time series forecast tasks, dataframe must be specified and must have
                 at least two columns, timestamp and label, where the first
                 column is the timestamp column (datetime type). Other columns in
                 the dataframe are assumed to be exogenous variables (categorical or numeric).
@@ -2137,7 +2201,7 @@ class AutoML(BaseEstimator):
         ```
             task: A string of the task type, e.g.,
                 'classification', 'regression', 'ts_forecast_regression',
-                'ts_forecast_classification', 'rank', 'seq-classification',
+                'ts_forecast_classification', 'ts_forecast_panel', 'rank', 'seq-classification',
                 'seq-regression', 'summarization'.
             n_jobs: An integer of the number of threads for training | default=-1.
                 Use all available resources when n_jobs == -1.
@@ -2202,7 +2266,7 @@ class AutoML(BaseEstimator):
                     ["auto", 'stratified', 'uniform', 'time', 'group']. "auto" -> stratified.
                 For regression tasks, valid choices are ["auto", 'uniform', 'time'].
                     "auto" -> uniform.
-                For ts_forecast tasks, must be "auto" or 'time'.
+                For time series forecast tasks, must be "auto" or 'time'.
                 For ranking task, must be "auto" or 'group'.
             hpo_method: str, default="auto" | The hyperparameter
                 optimization method. By default, CFO is used for sequential
@@ -2277,6 +2341,8 @@ class AutoML(BaseEstimator):
                 Each key is the estimator name, each value is a dict of the custom search space for that estimator. Notice the
                 domain of the custom search space can either be a value of a sample.Domain object.
 
+
+
         ```python
         custom_hp = {
             "transformer_ms": {
@@ -2290,6 +2356,7 @@ class AutoML(BaseEstimator):
         }
         ```
 
+<<<<<<< HEAD
             cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
                 have the following signature:
 
@@ -2323,21 +2390,59 @@ class AutoML(BaseEstimator):
                     For TransformersEstimator, available fit_kwargs can be found from
                     [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                     e.g.,
+=======
+        skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
+        fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
+                For TransformersEstimator, available fit_kwargs can be found from
+                [TrainingArgumentsForAuto](nlp/huggingface/training_args).
+                e.g.,
+>>>>>>> main
 
         ```python
         fit_kwargs_by_estimator = {
             "transformer": {
                 "output_dir": "test/data/output/",
                 "fp16": False,
+            },
+            "tft": {
+                "max_encoder_length": 1,
+                "min_encoder_length": 1,
+                "static_categoricals": [],
+                "static_reals": [],
+                "time_varying_known_categoricals": [],
+                "time_varying_known_reals": [],
+                "time_varying_unknown_categoricals": [],
+                "time_varying_unknown_reals": [],
+                "variable_groups": {},
+                "lags": {},
             }
         }
         ```
 
             **fit_kwargs: Other key word arguments to pass to fit() function of
-                the searched learners, such as sample_weight. Include:
-                    period: int | forecast horizon for ts_forecast tasks.
+                the searched learners, such as sample_weight. Below are a few examples of
+                estimator-specific parameters:
+                    period: int | forecast horizon for all time series forecast tasks.
                     gpu_per_trial: float, default = 0 | A float of the number of gpus per trial,
-                    only used by TransformersEstimator and XGBoostSklearnEstimator.
+                        only used by TransformersEstimator, XGBoostSklearnEstimator, and
+                        TemporalFusionTransformerEstimator.
+                    group_ids: list of strings of column names identifying a time series, only
+                        used by TemporalFusionTransformerEstimator, required for
+                        'ts_forecast_panel' task. `group_ids` is a parameter for TimeSeriesDataSet object
+                        from PyTorchForecasting.
+                        For other parameters to describe your dataset, refer to
+                        [TimeSeriesDataSet PyTorchForecasting](https://pytorch-forecasting.readthedocs.io/en/stable/api/pytorch_forecasting.data.timeseries.TimeSeriesDataSet.html).
+                        To specify your variables, use `static_categoricals`, `static_reals`,
+                        `time_varying_known_categoricals`, `time_varying_known_reals`,
+                        `time_varying_unknown_categoricals`, `time_varying_unknown_reals`,
+                        `variable_groups`. To provide more information on your data, use
+                        `max_encoder_length`, `min_encoder_length`, `lags`.
+                    log_dir: str, default = "lightning_logs" | Folder into which to log results
+                        for tensorboard, only used by TemporalFusionTransformerEstimator.
+                    max_epochs: int, default = 20 | Maximum number of epochs to run training,
+                        only used by TemporalFusionTransformerEstimator.
+                    batch_size: int, default = 64 | Batch size for training model, only
+                        used by TemporalFusionTransformerEstimator.
         """
 
         self._state._start_time_flag = self._start_time_flag = time.time()
@@ -2450,6 +2555,7 @@ class AutoML(BaseEstimator):
 
         self._state.fit_kwargs = fit_kwargs
         custom_hp = custom_hp or self._settings.get("custom_hp")
+        self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
         fit_kwargs_by_estimator = fit_kwargs_by_estimator or self._settings.get(
             "fit_kwargs_by_estimator"
         )
@@ -2605,6 +2711,8 @@ class AutoML(BaseEstimator):
                 estimator_list = ["lgbm", "xgboost", "xgb_limitdepth"]
             elif _is_nlp_task(self._state.task):
                 estimator_list = ["transformer"]
+            elif self._state.task == TS_FORECASTPANEL:
+                estimator_list = ["tft"]
             else:
                 try:
                     import catboost
