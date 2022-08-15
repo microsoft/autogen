@@ -752,6 +752,9 @@ class BlendSearch(Searcher):
                 if result:  # tried before
                     return None
                 elif result is None:  # not tried before
+                    if self._violate_config_constriants(config, config_signature):
+                        # violate config constraints
+                        return None
                     self._result[config_signature] = {}
                 else:  # running but no result yet
                     return None
@@ -772,6 +775,32 @@ class BlendSearch(Searcher):
                 config[INCUMBENT_RESULT] = choice_thread.best_result
         return config
 
+    def _violate_config_constriants(self, config, config_signature):
+        """check if config violates config constraints.
+        If so, set the result to worst and return True.
+        """
+        if not self._config_constraints:
+            return False
+        for constraint in self._config_constraints:
+            func, sign, threshold = constraint
+            value = func(config)
+            if (
+                sign == "<="
+                and value > threshold
+                or sign == ">="
+                and value < threshold
+                or sign == ">"
+                and value <= threshold
+                or sign == "<"
+                and value > threshold
+            ):
+                self._result[config_signature] = {
+                    self._metric: np.inf * self._ls.metric_op,
+                    "time_total_s": 1,
+                }
+                return True
+        return False
+
     def _should_skip(self, choice, trial_id, config, space) -> bool:
         """if config is None or config's result is known or constraints are violated
         return True; o.w. return False
@@ -780,28 +809,10 @@ class BlendSearch(Searcher):
             return True
         config_signature = self._ls.config_signature(config, space)
         exists = config_signature in self._result
-        # check constraints
-        if not exists and self._config_constraints:
-            for constraint in self._config_constraints:
-                func, sign, threshold = constraint
-                value = func(config)
-                if (
-                    sign == "<="
-                    and value > threshold
-                    or sign == ">="
-                    and value < threshold
-                    or sign == ">"
-                    and value <= threshold
-                    or sign == "<"
-                    and value > threshold
-                ):
-                    self._result[config_signature] = {
-                        self._metric: np.inf * self._ls.metric_op,
-                        "time_total_s": 1,
-                    }
-                    exists = True
-                    break
-        if exists:  # suggested before
+        if not exists:
+            # check constraints
+            exists = self._violate_config_constriants(config, config_signature)
+        if exists:  # suggested before (including violate constraints)
             if choice >= 0:  # not fallback to rs
                 result = self._result.get(config_signature)
                 if result:  # finished

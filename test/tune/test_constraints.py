@@ -12,14 +12,17 @@ def test_config_constraint():
         else:
             return 0
 
-    tune.run(
+    analysis = tune.run(
         evaluate_config_dict,
         config={
             "x": tune.qloguniform(lower=1, upper=100000, q=1),
             "y": tune.qrandint(lower=2, upper=100000, q=2),
         },
-        config_constraints=[(config_constraint, ">", 0.5)],
+        config_constraints=[(config_constraint, "<", 0.5)],
         metric="metric",
         mode="max",
         num_samples=100,
     )
+
+    assert analysis.best_config["x"] > analysis.best_config["y"]
+    assert analysis.trials[0].config["x"] > analysis.trials[0].config["y"]
