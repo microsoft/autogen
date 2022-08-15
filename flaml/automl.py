@@ -1706,7 +1706,11 @@ class AutoML(BaseEstimator):
 
         self._state.fit_kwargs = fit_kwargs
         self._state.custom_hp = custom_hp or self._settings.get("custom_hp")
-        self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
+        self._skip_transform = (
+            self._settings.get("skip_transform")
+            if skip_transform is None
+            else skip_transform
+        )
         self._state.fit_kwargs_by_estimator = (
             fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
         )
@@ -2357,28 +2361,27 @@ class AutoML(BaseEstimator):
                 have the following signature:
 
         ```python
-        def cv_score_agg_func(metrics_across_folds):
+        def cv_score_agg_func(val_loss_folds, log_metrics_folds):
             return metric_to_minimize, metrics_to_log
         ```
-                The input "metrics_across_folds" is a list of 2-tuples. Each tuple records the loss and metrics information of the corresponding fold.
-                On each tuple, the first element is a float number that represents the loss score to minimize, and the second is a dict of all the metrics to log or None.
-                It returns the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
+                “val_loss_folds” - list of float, it records the loss scores of each ford; “log_metrics_folds” - list of dict/float, it records the metrics of each fords to log.
+                This function should return the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
                 E.g.,
 
         ```python
-        def cv_score_agg_func(metrics_across_folds):
-            metric_to_minimize = sum([tem[0] for tem in metrics_across_folds])/len(metrics_across_folds)
+        def cv_score_agg_func(val_loss_folds, log_metrics_folds):
+            metric_to_minimize = sum(val_loss_folds)/len(val_loss_folds)
             metrics_to_log = None
-            for single_fold in metrics_across_folds:
-                if single_fold[1] is None:
-                    break
-                elif metrics_to_log is None:
-                    metrics_to_log = single_fold[1]
+            for single_fold in log_metrics_folds:
+                if metrics_to_log is None:
+                    metrics_to_log = single_fold
+                elif isinstance(metrics_to_log, dict):
+                    metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold.items()}
                 else:
-                    metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold[1].items()}
+                    metrics_to_log += single_fold
             if metrics_to_log:
-                n = len(metrics_across_folds)
-                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()}
+                n = len(val_loss_folds)
+                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log/n
             return metric_to_minimize, metrics_to_log
         ```
 
@@ -2549,7 +2552,11 @@ class AutoML(BaseEstimator):
 
         self._state.fit_kwargs = fit_kwargs
         custom_hp = custom_hp or self._settings.get("custom_hp")
-        self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
+        self._skip_transform = (
+            self._settings.get("skip_transform")
+            if skip_transform is None
+            else skip_transform
+        )
         fit_kwargs_by_estimator = fit_kwargs_by_estimator or self._settings.get(
             "fit_kwargs_by_estimator"
         )
@@ -2579,7 +2586,9 @@ class AutoML(BaseEstimator):
         eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
-        self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get("cv_score_agg_func")
+        self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get(
+            "cv_score_agg_func"
+        )
 
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None

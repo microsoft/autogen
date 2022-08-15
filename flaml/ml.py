@@ -430,20 +430,26 @@ def get_val_loss(
     train_time = time.time() - start
     return val_loss, metric_for_logging, train_time, pred_time
 
-def default_cv_score_agg_func(metrics_across_folds):
-    metric_to_minimize = sum([tem[0] for tem in metrics_across_folds])/len(metrics_across_folds)
+
+def default_cv_score_agg_func(val_loss_folds, log_metrics_folds):
+    metric_to_minimize = sum(val_loss_folds) / len(val_loss_folds)
     metrics_to_log = None
-    for single_fold in metrics_across_folds:
-        if single_fold[1] is None:
-            break
-        elif metrics_to_log is None:
-            metrics_to_log = single_fold[1]
+    for single_fold in log_metrics_folds:
+        if metrics_to_log is None:
+            metrics_to_log = single_fold
+        elif isinstance(metrics_to_log, dict):
+            metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold.items()}
         else:
-            metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold[1].items()}
+            metrics_to_log += single_fold
     if metrics_to_log:
-        n = len(metrics_across_folds)
-        metrics_to_log = {k: v / n for k, v in metrics_to_log.items()}
+        n = len(val_loss_folds)
+        metrics_to_log = (
+            {k: v / n for k, v in metrics_to_log.items()}
+            if isinstance(metrics_to_log, dict)
+            else metrics_to_log / n
+        )
     return metric_to_minimize, metrics_to_log
+
 
 def evaluate_model_CV(
     config,
@@ -455,7 +461,7 @@ def evaluate_model_CV(
     task,
     eval_metric,
     best_val_loss,
-    cv_score_agg_func = None,
+    cv_score_agg_func=None,
     log_training_metric=False,
     fit_kwargs={},
 ):
@@ -541,10 +547,7 @@ def evaluate_model_CV(
         pred_time += pred_time_i
         if time.time() - start_time >= budget:
             break
-    if log_training_metric or not isinstance(eval_metric, str):
-        val_loss, metric = cv_score_agg_func(list(zip([0]*len(log_metric_folds),log_metric_folds)))
-    else:
-        val_loss, metric = cv_score_agg_func(list(zip(val_loss_folds,[None]*len(val_loss_folds))))
+    val_loss, metric = cv_score_agg_func(val_loss_folds, log_metric_folds)
     n = total_fold_num
     pred_time /= n
     return val_loss, metric, train_time, pred_time
