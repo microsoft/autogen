@@ -22,6 +22,7 @@ def test_config_constraint():
         metric="metric",
         mode="max",
         num_samples=100,
+        log_file_name="logs/config_constraint.log",
     )
 
     assert analysis.best_config["x"] > analysis.best_config["y"]
