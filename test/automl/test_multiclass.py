@@ -52,8 +52,8 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
 
     @classmethod
     def size(cls, config):
-        max_leaves = int(round(config["max_leaf"]))
-        n_estimators = int(round(config["n_iter"]))
+        max_leaves = int(round(config.get("max_leaf", 1)))
+        n_estimators = int(round(config.get("n_iter", 1)))
         return (max_leaves * 3 + (max_leaves - 1) * 4 + 1.0) * n_estimators * 8
 
     @classmethod
