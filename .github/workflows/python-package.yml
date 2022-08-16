@@ -51,6 +51,10 @@ jobs:
         if: (matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest') && matrix.python-version != '3.9' && matrix.python-version != '3.10'
         run: |
           pip install -e .[forecast]
+      - name: Install vw on python < 3.10
+        if: matrix.python-version != '3.10'
+        run: |
+          pip install -e .[vw]
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
