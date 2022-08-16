@@ -1,18 +1,17 @@
 import unittest
-
 import numpy as np
 import scipy.sparse
-
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import logging
 from flaml.tune import loguniform, polynomial_expansion_set
-from vowpalwabbit import pyvw
 from flaml import AutoVW
 import string
 import os
 import openml
 from requests.exceptions import SSLError
+import sys
+import pytest
 
 VW_DS_DIR = "test/data/"
 NS_LIST = list(string.ascii_lowercase) + list(string.ascii_uppercase)
@@ -369,8 +368,14 @@ def get_vw_tuning_problem(tuning_hp="NamesapceInteraction"):
     return vw_oml_problem_args, vw_online_aml_problem
 
 
+@pytest.mark.skipif(
+    "3.10" in sys.version,
+    reason="do not run on py 3.10",
+)
 class TestAutoVW(unittest.TestCase):
     def test_vw_oml_problem_and_vanilla_vw(self):
+        from vowpalwabbit import pyvw
+
         vw_oml_problem_args, vw_online_aml_problem = get_vw_tuning_problem()
         vanilla_vw = pyvw.vw(**vw_oml_problem_args["fixed_hp_config"])
         cumulative_loss_list = online_learning_loop(
