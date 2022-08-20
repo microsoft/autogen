@@ -125,8 +125,9 @@ The estimator list can contain one or more estimator names, each corresponding t
     - tuning an estimator that is not built-in;
     - customizing search space for a built-in estimator.
 
-To tune a custom estimator that is not built-in, you need to:
+#### Guidelines on tuning a custom estimator
 
+To tune a custom estimator that is not built-in, you need to:
 1. Build a custom estimator by inheritting [`flaml.model.BaseEstimator`](../reference/model#baseestimator-objects) or a derived class.
 For example, if you have a estimator class with scikit-learn style `fit()` and `predict()` functions, you only need to set `self.estimator_class` to be that class in your constructor.
 
