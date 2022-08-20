@@ -281,7 +281,9 @@ Some constraints on the estimator can be implemented via the custom learner. For
 class MonotonicXGBoostEstimator(XGBoostSklearnEstimator):
     @classmethod
     def search_space(**args):
-        return super().search_space(**args).update({"monotone_constraints": "(1, -1)"})
+        space = super().search_space(**args)
+        space.update({"monotone_constraints": {"domain": "(1, -1)"}})
+        return space
 ```
 
 It adds a monotonicity constraint to XGBoost. This approach can be used to set any constraint that is an argument in the underlying estimator's constructor.
