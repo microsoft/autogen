@@ -2376,7 +2376,7 @@ class AutoML(BaseEstimator):
         def cv_score_agg_func(val_loss_folds, log_metrics_folds):
             return metric_to_minimize, metrics_to_log
         ```
-                “val_loss_folds” - list of float, it records the loss scores of each ford; “log_metrics_folds” - list of dict/float, it records the metrics of each fords to log.
+                “val_loss_folds” - list of floats, the loss scores of each fold; “log_metrics_folds” - list of dicts/floats, the metrics of each fold to log.
                 This function should return the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
                 E.g.,
 
