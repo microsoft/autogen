@@ -541,7 +541,7 @@ def evaluate_model_CV(
         total_fold_num += 1
         val_loss_folds.append(val_loss_i)
         if log_training_metric or not isinstance(eval_metric, str):
-                log_metric_folds.append(metric_i)
+            log_metric_folds.append(metric_i)
         train_time += train_time_i
         pred_time += pred_time_i
         if time.time() - start_time >= budget:
