@@ -54,7 +54,6 @@ setuptools.setup(
             "catboost>=0.26",
             "rgf-python",
             "optuna==2.8.0",
-            "vowpalwabbit",
             "openml",
             "statsmodels>=0.12.2",
             "psutil==5.8.0",
@@ -79,7 +78,7 @@ setuptools.setup(
             "nni",
         ],
         "vw": [
-            "vowpalwabbit",
+            "vowpalwabbit>=8.10.0, <9.0.0",
         ],
         "nlp": [
             "transformers[torch]==4.18",

@@ -13,6 +13,7 @@ def test_hf_data():
     automl = AutoML()
 
     automl_settings = get_automl_settings()
+    automl_settings["preserve_checkpoint"] = False
 
     try:
         automl.fit(
@@ -67,6 +68,8 @@ def test_hf_data():
 
     automl.predict_proba(X_test)
     print(automl.classes_)
+
+    del automl
 
 
 if __name__ == "__main__":

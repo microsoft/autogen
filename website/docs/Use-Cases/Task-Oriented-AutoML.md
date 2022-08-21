@@ -125,8 +125,9 @@ The estimator list can contain one or more estimator names, each corresponding t
     - tuning an estimator that is not built-in;
     - customizing search space for a built-in estimator.
 
-To tune a custom estimator that is not built-in, you need to:
+#### Guidelines on tuning a custom estimator
 
+To tune a custom estimator that is not built-in, you need to:
 1. Build a custom estimator by inheritting [`flaml.model.BaseEstimator`](../reference/model#baseestimator-objects) or a derived class.
 For example, if you have a estimator class with scikit-learn style `fit()` and `predict()` functions, you only need to set `self.estimator_class` to be that class in your constructor.
 
@@ -280,7 +281,9 @@ Some constraints on the estimator can be implemented via the custom learner. For
 class MonotonicXGBoostEstimator(XGBoostSklearnEstimator):
     @classmethod
     def search_space(**args):
-        return super().search_space(**args).update({"monotone_constraints": "(1, -1)"})
+        space = super().search_space(**args)
+        space.update({"monotone_constraints": {"domain": "(1, -1)"}})
+        return space
 ```
 
 It adds a monotonicity constraint to XGBoost. This approach can be used to set any constraint that is an argument in the underlying estimator's constructor.

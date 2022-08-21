@@ -295,7 +295,7 @@ def test_searcher():
     print(searcher.suggest("t1"))
     from flaml import tune
 
-    tune.run(lambda x: 1, config={}, use_ray=use_ray)
+    tune.run(lambda x: 1, config={}, use_ray=use_ray, log_file_name="logs/searcher.log")
 
 
 def test_no_optuna():
