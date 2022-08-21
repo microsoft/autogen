@@ -265,23 +265,26 @@ A user can specify constraints on the configurations to be satisfied via the arg
 In the following code example, we constrain the output of `area`, which takes a configuration as input and outputs a numerical value, to be no larger than 1000.
 
 ```python
-def area(config):
-    return config["width"] * config["height"]
+def my_model_size(config):
+    return config["n_estimators"] * config["max_leaves"]
 
-flaml.tune.run(evaluation_function=evaluate_config, mode="min",
-               config=config_search_space,
-               config_constraints=[(area, "<=", 1000)], ...)
+analysis = tune.run(...,
+    config_constraints = [(my_model_size, "<=", 40)],
+)
 ```
 
  You can also specify a list of metric constraints to be satisfied via the argument `metric_constraints`. Each element in the `metric_constraints` list is a tuple that consists of (1) a string specifying the name of the metric (the metric name must be defined and returned in the user-defined `evaluation_function`); (2) an operation chosen from "<=" or ">="; (3) a numerical threshold.
 
- In the following code example, we constrain the metric `score` to be no larger than 0.4.
+ In the following code example, we constrain the metric `training_cost` to be no larger than 1 second.
 
 ```python
-flaml.tune.run(evaluation_function=evaluate_config, mode="min",
-               config=config_search_space,
-               metric_constraints=[("score", "<=", 0.4)],...)
+analysis = tune.run(...,
+    metric_constraints = [("training_cost", "<=", 1)]),
 ```
+
+#### **`config_constraints` vs `metric_constraints`:**
+The key difference between these two types of constraints is that the calculation of constraints in `config_constraints` does not rely on the computation procedure in the evaluation function, i.e., in `evaluation_function`. For example, when a constraint only depends on the config itself, as shown in the code example. Due to this independency, constraints in `config_constraints` will be checked before evaluation. So configurations that do not satisfy `config_constraints` will not be evaluated.
+
 
 ### Parallel tuning
 

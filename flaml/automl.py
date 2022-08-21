@@ -628,6 +628,8 @@ class AutoML(BaseEstimator):
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
                 space saving.
+            preserve_checkpoint: boolean, default=True | Whether to preserve the saved checkpoint
+                on disk when deleting automl. By default the checkpoint is preserved.
             early_stop: boolean, default=False | Whether to stop early if the
                 search is considered to converge.
             append_log: boolean, default=False | Whetehr to directly append the log
@@ -727,6 +729,7 @@ class AutoML(BaseEstimator):
         settings["starting_points"] = settings.get("starting_points", "static")
         settings["n_concurrent_trials"] = settings.get("n_concurrent_trials", 1)
         settings["keep_search_state"] = settings.get("keep_search_state", False)
+        settings["preserve_checkpoint"] = settings.get("preserve_checkpoint", True)
         settings["early_stop"] = settings.get("early_stop", False)
         settings["append_log"] = settings.get("append_log", False)
         settings["min_sample_size"] = settings.get("min_sample_size", MIN_SAMPLE_TRAIN)
@@ -1578,6 +1581,7 @@ class AutoML(BaseEstimator):
         auto_augment=None,
         custom_hp=None,
         skip_transform=None,
+        preserve_checkpoint=True,
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -1713,6 +1717,11 @@ class AutoML(BaseEstimator):
         )
         self._state.fit_kwargs_by_estimator = (
             fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
+        )
+        self.preserve_checkpoint = (
+            self._settings.get("preserve_checkpoint")
+            if preserve_checkpoint is None
+            else preserve_checkpoint
         )
         self._validate_data(X_train, y_train, dataframe, label, groups=groups)
 
@@ -2129,6 +2138,7 @@ class AutoML(BaseEstimator):
         seed=None,
         n_concurrent_trials=None,
         keep_search_state=None,
+        preserve_checkpoint=True,
         early_stop=None,
         append_log=None,
         auto_augment=None,
@@ -2310,6 +2320,8 @@ class AutoML(BaseEstimator):
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
                 space saving.
+            preserve_checkpoint: boolean, default=True | Whether to preserve the saved checkpoint
+                on disk when deleting automl. By default the checkpoint is preserved.
             early_stop: boolean, default=False | Whether to stop early if the
                 search is considered to converge.
             append_log: boolean, default=False | Whetehr to directly append the log
@@ -2502,6 +2514,11 @@ class AutoML(BaseEstimator):
             self._settings.get("keep_search_state")
             if keep_search_state is None
             else keep_search_state
+        )
+        self.preserve_checkpoint = (
+            self._settings.get("preserve_checkpoint")
+            if preserve_checkpoint is None
+            else preserve_checkpoint
         )
         early_stop = (
             self._settings.get("early_stop") if early_stop is None else early_stop
@@ -3612,7 +3629,8 @@ class AutoML(BaseEstimator):
             and self._trained_estimator
             and hasattr(self._trained_estimator, "cleanup")
         ):
-            self._trained_estimator.cleanup()
+            if self.preserve_checkpoint is False:
+                self._trained_estimator.cleanup()
             del self._trained_estimator
 
     def _select_estimator(self, estimator_list):

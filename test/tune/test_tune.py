@@ -47,6 +47,8 @@ def test_nested_run():
         mode="min",
         num_samples=5,
         local_dir="logs",
+        log_file_name="logs/nested.log",
+        verbose=3,
     )
     print(analysis.best_result)
 
