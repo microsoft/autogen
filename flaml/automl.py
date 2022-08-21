@@ -2393,7 +2393,7 @@ class AutoML(BaseEstimator):
                     metrics_to_log += single_fold
             if metrics_to_log:
                 n = len(val_loss_folds)
-                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log/n
+                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
             return metric_to_minimize, metrics_to_log
         ```
 
