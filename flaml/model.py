@@ -1626,15 +1626,26 @@ class CatBoostEstimator(BaseEstimator):
             cat_features = list(X_train.select_dtypes(include="category").columns)
         else:
             cat_features = []
-        n = max(int(len(y_train) * 0.9), len(y_train) - 1000)
+        use_best_model = kwargs.get("use_best_model", True)
+        n = (
+            max(int(len(y_train) * 0.9), len(y_train) - 1000)
+            if use_best_model
+            else len(y_train)
+        )
         X_tr, y_tr = X_train[:n], y_train[:n]
+        from catboost import Pool, __version__
+
+        eval_set = (
+            Pool(data=X_train[n:], label=y_train[n:], cat_features=cat_features)
+            if use_best_model
+            else None
+        )
         if "sample_weight" in kwargs:
             weight = kwargs["sample_weight"]
             if weight is not None:
                 kwargs["sample_weight"] = weight[:n]
         else:
             weight = None
-        from catboost import Pool, __version__
 
         model = self.estimator_class(train_dir=train_dir, **self.params)
         if __version__ >= "0.26":
@@ -1642,10 +1653,10 @@ class CatBoostEstimator(BaseEstimator):
                 X_tr,
                 y_tr,
                 cat_features=cat_features,
-                eval_set=Pool(
-                    data=X_train[n:], label=y_train[n:], cat_features=cat_features
+                eval_set=eval_set,
+                callbacks=CatBoostEstimator._callbacks(
+                    start_time, deadline, FREE_MEM_RATIO if use_best_model else None
                 ),
-                callbacks=CatBoostEstimator._callbacks(start_time, deadline),
                 **kwargs,
             )
         else:
@@ -1653,9 +1664,7 @@ class CatBoostEstimator(BaseEstimator):
                 X_tr,
                 y_tr,
                 cat_features=cat_features,
-                eval_set=Pool(
-                    data=X_train[n:], label=y_train[n:], cat_features=cat_features
-                ),
+                eval_set=eval_set,
                 **kwargs,
             )
         shutil.rmtree(train_dir, ignore_errors=True)
@@ -1667,7 +1676,7 @@ class CatBoostEstimator(BaseEstimator):
         return train_time
 
     @classmethod
-    def _callbacks(cls, start_time, deadline):
+    def _callbacks(cls, start_time, deadline, free_mem_ratio):
         class ResourceLimit:
             def after_iteration(self, info) -> bool:
                 now = time.time()
@@ -1675,9 +1684,9 @@ class CatBoostEstimator(BaseEstimator):
                     self._time_per_iter = now - start_time
                 if now + self._time_per_iter > deadline:
                     return False
-                if psutil is not None:
+                if psutil is not None and free_mem_ratio is not None:
                     mem = psutil.virtual_memory()
-                    if mem.available / mem.total < FREE_MEM_RATIO:
+                    if mem.available / mem.total < free_mem_ratio:
                         return False
                 return True  # can continue
 
