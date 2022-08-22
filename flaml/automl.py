@@ -3069,7 +3069,9 @@ class AutoML(BaseEstimator):
         if mlflow is not None and mlflow.active_run():
             with mlflow.start_run(nested=True):
                 mlflow.log_metric("iter_counter", self._track_iter)
-                if "intermediate_results" in search_state.metric_for_logging:
+                if (search_state.metric_for_logging is not None) and (
+                    "intermediate_results" in search_state.metric_for_logging
+                ):
                     for each_entry in search_state.metric_for_logging[
                         "intermediate_results"
                     ]:
@@ -3079,7 +3081,8 @@ class AutoML(BaseEstimator):
                                 "iter_counter", self._iter_per_learner[estimator]
                             )
                     del search_state.metric_for_logging["intermediate_results"]
-                mlflow.log_metrics(search_state.metric_for_logging)
+                if search_state.metric_for_logging:
+                    mlflow.log_metrics(search_state.metric_for_logging)
                 mlflow.log_metric("trial_time", search_state.trial_time)
                 mlflow.log_metric("wall_clock_time", self._state.time_from_start)
                 mlflow.log_metric("validation_loss", search_state.val_loss)
