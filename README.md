@@ -94,7 +94,7 @@ You can find a detailed documentation about FLAML [here](https://microsoft.githu
 
 In addition, you can find:
 
-- Demo and tutorials of FLAML [here](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A).
+- [Talks](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A) and [tutorials](https://github.com/microsoft/FLAML/tree/tutorial/tutorial) about FLAML.
 
 - Research around FLAML [here](https://microsoft.github.io/FLAML/docs/Research).
 
