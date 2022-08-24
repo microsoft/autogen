@@ -366,6 +366,7 @@ class AutoMLState:
             state.best_loss,
             state.n_jobs,
             state.learner_classes.get(estimator),
+            state.cv_score_agg_func,
             state.log_training_metric,
             this_estimator_kwargs,
         )
@@ -734,6 +735,7 @@ class AutoML(BaseEstimator):
         settings["min_sample_size"] = settings.get("min_sample_size", MIN_SAMPLE_TRAIN)
         settings["use_ray"] = settings.get("use_ray", False)
         settings["metric_constraints"] = settings.get("metric_constraints", [])
+        settings["cv_score_agg_func"] = settings.get("cv_score_agg_func", None)
         settings["fit_kwargs_by_estimator"] = settings.get(
             "fit_kwargs_by_estimator", {}
         )
@@ -2144,6 +2146,7 @@ class AutoML(BaseEstimator):
         use_ray=None,
         metric_constraints=None,
         custom_hp=None,
+        cv_score_agg_func=None,
         skip_transform=None,
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
@@ -2366,6 +2369,38 @@ class AutoML(BaseEstimator):
         }
         ```
 
+            cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
+                have the following signature:
+
+        ```python
+        def cv_score_agg_func(val_loss_folds, log_metrics_folds):
+            return metric_to_minimize, metrics_to_log
+        ```
+                “val_loss_folds” - list of floats, the loss scores of each fold; “log_metrics_folds” - list of dicts/floats, the metrics of each fold to log.
+                This function should return the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
+                E.g.,
+
+        ```python
+        def cv_score_agg_func(val_loss_folds, log_metrics_folds):
+            metric_to_minimize = sum(val_loss_folds)/len(val_loss_folds)
+            metrics_to_log = None
+            for single_fold in log_metrics_folds:
+                if metrics_to_log is None:
+                    metrics_to_log = single_fold
+                elif isinstance(metrics_to_log, dict):
+                    metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold.items()}
+                else:
+                    metrics_to_log += single_fold
+            if metrics_to_log:
+                n = len(val_loss_folds)
+                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
+            return metric_to_minimize, metrics_to_log
+        ```
+
+            fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
+                    For TransformersEstimator, available fit_kwargs can be found from
+                    [TrainingArgumentsForAuto](nlp/huggingface/training_args).
+                    e.g.,
         skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
@@ -2568,6 +2603,9 @@ class AutoML(BaseEstimator):
         eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
+        self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get(
+            "cv_score_agg_func"
+        )
 
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
@@ -3069,7 +3107,9 @@ class AutoML(BaseEstimator):
         if mlflow is not None and mlflow.active_run():
             with mlflow.start_run(nested=True):
                 mlflow.log_metric("iter_counter", self._track_iter)
-                if "intermediate_results" in search_state.metric_for_logging:
+                if (search_state.metric_for_logging is not None) and (
+                    "intermediate_results" in search_state.metric_for_logging
+                ):
                     for each_entry in search_state.metric_for_logging[
                         "intermediate_results"
                     ]:
@@ -3079,7 +3119,8 @@ class AutoML(BaseEstimator):
                                 "iter_counter", self._iter_per_learner[estimator]
                             )
                     del search_state.metric_for_logging["intermediate_results"]
-                mlflow.log_metrics(search_state.metric_for_logging)
+                if search_state.metric_for_logging:
+                    mlflow.log_metrics(search_state.metric_for_logging)
                 mlflow.log_metric("trial_time", search_state.trial_time)
                 mlflow.log_metric("wall_clock_time", self._state.time_from_start)
                 mlflow.log_metric("validation_loss", search_state.val_loss)
