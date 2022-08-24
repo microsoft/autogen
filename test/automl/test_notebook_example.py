@@ -154,6 +154,19 @@ def test_mlflow():
         pass
     # subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "mlflow"])
 
+    from sklearn.datasets import load_iris
+
+    with mlflow.start_run():
+        automl = AutoML()
+        automl_settings = {
+            "time_budget": 2,  # in seconds
+            "metric": "accuracy",
+            "task": "classification",
+            "log_file_name": "iris.log",
+        }
+        X_train, y_train = load_iris(return_X_y=True)
+        automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
+
 
 if __name__ == "__main__":
     test_automl(600)
