@@ -431,6 +431,26 @@ def get_val_loss(
     return val_loss, metric_for_logging, train_time, pred_time
 
 
+def default_cv_score_agg_func(val_loss_folds, log_metrics_folds):
+    metric_to_minimize = sum(val_loss_folds) / len(val_loss_folds)
+    metrics_to_log = None
+    for single_fold in log_metrics_folds:
+        if metrics_to_log is None:
+            metrics_to_log = single_fold
+        elif isinstance(metrics_to_log, dict):
+            metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold.items()}
+        else:
+            metrics_to_log += single_fold
+    if metrics_to_log:
+        n = len(val_loss_folds)
+        metrics_to_log = (
+            {k: v / n for k, v in metrics_to_log.items()}
+            if isinstance(metrics_to_log, dict)
+            else metrics_to_log / n
+        )
+    return metric_to_minimize, metrics_to_log
+
+
 def evaluate_model_CV(
     config,
     estimator,
@@ -441,15 +461,18 @@ def evaluate_model_CV(
     task,
     eval_metric,
     best_val_loss,
+    cv_score_agg_func=None,
     log_training_metric=False,
     fit_kwargs={},
 ):
+    if cv_score_agg_func is None:
+        cv_score_agg_func = default_cv_score_agg_func
     start_time = time.time()
-    total_val_loss = 0
-    total_metric = None
+    val_loss_folds = []
+    log_metric_folds = []
     metric = None
     train_time = pred_time = 0
-    valid_fold_num = total_fold_num = 0
+    total_fold_num = 0
     n = kf.get_n_splits()
     X_train_split, y_train_split = X_train_all, y_train_all
     if task in CLASSIFICATION:
@@ -471,7 +494,6 @@ def evaluate_model_CV(
     else:
         kf = kf.split(X_train_split)
     rng = np.random.RandomState(2020)
-    val_loss_list = []
     budget_per_train = budget / n
     if "sample_weight" in fit_kwargs:
         weight = fit_kwargs["sample_weight"]
@@ -514,33 +536,19 @@ def evaluate_model_CV(
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
         )
+        if isinstance(metric_i, dict) and "intermediate_results" in metric_i.keys():
+            del metric_i["intermediate_results"]
         if weight is not None:
             fit_kwargs["sample_weight"] = weight
-        valid_fold_num += 1
         total_fold_num += 1
-        total_val_loss += val_loss_i
-        if log_training_metric or not isinstance(eval_metric, str):
-            if isinstance(total_metric, dict):
-                total_metric = {k: total_metric[k] + v for k, v in metric_i.items()}
-            elif total_metric is not None:
-                total_metric += metric_i
-            else:
-                total_metric = metric_i
+        val_loss_folds.append(val_loss_i)
+        log_metric_folds.append(metric_i)
         train_time += train_time_i
         pred_time += pred_time_i
-        if valid_fold_num == n:
-            val_loss_list.append(total_val_loss / valid_fold_num)
-            total_val_loss = valid_fold_num = 0
-        elif time.time() - start_time >= budget:
-            val_loss_list.append(total_val_loss / valid_fold_num)
+        if time.time() - start_time >= budget:
             break
-    val_loss = np.max(val_loss_list)
+    val_loss, metric = cv_score_agg_func(val_loss_folds, log_metric_folds)
     n = total_fold_num
-    if log_training_metric or not isinstance(eval_metric, str):
-        if isinstance(total_metric, dict):
-            metric = {k: v / n for k, v in total_metric.items()}
-        else:
-            metric = total_metric / n
     pred_time /= n
     return val_loss, metric, train_time, pred_time
 
@@ -562,6 +570,7 @@ def compute_estimator(
     best_val_loss=np.Inf,
     n_jobs=1,
     estimator_class=None,
+    cv_score_agg_func=None,
     log_training_metric=False,
     fit_kwargs={},
 ):
@@ -608,6 +617,7 @@ def compute_estimator(
             task,
             eval_metric,
             best_val_loss,
+            cv_score_agg_func,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
         )
