@@ -536,6 +536,8 @@ def evaluate_model_CV(
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
         )
+        if isinstance(metric_i, dict) and "intermediate_results" in metric_i.keys():
+            del metric_i["intermediate_results"]
         if weight is not None:
             fit_kwargs["sample_weight"] = weight
         total_fold_num += 1
