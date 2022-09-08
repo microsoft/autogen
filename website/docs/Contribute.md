@@ -44,7 +44,7 @@ pip install -e FLAML[test,notebook]
 We provide a simple [Dockerfile](https://github.com/microsoft/FLAML/blob/main/Dockerfile).
 
 ```bash
-docker build git://github.com/microsoft/FLAML -t flaml-dev
+docker build https://github.com/microsoft/FLAML.git#main -t flaml-dev
 docker run -it flaml-dev
 ```
 
