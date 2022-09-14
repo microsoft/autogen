@@ -13,8 +13,12 @@ try:
         qloguniform,
         lograndint,
         qlograndint,
-        sample,
     )
+
+    if ray_version.startswith("1."):
+        from ray.tune import sample
+    else:
+        from ray.tune.search import sample
 except (ImportError, AssertionError):
     from .sample import (
         uniform,

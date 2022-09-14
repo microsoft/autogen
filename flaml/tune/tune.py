@@ -404,7 +404,10 @@ def run(
             metric = metric or search_alg.metric or DEFAULT_METRIC
             mode = mode or search_alg.mode
         if ray_import:
-            from ray.tune.suggest import ConcurrencyLimiter
+            if ray_version.startswith("1."):
+                from ray.tune.suggest import ConcurrencyLimiter
+            else:
+                from ray.tune.search import ConcurrencyLimiter
         else:
             from flaml.searcher.suggestion import ConcurrencyLimiter
         if (

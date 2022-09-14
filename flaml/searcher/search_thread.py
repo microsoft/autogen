@@ -9,7 +9,10 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.10.0"
-    from ray.tune.suggest import Searcher
+    if ray_version.startswith("1."):
+        from ray.tune.suggest import Searcher
+    else:
+        from ray.tune.search import Searcher
 except (ImportError, AssertionError):
     from .suggestion import Searcher
 from .flow2 import FLOW2

@@ -11,8 +11,12 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.10.0"
-    from ray.tune.suggest import Searcher
-    from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
+    if ray_version.startswith("1."):
+        from ray.tune.suggest import Searcher
+        from ray.tune.suggest.optuna import OptunaSearch as GlobalSearch
+    else:
+        from ray.tune.search import Searcher
+        from ray.tune.search.optuna import OptunaSearch as GlobalSearch
 except (ImportError, AssertionError):
     from .suggestion import Searcher
     from .suggestion import OptunaSearch as GlobalSearch

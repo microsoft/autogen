@@ -36,7 +36,12 @@ except AttributeError:
 logger = logging.getLogger(__name__)
 
 try:
-    from ray.tune.sample import _BackwardsCompatibleNumpyRng
+    from ray import __version__ as ray_version
+
+    if ray_version.startswith("1."):
+        from ray.tune.sample import _BackwardsCompatibleNumpyRng
+    else:
+        from ray.tune.search.sample import _BackwardsCompatibleNumpyRng
 except ImportError:
 
     class _BackwardsCompatibleNumpyRng:
