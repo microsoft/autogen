@@ -10,8 +10,11 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.0.0"
-    from ray.tune.suggest import Searcher
-    from ray.tune import sample
+    if ray_version.startswith("1."):
+        from ray.tune.suggest import Searcher
+        from ray.tune import sample
+    else:
+        from ray.tune.search import Searcher, sample
     from ray.tune.utils.util import flatten_dict, unflatten_dict
 except (ImportError, AssertionError):
     from .suggestion import Searcher

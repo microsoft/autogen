@@ -179,7 +179,7 @@ class ConcurrencyLimiter(Searcher):
             to finish before updating the underlying searcher.
     Example:
     ```python
-    from ray.tune.suggest import ConcurrencyLimiter
+    from ray.tune.suggest import ConcurrencyLimiter  # ray version < 2
     search_alg = HyperOptSearch(metric="accuracy")
     search_alg = ConcurrencyLimiter(search_alg, max_concurrent=2)
     tune.run(trainable, search_alg=search_alg)
@@ -411,7 +411,7 @@ class OptunaSearch(Searcher):
         Tune automatically converts search spaces to Optuna's format:
 
     ````python
-    from ray.tune.suggest.optuna import OptunaSearch
+    from ray.tune.suggest.optuna import OptunaSearch  # ray version < 2
     config = { "a": tune.uniform(6, 8),
                "b": tune.loguniform(1e-4, 1e-2)}
     optuna_search = OptunaSearch(metric="loss", mode="min")
@@ -422,7 +422,7 @@ class OptunaSearch(Searcher):
         look like this:
 
     ```python
-    from ray.tune.suggest.optuna import OptunaSearch
+    from ray.tune.suggest.optuna import OptunaSearch  # ray version < 2
     import optuna
     config = { "a": optuna.distributions.UniformDistribution(6, 8),
                "b": optuna.distributions.LogUniformDistribution(1e-4, 1e-2)}
