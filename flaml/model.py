@@ -2287,7 +2287,7 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
             kwargs.get("log_dir", "lightning_logs")
         )  # logging results to a tensorboard
         default_trainer_kwargs = dict(
-            gpus=self._kwargs.get("gpu_per_trial", [0])
+            gpus=kwargs.get("gpu_per_trial", [0])
             if torch.cuda.is_available()
             else None,
             max_epochs=max_epochs,
