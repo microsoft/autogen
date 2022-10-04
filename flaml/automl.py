@@ -3108,7 +3108,7 @@ class AutoML(BaseEstimator):
                 mlflow.log_metric("trial_time", search_state.trial_time)
                 mlflow.log_metric("wall_clock_time", self._state.time_from_start)
                 mlflow.log_metric("validation_loss", search_state.val_loss)
-                mlflow.log_param("config", search_state.config)
+                mlflow.log_params(search_state.config)
                 mlflow.log_param("learner", estimator)
                 mlflow.log_param("sample_size", search_state.sample_size)
                 mlflow.log_metric("best_validation_loss", search_state.best_loss)
