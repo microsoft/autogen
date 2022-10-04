@@ -20,7 +20,7 @@ import logging
 from typing import Any, Dict, Generator, List, Tuple
 import numpy
 import random
-from ..tune.sample import Categorical, Domain, RandomState
+from ..sample import Categorical, Domain, RandomState
 
 try:
     from ray import __version__ as ray_version

@@ -2961,7 +2961,7 @@ class AutoML(BaseEstimator):
                 else:
                     from ray.tune.search.optuna import OptunaSearch as SearchAlgo
             except (ImportError, AssertionError):
-                from .searcher.suggestion import OptunaSearch as SearchAlgo
+                from flaml.tune.searcher.suggestion import OptunaSearch as SearchAlgo
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "
@@ -3125,7 +3125,7 @@ class AutoML(BaseEstimator):
             else:
                 from ray.tune.search import ConcurrencyLimiter
         except (ImportError, AssertionError):
-            from .searcher.suggestion import ConcurrencyLimiter
+            from flaml.tune.searcher.suggestion import ConcurrencyLimiter
         if self._hpo_method in ("cfo", "grid"):
             from flaml import CFO as SearchAlgo
         elif "optuna" == self._hpo_method:
@@ -3138,13 +3138,13 @@ class AutoML(BaseEstimator):
                 else:
                     from ray.tune.search.optuna import OptunaSearch as SearchAlgo
             except (ImportError, AssertionError):
-                from .searcher.suggestion import OptunaSearch as SearchAlgo
+                from flaml.tune.searcher.suggestion import OptunaSearch as SearchAlgo
         elif "bs" == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
         elif "random" == self._hpo_method:
-            from flaml.searcher import RandomSearch as SearchAlgo
+            from flaml.tune.searcher import RandomSearch as SearchAlgo
         elif "cfocat" == self._hpo_method:
-            from flaml.searcher.cfo_cat import CFOCat as SearchAlgo
+            from flaml.tune.searcher.cfo_cat import CFOCat as SearchAlgo
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "

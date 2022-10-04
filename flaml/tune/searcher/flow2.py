@@ -18,11 +18,10 @@ try:
     from ray.tune.utils.util import flatten_dict, unflatten_dict
 except (ImportError, AssertionError):
     from .suggestion import Searcher
-    from ..tune import sample
-    from ..tune.trial import flatten_dict, unflatten_dict
-from flaml.tune.sample import _BackwardsCompatibleNumpyRng
+    from flaml.tune import sample
+    from ..trial import flatten_dict, unflatten_dict
 from flaml.config import SAMPLE_MULTIPLY_FACTOR
-from ..tune.space import (
+from ..space import (
     complete_config,
     denormalize,
     normalize,
@@ -85,7 +84,7 @@ class FLOW2(Searcher):
         self.space = space or {}
         self._space = flatten_dict(self.space, prevent_delimiter=True)
         self._random = np.random.RandomState(seed)
-        self.rs_random = _BackwardsCompatibleNumpyRng(seed + 19823)
+        self.rs_random = sample._BackwardsCompatibleNumpyRng(seed + 19823)
         self.seed = seed
         self.init_config = init_config
         self.best_config = flatten_dict(init_config)

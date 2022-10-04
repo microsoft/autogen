@@ -16,7 +16,7 @@ try:
 except (ImportError, AssertionError):
     from .suggestion import Searcher
 from .flow2 import FLOW2
-from ..tune.space import add_cost_to_space, unflatten_hierarchical
+from ..space import add_cost_to_space, unflatten_hierarchical
 import logging
 
 logger = logging.getLogger(__name__)

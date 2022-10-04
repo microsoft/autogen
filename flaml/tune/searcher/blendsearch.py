@@ -20,12 +20,12 @@ try:
 except (ImportError, AssertionError):
     from .suggestion import Searcher
     from .suggestion import OptunaSearch as GlobalSearch
-from ..tune.trial import unflatten_dict, flatten_dict
-from ..tune import INCUMBENT_RESULT
+from ..trial import unflatten_dict, flatten_dict
+from .. import INCUMBENT_RESULT
 from .search_thread import SearchThread
 from .flow2 import FLOW2
-from ..tune.space import add_cost_to_space, indexof, normalize, define_by_run_func
-from ..tune.result import TIME_TOTAL_S
+from ..space import add_cost_to_space, indexof, normalize, define_by_run_func
+from ..result import TIME_TOTAL_S
 
 import logging
 
@@ -939,7 +939,7 @@ try:
         qloguniform,
     )
 except (ImportError, AssertionError):
-    from ..tune.sample import (
+    from ..sample import (
         uniform,
         quniform,
         choice,

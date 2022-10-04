@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from flaml.tune import Trial
-from flaml.scheduler import TrialScheduler
+from flaml.tune.scheduler import TrialScheduler
 
 import logging
 

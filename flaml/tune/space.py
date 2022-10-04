@@ -10,7 +10,7 @@ try:
         from ray.tune.search.variant_generator import generate_variants
 except (ImportError, AssertionError):
     from . import sample
-    from ..searcher.variant_generator import generate_variants
+    from .searcher.variant_generator import generate_variants
 from typing import Dict, Optional, Any, Tuple, Generator
 import numpy as np
 import logging

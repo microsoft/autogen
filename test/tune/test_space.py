@@ -69,7 +69,7 @@ def test_define_by_run():
 
 
 def test_grid():
-    from flaml.searcher.variant_generator import (
+    from flaml.tune.searcher.variant_generator import (
         generate_variants,
         grid_search,
         TuneError,
