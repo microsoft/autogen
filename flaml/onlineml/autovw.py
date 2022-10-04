@@ -8,8 +8,8 @@ from flaml.tune import (
     polynomial_expansion_set,
 )
 from flaml.onlineml import OnlineTrialRunner
-from flaml.scheduler import ChaChaScheduler
-from flaml.searcher import ChampionFrontierSearcher
+from flaml.tune.scheduler import ChaChaScheduler
+from flaml.tune.searcher import ChampionFrontierSearcher
 from flaml.onlineml.trial import get_ns_feature_dim_from_vw_example
 
 logger = logging.getLogger(__name__)

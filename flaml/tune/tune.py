@@ -355,7 +355,7 @@ def run(
         else:
             logger.setLevel(logging.CRITICAL)
 
-    from ..searcher.blendsearch import BlendSearch, CFO
+    from .searcher.blendsearch import BlendSearch, CFO
 
     if search_alg is None:
         flaml_scheduler_resource_attr = (
@@ -409,7 +409,7 @@ def run(
             else:
                 from ray.tune.search import ConcurrencyLimiter
         else:
-            from flaml.searcher.suggestion import ConcurrencyLimiter
+            from flaml.tune.searcher.suggestion import ConcurrencyLimiter
         if (
             search_alg.__class__.__name__
             in [

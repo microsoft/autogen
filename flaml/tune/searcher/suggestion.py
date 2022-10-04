@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, Optional, Union, List, Tuple, Callable
 import pickle
 from .variant_generator import parse_spec_vars
-from ..tune.sample import (
+from ..sample import (
     Categorical,
     Domain,
     Float,
@@ -32,7 +32,7 @@ from ..tune.sample import (
     Quantized,
     Uniform,
 )
-from ..tune.trial import flatten_dict, unflatten_dict
+from ..trial import flatten_dict, unflatten_dict
 
 logger = logging.getLogger(__name__)
 

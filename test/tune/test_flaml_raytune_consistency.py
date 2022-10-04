@@ -28,7 +28,7 @@ low_cost_partial_config = {"x": 1}
 
 
 def setup_searcher(searcher_name):
-    from flaml.searcher.blendsearch import BlendSearch, CFO, RandomSearch
+    from flaml.tune.searcher.blendsearch import BlendSearch, CFO, RandomSearch
 
     if "cfo" in searcher_name:
         searcher = CFO(
