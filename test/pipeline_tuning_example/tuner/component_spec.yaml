@@ -9,4 +9,4 @@ environment:
   conda_dependencies_file: env.yaml
  os: Linux
 command: >-
-  python tuner/tuner_func.py 
+  python tuner/tuner_func.py

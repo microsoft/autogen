@@ -1,6 +1,6 @@
 # ChaCha for Online AutoML
 
-FLAML includes *ChaCha* which is an automatic hyperparameter tuning solution for online machine learning. Online machine learning has the following properties: (1) data comes in sequential order; and (2) the performance of the machine learning model is evaluated online, i.e., at every iteration. *ChaCha* performs online AutoML respecting the aforementioned properties of online learning, and at the same time respecting the following constraints: (1) only a small constant number of 'live' models are allowed to perform online learning at the same time;  and (2) no model persistence or offline training is allowed, which means that once we decide to replace a 'live' model with a new one, the replaced model can no longer be retrieved.  
+FLAML includes *ChaCha* which is an automatic hyperparameter tuning solution for online machine learning. Online machine learning has the following properties: (1) data comes in sequential order; and (2) the performance of the machine learning model is evaluated online, i.e., at every iteration. *ChaCha* performs online AutoML respecting the aforementioned properties of online learning, and at the same time respecting the following constraints: (1) only a small constant number of 'live' models are allowed to perform online learning at the same time;  and (2) no model persistence or offline training is allowed, which means that once we decide to replace a 'live' model with a new one, the replaced model can no longer be retrieved.
 
 For more technical details about *ChaCha*, please check our paper.
 

@@ -20,7 +20,7 @@ def main():
 
     logger.info(" ".join(f"{k}={v}" for k, v in vars(args).items()))
 
-    data_path = os.path.join(args.data, 'data.csv')
+    data_path = os.path.join(args.data, "data.csv")
     df = pd.read_csv(data_path)
 
     train_df, test_df = train_test_split(

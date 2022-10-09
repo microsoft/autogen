@@ -63,6 +63,7 @@ class BlendSearch(Searcher):
         seed: Optional[int] = 20,
         cost_attr: Optional[str] = "auto",
         experimental: Optional[bool] = False,
+        lexico_objectives: Optional[dict] = None,
         use_incumbent_result_in_evaluation=False,
     ):
         """Constructor.
@@ -127,6 +128,7 @@ class BlendSearch(Searcher):
         self.penalty = PENALTY  # penalty term for constraints
         self._metric, self._mode = metric, mode
         self._use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
+        self.lexico_objectives = lexico_objectives
         init_config = low_cost_partial_config or {}
         if not init_config:
             logger.info(
@@ -176,6 +178,7 @@ class BlendSearch(Searcher):
             max_resource,
             reduction_factor,
             self.cost_attr,
+            self.lexico_objectives,
             seed,
         )
         if global_search_alg is not None:
@@ -480,11 +483,15 @@ class BlendSearch(Searcher):
             del self._subspace[trial_id]
 
     def _create_thread(self, config, result, space):
+        if self.lexico_objectives is None:
+            obj = result[self._ls.metric]
+        else:
+            obj = {k: result[k] for k in self.lexico_objectives["metrics"]}
         self._search_thread_pool[self._thread_count] = SearchThread(
             self._ls.mode,
             self._ls.create(
                 config,
-                result[self._ls.metric],
+                obj,
                 cost=result.get(self.cost_attr, 1),
                 space=space,
             ),
@@ -1044,6 +1051,7 @@ class BlendSearchTuner(BlendSearch, NNITuner):
             self._ls.max_resource,
             self._ls.resource_multiple_factor,
             cost_attr=self.cost_attr,
+            lexico_objectives=self.lexico_objectives,
             seed=self._ls.seed,
         )
         if self._gs is not None:

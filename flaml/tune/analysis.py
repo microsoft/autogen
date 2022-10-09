@@ -17,7 +17,10 @@
 # Copyright (c) Microsoft Corporation.
 from typing import Dict, Optional
 import numpy as np
+
+from flaml.tune import result
 from .trial import Trial
+from collections import defaultdict
 
 import logging
 
@@ -68,7 +71,6 @@ class ExperimentAnalysis:
     @property
     def results(self) -> Dict[str, Dict]:
         """Get the last result of all the trials of the experiment"""
-
         return {trial.trial_id: trial.last_result for trial in self.trials}
 
     def _validate_metric(self, metric: str) -> str:
@@ -88,6 +90,42 @@ class ExperimentAnalysis:
         if mode and mode not in ["min", "max"]:
             raise ValueError("If set, `mode` has to be one of [min, max]")
         return mode or self.default_mode
+
+    def lexico_best(self, trials):
+        results = {index: trial.last_result for index, trial in enumerate(trials)}
+        metrics = self.lexico_objectives["metrics"]
+        modes = self.lexico_objectives["modes"]
+        f_best = {}
+        keys = list(results.keys())
+        length = len(keys)
+        histories = defaultdict(list)
+        for time_index in range(length):
+            for objective, mode in zip(metrics, modes):
+                histories[objective].append(
+                    results[keys[time_index]][objective]
+                    if mode == "min"
+                    else trials[keys[time_index]][objective] * -1
+                )
+        obj_initial = self.lexico_objectives["metrics"][0]
+        feasible_index = [*range(len(histories[obj_initial]))]
+        for k_metric in self.lexico_objectives["metrics"]:
+            k_values = np.array(histories[k_metric])
+            f_best[k_metric] = np.min(k_values.take(feasible_index))
+            feasible_index_prior = np.where(
+                k_values
+                <= max(
+                    [
+                        f_best[k_metric]
+                        + self.lexico_objectives["tolerances"][k_metric],
+                        self.lexico_objectives["targets"][k_metric],
+                    ]
+                )
+            )[0].tolist()
+            feasible_index = [
+                val for val in feasible_index if val in feasible_index_prior
+            ]
+        best_trial = trials[feasible_index[-1]]
+        return best_trial
 
     def get_best_trial(
         self,
@@ -120,9 +158,11 @@ class ExperimentAnalysis:
                 values are disregarded and these trials are never selected as
                 the best trial.
         """
+        if self.lexico_objectives is not None:
+            best_trial = self.lexico_best(self.trials)
+            return best_trial
         metric = self._validate_metric(metric)
         mode = self._validate_mode(mode)
-
         if scope not in ["all", "last", "avg", "last-5-avg", "last-10-avg"]:
             raise ValueError(
                 "ExperimentAnalysis: attempting to get best trial for "
@@ -138,7 +178,6 @@ class ExperimentAnalysis:
         for trial in self.trials:
             if metric not in trial.metric_analysis:
                 continue
-
             if scope in ["last", "avg", "last-5-avg", "last-10-avg"]:
                 metric_score = trial.metric_analysis[metric][scope]
             else:
@@ -158,7 +197,6 @@ class ExperimentAnalysis:
             elif (mode == "min") and (best_metric_score > metric_score):
                 best_metric_score = metric_score
                 best_trial = trial
-
         if not best_trial:
             logger.warning(
                 "Could not find best trial. Did you pass the correct `metric` "
