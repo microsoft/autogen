@@ -7,6 +7,7 @@ import numpy as np
 import datetime
 import time
 import os
+from collections import defaultdict
 
 try:
     from ray import __version__ as ray_version
@@ -20,7 +21,7 @@ except (ImportError, AssertionError):
     from .analysis import ExperimentAnalysis as EA
 
 from .trial import Trial
-from .result import DEFAULT_METRIC
+from .result import DEFAULT_METRIC, DEFAULT_MODE
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,16 +34,70 @@ _training_iteration = 0
 INCUMBENT_RESULT = "__incumbent_result__"
 
 
+def is_nan_or_inf(value):
+    return np.isnan(value) or np.isinf(value)
+
+
 class ExperimentAnalysis(EA):
     """Class for storing the experiment results."""
 
-    def __init__(self, trials, metric, mode):
+    def __init__(self, trials, metric, mode, lexico_objectives):
         try:
             super().__init__(self, None, trials, metric, mode)
         except (TypeError, ValueError):
             self.trials = trials
             self.default_metric = metric or DEFAULT_METRIC
-            self.default_mode = mode
+            self.default_mode = mode or DEFAULT_MODE
+            self.lexico_objectives = lexico_objectives
+
+    def lexico_best(self, trials):
+        results = {index: trial.last_result for index, trial in enumerate(trials)}
+        metrics = self.lexico_objectives["metrics"]
+        modes = self.lexico_objectives["modes"]
+        f_best = {}
+        keys = list(results.keys())
+        length = len(keys)
+        histories = defaultdict(list)
+        for time_index in range(length):
+            for objective, mode in zip(metrics, modes):
+                histories[objective].append(
+                    results[keys[time_index]][objective]
+                    if mode == "min"
+                    else trials[keys[time_index]][objective] * -1
+                )
+        obj_initial = self.lexico_objectives["metrics"][0]
+        feasible_index = [*range(len(histories[obj_initial]))]
+        for k_metric in self.lexico_objectives["metrics"]:
+            k_values = np.array(histories[k_metric])
+            f_best[k_metric] = np.min(k_values.take(feasible_index))
+            feasible_index_prior = np.where(
+                k_values
+                <= max(
+                    [
+                        f_best[k_metric]
+                        + self.lexico_objectives["tolerances"][k_metric],
+                        self.lexico_objectives["targets"][k_metric],
+                    ]
+                )
+            )[0].tolist()
+            feasible_index = [
+                val for val in feasible_index if val in feasible_index_prior
+            ]
+        best_trial = trials[feasible_index[-1]]
+        return best_trial
+
+    def get_best_trial(
+        self,
+        metric: Optional[str] = None,
+        mode: Optional[str] = None,
+        scope: str = "last",
+        filter_nan_and_inf: bool = True,
+    ) -> Optional[Trial]:
+        if self.lexico_objectives is not None:
+            best_trial = self.lexico_best(self.trials)
+        else:
+            best_trial = super().get_best_trial(metric, mode, scope, filter_nan_and_inf)
+        return best_trial
 
 
 def report(_metric=None, **kwargs):
@@ -148,6 +203,7 @@ def run(
     max_failure: Optional[int] = 100,
     use_ray: Optional[bool] = False,
     use_incumbent_result_in_evaluation: Optional[bool] = None,
+    lexico_objectives: Optional[dict] = None,
     log_file_name: Optional[str] = None,
     **ray_args,
 ):
@@ -300,6 +356,18 @@ def run(
         max_failure: int | the maximal consecutive number of failures to sample
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
+        lexico_objectives: A dictionary with four elements.
+        It specifics the information used for multiple objectives optimization with lexicographic preference.
+        e.g.,```lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+        "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}```
+
+        Either "metrics" or "modes" is a list of str.
+        It represents the optimization objectives, the objective as minimization or maximization respectively.
+        Both "metrics" and "modes" are ordered by priorities from high to low.
+        "tolerances" is a dictionary to specify the optimality tolerance of each objective.
+        "targets" is a dictionary to specify the optimization targets for each objective.
+        If providing lexico_objectives, the arguments metric, mode, and search_alg will be invalid.
+
         log_file_name: A string of the log file name. Default to None.
             When set to None:
                 if local_dir is not given, no log file is created;
@@ -374,15 +442,21 @@ def run(
         try:
             import optuna as _
 
-            SearchAlgorithm = BlendSearch
+            if lexico_objectives is None:
+                SearchAlgorithm = BlendSearch
+            else:
+                SearchAlgorithm = CFO
         except ImportError:
             SearchAlgorithm = CFO
             logger.warning(
                 "Using CFO for search. To use BlendSearch, run: pip install flaml[blendsearch]"
             )
-
+        if lexico_objectives is None:
+            metric = metric or DEFAULT_METRIC
+        else:
+            metric = lexico_objectives["metrics"][0] or DEFAULT_METRIC
         search_alg = SearchAlgorithm(
-            metric=metric or DEFAULT_METRIC,
+            metric=metric,
             mode=mode,
             space=config,
             points_to_evaluate=points_to_evaluate,
@@ -398,6 +472,7 @@ def run(
             config_constraints=config_constraints,
             metric_constraints=metric_constraints,
             use_incumbent_result_in_evaluation=use_incumbent_result_in_evaluation,
+            lexico_objectives=lexico_objectives,
         )
     else:
         if metric is None or mode is None:
@@ -532,7 +607,12 @@ def run(
             logger.warning(
                 f"fail to sample a trial for {max_failure} times in a row, stopping."
             )
-        analysis = ExperimentAnalysis(_runner.get_trials(), metric=metric, mode=mode)
+        analysis = ExperimentAnalysis(
+            _runner.get_trials(),
+            metric=metric,
+            mode=mode,
+            lexico_objectives=lexico_objectives,
+        )
         return analysis
     finally:
         # recover the global variables in case of nested run

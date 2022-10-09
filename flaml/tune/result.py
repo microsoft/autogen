@@ -43,6 +43,9 @@ PID = "pid"
 # (Optional) Default (anonymous) metric when using tune.report(x)
 DEFAULT_METRIC = "_metric"
 
+# (Optional) Default (anonymous) mode when using tune.report(x)
+DEFAULT_MODE = "min"
+
 # (Optional) Mean reward for current training iteration
 EPISODE_REWARD_MEAN = "episode_reward_mean"
 

@@ -736,6 +736,7 @@ class AutoML(BaseEstimator):
         settings["use_ray"] = settings.get("use_ray", False)
         settings["metric_constraints"] = settings.get("metric_constraints", [])
         settings["cv_score_agg_func"] = settings.get("cv_score_agg_func", None)
+        settings["lexico_objectives"] = settings.get("lexico_objectives", None)
         settings["fit_kwargs_by_estimator"] = settings.get(
             "fit_kwargs_by_estimator", {}
         )
@@ -2149,6 +2150,7 @@ class AutoML(BaseEstimator):
         cv_score_agg_func=None,
         skip_transform=None,
         fit_kwargs_by_estimator=None,
+        lexico_objectives=None,
         **fit_kwargs,
     ):
         """Find a model for a given task.
@@ -2402,6 +2404,19 @@ class AutoML(BaseEstimator):
                     [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                     e.g.,
         skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
+
+        lexico_objectives: A dictionary with four elements.
+        It specifics the information used for multiple objectives optimization with lexicographic preference.
+        e.g.,```lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+        "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}```
+
+        Either "metrics" or "modes" is a list of str.
+        It represents the optimization objectives, the objective as minimization or maximization respectively.
+        Both "metrics" and "modes" are ordered by priorities from high to low.
+        "tolerances" is a dictionary to specify the optimality tolerance of each objective.
+        "targets" is a dictionary to specify the optimization targets for each objective.
+        If providing lexico_objectives, the arguments metric, hpo_method will be invalid.
+
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [TrainingArgumentsForAuto](nlp/huggingface/training_args).
@@ -2502,7 +2517,11 @@ class AutoML(BaseEstimator):
             self._settings.get("retrain_full") if retrain_full is None else retrain_full
         )
         split_type = split_type or self._settings.get("split_type")
-        hpo_method = hpo_method or self._settings.get("hpo_method")
+        if lexico_objectives is None:
+            hpo_method = hpo_method or self._settings.get("hpo_method")
+        else:
+            hpo_method = "cfo"
+
         learner_selector = learner_selector or self._settings.get("learner_selector")
         no_starting_points = starting_points is None
         if no_starting_points:
@@ -2606,7 +2625,9 @@ class AutoML(BaseEstimator):
         self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get(
             "cv_score_agg_func"
         )
-
+        self._state.lexico_objectives = lexico_objectives or self._settings.get(
+            "lexico_objectives"
+        )
         self._retrain_in_budget = retrain_full == "budget" and (
             eval_method == "holdout" and self._state.X_val is None
         )
@@ -2996,6 +3017,7 @@ class AutoML(BaseEstimator):
                 metric_constraints=self.metric_constraints,
                 seed=self._seed,
                 time_budget_s=time_left,
+                lexico_objectives=self._state.lexico_objectives,
             )
         else:
             # if self._hpo_method is bo, sometimes the search space and the initial config dimension do not match
@@ -3232,6 +3254,7 @@ class AutoML(BaseEstimator):
                         ],
                         metric_constraints=self.metric_constraints,
                         seed=self._seed,
+                        lexico_objectives=self._state.lexico_objectives,
                     )
                 else:
                     # if self._hpo_method is bo, sometimes the search space and the initial config dimension do not match
