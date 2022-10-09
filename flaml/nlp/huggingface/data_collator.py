@@ -11,6 +11,7 @@ from flaml.data import (
     MULTICHOICECLASSIFICATION,
     SUMMARIZATION,
     SEQCLASSIFICATION,
+    SEQREGRESSION
 )
 
 
@@ -51,5 +52,6 @@ task_to_datacollator_class = OrderedDict(
         (MULTICHOICECLASSIFICATION, DataCollatorForMultipleChoiceClassification),
         (SUMMARIZATION, DataCollatorForSeq2Seq),
         (SEQCLASSIFICATION, DataCollatorWithPadding),
+        (SEQREGRESSION, DataCollatorWithPadding),
     ]
 )
