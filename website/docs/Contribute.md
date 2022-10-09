@@ -1,12 +1,12 @@
 # Contributing
 
-This project welcomes (and encourages) all forms of contributions, including but not limited to:
+This project welcomes and encourages all forms of contributions, including but not limited to:
 
 -  Pushing patches.
 -  Code review of pull requests.
 -  Documentation, examples and test cases.
 -  Readability improvement, e.g., improvement on docstr and comments.
--  Community participation in [issues](https://github.com/microsoft/FLAML/issues), [discussions](https://github.com/microsoft/FLAML/discussions), and [gitter](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
+-  Community participation in [issues](https://github.com/microsoft/FLAML/issues), [discussions](https://github.com/microsoft/FLAML/discussions), and [discord](https://discord.gg/7ZVfhbTQZ5).
 -  Tutorials, blog posts, talks that promote the project.
 -  Sharing application scenarios and/or related research.
 
@@ -25,6 +25,31 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## How to make a good bug report
+
+When you submit an issue to [GitHub](https://github.com/microsoft/FLAML/issues), please do your best to
+follow these guidelines! This will make it a lot easier to provide you with good
+feedback:
+
+- The ideal bug report contains a short reproducible code snippet. This way
+  anyone can try to reproduce the bug easily (see [this](https://stackoverflow.com/help/mcve) for more details). If your snippet is
+  longer than around 50 lines, please link to a [gist](https://gist.github.com) or a GitHub repo.
+
+- If an exception is raised, please **provide the full traceback**.
+
+- Please include your **operating system type and version number**, as well as
+  your **Python, flaml, scikit-learn versions**. The version of flaml
+  can be found by running the following code snippet:
+```python
+import flaml
+print(flaml.__version__)
+```
+
+- Please ensure all **code snippets and error messages are formatted in
+  appropriate code blocks**.  See [Creating and highlighting code blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks)
+  for more details.
+
 
 ## Becoming a Reviewer
 
@@ -68,7 +93,6 @@ coverage run -m pytest test
 
 Then you can see the coverage report by
 `coverage report -m` or `coverage html`.
-If all the tests are passed, please also test run [notebook/automl_classification](https://github.com/microsoft/FLAML/blob/main/notebook/automl_classification.ipynb) to make sure your commit does not break the notebook example.
 
 ### Documentation
 
@@ -91,3 +115,6 @@ yarn start
 
 The last command starts a local development server and opens up a browser window.
 Most changes are reflected live without having to restart the server.
+
+Note:
+some tips in this guide are based off the contributor guide from [ray](https://docs.ray.io/en/latest/ray-contribute/getting-involved.html), [scikit-learn](https://scikit-learn.org/stable/developers/contributing.html), or [hummingbird](https://github.com/microsoft/hummingbird/blob/main/CONTRIBUTING.md).
