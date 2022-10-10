@@ -52,6 +52,8 @@ setuptools.setup(
             "pytest>=6.1.1",
             "coverage>=5.3",
             "pre-commit",
+            "torch",
+            "torchvision",
             "catboost>=0.26",
             "rgf-python",
             "optuna==2.8.0",

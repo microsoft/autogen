@@ -5,7 +5,6 @@ from flaml import tune
 import torch.nn.functional as F
 import torchvision
 import numpy as np
-import time
 from ray import tune as raytune
 
 DEVICE = torch.device("cpu")
