@@ -5,7 +5,6 @@ from flaml import tune
 import torch.nn.functional as F
 import torchvision
 import numpy as np
-from ray import tune as raytune
 
 DEVICE = torch.device("cpu")
 BATCHSIZE = 128
@@ -91,15 +90,15 @@ def _test_lexiflow():
     lexico_objectives["modes"] = ["min", "min"]
 
     search_space = {
-        "n_layers": raytune.randint(lower=1, upper=3),
-        "n_units_l0": raytune.randint(lower=4, upper=128),
-        "n_units_l1": raytune.randint(lower=4, upper=128),
-        "n_units_l2": raytune.randint(lower=4, upper=128),
-        "dropout_0": raytune.uniform(lower=0.2, upper=0.5),
-        "dropout_1": raytune.uniform(lower=0.2, upper=0.5),
-        "dropout_2": raytune.uniform(lower=0.2, upper=0.5),
-        "lr": raytune.loguniform(lower=1e-5, upper=1e-1),
-        "n_epoch": raytune.randint(lower=1, upper=20),
+        "n_layers": tune.randint(lower=1, upper=3),
+        "n_units_l0": tune.randint(lower=4, upper=128),
+        "n_units_l1": tune.randint(lower=4, upper=128),
+        "n_units_l2": tune.randint(lower=4, upper=128),
+        "dropout_0": tune.uniform(lower=0.2, upper=0.5),
+        "dropout_1": tune.uniform(lower=0.2, upper=0.5),
+        "dropout_2": tune.uniform(lower=0.2, upper=0.5),
+        "lr": tune.loguniform(lower=1e-5, upper=1e-1),
+        "n_epoch": tune.randint(lower=1, upper=20),
     }
 
     low_cost_partial_config = {
