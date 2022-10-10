@@ -515,6 +515,33 @@ analysis = tune.run(
 )
 ```
 
+### Lexicographic Objectives
+We support tuning multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `tune.tun()` and `automl.fit()`.
+`lexico_objectives` is a dictionary with four elements:
+ - `metrics`: A list of optimization objectives. The objectives are ordered by their priority from high to low.
+ - `modes`: A list to specify each objective as minimization or maximization in `metrics` correspondingly. 
+ - `tolerances`: A dictionary to specify the "tolerance" for each objective. "tolerance" is the amount of performance degradation the user is willing to compromise in order to find choices with better performance on the objectives of lower priorities.
+ - `targets`: A dictionary to specify the "goals" for each objective. When the objective is smaller than or equal to the "goals", further minimization is no longer needed. 
+
+In the following example, we want to minimize `val_loss` and `pred_time` of the model where `val_loss` has high priority. The tolerances for `val_loss` and `pre_time` are 0.02 and 0 respectively. We do not set targets for these two objectives and we set them to -inf for both objectives. 
+
+```python
+lexico_objectives = {}
+lexico_objectives["metrics"] = ["val_loss","pred_time"]
+lexico_objectives["pred_time"] = ["min","min"]
+lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time":0.0}
+lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
+
+# provide the lexico_objectives to tune.run
+tune.run(..., lexico_objectives=lexico_objectives, ...)
+
+# provide the lexico_objectives to automl.fit
+automl.fit(..., lexico_objectives=lexico_objectives, ...)
+
+```
+
+
+
 
 ## Hyperparameter Optimization Algorithm
 
