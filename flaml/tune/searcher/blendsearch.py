@@ -113,6 +113,19 @@ class BlendSearch(Searcher):
                 Default is "auto", which means that we will automatically chose the cost attribute to use (depending
                 on the nature of the resource budget). When cost_attr is set to None, cost differences between different trials will be omitted
                 in our search algorithm.
+            lexico_objectives: A dictionary with four elements.
+                It specifics the information used for multiple objectives optimization with lexicographic preference.
+                e.g.,
+                ```python
+                lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+                "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
+                ```
+                Either "metrics" or "modes" is a list of str.
+                It represents the optimization objectives, the objective as minimization or maximization respectively.
+                Both "metrics" and "modes" are ordered by priorities from high to low.
+                "tolerances" is a dictionary to specify the optimality tolerance of each objective.
+                "targets" is a dictionary to specify the optimization targets for each objective.
+                If providing lexico_objectives, the arguments metric, mode will be invalid.
             experimental: A bool of whether to use experimental features.
         """
         self._eps = SEARCH_THREAD_EPS

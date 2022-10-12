@@ -70,6 +70,19 @@ class FLOW2(Searcher):
             resource_multiple_factor: A float of the multiplicative factor
                 used for increasing resource.
             cost_attr: A string of the attribute used for cost.
+            lexico_objectives: A dictionary with four elements.
+                It specifics the information used for multiple objectives optimization with lexicographic preference.
+                e.g.,
+                ```python
+                lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+                "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
+                ```
+                Either "metrics" or "modes" is a list of str.
+                It represents the optimization objectives, the objective as minimization or maximization respectively.
+                Both "metrics" and "modes" are ordered by priorities from high to low.
+                "tolerances" is a dictionary to specify the optimality tolerance of each objective.
+                "targets" is a dictionary to specify the optimization targets for each objective.
+                If providing lexico_objectives, the arguments metric, mode will be invalid.
             seed: An integer of the random seed.
         """
         if mode:

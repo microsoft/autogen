@@ -2406,16 +2406,19 @@ class AutoML(BaseEstimator):
         skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
 
         lexico_objectives: A dictionary with four elements.
-        It specifics the information used for multiple objectives optimization with lexicographic preference.
-        e.g.,```lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-        "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}```
+            It specifics the information used for multiple objectives optimization with lexicographic preference.
+            e.g.,
+            ```python
+            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
+            ```
+            Either "metrics" or "modes" is a list of str.
+            It represents the optimization objectives, the objective as minimization or maximization respectively.
+            Both "metrics" and "modes" are ordered by priorities from high to low.
+            "tolerances" is a dictionary to specify the optimality tolerance of each objective.
+            "targets" is a dictionary to specify the optimization targets for each objective.
+            If providing lexico_objectives, the arguments metric, hpo_method will be invalid.
 
-        Either "metrics" or "modes" is a list of str.
-        It represents the optimization objectives, the objective as minimization or maximization respectively.
-        Both "metrics" and "modes" are ordered by priorities from high to low.
-        "tolerances" is a dictionary to specify the optimality tolerance of each objective.
-        "targets" is a dictionary to specify the optimization targets for each objective.
-        If providing lexico_objectives, the arguments metric, hpo_method will be invalid.
 
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
@@ -2520,6 +2523,10 @@ class AutoML(BaseEstimator):
         if lexico_objectives is None:
             hpo_method = hpo_method or self._settings.get("hpo_method")
         else:
+            if hpo_method != "cfo":
+                logger.warning(
+                    "If lexico_objectives is not None, hpo_method is forced to be cfo"
+                )
             hpo_method = "cfo"
 
         learner_selector = learner_selector or self._settings.get("learner_selector")
