@@ -2,7 +2,7 @@
 #  * Copyright (c) FLAML authors. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
-from typing import Optional, Union, List, Callable, Tuple
+from typing import Optional, Union, List, Callable, Tuple, Dict
 import numpy as np
 import datetime
 import time
@@ -34,21 +34,31 @@ _training_iteration = 0
 INCUMBENT_RESULT = "__incumbent_result__"
 
 
-def is_nan_or_inf(value):
-    return np.isnan(value) or np.isinf(value)
-
-
 class ExperimentAnalysis(EA):
     """Class for storing the experiment results."""
 
-    def __init__(self, trials, metric, mode, lexico_objectives):
+    def __init__(self, trials, metric, mode, lexico_objectives=None):
         try:
             super().__init__(self, None, trials, metric, mode)
         except (TypeError, ValueError):
             self.trials = trials
             self.default_metric = metric or DEFAULT_METRIC
-            self.default_mode = mode or DEFAULT_MODE
+            self.default_mode = mode
             self.lexico_objectives = lexico_objectives
+
+    @property
+    def best_trial(self) -> Trial:
+        if self.lexico_objectives is None:
+            return super().best_trial
+        else:
+            return self.get_best_trial(self.default_metric, self.default_mode)
+
+    @property
+    def best_config(self) -> Dict:
+        if self.lexico_objectives is None:
+            return super().best_config
+        else:
+            return self.get_best_config(self.default_metric, self.default_mode)
 
     def lexico_best(self, trials):
         results = {index: trial.last_result for index, trial in enumerate(trials)}
@@ -98,6 +108,13 @@ class ExperimentAnalysis(EA):
         else:
             best_trial = super().get_best_trial(metric, mode, scope, filter_nan_and_inf)
         return best_trial
+
+    @property
+    def best_result(self) -> Dict:
+        if self.lexico_best is None:
+            return super().best_result
+        else:
+            return self.best_trial.last_result
 
 
 def report(_metric=None, **kwargs):
@@ -357,16 +374,18 @@ def run(
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
         lexico_objectives: A dictionary with four elements.
-        It specifics the information used for multiple objectives optimization with lexicographic preference.
-        e.g.,```lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-        "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}```
-
-        Either "metrics" or "modes" is a list of str.
-        It represents the optimization objectives, the objective as minimization or maximization respectively.
-        Both "metrics" and "modes" are ordered by priorities from high to low.
-        "tolerances" is a dictionary to specify the optimality tolerance of each objective.
-        "targets" is a dictionary to specify the optimization targets for each objective.
-        If providing lexico_objectives, the arguments metric, mode, and search_alg will be invalid.
+            It specifics the information used for multiple objectives optimization with lexicographic preference.
+            e.g.,
+            ```python
+            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
+            ```
+            Either "metrics" or "modes" is a list of str.
+            It represents the optimization objectives, the objective as minimization or maximization respectively.
+            Both "metrics" and "modes" are ordered by priorities from high to low.
+            "tolerances" is a dictionary to specify the optimality tolerance of each objective.
+            "targets" is a dictionary to specify the optimization targets for each objective.
+            If providing lexico_objectives, the arguments metric, mode, and search_alg will be invalid.
 
         log_file_name: A string of the log file name. Default to None.
             When set to None:

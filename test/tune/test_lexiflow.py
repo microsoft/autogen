@@ -12,7 +12,7 @@ N_TRAIN_EXAMPLES = BATCHSIZE * 30
 N_VALID_EXAMPLES = BATCHSIZE * 10
 
 
-def _test_lexiflow():
+def test_lexiflow():
     train_dataset = torchvision.datasets.FashionMNIST(
         "test/data",
         train=True,
@@ -109,18 +109,16 @@ def _test_lexiflow():
         "n_epoch": 1,
     }
 
-    analysis = tune.run(
+    tune.run(
         evaluate_function,
-        num_samples=100000000,
+        num_samples=-1,
         time_budget_s=100,
         config=search_space,
         use_ray=False,
         lexico_objectives=lexico_objectives,
         low_cost_partial_config=low_cost_partial_config,
     )
-    result = analysis.best_result
-    print(result)
 
 
 if __name__ == "__main__":
-    _test_lexiflow()
+    test_lexiflow()

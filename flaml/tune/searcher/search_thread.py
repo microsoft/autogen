@@ -141,6 +141,8 @@ class SearchThread:
                 not hasattr(self._search_alg, "lexico_objectives")
                 or self._search_alg.lexico_objectives is None
             ):
+                # TODO: Improve this behavior. When lexico_objectives is provided to CFO,
+                # related variables are not callable.
                 obj = result[self._search_alg.metric] * self._metric_op
                 if obj < self.obj_best1 or self.best_result is None:
                     self.cost_best2 = self.cost_best1
@@ -153,6 +155,8 @@ class SearchThread:
                 not hasattr(self._search_alg, "lexico_objectives")
                 or self._search_alg.lexico_objectives is None
             ):
+                # TODO: Improve this behavior. When lexico_objectives is provided to CFO,
+                # related variables are not callable.
                 self._update_speed()
         self.running -= 1
         assert self.running >= 0
