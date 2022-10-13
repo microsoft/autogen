@@ -138,8 +138,7 @@ class SearchThread:
             self.cost_last = result.get(self.cost_attr, 1)
             self.cost_total += self.cost_last
             if self._search_alg.metric in result and (
-                not hasattr(self._search_alg, "lexico_objectives")
-                or self._search_alg.lexico_objectives is None
+                getattr(self._search_alg, "lexico_objectives", None) is None
             ):
                 # TODO: Improve this behavior. When lexico_objectives is provided to CFO,
                 # related variables are not callable.
