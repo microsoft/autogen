@@ -38,6 +38,13 @@ automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_
 automl.predict(X_test)
 ```
 
+Notice that after you run `automl.fit`, the intermediate checkpoints are saved under the specified output_dir `data/output`. You can use the following code to clean these outputs if they consume a large storage space:
+
+```python
+if os.path.exists("data/output/"):
+    shutil.rmtree("data/output/")
+```
+
 #### Sample output
 
 ```
