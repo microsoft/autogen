@@ -1,6 +1,8 @@
 import sys
 import pytest
 import requests
+import os
+import shutil
 from utils import (
     get_toy_data_tokenclassification_idlabel,
     get_toy_data_tokenclassification_tokenlabel,
@@ -62,6 +64,9 @@ def test_tokenclassification_idlabel():
                 if min_inter_result != sys.maxsize:
                     assert val_loss == min_inter_result
 
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
+
 
 @pytest.mark.skipif(
     sys.platform == "darwin" or sys.version < "3.7",
@@ -105,6 +110,9 @@ def test_tokenclassification_tokenlabel():
 
                 if min_inter_result != sys.maxsize:
                     assert val_loss == min_inter_result
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
 
 
 if __name__ == "__main__":
