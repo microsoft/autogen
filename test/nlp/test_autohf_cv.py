@@ -1,6 +1,8 @@
 import sys
 import pytest
 from utils import get_toy_data_seqclassification, get_automl_settings
+import os
+import shutil
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -18,6 +20,9 @@ def test_cv():
         automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
     except requests.exceptions.HTTPError:
         return
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
 
 
 if __name__ == "__main__":
