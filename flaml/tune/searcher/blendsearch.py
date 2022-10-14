@@ -113,19 +113,23 @@ class BlendSearch(Searcher):
                 Default is "auto", which means that we will automatically chose the cost attribute to use (depending
                 on the nature of the resource budget). When cost_attr is set to None, cost differences between different trials will be omitted
                 in our search algorithm.
-            lexico_objectives: A dictionary with four elements.
-                It specifics the information used for multiple objectives optimization with lexicographic preference.
-                e.g.,
-                ```python
-                lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-                "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
-                ```
-                Either "metrics" or "modes" is a list of str.
-                It represents the optimization objectives, the objective as minimization or maximization respectively.
-                Both "metrics" and "modes" are ordered by priorities from high to low.
-                "tolerances" is a dictionary to specify the optimality tolerance of each objective.
-                "targets" is a dictionary to specify the optimization targets for each objective.
-                If providing lexico_objectives, the arguments metric, mode will be invalid.
+            lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
+                optimization with lexicographic preferences. This is only supported in CFO. 
+                When lexico_objectives it not None, the arguments metric, mode will be invalid. 
+                This dictionary shall contain the  following fields of key-value pairs: 
+                - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
+                objectives.
+                - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
+                objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
+                - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
+                metric names (provided in "metric"), and the values are the numerical target values. 
+                - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
+                metric names (provided in "metrics"), and the values are the numerical tolerances values. 
+                E.g.,
+            ```python
+            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
+            ```	
             experimental: A bool of whether to use experimental features.
         """
         self._eps = SEARCH_THREAD_EPS

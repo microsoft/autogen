@@ -109,15 +109,35 @@ def test_lexiflow():
         "n_epoch": 1,
     }
 
-    tune.run(
+    # lexico tune 
+    analysis = tune.run(
         evaluate_function,
         num_samples=-1,
-        time_budget_s=100,
+        time_budget_s=50,
         config=search_space,
         use_ray=False,
         lexico_objectives=lexico_objectives,
         low_cost_partial_config=low_cost_partial_config,
     )
+    print(analysis.best_trial)
+    print(analysis.best_config)
+    print(analysis.best_result)
+
+    # Non lexico tune 
+    analysis = tune.run(
+        evaluate_function,
+        metric = "error_rate",
+        mode = "min",
+        num_samples=-1,
+        time_budget_s=50,
+        config=search_space,
+        use_ray=False,
+        lexico_objectives=None,
+        low_cost_partial_config=low_cost_partial_config,
+    )
+    print(analysis.best_trial)
+    print(analysis.best_config)
+    print(analysis.best_result)
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ except (ImportError, AssertionError):
     from .analysis import ExperimentAnalysis as EA
 
 from .trial import Trial
-from .result import DEFAULT_METRIC, DEFAULT_MODE
+from .result import DEFAULT_METRIC
 import logging
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ class ExperimentAnalysis(EA):
     def __init__(self, trials, metric, mode, lexico_objectives=None):
         try:
             super().__init__(self, None, trials, metric, mode)
+            self.lexico_objectives = lexico_objectives
         except (TypeError, ValueError):
             self.trials = trials
             self.default_metric = metric or DEFAULT_METRIC
@@ -77,8 +78,9 @@ class ExperimentAnalysis(EA):
                 )
         obj_initial = self.lexico_objectives["metrics"][0]
         feasible_index = [*range(len(histories[obj_initial]))]
-        for k_metric in self.lexico_objectives["metrics"]:
+        for k_metric, k_mode in zip(self.lexico_objectives["metrics"],self.lexico_objectives["modes"]):
             k_values = np.array(histories[k_metric])
+            k_c = self.lexico_objectives["targets"][k_metric] * -1 if k_mode == "max" else self.lexico_objectives["targets"][k_metric]
             f_best[k_metric] = np.min(k_values.take(feasible_index))
             feasible_index_prior = np.where(
                 k_values
@@ -86,7 +88,7 @@ class ExperimentAnalysis(EA):
                     [
                         f_best[k_metric]
                         + self.lexico_objectives["tolerances"][k_metric],
-                        self.lexico_objectives["targets"][k_metric],
+                        k_c,
                     ]
                 )
             )[0].tolist()
@@ -373,20 +375,24 @@ def run(
         max_failure: int | the maximal consecutive number of failures to sample
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
-        lexico_objectives: A dictionary with four elements.
-            It specifics the information used for multiple objectives optimization with lexicographic preference.
-            e.g.,
-            ```python
-            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
-            ```
-            Either "metrics" or "modes" is a list of str.
-            It represents the optimization objectives, the objective as minimization or maximization respectively.
-            Both "metrics" and "modes" are ordered by priorities from high to low.
-            "tolerances" is a dictionary to specify the optimality tolerance of each objective.
-            "targets" is a dictionary to specify the optimization targets for each objective.
-            If providing lexico_objectives, the arguments metric, mode, and search_alg will be invalid.
-
+        lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
+            optimization with lexicographic preferences. When lexico_objectives it not None, the arguments metric, 
+            mode, will be invalid, and flaml's tune uses CFO
+            as the `search_alg`, which makes the input (if provided) `search_alg' invalid.
+            This dictionary shall contain the  following fields of key-value pairs: 
+            - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
+            objectives.
+            - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
+            objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
+            - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
+            metric names (provided in "metric"), and the values are the numerical target values. 
+            - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
+            metric names (provided in "metrics"), and the values are the numerical tolerances values. 
+            E.g.,
+        ```python
+        lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+        "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
+        ```	
         log_file_name: A string of the log file name. Default to None.
             When set to None:
                 if local_dir is not given, no log file is created;
@@ -443,7 +449,8 @@ def run(
             logger.setLevel(logging.CRITICAL)
 
     from .searcher.blendsearch import BlendSearch, CFO
-
+    if lexico_objectives != None:
+        search_alg = None
     if search_alg is None:
         flaml_scheduler_resource_attr = (
             flaml_scheduler_min_resource
@@ -465,6 +472,9 @@ def run(
                 SearchAlgorithm = BlendSearch
             else:
                 SearchAlgorithm = CFO
+            logger.info(
+                "Using search algorithm {}.".format(SearchAlgorithm.__class__.__name__)
+            )
         except ImportError:
             SearchAlgorithm = CFO
             logger.warning(

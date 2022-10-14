@@ -3,7 +3,7 @@
 ## Requirements
 
 ```python
-pip install thop torchvision torch
+pip install flaml thop torchvision torch
 ```
 
 ## Tuning accurate and efficient neural networks with lexicographic preference
