@@ -422,30 +422,6 @@ automl2.fit(X_train, y_train, time_budget=7200, starting_points=automl1.best_con
 
 `starting_points` is a dictionary or a str to specify the starting hyperparameter config. (1) When it is a dictionary, the keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively. (2) When it is a str: if "data", use data-dependent defaults; if "data:path", use data-dependent defaults which are stored at path; if "static", use data-independent defaults. Please find more details about data-dependent defaults in [zero shot AutoML](Zero-Shot-AutoML#combine-zero-shot-automl-and-hyperparameter-tuning).
 
-### Lexicographic objectives
-We support automl for multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `automl.fit()`.
-`lexico_objectives` is a dictionary with four elements:
- - `metrics`: a list of optimization objectives with the orders reflecting the priorities/preferences of the objectives.
- - `modes`: (optional) a list of optimization modes (each mode either "min" or "max") corresponding to the objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
- - `tolerances`: (optional) a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the numerical tolerances values. 
- - `targets`: (optional) a dictionary to specify the optimization targets on the objectives. The keys are the metric names (provided in "metric"), and the values are the numerical target values. 
-
-In the following example, we want to minimize `val_loss` and `pred_time` of the model where `val_loss` has high priority. The tolerances for `val_loss` and `pre_time` are 0.02 and 0 respectively. We do not set targets for these two objectives and we set them to -inf for both objectives.
-
-```python
-lexico_objectives = {}
-lexico_objectives["metrics"] = ["val_loss","pred_time"]
-lexico_objectives["pred_time"] = ["min","min"]
-lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time":0.0}
-lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
-
-# provide the lexico_objectives to automl.fit
-automl.fit(..., hpo_method = "cfo", lexico_objectives=lexico_objectives, ...)
-
-```
-*Please note that this is a new feature in version 1.1.0 and subject to change in the future version*
-
-
 ### Log the trials
 
 The trials are logged in a file if a `log_file_name` is passed.
