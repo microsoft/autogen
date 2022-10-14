@@ -1,6 +1,8 @@
 import sys
 import pytest
 from utils import get_toy_data_seqregression, get_automl_settings
+import os
+import shutil
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
@@ -31,6 +33,9 @@ def test_regression():
         X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
     )
     automl.predict(X_val)
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
 
 
 if __name__ == "__main__":

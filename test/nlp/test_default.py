@@ -1,6 +1,8 @@
 from utils import get_toy_data_seqclassification, get_automl_settings
 import sys
 from flaml.default import portfolio
+import os
+import shutil
 
 
 def pop_args(fit_kwargs):
@@ -80,6 +82,9 @@ def test_starting_point_not_in_search_space():
         == "albert-base-v2"
     )
 
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
+
 
 def test_points_to_evaluate():
     from flaml import AutoML
@@ -98,6 +103,9 @@ def test_points_to_evaluate():
     }
 
     automl.fit(X_train, y_train, **automl_settings)
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
 
 
 # TODO: implement _test_zero_shot_model
@@ -131,6 +139,9 @@ def test_zero_shot_nomodel():
     pop_args(fit_kwargs)
     model.fit(X_train, y_train, **fit_kwargs)
 
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
+
 
 def test_build_error_portfolio(path="./test/nlp/default", strategy="greedy"):
     import os
@@ -159,3 +170,9 @@ def test_build_error_portfolio(path="./test/nlp/default", strategy="greedy"):
         )
     except ValueError:
         print("Feature not implemented")
+
+    import os
+    import shutil
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")

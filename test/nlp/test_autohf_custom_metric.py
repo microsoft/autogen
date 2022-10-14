@@ -1,6 +1,8 @@
 import sys
 import pytest
 from utils import get_toy_data_seqclassification, get_automl_settings
+import os
+import shutil
 
 
 def custom_metric(
@@ -80,6 +82,9 @@ def test_custom_metric():
     automl.pickle("automl.pkl")
 
     del automl
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
 
 
 if __name__ == "__main__":
