@@ -2404,37 +2404,23 @@ class AutoML(BaseEstimator):
                     [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                     e.g.,
         skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
-
         lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
-        optimization with lexicographic preferences. When lexico_objectives it not None, flaml's AutoML uses "cfo" 
-        as the `hpo_method`, which makes the input (if provided) `hpo_method' invalid. This dictionary shall 
-        contain the  following fields of key-value pairs: 
-        - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
-          objectives.
-        - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
-           objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
-          "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
-          metric names (provided in "metric"), and the values are the numerical target values. 
-        - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
-          metric names (provided in "metrics"), and the values are the numerical tolerances values. 
-        E.g.,
-	```python
-	lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-	"tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
-	```	
-            It specifics the information used for multiple objectives optimization with lexicographic preference.
-            e.g.,
-            ```python
-            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0,"pred_time":0.0}}
-            ```
-            Either "metrics" or "modes" is a list of str.
-            It represents the optimization objectives, the objective as minimization or maximization respectively.
-            Both "metrics" and "modes" are ordered by priorities from high to low.
-            "tolerances" is a dictionary to specify the optimality tolerance of each objective.
-            "targets" is a dictionary to specify the optimization targets for each objective.
-            If providing lexico_objectives, the arguments metric, hpo_method will be invalid.
-
+            optimization with lexicographic preferences. When lexico_objectives it not None, the argument metric will be invaild, 
+            and flaml's AutoML uses "cfo" as the `hpo_method`, which makes the input (if provided) `hpo_method' invalid. 
+            This dictionary shall contain the following fields of key-value pairs: 
+            - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
+            objectives.
+            - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
+            objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
+            - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
+            metric names (provided in "metric"), and the values are the numerical target values. 
+            - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
+            metric names (provided in "metrics"), and the values are the numerical tolerances values. 
+            E.g.,
+        ```python
+        lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
+        "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
+        ```	
 
         fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
@@ -3065,7 +3051,7 @@ class AutoML(BaseEstimator):
         search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
         resources_per_trial = self._state.resources_per_trial
 
-        analysis = ray.tune.run(
+        analysis = ray.tune.run( 
             self.trainable,
             search_alg=search_alg,
             config=space,

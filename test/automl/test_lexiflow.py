@@ -24,7 +24,10 @@ def test_lexiflow():
         "mem_thres": 128 * (1024**3),
     }
     automl.fit(X_train=X_train, y_train=y_train, X_val=X_test, y_val=y_test, **settings)
-
-
+    print(automl.predict(X_train))
+    print(automl.model)
+    print(automl.config_history)
+    print(automl.best_iteration)
+    print(automl.best_estimator)
 if __name__ == "__main__":
     test_lexiflow()
