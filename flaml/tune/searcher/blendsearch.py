@@ -120,7 +120,7 @@ class BlendSearch(Searcher):
                 - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
                 objectives.
                 - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
-                objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
+                objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
                 - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
                 metric names (provided in "metric"), and the values are the numerical target values. 
                 - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
