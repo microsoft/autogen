@@ -478,7 +478,7 @@ class FLOW2(Searcher):
             if obj:
                 obj = (
                     {
-                        k: obj[k] * -1 if m == "max" else obj[k]
+                        k: -obj[k] if m == "max" else obj[k]
                         for k, m in zip(
                             self.lexico_objectives["metrics"],
                             self.lexico_objectives["modes"],
