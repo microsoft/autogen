@@ -125,8 +125,8 @@ def test_lexiflow():
     # Non lexico tune 
     analysis = tune.run(
         evaluate_function,
-        metric = "error_rate",
-        mode = "min",
+        metric="error_rate",
+        mode="min",
         num_samples=5,
         config=search_space,
         use_ray=False,
