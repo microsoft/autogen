@@ -71,7 +71,7 @@ class FLOW2(Searcher):
                 used for increasing resource.
             cost_attr: A string of the attribute used for cost.
             lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
-                optimization with lexicographic preferences. When lexico_objectives it not None, the arguments metric, 
+                optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric, 
                 mode will be invalid. This dictionary shall contain the following fields of key-value pairs: 
                 - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
                 objectives.
