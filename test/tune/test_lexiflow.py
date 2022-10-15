@@ -109,7 +109,7 @@ def test_lexiflow():
         "n_epoch": 1,
     }
 
-    # lexico tune 
+    # lexico tune
     analysis = tune.run(
         evaluate_function,
         num_samples=5,
@@ -122,7 +122,7 @@ def test_lexiflow():
     print(analysis.best_config)
     print(analysis.best_result)
 
-    # Non lexico tune 
+    # Non lexico tune
     analysis = tune.run(
         evaluate_function,
         metric="error_rate",

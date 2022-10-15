@@ -103,7 +103,7 @@ def eval_model(model, valid_loader):
 
 ### Evaluation function
 
-```python 
+```python
 def evaluate_function(configuration):
     model = define_model(configuration).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), configuration["lr"])
@@ -156,7 +156,7 @@ analysis = tune.run(
     time_budget_s=100,
     config=search_space, # search space of NN
     use_ray=False,
-    lexico_objectives=lexico_objectives, 
+    lexico_objectives=lexico_objectives,
     low_cost_partial_config=low_cost_partial_config, # low cost initial point
 )
 ```

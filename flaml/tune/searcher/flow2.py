@@ -70,22 +70,22 @@ class FLOW2(Searcher):
             resource_multiple_factor: A float of the multiplicative factor
                 used for increasing resource.
             cost_attr: A string of the attribute used for cost.
-            lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
-                optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric, 
-                mode will be invalid. This dictionary shall contain the following fields of key-value pairs: 
-                - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
+            lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective
+                optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric,
+                mode will be invalid. This dictionary shall contain the following fields of key-value pairs:
+                - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the
                 objectives.
-                - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
+                - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the
                 objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
-                - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
-                metric names (provided in "metric"), and the values are the numerical target values. 
-                - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
-                metric names (provided in "metrics"), and the values are the numerical tolerances values. 
+                - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
+                metric names (provided in "metric"), and the values are the numerical target values.
+                - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
+                metric names (provided in "metrics"), and the values are the numerical tolerances values.
                 E.g.,
             ```python
             lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
             "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
-            ```	
+            ```
             seed: An integer of the random seed.
         """
         if mode:
@@ -110,13 +110,19 @@ class FLOW2(Searcher):
         self.min_resource = min_resource
         self.lexico_objectives = lexico_objectives
         if self.lexico_objectives is not None:
-            if "modes" not in self.lexico_objectives.keys(): 
-                self.lexico_objectives["modes"] = ["min"]*len(self.lexico_objectives["metrics"])
-            for t_metric, t_mode in zip(self.lexico_objectives["metrics"], self.lexico_objectives["modes"]):
+            if "modes" not in self.lexico_objectives.keys():
+                self.lexico_objectives["modes"] = ["min"] * len(
+                    self.lexico_objectives["metrics"]
+                )
+            for t_metric, t_mode in zip(
+                self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
+            ):
                 if t_metric not in self.lexico_objectives["tolerances"].keys():
                     self.lexico_objectives["tolerances"][t_metric] = 0
                 if t_metric not in self.lexico_objectives["targets"].keys():
-                    self.lexico_objectives["targets"][t_metric] = -float("inf") if t_mode == "min" else float("inf")
+                    self.lexico_objectives["targets"][t_metric] = (
+                        -float("inf") if t_mode == "min" else float("inf")
+                    )
         self.resource_multiple_factor = (
             resource_multiple_factor or SAMPLE_MULTIPLY_FACTOR
         )
@@ -125,7 +131,7 @@ class FLOW2(Searcher):
         self._resource = None
         self._f_best = None  # only use for lexico_comapre. It represent the best value achieved by lexico_flow.
         self._step_lb = np.Inf
-        self._histories = None # only use for lexico_comapre. It records the result of historical configurations.
+        self._histories = None  # only use for lexico_comapre. It records the result of historical configurations.
         if space is not None:
             self._init_search()
 
@@ -299,7 +305,7 @@ class FLOW2(Searcher):
             flow2.best_obj = {}
             for k, v in obj.items():
                 flow2.best_obj[k] = (
-                    v * -1
+                    -v
                     if self.lexico_objectives["modes"][
                         self.lexico_objectives["metrics"].index(k)
                     ]
@@ -345,7 +351,9 @@ class FLOW2(Searcher):
             self._init_search()
         return True
 
-    def update_fbest(self,):
+    def update_fbest(
+        self,
+    ):
         obj_initial = self.lexico_objectives["metrics"][0]
         feasible_index = [*range(len(self._histories[obj_initial]))]
         for k_metric in self.lexico_objectives["metrics"]:
@@ -376,10 +384,32 @@ class FLOW2(Searcher):
             for k in self.lexico_objectives["metrics"]:
                 self._histories[k].append(result[k])
             self.update_fbest()
-            for k_metric, k_mode in zip(self.lexico_objectives["metrics"],self.lexico_objectives["modes"]):
-                k_target = self.lexico_objectives["targets"][k_metric] if k_mode == "min" else -1*self.lexico_objectives["targets"][k_metric]
-                if (result[k_metric] < max([self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric], k_target])) and (
-                    self.best_obj[k_metric] < max([self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric], k_target])
+            for k_metric, k_mode in zip(
+                self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
+            ):
+                k_target = (
+                    self.lexico_objectives["targets"][k_metric]
+                    if k_mode == "min"
+                    else -self.lexico_objectives["targets"][k_metric]
+                )
+                if (
+                    result[k_metric]
+                    < max(
+                        [
+                            self._f_best[k_metric]
+                            + self.lexico_objectives["tolerances"][k_metric],
+                            k_target,
+                        ]
+                    )
+                ) and (
+                    self.best_obj[k_metric]
+                    < max(
+                        [
+                            self._f_best[k_metric]
+                            + self.lexico_objectives["tolerances"][k_metric],
+                            k_target,
+                        ]
+                    )
                 ):
                     continue
                 elif result[k_metric] < self.best_obj[k_metric]:

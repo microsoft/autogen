@@ -74,13 +74,19 @@ class ExperimentAnalysis(EA):
                 histories[objective].append(
                     results[keys[time_index]][objective]
                     if mode == "min"
-                    else trials[keys[time_index]][objective] * -1
+                    else -trials[keys[time_index]][objective]
                 )
         obj_initial = self.lexico_objectives["metrics"][0]
         feasible_index = [*range(len(histories[obj_initial]))]
-        for k_metric, k_mode in zip(self.lexico_objectives["metrics"],self.lexico_objectives["modes"]):
+        for k_metric, k_mode in zip(
+            self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
+        ):
             k_values = np.array(histories[k_metric])
-            k_target = self.lexico_objectives["targets"][k_metric] * -1 if k_mode == "max" else self.lexico_objectives["targets"][k_metric]
+            k_target = (
+                -self.lexico_objectives["targets"][k_metric]
+                if k_mode == "max"
+                else self.lexico_objectives["targets"][k_metric]
+            )
             f_best[k_metric] = np.min(k_values.take(feasible_index))
             feasible_index_prior = np.where(
                 k_values
@@ -375,24 +381,24 @@ def run(
         max_failure: int | the maximal consecutive number of failures to sample
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
-        lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
-            optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric, 
+        lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective
+            optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric,
             mode, will be invalid, and flaml's tune uses CFO
             as the `search_alg`, which makes the input (if provided) `search_alg' invalid.
-            This dictionary shall contain the following fields of key-value pairs: 
-            - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
+            This dictionary shall contain the following fields of key-value pairs:
+            - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the
             objectives.
-            - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
+            - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the
             objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
-            - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the 
-            metric names (provided in "metric"), and the values are the numerical target values. 
-            - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the 
-            metric names (provided in "metrics"), and the values are the numerical tolerances values. 
+            - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
+            metric names (provided in "metric"), and the values are the numerical target values.
+            - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
+            metric names (provided in "metrics"), and the values are the numerical tolerances values.
             E.g.,
         ```python
         lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
         "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
-        ```	
+        ```
         log_file_name: A string of the log file name. Default to None.
             When set to None:
                 if local_dir is not given, no log file is created;
@@ -449,8 +455,11 @@ def run(
             logger.setLevel(logging.CRITICAL)
 
     from .searcher.blendsearch import BlendSearch, CFO
-    if lexico_objectives != None:
-        logger.warning("If lexico_objectives is not None, search_alg is forced to be CFO")
+
+    if lexico_objectives is not None:
+        logger.warning(
+            "If lexico_objectives is not None, search_alg is forced to be CFO"
+        )
         search_alg = None
     if search_alg is None:
         flaml_scheduler_resource_attr = (
@@ -469,9 +478,12 @@ def run(
         if lexico_objectives is None:
             try:
                 import optuna as _
-                SearchAlgorithm = BlendSearch          
+
+                SearchAlgorithm = BlendSearch
                 logger.info(
-                    "Using search algorithm {}.".format(SearchAlgorithm.__class__.__name__)
+                    "Using search algorithm {}.".format(
+                        SearchAlgorithm.__class__.__name__
+                    )
                 )
             except ImportError:
                 SearchAlgorithm = CFO
