@@ -528,8 +528,8 @@ In the following example, we want to minimize `val_loss` and `pred_time` of the 
 
 ```python
 lexico_objectives = {}
-lexico_objectives["metrics"] = ["val_loss","pred_time"]
-lexico_objectives["pred_time"] = ["min","min"]
+lexico_objectives["metrics"] = ["val_loss", "pred_time"]
+lexico_objectives["pred_time"] = ["min", "min"]
 lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time":0.0}
 lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
 
