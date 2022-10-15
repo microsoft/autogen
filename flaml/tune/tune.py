@@ -379,7 +379,7 @@ def run(
             optimization with lexicographic preferences. When lexico_objectives it not None, the arguments metric, 
             mode, will be invalid, and flaml's tune uses CFO
             as the `search_alg`, which makes the input (if provided) `search_alg' invalid.
-            This dictionary shall contain the  following fields of key-value pairs: 
+            This dictionary shall contain the following fields of key-value pairs: 
             - "metrics":  a list of optimization objectives with the orders reflecting the priorities/preferences of the 
             objectives.
             - "modes" (optional): a list of optimization modes (each mode either "min" or "max") corresponding to the 
