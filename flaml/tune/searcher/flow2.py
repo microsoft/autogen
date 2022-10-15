@@ -123,9 +123,9 @@ class FLOW2(Searcher):
         self.cost_attr = cost_attr
         self.max_resource = max_resource
         self._resource = None
-        self._f_best = None
+        self._f_best = None  # only use for lexico_comapre. It represent the best value achieved by lexico_flow.
         self._step_lb = np.Inf
-        self._histories = None
+        self._histories = None # only use for lexico_comapre. It records the result of historical configurations.
         if space is not None:
             self._init_search()
 
@@ -345,41 +345,41 @@ class FLOW2(Searcher):
             self._init_search()
         return True
 
-    def lexico_compare(self, result) -> bool:
-        def update_fbest():
-            obj_initial = self.lexico_objectives["metrics"][0]
-            feasible_index = [*range(len(self._histories[obj_initial]))]
-            for k_metric in self.lexico_objectives["metrics"]:
-                k_values = np.array(self._histories[k_metric])
-                self._f_best[k_metric] = np.min(k_values.take(feasible_index))
-                feasible_index_prior = np.where(
-                    k_values
-                    <= max(
-                        [
-                            self._f_best[k_metric]
-                            + self.lexico_objectives["tolerances"][k_metric],
-                            self.lexico_objectives["targets"][k_metric],
-                        ]
-                    )
-                )[0].tolist()
-                feasible_index = [
-                    val for val in feasible_index if val in feasible_index_prior
-                ]
+    def update_fbest(self,):
+        obj_initial = self.lexico_objectives["metrics"][0]
+        feasible_index = [*range(len(self._histories[obj_initial]))]
+        for k_metric in self.lexico_objectives["metrics"]:
+            k_values = np.array(self._histories[k_metric])
+            self._f_best[k_metric] = np.min(k_values.take(feasible_index))
+            feasible_index_prior = np.where(
+                k_values
+                <= max(
+                    [
+                        self._f_best[k_metric]
+                        + self.lexico_objectives["tolerances"][k_metric],
+                        self.lexico_objectives["targets"][k_metric],
+                    ]
+                )
+            )[0].tolist()
+            feasible_index = [
+                val for val in feasible_index if val in feasible_index_prior
+            ]
 
+    def lexico_compare(self, result) -> bool:
         if self._histories is None:
             self._histories, self._f_best = defaultdict(list), {}
             for k in self.lexico_objectives["metrics"]:
                 self._histories[k].append(result[k])
-            update_fbest()
+            self.update_fbest()
             return True
         else:
             for k in self.lexico_objectives["metrics"]:
                 self._histories[k].append(result[k])
-            update_fbest()
+            self.update_fbest()
             for k_metric, k_mode in zip(self.lexico_objectives["metrics"],self.lexico_objectives["modes"]):
-                k_c = self.lexico_objectives["targets"][k_metric] if k_mode == "min" else -1*self.lexico_objectives["targets"][k_metric]
-                if (result[k_metric] < max([self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric], k_c])) and (
-                    self.best_obj[k_metric] < max([self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric], k_c])
+                k_target = self.lexico_objectives["targets"][k_metric] if k_mode == "min" else -1*self.lexico_objectives["targets"][k_metric]
+                if (result[k_metric] < max([self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric], k_target])) and (
+                    self.best_obj[k_metric] < max([self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric], k_target])
                 ):
                     continue
                 elif result[k_metric] < self.best_obj[k_metric]:

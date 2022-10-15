@@ -523,7 +523,6 @@ We support tuning multiple objectives with lexicographic preference by providing
  - `tolerances`: (optional) a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the numerical tolerances values. 
  - `targets`: (optional) a dictionary to specify the optimization targets on the objectives. The keys are the metric names (provided in "metric"), and the values are the numerical target values. 
 
-When lexico_objectives is not None, the arguments metric, mode, will be invalid, and flaml's tune uses CFO as the `search_alg`, which makes the input (if provided) `search_alg' invalid.
 In the following example, we want to minimize `val_loss` and `pred_time` of the model where `val_loss` has high priority. The tolerances for `val_loss` and `pre_time` are 0.02 and 0 respectively. We do not set targets for these two objectives and we set them to -inf for both objectives.
 
 ```python
@@ -536,7 +535,7 @@ lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('
 # provide the lexico_objectives to tune.run
 tune.run(..., search_alg = None, lexico_objectives=lexico_objectives, ...)
 ```
-*Please note that this is a new feature in version 1.1.0 and subject to change in the future version*
+* NOTE: 1. When lexico_objectives is not None, the arguments metric, mode, will be invalid, and flaml's tune uses CFO as the `search_alg`, which makes the input (if provided) `search_alg' invalid. 2. This is a new feature in version 1.1.0 and subject to change in the future version.*
 
 ## Hyperparameter Optimization Algorithm
 
