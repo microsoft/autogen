@@ -80,7 +80,7 @@ class ExperimentAnalysis(EA):
         feasible_index = [*range(len(histories[obj_initial]))]
         for k_metric, k_mode in zip(self.lexico_objectives["metrics"],self.lexico_objectives["modes"]):
             k_values = np.array(histories[k_metric])
-            k_c = self.lexico_objectives["targets"][k_metric] * -1 if k_mode == "max" else self.lexico_objectives["targets"][k_metric]
+            k_target = self.lexico_objectives["targets"][k_metric] * -1 if k_mode == "max" else self.lexico_objectives["targets"][k_metric]
             f_best[k_metric] = np.min(k_values.take(feasible_index))
             feasible_index_prior = np.where(
                 k_values
@@ -88,7 +88,7 @@ class ExperimentAnalysis(EA):
                     [
                         f_best[k_metric]
                         + self.lexico_objectives["tolerances"][k_metric],
-                        k_c,
+                        k_target,
                     ]
                 )
             )[0].tolist()
@@ -376,7 +376,7 @@ def run(
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
         lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective 
-            optimization with lexicographic preferences. When lexico_objectives it not None, the arguments metric, 
+            optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric, 
             mode, will be invalid, and flaml's tune uses CFO
             as the `search_alg`, which makes the input (if provided) `search_alg' invalid.
             This dictionary shall contain the following fields of key-value pairs: 
@@ -450,6 +450,7 @@ def run(
 
     from .searcher.blendsearch import BlendSearch, CFO
     if lexico_objectives != None:
+        logger.warning("If lexico_objectives is not None, search_alg is forced to be CFO")
         search_alg = None
     if search_alg is None:
         flaml_scheduler_resource_attr = (
@@ -465,24 +466,24 @@ def run(
             flaml_scheduler_max_resource = max_resource
             flaml_scheduler_reduction_factor = reduction_factor
             scheduler = None
-        try:
-            import optuna as _
-
-            if lexico_objectives is None:
-                SearchAlgorithm = BlendSearch
-            else:
+        if lexico_objectives is None:
+            try:
+                import optuna as _
+                SearchAlgorithm = BlendSearch          
+                logger.info(
+                    "Using search algorithm {}.".format(SearchAlgorithm.__class__.__name__)
+                )
+            except ImportError:
                 SearchAlgorithm = CFO
+                logger.warning(
+                    "Using CFO for search. To use BlendSearch, run: pip install flaml[blendsearch]"
+                )
+            metric = metric or DEFAULT_METRIC
+        else:
+            SearchAlgorithm = CFO
             logger.info(
                 "Using search algorithm {}.".format(SearchAlgorithm.__class__.__name__)
             )
-        except ImportError:
-            SearchAlgorithm = CFO
-            logger.warning(
-                "Using CFO for search. To use BlendSearch, run: pip install flaml[blendsearch]"
-            )
-        if lexico_objectives is None:
-            metric = metric or DEFAULT_METRIC
-        else:
             metric = lexico_objectives["metrics"][0] or DEFAULT_METRIC
         search_alg = SearchAlgorithm(
             metric=metric,
