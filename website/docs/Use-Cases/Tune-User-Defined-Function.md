@@ -516,12 +516,12 @@ analysis = tune.run(
 ```
 
 ### Lexicographic Objectives
-We support tuning multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `tune.tun()`. 
+We support tuning multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `tune.tun()`.
 `lexico_objectives` is a dictionary that contains the following fields of key-value pairs:
  - `metrics`: a list of optimization objectives with the orders reflecting the priorities/preferences of the objectives.
  - `modes`: (optional) a list of optimization modes (each mode either "min" or "max") corresponding to the objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
- - `tolerances`: (optional) a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the numerical tolerances values. 
- - `targets`: (optional) a dictionary to specify the optimization targets on the objectives. The keys are the metric names (provided in "metric"), and the values are the numerical target values. 
+ - `tolerances`: (optional) a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the numerical tolerances values.
+ - `targets`: (optional) a dictionary to specify the optimization targets on the objectives. The keys are the metric names (provided in "metric"), and the values are the numerical target values.
 
 In the following example, we want to minimize `val_loss` and `pred_time` of the model where `val_loss` has high priority. The tolerances for `val_loss` and `pre_time` are 0.02 and 0 respectively. We do not set targets for these two objectives and we set them to -inf for both objectives.
 
