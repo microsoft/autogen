@@ -195,8 +195,8 @@ class BlendSearch(Searcher):
             max_resource,
             reduction_factor,
             self.cost_attr,
-            self.lexico_objectives,
             seed,
+            self.lexico_objectives,
         )
         if global_search_alg is not None:
             self._gs = global_search_alg
@@ -1068,8 +1068,8 @@ class BlendSearchTuner(BlendSearch, NNITuner):
             self._ls.max_resource,
             self._ls.resource_multiple_factor,
             cost_attr=self.cost_attr,
-            lexico_objectives=self.lexico_objectives,
             seed=self._ls.seed,
+            lexico_objectives=self.lexico_objectives,
         )
         if self._gs is not None:
             self._gs = GlobalSearch(

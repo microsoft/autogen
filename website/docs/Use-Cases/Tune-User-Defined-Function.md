@@ -533,7 +533,7 @@ lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time": 0.0}
 lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
 
 # provide the lexico_objectives to tune.run
-tune.run(..., search_alg=None, lexico_objectives=lexico_objectives, ...)
+tune.run(..., search_alg=None, lexico_objectives=lexico_objectives)
 ```
 NOTE:
 

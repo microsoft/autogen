@@ -298,8 +298,8 @@ class FLOW2(Searcher):
             self.max_resource,
             self.resource_multiple_factor,
             self.cost_attr,
-            self.lexico_objectives,
             self.seed + 1,
+            self.lexico_objectives,
         )
         if self.lexico_objectives is not None:
             flow2.best_obj = {}
