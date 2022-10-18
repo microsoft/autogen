@@ -126,10 +126,14 @@ class BlendSearch(Searcher):
                 - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
                 metric names (provided in "metrics"), and the values are the numerical tolerances values.
                 E.g.,
-            ```python
-            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
-            ```
+                ```python
+                lexico_objectives = {
+                    "metrics": ["error_rate", "pred_time"],
+                    "modes": ["min", "min"],
+                    "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
+                    "targets": {"error_rate": 0.0},
+                }
+                ```
             experimental: A bool of whether to use experimental features.
         """
         self._eps = SEARCH_THREAD_EPS
@@ -145,7 +149,7 @@ class BlendSearch(Searcher):
         self.penalty = PENALTY  # penalty term for constraints
         self._metric, self._mode = metric, mode
         self._use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
-        self.lexico_objectives = lexico_objectives
+        self.lexico_objectives = 
         init_config = low_cost_partial_config or {}
         if not init_config:
             logger.info(
