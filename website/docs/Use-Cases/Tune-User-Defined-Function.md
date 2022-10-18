@@ -529,13 +529,17 @@ In the following example, we want to minimize `val_loss` and `pred_time` of the 
 lexico_objectives = {}
 lexico_objectives["metrics"] = ["val_loss", "pred_time"]
 lexico_objectives["pred_time"] = ["min", "min"]
-lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time":0.0}
+lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time": 0.0}
 lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
 
 # provide the lexico_objectives to tune.run
-tune.run(..., search_alg = None, lexico_objectives=lexico_objectives, ...)
+tune.run(..., search_alg=None, lexico_objectives=lexico_objectives, ...)
 ```
-* NOTE: 1. When lexico_objectives is not None, the arguments metric, mode, will be invalid, and flaml's tune uses CFO as the `search_alg`, which makes the input (if provided) `search_alg' invalid. 2. This is a new feature in version 1.1.0 and subject to change in the future version.*
+NOTE:
+
+1. When lexico_objectives is not None, the arguments metric, mode, will be invalid, and flaml's tune uses CFO as the `search_alg`, which makes the input (if provided) `search_alg' invalid.
+
+2. This is a new feature in version 1.1.0 and subject to change in the future version
 
 ## Hyperparameter Optimization Algorithm
 

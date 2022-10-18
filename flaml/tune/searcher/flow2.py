@@ -49,8 +49,8 @@ class FLOW2(Searcher):
         max_resource: Optional[float] = None,
         resource_multiple_factor: Optional[float] = None,
         cost_attr: Optional[str] = "time_total_s",
-        lexico_objectives=None,
         seed: Optional[int] = 20,
+        lexico_objectives=None,
     ):
         """Constructor.
 
@@ -70,6 +70,7 @@ class FLOW2(Searcher):
             resource_multiple_factor: A float of the multiplicative factor
                 used for increasing resource.
             cost_attr: A string of the attribute used for cost.
+            seed: An integer of the random seed.
             lexico_objectives: dict, default=None | It specifics information needed to perform multi-objective
                 optimization with lexicographic preferences. When lexico_objectives is not None, the arguments metric,
                 mode will be invalid. This dictionary shall contain the following fields of key-value pairs:
@@ -86,7 +87,6 @@ class FLOW2(Searcher):
             lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
             "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
             ```
-            seed: An integer of the random seed.
         """
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
@@ -354,6 +354,7 @@ class FLOW2(Searcher):
     def update_fbest(
         self,
     ):
+        # TODO: Improve the efficiency
         obj_initial = self.lexico_objectives["metrics"][0]
         feasible_index = [*range(len(self._histories[obj_initial]))]
         for k_metric in self.lexico_objectives["metrics"]:
