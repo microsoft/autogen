@@ -539,7 +539,7 @@ NOTE:
 
 1. When lexico_objectives is not None, the arguments metric, mode, will be invalid, and flaml's tune uses CFO as the `search_alg`, which makes the input (if provided) `search_alg` invalid.
 
-2. This is a new feature in version 1.1.0 and subject to change in the future version
+2. This is a new feature that will be released in version 1.1.0 and is subject to change in the future version.
 
 ## Hyperparameter Optimization Algorithm
 
