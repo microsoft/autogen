@@ -149,7 +149,7 @@ class BlendSearch(Searcher):
         self.penalty = PENALTY  # penalty term for constraints
         self._metric, self._mode = metric, mode
         self._use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
-        self.lexico_objectives = 
+        self.lexico_objectives = lexico_objectives
         init_config = low_cost_partial_config or {}
         if not init_config:
             logger.info(
