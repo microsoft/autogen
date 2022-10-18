@@ -83,10 +83,14 @@ class FLOW2(Searcher):
                 - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
                 metric names (provided in "metrics"), and the values are the numerical tolerances values.
                 E.g.,
-            ```python
-            lexico_objectives = {"metrics":["error_rate","pred_time"], "modes":["min","min"],
-            "tolerances":{"error_rate":0.01,"pred_time":0.0}, "targets":{"error_rate":0.0}}
-            ```
+                ```python
+                lexico_objectives = {
+                    "metrics": ["error_rate", "pred_time"],
+                    "modes": ["min", "min"],
+                    "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
+                    "targets": {"error_rate": 0.0},
+                }
+                ```
         """
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
