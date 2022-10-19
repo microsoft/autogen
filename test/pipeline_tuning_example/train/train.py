@@ -5,7 +5,7 @@ import pandas as pd
 from azureml.core import Run
 
 
-class LightGBMCallbackHandler():
+class LightGBMCallbackHandler:
     def __init__(self):
         pass
 
@@ -24,16 +24,22 @@ class LightGBMCallbackHandler():
 def main(args):
     """Main function of the script."""
 
-    train_path = os.path.join(args.train_data, 'data.csv')
+    train_path = os.path.join(args.train_data, "data.csv")
     print("traning_path:", train_path)
 
-    test_path = os.path.join(args.test_data, 'data.csv')
+    test_path = os.path.join(args.test_data, "data.csv")
 
     train_set = lgb.Dataset(train_path)
     test_set = lgb.Dataset(test_path)
     callbacks_handler = LightGBMCallbackHandler()
-    config = {"header": True, "objective": "binary", "label_column": 30, "metric": "binary_error",
-              "n_estimators": args.n_estimators, "learning_rate": args.learning_rate}
+    config = {
+        "header": True,
+        "objective": "binary",
+        "label_column": 30,
+        "metric": "binary_error",
+        "n_estimators": args.n_estimators,
+        "learning_rate": args.learning_rate,
+    }
     gbm = lgb.train(
         config,
         train_set,
@@ -44,9 +50,9 @@ def main(args):
         ],
     )
 
-    print('Saving model...')
+    print("Saving model...")
     # save model to file
-    gbm.save_model(os.path.join(args.model, 'model.txt'))
+    gbm.save_model(os.path.join(args.model, "model.txt"))
 
 
 if __name__ == "__main__":

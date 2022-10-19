@@ -515,6 +515,31 @@ analysis = tune.run(
 )
 ```
 
+### Lexicographic Objectives
+We support tuning multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `tune.tun()`.
+`lexico_objectives` is a dictionary that contains the following fields of key-value pairs:
+ - `metrics`: a list of optimization objectives with the orders reflecting the priorities/preferences of the objectives.
+ - `modes`: (optional) a list of optimization modes (each mode either "min" or "max") corresponding to the objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
+ - `tolerances`: (optional) a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the numerical tolerances values.
+ - `targets`: (optional) a dictionary to specify the optimization targets on the objectives. The keys are the metric names (provided in "metric"), and the values are the numerical target values.
+
+In the following example, we want to minimize `val_loss` and `pred_time` of the model where `val_loss` has high priority. The tolerances for `val_loss` and `pre_time` are 0.02 and 0 respectively. We do not set targets for these two objectives and we set them to -inf for both objectives.
+
+```python
+lexico_objectives = {}
+lexico_objectives["metrics"] = ["val_loss", "pred_time"]
+lexico_objectives["pred_time"] = ["min", "min"]
+lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time": 0.0}
+lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
+
+# provide the lexico_objectives to tune.run
+tune.run(..., search_alg=None, lexico_objectives=lexico_objectives)
+```
+NOTE:
+
+1. When lexico_objectives is not None, the arguments metric, mode, will be invalid, and flaml's tune uses CFO as the `search_alg`, which makes the input (if provided) `search_alg` invalid.
+
+2. This is a new feature that will be released in version 1.1.0 and is subject to change in the future version.
 
 ## Hyperparameter Optimization Algorithm
 
