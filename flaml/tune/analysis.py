@@ -18,7 +18,7 @@
 from typing import Dict, Optional
 import numpy as np
 from .trial import Trial
-
+from collections import defaultdict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,6 @@ class ExperimentAnalysis:
     @property
     def results(self) -> Dict[str, Dict]:
         """Get the last result of all the trials of the experiment"""
-
         return {trial.trial_id: trial.last_result for trial in self.trials}
 
     def _validate_metric(self, metric: str) -> str:
@@ -122,7 +121,6 @@ class ExperimentAnalysis:
         """
         metric = self._validate_metric(metric)
         mode = self._validate_mode(mode)
-
         if scope not in ["all", "last", "avg", "last-5-avg", "last-10-avg"]:
             raise ValueError(
                 "ExperimentAnalysis: attempting to get best trial for "
@@ -138,7 +136,6 @@ class ExperimentAnalysis:
         for trial in self.trials:
             if metric not in trial.metric_analysis:
                 continue
-
             if scope in ["last", "avg", "last-5-avg", "last-10-avg"]:
                 metric_score = trial.metric_analysis[metric][scope]
             else:
@@ -158,7 +155,6 @@ class ExperimentAnalysis:
             elif (mode == "min") and (best_metric_score > metric_score):
                 best_metric_score = metric_score
                 best_trial = trial
-
         if not best_trial:
             logger.warning(
                 "Could not find best trial. Did you pass the correct `metric` "

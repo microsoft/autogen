@@ -20,7 +20,7 @@ def evaluate_config(config):
     # and the cost could be related to certain hyperparameters
     # in this example, we assume it's proportional to x
     time.sleep(config['x']/100000)
-    # use tune.report to report the metric to optimize  
+    # use tune.report to report the metric to optimize
     tune.report(metric=metric)
 
 analysis = tune.run(
@@ -35,7 +35,7 @@ analysis = tune.run(
     num_samples=-1,    # the maximal number of configs to try, -1 means infinite
     time_budget_s=60,   # the time budget in seconds
     local_dir='logs/',  # the local directory to store logs
-    # verbose=0,          # verbosity  
+    # verbose=0,          # verbosity
     # use_ray=True, # uncomment when performing parallel tuning using ray
     )
 
@@ -59,7 +59,7 @@ def evaluate_config(config):
     # and the cost could be related to certain hyperparameters
     # in this example, we assume it's proportional to x
     time.sleep(config['x']/100000)
-    # use tune.report to report the metric to optimize  
+    # use tune.report to report the metric to optimize
     tune.report(metric=metric)
 
 # provide a time budget (in seconds) for the tuning process

@@ -4,9 +4,9 @@ name: classifier
 version: 0.0.1
 display_name: Train lgbm classifier
 inputs:
-  train_data: 
+  train_data:
     type: path
-  test_data: 
+  test_data:
     type: path
   learning_rate:
     type: float
@@ -20,8 +20,8 @@ environment:
   conda_dependencies_file: env.yaml
  os: Linux
 command: >-
-  python train.py 
-  --train_data {inputs.train_data} 
+  python train.py
+  --train_data {inputs.train_data}
   --test_data {inputs.test_data}
   --learning_rate {inputs.learning_rate}
   --n_estimators {inputs.n_estimators}

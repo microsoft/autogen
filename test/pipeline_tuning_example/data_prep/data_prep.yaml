@@ -19,7 +19,7 @@ environment:
   os: Linux
 
 command: >-
-  python data_prep.py 
+  python data_prep.py
   --data {inputs.data}
   --test_train_ratio {inputs.test_train_ratio}
   --train_data {outputs.train_data}
