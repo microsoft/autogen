@@ -573,7 +573,7 @@ The curve suggests that increasing the time budget may further improve the accur
 2. set t2 as the time budget, and also set `early_stop=True`. If the early stopping is triggered, you will see a warning like
 > WARNING - All estimator hyperparameters local search has converged at least once, and the total search time exceeds 10 times the time taken to find the best model.
 
-> WARNING - Stopping search as early_stop is set to True.
+ > WARNING - Stopping search as early_stop is set to True.
 
 ### How much time is needed to find the best model
 
