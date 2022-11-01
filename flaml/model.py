@@ -921,7 +921,16 @@ class TransformersEstimatorModelSelection(TransformersEstimator):
 
 
 class SKLearnEstimator(BaseEstimator):
-    """The base class for tuning scikit-learn estimators."""
+    """
+    The base class for tuning scikit-learn estimators.
+
+    Subclasses can modify the function signature of ``__init__`` to
+    ignore the values in ``config`` that are not relevant to the constructor
+    of their underlying estimator. For example, some regressors in ``scikit-learn``
+    don't accept the ``n_jobs`` parameter contained in ``config``. For these,
+    one can add ``n_jobs=None,`` before ``**config`` to make sure ``config`` doesn't
+    contain an ``n_jobs`` key.
+    """
 
     def __init__(self, task="binary", **config):
         super().__init__(task, **config)
