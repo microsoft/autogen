@@ -79,10 +79,10 @@ You can use FLAML in .NET in the following ways:
 **Low-code**
 
 - [*Model Builder*](https://dotnet.microsoft.com/apps/machinelearning-ai/ml-dotnet/model-builder) - A Visual Studio extension for training ML models using FLAML. For more information on how to install the, see the [install Model Builder](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-model-builder?tabs=visual-studio-2022) guide.
-- [*ML.NET CLI*](https://docs.microsoft.com/dotnet/machine-learning/automate-training-with-cli) - A dotnet CLI tool for training machine learning models using FLAML on Windows, MacOS, and Linux. For more information on how to install the ML.NET CLI, see the [install the ML.NET CLI](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-ml-net-cli?tabs=windows) guide. 
+- [*ML.NET CLI*](https://docs.microsoft.com/dotnet/machine-learning/automate-training-with-cli) - A dotnet CLI tool for training machine learning models using FLAML on Windows, MacOS, and Linux. For more information on how to install the ML.NET CLI, see the [install the ML.NET CLI](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-ml-net-cli?tabs=windows) guide.
 
 **Code-first**
 
-- [*Microsoft.ML.AutoML*](https://www.nuget.org/packages/Microsoft.ML.AutoML/0.20.0-preview.22313.1) - NuGet package that provides direct access to the FLAML AutoML APIs that power low-code solutions like Model Builder and the ML.NET CLI. For more information on installing NuGet packages, see the install and use a NuGet package in [Visual Studio](https://docs.microsoft.com/nuget/quickstart/install-and-use-a-package-in-visual-studio) or [dotnet CLI](https://docs.microsoft.com/nuget/quickstart/install-and-use-a-package-using-the-dotnet-cli) guides. 
+- [*Microsoft.ML.AutoML*](https://www.nuget.org/packages/Microsoft.ML.AutoML/0.20.0-preview.22313.1) - NuGet package that provides direct access to the FLAML AutoML APIs that power low-code solutions like Model Builder and the ML.NET CLI. For more information on installing NuGet packages, see the install and use a NuGet package in [Visual Studio](https://docs.microsoft.com/nuget/quickstart/install-and-use-a-package-in-visual-studio) or [dotnet CLI](https://docs.microsoft.com/nuget/quickstart/install-and-use-a-package-using-the-dotnet-cli) guides.
 
 To get started with the ML.NET API and AutoML, see the [csharp-notebooks](https://github.com/dotnet/csharp-notebooks#machine-learning).

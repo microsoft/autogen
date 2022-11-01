@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 from typing import Dict
-from flaml.scheduler import TrialScheduler
+from flaml.tune.scheduler import TrialScheduler
 from flaml.tune import Trial
 
 logger = logging.getLogger(__name__)

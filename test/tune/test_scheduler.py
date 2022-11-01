@@ -1,6 +1,6 @@
 """Require: pip install flaml[test,ray]
 """
-from flaml.scheduler.trial_scheduler import TrialScheduler
+from flaml.tune.scheduler.trial_scheduler import TrialScheduler
 import numpy as np
 from flaml import tune
 

@@ -48,9 +48,12 @@ setuptools.setup(
         ],
         "test": [
             "flake8>=3.8.4",
+            "thop",
             "pytest>=6.1.1",
             "coverage>=5.3",
             "pre-commit",
+            "torch",
+            "torchvision",
             "catboost>=0.26",
             "rgf-python",
             "optuna==2.8.0",

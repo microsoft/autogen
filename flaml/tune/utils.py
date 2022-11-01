@@ -4,7 +4,10 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.10.0"
-    from ray.tune import sample
+    if ray_version.startswith("1."):
+        from ray.tune import sample
+    else:
+        from ray.tune.search import sample
 except (ImportError, AssertionError):
     from . import sample
 
