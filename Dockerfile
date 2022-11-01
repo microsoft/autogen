@@ -20,8 +20,8 @@ RUN sudo pip install -e .[test,notebook]
 RUN pre-commit install
 
 # For docs
-RUN npm install --global yarn
-RUN pip install pydoc-markdown
+RUN sudo npm install --global yarn
+RUN sudo pip install pydoc-markdown
 RUN cd website
 RUN yarn install --frozen-lockfile --ignore-engines
 

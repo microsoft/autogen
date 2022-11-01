@@ -5,7 +5,10 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.10.0"
-    from ray.tune import sample
+    if ray_version.startswith("1."):
+        from ray.tune import sample
+    else:
+        from ray.tune.search import sample
 
     use_ray = True
 except (ImportError, AssertionError):
@@ -29,8 +32,12 @@ def wrong_define_search_space(trial):
 
 
 def test_searcher():
-    from flaml.searcher.suggestion import OptunaSearch, Searcher, ConcurrencyLimiter
-    from flaml.searcher.blendsearch import BlendSearch, CFO, RandomSearch
+    from flaml.tune.searcher.suggestion import (
+        OptunaSearch,
+        Searcher,
+        ConcurrencyLimiter,
+    )
+    from flaml.tune.searcher.blendsearch import BlendSearch, CFO, RandomSearch
     from flaml.tune import sample as flamlsample
 
     searcher = Searcher()
@@ -303,6 +310,6 @@ def test_no_optuna():
     import sys
 
     subprocess.check_call([sys.executable, "-m", "pip", "uninstall", "-y", "optuna"])
-    import flaml.searcher.suggestion
+    import flaml.tune.searcher.suggestion
 
     subprocess.check_call([sys.executable, "-m", "pip", "install", "optuna==2.8.0"])

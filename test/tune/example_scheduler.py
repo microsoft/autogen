@@ -26,7 +26,7 @@ def easy_objective(use_raytune, config):
 
 def test_tune_scheduler(smoke_test=True, use_ray=True, use_raytune=False):
     import numpy as np
-    from flaml.searcher.blendsearch import BlendSearch
+    from flaml.tune.searcher.blendsearch import BlendSearch
 
     np.random.seed(100)
     easy_objective_custom_tune = partial(easy_objective, use_raytune)

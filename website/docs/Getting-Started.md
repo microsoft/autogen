@@ -95,3 +95,5 @@ Then, you can use it just like you use the original `LGMBClassifier`. Your other
 * Refer to [SDK](reference/automl) and [FAQ](FAQ).
 
 If you like our project, please give it a [star](https://github.com/microsoft/FLAML/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](Contribute).
+
+<iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=FLAML&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
