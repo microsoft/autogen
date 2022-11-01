@@ -22,9 +22,15 @@ def easy_objective(config):
 def test_blendsearch_tune(smoke_test=True):
     try:
         from ray import tune
-        from ray.tune.suggest import ConcurrencyLimiter
         from ray.tune.schedulers import AsyncHyperBandScheduler
-        from ray.tune.suggest.flaml import BlendSearch
+        from ray import __version__ as ray_version
+
+        if ray_version.startswith("1."):
+            from ray.tune.suggest import ConcurrencyLimiter
+            from ray.tune.suggest.flaml import BlendSearch
+        else:
+            from ray.tune.search import ConcurrencyLimiter
+            from ray.tune.search.flaml import BlendSearch
     except ImportError:
         print("ray[tune] is not installed, skipping test")
         return

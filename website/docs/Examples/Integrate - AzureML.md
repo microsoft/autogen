@@ -37,7 +37,7 @@ automl = AutoML()
 settings = {
     "time_budget": 60,  # total running time in seconds
     "metric": "accuracy",  # metric to optimize
-    "task": "classification",  # task type  
+    "task": "classification",  # task type
     "log_file_name": "airlines_experiment.log",  # flaml log file
 }
 experiment = mlflow.set_experiment("flaml")  # the experiment name in AzureML workspace

@@ -20,10 +20,15 @@ import logging
 from typing import Any, Dict, Generator, List, Tuple
 import numpy
 import random
-from ..tune.sample import Categorical, Domain, RandomState
+from ..sample import Categorical, Domain, RandomState
 
 try:
-    from ray.tune.sample import Domain as RayDomain
+    from ray import __version__ as ray_version
+
+    if ray_version.startswith("1."):
+        from ray.tune.sample import Domain as RayDomain
+    else:
+        from ray.tune.search.sample import Domain as RayDomain
 except ImportError:
     RayDomain = Domain
 

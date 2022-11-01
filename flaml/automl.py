@@ -160,7 +160,7 @@ class SearchState:
             if starting_point_len > len(starting_point):
                 logger.warning(
                     "Starting points outside of the search space are removed. "
-                    f"Remaining starting points: {starting_point}"
+                    f"Remaining starting points for {learner_class}: {starting_point}"
                 )
             starting_point = starting_point or None
 
@@ -498,7 +498,7 @@ class AutoML(BaseEstimator):
                 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2',
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
-                have the follwing signature:
+                have the following input arguments:
 
         ```python
         def custom_metric(
@@ -2175,7 +2175,7 @@ class AutoML(BaseEstimator):
                 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2',
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
-                have the following signature:
+                have the following input arguments:
 
         ```python
         def custom_metric(
@@ -2370,15 +2370,13 @@ class AutoML(BaseEstimator):
         ```
 
             cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
-                have the following signature:
+                have the following input arguments:
 
-        ```python
-        def cv_score_agg_func(val_loss_folds, log_metrics_folds):
-            return metric_to_minimize, metrics_to_log
-        ```
-                “val_loss_folds” - list of floats, the loss scores of each fold; “log_metrics_folds” - list of dicts/floats, the metrics of each fold to log.
+                * val_loss_folds: list of floats, the loss scores of each fold;
+                * log_metrics_folds: list of dicts/floats, the metrics of each fold to log.
+
                 This function should return the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
-                E.g.,
+                    E.g.,
 
         ```python
         def cv_score_agg_func(val_loss_folds, log_metrics_folds):
@@ -2393,16 +2391,16 @@ class AutoML(BaseEstimator):
                     metrics_to_log += single_fold
             if metrics_to_log:
                 n = len(val_loss_folds)
-                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
+                metrics_to_log = (
+                    {k: v / n for k, v in metrics_to_log.items()}
+                    if isinstance(metrics_to_log, dict)
+                    else metrics_to_log / n
+                )
             return metric_to_minimize, metrics_to_log
         ```
 
+            skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
             fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
-                    For TransformersEstimator, available fit_kwargs can be found from
-                    [TrainingArgumentsForAuto](nlp/huggingface/training_args).
-                    e.g.,
-        skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
-        fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                 e.g.,
@@ -2935,8 +2933,11 @@ class AutoML(BaseEstimator):
             from ray import __version__ as ray_version
 
             assert ray_version >= "1.10.0"
+            if ray_version.startswith("1."):
+                from ray.tune.suggest import ConcurrencyLimiter
+            else:
+                from ray.tune.search import ConcurrencyLimiter
             import ray
-            from ray.tune.suggest import ConcurrencyLimiter
         except (ImportError, AssertionError):
             raise ImportError(
                 "n_concurrent_trial>1 or use_ray=True requires installation of ray. "
@@ -2947,93 +2948,74 @@ class AutoML(BaseEstimator):
         elif "bs" == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
         elif "random" == self._hpo_method:
-            from ray.tune.suggest import BasicVariantGenerator as SearchAlgo
-            from ray.tune.sample import Domain
+            from flaml import RandomSearch as SearchAlgo
         elif "optuna" == self._hpo_method:
             try:
                 from ray import __version__ as ray_version
 
                 assert ray_version >= "1.10.0"
-                from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
+                if ray_version.startswith("1."):
+                    from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
+                else:
+                    from ray.tune.search.optuna import OptunaSearch as SearchAlgo
             except (ImportError, AssertionError):
-                from .searcher.suggestion import OptunaSearch as SearchAlgo
+                from flaml.tune.searcher.suggestion import OptunaSearch as SearchAlgo
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "
                 "'auto', 'cfo' and 'bs' are supported."
             )
         space = self.search_space
-        if self._hpo_method == "random":
-            # Any point in points_to_evaluate must consist of hyperparamters
-            # that are tunable, which can be identified by checking whether
-            # the corresponding value in the search space is an instance of
-            # the 'Domain' class from flaml or ray.tune
-            points_to_evaluate = self.points_to_evaluate.copy()
-            to_del = []
-            for k, v in space.items():
-                if not isinstance(v, Domain):
-                    to_del.append(k)
-            for k in to_del:
-                for p in points_to_evaluate:
-                    if k in p:
-                        del p[k]
+        self._state.time_from_start = time.time() - self._start_time_flag
+        time_left = self._state.time_budget - self._state.time_from_start
+        if self._hpo_method != "optuna":
+            min_resource = self.min_resource
+            if isinstance(min_resource, dict):
+                _min_resource_set = set(min_resource.values())
+                min_resource_all_estimator = min(_min_resource_set)
+                if len(_min_resource_set) > 1:
+                    logger.warning(
+                        "Using the min FLAML_sample_size of all the provided starting points as the starting sample size in the case of parallel search."
+                    )
+            else:
+                min_resource_all_estimator = min_resource
             search_alg = SearchAlgo(
-                max_concurrent=self._n_concurrent_trials,
-                points_to_evaluate=points_to_evaluate,
+                metric="val_loss",
+                space=space,
+                low_cost_partial_config=self.low_cost_partial_config,
+                points_to_evaluate=self.points_to_evaluate,
+                cat_hp_cost=self.cat_hp_cost,
+                resource_attr=self.resource_attr,
+                min_resource=min_resource_all_estimator,
+                max_resource=self.max_resource,
+                config_constraints=[
+                    (partial(size, self._state), "<=", self._mem_thres)
+                ],
+                metric_constraints=self.metric_constraints,
+                seed=self._seed,
+                time_budget_s=time_left,
             )
         else:
-            self._state.time_from_start = time.time() - self._start_time_flag
-            time_left = self._state.time_budget - self._state.time_from_start
-            if self._hpo_method != "optuna":
-                min_resource = self.min_resource
-                if isinstance(min_resource, dict):
-                    _min_resource_set = set(min_resource.values())
-                    min_resource_all_estimator = min(_min_resource_set)
-                    if len(_min_resource_set) > 1:
-                        logger.warning(
-                            "Using the min FLAML_sample_size of all the provided starting points as the starting sample size in the case of parallel search."
-                        )
-                else:
-                    min_resource_all_estimator = min_resource
-                search_alg = SearchAlgo(
-                    metric="val_loss",
-                    space=space,
-                    low_cost_partial_config=self.low_cost_partial_config,
-                    points_to_evaluate=self.points_to_evaluate,
-                    cat_hp_cost=self.cat_hp_cost,
-                    resource_attr=self.resource_attr,
-                    min_resource=min_resource_all_estimator,
-                    max_resource=self.max_resource,
-                    config_constraints=[
-                        (partial(size, self._state), "<=", self._mem_thres)
-                    ],
-                    metric_constraints=self.metric_constraints,
-                    seed=self._seed,
-                    time_budget_s=time_left,
-                )
-            else:
-                # if self._hpo_method is bo, sometimes the search space and the initial config dimension do not match
-                # need to remove the extra keys from the search space to be consistent with the initial config
-                converted_space = SearchAlgo.convert_search_space(space)
+            # if self._hpo_method is bo, sometimes the search space and the initial config dimension do not match
+            # need to remove the extra keys from the search space to be consistent with the initial config
+            converted_space = SearchAlgo.convert_search_space(space)
 
-                removed_keys = set(space.keys()).difference(converted_space.keys())
-                new_points_to_evaluate = []
-                for idx in range(len(self.points_to_evaluate)):
-                    r = self.points_to_evaluate[idx].copy()
-                    for each_key in removed_keys:
-                        r.pop(each_key)
-                    new_points_to_evaluate.append(r)
+            removed_keys = set(space.keys()).difference(converted_space.keys())
+            new_points_to_evaluate = []
+            for idx in range(len(self.points_to_evaluate)):
+                r = self.points_to_evaluate[idx].copy()
+                for each_key in removed_keys:
+                    r.pop(each_key)
+                new_points_to_evaluate.append(r)
 
-                search_alg = SearchAlgo(
-                    metric="val_loss",
-                    mode="min",
-                    points_to_evaluate=[
-                        p
-                        for p in new_points_to_evaluate
-                        if len(p) == len(converted_space)
-                    ],
-                )
-            search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
+            search_alg = SearchAlgo(
+                metric="val_loss",
+                mode="min",
+                points_to_evaluate=[
+                    p for p in new_points_to_evaluate if len(p) == len(converted_space)
+                ],
+            )
+        search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
         resources_per_trial = self._state.resources_per_trial
 
         analysis = ray.tune.run(
@@ -3124,7 +3106,7 @@ class AutoML(BaseEstimator):
                 mlflow.log_metric("trial_time", search_state.trial_time)
                 mlflow.log_metric("wall_clock_time", self._state.time_from_start)
                 mlflow.log_metric("validation_loss", search_state.val_loss)
-                mlflow.log_param("config", search_state.config)
+                mlflow.log_params(search_state.config)
                 mlflow.log_param("learner", estimator)
                 mlflow.log_param("sample_size", search_state.sample_size)
                 mlflow.log_metric("best_validation_loss", search_state.best_loss)
@@ -3136,9 +3118,12 @@ class AutoML(BaseEstimator):
             from ray import __version__ as ray_version
 
             assert ray_version >= "1.10.0"
-            from ray.tune.suggest import ConcurrencyLimiter
+            if ray_version.startswith("1."):
+                from ray.tune.suggest import ConcurrencyLimiter
+            else:
+                from ray.tune.search import ConcurrencyLimiter
         except (ImportError, AssertionError):
-            from .searcher.suggestion import ConcurrencyLimiter
+            from flaml.tune.searcher.suggestion import ConcurrencyLimiter
         if self._hpo_method in ("cfo", "grid"):
             from flaml import CFO as SearchAlgo
         elif "optuna" == self._hpo_method:
@@ -3146,15 +3131,18 @@ class AutoML(BaseEstimator):
                 from ray import __version__ as ray_version
 
                 assert ray_version >= "1.10.0"
-                from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
+                if ray_version.startswith("1."):
+                    from ray.tune.suggest.optuna import OptunaSearch as SearchAlgo
+                else:
+                    from ray.tune.search.optuna import OptunaSearch as SearchAlgo
             except (ImportError, AssertionError):
-                from .searcher.suggestion import OptunaSearch as SearchAlgo
+                from flaml.tune.searcher.suggestion import OptunaSearch as SearchAlgo
         elif "bs" == self._hpo_method:
             from flaml import BlendSearch as SearchAlgo
         elif "random" == self._hpo_method:
-            from flaml.searcher import RandomSearch as SearchAlgo
+            from flaml.tune.searcher import RandomSearch as SearchAlgo
         elif "cfocat" == self._hpo_method:
-            from flaml.searcher.cfo_cat import CFOCat as SearchAlgo
+            from flaml.tune.searcher.cfo_cat import CFOCat as SearchAlgo
         else:
             raise NotImplementedError(
                 f"hpo_method={self._hpo_method} is not recognized. "

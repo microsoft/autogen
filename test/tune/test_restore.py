@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import unittest
 import numpy as np
-from flaml.searcher.suggestion import ConcurrencyLimiter
+from flaml.tune.searcher.suggestion import ConcurrencyLimiter
 from flaml import tune
 from flaml import CFO
 

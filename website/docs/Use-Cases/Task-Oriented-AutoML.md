@@ -422,7 +422,6 @@ automl2.fit(X_train, y_train, time_budget=7200, starting_points=automl1.best_con
 
 `starting_points` is a dictionary or a str to specify the starting hyperparameter config. (1) When it is a dictionary, the keys are the estimator names. If you do not need to specify starting points for an estimator, exclude its name from the dictionary. The value for each key can be either a dictionary of a list of dictionaries, corresponding to one hyperparameter configuration, or multiple hyperparameter configurations, respectively. (2) When it is a str: if "data", use data-dependent defaults; if "data:path", use data-dependent defaults which are stored at path; if "static", use data-independent defaults. Please find more details about data-dependent defaults in [zero shot AutoML](Zero-Shot-AutoML#combine-zero-shot-automl-and-hyperparameter-tuning).
 
-
 ### Log the trials
 
 The trials are logged in a file if a `log_file_name` is passed.
@@ -574,7 +573,7 @@ The curve suggests that increasing the time budget may further improve the accur
 2. set t2 as the time budget, and also set `early_stop=True`. If the early stopping is triggered, you will see a warning like
 > WARNING - All estimator hyperparameters local search has converged at least once, and the total search time exceeds 10 times the time taken to find the best model.
 
-> WARNING - Stopping search as early_stop is set to True.
+ > WARNING - Stopping search as early_stop is set to True.
 
 ### How much time is needed to find the best model
 
