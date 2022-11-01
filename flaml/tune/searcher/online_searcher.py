@@ -2,10 +2,9 @@ import numpy as np
 import logging
 import itertools
 from typing import Dict, Optional, List
-from flaml.tune import Categorical, Float, PolynomialExpansionSet
-from flaml.tune import Trial
+from flaml.tune import Categorical, Float, PolynomialExpansionSet, Trial
 from flaml.onlineml import VowpalWabbitTrial
-from flaml.searcher import CFO
+from flaml.tune.searcher import CFO
 
 logger = logging.getLogger(__name__)
 

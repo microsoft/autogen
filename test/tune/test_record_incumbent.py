@@ -7,7 +7,7 @@ def rosenbrock_function(config: dict):
     funcLoss = 50
     for key, value in config.items():
         if key in ["x1", "x2", "x3", "x4", "x5"]:
-            funcLoss += value ** 2 - 10 * np.cos(2 * np.pi * value)
+            funcLoss += value**2 - 10 * np.cos(2 * np.pi * value)
     if INCUMBENT_RESULT in config.keys():
         print("----------------------------------------------")
         print("incumbent result", config[INCUMBENT_RESULT])
@@ -62,7 +62,7 @@ def test_record_incumbent(method="BlendSearch"):
             use_incumbent_result_in_evaluation=True,
         )
     elif method == "CFOCat":
-        from flaml.searcher.cfo_cat import CFOCat
+        from flaml.tune.searcher.cfo_cat import CFOCat
 
         algo = CFOCat(
             use_incumbent_result_in_evaluation=True,

@@ -1,6 +1,6 @@
 """Require: pip install flaml[test,ray]
 """
-from flaml.searcher.blendsearch import BlendSearch
+from flaml import BlendSearch
 import time
 import os
 from sklearn.model_selection import train_test_split
@@ -146,7 +146,7 @@ def _test_xgboost(method="BlendSearch"):
                         },
                     )
                 elif "CFOCat" == method:
-                    from flaml.searcher.cfo_cat import CFOCat
+                    from flaml.tune.searcher.cfo_cat import CFOCat
 
                     algo = CFOCat(
                         low_cost_partial_config={

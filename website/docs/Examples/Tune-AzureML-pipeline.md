@@ -34,7 +34,7 @@ The pipeline consists of two steps: (1) data preparation and (2) model training.
 
 ![png](images/AzureML_train_pipeline.png).
 
-The code example discussed in the page is included in
+The [code example](https://github.com/microsoft/FLAML/tree/main/test/pipeline_tuning_example) discussed in the page is included in
 `test/pipeline_tuning_example/`.
 We will use the relative path in the rest of the page.
 
@@ -205,7 +205,7 @@ Overall, to tune the hyperparameters of the AzureML pipeline, run:
 
 ```bash
 # the training job will run remotely as an AzureML job in both choices
-# run the tuning job locally 
+# run the tuning job locally
 python submit_tune.py --local
 # run the tuning job remotely
 python submit_tune.py --remote --subscription_id <your subscription_id> --resource_group <your resource_group> --workspace <your workspace>

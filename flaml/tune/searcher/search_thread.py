@@ -9,11 +9,14 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.10.0"
-    from ray.tune.suggest import Searcher
+    if ray_version.startswith("1."):
+        from ray.tune.suggest import Searcher
+    else:
+        from ray.tune.search import Searcher
 except (ImportError, AssertionError):
     from .suggestion import Searcher
 from .flow2 import FLOW2
-from ..tune.space import add_cost_to_space, unflatten_hierarchical
+from ..space import add_cost_to_space, unflatten_hierarchical
 import logging
 
 logger = logging.getLogger(__name__)
@@ -134,7 +137,11 @@ class SearchThread:
         if result:
             self.cost_last = result.get(self.cost_attr, 1)
             self.cost_total += self.cost_last
-            if self._search_alg.metric in result:
+            if self._search_alg.metric in result and (
+                getattr(self._search_alg, "lexico_objectives", None) is None
+            ):
+                # TODO: Improve this behavior. When lexico_objectives is provided to CFO,
+                # related variables are not callable.
                 obj = result[self._search_alg.metric] * self._metric_op
                 if obj < self.obj_best1 or self.best_result is None:
                     self.cost_best2 = self.cost_best1
@@ -143,7 +150,10 @@ class SearchThread:
                     self.obj_best1 = obj
                     self.cost_best = self.cost_last
                     self.best_result = result
-            self._update_speed()
+            if getattr(self._search_alg, "lexico_objectives", None) is None:
+                # TODO: Improve this behavior. When lexico_objectives is provided to CFO,
+                # related variables are not callable.
+                self._update_speed()
         self.running -= 1
         assert self.running >= 0
 

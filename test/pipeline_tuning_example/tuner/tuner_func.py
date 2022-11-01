@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_with_config(config: dict):
-    """Run the pipeline with a given config dict
-    """
+    """Run the pipeline with a given config dict"""
 
     # pass the hyperparameters to AzureML jobs by overwriting the config file.
     overrides = [f"{key}={value}" for key, value in config.items()]
@@ -24,25 +23,25 @@ def run_with_config(config: dict):
     while not stop:
         # get status
         status = run._core_run.get_status()
-        print(f'status: {status}')
+        print(f"status: {status}")
 
         # get metrics
         metrics = run._core_run.get_metrics(recursive=True)
         if metrics:
             run_metrics = list(metrics.values())
 
-            new_metric = run_metrics[0]['eval_binary_error']
+            new_metric = run_metrics[0]["eval_binary_error"]
 
             if type(new_metric) == list:
                 new_metric = new_metric[-1]
 
-            print(f'eval_binary_error: {new_metric}')
+            print(f"eval_binary_error: {new_metric}")
 
             tune.report(eval_binary_error=new_metric)
 
         time.sleep(5)
 
-        if status == 'FAILED' or status == 'Completed':
+        if status == "FAILED" or status == "Completed":
             stop = True
 
     print("The run is terminated.")

@@ -26,7 +26,7 @@ def _easy_objective(use_raytune, config):
 
 def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False):
     from flaml import tune
-    from flaml.searcher.blendsearch import BlendSearch
+    from flaml.tune.searcher.blendsearch import BlendSearch
 
     easy_objective_custom_tune = partial(_easy_objective, use_raytune)
     search_space = {

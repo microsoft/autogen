@@ -43,8 +43,12 @@ jobs:
           pip install -e .
           python -c "import flaml"
           pip install -e .[test]
-      - name: If linux or mac, install ray
-        if: matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest'
+      - name: If linux, install ray 2
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pip install ray[tune]
+      - name: If mac, install ray
+        if: matrix.os == 'macOS-latest'
         run: |
           pip install -e .[ray]
       - name: If linux or mac, install prophet on python < 3.9

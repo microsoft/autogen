@@ -2,6 +2,8 @@ import sys
 import pytest
 import requests
 from utils import get_toy_data_summarization, get_automl_settings
+import os
+import shutil
 
 
 @pytest.mark.skipif(
@@ -47,6 +49,9 @@ def test_summarization():
         **automl_settings
     )
     automl.predict(X_test)
+
+    if os.path.exists("test/data/output/"):
+        shutil.rmtree("test/data/output/")
 
 
 if __name__ == "__main__":

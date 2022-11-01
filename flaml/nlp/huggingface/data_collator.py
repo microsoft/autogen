@@ -6,7 +6,13 @@ from transformers.data.data_collator import (
 )
 from collections import OrderedDict
 
-from flaml.data import TOKENCLASSIFICATION, MULTICHOICECLASSIFICATION, SUMMARIZATION
+from flaml.data import (
+    TOKENCLASSIFICATION,
+    MULTICHOICECLASSIFICATION,
+    SUMMARIZATION,
+    SEQCLASSIFICATION,
+    SEQREGRESSION,
+)
 
 
 @dataclass
@@ -45,5 +51,7 @@ task_to_datacollator_class = OrderedDict(
         (TOKENCLASSIFICATION, DataCollatorForTokenClassification),
         (MULTICHOICECLASSIFICATION, DataCollatorForMultipleChoiceClassification),
         (SUMMARIZATION, DataCollatorForSeq2Seq),
+        (SEQCLASSIFICATION, DataCollatorWithPadding),
+        (SEQREGRESSION, DataCollatorWithPadding),
     ]
 )

@@ -1,4 +1,4 @@
-from flaml.searcher.blendsearch import BlendSearchTuner as BST
+from flaml.tune.searcher.blendsearch import BlendSearchTuner as BST
 
 
 class BlendSearchTuner(BST):

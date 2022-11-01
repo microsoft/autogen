@@ -404,10 +404,6 @@ def load_model(checkpoint_path, task, num_labels=None):
     transformers.logging.set_verbosity_error()
 
     from transformers import AutoConfig
-    from ..huggingface.switch_head_auto import (
-        AutoSeqClassificationHead,
-        MODEL_CLASSIFICATION_HEAD_MAPPING,
-    )
     from ...data import SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION
 
     def get_this_model(checkpoint_path, task, model_config):
@@ -418,7 +414,7 @@ def load_model(checkpoint_path, task, num_labels=None):
 
         if task in (SEQCLASSIFICATION, SEQREGRESSION):
             return AutoModelForSequenceClassification.from_pretrained(
-                checkpoint_path, config=model_config
+                checkpoint_path, config=model_config, ignore_mismatched_sizes=True
             )
         elif task == TOKENCLASSIFICATION:
             return AutoModelForTokenClassification.from_pretrained(
@@ -433,9 +429,6 @@ def load_model(checkpoint_path, task, num_labels=None):
                 checkpoint_path, config=model_config
             )
 
-    def is_pretrained_model_in_classification_head_list(model_type):
-        return model_type in MODEL_CLASSIFICATION_HEAD_MAPPING
-
     def _set_model_config(checkpoint_path):
         if task in (SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION):
             model_config = AutoConfig.from_pretrained(
@@ -448,40 +441,11 @@ def load_model(checkpoint_path, task, num_labels=None):
             return model_config
 
     current_config = AutoConfig.from_pretrained(checkpoint_path)
-    this_model_type, this_vocab_size = (
-        current_config.model_type,
-        current_config.vocab_size,
-    )
+    this_vocab_size = current_config.vocab_size
 
-    if task == SEQCLASSIFICATION:
-        num_labels_old = current_config.num_labels
-        if is_pretrained_model_in_classification_head_list(this_model_type):
-            model_config_num_labels = num_labels_old
-        else:
-            model_config_num_labels = num_labels
-        new_config = _set_model_config(checkpoint_path)
+    model_config_num_labels = num_labels
+    new_config = _set_model_config(checkpoint_path)
 
-        if is_pretrained_model_in_classification_head_list(this_model_type):
-            if num_labels != num_labels_old:
-                this_model = get_this_model(checkpoint_path, task, new_config)
-                new_config.num_labels = num_labels
-                this_model.num_labels = num_labels
-                this_model.classifier = (
-                    AutoSeqClassificationHead.from_model_type_and_config(
-                        this_model_type, new_config
-                    )
-                )
-            else:
-                this_model = get_this_model(checkpoint_path, task, new_config)
-        else:
-            this_model = get_this_model(checkpoint_path, task, new_config)
-        this_model.resize_token_embeddings(this_vocab_size)
-        return this_model
-    else:
-        if task == SEQREGRESSION:
-            model_config_num_labels = 1
-        elif task == TOKENCLASSIFICATION:
-            model_config_num_labels = num_labels
-        model_config = _set_model_config(checkpoint_path)
-        this_model = get_this_model(checkpoint_path, task, model_config)
-        return this_model
+    this_model = get_this_model(checkpoint_path, task, new_config)
+    this_model.resize_token_embeddings(this_vocab_size)
+    return this_model

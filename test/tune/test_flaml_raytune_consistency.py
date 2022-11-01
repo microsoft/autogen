@@ -28,7 +28,7 @@ low_cost_partial_config = {"x": 1}
 
 
 def setup_searcher(searcher_name):
-    from flaml.searcher.blendsearch import BlendSearch, CFO, RandomSearch
+    from flaml.tune.searcher.blendsearch import BlendSearch, CFO, RandomSearch
 
     if "cfo" in searcher_name:
         searcher = CFO(
@@ -52,7 +52,12 @@ def _test_flaml_raytune_consistency(
     num_samples=-1, max_concurrent_trials=1, searcher_name="cfo"
 ):
     try:
-        from ray import tune as raytune
+        from ray import tune as raytune, __version__ as ray_version
+
+        if ray_version.startswith("1."):
+            from ray.tune.suggest import ConcurrencyLimiter
+        else:
+            from ray.tune.search import ConcurrencyLimiter
     except ImportError:
         print(
             "skip _test_flaml_raytune_consistency because ray tune cannot be imported."
@@ -78,7 +83,6 @@ def _test_flaml_raytune_consistency(
     print(analysis.best_trial.last_result)  # the best trial's result
 
     searcher = setup_searcher(searcher_name)
-    from ray.tune.suggest import ConcurrencyLimiter
 
     search_alg = ConcurrencyLimiter(searcher, max_concurrent_trials)
     analysis = raytune.run(
