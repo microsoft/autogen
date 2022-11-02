@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: On mac + python 3.10, install libomp to facilitate lgbm and xgboost install
@@ -89,7 +89,7 @@ jobs:
   #   steps:
   #     - uses: actions/checkout@v2
   #     - name: Setup Python
-  #       uses: actions/setup-python@v2
+  #       uses: actions/setup-python@v4
   #       with:
   #         python-version: '3.8'
   #     - name: Compile documentation
