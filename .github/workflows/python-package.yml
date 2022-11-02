@@ -77,7 +77,7 @@ jobs:
           coverage xml
       - name: Upload coverage to Codecov
         if: (matrix.python-version == '3.7') && matrix.os != 'macos-latest' || matrix.python-version == '3.10'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
           flags: unittests
