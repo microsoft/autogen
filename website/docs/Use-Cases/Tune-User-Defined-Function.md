@@ -130,7 +130,6 @@ You can find the corresponding search space choice in the table below once you h
 | log scale      | tune.lograndint(lower: int, upper: int, base: float = 10 | tune.loguniform(lower: float, upper: float, base: float = 10)|
 | linear scale with quantization| tune.qrandint(lower: int, upper: int, q: int = 1)| tune.quniform(lower: float, upper: float, q: float = 1)|
 log scale with quantization  | tune.qlograndint(lower: int, upper, q: int = 1, base: float = 10)| tune.qloguniform(lower: float, upper, q: float = 1, base: float = 10)
-|
 
 
 See the example below for the commonly used types of domains.
