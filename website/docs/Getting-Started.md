@@ -78,7 +78,7 @@ Please see this [script](https://github.com/microsoft/FLAML/blob/main/test/tune_
 
 #### [Zero-shot AutoML](Use-Cases/Zero-Shot-AutoML)
 
-FLAML offers a unique, seamless and effortless way to leverage AutoML for the commonly used classifiers and regressors such as LightGBM and XGBoost. For example, if you are using `lightgbm.LGBMClassifier` as your current learner, all you need to do is to replace `from ligthgbm import LGBMClassifier` by:
+FLAML offers a unique, seamless and effortless way to leverage AutoML for the commonly used classifiers and regressors such as LightGBM and XGBoost. For example, if you are using `lightgbm.LGBMClassifier` as your current learner, all you need to do is to replace `from lightgbm import LGBMClassifier` by:
 
 ```python
 from flaml.default import LGBMClassifier
