@@ -33,7 +33,8 @@
     "rehype-katex": "4",
     "remark-math": "3",
     "trim": "^0.0.3",
-    "url-loader": "^4.1.1"
+    "url-loader": "^4.1.1",
+    "minimatch": "3.0.5"
   },
   "browserslist": {
     "production": [
