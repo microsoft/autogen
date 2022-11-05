@@ -6,7 +6,9 @@
     "nth-check":"2.0.1",
     "trim":"0.0.3",
     "got": "11.8.5",
-    "node-forge": "1.3.0"
+    "node-forge": "1.3.0",
+    "minimatch": "3.0.5",
+    "loader-utils": "2.0.3"
    },
   "scripts": {
     "docusaurus": "docusaurus",
