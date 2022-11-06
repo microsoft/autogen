@@ -205,7 +205,7 @@ Overall, to tune the hyperparameters of the AzureML pipeline, run:
 
 ```bash
 # the training job will run remotely as an AzureML job in both choices
-# run the tuning job locally 
+# run the tuning job locally
 python submit_tune.py --local
 # run the tuning job remotely
 python submit_tune.py --remote --subscription_id <your subscription_id> --resource_group <your resource_group> --workspace <your workspace>
