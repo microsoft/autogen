@@ -498,7 +498,7 @@ class AutoML(BaseEstimator):
                 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2',
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
-                have the follwing signature:
+                have the following input arguments:
 
         ```python
         def custom_metric(
@@ -2175,7 +2175,7 @@ class AutoML(BaseEstimator):
                 'f1', 'micro_f1', 'macro_f1', 'log_loss', 'mae', 'mse', 'r2',
                 'mape'. Default is 'auto'.
                 If passing a customized metric function, the function needs to
-                have the following signature:
+                have the following input arguments:
 
         ```python
         def custom_metric(
@@ -2370,15 +2370,13 @@ class AutoML(BaseEstimator):
         ```
 
             cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
-                have the following signature:
+                have the following input arguments:
 
-        ```python
-        def cv_score_agg_func(val_loss_folds, log_metrics_folds):
-            return metric_to_minimize, metrics_to_log
-        ```
-                “val_loss_folds” - list of floats, the loss scores of each fold; “log_metrics_folds” - list of dicts/floats, the metrics of each fold to log.
+                * val_loss_folds: list of floats, the loss scores of each fold;
+                * log_metrics_folds: list of dicts/floats, the metrics of each fold to log.
+
                 This function should return the final aggregate result of all folds. A float number of the minimization objective, and a dictionary as the metrics to log or None.
-                E.g.,
+                    E.g.,
 
         ```python
         def cv_score_agg_func(val_loss_folds, log_metrics_folds):
@@ -2393,16 +2391,16 @@ class AutoML(BaseEstimator):
                     metrics_to_log += single_fold
             if metrics_to_log:
                 n = len(val_loss_folds)
-                metrics_to_log = {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
+                metrics_to_log = (
+                    {k: v / n for k, v in metrics_to_log.items()}
+                    if isinstance(metrics_to_log, dict)
+                    else metrics_to_log / n
+                )
             return metric_to_minimize, metrics_to_log
         ```
 
+            skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
             fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
-                    For TransformersEstimator, available fit_kwargs can be found from
-                    [TrainingArgumentsForAuto](nlp/huggingface/training_args).
-                    e.g.,
-        skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
-        fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [TrainingArgumentsForAuto](nlp/huggingface/training_args).
                 e.g.,

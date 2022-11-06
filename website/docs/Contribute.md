@@ -64,6 +64,8 @@ git clone https://github.com/microsoft/FLAML.git
 pip install -e FLAML[test,notebook]
 ```
 
+In case the `pip install` command fails, try escaping the brackets such as `pip install -e FLAML\[test,notebook\]`
+
 ### Docker
 
 We provide a simple [Dockerfile](https://github.com/microsoft/FLAML/blob/main/Dockerfile).
