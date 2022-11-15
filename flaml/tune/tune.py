@@ -74,10 +74,10 @@ class ExperimentAnalysis(EA):
                 histories[objective].append(
                     results[keys[time_index]][objective]
                     if mode == "min"
-                    else -trials[keys[time_index]][objective]
+                    else -results[keys[time_index]][objective]
                 )
         obj_initial = self.lexico_objectives["metrics"][0]
-        feasible_index = [*range(len(histories[obj_initial]))]
+        feasible_index = np.array([*range(len(histories[obj_initial]))])
         for k_metric, k_mode in zip(
             self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
         ):
@@ -87,9 +87,10 @@ class ExperimentAnalysis(EA):
                 if k_mode == "max"
                 else self.lexico_objectives["targets"][k_metric]
             )
-            f_best[k_metric] = np.min(k_values.take(feasible_index))
-            feasible_index_prior = np.where(
-                k_values
+            feasible_value = k_values.take(feasible_index)
+            f_best[k_metric] = np.min(feasible_value)
+            feasible_index_filter = np.where(
+                feasible_value
                 <= max(
                     [
                         f_best[k_metric]
@@ -97,10 +98,8 @@ class ExperimentAnalysis(EA):
                         k_target,
                     ]
                 )
-            )[0].tolist()
-            feasible_index = [
-                val for val in feasible_index if val in feasible_index_prior
-            ]
+            )[0]
+            feasible_index = feasible_index.take(feasible_index_filter)
         best_trial = trials[feasible_index[-1]]
         return best_trial
 
