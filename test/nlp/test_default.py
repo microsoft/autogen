@@ -36,7 +36,8 @@ def test_starting_point_not_in_search_space():
 
     automl.fit(X_train, y_train, **automl_settings)
     assert (
-        automl._search_states[this_estimator_name].init_config["learning_rate"] != 2e-3
+        automl._search_states[this_estimator_name].init_config[0]["learning_rate"]
+        != 2e-3
     )
 
     """
@@ -67,7 +68,7 @@ def test_starting_point_not_in_search_space():
     automl_settings["starting_points"] = "data:test/nlp/default/"
 
     automl.fit(X_train, y_train, **automl_settings)
-    assert len(automl._search_states[this_estimator_name].init_config) == len(
+    assert len(automl._search_states[this_estimator_name].init_config[0]) == len(
         automl._search_states[this_estimator_name]._search_space_domain
     ) - len(automl_settings["custom_hp"][this_estimator_name]), (
         "The search space is updated with the custom_hp on {} hyperparameters of "

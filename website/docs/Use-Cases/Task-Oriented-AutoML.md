@@ -8,8 +8,8 @@
     - numpy array. When the input data are stored in numpy array, they are passed to `fit()` as `X_train` and `y_train`.
     - pandas dataframe. When the input data are stored in pandas dataframe, they are passed to `fit()` either as `X_train` and `y_train`, or as `dataframe` and `label`.
 * Tasks (specified via `task`):
-    - 'classification': classification.
-    - 'regression': regression.
+    - 'classification': classification with tabular data.
+    - 'regression': regression with tabular data.
     - 'ts_forecast': time series forecasting.
     - 'ts_forecast_classification': time series forecasting for classification.
     - 'ts_forecast_panel': time series forecasting for panel datasets (multiple time series).

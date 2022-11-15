@@ -65,6 +65,7 @@ class BlendSearch(Searcher):
         experimental: Optional[bool] = False,
         lexico_objectives: Optional[dict] = None,
         use_incumbent_result_in_evaluation=False,
+        allow_empty_config=False,
     ):
         """Constructor.
 
@@ -255,6 +256,7 @@ class BlendSearch(Searcher):
         else:
             self._candidate_start_points = None
         self._time_budget_s, self._num_samples = time_budget_s, num_samples
+        self._allow_empty_config = allow_empty_config
         if space is not None:
             self._init_search()
 
@@ -446,6 +448,8 @@ class BlendSearch(Searcher):
                 for key, value in result.items():
                     if key.startswith("config/"):
                         config[key[7:]] = value
+            if self._allow_empty_config and not config:
+                return
             signature = self._ls.config_signature(
                 config, self._subspace.get(trial_id, {})
             )
@@ -775,6 +779,9 @@ class BlendSearch(Searcher):
                     reward = self._evaluated_rewards.pop(0)
             else:
                 init_config = self._ls.init_config
+            if self._allow_empty_config and not init_config:
+                assert reward is None, "Empty config can't have reward."
+                return init_config
             config, space = self._ls.complete_config(
                 init_config, self._ls_bound_min, self._ls_bound_max
             )
