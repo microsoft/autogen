@@ -358,14 +358,14 @@ class FLOW2(Searcher):
     def update_fbest(
         self,
     ):
-        # TODO: Improve the efficiency
         obj_initial = self.lexico_objectives["metrics"][0]
-        feasible_index = [*range(len(self._histories[obj_initial]))]
+        feasible_index = np.array([*range(len(self._histories[obj_initial]))])
         for k_metric in self.lexico_objectives["metrics"]:
             k_values = np.array(self._histories[k_metric])
-            self._f_best[k_metric] = np.min(k_values.take(feasible_index))
-            feasible_index_prior = np.where(
-                k_values
+            feasible_value = k_values.take(feasible_index)
+            self._f_best[k_metric] = np.min(feasible_value)
+            feasible_index_filter = np.where(
+                feasible_value
                 <= max(
                     [
                         self._f_best[k_metric]
@@ -373,10 +373,8 @@ class FLOW2(Searcher):
                         self.lexico_objectives["targets"][k_metric],
                     ]
                 )
-            )[0].tolist()
-            feasible_index = [
-                val for val in feasible_index if val in feasible_index_prior
-            ]
+            )[0]
+            feasible_index = feasible_index.take(feasible_index_filter)
 
     def lexico_compare(self, result) -> bool:
         if self._histories is None:
