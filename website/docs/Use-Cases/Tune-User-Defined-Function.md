@@ -515,7 +515,7 @@ analysis = tune.run(
 ```
 
 ### Lexicographic Objectives
-We support tuning multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `tune.tun()`.
+We support tuning multiple objectives with lexicographic preference by providing argument `lexico_objectives` for `tune.run()`.
 `lexico_objectives` is a dictionary that contains the following fields of key-value pairs:
  - `metrics`: a list of optimization objectives with the orders reflecting the priorities/preferences of the objectives.
  - `modes`: (optional) a list of optimization modes (each mode either "min" or "max") corresponding to the objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
