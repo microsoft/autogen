@@ -40,11 +40,8 @@ setuptools.setup(
     install_requires=install_requires,
     extras_require={
         "notebook": [
-            "openml==0.10.2",
             "jupyter",
             "matplotlib",
-            "rgf-python",
-            "catboost>=0.26",
         ],
         "test": [
             "flake8>=3.8.4",
@@ -57,7 +54,7 @@ setuptools.setup(
             "catboost>=0.26",
             "rgf-python",
             "optuna==2.8.0",
-            "openml",
+            "openml==0.10.2",
             "statsmodels>=0.12.2",
             "psutil==5.8.0",
             "dataclasses",
@@ -67,7 +64,8 @@ setuptools.setup(
             "rouge_score",
             "hcrystalball==0.1.10",
             "seqeval",
-            "pytorch-forecasting>=0.9.0",
+            "pytorch-forecasting>=0.9.0,<=0.10.1",
+            "mlflow",
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],

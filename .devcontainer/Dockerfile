@@ -17,10 +17,7 @@ RUN apt-get update \
    && rm -rf /var/lib/apt/lists/*
 ENV DEBIAN_FRONTEND=dialog
 
-#
-# Install extras for development
-#
-RUN pip3 --disable-pip-version-check --no-cache-dir install flaml[test,notebook]
+RUN pip3 --disable-pip-version-check --no-cache-dir install flaml
 # For docs
 RUN npm install --global yarn
 RUN pip install pydoc-markdown==4.5.0

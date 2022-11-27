@@ -8,5 +8,6 @@
             }
         },
         "terminal.integrated.defaultProfile.linux": "bash"
-    }
+    },
+    "updateContentCommand": "pip install -e .[test,notebook] && pre-commit install"
 }

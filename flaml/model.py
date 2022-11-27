@@ -2266,18 +2266,13 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
         return training, train_dataloader, val_dataloader
 
     def fit(self, X_train, y_train, budget=None, **kwargs):
-        import copy
-        from pathlib import Path
         import warnings
-        import numpy as np
-        import pandas as pd
         import pytorch_lightning as pl
         from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
         from pytorch_lightning.loggers import TensorBoardLogger
         import torch
         from pytorch_forecasting import TemporalFusionTransformer
         from pytorch_forecasting.metrics import QuantileLoss
-        import tensorboard as tb
 
         warnings.filterwarnings("ignore")
         current_time = time.time()
