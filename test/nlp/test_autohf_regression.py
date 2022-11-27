@@ -35,7 +35,10 @@ def test_regression():
     automl.predict(X_val)
 
     if os.path.exists("test/data/output/"):
-        shutil.rmtree("test/data/output/")
+        try:
+            shutil.rmtree("test/data/output/")
+        except PermissionError:
+            print("PermissionError when deleting test/data/output/")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ import sys
 from flaml.default import portfolio
 import os
 import shutil
+import pytest
 
 
 def pop_args(fit_kwargs):
@@ -18,6 +19,7 @@ def test_build_portfolio(path="./test/nlp/default", strategy="greedy"):
     portfolio.main()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="do not run on windows")
 def test_starting_point_not_in_search_space():
     from flaml import AutoML
 
@@ -84,9 +86,13 @@ def test_starting_point_not_in_search_space():
     )
 
     if os.path.exists("test/data/output/"):
-        shutil.rmtree("test/data/output/")
+        try:
+            shutil.rmtree("test/data/output/")
+        except PermissionError:
+            print("PermissionError when deleting test/data/output/")
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="do not run on windows")
 def test_points_to_evaluate():
     from flaml import AutoML
 
@@ -106,10 +112,14 @@ def test_points_to_evaluate():
     automl.fit(X_train, y_train, **automl_settings)
 
     if os.path.exists("test/data/output/"):
-        shutil.rmtree("test/data/output/")
+        try:
+            shutil.rmtree("test/data/output/")
+        except PermissionError:
+            print("PermissionError when deleting test/data/output/")
 
 
 # TODO: implement _test_zero_shot_model
+@pytest.mark.skipif(sys.platform == "win32", reason="do not run on windows")
 def test_zero_shot_nomodel():
     from flaml.default import preprocess_and_suggest_hyperparams
 
@@ -141,7 +151,10 @@ def test_zero_shot_nomodel():
     model.fit(X_train, y_train, **fit_kwargs)
 
     if os.path.exists("test/data/output/"):
-        shutil.rmtree("test/data/output/")
+        try:
+            shutil.rmtree("test/data/output/")
+        except PermissionError:
+            print("PermissionError when deleting test/data/output/")
 
 
 def test_build_error_portfolio(path="./test/nlp/default", strategy="greedy"):
@@ -176,4 +189,7 @@ def test_build_error_portfolio(path="./test/nlp/default", strategy="greedy"):
     import shutil
 
     if os.path.exists("test/data/output/"):
-        shutil.rmtree("test/data/output/")
+        try:
+            shutil.rmtree("test/data/output/")
+        except PermissionError:
+            print("PermissionError when deleting test/data/output/")

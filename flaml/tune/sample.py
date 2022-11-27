@@ -428,7 +428,12 @@ class Categorical(Domain):
         ):
             if not isinstance(random_state, _BackwardsCompatibleNumpyRng):
                 random_state = _BackwardsCompatibleNumpyRng(random_state)
-            items = random_state.choice(domain.categories, size=size).tolist()
+            # do not use .choice() directly on domain.categories
+            # as that will coerce them to a single dtype
+            indices = random_state.choice(
+                np.arange(0, len(domain.categories)), size=size
+            )
+            items = [domain.categories[index] for index in indices]
             return items if len(items) > 1 else domain.cast(items[0])
 
     default_sampler_cls = _Uniform
@@ -479,8 +484,18 @@ class Quantized(Sampler):
     ):
         if not isinstance(random_state, _BackwardsCompatibleNumpyRng):
             random_state = _BackwardsCompatibleNumpyRng(random_state)
-        values = self.sampler.sample(domain, spec, size, random_state=random_state)
+
+        if self.q == 1:
+            return self.sampler.sample(domain, spec, size, random_state=random_state)
+
+        quantized_domain = copy(domain)
+        quantized_domain.lower = np.ceil(domain.lower / self.q) * self.q
+        quantized_domain.upper = np.floor(domain.upper / self.q) * self.q
+        values = self.sampler.sample(
+            quantized_domain, spec, size, random_state=random_state
+        )
         quantized = np.round(np.divide(values, self.q)) * self.q
+
         if not isinstance(quantized, np.ndarray):
             return domain.cast(quantized)
         return list(quantized)
@@ -586,7 +601,9 @@ def lograndint(lower: int, upper: int, base: float = 10):
 
 def qrandint(lower: int, upper: int, q: int = 1):
     """Sample an integer value uniformly between ``lower`` and ``upper``.
+
     ``lower`` is inclusive, ``upper`` is also inclusive (!).
+
     The value will be quantized, i.e. rounded to an integer increment of ``q``.
     Quantization makes the upper bound inclusive.
     """
@@ -614,12 +631,15 @@ def randn(mean: float = 0.0, sd: float = 1.0):
 
 def qrandn(mean: float, sd: float, q: float):
     """Sample a float value normally with ``mean`` and ``sd``.
+
     The value will be quantized, i.e. rounded to an integer increment of ``q``.
+
     Args:
-        mean (float): Mean of the normal distribution.
-        sd (float): SD of the normal distribution.
-        q (float): Quantization number. The result will be rounded to an
+        mean: Mean of the normal distribution.
+        sd: SD of the normal distribution.
+        q: Quantization number. The result will be rounded to an
             integer increment of this value.
+
     """
     return Float(None, None).normal(mean, sd).quantized(q)
 

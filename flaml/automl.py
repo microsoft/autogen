@@ -2213,7 +2213,7 @@ class AutoML(BaseEstimator):
         ```
             task: A string of the task type, e.g.,
                 'classification', 'regression', 'ts_forecast_regression',
-                'ts_forecast_classification', 'ts_forecast_panel', 'rank', 'seq-classification',
+                'ts_forecast_classification', 'rank', 'seq-classification',
                 'seq-regression', 'summarization'.
             n_jobs: An integer of the number of threads for training | default=-1.
                 Use all available resources when n_jobs == -1.

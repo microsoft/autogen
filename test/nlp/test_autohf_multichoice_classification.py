@@ -5,7 +5,9 @@ import os
 import shutil
 
 
-@pytest.mark.skipif(sys.platform == "darwin", reason="do not run on mac os")
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"], reason="do not run on mac os or windows"
+)
 def test_mcc():
     from flaml import AutoML
     import requests
@@ -49,7 +51,10 @@ def test_mcc():
     print("Accuracy: " + str(accuracy))
 
     if os.path.exists("test/data/output/"):
-        shutil.rmtree("test/data/output/")
+        try:
+            shutil.rmtree("test/data/output/")
+        except PermissionError:
+            print("PermissionError when deleting test/data/output/")
 
 
 if __name__ == "__main__":

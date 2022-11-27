@@ -18,7 +18,6 @@
 from typing import Dict, Optional
 import numpy as np
 from .trial import Trial
-from collections import defaultdict
 import logging
 
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@
     - 'regression': regression with tabular data.
     - 'ts_forecast': time series forecasting.
     - 'ts_forecast_classification': time series forecasting for classification.
-    - 'ts_forecast_panel': time series forecasting for panel datasets (multiple time series).
+    <!-- - 'ts_forecast_panel': time series forecasting for panel datasets (multiple time series). -->
     - 'rank': learning to rank.
     - 'seq-classification': sequence classification.
     - 'seq-regression': sequence regression.
@@ -120,7 +120,7 @@ The estimator list can contain one or more estimator names, each corresponding t
     - 'arima': ARIMA for task "ts_forecast". Hyperparameters: p, d, q.
     - 'sarimax': SARIMAX for task "ts_forecast". Hyperparameters: p, d, q, P, D, Q, s.
     - 'transformer': Huggingface transformer models for task "seq-classification", "seq-regression", "multichoice-classification", "token-classification" and "summarization". Hyperparameters: learning_rate, num_train_epochs, per_device_train_batch_size, warmup_ratio, weight_decay, adam_epsilon, seed.
-    - 'temporal_fusion_transform': TemporalFusionTransformerEstimator for task "ts_forecast_panel". Hyperparameters: gradient_clip_val, hidden_size, hidden_continuous_size, attention_head_size, dropout, learning_rate.
+    <!-- - 'temporal_fusion_transform': TemporalFusionTransformerEstimator for task "ts_forecast_panel". Hyperparameters: gradient_clip_val, hidden_size, hidden_continuous_size, attention_head_size, dropout, learning_rate. -->
 * Custom estimator. Use custom estimator for:
     - tuning an estimator that is not built-in;
     - customizing search space for a built-in estimator.
