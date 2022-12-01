@@ -24,7 +24,7 @@ def test_regression():
     automl_settings["task"] = "seq-regression"
     automl_settings["metric"] = "pearsonr"
     automl_settings["starting_points"] = {"transformer": {"num_train_epochs": 1}}
-    automl_settings["use_ray"] = {"local_dir": "data/outut/"}
+    automl_settings["use_ray"] = {"local_dir": "data/output/"}
 
     ray.shutdown()
     ray.init()
