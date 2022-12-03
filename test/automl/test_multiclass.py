@@ -318,6 +318,34 @@ class TestMultiClass(unittest.TestCase):
         X_train, y_train = load_iris(return_X_y=True)
         automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
 
+    def test_roc_auc_ovr_weighted(self):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 1,
+            "metric": "roc_auc_ovr_weighted",
+            "task": "classification",
+            "log_file_name": "test/roc_auc_weighted.log",
+            "log_training_metric": True,
+            "n_jobs": 1,
+            "model_history": True,
+        }
+        X_train, y_train = load_iris(return_X_y=True)
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+
+    def test_roc_auc_ovo_weighted(self):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 1,
+            "metric": "roc_auc_ovo_weighted",
+            "task": "classification",
+            "log_file_name": "test/roc_auc_weighted.log",
+            "log_training_metric": True,
+            "n_jobs": 1,
+            "model_history": True,
+        }
+        X_train, y_train = load_iris(return_X_y=True)
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+
     def test_sparse_matrix_classification(self):
         automl_experiment = AutoML()
         automl_settings = {

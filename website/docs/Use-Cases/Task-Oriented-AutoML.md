@@ -59,6 +59,9 @@ The optimization metric is specified via the `metric` argument. It can be either
     - 'roc_auc': minimize 1 - roc_auc_score. Default metric for binary classification.
     - 'roc_auc_ovr': minimize 1 - roc_auc_score with `multi_class="ovr"`.
     - 'roc_auc_ovo': minimize 1 - roc_auc_score with `multi_class="ovo"`.
+    - 'roc_auc_weighted': minimize 1 - roc_auc_score with `average="weighted"`.
+    - 'roc_auc_ovr_weighted': minimize 1 - roc_auc_score with `multi_class="ovr"` and `average="weighted"`.
+    - 'roc_auc_ovo_weighted': minimize 1 - roc_auc_score with `multi_class="ovo"` and `average="weighted"`.
     - 'f1': minimize 1 - f1_score.
     - 'micro_f1': minimize 1 - f1_score with `average="micro"`.
     - 'macro_f1': minimize 1 - f1_score with `average="macro"`.
