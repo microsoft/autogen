@@ -54,6 +54,9 @@ sklearn_metric_name_set = {
     "roc_auc",
     "roc_auc_ovr",
     "roc_auc_ovo",
+    "roc_auc_weighted",
+    "roc_auc_ovr_weighted",
+    "roc_auc_ovo_weighted",
     "log_loss",
     "mape",
     "f1",
@@ -239,8 +242,8 @@ def sklearn_metric_loss_score(
     Args:
         metric_name: A string of the metric name, one of
             'r2', 'rmse', 'mae', 'mse', 'accuracy', 'roc_auc', 'roc_auc_ovr',
-            'roc_auc_ovo', 'log_loss', 'mape', 'f1', 'ap', 'ndcg',
-            'micro_f1', 'macro_f1'.
+            'roc_auc_ovo', 'roc_auc_weighted', 'roc_auc_ovo_weighted', 'roc_auc_ovr_weighted',
+            'log_loss', 'mape', 'f1', 'ap', 'ndcg', 'micro_f1', 'macro_f1'.
         y_predict: A 1d or 2d numpy array of the predictions which can be
             used to calculate the metric. E.g., 2d for log_loss and 1d
             for others.
@@ -275,6 +278,26 @@ def sklearn_metric_loss_score(
     elif metric_name == "roc_auc_ovo":
         score = 1.0 - roc_auc_score(
             y_true, y_predict, sample_weight=sample_weight, multi_class="ovo"
+        )
+    elif metric_name == "roc_auc_weighted":
+        score = 1.0 - roc_auc_score(
+            y_true, y_predict, sample_weight=sample_weight, average="weighted"
+        )
+    elif metric_name == "roc_auc_ovo_weighted":
+        score = 1.0 - roc_auc_score(
+            y_true,
+            y_predict,
+            sample_weight=sample_weight,
+            average="weighted",
+            multi_class="ovo",
+        )
+    elif metric_name == "roc_auc_ovr_weighted":
+        score = 1.0 - roc_auc_score(
+            y_true,
+            y_predict,
+            sample_weight=sample_weight,
+            average="weighted",
+            multi_class="ovr",
         )
     elif "log_loss" == metric_name:
         score = log_loss(y_true, y_predict, labels=labels, sample_weight=sample_weight)
@@ -318,10 +341,17 @@ def sklearn_metric_loss_score(
 
 
 def get_y_pred(estimator, X, eval_metric, obj):
-    if eval_metric in ["roc_auc", "ap"] and "binary" in obj:
+    if eval_metric in ["roc_auc", "ap", "roc_auc_weighted"] and "binary" in obj:
         y_pred_classes = estimator.predict_proba(X)
         y_pred = y_pred_classes[:, 1] if y_pred_classes.ndim > 1 else y_pred_classes
-    elif eval_metric in ["log_loss", "roc_auc", "roc_auc_ovr", "roc_auc_ovo"]:
+    elif eval_metric in [
+        "log_loss",
+        "roc_auc",
+        "roc_auc_ovr",
+        "roc_auc_ovo",
+        "roc_auc_ovo_weighted",
+        "roc_auc_ovr_weighted",
+    ]:
         y_pred = estimator.predict_proba(X)
     else:
         y_pred = estimator.predict(X)
