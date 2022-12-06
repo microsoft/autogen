@@ -380,6 +380,7 @@ class TestMultiClass(unittest.TestCase):
             "estimator_list": ["large_lgbm"],
             "log_type": "all",
             "hpo_method": "random",
+            "free_mem_ratio": 0.2,
         }
         X_train, y_train = load_iris(return_X_y=True, as_frame=True)
 

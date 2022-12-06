@@ -17,7 +17,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
         budget = performance_check_budget  # revise the buget on macos
     if budget == performance_check_budget:
         budget = None
-        max_iter = 100
+        max_iter = 60
     else:
         max_iter = None
     try:
@@ -44,6 +44,15 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
         "log_file_name": "airlines_experiment.log",  # flaml log file
         "seed": 7654321,  # random seed
         "hpo_method": hpo_method,
+        "log_type": "all",
+        "estimator_list": [
+            "lgbm",
+            "xgboost",
+            "xgb_limitdepth",
+            "rf",
+            "extra_tree",
+        ],  # list of ML learners
+        "eval_method": "holdout",
     }
     """The main flaml automl API"""
     automl.fit(X_train=X_train, y_train=y_train, **settings)
@@ -130,6 +139,7 @@ def test_mlflow():
         "task": "classification",  # task type
         "sample": False,  # whether to subsample training data
         "log_file_name": "adult.log",  # flaml log file
+        "learner_selector": "roundrobin",
     }
     mlflow.set_experiment("flaml")
     with mlflow.start_run() as run:

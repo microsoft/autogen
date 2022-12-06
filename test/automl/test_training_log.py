@@ -43,7 +43,7 @@ class TestTrainingLog(unittest.TestCase):
                 print(model0.params["n_estimators"], config)
 
                 # train on full data with no time limit
-                automl._state.time_budget = None
+                automl._state.time_budget = -1
                 model, _ = automl._state._train_with_config(estimator, config)
 
                 # assuming estimator & config are saved and loaded as follows

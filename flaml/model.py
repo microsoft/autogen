@@ -44,7 +44,7 @@ except ImportError:
     resource = None
 
 logger = logging.getLogger("flaml.automl")
-FREE_MEM_RATIO = 0.2
+# FREE_MEM_RATIO = 0.2
 
 
 def TimeoutHandler(sig, frame):
@@ -201,13 +201,14 @@ class BaseEstimator:
         self._model = model
         return train_time
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         """Train the model from given training data.
 
         Args:
             X_train: A numpy array or a dataframe of training data in shape n*m.
             y_train: A numpy array or a series of labels in shape n*1.
             budget: A float of the time budget in seconds.
+            free_mem_ratio: A float between 0 and 1 for the free memory ratio to keep during training.
 
         Returns:
             train_time: A float of the training time in seconds.
@@ -221,7 +222,7 @@ class BaseEstimator:
             mem = psutil.virtual_memory() if psutil is not None else None
             try:
                 with limit_resource(
-                    mem.available * (1 - FREE_MEM_RATIO)
+                    mem.available * (1 - free_mem_ratio)
                     + psutil.Process(os.getpid()).memory_info().rss
                     if mem is not None
                     else -1,
@@ -596,6 +597,7 @@ class TransformersEstimator(BaseEstimator):
         X_train: DataFrame,
         y_train: Series,
         budget=None,
+        free_mem_ratio=0,
         X_val=None,
         y_val=None,
         gpu_per_trial=None,
@@ -1036,7 +1038,7 @@ class LGBMEstimator(BaseEstimator):
         self._time_per_iter = None
         self._train_size = 0
         self._mem_per_iter = -1
-        self.HAS_CALLBACK = self.HAS_CALLBACK and self._callbacks(0, 0) is not None
+        self.HAS_CALLBACK = self.HAS_CALLBACK and self._callbacks(0, 0, 0) is not None
 
     def _preprocess(self, X):
         if (
@@ -1054,7 +1056,7 @@ class LGBMEstimator(BaseEstimator):
             X = X.to_numpy()
         return X
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         start_time = time.time()
         deadline = start_time + budget if budget else np.inf
         n_iter = self.params.get(self.ITER_HP, self.DEFAULT_ITER)
@@ -1118,7 +1120,7 @@ class LGBMEstimator(BaseEstimator):
                     )
                     if budget is not None
                     else n_iter,
-                    int((1 - FREE_MEM_RATIO) * mem0 / self._mem_per_iter)
+                    int((1 - free_mem_ratio) * mem0 / self._mem_per_iter)
                     if psutil is not None and self._mem_per_iter > 0
                     else n_iter,
                 )
@@ -1129,10 +1131,12 @@ class LGBMEstimator(BaseEstimator):
         if self.HAS_CALLBACK:
             kwargs_callbacks = kwargs.get("callbacks")
             if kwargs_callbacks:
-                callbacks = kwargs_callbacks + self._callbacks(start_time, deadline)
+                callbacks = kwargs_callbacks + self._callbacks(
+                    start_time, deadline, free_mem_ratio
+                )
                 kwargs.pop("callbacks")
             else:
-                callbacks = self._callbacks(start_time, deadline)
+                callbacks = self._callbacks(start_time, deadline, free_mem_ratio)
             if isinstance(self, XGBoostSklearnEstimator):
                 from xgboost import __version__
 
@@ -1162,10 +1166,10 @@ class LGBMEstimator(BaseEstimator):
         train_time = time.time() - start_time
         return train_time
 
-    def _callbacks(self, start_time, deadline) -> List[Callable]:
-        return [partial(self._callback, start_time, deadline)]
+    def _callbacks(self, start_time, deadline, free_mem_ratio) -> List[Callable]:
+        return [partial(self._callback, start_time, deadline, free_mem_ratio)]
 
-    def _callback(self, start_time, deadline, env) -> None:
+    def _callback(self, start_time, deadline, free_mem_ratio, env) -> None:
         from lightgbm.callback import EarlyStopException
 
         now = time.time()
@@ -1175,7 +1179,7 @@ class LGBMEstimator(BaseEstimator):
             raise EarlyStopException(env.iteration, env.evaluation_result_list)
         if psutil is not None:
             mem = psutil.virtual_memory()
-            if mem.available / mem.total < FREE_MEM_RATIO:
+            if mem.available / mem.total < free_mem_ratio:
                 raise EarlyStopException(env.iteration, env.evaluation_result_list)
 
 
@@ -1260,7 +1264,7 @@ class XGBoostEstimator(SKLearnEstimator):
         super().__init__(task, **config)
         self.params["verbosity"] = 0
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         import xgboost as xgb
 
         start_time = time.time()
@@ -1284,7 +1288,7 @@ class XGBoostEstimator(SKLearnEstimator):
             if "objective" in self.params:
                 del self.params["objective"]
         _n_estimators = self.params.pop("n_estimators")
-        callbacks = XGBoostEstimator._callbacks(start_time, deadline)
+        callbacks = XGBoostEstimator._callbacks(start_time, deadline, free_mem_ratio)
         if callbacks:
             self._model = xgb.train(
                 self.params,
@@ -1311,7 +1315,7 @@ class XGBoostEstimator(SKLearnEstimator):
         return super().predict(dtest, **kwargs)
 
     @classmethod
-    def _callbacks(cls, start_time, deadline):
+    def _callbacks(cls, start_time, deadline, free_mem_ratio):
         try:
             from xgboost.callback import TrainingCallback
         except ImportError:  # for xgboost<1.3
@@ -1326,7 +1330,7 @@ class XGBoostEstimator(SKLearnEstimator):
                     return True
                 if psutil is not None:
                     mem = psutil.virtual_memory()
-                    if mem.available / mem.total < FREE_MEM_RATIO:
+                    if mem.available / mem.total < free_mem_ratio:
                         return True
                 return False
 
@@ -1374,17 +1378,17 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
             self.estimator_class = xgb.XGBClassifier
         self._xgb_version = xgb.__version__
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         if issparse(X_train) and self._xgb_version < "1.6.0":
             # "auto" fails for sparse input since xgboost 1.6.0
             self.params["tree_method"] = "auto"
         if kwargs.get("gpu_per_trial"):
             self.params["tree_method"] = "gpu_hist"
             kwargs.pop("gpu_per_trial")
-        return super().fit(X_train, y_train, budget, **kwargs)
+        return super().fit(X_train, y_train, budget, free_mem_ratio, **kwargs)
 
-    def _callbacks(self, start_time, deadline) -> List[Callable]:
-        return XGBoostEstimator._callbacks(start_time, deadline)
+    def _callbacks(self, start_time, deadline, free_mem_ratio) -> List[Callable]:
+        return XGBoostEstimator._callbacks(start_time, deadline, free_mem_ratio)
 
 
 class XGBoostLimitDepthEstimator(XGBoostSklearnEstimator):
@@ -1459,6 +1463,8 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
             )
         if self._task not in CLASSIFICATION and "criterion" in config:
             params.pop("criterion")
+        if "random_state" not in params:
+            params["random_state"] = 12032022
         return params
 
     def __init__(
@@ -1627,7 +1633,7 @@ class CatBoostEstimator(BaseEstimator):
 
             self.estimator_class = CatBoostClassifier
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         start_time = time.time()
         deadline = start_time + budget if budget else np.inf
         train_dir = f"catboost_{str(start_time)}"
@@ -1665,7 +1671,7 @@ class CatBoostEstimator(BaseEstimator):
                 cat_features=cat_features,
                 eval_set=eval_set,
                 callbacks=CatBoostEstimator._callbacks(
-                    start_time, deadline, FREE_MEM_RATIO if use_best_model else None
+                    start_time, deadline, free_mem_ratio if use_best_model else None
                 ),
                 **kwargs,
             )
@@ -1791,7 +1797,7 @@ class Prophet(SKLearnEstimator):
         train_df = X_train.join(y_train)
         return train_df
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         from prophet import Prophet
 
         current_time = time.time()
@@ -1869,7 +1875,7 @@ class ARIMA(Prophet):
         train_df = train_df.drop(TS_TIMESTAMP_COL, axis=1)
         return train_df
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         import warnings
 
         warnings.filterwarnings("ignore")
@@ -1969,7 +1975,7 @@ class SARIMAX(ARIMA):
         }
         return space
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         import warnings
 
         warnings.filterwarnings("ignore")
@@ -2094,7 +2100,7 @@ class TS_SKLearn(SKLearnEstimator):
             model = self.hcrystaball_model.model.fit(X_fit, y_fit)
             self._model = model
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         current_time = time.time()
         self._fit(X_train, y_train, budget=budget, **kwargs)
         train_time = time.time() - current_time
@@ -2266,11 +2272,10 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
 
         return training, train_dataloader, val_dataloader
 
-    def fit(self, X_train, y_train, budget=None, **kwargs):
+    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         import warnings
         import pytorch_lightning as pl
         from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
-        from pytorch_lightning.loggers import TensorBoardLogger
         import torch
         from pytorch_forecasting import TemporalFusionTransformer
         from pytorch_forecasting.metrics import QuantileLoss
@@ -2287,7 +2292,6 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
         early_stop_callback = EarlyStopping(
             monitor="val_loss", min_delta=1e-4, patience=10, verbose=False, mode="min"
         )
-        lr_logger = LearningRateMonitor()  # log the learning rate
 
         def _fit(log):
             default_trainer_kwargs = dict(
@@ -2296,7 +2300,9 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
                 else None,
                 max_epochs=max_epochs,
                 gradient_clip_val=gradient_clip_val,
-                callbacks=[lr_logger, early_stop_callback] if log else False,
+                callbacks=[LearningRateMonitor(), early_stop_callback]
+                if log
+                else [early_stop_callback],
                 logger=log,
             )
             trainer = pl.Trainer(
@@ -2308,7 +2314,7 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
                 lstm_layers=2,  # 2 is mostly optimal according to documentation
                 output_size=7,  # 7 quantiles by default
                 loss=QuantileLoss(),
-                log_interval=10,
+                log_interval=10 if log else 0,
                 # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
                 reduce_on_plateau_patience=4,
             )
@@ -2320,15 +2326,17 @@ class TemporalFusionTransformerEstimator(SKLearnEstimator):
             )
             return trainer
 
-        try:
-            logger = TensorBoardLogger(
-                kwargs.get("log_dir", "lightning_logs")
-            )  # logging results to a tensorboard
-            trainer = _fit(log=logger)
-        except ValueError:
-            # issue with pytorch forecasting model log_prediction() function
-            # pytorch-forecasting issue #1145
-            trainer = _fit(log=False)
+        # try:
+        #     from pytorch_lightning.loggers import TensorBoardLogger
+
+        #     logger = TensorBoardLogger(
+        #         kwargs.get("log_dir", "lightning_logs")
+        #     )  # logging results to a tensorboard
+        #     trainer = _fit(log=logger)
+        # except ValueError:
+        # issue with pytorch forecasting model log_prediction() function
+        # pytorch-forecasting issue #1145
+        trainer = _fit(log=False)
         best_model_path = trainer.checkpoint_callback.best_model_path
         best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
         train_time = time.time() - current_time

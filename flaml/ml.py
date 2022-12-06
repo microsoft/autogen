@@ -432,6 +432,7 @@ def get_val_loss(
     budget=None,
     log_training_metric=False,
     fit_kwargs={},
+    free_mem_ratio=0,
 ):
 
     start = time.time()
@@ -439,7 +440,7 @@ def get_val_loss(
     #     fit_kwargs['groups_val'] = groups_val
     #     fit_kwargs['X_val'] = X_val
     #     fit_kwargs['y_val'] = y_val
-    estimator.fit(X_train, y_train, budget, **fit_kwargs)
+    estimator.fit(X_train, y_train, budget, free_mem_ratio, **fit_kwargs)
     val_loss, metric_for_logging, pred_time, _ = _eval_estimator(
         config,
         estimator,
@@ -494,6 +495,7 @@ def evaluate_model_CV(
     cv_score_agg_func=None,
     log_training_metric=False,
     fit_kwargs={},
+    free_mem_ratio=0,
 ):
     if cv_score_agg_func is None:
         cv_score_agg_func = default_cv_score_agg_func
@@ -524,7 +526,7 @@ def evaluate_model_CV(
     else:
         kf = kf.split(X_train_split)
     rng = np.random.RandomState(2020)
-    budget_per_train = budget / n
+    budget_per_train = budget and budget / n
     if "sample_weight" in fit_kwargs:
         weight = fit_kwargs["sample_weight"]
         weight_val = None
@@ -565,6 +567,7 @@ def evaluate_model_CV(
             budget_per_train,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
+            free_mem_ratio=free_mem_ratio,
         )
         if isinstance(metric_i, dict) and "intermediate_results" in metric_i.keys():
             del metric_i["intermediate_results"]
@@ -575,7 +578,7 @@ def evaluate_model_CV(
         log_metric_folds.append(metric_i)
         train_time += train_time_i
         pred_time += pred_time_i
-        if time.time() - start_time >= budget:
+        if budget and time.time() - start_time >= budget:
             break
     val_loss, metric = cv_score_agg_func(val_loss_folds, log_metric_folds)
     n = total_fold_num
@@ -603,6 +606,7 @@ def compute_estimator(
     cv_score_agg_func=None,
     log_training_metric=False,
     fit_kwargs={},
+    free_mem_ratio=0,
 ):
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
     estimator = estimator_class(
@@ -635,6 +639,7 @@ def compute_estimator(
             budget=budget,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
+            free_mem_ratio=0,
         )
     else:
         val_loss, metric_for_logging, train_time, pred_time = evaluate_model_CV(
@@ -650,6 +655,7 @@ def compute_estimator(
             cv_score_agg_func,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
+            free_mem_ratio=0,
         )
 
     if isinstance(estimator, TransformersEstimator):
@@ -669,6 +675,7 @@ def train_estimator(
     budget=None,
     fit_kwargs={},
     eval_metric=None,
+    free_mem_ratio=0,
 ):
     start_time = time.time()
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
@@ -681,7 +688,9 @@ def train_estimator(
         fit_kwargs["metric"] = eval_metric
 
     if X_train is not None:
-        train_time = estimator.fit(X_train, y_train, budget, **fit_kwargs)
+        train_time = estimator.fit(
+            X_train, y_train, budget, free_mem_ratio, **fit_kwargs
+        )
     else:
         estimator = estimator.estimator_class(**estimator.params)
     train_time = time.time() - start_time

@@ -146,7 +146,6 @@ class BlendSearch(Searcher):
                 self.cost_attr = None
         else:
             self.cost_attr = cost_attr
-
         self.penalty = PENALTY  # penalty term for constraints
         self._metric, self._mode = metric, mode
         self._use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
@@ -310,7 +309,7 @@ class BlendSearch(Searcher):
                 self._time_used += now - self._start_time
                 self._start_time = now
                 self._set_deadline()
-                if self._input_cost_attr == "auto":
+                if self._input_cost_attr == "auto" and self._time_budget_s:
                     self.cost_attr = self._ls.cost_attr = TIME_TOTAL_S
             if "metric_target" in spec:
                 self._metric_target = spec.get("metric_target")
