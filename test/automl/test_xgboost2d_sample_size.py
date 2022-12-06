@@ -3,7 +3,7 @@ import unittest
 from sklearn.datasets import fetch_openml
 from sklearn.model_selection import train_test_split
 from flaml.automl import AutoML
-from flaml.model import XGBoostSklearnEstimator
+from flaml.automl.model import XGBoostSklearnEstimator
 from flaml import tune
 
 

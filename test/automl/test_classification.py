@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from datetime import datetime
 from flaml import AutoML
-from flaml.model import LGBMEstimator
+from flaml.automl.model import LGBMEstimator
 from flaml import tune
 
 

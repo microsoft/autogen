@@ -19,7 +19,6 @@ def custom_metric(
     groups_train=None,
 ):
     from datasets import Dataset
-    from flaml.model import TransformersEstimator
 
     if estimator._trainer is None:
         trainer = estimator._init_model_for_predict()

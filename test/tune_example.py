@@ -1,5 +1,5 @@
 from flaml import tune
-from flaml.model import LGBMEstimator
+from flaml.automl.model import LGBMEstimator
 import lightgbm
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import fetch_california_housing

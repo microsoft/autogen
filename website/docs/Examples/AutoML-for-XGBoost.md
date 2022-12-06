@@ -13,7 +13,7 @@ This option is not necessary in general.
 
 ```python
 from flaml import AutoML
-from flaml.data import load_openml_dataset
+from flaml.automl.data import load_openml_dataset
 
 # Download [houses dataset](https://www.openml.org/d/537) from OpenML. The task is to predict median price of the house in the region based on demographic composition and a state of housing market in the region.
 X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=537, data_dir='./')
@@ -25,7 +25,7 @@ settings = {
     "estimator_list": ['xgboost'],  # list of ML learners; we tune XGBoost in this example
     "task": 'regression',  # task type
     "log_file_name": 'houses_experiment.log',  # flaml log file
-    "seed": 7654321,    # random seed
+    "seed": 7654321,  # random seed
 }
 automl.fit(X_train=X_train, y_train=y_train, **settings)
 ```
@@ -143,7 +143,8 @@ print('Predicted labels', y_pred)
 #### Compute different metric values on testing dataset
 
 ```python
-from flaml.ml import sklearn_metric_loss_score
+from flaml.automl.ml import sklearn_metric_loss_score
+
 print('r2', '=', 1 - sklearn_metric_loss_score('r2', y_pred, y_test))
 print('mse', '=', sklearn_metric_loss_score('mse', y_pred, y_test))
 print('mae', '=', sklearn_metric_loss_score('mae', y_pred, y_test))
@@ -160,7 +161,8 @@ from xgboost import XGBRegressor
 xgb = XGBRegressor()
 xgb.fit(X_train, y_train)
 y_pred = xgb.predict(X_test)
-from flaml.ml import sklearn_metric_loss_score
+from flaml.automl.ml import sklearn_metric_loss_score
+
 print('default xgboost r2', '=', 1 - sklearn_metric_loss_score('r2', y_pred, y_test))
 # default xgboost r2 = 0.8265451174596482
 ```
@@ -170,10 +172,10 @@ print('default xgboost r2', '=', 1 - sklearn_metric_loss_score('r2', y_pred, y_t
 How does the model accuracy improve as we search for different hyperparameter configurations?
 
 ```python
-from flaml.data import get_output_from_log
+from flaml.automl.data import get_output_from_log
 import numpy as np
 
-time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history = \
+time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history =
     get_output_from_log(filename=settings['log_file_name'], time_budget=60)
 plt.title('Learning Curve')
 plt.xlabel('Wall Clock Time (s)')
@@ -190,15 +192,18 @@ You can easily enable a custom objective function by adding a customized XGBoost
 ```python
 import numpy as np
 
+
 # define your customized objective function
 def logregobj(preds, dtrain):
     labels = dtrain.get_label()
-    preds = 1.0 / (1.0 + np.exp(-preds)) # transform raw leaf weight
+    preds = 1.0 / (1.0 + np.exp(-preds))  # transform raw leaf weight
     grad = preds - labels
     hess = preds * (1.0 - preds)
     return grad, hess
 
-from flaml.model import XGBoostEstimator
+
+from flaml.automl.model import XGBoostEstimator
+
 
 class MyXGB1(XGBoostEstimator):
     '''XGBoostEstimator with the logregobj function as the objective function
@@ -206,6 +211,7 @@ class MyXGB1(XGBoostEstimator):
 
     def __init__(self, **config):
         super().__init__(objective=logregobj, **config)
+
 
 class MyXGB2(XGBoostEstimator):
     '''XGBoostEstimator with 'reg:squarederror' as the objective function

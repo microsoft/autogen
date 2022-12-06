@@ -13,7 +13,7 @@ This option is not necessary in general.
 
 ```python
 from flaml import AutoML
-from flaml.data import load_openml_dataset
+from flaml.automl.data import load_openml_dataset
 
 # Download [houses dataset](https://www.openml.org/d/537) from OpenML. The task is to predict median price of the house in the region based on demographic composition and a state of housing market in the region.
 X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=537, data_dir='./')
@@ -25,7 +25,7 @@ settings = {
     "estimator_list": ['lgbm'],  # list of ML learners; we tune lightgbm in this example
     "task": 'regression',  # task type
     "log_file_name": 'houses_experiment.log',  # flaml log file
-    "seed": 7654321,    # random seed
+    "seed": 7654321,  # random seed
 }
 automl.fit(X_train=X_train, y_train=y_train, **settings)
 ```
@@ -114,7 +114,8 @@ print('Predicted labels', y_pred)
 #### Compute different metric values on testing dataset
 
 ```python
-from flaml.ml import sklearn_metric_loss_score
+from flaml.automl.ml import sklearn_metric_loss_score
+
 print('r2', '=', 1 - sklearn_metric_loss_score('r2', y_pred, y_test))
 print('mse', '=', sklearn_metric_loss_score('mse', y_pred, y_test))
 print('mae', '=', sklearn_metric_loss_score('mae', y_pred, y_test))
@@ -131,7 +132,8 @@ from lightgbm import LGBMRegressor
 lgbm = LGBMRegressor()
 lgbm.fit(X_train, y_train)
 y_pred = lgbm.predict(X_test)
-from flaml.ml import sklearn_metric_loss_score
+from flaml.automl.ml import sklearn_metric_loss_score
+
 print('default lgbm r2', '=', 1 - sklearn_metric_loss_score('r2', y_pred, y_test))
 # default lgbm r2 = 0.8296179648694404
 ```
@@ -141,10 +143,10 @@ print('default lgbm r2', '=', 1 - sklearn_metric_loss_score('r2', y_pred, y_test
 How does the model accuracy improve as we search for different hyperparameter configurations?
 
 ```python
-from flaml.data import get_output_from_log
+from flaml.automl.data import get_output_from_log
 import numpy as np
 
-time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history = \
+time_history, best_valid_loss_history, valid_loss_history, config_history, metric_history =
     get_output_from_log(filename=settings['log_file_name'], time_budget=60)
 plt.title('Learning Curve')
 plt.xlabel('Wall Clock Time (s)')
@@ -163,11 +165,12 @@ The native API of LightGBM allows one to specify a custom objective function in 
 ```python
 import numpy as np
 
+
 # define your customized objective function
 def my_loss_obj(y_true, y_pred):
     c = 0.5
     residual = y_pred - y_true
-    grad = c * residual /(np.abs(residual) + c)
+    grad = c * residual / (np.abs(residual) + c)
     hess = c ** 2 / (np.abs(residual) + c) ** 2
     # rmse grad and hess
     grad_rmse = residual
@@ -180,10 +183,12 @@ def my_loss_obj(y_true, y_pred):
     hess_mae = 1.0
 
     coef = [0.4, 0.3, 0.3]
-    return coef[0] * grad + coef[1] * grad_rmse + coef[2] * grad_mae, \
-        coef[0] * hess + coef[1] * hess_rmse + coef[2] * hess_mae
+    return coef[0] * grad + coef[1] * grad_rmse + coef[2] * grad_mae,
+           coef[0] * hess + coef[1] * hess_rmse + coef[2] * hess_mae
 
-from flaml.model import LGBMEstimator
+
+from flaml.automl.model import LGBMEstimator
+
 
 class MyLGBM(LGBMEstimator):
     """LGBMEstimator with my_loss_obj as the objective function"""

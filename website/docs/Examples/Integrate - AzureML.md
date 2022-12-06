@@ -27,7 +27,7 @@ mlflow.set_tracking_uri(ws.get_mlflow_tracking_uri())
 ### Start an AutoML run
 
 ```python
-from flaml.data import load_openml_dataset
+from flaml.automl.data import load_openml_dataset
 from flaml import AutoML
 
 # Download [Airlines dataset](https://www.openml.org/d/1169) from OpenML. The task is to predict whether a given flight will be delayed, given the information of the scheduled departure.

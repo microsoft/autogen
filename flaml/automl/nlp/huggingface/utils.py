@@ -2,7 +2,7 @@ import pandas as pd
 from itertools import chain
 import numpy as np
 
-from ...data import (
+from flaml.automl.data import (
     SUMMARIZATION,
     SEQREGRESSION,
     SEQCLASSIFICATION,

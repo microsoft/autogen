@@ -84,6 +84,7 @@ tune.run(evaluation_function, config={…}, low_cost_partial_config={…}, time_
 
 ```python
 from flaml.default import LGBMRegressor
+
 # Use LGBMRegressor in the same way as you use lightgbm.LGBMRegressor.
 estimator = LGBMRegressor()
 # The hyperparameters are automatically set according to the training data.

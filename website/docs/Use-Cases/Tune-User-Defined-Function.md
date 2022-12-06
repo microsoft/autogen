@@ -339,7 +339,8 @@ In the following code example, we consider the sample size as the resource dimen
 ```python
 from flaml import tune
 from functools import partial
-from flaml.data import load_openml_task
+from flaml.automl.data import load_openml_task
+
 
 def obj_from_resource_attr(resource_attr, X_train, X_test, y_train, y_test, config):
     from lightgbm import LGBMClassifier
@@ -362,13 +363,14 @@ def obj_from_resource_attr(resource_attr, X_train, X_test, y_train, y_test, conf
     test_loss = 1.0 - accuracy_score(y_test, y_test_predict)
     return {resource_attr: resource, "loss": test_loss}
 
+
 X_train, X_test, y_train, y_test = load_openml_task(task_id=7592, data_dir="test/")
 max_resource = len(y_train)
 resource_attr = "sample_size"
 min_resource = 1000
 analysis = tune.run(
     partial(obj_from_resource_attr, resource_attr, X_train, X_test, y_train, y_test),
-    config = {
+    config={
         "n_estimators": tune.lograndint(lower=4, upper=32768),
         "max_leaves": tune.lograndint(lower=4, upper=32768),
         "learning_rate": tune.loguniform(lower=1 / 1024, upper=1.0),

@@ -44,7 +44,8 @@ You can run generic hyperparameter tuning for a custom function (machine learnin
 
 ```python
 from flaml import tune
-from flaml.model import LGBMEstimator
+from flaml.automl.model import LGBMEstimator
+
 
 def train_lgbm(config: dict) -> dict:
     # convert config dict to lgbm params
@@ -57,6 +58,7 @@ def train_lgbm(config: dict) -> dict:
     mse = mean_squared_error(y_test, pred)
     # return eval results as a dictionary
     return {"mse": mse}
+
 
 # load a built-in search space from flaml
 flaml_lgbm_search_space = LGBMEstimator.search_space(X_train.shape)
@@ -92,7 +94,7 @@ Then, you can use it just like you use the original `LGMBClassifier`. Your other
 * Find code examples under "Examples": from [AutoML - Classification](Examples/AutoML-Classification) to [Tune - PyTorch](Examples/Tune-PyTorch).
 * Find [talks](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A) and [tutorials](https://github.com/microsoft/FLAML/tree/tutorial/tutorial) about FLAML.
 * Learn about [research](Research) around FLAML.
-* Refer to [SDK](reference/automl) and [FAQ](FAQ).
+* Refer to [SDK](reference/automl/automl) and [FAQ](FAQ).
 
 If you like our project, please give it a [star](https://github.com/microsoft/FLAML/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](Contribute).
 

@@ -22,13 +22,13 @@ from sklearn.base import BaseEstimator
 import pandas as pd
 import logging
 import json
-from .ml import (
+from flaml.automl.ml import (
     compute_estimator,
     train_estimator,
     get_estimator_class,
     get_classification_objective,
 )
-from .config import (
+from flaml.config import (
     MIN_SAMPLE_TRAIN,
     MEM_THRES,
     RANDOM_SEED,
@@ -38,7 +38,7 @@ from .config import (
     N_SPLITS,
     SAMPLE_MULTIPLY_FACTOR,
 )
-from .data import (
+from flaml.automl.data import (
     concat,
     CLASSIFICATION,
     TOKENCLASSIFICATION,
@@ -50,9 +50,10 @@ from .data import (
     _is_nlp_task,
     NLG_TASKS,
 )
-from . import tune
-from .training_log import training_log_reader, training_log_writer
-from flaml.default.suggest import suggest_learner
+from flaml import tune
+from flaml.automl.training_log import training_log_reader, training_log_writer
+from flaml.default import suggest_learner
+from flaml.version import __version__ as flaml_version
 
 logger = logging.getLogger(__name__)
 logger_formatter = logging.Formatter(
@@ -78,7 +79,7 @@ class SearchState:
         )
 
     def valid_starting_point_one_dim(self, value_one_dim, domain_one_dim):
-        from .tune.space import sample
+        from flaml.tune.space import sample
 
         """
             For each hp in the starting point, check the following 3 conditions:
@@ -500,7 +501,7 @@ class AutoML(BaseEstimator):
 
     """
 
-    from .version import __version__
+    __version__ = flaml_version
 
     def __init__(self, **settings):
         """Constructor.
@@ -640,7 +641,7 @@ class AutoML(BaseEstimator):
             seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
-                [parallel tuning](../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
+                [parallel tuning](../../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray is required: `pip install flaml[ray]`.
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
@@ -671,7 +672,7 @@ class AutoML(BaseEstimator):
                 the metrics_to_log dictionary returned by a customized metric function.
                 The customized metric function shall be provided via the `metric` key word
                 argument of the fit() function or the automl constructor.
-                Find an example in the 4th constraint type in this [doc](../Use-Cases/Task-Oriented-AutoML#constraint).
+                Find an example in the 4th constraint type in this [doc](../../Use-Cases/Task-Oriented-AutoML#constraint).
                 If `pred_time_limit` is provided as one of keyword arguments to fit() function or
                 the automl constructor, flaml will automatically (and under the hood)
                 add it as an additional element in the metric_constraints. Essentially 'pred_time_limit'
@@ -2336,7 +2337,7 @@ class AutoML(BaseEstimator):
             seed: int or None, default=None | The random seed for hpo.
             n_concurrent_trials: [Experimental] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
-                [parallel tuning](../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
+                [parallel tuning](../../Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray is required: `pip install flaml[ray]`.
             keep_search_state: boolean, default=False | Whether to keep data needed
                 for model search after fit(). By default the state is deleted for
@@ -2699,7 +2700,9 @@ class AutoML(BaseEstimator):
             )
         if "auto" == metric:
             if _is_nlp_task(self._state.task):
-                from .nlp.utils import load_default_huggingface_metric_for_task
+                from flaml.automl.nlp.utils import (
+                    load_default_huggingface_metric_for_task,
+                )
 
                 metric = load_default_huggingface_metric_for_task(self._state.task)
             elif "binary" in self._state.task:
@@ -2734,7 +2737,7 @@ class AutoML(BaseEstimator):
             ]:
                 return True, f"1-{metric}"
             if _is_nlp_task(task):
-                from .ml import huggingface_metric_to_mode
+                from flaml.automl.ml import huggingface_metric_to_mode
 
                 if (
                     metric in huggingface_metric_to_mode

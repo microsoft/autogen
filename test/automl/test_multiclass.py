@@ -3,10 +3,10 @@ import numpy as np
 import scipy.sparse
 from sklearn.datasets import load_iris, load_wine
 from flaml import AutoML
-from flaml.data import CLASSIFICATION, get_output_from_log
-from flaml.model import LGBMEstimator, XGBoostSklearnEstimator, SKLearnEstimator
+from flaml.automl.data import CLASSIFICATION, get_output_from_log
+from flaml.automl.model import LGBMEstimator, XGBoostSklearnEstimator, SKLearnEstimator
 from flaml import tune
-from flaml.training_log import training_log_reader
+from flaml.automl.training_log import training_log_reader
 
 
 class MyRegularizedGreedyForest(SKLearnEstimator):
@@ -280,7 +280,7 @@ class TestMultiClass(unittest.TestCase):
         estimator = automl_experiment_macro.model
         y_pred = estimator.predict(X_train)
         y_pred_proba = estimator.predict_proba(X_train)
-        from flaml.ml import norm_confusion_matrix, multi_class_curves
+        from flaml.automl.ml import norm_confusion_matrix, multi_class_curves
 
         print(norm_confusion_matrix(y_train, y_pred))
         from sklearn.metrics import roc_curve, precision_recall_curve
