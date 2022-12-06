@@ -42,6 +42,7 @@ setuptools.setup(
         "notebook": [
             "jupyter",
             "matplotlib",
+            "openml==0.10.2",
         ],
         "test": [
             "flake8>=3.8.4",

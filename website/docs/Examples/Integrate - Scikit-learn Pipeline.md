@@ -1,5 +1,7 @@
 As FLAML's AutoML module can be used a transformer in the Sklearn's pipeline we can get all the benefits of pipeline.
 
+This example requires openml==0.10.2.
+
 ### Load data
 
 ```python

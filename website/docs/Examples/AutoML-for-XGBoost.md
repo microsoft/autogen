@@ -1,5 +1,14 @@
 # AutoML for XGBoost
 
+### Prerequisites for this example
+
+Install the [notebook] option.
+```bash
+pip install "flaml[notebook]"
+```
+
+This option is not necessary in general.
+
 ### Use built-in XGBoostSklearnEstimator
 
 ```python
