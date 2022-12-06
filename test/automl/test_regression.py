@@ -6,8 +6,8 @@ from sklearn.datasets import (
 )
 
 from flaml import AutoML
-from flaml.data import get_output_from_log
-from flaml.model import XGBoostEstimator
+from flaml.automl.data import get_output_from_log
+from flaml.automl.model import XGBoostEstimator
 
 
 def logregobj(preds, dtrain):

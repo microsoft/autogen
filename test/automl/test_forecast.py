@@ -58,12 +58,12 @@ def test_forecast_automl(budget=5):
     print("Predicted labels", y_pred)
     print("True labels", y_test)
     """ compute different metric values on testing dataset"""
-    from flaml.ml import sklearn_metric_loss_score
+    from flaml.automl.ml import sklearn_metric_loss_score
 
     mape = sklearn_metric_loss_score("mape", y_pred, y_test)
     print("mape", "=", mape)
     assert mape <= 0.005, "the mape of flaml should be less than 0.005"
-    from flaml.data import get_output_from_log
+    from flaml.automl.data import get_output_from_log
 
     (
         time_history,
@@ -212,10 +212,10 @@ def test_multivariate_forecast_num(budget=5):
     print("Predicted labels", y_pred)
     print("True labels", y_test)
     """ compute different metric values on testing dataset"""
-    from flaml.ml import sklearn_metric_loss_score
+    from flaml.automl.ml import sklearn_metric_loss_score
 
     print("mape", "=", sklearn_metric_loss_score("mape", y_pred, y_test))
-    from flaml.data import get_output_from_log
+    from flaml.automl.data import get_output_from_log
 
     (
         time_history,
@@ -339,13 +339,13 @@ def test_multivariate_forecast_cat(budget=5):
     print("Predicted labels", y_pred)
     print("True labels", y_test)
     """ compute different metric values on testing dataset"""
-    from flaml.ml import sklearn_metric_loss_score
+    from flaml.automl.ml import sklearn_metric_loss_score
 
     print("mape", "=", sklearn_metric_loss_score("mape", y_pred, y_test))
     print("rmse", "=", sklearn_metric_loss_score("rmse", y_pred, y_test))
     print("mse", "=", sklearn_metric_loss_score("mse", y_pred, y_test))
     print("mae", "=", sklearn_metric_loss_score("mae", y_pred, y_test))
-    from flaml.data import get_output_from_log
+    from flaml.automl.data import get_output_from_log
 
     (
         time_history,
@@ -413,12 +413,12 @@ def test_forecast_classification(budget=5):
     """ compute predictions of testing dataset """
     y_pred = automl.predict(X_test)
     """ compute different metric values on testing dataset"""
-    from flaml.ml import sklearn_metric_loss_score
+    from flaml.automl.ml import sklearn_metric_loss_score
 
     print(y_test)
     print(y_pred)
     print("accuracy", "=", 1 - sklearn_metric_loss_score("accuracy", y_pred, y_test))
-    from flaml.data import get_output_from_log
+    from flaml.automl.data import get_output_from_log
 
     (
         time_history,
@@ -554,7 +554,7 @@ def test_forecast_panel(budget=5):
     """ compute predictions of testing dataset """
     y_pred = automl.predict(X_test)
     """ compute different metric values on testing dataset"""
-    from flaml.ml import sklearn_metric_loss_score
+    from flaml.automl.ml import sklearn_metric_loss_score
 
     print(y_test)
     print(y_pred)
@@ -575,7 +575,7 @@ def test_forecast_panel(budget=5):
     # """compute prediction for a specific time series"""
     # a01_sku01_preds = automl.predict(X_test[(X_test["agency"] == "Agency_01") & (X_test["sku"] == "SKU_01")])
     # print("Agency01 SKU_01 predictions: ", a01_sku01_preds)
-    from flaml.data import get_output_from_log
+    from flaml.automl.data import get_output_from_log
 
     (
         time_history,

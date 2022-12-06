@@ -5,7 +5,7 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from flaml import tune
-from flaml.model import LGBMEstimator
+from flaml.automl.model import LGBMEstimator
 
 
 def train_breast_cancer(config):

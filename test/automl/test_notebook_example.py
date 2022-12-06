@@ -4,7 +4,7 @@ from requests.exceptions import ChunkedEncodingError, SSLError
 
 
 def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
-    from flaml.data import load_openml_dataset
+    from flaml.automl.data import load_openml_dataset
     import urllib3
 
     performance_check_budget = 600
@@ -77,7 +77,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     print("True labels", y_test)
     y_pred_proba = automl.predict_proba(X_test)[:, 1]
     """ compute different metric values on testing dataset """
-    from flaml.ml import sklearn_metric_loss_score
+    from flaml.automl.ml import sklearn_metric_loss_score
 
     accuracy = 1 - sklearn_metric_loss_score("accuracy", y_pred, y_test)
     print("accuracy", "=", accuracy)
@@ -87,7 +87,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     print("log_loss", "=", sklearn_metric_loss_score("log_loss", y_pred_proba, y_test))
     if budget is None:
         assert accuracy >= 0.669, "the accuracy of flaml should be larger than 0.67"
-    from flaml.data import get_output_from_log
+    from flaml.automl.data import get_output_from_log
 
     (
         time_history,
@@ -119,7 +119,7 @@ def _test_nobudget():
 def test_mlflow():
     # subprocess.check_call([sys.executable, "-m", "pip", "install", "mlflow"])
     import mlflow
-    from flaml.data import load_openml_task
+    from flaml.automl.data import load_openml_task
 
     try:
         X_train, X_test, y_train, y_test = load_openml_task(

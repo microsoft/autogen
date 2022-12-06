@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from sklearn.datasets import fetch_california_housing
 
 from flaml import AutoML
-from flaml.training_log import training_log_reader
+from flaml.automl.training_log import training_log_reader
 
 
 class TestTrainingLog(unittest.TestCase):

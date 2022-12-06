@@ -2,7 +2,7 @@ from sklearn.datasets import make_classification
 import numpy as np
 from pandas import DataFrame
 from datetime import datetime
-from flaml.model import (
+from flaml.automl.model import (
     KNeighborsEstimator,
     LRL2Classifier,
     BaseEstimator,

@@ -1,5 +1,5 @@
 def test_load_args_sub():
-    from flaml.nlp.utils import TrainingArgumentsForAuto
+    from flaml.automl.nlp.huggingface.training_args import TrainingArgumentsForAuto
 
     TrainingArgumentsForAuto.load_args_from_console()
 

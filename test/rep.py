@@ -1,5 +1,5 @@
-from flaml.data import load_openml_dataset
-from flaml.ml import ExtraTreesEstimator
+from flaml.automl.data import load_openml_dataset
+from flaml.automl.ml import ExtraTreesEstimator
 from flaml import AutoML
 
 X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=1169, data_dir="./")

@@ -9,9 +9,9 @@ This example requires openml==0.10.2.
 ### Zero-shot AutoML
 
 ```python
-from flaml.data import load_openml_dataset
+from flaml.automl.data import load_openml_dataset
 from flaml.default import LGBMRegressor
-from flaml.ml import sklearn_metric_loss_score
+from flaml.automl.ml import sklearn_metric_loss_score
 
 X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=537, data_dir="./")
 lgbm = LGBMRegressor()
@@ -65,9 +65,9 @@ X_test.shape: (5160, 8), y_test.shape: (5160,)
 ### Zero-shot AutoML
 
 ```python
-from flaml.data import load_openml_dataset
+from flaml.automl.data import load_openml_dataset
 from flaml.default import XGBClassifier
-from flaml.ml import sklearn_metric_loss_score
+from flaml.automl.ml import sklearn_metric_loss_score
 
 X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=1169, data_dir="./")
 xgb = XGBClassifier()
