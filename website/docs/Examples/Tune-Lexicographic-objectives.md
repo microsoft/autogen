@@ -6,6 +6,7 @@
 pip install "flaml>=1.1.0" thop torchvision torch
 ```
 Tuning multiple objectives with Lexicographic preference is a new feature added in version 1.1.0 and is subject to change in future versions.
+
 ## Tuning accurate and efficient neural networks with lexicographic preference
 
 ### Data
