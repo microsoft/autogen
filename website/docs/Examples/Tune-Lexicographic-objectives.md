@@ -5,7 +5,7 @@
 ```python
 pip install "flaml>=1.1.0" thop torchvision torch
 ```
-
+This is a new feature that will be released in version 1.1.0 and is subject to change in the future version.
 ## Tuning accurate and efficient neural networks with lexicographic preference
 
 ### Data
