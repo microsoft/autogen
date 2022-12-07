@@ -235,7 +235,7 @@ class SearchState:
             n_iter = (
                 trained_estimator
                 and hasattr(trained_estimator, "ITER_HP")
-                and trained_estimator.params[trained_estimator.ITER_HP]
+                and trained_estimator.params.get(trained_estimator.ITER_HP)
             )
             if n_iter:
                 config[trained_estimator.ITER_HP] = n_iter
