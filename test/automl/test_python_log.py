@@ -96,7 +96,7 @@ class TestLogging(unittest.TestCase):
             )
             print(min(trial.last_result["val_loss"] for trial in analysis.trials))
             config = analysis.trials[-1].last_result["config"]["ml"]
-            automl._state._train_with_config(config["learner"], config)
+            automl._state._train_with_config(config.pop("learner"), config)
             for _ in range(3):
                 print(
                     search_alg._ls.complete_config(

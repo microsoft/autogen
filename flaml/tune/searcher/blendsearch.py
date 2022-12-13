@@ -653,10 +653,11 @@ class BlendSearch(Searcher):
         for key in upper:
             ub = upper[key]
             if isinstance(ub, list):
-                choice = space[key]["_choice_"]
-                self._expand_admissible_region(
-                    lower[key][choice], upper[key][choice], space[key]
-                )
+                choice = space[key].get("_choice_")
+                if choice:
+                    self._expand_admissible_region(
+                        lower[key][choice], upper[key][choice], space[key]
+                    )
             elif isinstance(ub, dict):
                 self._expand_admissible_region(lower[key], ub, space[key])
             else:
