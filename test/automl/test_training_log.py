@@ -40,7 +40,9 @@ class TestTrainingLog(unittest.TestCase):
             if automl.best_estimator:
                 estimator, config = automl.best_estimator, automl.best_config
                 model0 = automl.best_model_for_estimator(estimator)
-                print(model0.params["n_estimators"], config)
+                print(model0.params)
+                if "n_estimators" in config:
+                    assert model0.params["n_estimators"] == config["n_estimators"]
 
                 # train on full data with no time limit
                 automl._state.time_budget = -1

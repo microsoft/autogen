@@ -141,31 +141,34 @@ class SearchState:
         if custom_hp is not None:
             search_space.update(custom_hp)
 
-        if (
-            isinstance(starting_point, dict)
-            and max_iter
-            > 1  # If the number of starting point is larger than max iter, avoid the checking
-            and not self.valid_starting_point(starting_point, search_space)
-        ):
-            logger.warning(
-                "Starting point {} removed because it is outside of the search space".format(
-                    starting_point
-                )
-            )
-            starting_point = None
-        elif isinstance(starting_point, list) and max_iter > len(
-            starting_point
-        ):  # If the number of starting point is larger than max iter, avoid the checking
-            starting_point_len = len(starting_point)
-            starting_point = [
-                x for x in starting_point if self.valid_starting_point(x, search_space)
-            ]
-            if starting_point_len > len(starting_point):
+        if isinstance(starting_point, dict):
+            starting_point = AutoMLState.sanitize(starting_point)
+            if max_iter > 1 and not self.valid_starting_point(
+                starting_point, search_space
+            ):
+                # If the number of iterations is larger than 1, remove invalid point
                 logger.warning(
-                    "Starting points outside of the search space are removed. "
-                    f"Remaining starting points for {learner_class}: {starting_point}"
+                    "Starting point {} removed because it is outside of the search space".format(
+                        starting_point
+                    )
                 )
-            starting_point = starting_point or None
+                starting_point = None
+        elif isinstance(starting_point, list):
+            starting_point = [AutoMLState.sanitize(x) for x in starting_point]
+            if max_iter > len(starting_point):
+                # If the number of starting points is no smaller than max iter, avoid the checking
+                starting_point_len = len(starting_point)
+                starting_point = [
+                    x
+                    for x in starting_point
+                    if self.valid_starting_point(x, search_space)
+                ]
+                if starting_point_len > len(starting_point):
+                    logger.warning(
+                        "Starting points outside of the search space are removed. "
+                        f"Remaining starting points for {learner_class}: {starting_point}"
+                    )
+                starting_point = starting_point or None
 
         for name, space in search_space.items():
             assert (
@@ -238,7 +241,10 @@ class SearchState:
                 and trained_estimator.params.get(trained_estimator.ITER_HP)
             )
             if n_iter:
-                config[trained_estimator.ITER_HP] = n_iter
+                if "ml" in config:
+                    config["ml"][trained_estimator.ITER_HP] = n_iter
+                else:
+                    config[trained_estimator.ITER_HP] = n_iter
         else:
             obj, time2eval, trained_estimator = np.inf, 0.0, None
             metric_for_logging = config = None
@@ -404,13 +410,13 @@ class AutoMLState:
         tune.report(**result)
         return result
 
-    def sanitize(self, config: dict) -> dict:
+    @classmethod
+    def sanitize(cls, config: dict) -> dict:
         """Make a config ready for passing to estimator."""
         config = config.get("ml", config).copy()
-        if "FLAML_sample_size" in config:
-            del config["FLAML_sample_size"]
-        if "learner" in config:
-            del config["learner"]
+        config.pop("FLAML_sample_size", None)
+        config.pop("learner", None)
+        config.pop("_choice_", None)
         return config
 
     def _train_with_config(
@@ -423,7 +429,7 @@ class AutoMLState:
             sample_size = config_w_resource.get(
                 "FLAML_sample_size", len(self.y_train_all)
             )
-        config = self.sanitize(config_w_resource)
+        config = AutoMLState.sanitize(config_w_resource)
 
         this_estimator_kwargs = self.fit_kwargs_by_estimator.get(
             estimator
@@ -814,13 +820,15 @@ class AutoML(BaseEstimator):
     def best_config(self):
         """A dictionary of the best configuration."""
         state = self._search_states.get(self._best_estimator)
-        return state and getattr(state, "best_config", None)
+        config = state and getattr(state, "best_config", None)
+        return config and AutoMLState.sanitize(config)
 
     @property
     def best_config_per_estimator(self):
         """A dictionary of all estimators' best configuration."""
         return {
             e: e_search_state.best_config
+            and AutoMLState.sanitize(e_search_state.best_config)
             for e, e_search_state in self._search_states.items()
         }
 
@@ -1569,7 +1577,7 @@ class AutoML(BaseEstimator):
         with training_log_reader(log_file_name) as reader:
             record = reader.get_record(record_id)
             estimator = record.learner
-            config = record.config
+            config = AutoMLState.sanitize(record.config)
 
         estimator, _ = train_estimator(
             X_train=None,
@@ -2083,6 +2091,7 @@ class AutoML(BaseEstimator):
             # check memory constraints before training
             if states[estimator].learner_class.size(config) <= mem_res:
                 del config["learner"]
+                config.pop("_choice_", None)
                 result = AutoMLState._compute_with_config_base(
                     config, state=state, estimator=estimator
                 )
@@ -3517,7 +3526,7 @@ class AutoML(BaseEstimator):
                         x[1].learner_class(
                             task=self._state.task,
                             n_jobs=self._state.n_jobs,
-                            **self._state.sanitize(x[1].best_config),
+                            **AutoMLState.sanitize(x[1].best_config),
                         ),
                     )
                     for x in search_states[:2]
@@ -3528,7 +3537,7 @@ class AutoML(BaseEstimator):
                         x[1].learner_class(
                             task=self._state.task,
                             n_jobs=self._state.n_jobs,
-                            **self._state.sanitize(x[1].best_config),
+                            **AutoMLState.sanitize(x[1].best_config),
                         ),
                     )
                     for x in search_states[2:]
