@@ -66,3 +66,16 @@ Packages such as `azureml-interpret` and `sklearn.inspection.permutation_importa
 Model explanation is frequently asked and adding a native support may be a good feature. Suggestions/contributions are welcome.
 
 Optimization history can be checked from the [log](Use-Cases/Task-Oriented-AutoML#log-the-trials). You can also [retrieve the log and plot the learning curve](Use-Cases/Task-Oriented-AutoML#plot-learning-curve).
+
+
+### How to resolve out-of-memory error in `AutoML.fit()`
+
+* Set `free_mem_ratio` a float between 0 and 1. For example, 0.2 means try to keep free memory above 20% of total memory. Training may be early stopped for memory consumption reason when this is set.
+* Set `model_history` False.
+* If your data are already preprocessed, set `skip_transform` False. If you can preprocess the data before the fit starts, this setting can save memory needed for preprocessing in `fit`.
+* If the OOM error only happens for some particular trials:
+    - set `use_ray` True. This will increase the overhead per trial but can keep the AutoML process running when a single trial fails due to OOM error.
+    - provide a more accurate [`size`](reference/automl/model#size) function for the memory bytes consumption of each config for the estimator causing this error.
+    - modify the [search space](Use-Cases/Task-Oriented-AutoML#a-shortcut-to-override-the-search-space) for the estimators causing this error.
+    - or remove this estimator from the `estimator_list`.
+* If the OOM error happens when ensembling, consider disabling ensemble, or use a cheaper ensemble option. ([Example](Use-Cases/Task-Oriented-AutoML#ensemble)).
