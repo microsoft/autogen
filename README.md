@@ -55,7 +55,7 @@ Use the following guides to get started with FLAML in .NET:
 
 - [Install Model Builder](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-model-builder?tabs=visual-studio-2022)
 - [Install ML.NET CLI](https://docs.microsoft.com/dotnet/machine-learning/how-to-guides/install-ml-net-cli?tabs=windows)
-- [Microsoft.AutoML](https://www.nuget.org/packages/Microsoft.ML.AutoML/0.20.0-preview.22313.1)
+- [Microsoft.AutoML](https://www.nuget.org/packages/Microsoft.ML.AutoML/0.20.0)
 
 ## Quickstart
 
@@ -107,7 +107,7 @@ In addition, you can find:
 
 - Contributing guide [here](https://microsoft.github.io/FLAML/docs/Contribute).
 
-- ML.NET documentation and tutorials for [Model Builder](https://docs.microsoft.com/dotnet/machine-learning/tutorials/predict-prices-with-model-builder), [ML.NET CLI](https://docs.microsoft.com/en-us/dotnet/machine-learning/tutorials/sentiment-analysis-cli), and [AutoML API](https://github.com/dotnet/csharp-notebooks/blob/main/machine-learning/03-Training%20and%20AutoML.ipynb).
+- ML.NET documentation and tutorials for [Model Builder](https://learn.microsoft.com/dotnet/machine-learning/tutorials/predict-prices-with-model-builder), [ML.NET CLI](https://learn.microsoft.com/dotnet/machine-learning/tutorials/sentiment-analysis-cli), and [AutoML API](https://learn.microsoft.com/dotnet/machine-learning/how-to-guides/how-to-use-the-automl-api).
 
 ## Contributing
 
