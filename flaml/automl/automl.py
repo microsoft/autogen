@@ -2566,7 +2566,6 @@ class AutoML(BaseEstimator):
         self._use_ray = use_ray or n_concurrent_trials > 1
         # use the following condition if we have an estimation of average_trial_time and average_trial_overhead
         # self._use_ray = use_ray or n_concurrent_trials > ( average_trail_time + average_trial_overhead) / (average_trial_time)
-
         if self._use_ray is not False:
             import ray
 
