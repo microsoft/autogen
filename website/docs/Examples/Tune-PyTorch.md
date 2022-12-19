@@ -261,7 +261,8 @@ if torch.cuda.is_available():
         best_trained_model = nn.DataParallel(best_trained_model)
 best_trained_model.to(device)
 
-checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
+checkpoint_value = getattr(best_trial.checkpoint, "dir_or_data", None) or best_trial.checkpoint.value
+checkpoint_path = os.path.join(checkpoint_value, "checkpoint")
 
 model_state, optimizer_state = torch.load(checkpoint_path)
 best_trained_model.load_state_dict(model_state)
