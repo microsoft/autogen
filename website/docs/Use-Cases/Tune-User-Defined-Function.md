@@ -100,14 +100,14 @@ If it is a numerical hyperparameter, you need to know whether it takes integer v
 
 ```python
 {
-"learning_rate": tune.loguniform(lower=1 / 1024, upper=1.0),
+    "learning_rate": tune.loguniform(lower=1 / 1024, upper=1.0),
 }
 ```
 When the search range of learning rate is small, it is more common to sample in the linear scale as shown in the following example,
 
 ```python
 {
-"learning_rate": tune.uniform(lower=0.1, upper=0.2),
+    "learning_rate": tune.uniform(lower=0.1, upper=0.2),
 }
 ```
 
@@ -117,7 +117,7 @@ When the search range of learning rate is small, it is more common to sample in 
 When you have a desired quantization granularity for the hyperparameter change, you can use `tune.qlograndint` or `tune.qloguniform` to realize the quantization requirement. The following code example helps you realize the need for sampling uniformly in the range of 0.1 and 0.2 with increments of 0.02, i.e., the sampled learning rate can only take values in {0.1, 0.12, 0.14, 0.16, ..., 0.2},
 ```python
 {
-"learning_rate": tune.uniform(lower=0.1, upper=0.2, q=0.02),
+    "learning_rate": tune.quniform(lower=0.1, upper=0.2, q=0.02),
 }
 ```
 
@@ -529,7 +529,7 @@ In the following example, we want to minimize `val_loss` and `pred_time` of the 
 ```python
 lexico_objectives = {}
 lexico_objectives["metrics"] = ["val_loss", "pred_time"]
-lexico_objectives["pred_time"] = ["min", "min"]
+lexico_objectives["modes"] = ["min", "min"]
 lexico_objectives["tolerances"] = {"val_loss": 0.02, "pred_time": 0.0}
 lexico_objectives["targets"] = {"val_loss": -float('inf'), "pred_time": -float('inf')}
 

@@ -396,17 +396,17 @@ def run(
             objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
             - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
             metric names (provided in "metric"), and the values are the numerical target values.
-            - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
+            - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
             metric names (provided in "metrics"), and the values are the numerical tolerances values.
             E.g.,
-            ```python
-            lexico_objectives = {
-                "metrics": ["error_rate", "pred_time"],
-                "modes": ["min", "min"],
-                "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
-                "targets": {"error_rate": 0.0},
-            }
-            ```
+    ```python
+    lexico_objectives = {
+        "metrics": ["error_rate", "pred_time"],
+        "modes": ["min", "min"],
+        "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
+        "targets": {"error_rate": 0.0},
+    }
+    ```
         **ray_args: keyword arguments to pass to ray.tune.run().
             Only valid when use_ray=True.
     """
