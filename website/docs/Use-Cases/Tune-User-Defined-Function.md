@@ -290,10 +290,13 @@ The key difference between these two types of constraints is that the calculatio
 Related arguments:
 
 - `use_ray`: A boolean of whether to use ray as the backend.
+- `use_spark`: A boolean of whether to use spark as the backend.
 - `resources_per_trial`: A dictionary of the hardware resources to allocate per trial, e.g., `{'cpu': 1}`. Only valid when using ray backend.
 
 
-You can perform parallel tuning by specifying `use_ray=True` (requiring flaml[ray] option installed). You can also limit the amount of resources allocated per trial by specifying `resources_per_trial`, e.g., `resources_per_trial={'cpu': 2}`.
+You can perform parallel tuning by specifying `use_ray=True` (requiring flaml[ray] option installed) or `use_spark=True`
+(requiring flaml[spark] option installed). You can also limit the amount of resources allocated per trial by specifying `resources_per_trial`,
+e.g., `resources_per_trial={'cpu': 2}` when `use_ray=True`.
 
 ```python
 # require: pip install flaml[ray]
@@ -306,6 +309,21 @@ analysis = tune.run(
     time_budget_s=10,  # the time budget in seconds
     use_ray=True,
     resources_per_trial={"cpu": 2}  # limit resources allocated per trial
+)
+print(analysis.best_trial.last_result)  # the best trial's result
+print(analysis.best_config)  # the best config
+```
+
+```python
+# require: pip install flaml[spark]
+analysis = tune.run(
+    evaluate_config,  # the function to evaluate a config
+    config=config_search_space,  # the search space defined
+    metric="score",
+    mode="min",  # the optimization mode, "min" or "max"
+    num_samples=-1,  # the maximal number of configs to try, -1 means infinite
+    time_budget_s=10,  # the time budget in seconds
+    use_spark=True,
 )
 print(analysis.best_trial.last_result)  # the best trial's result
 print(analysis.best_config)  # the best config

@@ -194,8 +194,8 @@ def test_searcher():
     searcher.on_trial_complete("t2", None, True)
     searcher.suggest("t3")
     searcher.on_trial_complete("t3", {"m": np.nan})
-    searcher.save("test/tune/optuna.pickle")
-    searcher.restore("test/tune/optuna.pickle")
+    searcher.save("test/tune/optuna.pkl")
+    searcher.restore("test/tune/optuna.pkl")
     try:
         searcher = BlendSearch(
             metric="m", global_search_alg=searcher, metric_constraints=[("c", "<", 1)]

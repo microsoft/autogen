@@ -382,7 +382,11 @@ and have ``split`` and ``get_n_splits`` methods with the same signatures.  To di
 
 When you have parallel resources, you can either spend them in training and keep the model search sequential, or perform parallel search. Following scikit-learn, the parameter `n_jobs` specifies how many CPU cores to use for each training job. The number of parallel trials is specified via the parameter `n_concurrent_trials`. By default, `n_jobs=-1, n_concurrent_trials=1`. That is, all the CPU cores (in a single compute node) are used for training a single model and the search is sequential. When you have more resources than what each single training job needs, you can consider increasing `n_concurrent_trials`.
 
-To do parallel tuning, install the `ray` and `blendsearch` options:
+FLAML now support two backends for parallel tuning, i.e., `Ray` and `Spark`. You can use either of them, but not both for one tuning job.
+
+#### Parallel tuning with Ray
+
+To do parallel tuning with Ray, install the `ray` and `blendsearch` options:
 ```bash
 pip install flaml[ray,blendsearch]
 ```
@@ -396,6 +400,23 @@ allocates 16 CPU cores. Then, when you run:
 automl.fit(X_train, y_train, n_jobs=4, n_concurrent_trials=4)
 ```
 flaml will perform 4 trials in parallel, each consuming 4 CPU cores. The parallel tuning uses the [BlendSearch](Tune-User-Defined-Function##blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) algorithm.
+
+#### Parallel tuning with Spark
+
+To do parallel tuning with Spark, install the `spark` and `blendsearch` options:
+
+> *Spark support is added in v1.1.0*
+```bash
+pip install flaml[spark,blendsearch]>=1.1.0
+```
+
+For more details about installing Spark, please refer to [Installation](../Installation#Distributed-tuning).
+
+An example of using Spark for parallel tuning is:
+```python
+automl.fit(X_train, y_train, n_concurrent_trials=4, use_spark=True)
+```
+For Spark clusters, by default, we will launch one trial per executor. However, sometimes we want to launch more trials than the number of executors (e.g., local mode). In this case, we can set the environment variable `FLAML_MAX_CONCURRENT` to override the detected `num_executors`. The final number of concurrent trials will be the minimum of `n_concurrent_trials` and `num_executors`. Also, GPU training is not supported yet when use_spark is True.
 
 #### **Guidelines on parallel vs sequential tuning**
 
