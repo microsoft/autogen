@@ -80,7 +80,7 @@ class FLOW2(Searcher):
                 objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
                 - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
                 metric names (provided in "metric"), and the values are the numerical target values.
-                - "tolerances"(optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
+                - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
                 metric names (provided in "metrics"), and the values are the numerical tolerances values.
                 E.g.,
                 ```python
