@@ -44,6 +44,10 @@ setuptools.setup(
             "matplotlib",
             "openml==0.10.2",
         ],
+        "spark": [
+            "pyspark>=3.0.0",
+            "joblibspark>=0.5.0",
+        ],
         "test": [
             "flake8>=3.8.4",
             "thop",
@@ -67,6 +71,10 @@ setuptools.setup(
             "seqeval",
             "pytorch-forecasting>=0.9.0,<=0.10.1",
             "mlflow",
+            "pyspark>=3.0.0",
+            "joblibspark>=0.5.0",
+            "nbconvert",
+            "nbformat",
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],

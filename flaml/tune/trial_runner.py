@@ -135,3 +135,41 @@ class SequentialTrialRunner(BaseTrialRunner):
     def stop_trial(self, trial):
         super().stop_trial(trial)
         self.running_trial = None
+
+
+class SparkTrialRunner(BaseTrialRunner):
+    """Implementation of the spark trial runner."""
+
+    def __init__(
+        self,
+        search_alg=None,
+        scheduler=None,
+        metric: Optional[str] = None,
+        mode: Optional[str] = "min",
+    ):
+        super().__init__(search_alg, scheduler, metric, mode)
+        self.running_trials = []
+
+    def step(self) -> Trial:
+        """Runs one step of the trial event loop.
+
+        Callers should typically run this method repeatedly in a loop. They
+        may inspect or modify the runner's state in between calls to step().
+
+        Returns:
+            a trial to run.
+        """
+        trial_id = Trial.generate_id()
+        config = self._search_alg.suggest(trial_id)
+        if config is not None:
+            trial = SimpleTrial(config, trial_id)
+            self.add_trial(trial)
+            trial.set_status(Trial.RUNNING)
+            self.running_trials.append(trial)
+        else:
+            trial = None
+        return trial
+
+    def stop_trial(self, trial):
+        super().stop_trial(trial)
+        self.running_trials.remove(trial)

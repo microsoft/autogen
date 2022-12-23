@@ -7,6 +7,7 @@ import numpy as np
 import datetime
 import time
 import os
+import sys
 from collections import defaultdict
 
 try:
@@ -15,9 +16,9 @@ try:
     assert ray_version >= "1.10.0"
     from ray.tune.analysis import ExperimentAnalysis as EA
 
-    ray_import = True
+    ray_available = True
 except (ImportError, AssertionError):
-    ray_import = False
+    ray_available = False
     from .analysis import ExperimentAnalysis as EA
 
 from .trial import Trial
@@ -25,6 +26,7 @@ from .result import DEFAULT_METRIC
 import logging
 
 logger = logging.getLogger(__name__)
+logger.propagate = False
 _use_ray = True
 _runner = None
 _verbose = 0
@@ -226,6 +228,7 @@ def run(
     metric_constraints: Optional[List[Tuple[str, str, float]]] = None,
     max_failure: Optional[int] = 100,
     use_ray: Optional[bool] = False,
+    use_spark: Optional[bool] = False,
     use_incumbent_result_in_evaluation: Optional[bool] = None,
     log_file_name: Optional[str] = None,
     lexico_objectives: Optional[dict] = None,
@@ -359,9 +362,10 @@ def run(
         print(analysis.trials[-1].last_result)
     ```
 
-        verbose: 0, 1, 2, or 3. Verbosity mode for ray if ray backend is used.
-            0 = silent, 1 = only status updates, 2 = status and brief trial
-            results, 3 = status and detailed trial results. Defaults to 2.
+        verbose: 0, 1, 2, or 3. If ray or spark backend is used, their verbosity will be
+            affected by this argument. 0 = silent, 1 = only status updates,
+            2 = status and brief trial results, 3 = status and detailed trial results.
+            Defaults to 2.
         local_dir: A string of the local dir to save ray logs if ray backend is
             used; or a local dir to save the tuning log.
         num_samples: An integer of the number of configs to try. Defaults to 1.
@@ -380,6 +384,7 @@ def run(
         max_failure: int | the maximal consecutive number of failures to sample
             a trial before the tuning is terminated.
         use_ray: A boolean of whether to use ray as the backend.
+        use_spark: A boolean of whether to use spark as the backend.
         log_file_name: A string of the log file name. Default to None.
             When set to None:
                 if local_dir is not given, no log file is created;
@@ -423,7 +428,10 @@ def run(
         log_file_name = os.path.join(
             local_dir, "tune_" + str(datetime.datetime.now()).replace(":", "-") + ".log"
         )
+    if use_ray and use_spark:
+        raise ValueError("use_ray and use_spark cannot be both True.")
     if not use_ray:
+        _use_ray = False
         _verbose = verbose
         old_handlers = logger.handlers
         old_level = logger.getEffectiveLevel()
@@ -443,7 +451,7 @@ def run(
                 logger.addHandler(logging.FileHandler(log_file_name))
             elif not logger.hasHandlers():
                 # Add the console handler.
-                _ch = logging.StreamHandler()
+                _ch = logging.StreamHandler(stream=sys.stdout)
                 logger_formatter = logging.Formatter(
                     "[%(name)s: %(asctime)s] {%(lineno)d} %(levelname)s - %(message)s",
                     "%m-%d %H:%M:%S",
@@ -523,7 +531,7 @@ def run(
         if metric is None or mode is None:
             metric = metric or search_alg.metric or DEFAULT_METRIC
             mode = mode or search_alg.mode
-        if ray_import:
+        if ray_available and use_ray:
             if ray_version.startswith("1."):
                 from ray.tune.suggest import ConcurrencyLimiter
             else:
@@ -567,7 +575,7 @@ def run(
             params["grace_period"] = min_resource
         if reduction_factor:
             params["reduction_factor"] = reduction_factor
-        if ray_import:
+        if ray_available:
             from ray.tune.schedulers import ASHAScheduler
 
             scheduler = ASHAScheduler(**params)
@@ -604,6 +612,142 @@ def run(
             _verbose = old_verbose
             _running_trial = old_running_trial
             _training_iteration = old_training_iteration
+
+    if use_spark:
+        # parallel run with spark
+        from flaml.tune.spark.utils import check_spark
+
+        spark_available, spark_error_msg = check_spark()
+        if not spark_available:
+            raise spark_error_msg
+        try:
+            from pyspark.sql import SparkSession
+            from joblib import Parallel, delayed, parallel_backend
+            from joblibspark import register_spark
+        except ImportError as e:
+            raise ImportError(
+                f"{e}. Try pip install flaml[spark] or set use_spark=False."
+            )
+        from flaml.tune.searcher.suggestion import ConcurrencyLimiter
+        from .trial_runner import SparkTrialRunner
+
+        register_spark()
+        spark = SparkSession.builder.getOrCreate()
+        sc = spark._jsc.sc()
+        num_executors = (
+            len([executor.host() for executor in sc.statusTracker().getExecutorInfos()])
+            - 1
+        )
+        """
+        By default, the number of executors is the number of VMs in the cluster. And we can
+        launch one trial per executor. However, sometimes we can launch more trials than
+        the number of executors (e.g., local mode). In this case, we can set the environment
+        variable `FLAML_MAX_CONCURRENT` to override the detected `num_executors`.
+
+        `max_concurrent` is the maximum number of concurrent trials defined by `search_alg`,
+        `FLAML_MAX_CONCURRENT` will also be used to override `max_concurrent` if `search_alg`
+        is not an instance of `ConcurrencyLimiter`.
+
+        The final number of concurrent trials is the minimum of `max_concurrent` and
+        `num_executors`.
+        """
+        num_executors = max(num_executors, int(os.getenv("FLAML_MAX_CONCURRENT", 1)), 1)
+        time_start = time.time()
+        if scheduler:
+            scheduler.set_search_properties(metric=metric, mode=mode)
+        if isinstance(search_alg, ConcurrencyLimiter):
+            max_concurrent = max(1, search_alg.max_concurrent)
+        else:
+            max_concurrent = max(1, int(os.getenv("FLAML_MAX_CONCURRENT", 1)))
+
+        n_concurrent_trials = min(num_executors, max_concurrent)
+        with parallel_backend("spark"):
+            with Parallel(
+                n_jobs=n_concurrent_trials, verbose=max(0, (verbose - 1) * 50)
+            ) as parallel:
+                try:
+                    _runner = SparkTrialRunner(
+                        search_alg=search_alg,
+                        scheduler=scheduler,
+                        metric=metric,
+                        mode=mode,
+                    )
+                    num_trials = 0
+                    if time_budget_s is None:
+                        time_budget_s = np.inf
+                    fail = 0
+                    ub = (
+                        len(evaluated_rewards) if evaluated_rewards else 0
+                    ) + max_failure
+                    while (
+                        time.time() - time_start < time_budget_s
+                        and (num_samples < 0 or num_trials < num_samples)
+                        and fail < ub
+                    ):
+                        while len(_runner.running_trials) < n_concurrent_trials:
+                            # suggest trials for spark
+                            trial_next = _runner.step()
+                            if trial_next:
+                                num_trials += 1
+                            else:
+                                fail += 1  # break with ub consecutive failures
+                                logger.debug(f"consecutive failures is {fail}")
+                                if fail >= ub:
+                                    break
+                        trials_to_run = _runner.running_trials
+                        if not trials_to_run:
+                            logger.warning(
+                                f"fail to sample a trial for {max_failure} times in a row, stopping."
+                            )
+                            break
+                        logger.info(
+                            f"Number of trials: {num_trials}/{num_samples}, {len(_runner.running_trials)} RUNNING,"
+                            f" {len(_runner._trials) - len(_runner.running_trials)} TERMINATED"
+                        )
+                        logger.debug(
+                            f"Configs of Trials to run: {[trial_to_run.config for trial_to_run in trials_to_run]}"
+                        )
+                        results = parallel(
+                            delayed(evaluation_function)(trial_to_run.config)
+                            for trial_to_run in trials_to_run
+                        )
+                        # results = [evaluation_function(trial_to_run.config) for trial_to_run in trials_to_run]
+                        while results:
+                            result = results.pop(0)
+                            trial_to_run = trials_to_run[0]
+                            _runner.running_trial = trial_to_run
+                            if result is not None:
+                                if isinstance(result, dict):
+                                    if result:
+                                        logger.info(f"Brief result: {result}")
+                                        report(**result)
+                                    else:
+                                        # When the result returned is an empty dict, set the trial status to error
+                                        trial_to_run.set_status(Trial.ERROR)
+                                else:
+                                    logger.info(
+                                        "Brief result: {}".format({metric: result})
+                                    )
+                                    report(_metric=result)
+                            _runner.stop_trial(trial_to_run)
+                        fail = 0
+                    analysis = ExperimentAnalysis(
+                        _runner.get_trials(),
+                        metric=metric,
+                        mode=mode,
+                        lexico_objectives=lexico_objectives,
+                    )
+                    return analysis
+                finally:
+                    # recover the global variables in case of nested run
+                    _use_ray = old_use_ray
+                    _verbose = old_verbose
+                    _running_trial = old_running_trial
+                    _training_iteration = old_training_iteration
+                    if not use_ray:
+                        _runner = old_runner
+                        logger.handlers = old_handlers
+                        logger.setLevel(old_level)
 
     # simple sequential run without using tune.run() from ray
     time_start = time.time()
