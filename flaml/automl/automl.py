@@ -491,7 +491,7 @@ class AutoMLState:
         return estimator, train_time
 
 
-def size(state: AutoMLState, config: dict) -> float:
+def size(learner_classes: dict, config: dict) -> float:
     """Size function.
 
     Returns:
@@ -499,7 +499,7 @@ def size(state: AutoMLState, config: dict) -> float:
     """
     config = config.get("ml", config)
     estimator = config["learner"]
-    learner_class = state.learner_classes.get(estimator)
+    learner_class = learner_classes.get(estimator)
     return learner_class.size(config)
 
 
@@ -3125,7 +3125,7 @@ class AutoML(BaseEstimator):
                 min_resource=min_resource_all_estimator,
                 max_resource=self.max_resource,
                 config_constraints=[
-                    (partial(size, self._state), "<=", self._mem_thres)
+                    (partial(size, self._state.learner_classes), "<=", self._mem_thres)
                 ],
                 metric_constraints=self.metric_constraints,
                 seed=self._seed,

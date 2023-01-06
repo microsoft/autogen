@@ -84,7 +84,11 @@ class TestLogging(unittest.TestCase):
                 min_resource=automl.min_resource,
                 max_resource=automl.max_resource,
                 config_constraints=[
-                    (partial(size, automl._state), "<=", automl._mem_thres)
+                    (
+                        partial(size, automl._state.learner_classes),
+                        "<=",
+                        automl._mem_thres,
+                    )
                 ],
                 metric_constraints=automl.metric_constraints,
             )
