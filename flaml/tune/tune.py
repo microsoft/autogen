@@ -96,7 +96,20 @@ class ExperimentAnalysis(EA):
                 <= max(
                     [
                         f_best[k_metric]
-                        + self.lexico_objectives["tolerances"][k_metric],
+                        + self.lexico_objectives["tolerances"][k_metric]
+                        if not isinstance(
+                            self.lexico_objectives["tolerances"][k_metric], str
+                        )
+                        else f_best[k_metric]
+                        * (
+                            1
+                            + 0.01
+                            * float(
+                                self.lexico_objectives["tolerances"][k_metric].replace(
+                                    "%", ""
+                                )
+                            )
+                        ),
                         k_target,
                     ]
                 )
@@ -401,14 +414,23 @@ def run(
             objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
             - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
             metric names (provided in "metric"), and the values are the numerical target values.
-            - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
-            metric names (provided in "metrics"), and the values are the numerical tolerances values.
+            - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the absolute/percentage tolerance in the form of numeric/string.
             E.g.,
     ```python
     lexico_objectives = {
         "metrics": ["error_rate", "pred_time"],
         "modes": ["min", "min"],
         "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
+        "targets": {"error_rate": 0.0},
+    }
+    ```
+            We also support percentage tolerance.
+            E.g.,
+    ```python
+    lexico_objectives = {
+        "metrics": ["error_rate", "pred_time"],
+        "modes": ["min", "min"],
+        "tolerances": {"error_rate": "5%", "pred_time": "0%"},
         "targets": {"error_rate": 0.0},
     }
     ```

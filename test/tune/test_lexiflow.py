@@ -32,7 +32,7 @@ def _BraninCurrin(config):
     return {"brain": brain_result, "currin": currin_result}
 
 
-def test_lexiflow():
+def test_lexiflow(mode="absolute"):
     train_dataset = torchvision.datasets.FashionMNIST(
         "test/data",
         train=True,
@@ -105,7 +105,10 @@ def test_lexiflow():
 
     lexico_objectives = {}
     lexico_objectives["metrics"] = ["error_rate", "flops"]
-    lexico_objectives["tolerances"] = {"error_rate": 0.02, "flops": 0.0}
+    if mode == "absolute":
+        lexico_objectives["tolerances"] = {"error_rate": 0.02, "flops": 0.0}
+    else:
+        lexico_objectives["tolerances"] = {"error_rate": "10%", "flops": "0%"}
     lexico_objectives["targets"] = {"error_rate": 0.0, "flops": 0.0}
     lexico_objectives["modes"] = ["min", "min"]
 
@@ -188,5 +191,6 @@ def test_lexiflow_performance():
 
 
 if __name__ == "__main__":
-    test_lexiflow()
+    test_lexiflow(mode="absolute")
+    test_lexiflow(mode="percentage")
     test_lexiflow_performance()
