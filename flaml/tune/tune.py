@@ -448,7 +448,9 @@ def run(
             logger.addHandler(old_handlers[0])
         if verbose > 0:
             if log_file_name:
-                os.makedirs(os.path.dirname(log_file_name), exist_ok=True)
+                dir_name = os.path.dirname(log_file_name)
+                if dir_name:
+                    os.makedirs(dir_name, exist_ok=True)
                 logger.addHandler(logging.FileHandler(log_file_name))
             elif not logger.hasHandlers():
                 # Add the console handler.
@@ -789,6 +791,10 @@ def run(
                         report(_metric=result)
                 _runner.stop_trial(trial_to_run)
                 num_failures = 0
+                if trial_to_run.last_result is None:
+                    # application stops tuning by returning None
+                    # TODO document this feature when it is finalized
+                    break
             else:
                 # break with upperbound_num_failures consecutive failures
                 num_failures += 1
