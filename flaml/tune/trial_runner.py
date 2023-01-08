@@ -30,7 +30,7 @@ class SimpleTrial(Trial):
         self.config = config or {}
         self.status = Trial.PENDING
         self.start_time = None
-        self.last_result = {}
+        self.last_result = None
         self.last_update_time = -float("inf")
         self.custom_trial_name = None
         self.trainable_name = "trainable"
