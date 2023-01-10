@@ -90,7 +90,8 @@ class BlendSearch(Searcher):
                 needing to re-compute the trial. Must be the same or shorter length than
                 points_to_evaluate. When provided, `mode` must be specified.
             time_budget_s: int or float | Time budget in seconds.
-            num_samples: int | The number of configs to try.
+            num_samples: int | The number of configs to try. -1 means no limit on the
+                number of configs to try.
             resource_attr: A string to specify the resource dimension and the best
                 performance is assumed to be at the max_resource.
             min_resource: A float of the minimal resource to use for the resource_attr.
@@ -314,11 +315,12 @@ class BlendSearch(Searcher):
                     self.cost_attr = self._ls.cost_attr = TIME_TOTAL_S
             if "metric_target" in spec:
                 self._metric_target = spec.get("metric_target")
-            if "num_samples" in spec:
+            num_samples = spec.get("num_samples")
+            if num_samples is not None:
                 self._num_samples = (
-                    spec["num_samples"]
-                    + len(self._result)
-                    + len(self._trial_proposed_by)
+                    (num_samples + len(self._result) + len(self._trial_proposed_by))
+                    if num_samples > 0  # 0 is currently treated the same as -1
+                    else num_samples
                 )
         return True
 
