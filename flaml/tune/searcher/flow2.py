@@ -373,25 +373,27 @@ class FLOW2(Searcher):
             k_values = np.array(self._histories[k_metric])
             feasible_value = k_values.take(feasible_index)
             self._f_best[k_metric] = np.min(feasible_value)
+            if not isinstance(self.lexico_objectives["tolerances"][k_metric], str):
+                tolerance_bound = (
+                    self._f_best[k_metric]
+                    + self.lexico_objectives["tolerances"][k_metric]
+                )
+            else:
+                assert (
+                    self.lexico_objectives["tolerances"][k_metric][-1] == "%"
+                ), "String tolerance of {} should use %% as the suffix".format(k_metric)
+                tolerance_bound = self._f_best[k_metric] * (
+                    1
+                    + 0.01
+                    * float(
+                        self.lexico_objectives["tolerances"][k_metric].replace("%", "")
+                    )
+                )
             feasible_index_filter = np.where(
                 feasible_value
                 <= max(
                     [
-                        self._f_best[k_metric]
-                        + self.lexico_objectives["tolerances"][k_metric]
-                        if not isinstance(
-                            self.lexico_objectives["tolerances"][k_metric], str
-                        )
-                        else self._f_best[k_metric]
-                        * (
-                            1
-                            + 0.01
-                            * float(
-                                self.lexico_objectives["tolerances"][k_metric].replace(
-                                    "%", ""
-                                )
-                            )
-                        ),
+                        tolerance_bound,
                         self.lexico_objectives["targets"][k_metric],
                     ]
                 )
@@ -417,47 +419,31 @@ class FLOW2(Searcher):
                     if k_mode == "min"
                     else -self.lexico_objectives["targets"][k_metric]
                 )
-                if (
-                    result[k_metric]
-                    < max(
-                        [
-                            self._f_best[k_metric]
-                            + self.lexico_objectives["tolerances"][k_metric]
-                            if not isinstance(
-                                self.lexico_objectives["tolerances"][k_metric], str
-                            )
-                            else self._f_best[k_metric]
-                            * (
-                                1
-                                + 0.01
-                                * float(
-                                    self.lexico_objectives["tolerances"][
-                                        k_metric
-                                    ].replace("%", "")
-                                )
-                            ),
-                            k_target,
-                        ]
+                if not isinstance(self.lexico_objectives["tolerances"][k_metric], str):
+                    tolerance_bound = (
+                        self._f_best[k_metric]
+                        + self.lexico_objectives["tolerances"][k_metric]
                     )
-                ) and (
+                else:
+                    assert (
+                        self.lexico_objectives["tolerances"][k_metric][-1] == "%"
+                    ), "String tolerance of {} should use %% as the suffix".format(
+                        k_metric
+                    )
+                    tolerance_bound = self._f_best[k_metric] * (
+                        1
+                        + 0.01
+                        * float(
+                            self.lexico_objectives["tolerances"][k_metric].replace(
+                                "%", ""
+                            )
+                        )
+                    )
+                if (result[k_metric] < max([tolerance_bound, k_target])) and (
                     self.best_obj[k_metric]
                     < max(
                         [
-                            self._f_best[k_metric]
-                            + self.lexico_objectives["tolerances"][k_metric]
-                            if not isinstance(
-                                self.lexico_objectives["tolerances"][k_metric], str
-                            )
-                            else self._f_best[k_metric]
-                            * (
-                                1
-                                + 0.01
-                                * float(
-                                    self.lexico_objectives["tolerances"][
-                                        k_metric
-                                    ].replace("%", "")
-                                )
-                            ),
+                            tolerance_bound,
                             k_target,
                         ]
                     )
