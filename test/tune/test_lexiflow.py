@@ -32,7 +32,7 @@ def _BraninCurrin(config):
     return {"brain": brain_result, "currin": currin_result}
 
 
-def test_lexiflow(mode="absolute"):
+def test_lexiflow():
     train_dataset = torchvision.datasets.FashionMNIST(
         "test/data",
         train=True,
@@ -105,12 +105,6 @@ def test_lexiflow(mode="absolute"):
 
     lexico_objectives = {}
     lexico_objectives["metrics"] = ["error_rate", "flops"]
-    if mode == "absolute":
-        lexico_objectives["tolerances"] = {"error_rate": 0.02, "flops": 0.0}
-    else:
-        lexico_objectives["tolerances"] = {"error_rate": "10%", "flops": "0%"}
-    lexico_objectives["targets"] = {"error_rate": 0.0, "flops": 0.0}
-    lexico_objectives["modes"] = ["min", "min"]
 
     search_space = {
         "n_layers": tune.randint(lower=1, upper=3),
@@ -132,7 +126,27 @@ def test_lexiflow(mode="absolute"):
         "n_epoch": 1,
     }
 
+    # Non lexico tune
+    analysis = tune.run(
+        evaluate_function,
+        metric="error_rate",
+        mode="min",
+        num_samples=5,
+        config=search_space,
+        use_ray=False,
+        lexico_objectives=None,
+        low_cost_partial_config=low_cost_partial_config,
+    )
+    print(analysis.best_trial)
+    print(analysis.best_config)
+    print(analysis.best_result)
+
     # lexico tune
+    lexico_objectives["targets"] = {"error_rate": 0.0, "flops": 0.0}
+    lexico_objectives["modes"] = ["min", "min"]
+
+    # 1. lexico tune: absoute tune
+    lexico_objectives["tolerances"] = {"error_rate": 0.02, "flops": 0.0}
     analysis = tune.run(
         evaluate_function,
         num_samples=5,
@@ -145,15 +159,14 @@ def test_lexiflow(mode="absolute"):
     print(analysis.best_config)
     print(analysis.best_result)
 
-    # Non lexico tune
+    # 2. lexico tune: percentage tolerance
+    lexico_objectives["tolerances"] = {"error_rate": "10%", "flops": "0%"}
     analysis = tune.run(
         evaluate_function,
-        metric="error_rate",
-        mode="min",
         num_samples=5,
         config=search_space,
         use_ray=False,
-        lexico_objectives=None,
+        lexico_objectives=lexico_objectives,
         low_cost_partial_config=low_cost_partial_config,
     )
     print(analysis.best_trial)
@@ -191,6 +204,5 @@ def test_lexiflow_performance():
 
 
 if __name__ == "__main__":
-    test_lexiflow(mode="absolute")
-    test_lexiflow(mode="percentage")
+    test_lexiflow()
     test_lexiflow_performance()
