@@ -2604,11 +2604,12 @@ class AutoML(BaseEstimator):
         min_sample_size = min_sample_size or self._settings.get("min_sample_size")
         use_ray = self._settings.get("use_ray") if use_ray is None else use_ray
         use_spark = self._settings.get("use_spark") if use_spark is None else use_spark
-        spark_available, spark_error_msg = check_spark()
         if use_spark and use_ray is not False:
             raise ValueError("use_spark and use_ray cannot be both True.")
-        elif use_spark and not spark_available:
-            raise spark_error_msg
+        elif use_spark:
+            spark_available, spark_error_msg = check_spark()
+            if not spark_available:
+                raise spark_error_msg
 
         old_level = logger.getEffectiveLevel()
         self.verbose = verbose
@@ -2626,18 +2627,20 @@ class AutoML(BaseEstimator):
                     "Ray installed, setting use_ray to True. If you want to use Spark, set use_spark to True."
                 )
                 use_ray = True
-            elif spark_available:
-                logger.warning(
-                    "n_concurrent_trials > 1 is only supported when using Ray or Spark. "
-                    "Spark installed, setting use_spark to True. If you want to use Ray, set use_ray to True."
-                )
-                use_spark = True
             else:
-                logger.warning(
-                    "n_concurrent_trials > 1 is only supported when using Ray or Spark. "
-                    "Neither Ray nor Spark installed, setting n_concurrent_trials to 1."
-                )
-                n_concurrent_trials = 1
+                spark_available, _ = check_spark()
+                if spark_available:
+                    logger.warning(
+                        "n_concurrent_trials > 1 is only supported when using Ray or Spark. "
+                        "Spark installed, setting use_spark to True. If you want to use Ray, set use_ray to True."
+                    )
+                    use_spark = True
+                else:
+                    logger.warning(
+                        "n_concurrent_trials > 1 is only supported when using Ray or Spark. "
+                        "Neither Ray nor Spark installed, setting n_concurrent_trials to 1."
+                    )
+                    n_concurrent_trials = 1
 
         self._state.n_jobs = n_jobs
         self._n_concurrent_trials = n_concurrent_trials

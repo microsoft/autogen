@@ -34,7 +34,7 @@ def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False)
         "width": tune.uniform(0, 20),
         "height": tune.uniform(-100, 100),
     }
-    if externally_setup_searcher:
+    if externally_setup_searcher is True:
 
         searcher = BlendSearch(
             space=search_space,
@@ -84,8 +84,10 @@ def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False)
             metric="mean_loss",
             mode="min",
         )
-    else:
+    elif externally_setup_searcher is False:
         searcher = None
+    else:
+        searcher = externally_setup_searcher
 
     analysis = tune.run(
         easy_objective_custom_tune,
@@ -118,6 +120,20 @@ def test_reproducibility():
     assert (
         best_config_1 == best_config_2
     ), "flaml.tune not reproducible when the searcher is set up externally"
+
+
+def test_gs_reproducibility():
+    from flaml import BlendSearch, tune
+
+    def f(config):
+        return {"m": 0.35}
+
+    search_space = {"a": tune.randint(1, 100)}
+    bs = BlendSearch(space=search_space, cost_attr=None)
+    analysis1 = tune.run(f, search_alg=bs, num_samples=2, metric="m", mode="max")
+    bs = BlendSearch(space=search_space, cost_attr=None)
+    analysis2 = tune.run(f, search_alg=bs, num_samples=2, metric="m", mode="max")
+    assert analysis1.trials[-1].config == analysis2.trials[-1].config
 
 
 if __name__ == "__main__":

@@ -66,6 +66,14 @@ def test_define_by_run():
         cfo.suggest(f"t{i}")
     # print(normalize(config, bs._gs.space, config, {}, False))
     print(complete_config({}, cfo._ls.space, cfo._ls))
+    # test hierarchical space with low_cost_partial_config
+    bs = BlendSearch(
+        space={"c": tune.choice([0, choice]), "randn": tune.randn(10, 2)},
+        low_cost_partial_config={"randn": 10},
+        metric="metric",
+        mode="max",
+    )
+    tune.run(lambda config: {"metric": 1}, search_alg=bs)
 
 
 def test_grid():

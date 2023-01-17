@@ -75,6 +75,7 @@ setuptools.setup(
             "joblibspark>=0.5.0",
             "nbconvert",
             "nbformat",
+            "ipykernel",
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],

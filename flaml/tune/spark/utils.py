@@ -31,23 +31,21 @@ def check_spark():
         Return (True, None) if the check passes, otherwise log the exception message and
         return (False, Exception(msg)). The exception can be raised by the caller.
     """
-    logger.warning("\ncheck Spark installation...This line should appear only once.\n")
+    logger.debug("\ncheck Spark installation...This line should appear only once.\n")
     if not _have_spark:
         msg = """use_spark=True requires installation of PySpark. Please run pip install flaml[spark]
         and check [here](https://spark.apache.org/docs/latest/api/python/getting_started/install.html)
         for more details about installing Spark."""
-        logger.warning(msg)
         return False, ImportError(msg)
 
     if _spark_major_minor_version[0] < 3:
         msg = "Spark version must be >= 3.0 to use flaml[spark]"
-        logger.warning(msg)
         return False, ImportError(msg)
 
     try:
         SparkSession.builder.getOrCreate()
     except RuntimeError as e:
-        logger.warning(f"\nSparkSession is not available: {e}\n")
+        # logger.warning(f"\nSparkSession is not available: {e}\n")
         return False, RuntimeError(e)
 
     return True, None
