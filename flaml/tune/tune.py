@@ -91,27 +91,25 @@ class ExperimentAnalysis(EA):
             )
             feasible_value = k_values.take(feasible_index)
             f_best[k_metric] = np.min(feasible_value)
+
             feasible_index_filter = np.where(
                 feasible_value
                 <= max(
-                    [
-                        f_best[k_metric]
-                        + self.lexico_objectives["tolerances"][k_metric]
-                        if not isinstance(
-                            self.lexico_objectives["tolerances"][k_metric], str
-                        )
-                        else f_best[k_metric]
-                        * (
-                            1
-                            + 0.01
-                            * float(
-                                self.lexico_objectives["tolerances"][k_metric].replace(
-                                    "%", ""
-                                )
+                    f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric]
+                    if not isinstance(
+                        self.lexico_objectives["tolerances"][k_metric], str
+                    )
+                    else f_best[k_metric]
+                    * (
+                        1
+                        + 0.01
+                        * float(
+                            self.lexico_objectives["tolerances"][k_metric].replace(
+                                "%", ""
                             )
-                        ),
-                        k_target,
-                    ]
+                        )
+                    ),
+                    k_target,
                 )
             )[0]
             feasible_index = feasible_index.take(feasible_index_filter)
