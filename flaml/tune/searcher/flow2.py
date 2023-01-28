@@ -392,10 +392,8 @@ class FLOW2(Searcher):
             feasible_index_filter = np.where(
                 feasible_value
                 <= max(
-                    [
-                        tolerance_bound,
-                        self.lexico_objectives["targets"][k_metric],
-                    ]
+                    tolerance_bound,
+                    self.lexico_objectives["targets"][k_metric],
                 )
             )[0]
             feasible_index = feasible_index.take(feasible_index_filter)
@@ -439,13 +437,11 @@ class FLOW2(Searcher):
                             )
                         )
                     )
-                if (result[k_metric] < max([tolerance_bound, k_target])) and (
+                if (result[k_metric] < max(tolerance_bound, k_target)) and (
                     self.best_obj[k_metric]
                     < max(
-                        [
-                            tolerance_bound,
-                            k_target,
-                        ]
+                        tolerance_bound,
+                        k_target,
                     )
                 ):
                     continue

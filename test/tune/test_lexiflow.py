@@ -145,7 +145,7 @@ def test_lexiflow():
     lexico_objectives["targets"] = {"error_rate": 0.0, "flops": 0.0}
     lexico_objectives["modes"] = ["min", "min"]
 
-    # 1. lexico tune: absoute tune
+    # 1. lexico tune: absolute tolerance
     lexico_objectives["tolerances"] = {"error_rate": 0.02, "flops": 0.0}
     analysis = tune.run(
         evaluate_function,
