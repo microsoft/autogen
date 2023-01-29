@@ -80,8 +80,7 @@ class FLOW2(Searcher):
                 objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives
                 - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
                 metric names (provided in "metric"), and the values are the numerical target values.
-                - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
-                metric names (provided in "metrics"), and the values are the numerical tolerances values.
+                - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the absolute/percentage tolerance in the form of numeric/string.
                 E.g.,
                 ```python
                 lexico_objectives = {
@@ -90,6 +89,16 @@ class FLOW2(Searcher):
                     "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
                     "targets": {"error_rate": 0.0},
                 }
+                ```
+                We also support percentage tolerance.
+                E.g.,
+                ```python
+                lexico_objectives = {
+                    "metrics": ["error_rate", "pred_time"],
+                    "modes": ["min", "min"],
+                    "tolerances": {"error_rate": "5%", "pred_time": "0%"},
+                    "targets": {"error_rate": 0.0},
+                   }
                 ```
         """
         if mode:
@@ -364,14 +373,27 @@ class FLOW2(Searcher):
             k_values = np.array(self._histories[k_metric])
             feasible_value = k_values.take(feasible_index)
             self._f_best[k_metric] = np.min(feasible_value)
+            if not isinstance(self.lexico_objectives["tolerances"][k_metric], str):
+                tolerance_bound = (
+                    self._f_best[k_metric]
+                    + self.lexico_objectives["tolerances"][k_metric]
+                )
+            else:
+                assert (
+                    self.lexico_objectives["tolerances"][k_metric][-1] == "%"
+                ), "String tolerance of {} should use %% as the suffix".format(k_metric)
+                tolerance_bound = self._f_best[k_metric] * (
+                    1
+                    + 0.01
+                    * float(
+                        self.lexico_objectives["tolerances"][k_metric].replace("%", "")
+                    )
+                )
             feasible_index_filter = np.where(
                 feasible_value
                 <= max(
-                    [
-                        self._f_best[k_metric]
-                        + self.lexico_objectives["tolerances"][k_metric],
-                        self.lexico_objectives["targets"][k_metric],
-                    ]
+                    tolerance_bound,
+                    self.lexico_objectives["targets"][k_metric],
                 )
             )[0]
             feasible_index = feasible_index.take(feasible_index_filter)
@@ -395,23 +417,31 @@ class FLOW2(Searcher):
                     if k_mode == "min"
                     else -self.lexico_objectives["targets"][k_metric]
                 )
-                if (
-                    result[k_metric]
-                    < max(
-                        [
-                            self._f_best[k_metric]
-                            + self.lexico_objectives["tolerances"][k_metric],
-                            k_target,
-                        ]
+                if not isinstance(self.lexico_objectives["tolerances"][k_metric], str):
+                    tolerance_bound = (
+                        self._f_best[k_metric]
+                        + self.lexico_objectives["tolerances"][k_metric]
                     )
-                ) and (
+                else:
+                    assert (
+                        self.lexico_objectives["tolerances"][k_metric][-1] == "%"
+                    ), "String tolerance of {} should use %% as the suffix".format(
+                        k_metric
+                    )
+                    tolerance_bound = self._f_best[k_metric] * (
+                        1
+                        + 0.01
+                        * float(
+                            self.lexico_objectives["tolerances"][k_metric].replace(
+                                "%", ""
+                            )
+                        )
+                    )
+                if (result[k_metric] < max(tolerance_bound, k_target)) and (
                     self.best_obj[k_metric]
                     < max(
-                        [
-                            self._f_best[k_metric]
-                            + self.lexico_objectives["tolerances"][k_metric],
-                            k_target,
-                        ]
+                        tolerance_bound,
+                        k_target,
                     )
                 ):
                     continue
