@@ -64,7 +64,11 @@ class ExperimentAnalysis(EA):
             return self.get_best_config(self.default_metric, self.default_mode)
 
     def lexico_best(self, trials):
-        results = {index: trial.last_result for index, trial in enumerate(trials)}
+        results = {
+            index: trial.last_result
+            for index, trial in enumerate(trials)
+            if trial.last_result
+        }
         metrics = self.lexico_objectives["metrics"]
         modes = self.lexico_objectives["modes"]
         f_best = {}
