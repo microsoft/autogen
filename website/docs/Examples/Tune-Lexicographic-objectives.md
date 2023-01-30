@@ -162,5 +162,10 @@ analysis = tune.run(
 )
 ```
 
+We also support providing percentage tolerance as shown below.
+
+```python
+lexico_objectives["tolerances"] = {"error_rate": "5%", "flops": "0%"}
+```
 
 [Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/tune_lexicographic.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/tune_lexicographic.ipynb)
