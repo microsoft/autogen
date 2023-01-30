@@ -125,8 +125,7 @@ class BlendSearch(Searcher):
                 objectives in the metric list. If not provided, we use "min" as the default mode for all the objectives.
                 - "targets" (optional): a dictionary to specify the optimization targets on the objectives. The keys are the
                 metric names (provided in "metric"), and the values are the numerical target values.
-                - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the
-                metric names (provided in "metrics"), and the values are the numerical tolerances values.
+                - "tolerances" (optional): a dictionary to specify the optimality tolerances on objectives. The keys are the metric names (provided in "metrics"), and the values are the absolute/percentage tolerance in the form of numeric/string.
                 E.g.,
                 ```python
                 lexico_objectives = {
@@ -135,6 +134,16 @@ class BlendSearch(Searcher):
                     "tolerances": {"error_rate": 0.01, "pred_time": 0.0},
                     "targets": {"error_rate": 0.0},
                 }
+                ```
+                We also support percentage tolerance.
+                E.g.,
+                ```python
+                lexico_objectives = {
+                    "metrics": ["error_rate", "pred_time"],
+                    "modes": ["min", "min"],
+                    "tolerances": {"error_rate": "5%", "pred_time": "0%"},
+                    "targets": {"error_rate": 0.0},
+                   }
                 ```
             experimental: A bool of whether to use experimental features.
         """
