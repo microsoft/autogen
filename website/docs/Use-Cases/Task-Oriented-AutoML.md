@@ -375,7 +375,7 @@ The data split method for classification can be changed into uniform split by se
 
 For both classification and regression tasks more advanced split configurations are possible:
 - time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`,
-- group-based splits can be set by using `split_type="group"` while providing the group identifier for each sample through the `groups` argument. This is also shown in an [example notebook](https://github.com/microsoft/FLAML/blob/main/notebook/basics/understanding_cross_validation.ipynb.ipynb).
+- group-based splits can be set by using `split_type="group"` while providing the group identifier for each sample through the `groups` argument. This is also shown in an [example notebook](https://github.com/microsoft/FLAML/blob/main/notebook/basics/understanding_cross_validation.ipynb).
 
 More in general, `split_type` can also be set as a custom splitter object, when `eval_method="cv"`. It needs to be an instance of a derived class of scikit-learn
 [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
