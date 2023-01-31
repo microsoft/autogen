@@ -365,16 +365,19 @@ For cross validation, you can also set `n_splits` of the number of folds. By def
 
 #### Data split method
 
-By default, flaml uses the following method to split the data:
+flaml relies on the provided task type to infer the default splitting strategy:
 * stratified split for classification;
 * uniform split for regression;
 * time-based split for time series forecasting;
 * group-based split for learning to rank.
 
 The data split method for classification can be changed into uniform split by setting `split_type="uniform"`. The data are shuffled when `split_type in ("uniform", "stratified")`.
-For both classification and regression, time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`.
 
-When `eval_method="cv"`, `split_type` can also be set as a custom splitter. It needs to be an instance of a derived class of scikit-learn
+For both classification and regression tasks more advanced split configurations are possible:
+- time-based split can be enforced if the data are sorted by timestamps, by setting `split_type="time"`,
+- group-based splits can be set by using `split_type="group"` while providing the group identifier for each sample through the `groups` argument. This is also shown in an [example notebook](https://github.com/microsoft/FLAML/blob/main/notebook/basics/understanding_cross_validation.ipynb).
+
+More in general, `split_type` can also be set as a custom splitter object, when `eval_method="cv"`. It needs to be an instance of a derived class of scikit-learn
 [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html#sklearn.model_selection.KFold)
 and have ``split`` and ``get_n_splits`` methods with the same signatures.  To disable shuffling, the splitter instance must contain the attribute `shuffle=False`.
 
