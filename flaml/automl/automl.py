@@ -17,6 +17,7 @@ from sklearn.model_selection import (
     GroupKFold,
     TimeSeriesSplit,
     GroupShuffleSplit,
+    StratifiedGroupKFold,
 )
 from sklearn.utils import shuffle
 from sklearn.base import BaseEstimator
@@ -1575,8 +1576,8 @@ class AutoML(BaseEstimator):
         else:
             # logger.info("Using splitter object")
             self._state.kf = self._split_type
-        if isinstance(self._state.kf, GroupKFold):
-            # self._split_type is either "group" or a GroupKFold object
+        if isinstance(self._state.kf, (GroupKFold, StratifiedGroupKFold)):
+            # self._split_type is either "group", a GroupKFold object, or a StratifiedGroupKFold object
             self._state.kf.groups = self._state.groups_all
 
     def add_learner(self, learner_name, learner_class):
