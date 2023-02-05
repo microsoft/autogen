@@ -17,7 +17,12 @@ from sklearn.metrics import (
     mean_absolute_percentage_error,
     ndcg_score,
 )
-from sklearn.model_selection import RepeatedStratifiedKFold, GroupKFold, TimeSeriesSplit
+from sklearn.model_selection import (
+    RepeatedStratifiedKFold,
+    GroupKFold,
+    TimeSeriesSplit,
+    StratifiedGroupKFold,
+)
 from flaml.automl.model import (
     XGBoostSklearnEstimator,
     XGBoost_TS,
@@ -517,7 +522,7 @@ def evaluate_model_CV(
     shuffle = getattr(kf, "shuffle", task not in TS_FORECAST)
     if isinstance(kf, RepeatedStratifiedKFold):
         kf = kf.split(X_train_split, y_train_split)
-    elif isinstance(kf, GroupKFold):
+    elif isinstance(kf, (GroupKFold, StratifiedGroupKFold)):
         groups = kf.groups
         kf = kf.split(X_train_split, y_train_split, groups)
         shuffle = False
@@ -548,8 +553,16 @@ def evaluate_model_CV(
                 weight[val_index],
             )
         if groups is not None:
-            fit_kwargs["groups"] = groups[train_index]
-            groups_val = groups[val_index]
+            fit_kwargs["groups"] = (
+                groups[train_index]
+                if isinstance(groups, np.ndarray)
+                else groups.iloc[train_index]
+            )
+            groups_val = (
+                groups[val_index]
+                if isinstance(groups, np.ndarray)
+                else groups.iloc[val_index]
+            )
         else:
             groups_val = None
         val_loss_i, metric_i, train_time_i, pred_time_i = get_val_loss(

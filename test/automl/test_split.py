@@ -94,6 +94,33 @@ def test_groups():
     automl.fit(X, y, **automl_settings)
 
 
+def test_stratified_groupkfold():
+    from sklearn.model_selection import StratifiedGroupKFold
+    from flaml.data import load_openml_dataset
+
+    X_train, _, y_train, _ = load_openml_dataset(dataset_id=1169, data_dir="test/")
+    splitter = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=0)
+
+    automl = AutoML()
+    settings = {
+        "time_budget": 6,
+        "metric": "ap",
+        "eval_method": "cv",
+        "split_type": splitter,
+        "groups": X_train["Airline"],
+        "estimator_list": [
+            "lgbm",
+            "rf",
+            "xgboost",
+            "extra_tree",
+            "xgb_limitdepth",
+            "lrl1",
+        ],
+    }
+
+    automl.fit(X_train=X_train, y_train=y_train, **settings)
+
+
 def test_rank():
     from sklearn.externals._arff import ArffException
 
