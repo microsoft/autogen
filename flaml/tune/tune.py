@@ -447,7 +447,11 @@ def run(
     old_verbose = _verbose
     old_running_trial = _running_trial
     old_training_iteration = _training_iteration
-    if local_dir and not log_file_name and verbose > 0:
+    if log_file_name:
+        dir_name = os.path.dirname(log_file_name)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
+    elif local_dir and verbose > 0:
         os.makedirs(local_dir, exist_ok=True)
         log_file_name = os.path.join(
             local_dir, "tune_" + str(datetime.datetime.now()).replace(":", "-") + ".log"
@@ -472,9 +476,6 @@ def run(
             logger.addHandler(old_handlers[0])
         if verbose > 0:
             if log_file_name:
-                dir_name = os.path.dirname(log_file_name)
-                if dir_name:
-                    os.makedirs(dir_name, exist_ok=True)
                 logger.addHandler(logging.FileHandler(log_file_name))
             elif not logger.hasHandlers():
                 # Add the console handler.
