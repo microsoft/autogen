@@ -17,6 +17,7 @@ except (ImportError, AssertionError):
     from .suggestion import Searcher
 from .flow2 import FLOW2
 from ..space import add_cost_to_space, unflatten_hierarchical
+from ..result import TIME_TOTAL_S
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class SearchThread:
         self,
         mode: str = "min",
         search_alg: Optional[Searcher] = None,
-        cost_attr: Optional[str] = "time_total_s",
+        cost_attr: Optional[str] = TIME_TOTAL_S,
         eps: Optional[float] = 1.0,
     ):
         """When search_alg is omitted, use local search FLOW2."""
