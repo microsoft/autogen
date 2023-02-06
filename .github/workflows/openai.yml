@@ -1,0 +1,45 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: OpenAI
+
+on:
+  pull_request:
+    branches: ['main']
+    path:
+      - 'flaml/integrations/oai/*'
+      - 'test/openai/*'
+      - '.github/workflows/openai.yml'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.9]
+    runs-on: ${{ matrix.os }}
+    environment: openai
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -e .
+          python -c "import flaml"
+          pip install -e .[openai]
+      - name: Coverage
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          pip install coverage pytest datasets nbconvert nbformat ipykernel
+          coverage run -a -m pytest test/openai
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests

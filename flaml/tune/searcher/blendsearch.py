@@ -710,7 +710,7 @@ class BlendSearch(Searcher):
         """choose thread, suggest a valid config."""
         if self._init_used and not self._points_to_evaluate:
             if self._cost_budget and self._cost_used >= self._cost_budget:
-                return
+                return None
             choice, backup = self._select_thread()
             config = self._search_thread_pool[choice].suggest(trial_id)
             if not choice and config is not None and self._ls.resource:

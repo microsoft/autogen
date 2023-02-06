@@ -3,8 +3,16 @@ name: docs
 on:
   pull_request:
     branches: [main]
+    path:
+      - 'flaml/*'
+      - 'website/*'
+      - '.github/workflows/deploy-website.yml'
   push:
     branches: [main]
+    path:
+      - 'flaml/*'
+      - 'website/*'
+      - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
 
 jobs:
