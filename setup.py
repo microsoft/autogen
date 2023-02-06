@@ -112,6 +112,7 @@ setuptools.setup(
             "pytorch-forecasting>=0.9.0",
         ],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
+        "openai": ["openai==0.23.1", "diskcache", "optuna==2.8.0"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
