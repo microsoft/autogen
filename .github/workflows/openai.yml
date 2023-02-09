@@ -6,9 +6,10 @@ name: OpenAI
 on:
   pull_request:
     branches: ['main']
-    path:
-      - 'flaml/integrations/oai/*'
-      - 'test/openai/*'
+    paths:
+      - 'flaml/integrations/oai/**'
+      - 'test/openai/**'
+      - 'notebook/integrate_openai.ipynb'
       - '.github/workflows/openai.yml'
 
 jobs:
