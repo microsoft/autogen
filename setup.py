@@ -76,6 +76,7 @@ setuptools.setup(
             "nbconvert",
             "nbformat",
             "ipykernel",
+            "pytorch-lightning<1.9.1",  # test_forecast_panel
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],

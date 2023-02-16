@@ -45,8 +45,8 @@ class Completion:
         "text-ada-001": 0.0004,
         "text-babbage-001": 0.0005,
         "text-curie-001": 0.002,
-        "code-cushman-001": 0.002,  # TODO: update when available
-        "code-davinci-002": 0.02,  # TODO: update when available
+        "code-cushman-001": 0.024,
+        "code-davinci-002": 0.1,
         "text-davinci-002": 0.02,
         "text-davinci-003": 0.02,
     }

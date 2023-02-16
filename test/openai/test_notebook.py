@@ -2,7 +2,6 @@ import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors import CellExecutionError
 import os
-import sys
 import pytest
 
 try:

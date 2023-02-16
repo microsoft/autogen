@@ -14,6 +14,8 @@ on:
       - 'website/*'
       - '.github/workflows/deploy-website.yml'
   workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
 
 jobs:
   checks:

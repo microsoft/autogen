@@ -20,6 +20,8 @@ on:
       - 'notebook/**'
       - '.github/workflows/python-package.yml'
       - 'setup.py'
+  merge_group:
+    types: [checks_requested]
 
 jobs:
   build:
