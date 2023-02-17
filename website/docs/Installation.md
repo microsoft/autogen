@@ -81,6 +81,12 @@ pip install flaml[nni]
 pip install flaml[blendsearch]
 ```
 
+* synapse
+> *To install flaml in Azure Synapse and similar cloud platform*
+```bash
+pip install flaml[synapse]
+```
+
 #### Test and Benchmark
 
 * test
