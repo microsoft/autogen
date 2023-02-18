@@ -618,3 +618,5 @@ If you want to get a sense of how much time is needed to find the best model, yo
 > INFO -  at 2.6s,  estimator lgbm's best error=0.4459,     best estimator lgbm's best error=0.4459
 
 You will see that the time to finish the first and cheapest trial is 2.6 seconds. The estimated necessary time budget is 2118 seconds, and the estimated sufficient time budget is 145194 seconds. Note that this is only an estimated range to help you decide your budget.
+
+When the time budget is set too low, it can happen that no estimator is trained at all within the budget. In this case, it is recommanded to use `max_iter` instead of `time_budget`. This ensures that you have enough time to train a model without worring about variance of the execution time for the code before starting a trainning.
