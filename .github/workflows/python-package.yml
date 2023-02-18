@@ -14,12 +14,6 @@ on:
       - 'setup.py'
   pull_request:
     branches: ['main']
-    paths:
-      - 'flaml/**'
-      - 'test/**'
-      - 'notebook/**'
-      - '.github/workflows/python-package.yml'
-      - 'setup.py'
   merge_group:
     types: [checks_requested]
 
