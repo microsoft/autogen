@@ -439,7 +439,6 @@ def get_val_loss(
     fit_kwargs={},
     free_mem_ratio=0,
 ):
-
     start = time.time()
     # if groups_val is not None:
     #     fit_kwargs['groups_val'] = groups_val

@@ -1104,7 +1104,6 @@ class AutoML(BaseEstimator):
         groups_val=None,
         groups=None,
     ):
-
         if X_train_all is not None and y_train_all is not None:
             assert (
                 isinstance(X_train_all, np.ndarray)
@@ -1266,7 +1265,6 @@ class AutoML(BaseEstimator):
             self._state.groups = groups
 
     def _prepare_data(self, eval_method, split_ratio, n_splits):
-
         X_val, y_val = self._state.X_val, self._state.y_val
         if issparse(X_val):
             X_val = X_val.tocsr()

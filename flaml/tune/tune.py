@@ -142,7 +142,6 @@ class ExperimentAnalysis(EA):
 
 
 def report(_metric=None, **kwargs):
-
     """A function called by the HPO application to report final or intermediate
     results.
 

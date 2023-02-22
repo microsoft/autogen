@@ -135,7 +135,6 @@ def tokenize_and_align_labels(
 
 
 def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
-
     # If the label_all_tokens flag is True, prepare two dicts label_to_id and b_to_i_label to convert the B- labels to I- labels
     label_to_id = {i: i for i in range(len(hf_args.label_list))}
     b_to_i_label = []
@@ -275,7 +274,6 @@ def tokenize_row(
 
 
 def tokenize_text_multiplechoice(X, tokenizer, hf_args=None):
-
     t = X[["sent1", "sent2", "ending0", "ending1", "ending2", "ending3"]]
     _, tokenized_column_names = tokenize_swag(
         t.iloc[0],
