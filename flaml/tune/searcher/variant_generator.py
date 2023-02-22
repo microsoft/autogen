@@ -282,9 +282,9 @@ def _split_resolved_unresolved_values(
                 _resolved_children,
                 _unresolved_children,
             ) = _split_resolved_unresolved_values(v)
-            for (path, value) in _resolved_children.items():
+            for path, value in _resolved_children.items():
                 resolved_vars[(k,) + path] = value
-            for (path, value) in _unresolved_children.items():
+            for path, value in _unresolved_children.items():
                 unresolved_vars[(k,) + path] = value
         elif isinstance(v, list):
             # Recurse into a list
@@ -293,9 +293,9 @@ def _split_resolved_unresolved_values(
                     _resolved_children,
                     _unresolved_children,
                 ) = _split_resolved_unresolved_values({i: elem})
-                for (path, value) in _resolved_children.items():
+                for path, value in _resolved_children.items():
                     resolved_vars[(k,) + path] = value
-                for (path, value) in _unresolved_children.items():
+                for path, value in _unresolved_children.items():
                     unresolved_vars[(k,) + path] = value
         else:
             resolved_vars[(k,)] = v

@@ -647,5 +647,4 @@ def qrandn(mean: float, sd: float, q: float):
 def polynomial_expansion_set(
     init_monomials: set, highest_poly_order: int = None, allow_self_inter: bool = False
 ):
-
     return PolynomialExpansionSet(init_monomials, highest_poly_order, allow_self_inter)

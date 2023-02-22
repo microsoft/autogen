@@ -10,11 +10,9 @@ import io
 
 class TestLogging(unittest.TestCase):
     def test_logging_level(self):
-
         from flaml import logger, logger_formatter
 
         with tempfile.TemporaryDirectory() as d:
-
             training_log = os.path.join(d, "training.log")
 
             # Configure logging for the FLAML logger

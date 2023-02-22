@@ -175,7 +175,6 @@ class BaseEstimator:
         return X
 
     def _fit(self, X_train, y_train, **kwargs):
-
         current_time = time.time()
         if "groups" in kwargs:
             kwargs = kwargs.copy()
@@ -447,7 +446,7 @@ class TransformersEstimator(BaseEstimator):
     def _set_training_args(self, **kwargs):
         from .nlp.utils import date_str, Counter
 
-        for (key, val) in kwargs.items():
+        for key, val in kwargs.items():
             assert key not in self.params, (
                 "Since {} is in the search space, it cannot exist in 'custom_fit_kwargs' at the same time."
                 "If you need to fix the value of {} to {}, the only way is to add a single-value domain in the search "

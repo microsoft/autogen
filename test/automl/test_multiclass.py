@@ -11,7 +11,6 @@ from flaml.automl.training_log import training_log_reader
 
 class MyRegularizedGreedyForest(SKLearnEstimator):
     def __init__(self, task="binary", **config):
-
         super().__init__(task, **config)
 
         if task in CLASSIFICATION:

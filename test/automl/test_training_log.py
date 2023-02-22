@@ -12,7 +12,6 @@ class TestTrainingLog(unittest.TestCase):
     def test_training_log(
         self, path="test_training_log.log", estimator_list="auto", use_ray=False
     ):
-
         with TemporaryDirectory() as d:
             filename = os.path.join(d, path)
 

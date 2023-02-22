@@ -1574,7 +1574,6 @@ def get_toy_data_tokenclassification_tokenlabel():
 
 
 def get_automl_settings(estimator_name="transformer"):
-
     automl_settings = {
         "gpu_per_trial": 0,
         "max_iter": 3,

@@ -17,7 +17,6 @@ def rosenbrock_function(config: dict):
 
 
 def test_record_incumbent(method="BlendSearch"):
-
     if method != "CFOCat":
         search_space = {
             "x1": tune.randint(1, 9),

@@ -35,7 +35,6 @@ def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False)
         "height": tune.uniform(-100, 100),
     }
     if externally_setup_searcher is True:
-
         searcher = BlendSearch(
             space=search_space,
             time_budget_s=5,

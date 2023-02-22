@@ -1,19 +1,28 @@
+default_language_version:
+  python: python3
+
+ci:
+  autofix_prs: true
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
+  autoupdate_schedule: 'quarterly'
 
 repos:
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 23.1.0
     hooks:
     - id: black
-      language_version: python3
-  -   repo: https://github.com/pycqa/flake8
-      rev: 4.0.1
-      hooks:
-      -   id: flake8
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
     - id: check-added-large-files
     - id: check-ast
+    - id: check-yaml
+    - id: check-toml
+    - id: check-json
     - id: check-byte-order-marker
     - id: check-merge-conflict
     - id: detect-private-key
