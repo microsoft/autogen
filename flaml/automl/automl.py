@@ -2,6 +2,7 @@
 #  * Copyright (c) FLAML authors. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
+from __future__ import annotations
 import time
 import os
 import sys
@@ -306,7 +307,7 @@ class SearchState:
 
 
 class AutoMLState:
-    def _prepare_sample_train_data(self, sample_size):
+    def _prepare_sample_train_data(self, sample_size: int):
         sampled_weight = groups = None
         if sample_size <= self.data_size[0]:
             if isinstance(self.X_train, pd.DataFrame):
@@ -344,7 +345,9 @@ class AutoMLState:
         return sampled_X_train, sampled_y_train, sampled_weight, groups
 
     @staticmethod
-    def _compute_with_config_base(config_w_resource, state, estimator, is_report=True):
+    def _compute_with_config_base(
+        config_w_resource: dict, state: AutoMLState, estimator: str, is_report: bool = True
+    ) -> dict:
         if "FLAML_sample_size" in config_w_resource:
             sample_size = int(config_w_resource["FLAML_sample_size"])
         else:
@@ -435,9 +438,9 @@ class AutoMLState:
 
     def _train_with_config(
         self,
-        estimator,
-        config_w_resource,
-        sample_size=None,
+        estimator: str,
+        config_w_resource: dict,
+        sample_size: Optional[int] = None,
     ):
         if not sample_size:
             sample_size = config_w_resource.get(
@@ -801,11 +804,11 @@ class AutoML(BaseEstimator):
             "classifier" if settings["task"] in CLASSIFICATION else "regressor"
         )
 
-    def get_params(self, deep=False):
+    def get_params(self, deep: bool = False) -> dict:
         return self._settings.copy()
 
     @property
-    def config_history(self):
+    def config_history(self) -> dict:
         """A dictionary of iter->(estimator, config, time),
         storing the best estimator, config, and the time when the best
         model is updated each time.
@@ -819,7 +822,7 @@ class AutoML(BaseEstimator):
         """
         return self.__dict__.get("_trained_estimator")
 
-    def best_model_for_estimator(self, estimator_name):
+    def best_model_for_estimator(self, estimator_name: str):
         """Return the best model found for a particular estimator.
 
         Args:
@@ -1587,7 +1590,7 @@ class AutoML(BaseEstimator):
         """
         self._state.learner_classes[learner_name] = learner_class
 
-    def get_estimator_from_log(self, log_file_name, record_id, task):
+    def get_estimator_from_log(self, log_file_name: str, record_id: int, task: str):
         """Get the estimator from log file.
 
         Args:
