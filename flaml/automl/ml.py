@@ -385,8 +385,10 @@ def _eval_estimator(
     obj,
     labels=None,
     log_training_metric=False,
-    fit_kwargs={},
+    fit_kwargs: Optional[dict] = None,
 ):
+    if fit_kwargs is None:
+        fit_kwargs = {}
     if isinstance(eval_metric, str):
         pred_start = time.time()
         val_pred_y = get_y_pred(estimator, X_val, eval_metric, obj)
@@ -445,9 +447,11 @@ def get_val_loss(
     labels=None,
     budget=None,
     log_training_metric=False,
-    fit_kwargs={},
+    fit_kwargs: Optional[dict] = None,
     free_mem_ratio=0,
 ):
+    if fit_kwargs is None:
+        fit_kwargs = {}
     start = time.time()
     # if groups_val is not None:
     #     fit_kwargs['groups_val'] = groups_val
@@ -507,9 +511,11 @@ def evaluate_model_CV(
     best_val_loss,
     cv_score_agg_func=None,
     log_training_metric=False,
-    fit_kwargs={},
+    fit_kwargs: Optional[dict] = None,
     free_mem_ratio=0,
 ):
+    if fit_kwargs is None:
+        fit_kwargs = {}
     if cv_score_agg_func is None:
         cv_score_agg_func = default_cv_score_agg_func
     start_time = time.time()
