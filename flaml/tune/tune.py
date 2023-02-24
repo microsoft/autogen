@@ -24,6 +24,7 @@ except (ImportError, AssertionError):
 from .trial import Trial
 from .result import DEFAULT_METRIC
 import logging
+from flaml.tune.spark.utils import PySparkOvertimeMonitor
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
@@ -246,6 +247,7 @@ def run(
     use_incumbent_result_in_evaluation: Optional[bool] = None,
     log_file_name: Optional[str] = None,
     lexico_objectives: Optional[dict] = None,
+    force_cancel: Optional[bool] = False,
     **ray_args,
 ):
     """The trigger for HPO.
@@ -730,10 +732,14 @@ def run(
                         logger.debug(
                             f"Configs of Trials to run: {[trial_to_run.config for trial_to_run in trials_to_run]}"
                         )
-                        results = parallel(
-                            delayed(evaluation_function)(trial_to_run.config)
-                            for trial_to_run in trials_to_run
-                        )
+                        results = None
+                        with PySparkOvertimeMonitor(
+                            time_start, time_budget_s, force_cancel, parallel=parallel
+                        ):
+                            results = parallel(
+                                delayed(evaluation_function)(trial_to_run.config)
+                                for trial_to_run in trials_to_run
+                            )
                         # results = [evaluation_function(trial_to_run.config) for trial_to_run in trials_to_run]
                         while results:
                             result = results.pop(0)
@@ -803,7 +809,9 @@ def run(
                 num_trials += 1
                 if verbose:
                     logger.info(f"trial {num_trials} config: {trial_to_run.config}")
-                result = evaluation_function(trial_to_run.config)
+                result = None
+                with PySparkOvertimeMonitor(time_start, time_budget_s, force_cancel):
+                    result = evaluation_function(trial_to_run.config)
                 if result is not None:
                     if isinstance(result, dict):
                         if result:

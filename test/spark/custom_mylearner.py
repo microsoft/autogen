@@ -2,6 +2,7 @@ from flaml.tune.spark.utils import broadcast_code
 
 custom_code = """
 from flaml import tune
+import time
 from flaml.automl.model import LGBMEstimator, XGBoostSklearnEstimator, SKLearnEstimator
 from flaml.automl.data import CLASSIFICATION, get_output_from_log
 
@@ -91,6 +92,7 @@ class MyLargeLGBM(LGBMEstimator):
         }
 
 
+
 def custom_metric(
     X_val,
     y_val,
@@ -107,6 +109,35 @@ def custom_metric(
     from sklearn.metrics import log_loss
     import time
 
+    start = time.time()
+    y_pred = estimator.predict_proba(X_val)
+    pred_time = (time.time() - start) / len(X_val)
+    val_loss = log_loss(y_val, y_pred, labels=labels, sample_weight=weight_val)
+    y_pred = estimator.predict_proba(X_train)
+    train_loss = log_loss(y_train, y_pred, labels=labels, sample_weight=weight_train)
+    alpha = 0.5
+    return val_loss * (1 + alpha) - alpha * train_loss, {
+        "val_loss": val_loss,
+        "train_loss": train_loss,
+        "pred_time": pred_time,
+    }
+
+def lazy_metric(
+    X_val,
+    y_val,
+    estimator,
+    labels,
+    X_train,
+    y_train,
+    weight_val=None,
+    weight_train=None,
+    config=None,
+    groups_val=None,
+    groups_train=None,
+):
+    from sklearn.metrics import log_loss
+
+    time.sleep(2)
     start = time.time()
     y_pred = estimator.predict_proba(X_val)
     pred_time = (time.time() - start) / len(X_val)

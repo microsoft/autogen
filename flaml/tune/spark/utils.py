@@ -1,7 +1,10 @@
-import os
 import logging
-from functools import partial, lru_cache
+import os
 import textwrap
+import threading
+import time
+from functools import lru_cache, partial
+
 
 logger = logging.getLogger(__name__)
 logger_formatter = logging.Formatter(
@@ -9,15 +12,17 @@ logger_formatter = logging.Formatter(
 )
 
 try:
+    import pyspark
     from pyspark.sql import SparkSession
     from pyspark.util import VersionUtils
-    import pyspark
+    import py4j
 
     _have_spark = True
     _spark_major_minor_version = VersionUtils.majorMinorVersion(pyspark.__version__)
 except ImportError as e:
     logger.debug("Could not import pyspark: %s", e)
     _have_spark = False
+    py4j = None
     _spark_major_minor_version = (0, 0)
 
 
@@ -187,3 +192,116 @@ def get_broadcast_data(broadcast_data):
     if _have_spark and isinstance(broadcast_data, pyspark.broadcast.Broadcast):
         broadcast_data = broadcast_data.value
     return broadcast_data
+
+
+class PySparkOvertimeMonitor:
+    """A context manager class to monitor if the PySpark job is overtime.
+    Example:
+
+    ```python
+    with PySparkOvertimeMonitor(time_start, time_budget_s, force_cancel, parallel=parallel):
+        results = parallel(
+            delayed(evaluation_function)(trial_to_run.config)
+            for trial_to_run in trials_to_run
+        )
+    ```
+
+    """
+
+    def __init__(
+        self,
+        start_time,
+        time_budget_s,
+        force_cancel=False,
+        cancel_func=None,
+        parallel=None,
+        sc=None,
+    ):
+        """Constructor.
+
+        Specify the time budget and start time of the PySpark job, and specify how to cancel them.
+
+        Args:
+            Args relate to monitoring:
+                start_time: float | The start time of the PySpark job.
+                time_budget_s: float | The time budget of the PySpark job in seconds.
+                force_cancel: boolean, default=False | Whether to forcely cancel the PySpark job if overtime.
+
+            Args relate to how to cancel the PySpark job:
+            (Only one of the following args will work. Priorities from top to bottom)
+                cancel_func: function | A function to cancel the PySpark job.
+                parallel: joblib.parallel.Parallel | Specify this if using joblib_spark as a parallel backend. It will call parallel._backend.terminate() to cancel the jobs.
+                sc: pyspark.SparkContext object | You can pass a specific SparkContext.
+
+                If all three args is None, the monitor will call pyspark.SparkContext.getOrCreate().cancelAllJobs() to cancel the jobs.
+
+
+        """
+        self._time_budget_s = time_budget_s
+        self._start_time = start_time
+        self._force_cancel = force_cancel
+        # TODO: add support for non-spark scenario
+        if self._force_cancel and _have_spark:
+            self._monitor_daemon = None
+            self._finished_flag = False
+            self._cancel_flag = False
+            self.sc = None
+            if cancel_func:
+                self.__cancel_func = cancel_func
+            elif parallel:
+                self.__cancel_func = parallel._backend.terminate
+            elif sc:
+                self.sc = sc
+                self.__cancel_func = self.sc.cancelAllJobs
+            else:
+                self.__cancel_func = pyspark.SparkContext.getOrCreate().cancelAllJobs
+            # logger.info(self.__cancel_func)
+
+    def _monitor_overtime(self):
+        """The lifecycle function for monitor thread."""
+        if self._time_budget_s is None:
+            self.__cancel_func()
+            self._cancel_flag = True
+            return
+        while time.time() - self._start_time <= self._time_budget_s:
+            time.sleep(0.01)
+            if self._finished_flag:
+                return
+        self.__cancel_func()
+        self._cancel_flag = True
+        return
+
+    def _setLogLevel(self, level):
+        """Set the log level of the spark context.
+        Set the level to OFF could block the warning message of Spark."""
+        if self.sc:
+            self.sc.setLogLevel(level)
+        else:
+            pyspark.SparkContext.getOrCreate().setLogLevel(level)
+
+    def __enter__(self):
+        """Enter the context manager.
+        This will start a monitor thread if spark is available and force_cancel is True."""
+        if self._force_cancel and _have_spark:
+            self._monitor_daemon = threading.Thread(target=self._monitor_overtime)
+            # logger.setLevel("INFO")
+            logger.info("monitor started")
+            self._setLogLevel("OFF")
+            self._monitor_daemon.start()
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        """Exit the context manager.
+        This will wait for the monitor thread to nicely exit."""
+        if self._force_cancel and _have_spark:
+            self._finished_flag = True
+            self._monitor_daemon.join()
+            if self._cancel_flag:
+                print()
+                logger.warning("Time exceeded, canceled jobs")
+            # self._setLogLevel("WARN")
+            if not exc_type:
+                return True
+            elif exc_type == py4j.protocol.Py4JJavaError:
+                return True
+            else:
+                return False
