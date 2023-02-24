@@ -61,7 +61,8 @@ def load_config_predictor(estimator_name, task, location=None):
     return predictor
 
 
-def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None):
+def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None, meta_feature_fn=meta_feature):
+
     """Suggest a list of configs for the given task and training data.
 
     The returned configs can be used as starting points for AutoML.fit().
@@ -69,7 +70,7 @@ def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None):
     """
     task = (
         get_classification_objective(len(np.unique(y)))
-        if task == "classification"
+        if task == "classification" and y is not None
         else task
     )
     predictor = (
@@ -86,7 +87,7 @@ def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None):
         >= version_parse(older_version)
     )
     prep = predictor["preprocessing"]
-    feature = meta_feature(
+    feature = meta_feature_fn(
         task, X_train=X, y_train=y, meta_feature_names=predictor["meta_feature_names"]
     )
     feature = (np.array(feature) - np.array(prep["center"])) / np.array(prep["scale"])
@@ -99,9 +100,10 @@ def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None):
     choice = neighbors[ind]["choice"] if k is None else neighbors[ind]["choice"][:k]
     configs = [predictor["portfolio"][x] for x in choice]
     for config in configs:
-        hyperparams = config["hyperparameters"]
-        if hyperparams and "FLAML_sample_size" in hyperparams:
-            hyperparams.pop("FLAML_sample_size")
+        if "hyperparameters" in config:
+            hyperparams = config["hyperparameters"]
+            if hyperparams and "FLAML_sample_size" in hyperparams:
+                hyperparams.pop("FLAML_sample_size")
     return configs
 
 
