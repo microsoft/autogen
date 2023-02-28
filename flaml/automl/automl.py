@@ -346,7 +346,10 @@ class AutoMLState:
 
     @staticmethod
     def _compute_with_config_base(
-        config_w_resource: dict, state: AutoMLState, estimator: str, is_report: bool = True
+        config_w_resource: dict,
+        state: AutoMLState,
+        estimator: str,
+        is_report: bool = True,
     ) -> dict:
         if "FLAML_sample_size" in config_w_resource:
             sample_size = int(config_w_resource["FLAML_sample_size"])
