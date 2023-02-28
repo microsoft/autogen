@@ -24,7 +24,9 @@ repos:
     - id: check-toml
     - id: check-json
     - id: check-byte-order-marker
+      exclude: .gitignore
     - id: check-merge-conflict
     - id: detect-private-key
     - id: trailing-whitespace
+    - id: end-of-file-fixer
     - id: no-commit-to-branch

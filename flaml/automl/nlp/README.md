@@ -23,5 +23,3 @@ Our findings on troubleshooting fine-tuning the Electra and RoBERTa model for th
     booktitle={ACL-IJCNLP},
 }
 ```
-
-
