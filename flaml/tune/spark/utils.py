@@ -281,7 +281,8 @@ class PySparkOvertimeMonitor:
 
     def __enter__(self):
         """Enter the context manager.
-        This will start a monitor thread if spark is available and force_cancel is True."""
+        This will start a monitor thread if spark is available and force_cancel is True.
+        """
         if self._force_cancel and _have_spark:
             self._monitor_daemon = threading.Thread(target=self._monitor_overtime)
             # logger.setLevel("INFO")

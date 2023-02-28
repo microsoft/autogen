@@ -61,8 +61,15 @@ def load_config_predictor(estimator_name, task, location=None):
     return predictor
 
 
-def suggest_config(task, X, y, estimator_or_predictor, location=None, k=None, meta_feature_fn=meta_feature):
-
+def suggest_config(
+    task,
+    X,
+    y,
+    estimator_or_predictor,
+    location=None,
+    k=None,
+    meta_feature_fn=meta_feature,
+):
     """Suggest a list of configs for the given task and training data.
 
     The returned configs can be used as starting points for AutoML.fit().
