@@ -92,7 +92,14 @@ setuptools.setup(
         "vw": [
             "vowpalwabbit>=8.10.0, <9.0.0",
         ],
-        "nlp": [
+        "hf": [
+            "transformers[torch]==4.26",
+            "datasets",
+            "nltk",
+            "rouge_score",
+            "seqeval",
+        ],
+        "nlp": [  # for backward compatibility; hf is the new option name
             "transformers[torch]==4.26",
             "datasets",
             "nltk",

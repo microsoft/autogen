@@ -2,9 +2,9 @@
 
 ### Requirements
 
-This example requires GPU. Install the [nlp] option:
+This example requires GPU. Install the [hf] option:
 ```python
-pip install "flaml[nlp]"
+pip install "flaml[hf]"
 ```
 
 ### A simple sequence classification example
