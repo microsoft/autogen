@@ -207,11 +207,11 @@ def metric_loss_score(
         except ImportError:
             raise ValueError(
                 metric_name
-                + " is not an built-in sklearn metric and nlp is not installed. "
+                + " is not an built-in sklearn metric and [hf] is not installed. "
                 "Currently built-in sklearn metrics are: "
                 "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
                 "log_loss, mape, f1, micro_f1, macro_f1, ap. "
-                "If the metric is an nlp metric, please pip install flaml[nlp] ",
+                "If the metric is a huggingface metric, please pip install flaml[hf] ",
                 "or pass a customized metric function to AutoML.fit(metric=func)",
             )
         # If the metric is not found from huggingface dataset metric list (i.e., FileNotFoundError)
