@@ -1,3 +1,3 @@
-from flaml.integrations.oai.completion import Completion
+from flaml.integrations.oai.completion import Completion, ChatCompletion
 
-__all__ = ["Completion"]
+__all__ = ["Completion", "ChatCompletion"]

@@ -91,3 +91,14 @@ year={2023},
 url={https://openreview.net/forum?id=0Ij9_q567Ma}
 }
 ```
+
+* [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673). Chi Wang, Susan Xueqing Liu, Ahmed H. Awadallah. ArXiv preprint arXiv:2303.04673 (2023).
+
+```bibtex
+@inproceedings{wang2023EcoOptiGen,
+    title={Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference},
+    author={Chi Wang and Susan Xueqing Liu and Ahmed H. Awadallah},
+    year={2023},
+    booktitle={ArXiv preprint arXiv:2303.04673},
+}
+```

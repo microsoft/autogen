@@ -80,13 +80,36 @@ def test_humaneval(num_samples=1):
     oai.Completion.set_cache(seed)
     try:
         # a minimal tuning example
-        oai.Completion.tune(
+        config, _ = oai.Completion.tune(
             data=tune_data,
             metric="success",
             mode="max",
             eval_func=success_metrics,
             n=1,
         )
+        responses = oai.Completion.create(context=test_data[0], **config)
+        # a minimal tuning example for tuning chat completion models using the Completion class
+        config, _ = oai.Completion.tune(
+            data=tune_data,
+            metric="success",
+            mode="max",
+            eval_func=success_metrics,
+            n=1,
+            model="gpt-3.5-turbo",
+        )
+        responses = oai.Completion.create(context=test_data[0], **config)
+        # a minimal tuning example for tuning chat completion models using the Completion class
+        config, _ = oai.ChatCompletion.tune(
+            data=tune_data,
+            metric="success",
+            mode="max",
+            eval_func=success_metrics,
+            n=1,
+            messages=[{"role": "user", "content": "{prompt}"}],
+        )
+        responses = oai.ChatCompletion.create(context=test_data[0], **config)
+        print(responses)
+        return
         # a more comprehensive tuning example
         config, analysis = oai.Completion.tune(
             data=tune_data,
@@ -94,8 +117,8 @@ def test_humaneval(num_samples=1):
             mode="max",
             eval_func=success_metrics,
             log_file_name="logs/humaneval.log",
-            inference_budget=0.02,
-            optimization_budget=5,
+            inference_budget=0.002,
+            optimization_budget=2,
             num_samples=num_samples,
             prompt=[
                 "{prompt}",
