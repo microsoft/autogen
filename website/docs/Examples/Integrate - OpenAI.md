@@ -1,10 +1,10 @@
-FLAML has integrated the OpenAI's completion API. In this example, we will tune several hyperparameters including the temperature, prompt and n to optimize the inference performance of OpenAI's completion API for a code generation task. Our study shows that tuning hyperparameters can significantly affect the utility of the OpenAI API.
+FLAML offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673). In this example, we will tune several hyperparameters for the OpenAI's completion API, including the temperature, prompt and n (number of completions), to optimize the inference performance for a code generation task. Our study shows that tuning hyperparameters can significantly affect the utility of the OpenAI API.
 
 ### Prerequisites
 
-Install the [openai] option. The option is available in flaml since version 1.1.3. This feature is subject to change in future versions.
+Install the [openai] option. The OpenAI integration is in preview. ChaptGPT support is available since version 1.2.0.
 ```bash
-pip install "flaml[openai]==1.1.3"
+pip install "flaml[openai]==1.2.0"
 ```
 
 
