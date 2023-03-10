@@ -662,3 +662,15 @@ For more technical details, please check our papers.
     booktitle={ICLR'21},
 }
 ```
+
+* [Targeted Hyperparameter Optimization with Lexicographic Preferences Over Multiple Objectives](https://openreview.net/forum?id=0Ij9_q567Ma). Shaokun Zhang, Feiran Jia, Chi Wang, Qingyun Wu. ICLR 2023 (notable-top-5%).
+
+```bibtex
+@inproceedings{zhang2023targeted,
+    title={Targeted Hyperparameter Optimization with Lexicographic Preferences Over Multiple Objectives},
+    author={Shaokun Zhang and Feiran Jia and Chi Wang and Qingyun Wu},
+    booktitle={International Conference on Learning Representations},
+    year={2023},
+    url={https://openreview.net/forum?id=0Ij9_q567Ma}
+}
+```
