@@ -4,14 +4,20 @@ custom_code = """
 from flaml import tune
 import time
 from flaml.automl.model import LGBMEstimator, XGBoostSklearnEstimator, SKLearnEstimator
-from flaml.automl.data import CLASSIFICATION, get_output_from_log
+from flaml.automl.data import get_output_from_log
+from flaml.automl.task.task import CLASSIFICATION
 
 class MyRegularizedGreedyForest(SKLearnEstimator):
     def __init__(self, task="binary", **config):
 
         super().__init__(task, **config)
 
-        if task in CLASSIFICATION:
+        if isinstance(task, str):
+            from flaml.automl.task.factory import task_factory
+
+            task = task_factory(task)
+
+        if task.is_classification():
             from rgf.sklearn import RGFClassifier
 
             self.estimator_class = RGFClassifier

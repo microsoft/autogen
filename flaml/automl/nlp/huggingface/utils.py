@@ -2,7 +2,7 @@ import pandas as pd
 from itertools import chain
 import numpy as np
 
-from flaml.automl.data import (
+from flaml.automl.task.task import (
     SUMMARIZATION,
     SEQREGRESSION,
     SEQCLASSIFICATION,
@@ -402,7 +402,11 @@ def load_model(checkpoint_path, task, num_labels=None):
     transformers.logging.set_verbosity_error()
 
     from transformers import AutoConfig
-    from ...data import SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION
+    from flaml.automl.task.task import (
+        SEQCLASSIFICATION,
+        SEQREGRESSION,
+        TOKENCLASSIFICATION,
+    )
 
     def get_this_model(checkpoint_path, task, model_config):
         from transformers import AutoModelForSequenceClassification

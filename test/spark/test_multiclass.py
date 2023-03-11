@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse
 from sklearn.datasets import load_iris, load_wine
 from flaml import AutoML
-from flaml.automl.data import CLASSIFICATION, get_output_from_log
+from flaml.automl.data import get_output_from_log
 from flaml.automl.training_log import training_log_reader
 from flaml.tune.spark.utils import check_spark
 import os

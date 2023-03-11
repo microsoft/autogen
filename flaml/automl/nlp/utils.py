@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import numpy as np
 
-from flaml.automl.data import (
+from flaml.automl.task.task import (
     SUMMARIZATION,
     SEQREGRESSION,
     SEQCLASSIFICATION,
