@@ -3,8 +3,9 @@ from sklearn.neighbors import NearestNeighbors
 import logging
 import pathlib
 import json
-from flaml.automl.data import CLASSIFICATION, DataTransformer
-from flaml.automl.ml import get_estimator_class, get_classification_objective
+from flaml.automl.data import DataTransformer
+from flaml.automl.task.task import CLASSIFICATION, get_classification_objective
+from flaml.automl.ml import get_estimator_class
 from flaml.version import __version__
 
 LOCATION = pathlib.Path(__file__).parent.resolve()
@@ -45,6 +46,7 @@ def meta_feature(task, X_train, y_train, meta_feature_names):
 
 
 def load_config_predictor(estimator_name, task, location=None):
+    task = str(task)
     key = f"{location}/{estimator_name}/{task}"
     predictor = CONFIG_PREDICTORS.get(key)
     if predictor:
