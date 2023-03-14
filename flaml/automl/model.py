@@ -732,10 +732,8 @@ class TransformersEstimator(BaseEstimator):
 
     def _delete_one_ckpt(self, ckpt_location):
         if self._use_ray is False:
-            try:
+            if os.path.exists(ckpt_location):
                 shutil.rmtree(ckpt_location)
-            except FileNotFoundError:
-                logger.warning("checkpoint {} not found".format(ckpt_location))
 
     def cleanup(self):
         super().cleanup()
