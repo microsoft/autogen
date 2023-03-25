@@ -12,6 +12,22 @@ from flaml.automl.training_log import training_log_reader
 from datetime import datetime
 from typing import TYPE_CHECKING, Union
 
+import os
+
+try:
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    import pyspark.pandas as ps
+    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+except ImportError:
+    ps = None
+
+    class psDataFrame:
+        pass
+
+    class psSeries:
+        pass
+
+
 if TYPE_CHECKING:
     from flaml.automl.task import Task
 
@@ -198,11 +214,27 @@ def get_output_from_log(filename, time_budget):
 
 def concat(X1, X2):
     """concatenate two matrices vertically."""
+    if type(X1) != type(X2):
+        if isinstance(X2, (psDataFrame, psSeries)):
+            X1 = ps.from_pandas(pd.DataFrame(X1))
+        elif isinstance(X1, (psDataFrame, psSeries)):
+            X2 = ps.from_pandas(pd.DataFrame(X2))
+        else:
+            X1 = pd.DataFrame(X1)
+            X2 = pd.DataFrame(X2)
+
     if isinstance(X1, (DataFrame, Series)):
         df = pd.concat([X1, X2], sort=False)
         df.reset_index(drop=True, inplace=True)
         if isinstance(X1, DataFrame):
             cat_columns = X1.select_dtypes(include="category").columns
+            if len(cat_columns):
+                df[cat_columns] = df[cat_columns].astype("category")
+        return df
+    if isinstance(X1, (psDataFrame, psSeries)):
+        df = ps.concat([X1, X2], ignore_index=True)
+        if isinstance(X1, psDataFrame):
+            cat_columns = X1.select_dtypes(include="category").columns.values.tolist()
             if len(cat_columns):
                 df[cat_columns] = df[cat_columns].astype("category")
         return df

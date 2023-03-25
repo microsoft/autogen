@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import logging
@@ -7,6 +8,24 @@ from flaml.automl.data import DataTransformer
 from flaml.automl.task.task import CLASSIFICATION, get_classification_objective
 from flaml.automl.ml import get_estimator_class
 from flaml.version import __version__
+
+try:
+    from flaml.automl.spark.utils import len_labels
+except ImportError:
+    from flaml.automl.utils import len_labels
+try:
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    import pyspark.pandas as ps
+    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+except ImportError:
+    ps = None
+
+    class psDataFrame:
+        pass
+
+    class psSeries:
+        pass
+
 
 LOCATION = pathlib.Path(__file__).parent.resolve()
 logger = logging.getLogger(__name__)
@@ -29,12 +48,15 @@ def meta_feature(task, X_train, y_train, meta_feature_names):
         elif each_feature_name == "NumberOfFeatures":
             this_feature.append(n_feat)
         elif each_feature_name == "NumberOfClasses":
-            this_feature.append(len(np.unique(y_train)) if is_classification else 0)
+            this_feature.append(len_labels(y_train) if is_classification else 0)
         elif each_feature_name == "PercentageOfNumericFeatures":
             try:
-                # this is feature is only supported for dataframe
+                # this feature is only supported for dataframe
                 this_feature.append(
-                    X_train.select_dtypes(include=np.number).shape[1] / n_feat
+                    X_train.select_dtypes(
+                        include=[np.number, "float", "int", "long"]
+                    ).shape[1]
+                    / n_feat
                 )
             except AttributeError:
                 # 'numpy.ndarray' object has no attribute 'select_dtypes'
@@ -78,7 +100,7 @@ def suggest_config(
     `FLAML_sample_size` is removed from the configs.
     """
     task = (
-        get_classification_objective(len(np.unique(y)))
+        get_classification_objective(len_labels(y))
         if task == "classification" and y is not None
         else task
     )

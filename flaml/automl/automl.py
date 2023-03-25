@@ -7,7 +7,6 @@ import time
 import os
 import sys
 from typing import Callable, List, Union, Optional
-import inspect
 from functools import partial
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -17,7 +16,6 @@ import json
 
 from flaml.automl.state import SearchState, AutoMLState
 from flaml.automl.ml import (
-    compute_estimator,
     train_estimator,
     get_estimator_class,
 )
@@ -31,7 +29,6 @@ from flaml.config import (
     N_SPLITS,
     SAMPLE_MULTIPLY_FACTOR,
 )
-from flaml.automl.data import concat
 
 # TODO check to see when we can remove these
 from flaml.automl.task.task import CLASSIFICATION, TS_FORECAST, Task
@@ -42,6 +39,34 @@ from flaml.automl.training_log import training_log_reader, training_log_writer
 from flaml.default import suggest_learner
 from flaml.version import __version__ as flaml_version
 from flaml.tune.spark.utils import check_spark, get_broadcast_data
+
+try:
+    from flaml.automl.spark.utils import (
+        train_test_split_pyspark,
+        unique_pandas_on_spark,
+        len_labels,
+        unique_value_first_index,
+    )
+except ImportError:
+    train_test_split_pyspark = None
+    unique_pandas_on_spark = None
+    from flaml.automl.utils import (
+        len_labels,
+        unique_value_first_index,
+    )
+try:
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    import pyspark.pandas as ps
+    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+    from pyspark.pandas.config import set_option, reset_option
+except ImportError:
+    ps = None
+
+    class psDataFrame:
+        pass
+
+    class psSeries:
+        pass
 
 
 try:
@@ -511,7 +536,12 @@ class AutoML(BaseEstimator):
         """Time taken to find best model in seconds."""
         return self.__dict__.get("_time_taken_best_iter")
 
-    def score(self, X: pd.DataFrame, y: pd.Series, **kwargs):
+    def score(
+        self,
+        X: Union[pd.DataFrame, psDataFrame],
+        y: Union[pd.Series, psSeries],
+        **kwargs,
+    ):
         estimator = getattr(self, "_trained_estimator", None)
         if estimator is None:
             logger.warning(
@@ -525,13 +555,14 @@ class AutoML(BaseEstimator):
 
     def predict(
         self,
-        X: Union[np.array, pd.DataFrame, List[str], List[List[str]]],
+        X: Union[np.array, pd.DataFrame, List[str], List[List[str]], psDataFrame],
         **pred_kwargs,
     ):
         """Predict label from features.
 
         Args:
-            X: A numpy array of featurized instances, shape n * m,
+            X: A numpy array or pandas dataframe or pyspark.pandas dataframe
+            of featurized instances, shape n * m,
                 or for time series forcast tasks:
                     a pandas dataframe with the first column containing
                     timestamp values (datetime type) or an integer n for
@@ -1859,7 +1890,19 @@ class AutoML(BaseEstimator):
             error_metric = "customized metric"
         logger.info(f"Minimizing error metric: {error_metric}")
 
-        estimator_list = task.default_estimator_list(estimator_list)
+        is_spark_dataframe = isinstance(X_train, psDataFrame) or isinstance(
+            dataframe, psDataFrame
+        )
+        estimator_list = task.default_estimator_list(estimator_list, is_spark_dataframe)
+
+        if is_spark_dataframe and self._use_spark:
+            # For spark dataframe, use_spark must be False because spark models are trained in parallel themselves
+            self._use_spark = False
+            logger.warning(
+                "Spark dataframes support only spark.ml type models, which will be trained "
+                "with spark themselves, no need to start spark trials in flaml. "
+                "`use_spark` is set to False."
+            )
 
         # When no search budget is specified
         if no_budget:

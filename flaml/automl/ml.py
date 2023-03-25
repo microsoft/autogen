@@ -2,6 +2,7 @@
 #  * Copyright (c) FLAML authors. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
+import os
 import time
 import numpy as np
 import pandas as pd
@@ -18,12 +19,6 @@ from sklearn.metrics import (
     f1_score,
     mean_absolute_percentage_error,
     ndcg_score,
-)
-from sklearn.model_selection import (
-    RepeatedStratifiedKFold,
-    GroupKFold,
-    TimeSeriesSplit,
-    StratifiedGroupKFold,
 )
 from flaml.automl.model import (
     XGBoostSklearnEstimator,
@@ -46,14 +41,33 @@ from flaml.automl.model import (
     TransformersEstimator,
     TemporalFusionTransformerEstimator,
     TransformersEstimatorModelSelection,
+    SparkLGBMEstimator,
 )
 from flaml.automl.data import group_counts
 from flaml.automl.task.task import TS_FORECAST, Task
 from flaml.automl.model import BaseEstimator
 
-import logging
+try:
+    from flaml.automl.spark.utils import len_labels
+except ImportError:
+    from flaml.automl.utils import len_labels
+try:
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    from pyspark.sql.functions import col
+    import pyspark.pandas as ps
+    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+    from flaml.automl.spark.utils import to_pandas_on_spark, iloc_pandas_on_spark
+    from flaml.automl.spark.metrics import spark_metric_loss_score
+except ImportError:
+    ps = None
 
-logger = logging.getLogger(__name__)
+    class psDataFrame:
+        pass
+
+    class psSeries:
+        pass
+
+
 EstimatorSubclass = TypeVar("EstimatorSubclass", bound=BaseEstimator)
 
 sklearn_metric_name_set = {
@@ -124,6 +138,8 @@ def get_estimator_class(task: str, estimator_name: str) -> EstimatorSubclass:
         estimator_class = RF_TS if task in TS_FORECAST else RandomForestEstimator
     elif "lgbm" == estimator_name:
         estimator_class = LGBM_TS if task in TS_FORECAST else LGBMEstimator
+    elif "lgbm_spark" == estimator_name:
+        estimator_class = SparkLGBMEstimator
     elif "lrl1" == estimator_name:
         estimator_class = LRL1Classifier
     elif "lrl2" == estimator_name:
@@ -163,7 +179,15 @@ def metric_loss_score(
     groups=None,
 ):
     # y_processed_predict and y_processed_true are processed id labels if the original were the token labels
-    if is_in_sklearn_metric_name_set(metric_name):
+    if isinstance(y_processed_predict, (psDataFrame, psSeries)):
+        return spark_metric_loss_score(
+            metric_name,
+            y_processed_predict,
+            y_processed_true,
+            sample_weight,
+            groups,
+        )
+    elif is_in_sklearn_metric_name_set(metric_name):
         return sklearn_metric_loss_score(
             metric_name,
             y_processed_predict,
@@ -359,7 +383,10 @@ def sklearn_metric_loss_score(
 def get_y_pred(estimator, X, eval_metric, task: Task):
     if eval_metric in ["roc_auc", "ap", "roc_auc_weighted"] and task.is_binary():
         y_pred_classes = estimator.predict_proba(X)
-        y_pred = y_pred_classes[:, 1] if y_pred_classes.ndim > 1 else y_pred_classes
+        if isinstance(y_pred_classes, (psSeries, psDataFrame)):
+            y_pred = y_pred_classes
+        else:
+            y_pred = y_pred_classes[:, 1] if y_pred_classes.ndim > 1 else y_pred_classes
     elif eval_metric in [
         "log_loss",
         "roc_auc",
@@ -525,7 +552,7 @@ def compute_estimator(
     fit_kwargs: Optional[dict] = None,
     free_mem_ratio=0,
 ):
-    if not fit_kwargs:
+    if fit_kwargs is None:
         fit_kwargs = {}
 
     estimator_class = estimator_class or get_estimator_class(task, estimator_name)
@@ -605,7 +632,7 @@ def train_estimator(
         task=task,
         n_jobs=n_jobs,
     )
-    if not fit_kwargs:
+    if fit_kwargs is None:
         fit_kwargs = {}
 
     if isinstance(estimator, TransformersEstimator):

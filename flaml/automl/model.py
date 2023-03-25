@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from functools import partial
 import signal
 import os
-from typing import Callable, List
+from typing import Callable, List, Union
 import numpy as np
 import time
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -35,6 +35,38 @@ from flaml.automl.task.task import (
     SUMMARIZATION,
     NLG_TASKS,
 )
+
+try:
+    from flaml.automl.spark.utils import len_labels, to_pandas_on_spark
+except ImportError:
+    from flaml.automl.utils import len_labels
+
+    to_pandas_on_spark = None
+from flaml.automl.spark.configs import (
+    ParamList_LightGBM_Classifier,
+    ParamList_LightGBM_Regressor,
+    ParamList_LightGBM_Ranker,
+)
+
+try:
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    from pyspark.sql.dataframe import DataFrame as sparkDataFrame
+    from pyspark.sql import SparkSession
+    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+
+    _have_spark = True
+except ImportError:
+    _have_spark = False
+
+    class psDataFrame:
+        pass
+
+    class psSeries:
+        pass
+
+    class sparkDataFrame:
+        pass
+
 
 try:
     import psutil
@@ -386,6 +418,323 @@ class BaseEstimator:
         if "FLAML_sample_size" in params:
             params.pop("FLAML_sample_size")
         return params
+
+
+class SparkEstimator(BaseEstimator):
+    """The base class for fine-tuning spark models, using pyspark.ml and SynapseML API."""
+
+    def __init__(self, task="binary", **config):
+        if not _have_spark:
+            raise ImportError(
+                "pyspark is not installed. Try `pip install flaml[spark]`."
+            )
+        super().__init__(task, **config)
+        self.df_train = None
+
+    def _preprocess(
+        self,
+        X_train: Union[psDataFrame, sparkDataFrame],
+        y_train: psSeries = None,
+        index_col: str = "tmp_index_col",
+    ):
+        # TODO: optimize this, support pyspark.sql.DataFrame
+        if y_train is not None:
+            self.df_train = X_train.join(y_train)
+        else:
+            self.df_train = X_train
+        if isinstance(self.df_train, psDataFrame):
+            self.df_train = self.df_train.to_spark(index_col=index_col)
+        return self.df_train
+
+    def fit(
+        self,
+        X_train: psDataFrame,
+        y_train: psSeries = None,
+        budget=None,
+        free_mem_ratio=0,
+        index_col: str = "tmp_index_col",
+        **kwargs,
+    ):
+        """Train the model from given training data.
+        Args:
+            X_train: A pyspark.pandas DataFrame of training data in shape n*m.
+            y_train: A pyspark.pandas Series in shape n*1. None if X_train is a pyspark.pandas
+                Dataframe contains y_train.
+            budget: A float of the time budget in seconds.
+            free_mem_ratio: A float between 0 and 1 for the free memory ratio to keep during training.
+        Returns:
+            train_time: A float of the training time in seconds.
+        """
+        df_train = self._preprocess(X_train, y_train, index_col=index_col)
+        train_time = self._fit(df_train, **kwargs)
+        return train_time
+
+    def _fit(self, df_train: sparkDataFrame, **kwargs):
+        current_time = time.time()
+        pipeline_model = self.estimator_class(**self.params, **kwargs)
+        if logger.level == logging.DEBUG:
+            logger.debug(
+                f"flaml.model - {pipeline_model} fit started with params {self.params}"
+            )
+        pipeline_model.fit(df_train)
+        if logger.level == logging.DEBUG:
+            logger.debug(f"flaml.model - {pipeline_model} fit finished")
+        train_time = time.time() - current_time
+        self._model = pipeline_model
+        return train_time
+
+    def predict(self, X, index_col="tmp_index_col", return_all=False, **kwargs):
+        """Predict label from features.
+        Args:
+            X: A pyspark or pyspark.pandas dataframe of featurized instances, shape n*m.
+            index_col: A str of the index column name. Default to "tmp_index_col".
+            return_all: A bool of whether to return all the prediction results. Default to False.
+        Returns:
+            A pyspark.pandas series of shape n*1 if return_all is False. Otherwise, a pyspark.pandas dataframe.
+        """
+        if self._model is not None:
+            X = self._preprocess(X, index_col=index_col)
+            predictions = to_pandas_on_spark(
+                self._model.transform(X), index_col=index_col
+            )
+            predictions.index.name = None
+            pred_y = predictions["prediction"]
+            if return_all:
+                return predictions
+            else:
+                return pred_y
+        else:
+            logger.warning(
+                "Estimator is not fit yet. Please run fit() before predict()."
+            )
+            return np.ones(X.shape[0])
+
+    def predict_proba(self, X, index_col="tmp_index_col", return_all=False, **kwargs):
+        """Predict the probability of each class from features.
+        Only works for classification problems
+        Args:
+            X: A pyspark or pyspark.pandas dataframe of featurized instances, shape n*m.
+            index_col: A str of the index column name. Default to "tmp_index_col".
+            return_all: A bool of whether to return all the prediction results. Default to False.
+        Returns:
+            A pyspark.pandas dataframe of shape n*c. c is the # classes.
+            Each element at (i,j) is the probability for instance i to be in
+                class j.
+        """
+        assert self._task in CLASSIFICATION, "predict_proba() only for classification."
+        if self._model is not None:
+            X = self._preprocess(X, index_col=index_col)
+            predictions = to_pandas_on_spark(
+                self._model.transform(X), index_col=index_col
+            )
+            predictions.index.name = None
+            pred_y = predictions["probability"]
+
+            if return_all:
+                return predictions
+            else:
+                return pred_y
+        else:
+            logger.warning(
+                "Estimator is not fit yet. Please run fit() before predict()."
+            )
+            return np.ones(X.shape[0])
+
+
+class SparkLGBMEstimator(SparkEstimator):
+    """The class for fine-tuning spark version lightgbm models, using SynapseML API."""
+
+    """The class for tuning LGBM, using sklearn API."""
+
+    ITER_HP = "numIterations"
+    DEFAULT_ITER = 100
+
+    @classmethod
+    def search_space(cls, data_size, **params):
+        upper = max(5, min(32768, int(data_size[0])))  # upper must be larger than lower
+        # https://github.com/microsoft/SynapseML/blob/master/lightgbm/src/main/scala/com/microsoft/azure/synapse/ml/lightgbm/LightGBMBase.scala
+        return {
+            "numIterations": {
+                "domain": tune.lograndint(lower=4, upper=upper),
+                "init_value": 4,
+                "low_cost_init_value": 4,
+            },
+            "numLeaves": {
+                "domain": tune.lograndint(lower=4, upper=upper),
+                "init_value": 4,
+                "low_cost_init_value": 4,
+            },
+            "minDataInLeaf": {
+                "domain": tune.lograndint(lower=2, upper=2**7 + 1),
+                "init_value": 20,
+            },
+            "learningRate": {
+                "domain": tune.loguniform(lower=1 / 1024, upper=1.0),
+                "init_value": 0.1,
+            },
+            "log_max_bin": {  # log transformed with base 2
+                "domain": tune.lograndint(lower=3, upper=11),
+                "init_value": 8,
+            },
+            "featureFraction": {
+                "domain": tune.uniform(lower=0.01, upper=1.0),
+                "init_value": 1.0,
+            },
+            "lambdaL1": {
+                "domain": tune.loguniform(lower=1 / 1024, upper=1024),
+                "init_value": 1 / 1024,
+            },
+            "lambdaL2": {
+                "domain": tune.loguniform(lower=1 / 1024, upper=1024),
+                "init_value": 1.0,
+            },
+        }
+
+    def config2params(self, config: dict) -> dict:
+        params = super().config2params(config)
+        if "n_jobs" in params:
+            params.pop("n_jobs")
+        if "log_max_bin" in params:
+            params["maxBin"] = (1 << params.pop("log_max_bin")) - 1
+        return params
+
+    @classmethod
+    def size(cls, config):
+        num_leaves = int(
+            round(config.get("numLeaves") or 1 << config.get("maxDepth", 16))
+        )
+        n_estimators = int(round(config["numIterations"]))
+        return (num_leaves * 3 + (num_leaves - 1) * 4 + 1.0) * n_estimators * 8
+
+    def __init__(self, task="binary", **config):
+        super().__init__(task, **config)
+        err_msg = (
+            "SynapseML is not installed. Please refer to [SynapseML]"
+            + "(https://github.com/microsoft/SynapseML) for installation instructions."
+        )
+        if "regression" == task:
+            try:
+                from synapse.ml.lightgbm import LightGBMRegressor
+            except ImportError:
+                raise ImportError(err_msg)
+
+            self.estimator_class = LightGBMRegressor
+            self.estimator_params = ParamList_LightGBM_Regressor
+        elif "rank" == task:
+            try:
+                from synapse.ml.lightgbm import LightGBMRanker
+            except ImportError:
+                raise ImportError(err_msg)
+
+            self.estimator_class = LightGBMRanker
+            self.estimator_params = ParamList_LightGBM_Ranker
+        else:
+            try:
+                from synapse.ml.lightgbm import LightGBMClassifier
+            except ImportError:
+                raise ImportError(err_msg)
+
+            self.estimator_class = LightGBMClassifier
+            self.estimator_params = ParamList_LightGBM_Classifier
+        self._time_per_iter = None
+        self._train_size = 0
+        self._mem_per_iter = -1
+        self.model_classes_ = None
+        self.model_n_classes_ = None
+
+    def fit(
+        self,
+        X_train,
+        y_train=None,
+        budget=None,
+        free_mem_ratio=0,
+        index_col="tmp_index_col",
+        **kwargs,
+    ):
+        start_time = time.time()
+        if self.model_n_classes_ is None and self._task not in ["regression", "rank"]:
+            self.model_n_classes_, self.model_classes_ = len_labels(
+                y_train, return_labels=True
+            )
+        df_train = self._preprocess(X_train, y_train, index_col=index_col)
+        # n_iter = self.params.get(self.ITER_HP, self.DEFAULT_ITER)
+        # trained = False
+        # mem0 = psutil.virtual_memory().available if psutil is not None else 1
+        _kwargs = kwargs.copy()
+        if self._task not in ["regression", "rank"] and "objective" not in _kwargs:
+            _kwargs["objective"] = (
+                "binary" if self.model_n_classes_ == 2 else "multiclass"
+            )
+        for k in list(_kwargs.keys()):
+            if k not in self.estimator_params:
+                logger.warning(
+                    f"[SparkLGBMEstimator] [Warning] Ignored unknown parameter: {k}"
+                )
+                _kwargs.pop(k)
+        # TODO: find a better estimation of early stopping
+        # if (
+        #     (not self._time_per_iter or abs(self._train_size - df_train.count()) > 4)
+        #     and budget is not None
+        #     or self._mem_per_iter < 0
+        #     and psutil is not None
+        # ) and n_iter > 1:
+        #     self.params[self.ITER_HP] = 1
+        #     self._t1 = self._fit(df_train, **_kwargs)
+        #     if budget is not None and self._t1 >= budget or n_iter == 1:
+        #         return self._t1
+        #     mem1 = psutil.virtual_memory().available if psutil is not None else 1
+        #     self._mem1 = mem0 - mem1
+        #     self.params[self.ITER_HP] = min(n_iter, 4)
+        #     self._t2 = self._fit(df_train, **_kwargs)
+        #     mem2 = psutil.virtual_memory().available if psutil is not None else 1
+        #     self._mem2 = max(mem0 - mem2, self._mem1)
+        #     self._mem_per_iter = min(self._mem1, self._mem2 / self.params[self.ITER_HP])
+        #     self._time_per_iter = (
+        #         (self._t2 - self._t1) / (self.params[self.ITER_HP] - 1)
+        #         if self._t2 > self._t1
+        #         else self._t1
+        #         if self._t1
+        #         else 0.001
+        #     )
+        #     self._train_size = df_train.count()
+        #     if (
+        #         budget is not None
+        #         and self._t1 + self._t2 >= budget
+        #         or n_iter == self.params[self.ITER_HP]
+        #     ):
+        #         # self.params[self.ITER_HP] = n_iter
+        #         return time.time() - start_time
+        #     trained = True
+        # if n_iter > 1:
+        #     max_iter = min(
+        #         n_iter,
+        #         int(
+        #             (budget - time.time() + start_time - self._t1) / self._time_per_iter
+        #             + 1
+        #         )
+        #         if budget is not None
+        #         else n_iter,
+        #     )
+        #     if trained and max_iter <= self.params[self.ITER_HP]:
+        #         return time.time() - start_time
+        #     # when not trained, train at least one iter
+        #     self.params[self.ITER_HP] = max(max_iter, 1)
+        self._fit(df_train, **_kwargs)
+        train_time = time.time() - start_time
+        return train_time
+
+    def _fit(self, df_train: sparkDataFrame, **kwargs):
+        current_time = time.time()
+        model = self.estimator_class(**self.params, **kwargs)
+        if logger.level == logging.DEBUG:
+            logger.debug(f"flaml.model - {model} fit started with params {self.params}")
+        self._model = model.fit(df_train)
+        self._model.classes_ = self.model_classes_
+        self._model.n_classes_ = self.model_n_classes_
+        if logger.level == logging.DEBUG:
+            logger.debug(f"flaml.model - {model} fit finished")
+        train_time = time.time() - current_time
+        return train_time
 
 
 class TransformersEstimator(BaseEstimator):
