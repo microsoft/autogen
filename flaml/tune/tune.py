@@ -248,6 +248,7 @@ def run(
     log_file_name: Optional[str] = None,
     lexico_objectives: Optional[dict] = None,
     force_cancel: Optional[bool] = False,
+    n_concurrent_trials: Optional[int] = 0,
     **ray_args,
 ):
     """The trigger for HPO.
@@ -437,6 +438,14 @@ def run(
         "targets": {"error_rate": 0.0},
     }
     ```
+        force_cancel: boolean, default=False | Whether to forcely cancel the PySpark job if overtime.
+        n_concurrent_trials: int, default=0 | The number of concurrent trials when perform hyperparameter
+            tuning with Spark. Only valid when use_spark=True and spark is required:
+            `pip install flaml[spark]`. Please check
+            [here](https://spark.apache.org/docs/latest/api/python/getting_started/install.html)
+            for more details about installing Spark. When tune.run() is called from AutoML, it will be
+            overwritten by the value of `n_concurrent_trials` in AutoML. When <= 0, the concurrent trials
+            will be set to the number of executors.
         **ray_args: keyword arguments to pass to ray.tune.run().
             Only valid when use_ray=True.
     """
@@ -674,18 +683,30 @@ def run(
         is not an instance of `ConcurrencyLimiter`.
 
         The final number of concurrent trials is the minimum of `max_concurrent` and
-        `num_executors`.
+        `num_executors` if `n_concurrent_trials<=0` (default, automl cases), otherwise the
+        minimum of `max_concurrent` and `n_concurrent_trials` (tuning cases).
         """
-        num_executors = max(num_executors, int(os.getenv("FLAML_MAX_CONCURRENT", 1)), 1)
         time_start = time.time()
+        try:
+            FLAML_MAX_CONCURRENT = int(os.getenv("FLAML_MAX_CONCURRENT", 0))
+            num_executors = max(num_executors, FLAML_MAX_CONCURRENT, 1)
+        except ValueError:
+            FLAML_MAX_CONCURRENT = 0
+        max_spark_parallelism = (
+            min(spark.sparkContext.defaultParallelism, FLAML_MAX_CONCURRENT)
+            if FLAML_MAX_CONCURRENT > 0
+            else spark.sparkContext.defaultParallelism
+        )
         if scheduler:
             scheduler.set_search_properties(metric=metric, mode=mode)
         if isinstance(search_alg, ConcurrencyLimiter):
             max_concurrent = max(1, search_alg.max_concurrent)
         else:
-            max_concurrent = max(1, int(os.getenv("FLAML_MAX_CONCURRENT", 1)))
-
-        n_concurrent_trials = min(num_executors, max_concurrent)
+            max_concurrent = max(1, max_spark_parallelism)
+        n_concurrent_trials = min(
+            n_concurrent_trials if n_concurrent_trials > 0 else num_executors,
+            max_concurrent,
+        )
         with parallel_backend("spark"):
             with Parallel(
                 n_jobs=n_concurrent_trials, verbose=max(0, (verbose - 1) * 50)

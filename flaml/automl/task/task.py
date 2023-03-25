@@ -255,7 +255,9 @@ class Task(ABC):
 
     @abstractmethod
     def default_estimator_list(
-        self, estimator_list: Union[List[str], str] = "auto"
+        self,
+        estimator_list: Union[List[str], str] = "auto",
+        is_spark_dataframe: bool = False,
     ) -> List[str]:
         """Return the list of default estimators registered for this task type.
 
@@ -264,6 +266,7 @@ class Task(ABC):
 
         Args:
             estimator_list: Either 'auto' or a list of estimator names to be validated.
+            is_spark_dataframe: True if the data is a spark dataframe.
 
         Returns:
             A list of valid estimator names for this task type.

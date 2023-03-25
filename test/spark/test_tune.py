@@ -48,6 +48,7 @@ def test_tune_spark():
         time_budget_s=5,
         use_spark=True,
         verbose=3,
+        n_concurrent_trials=4,
     )
 
     # print("Best hyperparameters found were: ", analysis.best_config)

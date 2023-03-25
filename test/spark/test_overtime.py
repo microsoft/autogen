@@ -2,25 +2,27 @@ import os
 import time
 
 import numpy as np
-import pyspark
 import pytest
 from sklearn.datasets import load_iris
 
 from flaml import AutoML
-from flaml.tune.spark.utils import check_spark
 
 try:
     from test.spark.custom_mylearner import *
 except ImportError:
     from custom_mylearner import *
 
-from flaml.tune.spark.mylearner import lazy_metric
+try:
+    import pyspark
+    from flaml.tune.spark.utils import check_spark
+    from flaml.tune.spark.mylearner import lazy_metric
 
-os.environ["FLAML_MAX_CONCURRENT"] = "10"
-
-spark = pyspark.sql.SparkSession.builder.appName("App4OvertimeTest").getOrCreate()
-spark_available, _ = check_spark()
-skip_spark = not spark_available
+    os.environ["FLAML_MAX_CONCURRENT"] = "10"
+    spark = pyspark.sql.SparkSession.builder.appName("App4OvertimeTest").getOrCreate()
+    spark_available, _ = check_spark()
+    skip_spark = not spark_available
+except ImportError:
+    skip_spark = True
 
 pytestmark = pytest.mark.skipif(
     skip_spark, reason="Spark is not installed. Skip all spark tests."

@@ -1,5 +1,6 @@
 import inspect
 import time
+import os
 from typing import Any, Optional
 
 import numpy as np
@@ -9,6 +10,34 @@ from flaml import tune
 from flaml.automl.logger import logger
 from flaml.automl.ml import compute_estimator, train_estimator
 from flaml.automl.task.task import TS_FORECAST
+
+try:
+    from flaml.automl.spark.utils import (
+        train_test_split_pyspark,
+        unique_pandas_on_spark,
+        len_labels,
+        unique_value_first_index,
+    )
+except ImportError:
+    train_test_split_pyspark = None
+    unique_pandas_on_spark = None
+    from flaml.automl.utils import (
+        len_labels,
+        unique_value_first_index,
+    )
+try:
+    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
+    import pyspark.pandas as ps
+    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+    from pyspark.pandas.config import set_option, reset_option
+except ImportError:
+    ps = None
+
+    class psDataFrame:
+        pass
+
+    class psSeries:
+        pass
 
 
 class SearchState:
@@ -241,11 +270,11 @@ class AutoMLState:
     def _prepare_sample_train_data(self, sample_size: int):
         sampled_weight = groups = None
         if sample_size <= self.data_size[0]:
-            if isinstance(self.X_train, pd.DataFrame):
+            if isinstance(self.X_train, (pd.DataFrame, psDataFrame)):
                 sampled_X_train = self.X_train.iloc[:sample_size]
             else:
                 sampled_X_train = self.X_train[:sample_size]
-            if isinstance(self.y_train, pd.Series):
+            if isinstance(self.y_train, (pd.Series, psSeries)):
                 sampled_y_train = self.y_train.iloc[:sample_size]
             else:
                 sampled_y_train = self.y_train[:sample_size]
@@ -255,13 +284,13 @@ class AutoMLState:
             if weight is not None:
                 sampled_weight = (
                     weight.iloc[:sample_size]
-                    if isinstance(weight, pd.Series)
+                    if isinstance(weight, (pd.Series, psSeries))
                     else weight[:sample_size]
                 )
             if self.groups is not None:
                 groups = (
                     self.groups.iloc[:sample_size]
-                    if isinstance(self.groups, pd.Series)
+                    if isinstance(self.groups, (pd.Series, psSeries))
                     else self.groups[:sample_size]
                 )
         else:
