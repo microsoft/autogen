@@ -1,6 +1,7 @@
 from time import sleep
 import logging
 import numpy as np
+import time
 from flaml import tune, BlendSearch
 
 try:
@@ -11,9 +12,9 @@ try:
         APIError,
         InvalidRequestError,
         APIConnectionError,
+        Timeout,
     )
     import diskcache
-    from urllib3.exceptions import ReadTimeoutError
 
     ERROR = None
 except ImportError:
@@ -46,7 +47,14 @@ class Completion:
     """
 
     # set of models that support chat completion
-    chat_models = {"gpt-3.5-turbo"}
+    chat_models = {
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-0301",
+        "gpt-4",
+        "gpt-4-32k",
+        "gpt-4-32k-0314",
+        "gpt-4-0314",
+    }
 
     # price per 1k tokens
     price1K = {
@@ -58,10 +66,23 @@ class Completion:
         "text-davinci-002": 0.02,
         "text-davinci-003": 0.02,
         "gpt-3.5-turbo": 0.002,
+        "gpt-3.5-turbo-0301": 0.002,
+        "gpt-4": (0.03, 0.06),
+        "gpt-4-0314": (0.03, 0.06),
+        "gpt-4-32k": (0.06, 0.12),
+        "gpt-4-32k-0314": (0.06, 0.12),
     }
 
     default_search_space = {
-        "model": tune.choice(list(price1K.keys())),
+        "model": tune.choice(
+            [
+                "text-ada-001",
+                "text-babbage-001",
+                "text-davinci-003",
+                "gpt-3.5-turbo",
+                "gpt-4",
+            ]
+        ),
         "temperature_or_top_p": tune.choice(
             [
                 {"temperature": tune.uniform(0, 1)},
@@ -107,13 +128,13 @@ class Completion:
         if response is not None and (response != -1 or not eval_only):
             # print("using cached response")
             return response
-        retry = 0
         openai_completion = (
             openai.ChatCompletion
             if config["model"] in cls.chat_models
             else openai.Completion
         )
-        while eval_only or retry * cls.retry_time < cls.retry_timeout:
+        start_time = time.time()
+        while True:
             try:
                 response = openai_completion.create(**config)
                 cls._cache.set(key, response)
@@ -122,21 +143,26 @@ class Completion:
                 ServiceUnavailableError,
                 APIError,
                 APIConnectionError,
-                ReadTimeoutError,
             ):
+                # transient error
                 logger.warning(f"retrying in {cls.retry_time} seconds...", exc_info=1)
                 sleep(cls.retry_time)
-            except RateLimitError:
-                logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                retry += 1
+            except (RateLimitError, Timeout):
+                # retry after retry_time seconds
+                if time.time() - start_time + cls.retry_time < cls.retry_timeout:
+                    logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
+                elif not eval_only:
+                    break
+                sleep(cls.retry_time)
             except InvalidRequestError:
-                if "model" in config:
+                if "azure" == openai.api_type and "model" in config:
+                    # azure api uses "engine" instead of "model"
                     config = config.copy()
                     config["engine"] = config.pop("model")
                 else:
                     raise
         logger.warning(
-            f"Failed to get response from openai api due to getting RateLimitError for {cls.retry_timeout} seconds."
+            f"Failed to get response from openai api due to getting RateLimitError or Timeout for {cls.retry_timeout} seconds."
         )
         response = -1
         cls._cache.set(key, response)
@@ -205,16 +231,18 @@ class Completion:
         data = cls.data
         model = config["model"]
         data_length = len(data)
-        target_n_tokens = getattr(cls, "inference_budget", None) and (
-            1000 * cls.inference_budget / cls.price1K[model]
-            if cls.inference_budget and cls.price1K.get(model)
-            else None
+        price = cls.price1K.get(model)
+        price_input, price_output = (
+            price if isinstance(price, tuple) else (price, price)
         )
+        inference_budget = getattr(cls, "inference_budget", None)
         prune_hp = getattr(cls, "_prune_hp", "n")
         metric = cls._metric
         config_n = config.get(prune_hp, 1)  # default value in OpenAI is 1
-        max_tokens = config.get("max_tokens", 16)  # default value in OpenAI is 16
-        region_key = cls._get_region_key(config)
+        max_tokens = config.get(
+            "max_tokens", np.inf if model in cls.chat_models else 16
+        )
+        # default value in OpenAI
         if model in cls.chat_models:
             # either "prompt" should be in config (for being compatible with non-chat models)
             # or "messages" should be in config (for tuning chat models only)
@@ -231,17 +259,23 @@ class Completion:
         else:
             prompt = cls._prompts[config["prompt"]]
         stop = cls._stops and cls._stops[config["stop"]]
-        if prune and target_n_tokens:
+        target_output_tokens = None
+        if not cls.avg_input_tokens:
+            input_tokens = [None] * data_length
+        prune = prune and inference_budget and not eval_only
+        if prune:
+            region_key = cls._get_region_key(config)
             max_valid_n = cls._get_max_valid_n(region_key, max_tokens)
             if cls.avg_input_tokens:
+                target_output_tokens = (
+                    inference_budget * 1000 - cls.avg_input_tokens * price_input
+                ) / price_output
                 # max_tokens bounds the maximum tokens
                 # so using it we can calculate a valid n according to the avg # input tokens
                 max_valid_n = max(
                     max_valid_n,
-                    int((target_n_tokens - cls.avg_input_tokens) // max_tokens),
+                    int(target_output_tokens // max_tokens),
                 )
-            else:
-                input_tokens = [None] * data_length
             if config_n <= max_valid_n:
                 start_n = config_n
             else:
@@ -316,24 +350,15 @@ class Completion:
                         if model in cls.chat_models
                         else [r["text"].rstrip() for r in response["choices"]]
                     )
-                    n_tokens = (
-                        response["usage"]["completion_tokens"]
-                        if previous_num_completions
-                        else response["usage"]["total_tokens"]
-                    )
-                    if (
-                        prune
-                        and target_n_tokens
-                        and not cls.avg_input_tokens
-                        and not input_tokens[i]
-                    ):
+                    usage = response["usage"]
+                    n_input_tokens = usage["prompt_tokens"]
+                    n_output_tokens = usage.get("completion_tokens", 0)
+                    if not cls.avg_input_tokens and not input_tokens[i]:
                         # store the # input tokens
-                        input_tokens[i] = response["usage"]["prompt_tokens"]
-                    # Under Assumption 1, we should count both the input and output tokens in the first query,
-                    # and only count ouput tokens afterwards
+                        input_tokens[i] = n_input_tokens
                     query_cost = (
-                        response["usage"]["total_tokens"] * cls.price1K[model] / 1000
-                    )
+                        price_input * n_input_tokens + price_output * n_output_tokens
+                    ) / 1000
                     cls._total_cost += query_cost
                     cost += query_cost
                     if (
@@ -348,12 +373,12 @@ class Completion:
                             "cost": cost,
                         }
                     if previous_num_completions:
-                        n_tokens_list[i] += n_tokens
+                        n_tokens_list[i] += n_output_tokens
                         responses_list[i].extend(responses)
                         # Assumption 1: assuming requesting n1, n2 responses separatively then combining them
                         # is the same as requesting (n1+n2) responses together
                     else:
-                        n_tokens_list.append(n_tokens)
+                        n_tokens_list.append(n_output_tokens)
                         responses_list.append(responses)
                 avg_n_tokens = np.mean(n_tokens_list[:data_limit])
                 rho = (
@@ -364,8 +389,8 @@ class Completion:
                 # Hoeffding-Serfling bound
                 ratio = 0.1 * np.sqrt(rho / data_limit)
                 if (
-                    target_n_tokens
-                    and avg_n_tokens > target_n_tokens * (1 + ratio)
+                    target_output_tokens
+                    and avg_n_tokens > target_output_tokens * (1 + ratio)
                     and not eval_only
                 ):
                     cls._update_invalid_n(
@@ -377,8 +402,8 @@ class Completion:
                     return result
                 if (
                     prune
-                    and target_n_tokens
-                    and avg_n_tokens <= target_n_tokens * (1 - ratio)
+                    and target_output_tokens
+                    and avg_n_tokens <= target_output_tokens * (1 - ratio)
                     and (
                         num_completions < config_n
                         or num_completions == config_n
@@ -410,16 +435,24 @@ class Completion:
                     metrics = cls._eval_func(responses, **data_i)
                     if result:
                         for key, value in metrics.items():
-                            result[key] += value
+                            if isinstance(value, (float, int)):
+                                result[key] += value
                     else:
                         result = metrics
                 for key in result.keys():
-                    result[key] /= data_limit
+                    if isinstance(result[key], (float, int)):
+                        result[key] /= data_limit
                 result["total_cost"] = cls._total_cost
                 result["cost"] = cost
-                result["inference_cost"] = avg_n_tokens * cls.price1K[model] / 1000
-                if prune and target_n_tokens and not cls.avg_input_tokens:
+                if not cls.avg_input_tokens:
                     cls.avg_input_tokens = np.mean(input_tokens)
+                    if prune:
+                        target_output_tokens = (
+                            inference_budget * 1000 - cls.avg_input_tokens * price_input
+                        ) / price_output
+                result["inference_cost"] = (
+                    avg_n_tokens * price_output + cls.avg_input_tokens * price_input
+                ) / 1000
                 break
             else:
                 if data_early_stop:
@@ -559,11 +592,12 @@ class Completion:
             mode=mode,
             space=space,
         )
-        if len(space["model"]) > 1:
+        space_model = space["model"]
+        if not isinstance(space_model, str) and len(space_model) > 1:
             # start all the models with the same hp config
             config0 = search_alg.suggest("t0")
             points_to_evaluate = [config0]
-            for model in space["model"]:
+            for model in space_model:
                 if model != config0["model"]:
                     point = config0.copy()
                     point["model"] = model
@@ -652,8 +686,13 @@ class ChatCompletion(Completion):
 
     price1K = {
         "gpt-3.5-turbo": 0.002,
+        "gpt-3.5-turbo-0301": 0.002,
+        "gpt-4": (0.03, 0.06),
+        "gpt-4-0314": (0.03, 0.06),
+        "gpt-4-32k": (0.06, 0.12),
+        "gpt-4-32k-0314": (0.06, 0.12),
     }
 
     default_search_space = Completion.default_search_space.copy()
-    default_search_space["model"] = tune.choice(list(price1K.keys()))
+    default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])
     openai_completion_class = not ERROR and openai.ChatCompletion

@@ -109,7 +109,6 @@ def test_humaneval(num_samples=1):
         )
         responses = oai.ChatCompletion.create(context=test_data[0], **config)
         print(responses)
-        return
         # a more comprehensive tuning example
         config, analysis = oai.Completion.tune(
             data=tune_data,

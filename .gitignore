@@ -159,6 +159,6 @@ automl.pkl
 
 test/nlp/testtmp.py
 test/nlp/testtmpfl.py
-
+output/
 flaml/tune/spark/mylearner.py
 *.pkl

@@ -1,4 +1,5 @@
-FLAML offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673). In this example, we will tune several hyperparameters for the OpenAI's completion API, including the temperature, prompt and n (number of completions), to optimize the inference performance for a code generation task. Our study shows that tuning hyperparameters can significantly affect the utility of the OpenAI API.
+FLAML offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Our study finds that tuning hyperparameters can significantly improve the utility of the OpenAI API.
+In this example, we will tune several hyperparameters for the OpenAI's completion API, including the temperature, prompt and n (number of completions), to optimize the inference performance for a code generation task.
 
 ### Prerequisites
 
@@ -6,7 +7,6 @@ Install the [openai] option. The OpenAI integration is in preview. ChaptGPT supp
 ```bash
 pip install "flaml[openai]==1.2.0"
 ```
-
 
 Setup your OpenAI key:
 ```python
@@ -122,7 +122,7 @@ def success_metrics(responses, prompt, test, entry_point):
 
 ### Tuning Hyperparameters for OpenAI
 
-The tuning will take a while to finish, depending on the optimization budget (~1 min for the current budget). The tuning will be performed under the specified optimization budgets.
+The tuning will be performed under the specified optimization budgets.
 
 * inference_budget is the target average inference budget per instance in the benchmark. For example, 0.02 means the target inference budget is 0.02 dollars, which translates to 1000 tokens (input + output combined) if the text Davinci model is used.
 * optimization_budget is the total budget allowed to perform the tuning. For example, 5 means 5 dollars are allowed in total, which translates to 250K tokens for the text Davinci model.
@@ -142,15 +142,6 @@ config, analysis = oai.Completion.tune(
     # num_samples can further limit the number of trials for different hyperparameter configurations;
     # -1 means decided by the optimization budget only
     num_samples=-1,
-    model=tune.choice(
-        [
-            # These two models are in Beta test and free to use from OpenAI as of Feb 2023,
-            # so no actual cost will incur (please double check when you run it). They are not free in Azure OpenAI.
-            # The optimization is based on the price in Azure OpenAI as of Feb 2023.
-            "code-cushman-001",
-            "code-davinci-002",
-        ]
-    ),
     prompt=[
         "{prompt}",
         "# Python 3{prompt}",
@@ -182,12 +173,14 @@ print(success_metrics([response["text"].rstrip() for response in responses["choi
 
 #### Evaluate the success rate on the test data
 
-You can use flaml's oai.Completion.eval to evaluate the performance of an entire dataset with the tuned config. To do that you need to set oai.Completion.data to the data to evaluate. The following code will take a while to evaluate all the 144 test data instances. Compared to the baseline success rate (0.46) on the HELM benchmark, the tuned config has a success rate of 0.68. It can be further improved if the inference budget and optimization budget are further increased.
+You can use flaml's `oai.Completion.eval` to evaluate the performance of an entire dataset with the tuned config. To do that you need to set `oai.Completion.data` to the data to evaluate.
 
 ```python
 oai.Completion.data = test_data
 result = oai.Completion.eval(analysis.best_config, prune=False, eval_only=True)
 print(result)
 ```
+
+The result will vary with the inference budget and optimization budget.
 
 [Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/integrate_openai.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/integrate_openai.ipynb)
