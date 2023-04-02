@@ -173,11 +173,10 @@ print(success_metrics([response["text"].rstrip() for response in responses["choi
 
 #### Evaluate the success rate on the test data
 
-You can use flaml's `oai.Completion.eval` to evaluate the performance of an entire dataset with the tuned config. To do that you need to set `oai.Completion.data` to the data to evaluate.
+You can use flaml's `oai.Completion.test` to evaluate the performance of an entire dataset with the tuned config.
 
 ```python
-oai.Completion.data = test_data
-result = oai.Completion.eval(analysis.best_config, prune=False, eval_only=True)
+result = oai.Completion.test(test_data, config)
 print(result)
 ```
 
