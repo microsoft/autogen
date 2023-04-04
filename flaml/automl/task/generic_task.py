@@ -1055,9 +1055,14 @@ class GenericTask(Task):
                     try:
                         import prophet
 
-                        estimator_list += ["prophet", "arima", "sarimax"]
+                        estimator_list += [
+                            "prophet",
+                            "arima",
+                            "sarimax",
+                            "holt-winters",
+                        ]
                     except ImportError:
-                        estimator_list += ["arima", "sarimax"]
+                        estimator_list += ["arima", "sarimax", "holt-winters"]
             elif not self.is_regression():
                 estimator_list += ["lrl1"]
 
