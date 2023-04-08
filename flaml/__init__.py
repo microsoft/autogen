@@ -2,7 +2,7 @@ import logging
 from flaml.automl import AutoML, logger_formatter
 from flaml.tune.searcher import CFO, BlendSearch, FLOW2, BlendSearchTuner, RandomSearch
 from flaml.onlineml.autovw import AutoVW
-from flaml.integrations import oai
+from flaml.autogen import oai
 from flaml.version import __version__
 
 

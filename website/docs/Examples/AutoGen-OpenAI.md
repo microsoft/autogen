@@ -1,9 +1,11 @@
-FLAML offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Our study finds that tuning hyperparameters can significantly improve the utility of the OpenAI API.
+# AutoGen - OpenAI
+
+FLAML offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Our study finds that tuning hyperparameters can significantly improve the utility of them.
 In this example, we will tune several hyperparameters for the OpenAI's completion API, including the temperature, prompt and n (number of completions), to optimize the inference performance for a code generation task.
 
 ### Prerequisites
 
-Install the [openai] option. The OpenAI integration is in preview. ChaptGPT support is available since version 1.2.0.
+Install the [openai] option. The OpenAI integration is in preview.
 ```bash
 pip install "flaml[openai]==1.2.0"
 ```
@@ -19,9 +21,11 @@ if "OPENAI_API_KEY" not in os.environ:
 If you use Azure OpenAI, set up Azure using the following code:
 
 ```python
+import openai
+
 openai.api_type = "azure"
 openai.api_base = "https://<your_endpoint>.openai.azure.com/"
-openai.api_version = "2022-12-01"  # change if necessary
+openai.api_version = "2023-03-15-preview"  # change if necessary
 ```
 
 ### Load the dataset
@@ -36,7 +40,7 @@ data = datasets.load_dataset("openai_humaneval")["test"].shuffle(seed=seed)
 n_tune_data = 20
 tune_data = [
     {
-        "prompt": data[x]["prompt"],
+        "definition": data[x]["prompt"],
         "test": data[x]["test"],
         "entry_point": data[x]["entry_point"],
     }
@@ -44,7 +48,7 @@ tune_data = [
 ]
 test_data = [
     {
-        "prompt": data[x]["prompt"],
+        "definition": data[x]["prompt"],
         "test": data[x]["test"],
         "entry_point": data[x]["entry_point"],
     }
@@ -54,71 +58,16 @@ test_data = [
 
 ### Defining the metric
 
-Before starting tuning, you need to define the metric for the optimization. For the HumanEval dataset, we use the success rate as the metric. So if one of the returned responses can pass the test, we consider the task as successfully solved. Then we can define the mean success rate of a collection of tasks.
-
-#### Define a code executor
-
-First, we write a simple code executor. The code executor takes the generated code and the test code as the input, and execute them with a timer.
+Before starting tuning, you need to define the metric for the optimization. For each code generation task, we can use the model to generate multiple candidate responses, and then select one from them. If the final selected response can pass a unit test, we consider the task as successfully solved. Then we can define the average success rate on a collection of tasks as the optimization metric.
 
 ```python
-import signal
-import subprocess
-import sys
+from functools import partial
+from flaml.autogen.code_utils import eval_function_completions, generate_assertions
 
-def timeout_handler(signum, frame):
-    raise TimeoutError("Timed out!")
-
-signal.signal(signal.SIGALRM, timeout_handler)
-max_exec_time = 3  # seconds
-
-def execute_code(code):
-    code = code.strip()
-    with open("codetest.py", "w") as fout:
-        fout.write(code)
-    try:
-        signal.alarm(max_exec_time)
-        result = subprocess.run(
-            [sys.executable, "codetest.py"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-        )
-        signal.alarm(0)
-    except TimeoutError:
-        return 0
-    return int(result.returncode == 0)
+eval_with_generated_assertions = partial(eval_function_completions, assertions=generate_assertions)
 ```
 
-This function will create a temp file "codetest.py" and execute it in a separate process. It allows for 3 seconds to finish that code.
-
-#### Define a function to evaluate the success for a given program synthesis task
-
-Now we define the success metric.
-
-```python
-def success_metrics(responses, prompt, test, entry_point):
-    """Check if the task is successful.
-
-    Args:
-        responses (list): The list of responses.
-        prompt (str): The input prompt.
-        test (str): The test code.
-        entry_point (str): The name of the function.
-
-    Returns:
-        dict: The success metrics.
-    """
-    success_list = []
-    n = len(responses)
-    for i in range(n):
-        response = responses[i]
-        code = f"{prompt}{response}\n{test}\ncheck({entry_point})"
-        succeed = execute_code(code)
-        success_list.append(succeed)
-    return {
-        "expected_success": 1 - pow(1 - sum(success_list) / n, n),
-        "success": any(s for s in success_list),
-    }
-```
+This function will first generate assertion statements for each problem. Then, it uses the assertions to select the generated responses.
 
 ### Tuning Hyperparameters for OpenAI
 
@@ -131,24 +80,25 @@ The tuning will be performed under the specified optimization budgets.
 Users can specify tuning data, optimization metric, optimization mode, evaluation function, search spaces etc.
 
 ```python
+from flaml import oai
+
 config, analysis = oai.Completion.tune(
     data=tune_data,  # the data for tuning
-    metric="expected_success",  # the metric to optimize
+    metric="success",  # the metric to optimize
     mode="max",  # the optimization mode
-    eval_func=success_metrics,  # the evaluation function to return the success metrics
+    eval_func=eval_with_generated_assertions,  # the evaluation function to return the success metrics
     # log_file_name="logs/humaneval.log",  # the log file name
-    inference_budget=0.1,  # the inference budget (dollar)
-    optimization_budget=4,  # the optimization budget (dollar)
+    inference_budget=0.05,  # the inference budget (dollar per instance)
+    optimization_budget=3,  # the optimization budget (dollar in total)
     # num_samples can further limit the number of trials for different hyperparameter configurations;
     # -1 means decided by the optimization budget only
     num_samples=-1,
     prompt=[
-        "{prompt}",
-        "# Python 3{prompt}",
-        "Complete the following Python function:{prompt}",
-        "Complete the following Python function while including necessary import statements inside the function:{prompt}",
+        "{definition}",
+        "# Python 3{definition}",
+        "Complete the following Python function:{definition}",
     ],  # the prompt templates to choose from
-    stop=["\nclass", "\ndef", "\nif", "\nprint"],  # the stop sequence
+    stop=[["\nclass", "\ndef", "\nif", "\nprint"], None],  # the stop sequences
 )
 ```
 
@@ -168,7 +118,7 @@ We can apply the tuned config to the request for an instance:
 ```python
 responses = oai.Completion.create(context=tune_data[1], **config)
 print(responses)
-print(success_metrics([response["text"].rstrip() for response in responses["choices"]], **tune_data[1]))
+print(eval_with_generated_assertions(oai.Completion.extract_text(response), **tune_data[1]))
 ```
 
 #### Evaluate the success rate on the test data
@@ -177,9 +127,9 @@ You can use flaml's `oai.Completion.test` to evaluate the performance of an enti
 
 ```python
 result = oai.Completion.test(test_data, config)
-print(result)
+print("performance on test data with the tuned config:", result)
 ```
 
 The result will vary with the inference budget and optimization budget.
 
-[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/integrate_openai.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/integrate_openai.ipynb)
+[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb)
