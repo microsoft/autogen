@@ -594,6 +594,7 @@ class AutoML(BaseEstimator):
             return None
         X = self._state.task.preprocess(X, self._transformer)
         y_pred = estimator.predict(X, **pred_kwargs)
+
         if (
             isinstance(y_pred, np.ndarray)
             and y_pred.ndim > 1
