@@ -23,9 +23,7 @@ os.environ["FLAML_MAX_CONCURRENT"] = "2"
 spark_available, _ = check_spark()
 skip_spark = not spark_available
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 
 def test_parallel_xgboost(hpo_method=None, data_size=1000):
@@ -59,9 +57,7 @@ def test_parallel_xgboost_others():
     test_parallel_xgboost(hpo_method="random")
 
 
-@pytest.mark.skip(
-    reason="currently not supporting too large data, will support spark dataframe in the future"
-)
+@pytest.mark.skip(reason="currently not supporting too large data, will support spark dataframe in the future")
 def test_large_dataset():
     test_parallel_xgboost(data_size=90000000)
 
@@ -101,8 +97,6 @@ if __name__ == "__main__":
     test_parallel_xgboost_others()
     # test_large_dataset()
     if skip_my_learner:
-        print(
-            "please run pytest in the root directory of FLAML, i.e., the directory that contains the setup.py file"
-        )
+        print("please run pytest in the root directory of FLAML, i.e., the directory that contains the setup.py file")
     else:
         test_custom_learner()

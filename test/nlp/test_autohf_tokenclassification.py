@@ -22,9 +22,7 @@ def test_tokenclassification_idlabel():
 
     automl_settings = get_automl_settings()
     automl_settings["task"] = "token-classification"
-    automl_settings[
-        "metric"
-    ] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
+    automl_settings["metric"] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
     automl_settings["fit_kwargs_by_estimator"]["transformer"]["label_list"] = [
         "O",
         "B-PER",
@@ -38,13 +36,7 @@ def test_tokenclassification_idlabel():
     ]
 
     try:
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     except requests.exceptions.HTTPError:
         return
 
@@ -83,18 +75,10 @@ def test_tokenclassification_tokenlabel():
 
     automl_settings = get_automl_settings()
     automl_settings["task"] = "token-classification"
-    automl_settings[
-        "metric"
-    ] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
+    automl_settings["metric"] = "seqeval:overall_f1"  # evaluating based on the overall_f1 of seqeval
 
     try:
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     except requests.exceptions.HTTPError:
         return
 

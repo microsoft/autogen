@@ -63,9 +63,7 @@ class SearchState:
             Notice (2) include the case starting point not in user specified search space custom_hp
         """
         if isinstance(domain_one_dim, sample.Domain):
-            renamed_type = list(
-                inspect.signature(domain_one_dim.is_valid).parameters.values()
-            )[0].annotation
+            renamed_type = list(inspect.signature(domain_one_dim.is_valid).parameters.values())[0].annotation
             type_match = (
                 renamed_type == Any
                 or isinstance(value_one_dim, renamed_type)
@@ -106,9 +104,7 @@ class SearchState:
         self.learner_class = learner_class
         self._budget = budget
         if task in TS_FORECAST:
-            search_space = learner_class.search_space(
-                data_size=data_size, task=task, pred_horizon=period
-            )
+            search_space = learner_class.search_space(data_size=data_size, task=task, pred_horizon=period)
         else:
             search_space = learner_class.search_space(data_size=data_size, task=task)
 
@@ -117,14 +113,10 @@ class SearchState:
 
         if isinstance(starting_point, dict):
             starting_point = AutoMLState.sanitize(starting_point)
-            if max_iter > 1 and not self.valid_starting_point(
-                starting_point, search_space
-            ):
+            if max_iter > 1 and not self.valid_starting_point(starting_point, search_space):
                 # If the number of iterations is larger than 1, remove invalid point
                 logger.warning(
-                    "Starting point {} removed because it is outside of the search space".format(
-                        starting_point
-                    )
+                    "Starting point {} removed because it is outside of the search space".format(starting_point)
                 )
                 starting_point = None
         elif isinstance(starting_point, list):
@@ -132,11 +124,7 @@ class SearchState:
             if max_iter > len(starting_point):
                 # If the number of starting points is no smaller than max iter, avoid the checking
                 starting_point_len = len(starting_point)
-                starting_point = [
-                    x
-                    for x in starting_point
-                    if self.valid_starting_point(x, search_space)
-                ]
+                starting_point = [x for x in starting_point if self.valid_starting_point(x, search_space)]
                 if starting_point_len > len(starting_point):
                     logger.warning(
                         "Starting points outside of the search space are removed. "
@@ -145,9 +133,7 @@ class SearchState:
                 starting_point = starting_point or None
 
         for name, space in search_space.items():
-            assert (
-                "domain" in space
-            ), f"{name}'s domain is missing in the search space spec {space}"
+            assert "domain" in space, f"{name}'s domain is missing in the search space spec {space}"
             if space["domain"] is None:
                 # don't search this hp
                 continue
@@ -159,19 +145,14 @@ class SearchState:
                 self.cat_hp_cost[name] = space["cat_hp_cost"]
             # if a starting point is provided, set the init config to be
             # the starting point provided
-            if (
-                isinstance(starting_point, dict)
-                and starting_point.get(name) is not None
-            ):
+            if isinstance(starting_point, dict) and starting_point.get(name) is not None:
                 if self.init_config is None:
                     self.init_config = {}
                 self.init_config[name] = starting_point[name]
             elif (
                 not isinstance(starting_point, list)
                 and "init_value" in space
-                and self.valid_starting_point_one_dim(
-                    space["init_value"], space["domain"]
-                )
+                and self.valid_starting_point_one_dim(space["init_value"], space["domain"])
             ):
                 if self.init_config is None:
                     self.init_config = {}
@@ -241,11 +222,7 @@ class SearchState:
             if time2eval:
                 self.time2eval_best_old = self.time2eval_best
                 self.time2eval_best = time2eval
-            if (
-                self.trained_estimator
-                and trained_estimator
-                and self.trained_estimator != trained_estimator
-            ):
+            if self.trained_estimator and trained_estimator and self.trained_estimator != trained_estimator:
                 self.trained_estimator.cleanup()
             if trained_estimator:
                 self.trained_estimator = trained_estimator
@@ -260,9 +237,7 @@ class SearchState:
         return config_sig
 
     def est_retrain_time(self, retrain_sample_size):
-        assert (
-            self.best_config_sample_size is not None
-        ), "need to first get best_config_sample_size"
+        assert self.best_config_sample_size is not None, "need to first get best_config_sample_size"
         return self.time2eval_best * retrain_sample_size / self.best_config_sample_size
 
 
@@ -283,9 +258,7 @@ class AutoMLState:
             )  # NOTE: _prepare_sample_train_data is before kwargs is updated to fit_kwargs_by_estimator
             if weight is not None:
                 sampled_weight = (
-                    weight.iloc[:sample_size]
-                    if isinstance(weight, (pd.Series, psSeries))
-                    else weight[:sample_size]
+                    weight.iloc[:sample_size] if isinstance(weight, (pd.Series, psSeries)) else weight[:sample_size]
                 )
             if self.groups is not None:
                 groups = (
@@ -338,10 +311,7 @@ class AutoMLState:
             if state.time_budget < 0
             else state.time_budget - state.time_from_start
             if sample_size == state.data_size[0]
-            else (state.time_budget - state.time_from_start)
-            / 2
-            * sample_size
-            / state.data_size[0]
+            else (state.time_budget - state.time_from_start) / 2 * sample_size / state.data_size[0]
         )
 
         (
@@ -357,9 +327,7 @@ class AutoMLState:
             state.y_val,
             state.weight_val,
             state.groups_val,
-            state.train_time_limit
-            if budget is None
-            else min(budget, state.train_time_limit or np.inf),
+            state.train_time_limit if budget is None else min(budget, state.train_time_limit or np.inf),
             state.kf,
             config,
             state.task,
@@ -406,9 +374,7 @@ class AutoMLState:
         sample_size: Optional[int] = None,
     ):
         if not sample_size:
-            sample_size = config_w_resource.get(
-                "FLAML_sample_size", len(self.y_train_all)
-            )
+            sample_size = config_w_resource.get("FLAML_sample_size", len(self.y_train_all))
         config = AutoMLState.sanitize(config_w_resource)
 
         this_estimator_kwargs = self.fit_kwargs_by_estimator.get(
@@ -432,9 +398,7 @@ class AutoMLState:
                 "groups"
             ] = groups  # NOTE: _train_with_config is after kwargs is updated to fit_kwargs_by_estimator
 
-        budget = (
-            None if self.time_budget < 0 else self.time_budget - self.time_from_start
-        )
+        budget = None if self.time_budget < 0 else self.time_budget - self.time_from_start
 
         estimator, train_time = train_estimator(
             X_train=sampled_X_train,

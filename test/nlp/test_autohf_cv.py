@@ -5,9 +5,7 @@ import os
 import shutil
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"], reason="do not run on mac os or windows"
-)
+@pytest.mark.skipif(sys.platform in ["darwin", "win32"], reason="do not run on mac os or windows")
 def test_cv():
     from flaml import AutoML
     import requests

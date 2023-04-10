@@ -49,9 +49,7 @@ def test_simple(method=None):
         from sklearn.datasets import load_wine
 
         X, y = load_wine(return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.33, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
     automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
     print(automl.estimator_list)
     print(automl.search_space)
@@ -77,9 +75,7 @@ def test_simple(method=None):
         min_resource=automl.min_resource,
         max_resource=automl.max_resource,
         time_budget_s=automl._state.time_budget,
-        config_constraints=[
-            (partial(size, automl._state.learner_classes), "<=", automl._mem_thres)
-        ],
+        config_constraints=[(partial(size, automl._state.learner_classes), "<=", automl._mem_thres)],
         metric_constraints=automl.metric_constraints,
         num_samples=5,
     )

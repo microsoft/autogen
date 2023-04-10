@@ -120,9 +120,7 @@ def test_asha_scheduler(use_ray=False, time_budget_s=1):
     except ImportError:
         print("skip the test as ray tune cannot be imported.")
         return
-    best_config = test_scheduler(
-        scheduler="asha", use_ray=use_ray, time_budget_s=time_budget_s
-    )
+    best_config = test_scheduler(scheduler="asha", use_ray=use_ray, time_budget_s=time_budget_s)
     print("Auto ASHA scheduler, test error:", abs(10 / 2 - best_config["z"] / 2))
 
 
@@ -132,9 +130,7 @@ def test_custom_scheduler():
     except ImportError:
         print("skip the test as ray tune cannot be imported.")
         return
-    my_scheduler = HyperBandScheduler(
-        time_attr="samplesize", max_t=1000, reduction_factor=2
-    )
+    my_scheduler = HyperBandScheduler(time_attr="samplesize", max_t=1000, reduction_factor=2)
     best_config = test_scheduler(scheduler=my_scheduler)
     print("Custom ASHA scheduler, test error:", abs(10 / 2 - best_config["z"] / 2))
 

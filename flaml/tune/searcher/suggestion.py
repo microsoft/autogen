@@ -112,22 +112,16 @@ class Searcher:
             # Early return to avoid assertions
             return
 
-        assert isinstance(
-            metric, type(mode)
-        ), "metric and mode must be of the same type"
+        assert isinstance(metric, type(mode)), "metric and mode must be of the same type"
         if isinstance(mode, str):
             assert mode in ["min", "max"], "if `mode` is a str must be 'min' or 'max'!"
         elif isinstance(mode, list):
             assert len(mode) == len(metric), "Metric and mode must be the same length"
-            assert all(
-                mod in ["min", "max", "obs"] for mod in mode
-            ), "All of mode must be 'min' or 'max' or 'obs'!"
+            assert all(mod in ["min", "max", "obs"] for mod in mode), "All of mode must be 'min' or 'max' or 'obs'!"
         else:
             raise ValueError("Mode must either be a list or string")
 
-    def set_search_properties(
-        self, metric: Optional[str], mode: Optional[str], config: Dict
-    ) -> bool:
+    def set_search_properties(self, metric: Optional[str], mode: Optional[str], config: Dict) -> bool:
         """Pass search properties to searcher.
         This method acts as an alternative to instantiating search algorithms
         with their own specific search spaces. Instead they can accept a
@@ -193,18 +187,13 @@ class ConcurrencyLimiter(Searcher):
         self.batch = batch
         self.live_trials = set()
         self.cached_results = {}
-        super(ConcurrencyLimiter, self).__init__(
-            metric=self.searcher.metric, mode=self.searcher.mode
-        )
+        super(ConcurrencyLimiter, self).__init__(metric=self.searcher.metric, mode=self.searcher.mode)
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
-        assert (
-            trial_id not in self.live_trials
-        ), f"Trial ID {trial_id} must be unique: already found in set."
+        assert trial_id not in self.live_trials, f"Trial ID {trial_id} must be unique: already found in set."
         if len(self.live_trials) >= self.max_concurrent:
             logger.debug(
-                f"Not providing a suggestion for {trial_id} due to "
-                "concurrency limit: %s/%s.",
+                f"Not providing a suggestion for {trial_id} due to " "concurrency limit: %s/%s.",
                 len(self.live_trials),
                 self.max_concurrent,
             )
@@ -215,9 +204,7 @@ class ConcurrencyLimiter(Searcher):
             self.live_trials.add(trial_id)
         return suggestion
 
-    def on_trial_complete(
-        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
-    ):
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None, error: bool = False):
         if trial_id not in self.live_trials:
             return
         elif self.batch:
@@ -226,9 +213,7 @@ class ConcurrencyLimiter(Searcher):
                 # Update the underlying searcher once the
                 # full batch is completed.
                 for trial_id, (result, error) in self.cached_results.items():
-                    self.searcher.on_trial_complete(
-                        trial_id, result=result, error=error
-                    )
+                    self.searcher.on_trial_complete(trial_id, result=result, error=error)
                     self.live_trials.remove(trial_id)
                 self.cached_results = {}
             else:
@@ -257,9 +242,7 @@ class ConcurrencyLimiter(Searcher):
     def on_unpause(self, trial_id: str):
         self.searcher.on_unpause(trial_id)
 
-    def set_search_properties(
-        self, metric: Optional[str], mode: Optional[str], config: Dict
-    ) -> bool:
+    def set_search_properties(self, metric: Optional[str], mode: Optional[str], config: Dict) -> bool:
         return self.searcher.set_search_properties(metric, mode, config)
 
 
@@ -301,17 +284,10 @@ def validate_warmstart(
     """
     if points_to_evaluate:
         if not isinstance(points_to_evaluate, list):
-            raise TypeError(
-                "points_to_evaluate expected to be a list, got {}.".format(
-                    type(points_to_evaluate)
-                )
-            )
+            raise TypeError("points_to_evaluate expected to be a list, got {}.".format(type(points_to_evaluate)))
         for point in points_to_evaluate:
             if not isinstance(point, (dict, list)):
-                raise TypeError(
-                    f"points_to_evaluate expected to include list or dict, "
-                    f"got {point}."
-                )
+                raise TypeError(f"points_to_evaluate expected to include list or dict, " f"got {point}.")
 
             if validate_point_name_lengths and (not len(point) == len(parameter_names)):
                 raise ValueError(
@@ -322,11 +298,7 @@ def validate_warmstart(
 
     if points_to_evaluate and evaluated_rewards:
         if not isinstance(evaluated_rewards, list):
-            raise TypeError(
-                "evaluated_rewards expected to be a list, got {}.".format(
-                    type(evaluated_rewards)
-                )
-            )
+            raise TypeError("evaluated_rewards expected to be a list, got {}.".format(type(evaluated_rewards)))
         if not len(evaluated_rewards) == len(points_to_evaluate):
             raise ValueError(
                 "Dim of evaluated_rewards {}".format(evaluated_rewards)
@@ -461,16 +433,12 @@ class OptunaSearch(Searcher):
         evaluated_rewards: Optional[List] = None,
     ):
         assert ot is not None, "Optuna must be installed! Run `pip install optuna`."
-        super(OptunaSearch, self).__init__(
-            metric=metric, mode=mode, max_concurrent=None, use_early_stopped_trials=None
-        )
+        super(OptunaSearch, self).__init__(metric=metric, mode=mode, max_concurrent=None, use_early_stopped_trials=None)
 
         if isinstance(space, dict) and space:
             resolved_vars, domain_vars, grid_vars = parse_spec_vars(space)
             if domain_vars or grid_vars:
-                logger.warning(
-                    UNRESOLVED_SEARCH_SPACE.format(par="space", cls=type(self).__name__)
-                )
+                logger.warning(UNRESOLVED_SEARCH_SPACE.format(par="space", cls=type(self).__name__))
                 space = self.convert_search_space(space)
             else:
                 # Flatten to support nested dicts
@@ -493,8 +461,7 @@ class OptunaSearch(Searcher):
         self._sampler = sampler or ot.samplers.TPESampler(seed=seed)
 
         assert isinstance(self._sampler, BaseSampler), (
-            "You can only pass an instance of `optuna.samplers.BaseSampler` "
-            "as a sampler to `OptunaSearcher`."
+            "You can only pass an instance of `optuna.samplers.BaseSampler` " "as a sampler to `OptunaSearcher`."
         )
 
         self._ot_trials = {}
@@ -527,17 +494,13 @@ class OptunaSearch(Searcher):
                 validate_point_name_lengths=not callable(self._space),
             )
             if self._evaluated_rewards:
-                for point, reward in zip(
-                    self._points_to_evaluate, self._evaluated_rewards
-                ):
+                for point, reward in zip(self._points_to_evaluate, self._evaluated_rewards):
                     self.add_evaluated_point(point, reward)
             else:
                 for point in self._points_to_evaluate:
                     self._ot_study.enqueue_trial(point)
 
-    def set_search_properties(
-        self, metric: Optional[str], mode: Optional[str], config: Dict
-    ) -> bool:
+    def set_search_properties(self, metric: Optional[str], mode: Optional[str], config: Dict) -> bool:
         if self._space:
             return False
         space = self.convert_search_space(config)
@@ -585,16 +548,10 @@ class OptunaSearch(Searcher):
 
     def suggest(self, trial_id: str) -> Optional[Dict]:
         if not self._space:
-            raise RuntimeError(
-                UNDEFINED_SEARCH_SPACE.format(
-                    cls=self.__class__.__name__, space="space"
-                )
-            )
+            raise RuntimeError(UNDEFINED_SEARCH_SPACE.format(cls=self.__class__.__name__, space="space"))
         if not self._metric or not self._mode:
             raise RuntimeError(
-                UNDEFINED_METRIC_MODE.format(
-                    cls=self.__class__.__name__, metric=self._metric, mode=self._mode
-                )
+                UNDEFINED_METRIC_MODE.format(cls=self.__class__.__name__, metric=self._metric, mode=self._mode)
             )
 
         if isinstance(self._space, list):
@@ -607,9 +564,7 @@ class OptunaSearch(Searcher):
 
             # getattr will fetch the trial.suggest_ function on Optuna trials
             params = {
-                args[0]
-                if len(args) > 0
-                else kwargs["name"]: getattr(ot_trial, fn)(*args, **kwargs)
+                args[0] if len(args) > 0 else kwargs["name"]: getattr(ot_trial, fn)(*args, **kwargs)
                 for (fn, args, kwargs) in self._space
             }
         elif callable(self._space):
@@ -622,9 +577,7 @@ class OptunaSearch(Searcher):
         else:
             # Use Optuna ask interface (since version 2.6.0)
             if trial_id not in self._ot_trials:
-                self._ot_trials[trial_id] = self._ot_study.ask(
-                    fixed_distributions=self._space
-                )
+                self._ot_trials[trial_id] = self._ot_study.ask(fixed_distributions=self._space)
             ot_trial = self._ot_trials[trial_id]
             params = ot_trial.params
 
@@ -636,9 +589,7 @@ class OptunaSearch(Searcher):
         ot_trial = self._ot_trials[trial_id]
         ot_trial.report(metric, step)
 
-    def on_trial_complete(
-        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
-    ):
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None, error: bool = False):
         ot_trial = self._ot_trials[trial_id]
 
         val = result.get(self.metric, None) if result else None
@@ -662,16 +613,10 @@ class OptunaSearch(Searcher):
         intermediate_values: Optional[List[float]] = None,
     ):
         if not self._space:
-            raise RuntimeError(
-                UNDEFINED_SEARCH_SPACE.format(
-                    cls=self.__class__.__name__, space="space"
-                )
-            )
+            raise RuntimeError(UNDEFINED_SEARCH_SPACE.format(cls=self.__class__.__name__, space="space"))
         if not self._metric or not self._mode:
             raise RuntimeError(
-                UNDEFINED_METRIC_MODE.format(
-                    cls=self.__class__.__name__, metric=self._metric, mode=self._mode
-                )
+                UNDEFINED_METRIC_MODE.format(cls=self.__class__.__name__, metric=self._metric, mode=self._mode)
             )
 
         ot_trial_state = OptunaTrialState.COMPLETE
@@ -681,9 +626,7 @@ class OptunaSearch(Searcher):
             ot_trial_state = OptunaTrialState.PRUNED
 
         if intermediate_values:
-            intermediate_values_dict = {
-                i: value for i, value in enumerate(intermediate_values)
-            }
+            intermediate_values_dict = {i: value for i, value in enumerate(intermediate_values)}
         else:
             intermediate_values_dict = None
 
@@ -736,10 +679,7 @@ class OptunaSearch(Searcher):
             return {}
 
         if grid_vars:
-            raise ValueError(
-                "Grid search parameters cannot be automatically converted "
-                "to an Optuna search space."
-            )
+            raise ValueError("Grid search parameters cannot be automatically converted " "to an Optuna search space.")
 
         # Flatten and resolve again after checking for grid search.
         spec = flatten_dict(spec, prevent_delimiter=True)
@@ -766,18 +706,12 @@ class OptunaSearch(Searcher):
                             "Optuna does not support both quantization and "
                             "sampling from LogUniform. Dropped quantization."
                         )
-                    return ot.distributions.LogUniformDistribution(
-                        domain.lower, domain.upper
-                    )
+                    return ot.distributions.LogUniformDistribution(domain.lower, domain.upper)
 
                 elif isinstance(sampler, Uniform):
                     if quantize:
-                        return ot.distributions.DiscreteUniformDistribution(
-                            domain.lower, domain.upper, quantize
-                        )
-                    return ot.distributions.UniformDistribution(
-                        domain.lower, domain.upper
-                    )
+                        return ot.distributions.DiscreteUniformDistribution(domain.lower, domain.upper, quantize)
+                    return ot.distributions.UniformDistribution(domain.lower, domain.upper)
 
             elif isinstance(domain, Integer):
                 if isinstance(sampler, LogUniform):
@@ -798,9 +732,7 @@ class OptunaSearch(Searcher):
 
             raise ValueError(
                 "Optuna search does not support parameters of type "
-                "`{}` with samplers of type `{}`".format(
-                    type(domain).__name__, type(domain.sampler).__name__
-                )
+                "`{}` with samplers of type `{}`".format(type(domain).__name__, type(domain.sampler).__name__)
             )
 
         # Parameter name is e.g. "a/b/c" for nested dicts

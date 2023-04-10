@@ -156,9 +156,7 @@ class TestMultiClass(unittest.TestCase):
             del settings["time_budget"]
             settings["max_iter"] = 5
             # test the "_choice_" issue when using ray
-            automl.fit(
-                X_train=X_train, y_train=y_train, n_concurrent_trials=2, **settings
-            )
+            automl.fit(X_train=X_train, y_train=y_train, n_concurrent_trials=2, **settings)
         except ImportError:
             return
 
@@ -212,9 +210,7 @@ class TestMultiClass(unittest.TestCase):
         print(automl.best_iteration)
         print(automl.best_estimator)
         automl = AutoML()
-        estimator = automl.get_estimator_from_log(
-            settings["log_file_name"], record_id=0, task="multiclass"
-        )
+        estimator = automl.get_estimator_from_log(settings["log_file_name"], record_id=0, task="multiclass")
         print(estimator)
         (
             time_history,
@@ -233,9 +229,7 @@ class TestMultiClass(unittest.TestCase):
             del settings["time_budget"]
             settings["max_iter"] = 2
             automl.fit(**settings)
-            estimator = automl.get_estimator_from_log(
-                settings["log_file_name"], record_id=1, task="multiclass"
-            )
+            estimator = automl.get_estimator_from_log(settings["log_file_name"], record_id=1, task="multiclass")
         except ImportError:
             pass
 
@@ -290,12 +284,8 @@ class TestMultiClass(unittest.TestCase):
             "model_history": True,
         }
         X_train, y_train = load_iris(return_X_y=True)
-        automl_experiment_micro.fit(
-            X_train=X_train, y_train=y_train, metric="micro_f1", **automl_settings
-        )
-        automl_experiment_macro.fit(
-            X_train=X_train, y_train=y_train, metric="macro_f1", **automl_settings
-        )
+        automl_experiment_micro.fit(X_train=X_train, y_train=y_train, metric="micro_f1", **automl_settings)
+        automl_experiment_macro.fit(X_train=X_train, y_train=y_train, metric="macro_f1", **automl_settings)
         estimator = automl_experiment_macro.model
         y_pred = estimator.predict(X_train)
         y_pred_proba = estimator.predict_proba(X_train)
@@ -389,9 +379,7 @@ class TestMultiClass(unittest.TestCase):
 
     def _test_memory_limit(self):
         automl_experiment = AutoML()
-        automl_experiment.add_learner(
-            learner_name="large_lgbm", learner_class=MyLargeLGBM
-        )
+        automl_experiment.add_learner(learner_name="large_lgbm", learner_class=MyLargeLGBM)
         automl_settings = {
             "time_budget": -1,
             "task": "classification",
@@ -403,19 +391,13 @@ class TestMultiClass(unittest.TestCase):
         }
         X_train, y_train = load_iris(return_X_y=True, as_frame=True)
 
-        automl_experiment.fit(
-            X_train=X_train, y_train=y_train, max_iter=1, **automl_settings
-        )
+        automl_experiment.fit(X_train=X_train, y_train=y_train, max_iter=1, **automl_settings)
         print(automl_experiment.model)
 
     def test_time_limit(self):
         automl_experiment = AutoML()
-        automl_experiment.add_learner(
-            learner_name="large_lgbm", learner_class=MyLargeLGBM
-        )
-        automl_experiment.add_learner(
-            learner_name="large_xgb", learner_class=MyLargeXGB
-        )
+        automl_experiment.add_learner(learner_name="large_lgbm", learner_class=MyLargeLGBM)
+        automl_experiment.add_learner(learner_name="large_xgb", learner_class=MyLargeXGB)
         automl_settings = {
             "time_budget": 0.5,
             "task": "classification",
@@ -450,21 +432,12 @@ class TestMultiClass(unittest.TestCase):
             # test drop column
             X_train.columns = range(X_train.shape[1])
             X_train[X_train.shape[1]] = np.zeros(len(y_train))
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            n_concurrent_trials=n_concurrent_trials,
-            **settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, n_concurrent_trials=n_concurrent_trials, **settings)
         automl_val_accuracy = 1.0 - automl.best_loss
         print("Best ML leaner:", automl.best_estimator)
         print("Best hyperparmeter config:", automl.best_config)
         print("Best accuracy on validation data: {0:.4g}".format(automl_val_accuracy))
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                automl.best_config_train_time
-            )
-        )
+        print("Training duration of best run: {0:.4g} s".format(automl.best_config_train_time))
 
         starting_points = automl.best_config_per_estimator
         print("starting_points", starting_points)
@@ -486,14 +459,8 @@ class TestMultiClass(unittest.TestCase):
         new_automl_val_accuracy = 1.0 - new_automl.best_loss
         print("Best ML leaner:", new_automl.best_estimator)
         print("Best hyperparmeter config:", new_automl.best_config)
-        print(
-            "Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy)
-        )
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                new_automl.best_config_train_time
-            )
-        )
+        print("Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy))
+        print("Training duration of best run: {0:.4g} s".format(new_automl.best_config_train_time))
 
     def test_fit_w_starting_point_2(self, as_frame=True):
         try:
@@ -520,21 +487,12 @@ class TestMultiClass(unittest.TestCase):
             # test drop column
             X_train.columns = range(X_train.shape[1])
             X_train[X_train.shape[1]] = np.zeros(len(y_train))
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            n_concurrent_trials=n_concurrent_trials,
-            **settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, n_concurrent_trials=n_concurrent_trials, **settings)
         automl_val_accuracy = 1.0 - automl.best_loss
         print("Best ML leaner:", automl.best_estimator)
         print("Best hyperparmeter config:", automl.best_config)
         print("Best accuracy on validation data: {0:.4g}".format(automl_val_accuracy))
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                automl.best_config_train_time
-            )
-        )
+        print("Training duration of best run: {0:.4g} s".format(automl.best_config_train_time))
 
         starting_points = {}
         log_file_name = settings["log_file_name"]
@@ -568,9 +526,7 @@ class TestMultiClass(unittest.TestCase):
         new_automl_val_accuracy = 1.0 - new_automl.best_loss
         # print('Best ML leaner:', new_automl.best_estimator)
         # print('Best hyperparmeter config:', new_automl.best_config)
-        print(
-            "Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy)
-        )
+        print("Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy))
         # print('Training duration of best run: {0:.4g} s'.format(new_automl_experiment.best_config_train_time))
 
 

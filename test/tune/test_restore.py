@@ -25,9 +25,7 @@ class AbstractWarmStartTest:
         np.random.seed(162)
         search_alg, cost = self.set_basic_conf()
         search_alg = ConcurrencyLimiter(search_alg, 1)
-        results_exp_1 = tune.run(
-            cost, num_samples=5, search_alg=search_alg, verbose=0, local_dir=self.tmpdir
-        )
+        results_exp_1 = tune.run(cost, num_samples=5, search_alg=search_alg, verbose=0, local_dir=self.tmpdir)
         checkpoint_path = os.path.join(self.tmpdir, self.experiment_name)
         search_alg.save(checkpoint_path)
         return results_exp_1, np.random.get_state(), checkpoint_path

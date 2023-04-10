@@ -35,9 +35,7 @@ TS_TIMESTAMP_COL = "ds"
 TS_VALUE_COL = "y"
 
 
-def load_openml_dataset(
-    dataset_id, data_dir=None, random_state=0, dataset_format="dataframe"
-):
+def load_openml_dataset(dataset_id, data_dir=None, random_state=0, dataset_format="dataframe"):
     """Load dataset from open ML.
 
     If the file is not cached locally, download it from open ML.
@@ -77,9 +75,7 @@ def load_openml_dataset(
             pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
     print("Dataset name:", dataset.name)
     try:
-        X, y, *__ = dataset.get_data(
-            target=dataset.default_target_attribute, dataset_format=dataset_format
-        )
+        X, y, *__ = dataset.get_data(target=dataset.default_target_attribute, dataset_format=dataset_format)
     except ValueError:
         from sklearn.datasets import fetch_openml
 
@@ -267,9 +263,7 @@ def add_time_idx_col(X):
 class DataTransformer:
     """Transform input training data."""
 
-    def fit_transform(
-        self, X: Union[DataFrame, np.ndarray], y, task: Union[str, "Task"]
-    ):
+    def fit_transform(self, X: Union[DataFrame, np.ndarray], y, task: Union[str, "Task"]):
         """Fit transformer and process the input training data according to the task type.
 
         Args:
@@ -312,21 +306,13 @@ class DataTransformer:
             for column in X.columns:
                 # sklearn\utils\validation.py needs int/float values
                 if X[column].dtype.name in ("object", "category"):
-                    if (
-                        X[column].nunique() == 1
-                        or X[column].nunique(dropna=True)
-                        == n - X[column].isnull().sum()
-                    ):
+                    if X[column].nunique() == 1 or X[column].nunique(dropna=True) == n - X[column].isnull().sum():
                         X.drop(columns=column, inplace=True)
                         drop = True
                     elif X[column].dtype.name == "category":
                         current_categories = X[column].cat.categories
                         if "__NAN__" not in current_categories:
-                            X[column] = (
-                                X[column]
-                                .cat.add_categories("__NAN__")
-                                .fillna("__NAN__")
-                            )
+                            X[column] = X[column].cat.add_categories("__NAN__").fillna("__NAN__")
                         cat_columns.append(column)
                     else:
                         X[column] = X[column].fillna("__NAN__")
@@ -349,10 +335,7 @@ class DataTransformer:
                             f"quarter_{column}": tmp_dt.quarter,
                         }
                         for key, value in new_columns_dict.items():
-                            if (
-                                key not in X.columns
-                                and value.nunique(dropna=False) >= 2
-                            ):
+                            if key not in X.columns and value.nunique(dropna=False) >= 2:
                                 X[key] = value
                                 num_columns.append(key)
                         X[column] = X[column].map(datetime.toordinal)
@@ -368,9 +351,7 @@ class DataTransformer:
             if num_columns:
                 X_num = X[num_columns]
                 if np.issubdtype(X_num.columns.dtype, np.integer) and (
-                    drop
-                    or min(X_num.columns) != 0
-                    or max(X_num.columns) != X_num.shape[1] - 1
+                    drop or min(X_num.columns) != 0 or max(X_num.columns) != X_num.shape[1] - 1
                 ):
                     X_num.columns = range(X_num.shape[1])
                     drop = True
@@ -395,11 +376,7 @@ class DataTransformer:
                 datetime_columns,
             )
             self._drop = drop
-        if (
-            task.is_classification()
-            or not pd.api.types.is_numeric_dtype(y)
-            and not task.is_nlg()
-        ):
+        if task.is_classification() or not pd.api.types.is_numeric_dtype(y) and not task.is_nlg():
             if not task.is_token_classification():
                 from sklearn.preprocessing import LabelEncoder
 
@@ -466,9 +443,7 @@ class DataTransformer:
                 elif X[column].dtype.name == "category":
                     current_categories = X[column].cat.categories
                     if "__NAN__" not in current_categories:
-                        X[column] = (
-                            X[column].cat.add_categories("__NAN__").fillna("__NAN__")
-                        )
+                        X[column] = X[column].cat.add_categories("__NAN__").fillna("__NAN__")
             if cat_columns:
                 X[cat_columns] = X[cat_columns].astype("category")
             if num_columns:

@@ -91,9 +91,7 @@ def test_searchers():
         # 'set' object has no attribute 'keys'
         pass
     try:
-        searcher.add_evaluated_point(
-            {"a": 1, "b": 0.01}, None, intermediate_values=[0.1]
-        )
+        searcher.add_evaluated_point({"a": 1, "b": 0.01}, None, intermediate_values=[0.1])
     except ValueError:
         # `value` is supposed to be set for a complete trial.
         pass
@@ -113,16 +111,12 @@ def test_searchers():
         # Dim of point {'a': 1} and parameter_names {'a': UniformDistribution(high=8.0, low=6.0), 'b': LogUniformDistribution(high=0.01, low=0.0001)} do not match.
         pass
     try:
-        searcher = OptunaSearch(
-            config, points_to_evaluate=[{"a": 1, "b": 0.01}], evaluated_rewards=1
-        )
+        searcher = OptunaSearch(config, points_to_evaluate=[{"a": 1, "b": 0.01}], evaluated_rewards=1)
     except TypeError:
         # valuated_rewards expected to be a list, got <class 'int'>.
         pass
     try:
-        searcher = OptunaSearch(
-            config, points_to_evaluate=[{"a": 1, "b": 0.01}], evaluated_rewards=[1, 2]
-        )
+        searcher = OptunaSearch(config, points_to_evaluate=[{"a": 1, "b": 0.01}], evaluated_rewards=[1, 2])
     except ValueError:
         # Dim of evaluated_rewards [1, 2] and points_to_evaluate [{'a': 1, 'b': 0.01}] do not match.
         pass
@@ -197,9 +191,7 @@ def test_searchers():
     searcher.save("test/tune/optuna.pkl")
     searcher.restore("test/tune/optuna.pkl")
     try:
-        searcher = BlendSearch(
-            metric="m", global_search_alg=searcher, metric_constraints=[("c", "<", 1)]
-        )
+        searcher = BlendSearch(metric="m", global_search_alg=searcher, metric_constraints=[("c", "<", 1)])
     except AssertionError:
         # sign of metric constraints must be <= or >=.
         pass
@@ -303,12 +295,8 @@ def test_searchers():
     from flaml import tune
 
     tune.run(lambda x: 1, config={}, use_ray=use_ray, log_file_name="logs/searcher.log")
-    searcher = BlendSearch(
-        space=config, cost_attr="cost", cost_budget=10, metric="m", mode="min"
-    )
-    analysis = tune.run(
-        lambda x: {"cost": 2, "m": x["b"]}, search_alg=searcher, num_samples=10
-    )
+    searcher = BlendSearch(space=config, cost_attr="cost", cost_budget=10, metric="m", mode="min")
+    analysis = tune.run(lambda x: {"cost": 2, "m": x["b"]}, search_alg=searcher, num_samples=10)
     assert len(analysis.trials) == 5
 
 

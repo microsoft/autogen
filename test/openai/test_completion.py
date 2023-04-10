@@ -17,9 +17,7 @@ from flaml.autogen.math_utils import eval_math_responses
     reason="do not run on windows",
 )
 def test_humaneval(num_samples=1):
-    eval_with_generated_assertions = partial(
-        eval_function_completions, assertions=generate_assertions
-    )
+    eval_with_generated_assertions = partial(eval_function_completions, assertions=generate_assertions)
 
     seed = 41
     data = datasets.load_dataset("openai_humaneval")["test"].shuffle(seed=seed)
@@ -165,9 +163,7 @@ def test_math(num_samples=-1):
         "stop": "###",
     }
     test_data_sample = test_data[0:3]
-    result = oai.ChatCompletion.test(
-        test_data_sample, vanilla_config, eval_math_responses
-    )
+    result = oai.ChatCompletion.test(test_data_sample, vanilla_config, eval_math_responses)
     test_data_sample = test_data[3:6]
     result = oai.ChatCompletion.test(
         test_data_sample,

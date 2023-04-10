@@ -26,9 +26,7 @@ if __name__ == "__main__":
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
         X_train_ref = ray.put(X_train)
         flaml_lgbm_search_space = LGBMEstimator.search_space(X_train.shape)
-        config_search_space = {
-            hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()
-        }
+        config_search_space = {hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()}
         low_cost_partial_config = {
             hp: space["low_cost_init_value"]
             for hp, space in flaml_lgbm_search_space.items()

@@ -32,15 +32,10 @@ def test_starting_point_not_in_search_space():
     automl = AutoML()
     automl_settings = get_automl_settings(estimator_name=this_estimator_name)
 
-    automl_settings["starting_points"] = {
-        this_estimator_name: [{"learning_rate": 2e-3}]
-    }
+    automl_settings["starting_points"] = {this_estimator_name: [{"learning_rate": 2e-3}]}
 
     automl.fit(X_train, y_train, **automl_settings)
-    assert (
-        automl._search_states[this_estimator_name].init_config[0]["learning_rate"]
-        != 2e-3
-    )
+    assert automl._search_states[this_estimator_name].init_config[0]["learning_rate"] != 2e-3
 
     """
         test starting_points located outside of the search space, and custom_hp is set
@@ -80,10 +75,7 @@ def test_starting_point_not_in_search_space():
             len(automl_settings["custom_hp"][this_estimator_name]),
         )
     )
-    assert (
-        automl._search_states[this_estimator_name].search_space["model_path"]
-        == "albert-base-v2"
-    )
+    assert automl._search_states[this_estimator_name].search_space["model_path"] == "albert-base-v2"
 
     if os.path.exists("test/data/output/"):
         try:
@@ -103,11 +95,7 @@ def test_points_to_evaluate():
 
     automl_settings["starting_points"] = "data:test/nlp/default/"
 
-    automl_settings["custom_hp"] = {
-        "transformer_ms": {
-            "model_path": {"domain": "google/electra-small-discriminator"}
-        }
-    }
+    automl_settings["custom_hp"] = {"transformer_ms": {"model_path": {"domain": "google/electra-small-discriminator"}}}
 
     automl.fit(X_train, y_train, **automl_settings)
 
@@ -137,13 +125,9 @@ def test_zero_shot_nomodel():
         y_train,
         _,
         _,
-    ) = preprocess_and_suggest_hyperparams(
-        "seq-classification", X_train, y_train, estimator_name, location=location
-    )
+    ) = preprocess_and_suggest_hyperparams("seq-classification", X_train, y_train, estimator_name, location=location)
 
-    model = estimator_class(
-        **hyperparams
-    )  # estimator_class is TransformersEstimatorModelSelection
+    model = estimator_class(**hyperparams)  # estimator_class is TransformersEstimatorModelSelection
 
     fit_kwargs = automl_settings.pop("fit_kwargs_by_estimator", {}).get(estimator_name)
     fit_kwargs.update(automl_settings)

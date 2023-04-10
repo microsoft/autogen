@@ -27,9 +27,7 @@ def execute_code(code: str, max_exec_time: Optional[int] = 3):
     return int(result.returncode == 0)
 
 
-def generate_assertions(
-    definition: str, model: Optional[str] = "gpt-3.5-turbo"
-) -> Tuple[str, float]:
+def generate_assertions(definition: str, model: Optional[str] = "gpt-3.5-turbo") -> Tuple[str, float]:
     """Generate assertions for a function.
 
     Args:
@@ -112,9 +110,7 @@ def eval_function_completions(
         for i in range(n):
             response = responses[i] = _remove_check(responses[i])
             code = (
-                f"{response}\n{assertions}"
-                if response.startswith("def")
-                else f"{definition}{response}\n{assertions}"
+                f"{response}\n{assertions}" if response.startswith("def") else f"{definition}{response}\n{assertions}"
             )
             succeed_assertions = execute_code(code)
             if succeed_assertions:
@@ -149,9 +145,7 @@ def eval_function_completions(
 def implement(
     definition: str,
     configs: List[Dict],
-    assertions: Optional[
-        Union[str, Callable[[str], Tuple[str, float]]]
-    ] = generate_assertions,
+    assertions: Optional[Union[str, Callable[[str], Tuple[str, float]]]] = generate_assertions,
 ) -> Tuple[str, float]:
     """Implement a function from a definition.
 
@@ -172,9 +166,7 @@ def implement(
         response = oai.Completion.create({"definition": definition}, **config)
         cost += oai.Completion.cost(config["model"], response)
         responses = oai.Completion.extract_text(response)
-        metrics = eval_function_completions(
-            responses, definition, assertions=assertions
-        )
+        metrics = eval_function_completions(responses, definition, assertions=assertions)
         assertions = metrics["assertions"]
         cost += metrics["gen_cost"]
         if metrics["succeed_assertions"] or i == len(configs) - 1:

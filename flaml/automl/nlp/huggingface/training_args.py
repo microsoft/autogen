@@ -69,21 +69,13 @@ class TrainingArgumentsForAuto(TrainingArguments):
         metadata={"help": "per gpu evaluation batch size"},
     )
 
-    label_list: Optional[List[str]] = field(
-        default=None, metadata={"help": "The string list of the label names. "}
-    )
+    label_list: Optional[List[str]] = field(default=None, metadata={"help": "The string list of the label names. "})
 
-    eval_steps: int = field(
-        default=500, metadata={"help": "Run an evaluation every X steps."}
-    )
+    eval_steps: int = field(default=500, metadata={"help": "Run an evaluation every X steps."})
 
-    save_steps: int = field(
-        default=500, metadata={"help": "Save checkpoint every X updates steps."}
-    )
+    save_steps: int = field(default=500, metadata={"help": "Save checkpoint every X updates steps."})
 
-    logging_steps: int = field(
-        default=500, metadata={"help": "Log every X updates steps."}
-    )
+    logging_steps: int = field(default=500, metadata={"help": "Log every X updates steps."})
 
     @staticmethod
     def load_args_from_console():
@@ -96,12 +88,8 @@ class TrainingArgumentsForAuto(TrainingArguments):
                 "--" + each_field.name,
                 type=each_field.type,
                 help=each_field.metadata["help"],
-                required=each_field.metadata["required"]
-                if "required" in each_field.metadata
-                else False,
-                choices=each_field.metadata["choices"]
-                if "choices" in each_field.metadata
-                else None,
+                required=each_field.metadata["required"] if "required" in each_field.metadata else False,
+                choices=each_field.metadata["choices"] if "choices" in each_field.metadata else None,
                 default=each_field.default,
             )
         console_args, unknown = arg_parser.parse_known_args()
@@ -112,19 +100,13 @@ class TrainingArgumentsForAuto(TrainingArguments):
 class Seq2SeqTrainingArgumentsForAuto(TrainingArgumentsForAuto):
     model_path: str = field(
         default="t5-small",
-        metadata={
-            "help": "model path for HPO natural language generation tasks, default is set to t5-small"
-        },
+        metadata={"help": "model path for HPO natural language generation tasks, default is set to t5-small"},
     )
 
-    sortish_sampler: bool = field(
-        default=False, metadata={"help": "Whether to use SortishSampler or not."}
-    )
+    sortish_sampler: bool = field(default=False, metadata={"help": "Whether to use SortishSampler or not."})
     predict_with_generate: bool = field(
         default=True,
-        metadata={
-            "help": "Whether to use generate to calculate generative metrics (ROUGE, BLEU)."
-        },
+        metadata={"help": "Whether to use generate to calculate generative metrics (ROUGE, BLEU)."},
     )
     generation_max_length: Optional[int] = field(
         default=None,

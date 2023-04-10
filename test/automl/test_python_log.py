@@ -40,11 +40,7 @@ class TestLogging(unittest.TestCase):
             n = len(y_train) >> 1
             print(automl.model, automl.classes_, automl.predict(X_train))
             automl.fit(
-                X_train=X_train[:n],
-                y_train=y_train[:n],
-                X_val=X_train[n:],
-                y_val=y_train[n:],
-                **automl_settings
+                X_train=X_train[:n], y_train=y_train[:n], X_val=X_train[n:], y_val=y_train[n:], **automl_settings
             )
             logger.info(automl.search_space)
             logger.info(automl.low_cost_partial_config)
@@ -58,9 +54,7 @@ class TestLogging(unittest.TestCase):
             sample = define_by_run_func(study.ask(), automl.search_space)
             logger.info(sample)
             logger.info(unflatten_hierarchical(sample, automl.search_space))
-            add_cost_to_space(
-                automl.search_space, automl.low_cost_partial_config, automl.cat_hp_cost
-            )
+            add_cost_to_space(automl.search_space, automl.low_cost_partial_config, automl.cat_hp_cost)
             logger.info(automl.search_space["ml"].categories)
             if automl.best_config:
                 config = automl.best_config.copy()

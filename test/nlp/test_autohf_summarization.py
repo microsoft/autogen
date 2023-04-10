@@ -22,18 +22,10 @@ def test_summarization():
     automl_settings["task"] = "summarization"
     automl_settings["metric"] = "rouge1"
     automl_settings["time_budget"] = 2 * automl_settings["time_budget"]
-    automl_settings["fit_kwargs_by_estimator"]["transformer"][
-        "model_path"
-    ] = "patrickvonplaten/t5-tiny-random"
+    automl_settings["fit_kwargs_by_estimator"]["transformer"]["model_path"] = "patrickvonplaten/t5-tiny-random"
 
     try:
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     except requests.exceptions.HTTPError:
         return
 
@@ -41,13 +33,7 @@ def test_summarization():
     automl_settings.pop("use_ray", None)
     automl_settings.pop("estimator_list", None)
 
-    automl.retrain_from_log(
-        X_train=X_train,
-        y_train=y_train,
-        train_full=True,
-        record_id=0,
-        **automl_settings
-    )
+    automl.retrain_from_log(X_train=X_train, y_train=y_train, train_full=True, record_id=0, **automl_settings)
     automl.predict(X_test)
 
     if os.path.exists("test/data/output/"):

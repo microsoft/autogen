@@ -36,9 +36,7 @@ else:
         skip_spark = True
 
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 
 def _test_spark_synapseml_lightgbm(spark=None, task="classification"):
@@ -83,9 +81,7 @@ def _test_spark_synapseml_lightgbm(spark=None, task="classification"):
         columns = X_train.columns
         feature_cols = [col for col in columns if col != "label"]
         featurizer = VectorAssembler(inputCols=feature_cols, outputCol="features")
-        X_train = featurizer.transform(X_train.to_spark(index_col="index"))[
-            "index", "features"
-        ]
+        X_train = featurizer.transform(X_train.to_spark(index_col="index"))["index", "features"]
     X_train = to_pandas_on_spark(X_train)
 
     automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
@@ -138,9 +134,7 @@ def test_spark_input_df():
         spark.read.format("csv")
         .option("header", True)
         .option("inferSchema", True)
-        .load(
-            "wasbs://publicwasb@mmlspark.blob.core.windows.net/company_bankruptcy_prediction_data.csv"
-        )
+        .load("wasbs://publicwasb@mmlspark.blob.core.windows.net/company_bankruptcy_prediction_data.csv")
     )
     train, test = df.randomSplit([0.8, 0.2], seed=1)
     feature_cols = df.columns[1:]
@@ -151,9 +145,7 @@ def test_spark_input_df():
     settings = {
         "time_budget": 30,  # total running time in seconds
         "metric": "roc_auc",
-        "estimator_list": [
-            "lgbm_spark"
-        ],  # list of ML learners; we tune lightgbm in this example
+        "estimator_list": ["lgbm_spark"],  # list of ML learners; we tune lightgbm in this example
         "task": "classification",  # task type
         "log_file_name": "flaml_experiment.log",  # flaml log file
         "seed": 7654321,  # random seed
@@ -187,9 +179,7 @@ def test_spark_input_df():
     settings = {
         "time_budget": 10,  # total running time in seconds
         "metric": "roc_auc",
-        "estimator_list": [
-            "lgbm"
-        ],  # list of ML learners; we tune lightgbm in this example
+        "estimator_list": ["lgbm"],  # list of ML learners; we tune lightgbm in this example
         "task": "classification",  # task type
     }
     with pytest.raises(ValueError) as excinfo:

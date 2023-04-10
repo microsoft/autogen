@@ -18,14 +18,8 @@ def load_result(filename, task_type, metric):
         (df[metric].notnull()) & (df.type == task_type),
         ["task", "fold", "params", metric],
     ]
-    df["params"] = df["params"].apply(
-        lambda x: path.splitext(path.basename(eval(x)["_modeljson"]))[0]
-    )
-    baseline = (
-        df.loc[df["task"] == df["params"], ["task", metric]]
-        .groupby("task")
-        .mean()[metric]
-    )
+    df["params"] = df["params"].apply(lambda x: path.splitext(path.basename(eval(x)["_modeljson"]))[0])
+    baseline = df.loc[df["task"] == df["params"], ["task", metric]].groupby("task").mean()[metric]
     df = df.pivot_table(index="params", columns="task", values=metric)
     return df, baseline
 
@@ -34,9 +28,7 @@ def main():
     parser = argparse.ArgumentParser(description="Build a regret matrix.")
     parser.add_argument("--result_csv", help="File of experiment results")
     parser.add_argument("--task_type", help="Type of task")
-    parser.add_argument(
-        "--metric", help="Metric for calculating regret", default="result"
-    )
+    parser.add_argument("--metric", help="Metric for calculating regret", default="result")
     parser.add_argument("--output", help="Location to write regret CSV to")
     args = parser.parse_args()
 

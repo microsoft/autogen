@@ -12,9 +12,7 @@ import pytest
 spark_available, _ = check_spark()
 skip_spark = not spark_available
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 os.environ["FLAML_MAX_CONCURRENT"] = "2"
 X, y = load_breast_cancer(return_X_y=True)
@@ -35,9 +33,7 @@ def train_breast_cancer(config):
 
 def test_tune_spark():
     flaml_lgbm_search_space = LGBMEstimator.search_space(X_train.shape)
-    config_search_space = {
-        hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()
-    }
+    config_search_space = {hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()}
 
     analysis = tune.run(
         train_breast_cancer,

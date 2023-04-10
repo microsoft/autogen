@@ -116,25 +116,19 @@ class Trial:
                         self.metric_n_steps[metric][str(n)] = deque([value], maxlen=n)
                 else:
                     step = result["training_iteration"] or 1
-                    self.metric_analysis[metric]["max"] = max(
-                        value, self.metric_analysis[metric]["max"]
-                    )
-                    self.metric_analysis[metric]["min"] = min(
-                        value, self.metric_analysis[metric]["min"]
-                    )
+                    self.metric_analysis[metric]["max"] = max(value, self.metric_analysis[metric]["max"])
+                    self.metric_analysis[metric]["min"] = min(value, self.metric_analysis[metric]["min"])
                     self.metric_analysis[metric]["avg"] = (
-                        1
-                        / step
-                        * (value + (step - 1) * self.metric_analysis[metric]["avg"])
+                        1 / step * (value + (step - 1) * self.metric_analysis[metric]["avg"])
                     )
                     self.metric_analysis[metric]["last"] = value
 
                     for n in self.n_steps:
                         key = "last-{:d}-avg".format(n)
                         self.metric_n_steps[metric][str(n)].append(value)
-                        self.metric_analysis[metric][key] = sum(
+                        self.metric_analysis[metric][key] = sum(self.metric_n_steps[metric][str(n)]) / len(
                             self.metric_n_steps[metric][str(n)]
-                        ) / len(self.metric_n_steps[metric][str(n)])
+                        )
 
     def set_status(self, status):
         """Sets the status of the trial."""

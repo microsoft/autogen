@@ -75,10 +75,7 @@ def flamlize_estimator(super_class, name: str, task: str, alternatives=None):
                         break
             estimator_name = (
                 "choose_xgb"
-                if (
-                    estimator_name == "xgb_limitdepth"
-                    and "max_depth" not in self._params
-                )
+                if (estimator_name == "xgb_limitdepth" and "max_depth" not in self._params)
                 else estimator_name
             )
             (
@@ -88,18 +85,14 @@ def flamlize_estimator(super_class, name: str, task: str, alternatives=None):
                 y_transformed,
                 self._feature_transformer,
                 self._label_transformer,
-            ) = preprocess_and_suggest_hyperparams(
-                task, X, y, estimator_name, self._default_location
-            )
+            ) = preprocess_and_suggest_hyperparams(task, X, y, estimator_name, self._default_location)
             assert estimator_class == super_class
             hyperparams.update(self._params)
             return hyperparams, estimator_name, X_transformed, y_transformed
 
         @wraps(super_class.fit)
         def fit(self, X, y, *args, **params):
-            hyperparams, estimator_name, X, y_transformed = self.suggest_hyperparams(
-                X, y
-            )
+            hyperparams, estimator_name, X, y_transformed = self.suggest_hyperparams(X, y)
             self.set_params(**hyperparams)
             if self._label_transformer and estimator_name in [
                 "rf",
@@ -150,26 +143,16 @@ def flamlize_estimator(super_class, name: str, task: str, alternatives=None):
     return EstimatorClass
 
 
-RandomForestRegressor = flamlize_estimator(
-    ensemble.RandomForestRegressor, "rf", "regression"
-)
-RandomForestClassifier = flamlize_estimator(
-    ensemble.RandomForestClassifier, "rf", "classification"
-)
-ExtraTreesRegressor = flamlize_estimator(
-    ensemble.ExtraTreesRegressor, "extra_tree", "regression"
-)
-ExtraTreesClassifier = flamlize_estimator(
-    ensemble.ExtraTreesClassifier, "extra_tree", "classification"
-)
+RandomForestRegressor = flamlize_estimator(ensemble.RandomForestRegressor, "rf", "regression")
+RandomForestClassifier = flamlize_estimator(ensemble.RandomForestClassifier, "rf", "classification")
+ExtraTreesRegressor = flamlize_estimator(ensemble.ExtraTreesRegressor, "extra_tree", "regression")
+ExtraTreesClassifier = flamlize_estimator(ensemble.ExtraTreesClassifier, "extra_tree", "classification")
 
 try:
     import lightgbm
 
     LGBMRegressor = flamlize_estimator(lightgbm.LGBMRegressor, "lgbm", "regression")
-    LGBMClassifier = flamlize_estimator(
-        lightgbm.LGBMClassifier, "lgbm", "classification"
-    )
+    LGBMClassifier = flamlize_estimator(lightgbm.LGBMClassifier, "lgbm", "classification")
 except ImportError:
     pass
 

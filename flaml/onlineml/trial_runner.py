@@ -33,12 +33,7 @@ class OnlineTrialRunner:
     WARMSTART_NUM = 100
 
     def __init__(
-        self,
-        max_live_model_num: int,
-        searcher=None,
-        scheduler=None,
-        champion_test_policy="loss_ucb",
-        **kwargs
+        self, max_live_model_num: int, searcher=None, scheduler=None, champion_test_policy="loss_ucb", **kwargs
     ):
         """Constructor.
 
@@ -192,9 +187,7 @@ class OnlineTrialRunner:
 
     def get_top_running_trials(self, top_ratio=None, top_metric="ucb") -> list:
         """Get a list of trial ids, whose performance is among the top running trials."""
-        running_valid_trials = [
-            trial for trial in self._running_trials if trial.result is not None
-        ]
+        running_valid_trials = [trial for trial in self._running_trials if trial.result is not None]
         if not running_valid_trials:
             return
         if top_ratio is None:
@@ -215,20 +208,14 @@ class OnlineTrialRunner:
         else:
             raise NotImplementedError
         top_running_valid_trials = []
-        logger.info(
-            "Running trial ids %s", [trial.trial_id for trial in running_valid_trials]
-        )
+        logger.info("Running trial ids %s", [trial.trial_id for trial in running_valid_trials])
         self._random_state.shuffle(running_valid_trials)
-        results = [
-            trial.result.get_score(test_attribute) for trial in running_valid_trials
-        ]
+        results = [trial.result.get_score(test_attribute) for trial in running_valid_trials]
         # sorted result (small to large) index
         sorted_index = np.argsort(np.array(results))
         for i in range(min(top_number, len(running_valid_trials))):
             top_running_valid_trials.append(running_valid_trials[sorted_index[i]])
-        logger.info(
-            "Top running ids %s", [trial.trial_id for trial in top_running_valid_trials]
-        )
+        logger.info("Top running ids %s", [trial.trial_id for trial in top_running_valid_trials])
         return top_running_valid_trials
 
     def _add_trial_from_searcher(self):
@@ -240,16 +227,9 @@ class OnlineTrialRunner:
         """
         # (optionally) upper bound the number of trials in the OnlineTrialRunner
         if self._bound_trial_num and self._first_challenger_pool_size is not None:
-            active_trial_size = len(
-                [t for t in self._trials if t.status != Trial.TERMINATED]
-            )
+            active_trial_size = len([t for t in self._trials if t.status != Trial.TERMINATED])
             trial_num_upper_bound = (
-                int(
-                    round(
-                        (np.log10(self._total_steps) + 1)
-                        * self._first_challenger_pool_size
-                    )
-                )
+                int(round((np.log10(self._total_steps) + 1) * self._first_challenger_pool_size))
                 if self._first_challenger_pool_size
                 else np.inf
             )
@@ -286,9 +266,7 @@ class OnlineTrialRunner:
         if self._best_challenger_trial is not None:
             assert self._best_challenger_trial.trial_id != self._champion_trial.trial_id
             # test whether a new champion is found and set the trial properties accordingly
-            is_new_champion_found = self._better_than_champion_test(
-                self._best_challenger_trial
-            )
+            is_new_champion_found = self._better_than_champion_test(self._best_challenger_trial)
             if is_new_champion_found:
                 self._set_champion(new_champion_trial=self._best_challenger_trial)
 
@@ -303,10 +281,7 @@ class OnlineTrialRunner:
                     if worse_than_champion:
                         to_stop.append(trial_to_test)
             # we want to ensure there are at least #max_live_model_num of challengers remaining
-            max_to_stop_num = (
-                len([t for t in self._trials if t.status != Trial.TERMINATED])
-                - self._max_live_model_num
-            )
+            max_to_stop_num = len([t for t in self._trials if t.status != Trial.TERMINATED]) - self._max_live_model_num
             for i in range(min(max_to_stop_num, len(to_stop))):
                 self.stop_trial(to_stop[i])
 
@@ -331,9 +306,7 @@ class OnlineTrialRunner:
         ]
         if active_trials:
             self._random_state.shuffle(active_trials)
-            results = [
-                trial.result.get_score(test_attribute) for trial in active_trials
-            ]
+            results = [trial.result.get_score(test_attribute) for trial in active_trials]
             best_index = np.argmin(results)
             self._best_challenger_trial = active_trials[best_index]
 
@@ -358,9 +331,7 @@ class OnlineTrialRunner:
             # calling set_search_properties of searcher will trigger
             # new challenger generation. we do not do this for init champion
             # as this step is already done when first constructing the searcher
-            self._searcher.set_search_properties(
-                setting={self._searcher.CHAMPION_TRIAL_NAME: self._champion_trial}
-            )
+            self._searcher.set_search_properties(setting={self._searcher.CHAMPION_TRIAL_NAME: self._champion_trial})
         else:
             self._champion_update_times = 0
 
@@ -450,13 +421,9 @@ class OnlineTrialRunner:
         """
         if trial_to_test.result is not None and self._champion_trial.result is not None:
             if "ucb" in self._champion_test_policy:
-                return self._test_lcb_ucb(
-                    self._champion_trial, trial_to_test, self.WARMSTART_NUM
-                )
+                return self._test_lcb_ucb(self._champion_trial, trial_to_test, self.WARMSTART_NUM)
             elif "avg" in self._champion_test_policy:
-                return self._test_avg_loss(
-                    self._champion_trial, trial_to_test, self.WARMSTART_NUM
-                )
+                return self._test_avg_loss(self._champion_trial, trial_to_test, self.WARMSTART_NUM)
             elif "martingale" in self._champion_test_policy:
                 return self._test_martingale(self._champion_trial, trial_to_test)
             else:
@@ -474,9 +441,7 @@ class OnlineTrialRunner:
                     trial.trial_id,
                     champion_trial.trial_id,
                 )
-                logger.info(
-                    "trial %s %s %s", trial.config, trial.result, trial.resource_lease
-                )
+                logger.info("trial %s %s %s", trial.config, trial.result, trial.resource_lease)
                 logger.info(
                     "trial loss_avg:%s, trial loss_cb %s",
                     trial.result.loss_avg,
@@ -508,13 +473,8 @@ class OnlineTrialRunner:
         """
         assert trial.trial_id != champion_trial.trial_id
         if trial.result.resource_used >= warmstart_num:
-            if (
-                trial.result.loss_ucb
-                < champion_trial.result.loss_lcb - champion_trial.result.loss_cb
-            ):
-                logger.info(
-                    "======new champion condition satisfied: using lcb vs ucb====="
-                )
+            if trial.result.loss_ucb < champion_trial.result.loss_lcb - champion_trial.result.loss_cb:
+                logger.info("======new champion condition satisfied: using lcb vs ucb=====")
                 logger.info(
                     "new champion trial %s %s %s",
                     trial.trial_id,

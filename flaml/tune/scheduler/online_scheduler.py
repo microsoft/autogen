@@ -27,10 +27,7 @@ class OnlineScheduler(TrialScheduler):
         min_paused_resource_trial = None
         for trial in trial_runner.get_trials():
             # if there is a tie, prefer the earlier added ones
-            if (
-                trial.status == Trial.PAUSED
-                and trial.resource_lease < min_paused_resource
-            ):
+            if trial.status == Trial.PAUSED and trial.resource_lease < min_paused_resource:
                 min_paused_resource = trial.resource_lease
                 min_paused_resource_trial = trial
         if min_paused_resource_trial is not None:
@@ -122,8 +119,6 @@ class ChaChaScheduler(OnlineSuccessiveDoublingScheduler):
                 )
                 logger.debug("top_learners: %s", top_trials)
                 if trial in top_trials:
-                    logger.debug(
-                        "top runner %s: set from PAUSE to CONTINUE", trial.trial_id
-                    )
+                    logger.debug("top runner %s: set from PAUSE to CONTINUE", trial.trial_id)
                     return TrialScheduler.CONTINUE
         return decision

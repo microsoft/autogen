@@ -113,12 +113,8 @@ class AutoVW:
         search_space = self._search_space.copy()
         for k, v in self._search_space.items():
             if k == self.VW_INTERACTION_ARG_NAME and v == self.AUTOMATIC:
-                raw_namespaces = self.get_ns_feature_dim_from_vw_example(
-                    vw_example
-                ).keys()
-                search_space[k] = polynomial_expansion_set(
-                    init_monomials=set(raw_namespaces)
-                )
+                raw_namespaces = self.get_ns_feature_dim_from_vw_example(vw_example).keys()
+                search_space[k] = polynomial_expansion_set(init_monomials=set(raw_namespaces))
         # setup the init config based on the input _init_config and search space
         init_config = self._init_config.copy()
         for k, v in search_space.items():
@@ -158,10 +154,7 @@ class AutoVW:
         self._best_trial = self._select_best_trial()
         self._y_predict = self._best_trial.predict(data_sample)
         # code for debugging purpose
-        if (
-            self._prediction_trial_id is None
-            or self._prediction_trial_id != self._best_trial.trial_id
-        ):
+        if self._prediction_trial_id is None or self._prediction_trial_id != self._best_trial.trial_id:
             self._prediction_trial_id = self._best_trial.trial_id
             logger.info(
                 "prediction trial id changed to %s at iter %s, resource used: %s",
@@ -183,14 +176,11 @@ class AutoVW:
 
     def _select_best_trial(self):
         """Select a best trial from the running trials according to the _model_select_policy."""
-        best_score = (
-            float("+inf") if self._model_selection_mode == "min" else float("-inf")
-        )
+        best_score = float("+inf") if self._model_selection_mode == "min" else float("-inf")
         new_best_trial = None
         for trial in self._trial_runner.running_trials:
             if trial.result is not None and (
-                "threshold" not in self._model_select_policy
-                or trial.result.resource_used >= self.WARMSTART_NUM
+                "threshold" not in self._model_select_policy or trial.result.resource_used >= self.WARMSTART_NUM
             ):
                 score = trial.result.get_score(self._model_select_policy)
                 if ("min" == self._model_selection_mode and score < best_score) or (
@@ -199,18 +189,13 @@ class AutoVW:
                     best_score = score
                     new_best_trial = trial
         if new_best_trial is not None:
-            logger.debug(
-                "best_trial resource used: %s", new_best_trial.result.resource_used
-            )
+            logger.debug("best_trial resource used: %s", new_best_trial.result.resource_used)
             return new_best_trial
         else:
             # This branch will be triggered when the resource consumption all trials are smaller
             # than the WARMSTART_NUM threshold. In this case, we will select the _best_trial
             # selected in the previous iteration.
-            if (
-                self._best_trial is not None
-                and self._best_trial.status == Trial.RUNNING
-            ):
+            if self._best_trial is not None and self._best_trial.status == Trial.RUNNING:
                 logger.debug("old best trial %s", self._best_trial.trial_id)
                 return self._best_trial
             else:

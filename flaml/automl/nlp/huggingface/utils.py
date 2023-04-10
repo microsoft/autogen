@@ -38,16 +38,12 @@ def tokenize_text(X, Y=None, task=None, hf_args=None, tokenizer=None):
         Y_tokenized = Y
         label_col_name = ["label"]
     elif task == TOKENCLASSIFICATION:
-        X_tokenized, Y_tokenized = tokenize_text_tokclassification(
-            X, Y, tokenizer=tokenizer, hf_args=hf_args
-        )
+        X_tokenized, Y_tokenized = tokenize_text_tokclassification(X, Y, tokenizer=tokenizer, hf_args=hf_args)
         label_col_name = ["labels"]
     elif task in NLG_TASKS:
         return tokenize_seq2seq(X, Y, tokenizer=tokenizer, task=task, hf_args=hf_args)
     elif task == MULTICHOICECLASSIFICATION:
-        X_tokenized = tokenize_text_multiplechoice(
-            X, tokenizer=tokenizer, hf_args=hf_args
-        )
+        X_tokenized = tokenize_text_multiplechoice(X, tokenizer=tokenizer, hf_args=hf_args)
         label_col_name = ["label"]
         Y_tokenized = Y
     Y_tokenized = todf(X_tokenized, Y_tokenized, label_col_name)
@@ -75,9 +71,7 @@ def tokenize_seq2seq(X, Y, tokenizer, task=None, hf_args=None):
             [(each_l if each_l != tokenizer.pad_token_id else -100) for each_l in label]
             for label in model_outputs["input_ids"]
         ]
-        model_outputs = model_outputs.drop(
-            columns=["attention_mask", "input_ids", "decoder_input_ids"]
-        )
+        model_outputs = model_outputs.drop(columns=["attention_mask", "input_ids", "decoder_input_ids"])
     return model_inputs, model_outputs
 
 
@@ -116,9 +110,7 @@ def tokenize_and_align_labels(
                 # Use the label_all_tokens to control whether to copy the label to all subtokens or to pad the additional tokens as -100
                 if hf_args.label_all_tokens:
                     # If the B- word is converted into multiple subtokens, map the additional subtokens to I-
-                    label_ids.append(
-                        b_to_i_label[label_to_id[examples[Y_sent_key][word_idx]]]
-                    )
+                    label_ids.append(b_to_i_label[label_to_id[examples[Y_sent_key][word_idx]]])
                 else:
                     label_ids.append(-100)
             previous_word_idx = word_idx
@@ -173,9 +165,7 @@ def tokenize_text_tokclassification(X, Y, tokenizer, hf_args=None):
             result_type="expand",
         )
         label_idx = tokenized_column_names.index("labels")
-        other_indices = sorted(
-            set(range(len(tokenized_column_names))).difference({label_idx})
-        )
+        other_indices = sorted(set(range(len(tokenized_column_names))).difference({label_idx}))
         other_column_names = [tokenized_column_names[x] for x in other_indices]
         d = X_and_Y_tokenized.iloc[:, other_indices]
         y_tokenized = X_and_Y_tokenized.iloc[:, label_idx]
@@ -298,10 +288,7 @@ def tokenize_swag(this_row, tokenizer, hf_args=None, return_column_name=False):
     # get each 1st sentence, multiply to 4 sentences
     question_headers = this_row["sent2"]
     # sent2 are the noun part of 2nd line
-    second_sentences = [
-        question_headers + " " + this_row[key]
-        for key in ["ending0", "ending1", "ending2", "ending3"]
-    ]
+    second_sentences = [question_headers + " " + this_row[key] for key in ["ending0", "ending1", "ending2", "ending3"]]
     # now the 2nd-sentences are formed by combing the noun part and 4 ending parts
 
     # Flatten out
@@ -322,18 +309,14 @@ def tokenize_swag(this_row, tokenizer, hf_args=None, return_column_name=False):
         return [tokenized_example[x] for x in tmp_column_names]
 
 
-def postprocess_prediction_and_true(
-    task, y_pred, tokenizer, hf_args, y_true=None, X=None
-):
+def postprocess_prediction_and_true(task, y_pred, tokenizer, hf_args, y_true=None, X=None):
     # postprocess the matrix prediction y_pred and ground truth y_true into user readable format, e.g., for summarization, decode into text
     if task == SEQCLASSIFICATION:
         return np.argmax(y_pred, axis=1), y_true
     elif task == SEQREGRESSION:
         return np.squeeze(y_pred), y_true  # predictions.reshape((len(predictions),))
     elif task == TOKENCLASSIFICATION:
-        assert (y_true is not None) or (
-            X is not None
-        ), "One of y_true and X must not be None"
+        assert (y_true is not None) or (X is not None), "One of y_true and X must not be None"
         ## If y_true is not None, we use y_true to remove the -100 in the prediction (postprocessing), and return the postprocessed y_true and prediction
         # If y_true is None, we use X to compute y_is_pad (i.e., whether y_true is -100 in that position), and use y_is_pad to remove the -100 in the prediction, and return the postprocessed prediction (not the y_true)
         y_predict = pd.Series(np.argmax(y_pred, axis=2).tolist())
@@ -354,17 +337,12 @@ def postprocess_prediction_and_true(
             for (each_pred, each_is_pad) in zip(y_predict, y_is_pad)
         ]
         y_pred_label = [
-            [
-                hf_args.label_list[p] if 0 <= p < label_len else -1
-                for (p, ispd) in each_list
-            ]
+            [hf_args.label_list[p] if 0 <= p < label_len else -1 for (p, ispd) in each_list]
             for each_list in zip_pred_ispad
         ]  # To compute precision and recall, y_pred and y_true must be converted to string labels
         # (B-PER, I-PER, etc.), so that the category-based precision/recall (i.e., PER, LOC, etc.) scores can be computed
         if y_true is not None:
-            y_true_label = [
-                [tr for (p, tr) in each_list] for each_list in zip_pred_ispad
-            ]
+            y_true_label = [[tr for (p, tr) in each_list] for each_list in zip_pred_ispad]
         else:
             y_true_label = None
         return y_pred_label, y_true_label
@@ -381,13 +359,9 @@ def postprocess_prediction_and_true(
 
         if y_true is not None:
             y_true_labels = np.where(y_true != -100, y_true, tokenizer.pad_token_id)
-            decoded_y_true_labels = tokenizer.batch_decode(
-                y_true_labels, skip_special_tokens=True
-            )
+            decoded_y_true_labels = tokenizer.batch_decode(y_true_labels, skip_special_tokens=True)
             decoded_y_true_labels = [label.strip() for label in decoded_y_true_labels]
-            decoded_y_true_labels = [
-                "\n".join(nltk.sent_tokenize(label)) for label in decoded_y_true_labels
-            ]
+            decoded_y_true_labels = ["\n".join(nltk.sent_tokenize(label)) for label in decoded_y_true_labels]
         else:
             decoded_y_true_labels = None
 
@@ -419,17 +393,11 @@ def load_model(checkpoint_path, task, num_labels=None):
                 checkpoint_path, config=model_config, ignore_mismatched_sizes=True
             )
         elif task == TOKENCLASSIFICATION:
-            return AutoModelForTokenClassification.from_pretrained(
-                checkpoint_path, config=model_config
-            )
+            return AutoModelForTokenClassification.from_pretrained(checkpoint_path, config=model_config)
         elif task in NLG_TASKS:
-            return AutoModelForSeq2SeqLM.from_pretrained(
-                checkpoint_path, config=model_config
-            )
+            return AutoModelForSeq2SeqLM.from_pretrained(checkpoint_path, config=model_config)
         elif task == MULTICHOICECLASSIFICATION:
-            return AutoModelForMultipleChoice.from_pretrained(
-                checkpoint_path, config=model_config
-            )
+            return AutoModelForMultipleChoice.from_pretrained(checkpoint_path, config=model_config)
 
     def _set_model_config(checkpoint_path):
         if task in (SEQCLASSIFICATION, SEQREGRESSION, TOKENCLASSIFICATION):

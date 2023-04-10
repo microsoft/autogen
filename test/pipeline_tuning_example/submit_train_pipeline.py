@@ -83,9 +83,7 @@ def build_and_submit_aml_pipeline(config):
     ################################################
     # load component functions
     ################################################
-    data_prep_component = Component.from_yaml(
-        ws, yaml_file=LOCAL_DIR / "data_prep/data_prep.yaml"
-    )
+    data_prep_component = Component.from_yaml(ws, yaml_file=LOCAL_DIR / "data_prep/data_prep.yaml")
     train_component = Component.from_yaml(ws, yaml_file=LOCAL_DIR / "train/train.yaml")
 
     ################################################

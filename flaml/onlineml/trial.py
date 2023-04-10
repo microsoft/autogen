@@ -106,9 +106,7 @@ class OnlineResult:
         self._loss_cb = self._update_loss_cb(bound_of_range, data_dimension)
         self._loss_queue.append(new_loss)
 
-    def _update_loss_cb(
-        self, bound_of_range, data_dim, bound_name="sample_complexity_bound"
-    ):
+    def _update_loss_cb(self, bound_of_range, data_dim, bound_name="sample_complexity_bound"):
         """Calculate the coefficient of the confidence bound."""
         if bound_name == "sample_complexity_bound":
             # set the coefficient in the loss bound
@@ -119,9 +117,7 @@ class OnlineResult:
 
             comp_F = math.sqrt(data_dim)
             n = self.observation_count
-            return (
-                coef * comp_F * math.sqrt((np.log10(n / OnlineResult.prob_delta)) / n)
-            )
+            return coef * comp_F * math.sqrt((np.log10(n / OnlineResult.prob_delta)) / n)
         else:
             raise NotImplementedError
 
@@ -147,11 +143,7 @@ class OnlineResult:
 
     @property
     def loss_avg_recent(self):
-        return (
-            sum(self._loss_queue) / len(self._loss_queue)
-            if len(self._loss_queue) != 0
-            else self._init_loss
-        )
+        return sum(self._loss_queue) / len(self._loss_queue) if len(self._loss_queue) != 0 else self._init_loss
 
     def get_score(self, score_name, cb_ratio=1):
         if "lcb" in score_name:
@@ -282,9 +274,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
         try:
             from vowpalwabbit import pyvw
         except ImportError:
-            raise ImportError(
-                "To use AutoVW, please run pip install flaml[vw] to install vowpalwabbit"
-            )
+            raise ImportError("To use AutoVW, please run pip install flaml[vw] to install vowpalwabbit")
         # attributes
         self.trial_id = self._config_to_id(config) if trial_id is None else trial_id
         logger.info("Create trial with trial_id: %s", self.trial_id)
@@ -327,14 +317,10 @@ class VowpalWabbitTrial(BaseOnlineTrial):
     def _initialize_vw_model(self, vw_example):
         """Initialize a vw model using the trainable_class"""
         self._vw_config = self.config.copy()
-        ns_interactions = self.config.get(
-            VowpalWabbitTrial.interactions_config_key, None
-        )
+        ns_interactions = self.config.get(VowpalWabbitTrial.interactions_config_key, None)
         # ensure the feature interaction config is a list (required by VW)
         if ns_interactions is not None:
-            self._vw_config[VowpalWabbitTrial.interactions_config_key] = list(
-                ns_interactions
-            )
+            self._vw_config[VowpalWabbitTrial.interactions_config_key] = list(ns_interactions)
         # get the dimensionality of the feature according to the namespace configuration
         namespace_feature_dim = get_ns_feature_dim_from_vw_example(vw_example)
         self._dim = self._get_dim_from_ns(namespace_feature_dim, ns_interactions)
@@ -361,9 +347,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
         # do one step of learning
         self.model.learn(data_sample)
         # update training related results accordingly
-        new_loss = self._get_loss(
-            y, y_pred, self._metric, self._y_min_observed, self._y_max_observed
-        )
+        new_loss = self._get_loss(y, y_pred, self._metric, self._y_min_observed, self._y_max_observed)
         # udpate sample size, sum of loss, and cost
         data_sample_size = 1
         bound_of_range = self._y_max_observed - self._y_min_observed
@@ -391,11 +375,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
             loss_func = mean_squared_error
         elif "mae" in loss_func_name or "absolute" in loss_func_name:
             loss_func = mean_absolute_error
-            if (
-                y_min_observed is not None
-                and y_max_observed is not None
-                and "clip" in loss_func_name
-            ):
+            if y_min_observed is not None and y_max_observed is not None and "clip" in loss_func_name:
                 # clip y_pred in the observed range of y
                 y_pred = min(y_max_observed, max(y_pred, y_min_observed))
         else:
@@ -410,9 +390,7 @@ class VowpalWabbitTrial(BaseOnlineTrial):
             self._y_max_observed = y
 
     @staticmethod
-    def _get_dim_from_ns(
-        namespace_feature_dim: dict, namespace_interactions: Union[set, list]
-    ):
+    def _get_dim_from_ns(namespace_feature_dim: dict, namespace_interactions: Union[set, list]):
         """Get the dimensionality of the corresponding feature of input namespace set."""
         total_dim = sum(namespace_feature_dim.values())
         if namespace_interactions:

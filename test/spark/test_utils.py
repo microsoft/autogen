@@ -34,9 +34,7 @@ except ImportError:
     print("Spark is not installed. Skip all spark tests.")
     skip_spark = True
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 
 def test_with_parameters_spark():
@@ -53,9 +51,7 @@ def test_with_parameters_spark():
     spark = SparkSession.builder.getOrCreate()
     rdd = spark.sparkContext.parallelize(list(range(2)))
 
-    t_partial = timeit(
-        lambda: rdd.map(lambda x: partial_train(config=x)).collect(), number=5
-    )
+    t_partial = timeit(lambda: rdd.map(lambda x: partial_train(config=x)).collect(), number=5)
     print("python_partial_train: " + str(t_partial))
 
     t_spark = timeit(
@@ -139,12 +135,8 @@ def test_train_test_split_pyspark():
     spark = SparkSession.builder.getOrCreate()
     sdf = spark.createDataFrame(pdf).repartition(1)
     psdf = to_pandas_on_spark(sdf).spark.repartition(1)
-    train_sdf, test_sdf = train_test_split_pyspark(
-        sdf, test_fraction=0.5, to_pandas_spark=False, seed=1
-    )
-    train_psdf, test_psdf = train_test_split_pyspark(
-        psdf, test_fraction=0.5, stratify_column="y", seed=1
-    )
+    train_sdf, test_sdf = train_test_split_pyspark(sdf, test_fraction=0.5, to_pandas_spark=False, seed=1)
+    train_psdf, test_psdf = train_test_split_pyspark(psdf, test_fraction=0.5, stratify_column="y", seed=1)
     assert isinstance(train_sdf, pyspark.sql.dataframe.DataFrame)
     assert isinstance(test_sdf, pyspark.sql.dataframe.DataFrame)
     assert isinstance(train_psdf, ps.DataFrame)
@@ -190,9 +182,7 @@ def test_unique_value_first_index():
 def test_n_current_trials():
     spark = SparkSession.builder.getOrCreate()
     sc = spark._jsc.sc()
-    num_executors = (
-        len([executor.host() for executor in sc.statusTracker().getExecutorInfos()]) - 1
-    )
+    num_executors = len([executor.host() for executor in sc.statusTracker().getExecutorInfos()]) - 1
 
     def get_n_current_trials(n_concurrent_trials=0, num_executors=num_executors):
         try:

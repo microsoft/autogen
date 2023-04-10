@@ -71,17 +71,12 @@ def construct_portfolio(regret_matrix, meta_features, regret_bound):
         sorted_losses = np.sort(losses)
         if sorted_losses[1] - sorted_losses[0] < eps:
             minloss = np.nanmin(losses)
-            print(
-                f"tie detected at loss = {sorted_losses[0]}, using alternative metric."
-            )
+            print(f"tie detected at loss = {sorted_losses[0]}, using alternative metric.")
             tied = np.flatnonzero(losses - minloss < eps)
             losses = [(avg_regret[i], i) for i in tied]
             minloss, ind = min(losses)
             if minloss > prev - eps:
-                print(
-                    f"May be overfitting at k = {i + 1}, current = {minloss:.5f}, "
-                    f"prev = {prev:.5f}. Stopping."
-                )
+                print(f"May be overfitting at k = {i + 1}, current = {minloss:.5f}, " f"prev = {prev:.5f}. Stopping.")
                 break
             configs = candidates[ind]
             prev = minloss
@@ -89,9 +84,7 @@ def construct_portfolio(regret_matrix, meta_features, regret_bound):
             configs = candidates[np.nanargmin(losses)]
         i += 1
         if sorted_losses[0] <= eps:
-            print(
-                f"Reached target regret bound of {regret_bound}! k = {i}. Declining to pick further!"
-            )
+            print(f"Reached target regret bound of {regret_bound}! k = {i}. Declining to pick further!")
             break
 
     return configs

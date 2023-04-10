@@ -7,16 +7,12 @@ ray_environment_name = "aml-ray-cpu"
 ray_environment_dockerfile_path = "./Docker/Dockerfile-cpu"
 
 # Build CPU image for Ray
-ray_cpu_env = Environment.from_dockerfile(
-    name=ray_environment_name, dockerfile=ray_environment_dockerfile_path
-)
+ray_cpu_env = Environment.from_dockerfile(name=ray_environment_name, dockerfile=ray_environment_dockerfile_path)
 ray_cpu_env.register(workspace=ws)
 ray_cpu_build_details = ray_cpu_env.build(workspace=ws)
 
 while ray_cpu_build_details.status not in ["Succeeded", "Failed"]:
-    print(
-        f"Awaiting completion of ray CPU environment build. Current status is: {ray_cpu_build_details.status}"
-    )
+    print(f"Awaiting completion of ray CPU environment build. Current status is: {ray_cpu_build_details.status}")
     time.sleep(10)
 
 command = ["python distribute_automl.py"]

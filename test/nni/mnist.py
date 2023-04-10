@@ -107,9 +107,7 @@ def main(args):
             data_dir,
             train=True,
             download=True,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-            ),
+            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]),
         ),
         batch_size=args["batch_size"],
         shuffle=True,
@@ -119,9 +117,7 @@ def main(args):
         datasets.MNIST(
             data_dir,
             train=False,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-            ),
+            transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]),
         ),
         batch_size=1000,
         shuffle=True,
@@ -188,12 +184,8 @@ def get_params():
         metavar="N",
         help="number of epochs to train (default: 10)",
     )
-    parser.add_argument(
-        "--seed", type=int, default=1, metavar="S", help="random seed (default: 1)"
-    )
-    parser.add_argument(
-        "--no_cuda", action="store_true", default=False, help="disables CUDA training"
-    )
+    parser.add_argument("--seed", type=int, default=1, metavar="S", help="random seed (default: 1)")
+    parser.add_argument("--no_cuda", action="store_true", default=False, help="disables CUDA training")
     parser.add_argument(
         "--log_interval",
         type=int,

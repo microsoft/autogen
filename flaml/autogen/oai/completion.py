@@ -21,9 +21,7 @@ try:
 
     ERROR = None
 except ImportError:
-    ERROR = ImportError(
-        "please install flaml[openai] option to use the flaml.oai subpackage."
-    )
+    ERROR = ImportError("please install flaml[openai] option to use the flaml.oai subpackage.")
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -142,17 +140,11 @@ class Completion:
             if response is not None and (response != -1 or not eval_only):
                 # print("using cached response")
                 return response
-        openai_completion = (
-            openai.ChatCompletion
-            if config["model"] in cls.chat_models
-            else openai.Completion
-        )
+        openai_completion = openai.ChatCompletion if config["model"] in cls.chat_models else openai.Completion
         start_time = time.time()
         while True:
             try:
-                response = openai_completion.create(
-                    request_timeout=cls.request_timeout, **config
-                )
+                response = openai_completion.create(request_timeout=cls.request_timeout, **config)
                 cls._cache.set(key, response)
                 return response
             except (
@@ -176,9 +168,7 @@ class Completion:
                 if "azure" == openai.api_type and "model" in config:
                     # azure api uses "engine" instead of "model"
                     config = config.copy()
-                    config["engine"] = config.pop("model").replace(
-                        "gpt-3.5-turbo", "gpt-35-turbo"
-                    )
+                    config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
                 else:
                     raise
         logger.warning(
@@ -193,11 +183,7 @@ class Completion:
         # find the max value in max_valid_n_per_max_tokens
         # whose key is equal or larger than max_tokens
         return max(
-            (
-                value
-                for k, value in cls._max_valid_n_per_max_tokens.get(key, {}).items()
-                if k >= max_tokens
-            ),
+            (value for k, value in cls._max_valid_n_per_max_tokens.get(key, {}).items() if k >= max_tokens),
             default=1,
         )
 
@@ -206,11 +192,7 @@ class Completion:
         # find the min value in min_invalid_n_per_max_tokens
         # whose key is equal or smaller than max_tokens
         return min(
-            (
-                value
-                for k, value in cls._min_invalid_n_per_max_tokens.get(key, {}).items()
-                if k <= max_tokens
-            ),
+            (value for k, value in cls._min_invalid_n_per_max_tokens.get(key, {}).items() if k <= max_tokens),
             default=None,
         )
 
@@ -227,12 +209,10 @@ class Completion:
     def _update_invalid_n(cls, prune, region_key, max_tokens, num_completions):
         if prune:
             # update invalid n and prune this config
-            cls._min_invalid_n_per_max_tokens[
-                region_key
-            ] = invalid_n = cls._min_invalid_n_per_max_tokens.get(region_key, {})
-            invalid_n[max_tokens] = min(
-                num_completions, invalid_n.get(max_tokens, np.inf)
+            cls._min_invalid_n_per_max_tokens[region_key] = invalid_n = cls._min_invalid_n_per_max_tokens.get(
+                region_key, {}
             )
+            invalid_n[max_tokens] = min(num_completions, invalid_n.get(max_tokens, np.inf))
 
     @classmethod
     def _pop_subspace(cls, config):
@@ -280,16 +260,12 @@ class Completion:
         model = config["model"]
         data_length = len(data)
         price = cls.price1K.get(model)
-        price_input, price_output = (
-            price if isinstance(price, tuple) else (price, price)
-        )
+        price_input, price_output = price if isinstance(price, tuple) else (price, price)
         inference_budget = getattr(cls, "inference_budget", None)
         prune_hp = getattr(cls, "_prune_hp", "n")
         metric = cls._metric
         config_n = config.get(prune_hp, 1)  # default value in OpenAI is 1
-        max_tokens = config.get(
-            "max_tokens", np.inf if model in cls.chat_models else 16
-        )
+        max_tokens = config.get("max_tokens", np.inf if model in cls.chat_models else 16)
         prompt, messages = cls._get_prompt_messages_from_config(model, config)
         stop = cls._stops and cls._stops[config["stop"]]
         target_output_tokens = None
@@ -300,9 +276,7 @@ class Completion:
             region_key = cls._get_region_key(config)
             max_valid_n = cls._get_max_valid_n(region_key, max_tokens)
             if cls.avg_input_tokens:
-                target_output_tokens = (
-                    inference_budget * 1000 - cls.avg_input_tokens * price_input
-                ) / price_output
+                target_output_tokens = (inference_budget * 1000 - cls.avg_input_tokens * price_input) / price_output
                 # max_tokens bounds the maximum tokens
                 # so using it we can calculate a valid n according to the avg # input tokens
                 max_valid_n = max(
@@ -340,16 +314,12 @@ class Completion:
             while True:  # data_limit <= data_length
                 # limit the number of data points to avoid rate limit
                 for i in range(prev_data_limit, data_limit):
-                    logger.debug(
-                        f"num_completions={num_completions}, data instance={i}"
-                    )
+                    logger.debug(f"num_completions={num_completions}, data instance={i}")
                     data_i = data[i]
                     params = cls._construct_params(data_i, params, prompt, messages)
                     response = cls._get_response(params, eval_only)
                     if response == -1:  # rate limit error, treat as invalid
-                        cls._update_invalid_n(
-                            prune, region_key, max_tokens, num_completions
-                        )
+                        cls._update_invalid_n(prune, region_key, max_tokens, num_completions)
                         result[metric] = 0
                         result["cost"] = cost
                         return result
@@ -361,16 +331,10 @@ class Completion:
                     if not cls.avg_input_tokens and not input_tokens[i]:
                         # store the # input tokens
                         input_tokens[i] = n_input_tokens
-                    query_cost = (
-                        price_input * n_input_tokens + price_output * n_output_tokens
-                    ) / 1000
+                    query_cost = (price_input * n_input_tokens + price_output * n_output_tokens) / 1000
                     cls._total_cost += query_cost
                     cost += query_cost
-                    if (
-                        cls.optimization_budget
-                        and cls._total_cost >= cls.optimization_budget
-                        and not eval_only
-                    ):
+                    if cls.optimization_budget and cls._total_cost >= cls.optimization_budget and not eval_only:
                         # limit the total tuning cost
                         return {
                             metric: 0,
@@ -393,14 +357,8 @@ class Completion:
                 )
                 # Hoeffding-Serfling bound
                 ratio = 0.1 * np.sqrt(rho / data_limit)
-                if (
-                    target_output_tokens
-                    and avg_n_tokens > target_output_tokens * (1 + ratio)
-                    and not eval_only
-                ):
-                    cls._update_invalid_n(
-                        prune, region_key, max_tokens, num_completions
-                    )
+                if target_output_tokens and avg_n_tokens > target_output_tokens * (1 + ratio) and not eval_only:
+                    cls._update_invalid_n(prune, region_key, max_tokens, num_completions)
                     result[metric] = 0
                     result["total_cost"] = cls._total_cost
                     result["cost"] = cost
@@ -409,19 +367,13 @@ class Completion:
                     prune
                     and target_output_tokens
                     and avg_n_tokens <= target_output_tokens * (1 - ratio)
-                    and (
-                        num_completions < config_n
-                        or num_completions == config_n
-                        and data_limit == data_length
-                    )
+                    and (num_completions < config_n or num_completions == config_n and data_limit == data_length)
                 ):
                     # update valid n
-                    cls._max_valid_n_per_max_tokens[
-                        region_key
-                    ] = valid_n = cls._max_valid_n_per_max_tokens.get(region_key, {})
-                    valid_n[max_tokens] = max(
-                        num_completions, valid_n.get(max_tokens, 0)
+                    cls._max_valid_n_per_max_tokens[region_key] = valid_n = cls._max_valid_n_per_max_tokens.get(
+                        region_key, {}
                     )
+                    valid_n[max_tokens] = max(num_completions, valid_n.get(max_tokens, 0))
                     if num_completions < config_n:
                         # valid already, skip the rest of the data
                         data_limit = data_length
@@ -455,9 +407,7 @@ class Completion:
                         target_output_tokens = (
                             inference_budget * 1000 - cls.avg_input_tokens * price_input
                         ) / price_output
-                result["inference_cost"] = (
-                    avg_n_tokens * price_output + cls.avg_input_tokens * price_input
-                ) / 1000
+                result["inference_cost"] = (avg_n_tokens * price_output + cls.avg_input_tokens * price_input) / 1000
                 break
             else:
                 if data_early_stop:
@@ -552,9 +502,7 @@ class Completion:
                 space.pop("temperature_or_top_p")
                 space["temperature"] = temperature
                 space["top_p"] = top_p
-                logger.warning(
-                    "temperature and top_p are not recommended to vary together."
-                )
+                logger.warning("temperature and top_p are not recommended to vary together.")
         cls._max_valid_n_per_max_tokens, cls._min_invalid_n_per_max_tokens = {}, {}
         cls.optimization_budget = optimization_budget
         cls.inference_budget = inference_budget
@@ -569,12 +517,8 @@ class Completion:
                 cls._messages = [cls._messages]
             space["messages"] = tune.choice(list(range(len(cls._messages))))
         else:
-            assert (
-                space.get("messages") is None
-            ), "messages and prompt cannot be provided at the same time."
-            assert isinstance(
-                cls._prompts, (str, list)
-            ), "prompt must be a string or a list of strings."
+            assert space.get("messages") is None, "messages and prompt cannot be provided at the same time."
+            assert isinstance(cls._prompts, (str, list)), "prompt must be a string or a list of strings."
             if isinstance(cls._prompts, str):
                 cls._prompts = [cls._prompts]
             space["prompt"] = tune.choice(list(range(len(cls._prompts))))
@@ -703,9 +647,7 @@ class Completion:
         # or "messages" should be in config (for tuning chat models only)
         if prompt is None and model in cls.chat_models:
             if messages is None:
-                raise ValueError(
-                    "Either prompt or messages should be in config for chat models."
-                )
+                raise ValueError("Either prompt or messages should be in config for chat models.")
         if prompt is None:
             params["messages"] = [
                 {
@@ -725,18 +667,12 @@ class Completion:
             params["messages"] = [
                 {
                     "role": "user",
-                    "content": prompt_msg
-                    if isinstance(prompt, str)
-                    else prompt(data_instance),
+                    "content": prompt_msg if isinstance(prompt, str) else prompt(data_instance),
                 },
             ]
             params.pop("prompt", None)
         else:
-            params["prompt"] = (
-                prompt.format(**data_instance)
-                if isinstance(prompt, str)
-                else prompt(data_instance)
-            )
+            params["prompt"] = prompt.format(**data_instance) if isinstance(prompt, str) else prompt(data_instance)
         return params
 
     @classmethod
@@ -855,9 +791,7 @@ class Completion:
         elif isinstance(agg_method, dict):
             for key in metric_keys:
                 metric_agg_method = agg_method[key]
-                assert callable(
-                    metric_agg_method
-                ), "please provide a callable for each metric"
+                assert callable(metric_agg_method), "please provide a callable for each metric"
                 result_agg[key] = metric_agg_method([r[key] for r in result_list])
         else:
             raise ValueError(

@@ -124,21 +124,13 @@ class FLOW2(Searcher):
         self.lexico_objectives = lexico_objectives
         if self.lexico_objectives is not None:
             if "modes" not in self.lexico_objectives.keys():
-                self.lexico_objectives["modes"] = ["min"] * len(
-                    self.lexico_objectives["metrics"]
-                )
-            for t_metric, t_mode in zip(
-                self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
-            ):
+                self.lexico_objectives["modes"] = ["min"] * len(self.lexico_objectives["metrics"])
+            for t_metric, t_mode in zip(self.lexico_objectives["metrics"], self.lexico_objectives["modes"]):
                 if t_metric not in self.lexico_objectives["tolerances"].keys():
                     self.lexico_objectives["tolerances"][t_metric] = 0
                 if t_metric not in self.lexico_objectives["targets"].keys():
-                    self.lexico_objectives["targets"][t_metric] = (
-                        -float("inf") if t_mode == "min" else float("inf")
-                    )
-        self.resource_multiple_factor = (
-            resource_multiple_factor or SAMPLE_MULTIPLY_FACTOR
-        )
+                    self.lexico_objectives["targets"][t_metric] = -float("inf") if t_mode == "min" else float("inf")
+        self.resource_multiple_factor = resource_multiple_factor or SAMPLE_MULTIPLY_FACTOR
         self.cost_attr = cost_attr
         self.max_resource = max_resource
         self._resource = None
@@ -166,13 +158,9 @@ class FLOW2(Searcher):
                     q = sampler.q
                     sampler = sampler.get_sampler()
                     if str(sampler) == "Uniform":
-                        self._step_lb = min(
-                            self._step_lb, q / (domain.upper - domain.lower + 1)
-                        )
+                        self._step_lb = min(self._step_lb, q / (domain.upper - domain.lower + 1))
                 elif isinstance(domain, sample.Integer) and str(sampler) == "Uniform":
-                    self._step_lb = min(
-                        self._step_lb, 1.0 / (domain.upper - domain.lower)
-                    )
+                    self._step_lb = min(self._step_lb, 1.0 / (domain.upper - domain.lower))
                 if isinstance(domain, sample.Categorical):
                     if not domain.ordered:
                         self._unordered_cat_hp[key] = len(domain.categories)
@@ -186,11 +174,7 @@ class FLOW2(Searcher):
         if not hier:
             self._space_keys = sorted(self._tunable_keys)
         self.hierarchical = hier
-        if (
-            self.resource_attr
-            and self.resource_attr not in self._space
-            and self.max_resource
-        ):
+        if self.resource_attr and self.resource_attr not in self._space and self.max_resource:
             self.min_resource = self.min_resource or self._min_resource()
             self._resource = self._round(self.min_resource)
             if not hier:
@@ -244,14 +228,12 @@ class FLOW2(Searcher):
                 if str(sampler_inner) == "LogUniform":
                     step_lb = min(
                         step_lb,
-                        np.log(1.0 + q / self.best_config[key])
-                        / np.log(domain.upper / domain.lower),
+                        np.log(1.0 + q / self.best_config[key]) / np.log(domain.upper / domain.lower),
                     )
             elif isinstance(domain, sample.Integer) and str(sampler) == "LogUniform":
                 step_lb = min(
                     step_lb,
-                    np.log(1.0 + 1.0 / self.best_config[key])
-                    / np.log((domain.upper - 1) / domain.lower),
+                    np.log(1.0 + 1.0 / self.best_config[key]) / np.log((domain.upper - 1) / domain.lower),
                 )
         if np.isinf(step_lb):
             step_lb = self.STEP_LOWER_BOUND
@@ -288,18 +270,14 @@ class FLOW2(Searcher):
         """
         disturb = self._reset_times and partial_config == self.init_config
         # if not the first time to complete init_config, use random gaussian
-        config, space = complete_config(
-            partial_config, self.space, self, disturb, lower, upper
-        )
+        config, space = complete_config(partial_config, self.space, self, disturb, lower, upper)
         if partial_config == self.init_config:
             self._reset_times += 1
         if self._resource:
             config[self.resource_attr] = self.min_resource
         return config, space
 
-    def create(
-        self, init_config: Dict, obj: float, cost: float, space: Dict
-    ) -> Searcher:
+    def create(self, init_config: Dict, obj: float, cost: float, space: Dict) -> Searcher:
         # space is the subspace where the init_config is located
         flow2 = self.__class__(
             init_config,
@@ -318,12 +296,7 @@ class FLOW2(Searcher):
             flow2.best_obj = {}
             for k, v in obj.items():
                 flow2.best_obj[k] = (
-                    -v
-                    if self.lexico_objectives["modes"][
-                        self.lexico_objectives["metrics"].index(k)
-                    ]
-                    == "max"
-                    else v
+                    -v if self.lexico_objectives["modes"][self.lexico_objectives["metrics"].index(k)] == "max" else v
                 )
         else:
             flow2.best_obj = obj * self.metric_op  # minimize internally
@@ -333,15 +306,11 @@ class FLOW2(Searcher):
 
     def normalize(self, config, recursive=False) -> Dict:
         """normalize each dimension in config to [0,1]."""
-        return normalize(
-            config, self._space, self.best_config, self.incumbent, recursive
-        )
+        return normalize(config, self._space, self.best_config, self.incumbent, recursive)
 
     def denormalize(self, config):
         """denormalize each dimension in config from [0,1]."""
-        return denormalize(
-            config, self._space, self.best_config, self.incumbent, self._random
-        )
+        return denormalize(config, self._space, self.best_config, self.incumbent, self._random)
 
     def set_search_properties(
         self,
@@ -374,20 +343,13 @@ class FLOW2(Searcher):
             feasible_value = k_values.take(feasible_index)
             self._f_best[k_metric] = np.min(feasible_value)
             if not isinstance(self.lexico_objectives["tolerances"][k_metric], str):
-                tolerance_bound = (
-                    self._f_best[k_metric]
-                    + self.lexico_objectives["tolerances"][k_metric]
-                )
+                tolerance_bound = self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric]
             else:
                 assert (
                     self.lexico_objectives["tolerances"][k_metric][-1] == "%"
                 ), "String tolerance of {} should use %% as the suffix".format(k_metric)
                 tolerance_bound = self._f_best[k_metric] * (
-                    1
-                    + 0.01
-                    * float(
-                        self.lexico_objectives["tolerances"][k_metric].replace("%", "")
-                    )
+                    1 + 0.01 * float(self.lexico_objectives["tolerances"][k_metric].replace("%", ""))
                 )
             feasible_index_filter = np.where(
                 feasible_value
@@ -409,33 +371,20 @@ class FLOW2(Searcher):
             for k in self.lexico_objectives["metrics"]:
                 self._histories[k].append(result[k])
             self.update_fbest()
-            for k_metric, k_mode in zip(
-                self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
-            ):
+            for k_metric, k_mode in zip(self.lexico_objectives["metrics"], self.lexico_objectives["modes"]):
                 k_target = (
                     self.lexico_objectives["targets"][k_metric]
                     if k_mode == "min"
                     else -self.lexico_objectives["targets"][k_metric]
                 )
                 if not isinstance(self.lexico_objectives["tolerances"][k_metric], str):
-                    tolerance_bound = (
-                        self._f_best[k_metric]
-                        + self.lexico_objectives["tolerances"][k_metric]
-                    )
+                    tolerance_bound = self._f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric]
                 else:
                     assert (
                         self.lexico_objectives["tolerances"][k_metric][-1] == "%"
-                    ), "String tolerance of {} should use %% as the suffix".format(
-                        k_metric
-                    )
+                    ), "String tolerance of {} should use %% as the suffix".format(k_metric)
                     tolerance_bound = self._f_best[k_metric] * (
-                        1
-                        + 0.01
-                        * float(
-                            self.lexico_objectives["tolerances"][k_metric].replace(
-                                "%", ""
-                            )
-                        )
+                        1 + 0.01 * float(self.lexico_objectives["tolerances"][k_metric].replace("%", ""))
                     )
                 if (result[k_metric] < max(tolerance_bound, k_target)) and (
                     self.best_obj[k_metric]
@@ -457,9 +406,7 @@ class FLOW2(Searcher):
                 else:
                     return False
 
-    def on_trial_complete(
-        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
-    ):
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None, error: bool = False):
         """
         Compare with incumbent.
         If better, move, reset num_complete and num_proposed.
@@ -512,21 +459,12 @@ class FLOW2(Searcher):
         proposed_by = self._proposed_by.get(trial_id)
         if proposed_by == self.incumbent:
             self._num_complete4incumbent += 1
-            cost = (
-                result.get(self.cost_attr, 1)
-                if result
-                else self._trial_cost.get(trial_id)
-            )
+            cost = result.get(self.cost_attr, 1) if result else self._trial_cost.get(trial_id)
             if cost:
                 self._cost_complete4incumbent += cost
-            if (
-                self._num_complete4incumbent >= 2 * self.dim
-                and self._num_allowed4incumbent == 0
-            ):
+            if self._num_complete4incumbent >= 2 * self.dim and self._num_allowed4incumbent == 0:
                 self._num_allowed4incumbent = 2
-            if self._num_complete4incumbent == self.dir and (
-                not self._resource or self._resource == self.max_resource
-            ):
+            if self._num_complete4incumbent == self.dir and (not self._resource or self._resource == self.max_resource):
                 self._num_complete4incumbent -= 2
                 self._num_allowed4incumbent = max(self._num_allowed4incumbent, 2)
 
@@ -593,10 +531,7 @@ class FLOW2(Searcher):
             and self.cost_incumbent
             and self._resource
             and self._resource < self.max_resource
-            and (
-                self._cost_complete4incumbent
-                >= self.cost_incumbent * self.resource_multiple_factor
-            )
+            and (self._cost_complete4incumbent >= self.cost_incumbent * self.resource_multiple_factor)
         ):
             return self._increase_resource(trial_id)
         self._num_allowed4incumbent -= 1
@@ -608,9 +543,7 @@ class FLOW2(Searcher):
             self._direction_tried = None
         else:
             # propose a new direction
-            self._direction_tried = (
-                self.rand_vector_unit_sphere(self.dim, self._trunc) * self.step
-            )
+            self._direction_tried = self.rand_vector_unit_sphere(self.dim, self._trunc) * self.step
             for i, key in enumerate(self._tunable_keys):
                 move[key] += self._direction_tried[i]
         self._project(move)
@@ -622,25 +555,17 @@ class FLOW2(Searcher):
         if self._init_phase:
             if self._direction_tried is None:
                 if self._same:
-                    same = not any(
-                        key not in best_config or value != best_config[key]
-                        for key, value in config.items()
-                    )
+                    same = not any(key not in best_config or value != best_config[key] for key, value in config.items())
 
                     if same:
                         # increase step size
                         self.step += self.STEPSIZE
                         self.step = min(self.step, self.step_ub)
             else:
-                same = not any(
-                    key not in best_config or value != best_config[key]
-                    for key, value in config.items()
-                )
+                same = not any(key not in best_config or value != best_config[key] for key, value in config.items())
 
                 self._same = same
-        if self._num_proposedby_incumbent == self.dir and (
-            not self._resource or self._resource == self.max_resource
-        ):
+        if self._num_proposedby_incumbent == self.dir and (not self._resource or self._resource == self.max_resource):
             # check stuck condition if using max resource
             self._num_proposedby_incumbent -= 2
             self._init_phase = False
@@ -714,9 +639,7 @@ class FLOW2(Searcher):
                 # key must be in space
                 domain = space[key]
                 if self.hierarchical and not (
-                    domain is None
-                    or type(domain) in (str, int, float)
-                    or isinstance(domain, sample.Domain)
+                    domain is None or type(domain) in (str, int, float) or isinstance(domain, sample.Domain)
                 ):
                     # not domain or hashable
                     # get rid of list type for hierarchical search space.
@@ -746,10 +669,5 @@ class FLOW2(Searcher):
             # unordered cat choice is hard to reach by chance
             if config1[key] != config2.get(key):
                 return False
-        delta = np.array(
-            [
-                incumbent1[key] - incumbent2.get(key, np.inf)
-                for key in self._tunable_keys
-            ]
-        )
+        delta = np.array([incumbent1[key] - incumbent2.get(key, np.inf) for key in self._tunable_keys])
         return np.linalg.norm(delta) <= self.step

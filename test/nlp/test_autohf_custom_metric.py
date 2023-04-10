@@ -61,22 +61,14 @@ def test_custom_metric():
     automl_settings["use_ray"] = {"local_dir": "data/output/"}
 
     try:
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     except requests.exceptions.HTTPError:
         return
 
     # testing calling custom metric in TransformersEstimator._compute_metrics_by_dataset_name
 
     automl_settings["max_iter"] = 3
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     automl.score(X_val, y_val, **{"metric": custom_metric})
     automl.pickle("automl.pkl")
 

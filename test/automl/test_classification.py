@@ -265,9 +265,7 @@ class TestClassification(unittest.TestCase):
         import xgboost as xgb
 
         callback = xgb.callback.TrainingCallback()
-        automl.fit(
-            X_train=X_train, y_train=y_train, callbacks=[callback], **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, callbacks=[callback], **automl_settings)
         print(automl.predict(X_train))
         print(automl.model)
         print(automl.config_history)
@@ -279,16 +277,12 @@ class TestClassification(unittest.TestCase):
         import subprocess
         import sys
 
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "xgboost==1.3.3", "--user"]
-        )
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "xgboost==1.3.3", "--user"])
         automl = AutoML()
         automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
         print(automl.feature_names_in_)
         print(automl.feature_importances_)
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-U", "xgboost", "--user"]
-        )
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "xgboost", "--user"])
 
     def test_ray_classification(self):
         X, y = load_breast_cancer(return_X_y=True)
@@ -337,9 +331,7 @@ class TestClassification(unittest.TestCase):
             import ray
 
             X_train_ref = ray.put(X_train)
-            automl_experiment.fit(
-                X_train=X_train_ref, y_train=y_train, **automl_settings
-            )
+            automl_experiment.fit(X_train=X_train_ref, y_train=y_train, **automl_settings)
             print(automl_experiment.predict(X_train))
             print(automl_experiment.model)
             print(automl_experiment.config_history)
@@ -355,9 +347,7 @@ class TestClassification(unittest.TestCase):
 
     def test_random_skip_oom(self):
         automl_experiment = AutoML()
-        automl_experiment.add_learner(
-            learner_name="large_lgbm", learner_class=MyLargeLGBM
-        )
+        automl_experiment.add_learner(learner_name="large_lgbm", learner_class=MyLargeLGBM)
         automl_settings = {
             "time_budget": 2,
             "task": "classification",
@@ -396,9 +386,7 @@ class TestClassification(unittest.TestCase):
         }
         X_train = scipy.sparse.random(3000, 3000, density=0.1)
         y_train = np.random.randint(2, size=3000)
-        automl_experiment.fit(
-            X_train=X_train, y_train=y_train, train_time_limit=1, **automl_settings
-        )
+        automl_experiment.fit(X_train=X_train, y_train=y_train, train_time_limit=1, **automl_settings)
         automl_settings["time_budget"] = 5
         automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
         print(automl_experiment.predict(X_train))

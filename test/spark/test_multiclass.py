@@ -107,9 +107,7 @@ class TestMultiClass(unittest.TestCase):
             valid_loss_history,
             config_history,
             metric_history,
-        ) = get_output_from_log(
-            filename=automl_settings["log_file_name"], time_budget=6
-        )
+        ) = get_output_from_log(filename=automl_settings["log_file_name"], time_budget=6)
         print(metric_history)
 
     def test_classification(self, as_frame=False):
@@ -167,12 +165,8 @@ class TestMultiClass(unittest.TestCase):
             "use_spark": True,
         }
         X_train, y_train = load_iris(return_X_y=True)
-        automl_experiment_micro.fit(
-            X_train=X_train, y_train=y_train, metric="micro_f1", **automl_settings
-        )
-        automl_experiment_macro.fit(
-            X_train=X_train, y_train=y_train, metric="macro_f1", **automl_settings
-        )
+        automl_experiment_micro.fit(X_train=X_train, y_train=y_train, metric="micro_f1", **automl_settings)
+        automl_experiment_macro.fit(X_train=X_train, y_train=y_train, metric="macro_f1", **automl_settings)
         estimator = automl_experiment_macro.model
         y_pred = estimator.predict(X_train)
         y_pred_proba = estimator.predict_proba(X_train)
@@ -280,9 +274,7 @@ class TestMultiClass(unittest.TestCase):
     )
     def _test_memory_limit(self):
         automl_experiment = AutoML()
-        automl_experiment.add_learner(
-            learner_name="large_lgbm", learner_class=MyLargeLGBM
-        )
+        automl_experiment.add_learner(learner_name="large_lgbm", learner_class=MyLargeLGBM)
         automl_settings = {
             "time_budget": -1,
             "task": "classification",
@@ -296,9 +288,7 @@ class TestMultiClass(unittest.TestCase):
         }
         X_train, y_train = load_iris(return_X_y=True, as_frame=True)
 
-        automl_experiment.fit(
-            X_train=X_train, y_train=y_train, max_iter=1, **automl_settings
-        )
+        automl_experiment.fit(X_train=X_train, y_train=y_train, max_iter=1, **automl_settings)
         print(automl_experiment.model)
 
     @unittest.skipIf(
@@ -307,12 +297,8 @@ class TestMultiClass(unittest.TestCase):
     )
     def test_time_limit(self):
         automl_experiment = AutoML()
-        automl_experiment.add_learner(
-            learner_name="large_lgbm", learner_class=MyLargeLGBM
-        )
-        automl_experiment.add_learner(
-            learner_name="large_xgb", learner_class=MyLargeXGB
-        )
+        automl_experiment.add_learner(learner_name="large_lgbm", learner_class=MyLargeLGBM)
+        automl_experiment.add_learner(learner_name="large_xgb", learner_class=MyLargeXGB)
         automl_settings = {
             "time_budget": 0.5,
             "task": "classification",
@@ -356,11 +342,7 @@ class TestMultiClass(unittest.TestCase):
         print("Best ML leaner:", automl_experiment.best_estimator)
         print("Best hyperparmeter config:", automl_experiment.best_config)
         print("Best accuracy on validation data: {0:.4g}".format(automl_val_accuracy))
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                automl_experiment.best_config_train_time
-            )
-        )
+        print("Training duration of best run: {0:.4g} s".format(automl_experiment.best_config_train_time))
 
         starting_points = automl_experiment.best_config_per_estimator
         print("starting_points", starting_points)
@@ -379,21 +361,13 @@ class TestMultiClass(unittest.TestCase):
             "use_spark": True,
         }
         new_automl_experiment = AutoML()
-        new_automl_experiment.fit(
-            X_train=X_train, y_train=y_train, **automl_settings_resume
-        )
+        new_automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings_resume)
 
         new_automl_val_accuracy = 1.0 - new_automl_experiment.best_loss
         print("Best ML leaner:", new_automl_experiment.best_estimator)
         print("Best hyperparmeter config:", new_automl_experiment.best_config)
-        print(
-            "Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy)
-        )
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                new_automl_experiment.best_config_train_time
-            )
-        )
+        print("Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy))
+        print("Training duration of best run: {0:.4g} s".format(new_automl_experiment.best_config_train_time))
 
     def test_fit_w_starting_points_list(self, as_frame=True):
         automl_experiment = AutoML()
@@ -418,11 +392,7 @@ class TestMultiClass(unittest.TestCase):
         print("Best ML leaner:", automl_experiment.best_estimator)
         print("Best hyperparmeter config:", automl_experiment.best_config)
         print("Best accuracy on validation data: {0:.4g}".format(automl_val_accuracy))
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                automl_experiment.best_config_train_time
-            )
-        )
+        print("Training duration of best run: {0:.4g} s".format(automl_experiment.best_config_train_time))
 
         starting_points = {}
         log_file_name = automl_settings["log_file_name"]
@@ -453,16 +423,12 @@ class TestMultiClass(unittest.TestCase):
             "use_spark": True,
         }
         new_automl_experiment = AutoML()
-        new_automl_experiment.fit(
-            X_train=X_train, y_train=y_train, **automl_settings_resume
-        )
+        new_automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings_resume)
 
         new_automl_val_accuracy = 1.0 - new_automl_experiment.best_loss
         # print('Best ML leaner:', new_automl_experiment.best_estimator)
         # print('Best hyperparmeter config:', new_automl_experiment.best_config)
-        print(
-            "Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy)
-        )
+        print("Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy))
         # print('Training duration of best run: {0:.4g} s'.format(new_automl_experiment.best_config_train_time))
 
 
