@@ -8,9 +8,7 @@ import pytest
 spark_available, _ = check_spark()
 skip_spark = not spark_available
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 os.environ["FLAML_MAX_CONCURRENT"] = "2"
 
@@ -72,9 +70,7 @@ def run_automl(budget=3, dataset_format="dataframe", hpo_method=None):
     print("Best ML leaner:", automl.best_estimator)
     print("Best hyperparmeter config:", automl.best_config)
     print("Best accuracy on validation data: {0:.4g}".format(1 - automl.best_loss))
-    print(
-        "Training duration of best run: {0:.4g} s".format(automl.best_config_train_time)
-    )
+    print("Training duration of best run: {0:.4g} s".format(automl.best_config_train_time))
     print(automl.model.estimator)
     print(automl.best_config_per_estimator)
     print("time taken to find best model:", automl.time_to_find_best_model)
@@ -89,9 +85,7 @@ def run_automl(budget=3, dataset_format="dataframe", hpo_method=None):
 
     accuracy = 1 - sklearn_metric_loss_score("accuracy", y_pred, y_test)
     print("accuracy", "=", accuracy)
-    print(
-        "roc_auc", "=", 1 - sklearn_metric_loss_score("roc_auc", y_pred_proba, y_test)
-    )
+    print("roc_auc", "=", 1 - sklearn_metric_loss_score("roc_auc", y_pred_proba, y_test))
     print("log_loss", "=", sklearn_metric_loss_score("log_loss", y_pred_proba, y_test))
     if performance_check_budget is None:
         assert accuracy >= 0.669, "the accuracy of flaml should be larger than 0.67"

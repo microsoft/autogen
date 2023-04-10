@@ -108,44 +108,28 @@ class GenericTask(Task):
         groups=None,
     ):
         if X_train_all is not None and y_train_all is not None:
-            assert isinstance(
-                X_train_all, (np.ndarray, pd.DataFrame, psDataFrame)
-            ) or issparse(X_train_all), (
+            assert isinstance(X_train_all, (np.ndarray, pd.DataFrame, psDataFrame)) or issparse(X_train_all), (
                 "X_train_all must be a numpy array, a pandas dataframe, "
                 "a Scipy sparse matrix or a pyspark.pandas dataframe."
             )
             assert isinstance(
                 y_train_all, (np.ndarray, pd.Series, psSeries)
             ), "y_train_all must be a numpy array, a pandas series or a pyspark.pandas series."
-            assert (
-                X_train_all.size != 0 and y_train_all.size != 0
-            ), "Input data must not be empty."
+            assert X_train_all.size != 0 and y_train_all.size != 0, "Input data must not be empty."
             if isinstance(X_train_all, np.ndarray) and len(X_train_all.shape) == 1:
                 X_train_all = np.reshape(X_train_all, (X_train_all.size, 1))
             if isinstance(y_train_all, np.ndarray):
                 y_train_all = y_train_all.flatten()
-            assert (
-                X_train_all.shape[0] == y_train_all.shape[0]
-            ), "# rows in X_train must match length of y_train."
+            assert X_train_all.shape[0] == y_train_all.shape[0], "# rows in X_train must match length of y_train."
             if isinstance(X_train_all, psDataFrame):
-                X_train_all = (
-                    X_train_all.spark.cache()
-                )  # cache data to improve compute speed
+                X_train_all = X_train_all.spark.cache()  # cache data to improve compute speed
                 y_train_all = y_train_all.to_frame().spark.cache()[y_train_all.name]
-                logger.debug(
-                    f"X_train_all and y_train_all cached, shape of X_train_all: {X_train_all.shape}"
-                )
+                logger.debug(f"X_train_all and y_train_all cached, shape of X_train_all: {X_train_all.shape}")
             automl._df = isinstance(X_train_all, (pd.DataFrame, psDataFrame))
             automl._nrow, automl._ndim = X_train_all.shape
             if self.is_ts_forecast():
-                X_train_all = (
-                    pd.DataFrame(X_train_all)
-                    if isinstance(X_train_all, np.ndarray)
-                    else X_train_all
-                )
-                X_train_all, y_train_all = self._validate_ts_data(
-                    X_train_all, y_train_all
-                )
+                X_train_all = pd.DataFrame(X_train_all) if isinstance(X_train_all, np.ndarray) else X_train_all
+                X_train_all, y_train_all = self._validate_ts_data(X_train_all, y_train_all)
             X, y = X_train_all, y_train_all
         elif dataframe is not None and label is not None:
             assert isinstance(
@@ -155,9 +139,7 @@ class GenericTask(Task):
                 label in dataframe.columns
             ), f"The provided label column name `{label}` doesn't exist in the provided dataframe."
             if isinstance(dataframe, psDataFrame):
-                dataframe = (
-                    dataframe.spark.cache()
-                )  # cache data to improve compute speed
+                dataframe = dataframe.spark.cache()  # cache data to improve compute speed
                 logger.debug(f"dataframe cached, shape of dataframe: {dataframe.shape}")
             automl._df = True
             if self.is_ts_forecast():
@@ -183,9 +165,7 @@ class GenericTask(Task):
                 for _, each_cell in X[column].items():
                     if each_cell is not None:
                         is_str = isinstance(each_cell, str)
-                        is_list_of_int = isinstance(each_cell, list) and all(
-                            isinstance(x, int) for x in each_cell
-                        )
+                        is_list_of_int = isinstance(each_cell, list) and all(isinstance(x, int) for x in each_cell)
                         is_list_of_str = is_a_list_of_str(each_cell)
                         if self.is_token_classification():
                             assert is_list_of_str, (
@@ -222,9 +202,7 @@ class GenericTask(Task):
             automl._label_transformer = automl._transformer.label_transformer
             if self.is_token_classification():
                 if hasattr(automl._label_transformer, "label_list"):
-                    state.fit_kwargs.update(
-                        {"label_list": automl._label_transformer.label_list}
-                    )
+                    state.fit_kwargs.update({"label_list": automl._label_transformer.label_list})
                 elif "label_list" not in state.fit_kwargs:
                     for each_fit_kwargs in state.fit_kwargs_by_estimator.values():
                         assert (
@@ -232,34 +210,26 @@ class GenericTask(Task):
                         ), "For the token-classification task, you must either (1) pass token labels; or (2) pass id labels and the label list. "
                         "Please refer to the documentation for more details: https://microsoft.github.io/FLAML/docs/Examples/AutoML-NLP#a-simple-token-classification-example"
             automl._feature_names_in_ = (
-                automl._X_train_all.columns.to_list()
-                if hasattr(automl._X_train_all, "columns")
-                else None
+                automl._X_train_all.columns.to_list() if hasattr(automl._X_train_all, "columns") else None
             )
 
         automl._sample_weight_full = state.fit_kwargs.get(
             "sample_weight"
         )  # NOTE: _validate_data is before kwargs is updated to fit_kwargs_by_estimator
         if X_val is not None and y_val is not None:
-            assert isinstance(
-                X_val, (np.ndarray, pd.DataFrame, psDataFrame)
-            ) or issparse(X_train_all), (
+            assert isinstance(X_val, (np.ndarray, pd.DataFrame, psDataFrame)) or issparse(X_train_all), (
                 "X_val must be None, a numpy array, a pandas dataframe, "
                 "a Scipy sparse matrix or a pyspark.pandas dataframe."
             )
             assert isinstance(y_val, (np.ndarray, pd.Series, psSeries)), (
-                "y_val must be None, a numpy array, a pandas series "
-                "or a pyspark.pandas series."
+                "y_val must be None, a numpy array, a pandas series " "or a pyspark.pandas series."
             )
             assert X_val.size != 0 and y_val.size != 0, (
-                "Validation data are expected to be nonempty. "
-                "Use None for X_val and y_val if no validation data."
+                "Validation data are expected to be nonempty. " "Use None for X_val and y_val if no validation data."
             )
             if isinstance(y_val, np.ndarray):
                 y_val = y_val.flatten()
-            assert (
-                X_val.shape[0] == y_val.shape[0]
-            ), "# rows in X_val must match length of y_val."
+            assert X_val.shape[0] == y_val.shape[0], "# rows in X_val must match length of y_val."
             if automl._transformer:
                 state.X_val = automl._transformer.transform(X_val)
             else:
@@ -276,13 +246,9 @@ class GenericTask(Task):
         if groups is not None and len(groups) != automl._nrow:
             # groups is given as group counts
             state.groups = np.concatenate([[i] * c for i, c in enumerate(groups)])
-            assert (
-                len(state.groups) == automl._nrow
-            ), "the sum of group counts must match the number of examples"
+            assert len(state.groups) == automl._nrow, "the sum of group counts must match the number of examples"
             state.groups_val = (
-                np.concatenate([[i] * c for i, c in enumerate(groups_val)])
-                if groups_val is not None
-                else None
+                np.concatenate([[i] * c for i, c in enumerate(groups_val)]) if groups_val is not None else None
             )
         else:
             state.groups_val = groups_val
@@ -345,11 +311,7 @@ class GenericTask(Task):
         if not isinstance(y_train_all, (psDataFrame, psSeries)):
             raise ValueError("y_train_all must be a pyspark.pandas dataframe or series")
         df_all_in_one = X_train_all.join(y_train_all)
-        stratify_column = (
-            y_train_all.name
-            if isinstance(y_train_all, psSeries)
-            else y_train_all.columns[0]
-        )
+        stratify_column = y_train_all.name if isinstance(y_train_all, psSeries) else y_train_all.columns[0]
         ret_sample_weight = False
         if (
             "sample_weight" in state.fit_kwargs
@@ -367,9 +329,7 @@ class GenericTask(Task):
             test_fraction=split_ratio,
             seed=RANDOM_SEED,
         )
-        columns_to_drop = [
-            c for c in df_all_train.columns if c in [stratify_column, "sample_weight"]
-        ]
+        columns_to_drop = [c for c in df_all_train.columns if c in [stratify_column, "sample_weight"]]
         X_train = df_all_train.drop(columns_to_drop)
         X_val = df_all_val.drop(columns_to_drop)
         y_train = df_all_train[stratify_column]
@@ -387,17 +347,13 @@ class GenericTask(Task):
         return X_train, X_val, y_train, y_val
 
     @staticmethod
-    def _train_test_split(
-        state, X, y, first=None, rest=None, split_ratio=0.2, stratify=None
-    ):
+    def _train_test_split(state, X, y, first=None, rest=None, split_ratio=0.2, stratify=None):
         condition_type = isinstance(X, (psDataFrame, psSeries))
         # NOTE: _prepare_data is before kwargs is updated to fit_kwargs_by_estimator
         condition_param = "sample_weight" in state.fit_kwargs
         if not condition_type and condition_param:
             sample_weight = (
-                state.fit_kwargs["sample_weight"]
-                if rest is None
-                else state.fit_kwargs["sample_weight"][rest]
+                state.fit_kwargs["sample_weight"] if rest is None else state.fit_kwargs["sample_weight"][rest]
             )
             (
                 X_train,
@@ -448,9 +404,7 @@ class GenericTask(Task):
                 state.weight_val = weight_val
                 state.fit_kwargs["sample_weight"] = weight_train
         else:
-            X_train, X_val, y_train, y_val = GenericTask._split_pyspark(
-                state, X, y, split_ratio, stratify
-            )
+            X_train, X_val, y_train, y_val = GenericTask._split_pyspark(state, X, y, split_ratio, stratify)
         return X_train, X_val, y_train, y_val
 
     def prepare_data(
@@ -498,21 +452,13 @@ class GenericTask(Task):
                 n = len(y_train_all)
                 while count < rare_threshld:
                     if data_is_df:
-                        X_train_all = concat(
-                            X_train_all, X_train_all.iloc[:n].loc[rare_index]
-                        )
+                        X_train_all = concat(X_train_all, X_train_all.iloc[:n].loc[rare_index])
                     else:
-                        X_train_all = concat(
-                            X_train_all, X_train_all[:n][rare_index, :]
-                        )
+                        X_train_all = concat(X_train_all, X_train_all[:n][rare_index, :])
                     if isinstance(y_train_all, (pd.Series, psSeries)):
-                        y_train_all = concat(
-                            y_train_all, y_train_all.iloc[:n].loc[rare_index]
-                        )
+                        y_train_all = concat(y_train_all, y_train_all.iloc[:n].loc[rare_index])
                     else:
-                        y_train_all = np.concatenate(
-                            [y_train_all, y_train_all[:n][rare_index]]
-                        )
+                        y_train_all = np.concatenate([y_train_all, y_train_all[:n][rare_index]])
                     count += rare_count
                 logger.info(f"class {label} augmented from {rare_count} to {count}")
         SHUFFLE_SPLIT_TYPES = ["uniform", "stratified"]
@@ -535,9 +481,7 @@ class GenericTask(Task):
                 if isinstance(state.sample_weight_all, pd.Series):
                     state.sample_weight_all.reset_index(drop=True, inplace=True)
             else:
-                X_train_all, y_train_all = shuffle(
-                    X_train_all, y_train_all, random_state=RANDOM_SEED
-                )
+                X_train_all, y_train_all = shuffle(X_train_all, y_train_all, random_state=RANDOM_SEED)
             if data_is_df:
                 X_train_all.reset_index(drop=True, inplace=True)
             if isinstance(y_train_all, pd.Series):
@@ -569,21 +513,13 @@ class GenericTask(Task):
                         X_train_all = X_train_all.sort_values(ids)
                         y_train_all = y_train_all.sort_values(ids)
                         training_cutoff = X_train_all["time_idx"].max() - period
-                        X_train = X_train_all[
-                            X_train_all["time_idx"] <= training_cutoff
-                        ]
-                        y_train = y_train_all[
-                            y_train_all["time_idx"] <= training_cutoff
-                        ].drop(columns=ids)
+                        X_train = X_train_all[X_train_all["time_idx"] <= training_cutoff]
+                        y_train = y_train_all[y_train_all["time_idx"] <= training_cutoff].drop(columns=ids)
                         X_val = X_train_all[X_train_all["time_idx"] > training_cutoff]
-                        y_val = y_train_all[
-                            y_train_all["time_idx"] > training_cutoff
-                        ].drop(columns=ids)
+                        y_val = y_train_all[y_train_all["time_idx"] > training_cutoff].drop(columns=ids)
                     else:
                         num_samples = X_train_all.shape[0]
-                        assert (
-                            period < num_samples
-                        ), f"period={period}>#examples={num_samples}"
+                        assert period < num_samples, f"period={period}>#examples={num_samples}"
                         split_idx = num_samples - period
                         X_train = X_train_all[:split_idx]
                         y_train = y_train_all[:split_idx]
@@ -627,20 +563,14 @@ class GenericTask(Task):
                                 "sample_weight"
                             ],  # NOTE: _prepare_data is before kwargs is updated to fit_kwargs_by_estimator
                             state.weight_val,
-                        ) = self._split_pyspark(
-                            state, X_train_all, y_train_all, split_ratio
-                        )
+                        ) = self._split_pyspark(state, X_train_all, y_train_all, split_ratio)
                     else:
                         X_train, X_val, y_train, y_val = self._split_pyspark(
                             state, X_train_all, y_train_all, split_ratio
                         )
             elif split_type == "group":
-                gss = GroupShuffleSplit(
-                    n_splits=1, test_size=split_ratio, random_state=RANDOM_SEED
-                )
-                for train_idx, val_idx in gss.split(
-                    X_train_all, y_train_all, state.groups_all
-                ):
+                gss = GroupShuffleSplit(n_splits=1, test_size=split_ratio, random_state=RANDOM_SEED)
+                for train_idx, val_idx in gss.split(X_train_all, y_train_all, state.groups_all):
                     if data_is_df:
                         X_train = X_train_all.iloc[train_idx]
                         X_val = X_train_all.iloc[val_idx]
@@ -674,17 +604,9 @@ class GenericTask(Task):
                     state, X_rest, y_rest, first, rest, split_ratio, stratify
                 )
                 X_train = concat(X_first, X_train)
-                y_train = (
-                    concat(label_set, y_train)
-                    if data_is_df
-                    else np.concatenate([label_set, y_train])
-                )
+                y_train = concat(label_set, y_train) if data_is_df else np.concatenate([label_set, y_train])
                 X_val = concat(X_first, X_val)
-                y_val = (
-                    concat(label_set, y_val)
-                    if data_is_df
-                    else np.concatenate([label_set, y_val])
-                )
+                y_val = concat(label_set, y_val) if data_is_df else np.concatenate([label_set, y_val])
             elif self.is_regression():
                 X_train, X_val, y_train, y_val = self._train_test_split(
                     state, X_train_all, y_train_all, split_ratio=split_ratio
@@ -700,9 +622,7 @@ class GenericTask(Task):
             return
         if split_type == "group":
             # logger.info("Using GroupKFold")
-            assert (
-                len(state.groups_all) == y_train_all_size
-            ), "the length of groups must match the number of examples"
+            assert len(state.groups_all) == y_train_all_size, "the length of groups must match the number of examples"
             assert (
                 len_labels(state.groups_all) >= n_splits
             ), "the number of groups must be equal or larger than n_splits"
@@ -710,16 +630,13 @@ class GenericTask(Task):
         elif split_type == "stratified":
             # logger.info("Using StratifiedKFold")
             assert y_train_all_size >= n_splits, (
-                f"{n_splits}-fold cross validation"
-                f" requires input data with at least {n_splits} examples."
+                f"{n_splits}-fold cross validation" f" requires input data with at least {n_splits} examples."
             )
             assert y_train_all_size >= 2 * n_splits, (
                 f"{n_splits}-fold cross validation with metric=r2 "
                 f"requires input data with at least {n_splits*2} examples."
             )
-            state.kf = RepeatedStratifiedKFold(
-                n_splits=n_splits, n_repeats=1, random_state=RANDOM_SEED
-            )
+            state.kf = RepeatedStratifiedKFold(n_splits=n_splits, n_repeats=1, random_state=RANDOM_SEED)
         elif split_type == "time":
             # logger.info("Using TimeSeriesSplit")
             if self.is_ts_forecast() and not self.is_ts_forecastpanel():
@@ -735,20 +652,14 @@ class GenericTask(Task):
                     logger.info(f"Using nsplits={n_splits} due to data size limit.")
                 state.kf = TimeSeriesSplit(n_splits=n_splits, test_size=period)
             elif self.is_ts_forecastpanel():
-                n_groups = len(
-                    X_train.groupby(state.fit_kwargs.get("group_ids")).size()
-                )
+                n_groups = len(X_train.groupby(state.fit_kwargs.get("group_ids")).size())
                 period = state.fit_kwargs.get("period")
-                state.kf = TimeSeriesSplit(
-                    n_splits=n_splits, test_size=period * n_groups
-                )
+                state.kf = TimeSeriesSplit(n_splits=n_splits, test_size=period * n_groups)
             else:
                 state.kf = TimeSeriesSplit(n_splits=n_splits)
         elif isinstance(split_type, str):
             # logger.info("Using RepeatedKFold")
-            state.kf = RepeatedKFold(
-                n_splits=n_splits, n_repeats=1, random_state=RANDOM_SEED
-            )
+            state.kf = RepeatedKFold(n_splits=n_splits, n_repeats=1, random_state=RANDOM_SEED)
         else:
             # logger.info("Using splitter object")
             state.kf = split_type
@@ -790,11 +701,7 @@ class GenericTask(Task):
 
         elif self.is_classification():
             assert split_type in ["auto", "stratified", "uniform", "time", "group"]
-            return (
-                split_type
-                if split_type != "auto"
-                else groups is None and "stratified" or "group"
-            )
+            return split_type if split_type != "auto" else groups is None and "stratified" or "group"
 
         elif self.is_regression():
             assert split_type in ["auto", "uniform", "time", "group"]
@@ -825,9 +732,7 @@ class GenericTask(Task):
                     )
                 )
             except IndexError:
-                raise IndexError(
-                    "Test data contains more columns than training data, exiting"
-                )
+                raise IndexError("Test data contains more columns than training data, exiting")
         elif isinstance(X, int):
             return X
         elif isinstance(X, psDataFrame):
@@ -872,9 +777,7 @@ class GenericTask(Task):
         if self.is_classification():
             labels = _, labels = len_labels(y_train_all, return_labels=True)
         else:
-            labels = fit_kwargs.get(
-                "label_list"
-            )  # pass the label list on to compute the evaluation metric
+            labels = fit_kwargs.get("label_list")  # pass the label list on to compute the evaluation metric
         if "sample_weight" in fit_kwargs:
             weight = fit_kwargs["sample_weight"]
             weight_val = None
@@ -889,9 +792,7 @@ class GenericTask(Task):
             if isinstance(kf, (GroupKFold, StratifiedGroupKFold)):
                 groups = kf.groups
                 dataframe = dataframe.join(groups)
-            kf = spark_kFold(
-                dataframe, nFolds=n, foldCol=groups.name if groups is not None else ""
-            )
+            kf = spark_kFold(dataframe, nFolds=n, foldCol=groups.name if groups is not None else "")
             shuffle = False
         else:
             X_train_split, y_train_split = X_train_all, y_train_all
@@ -934,15 +835,9 @@ class GenericTask(Task):
                     )
                 if groups is not None:
                     fit_kwargs["groups"] = (
-                        groups[train_index]
-                        if isinstance(groups, np.ndarray)
-                        else groups.iloc[train_index]
+                        groups[train_index] if isinstance(groups, np.ndarray) else groups.iloc[train_index]
                     )
-                    groups_val = (
-                        groups[val_index]
-                        if isinstance(groups, np.ndarray)
-                        else groups.iloc[val_index]
-                    )
+                    groups_val = groups[val_index] if isinstance(groups, np.ndarray) else groups.iloc[val_index]
                 else:
                     groups_val = None
 
@@ -983,16 +878,12 @@ class GenericTask(Task):
         pred_time /= n
         return val_loss, metric, train_time, pred_time
 
-    def default_estimator_list(
-        self, estimator_list: List[str], is_spark_dataframe: bool = False
-    ) -> List[str]:
+    def default_estimator_list(self, estimator_list: List[str], is_spark_dataframe: bool = False) -> List[str]:
         if "auto" != estimator_list:
             n_estimators = len(estimator_list)
             if is_spark_dataframe:
                 # For spark dataframe, only estimators ending with '_spark' are supported
-                estimator_list = [
-                    est for est in estimator_list if est.endswith("_spark")
-                ]
+                estimator_list = [est for est in estimator_list if est.endswith("_spark")]
                 if len(estimator_list) == 0:
                     raise ValueError(
                         "Spark dataframes only support estimator names ending with `_spark`. Non-supported "
@@ -1005,9 +896,7 @@ class GenericTask(Task):
                     )
             else:
                 # For non-spark dataframe, only estimators not ending with '_spark' are supported
-                estimator_list = [
-                    est for est in estimator_list if not est.endswith("_spark")
-                ]
+                estimator_list = [est for est in estimator_list if not est.endswith("_spark")]
                 if len(estimator_list) == 0:
                     raise ValueError(
                         "Non-spark dataframes only support estimator names not ending with `_spark`. Non-supported "
@@ -1069,11 +958,7 @@ class GenericTask(Task):
         estimator_list = [
             est
             for est in estimator_list
-            if (
-                est.endswith("_spark")
-                if is_spark_dataframe
-                else not est.endswith("_spark")
-            )
+            if (est.endswith("_spark") if is_spark_dataframe else not est.endswith("_spark"))
         ]
         return estimator_list
 

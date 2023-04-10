@@ -7,17 +7,13 @@ import pytest
 spark_available, _ = check_spark()
 skip_spark = not spark_available
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 os.environ["FLAML_MAX_CONCURRENT"] = "2"
 
 
 def base_automl(n_concurrent_trials=1, use_ray=False, use_spark=False, verbose=0):
-    X_train, X_test, y_train, y_test = load_openml_dataset(
-        dataset_id=537, data_dir="./"
-    )
+    X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=537, data_dir="./")
     automl = AutoML()
     settings = {
         "time_budget": 3,  # total running time in seconds
@@ -37,9 +33,7 @@ def base_automl(n_concurrent_trials=1, use_ray=False, use_spark=False, verbose=0
     print("Best ML leaner:", automl.best_estimator)
     print("Best hyperparmeter config:", automl.best_config)
     print("Best accuracy on validation data: {0:.4g}".format(1 - automl.best_loss))
-    print(
-        "Training duration of best run: {0:.4g} s".format(automl.best_config_train_time)
-    )
+    print("Training duration of best run: {0:.4g} s".format(automl.best_config_train_time))
 
 
 def test_both_ray_spark():

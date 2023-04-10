@@ -29,11 +29,7 @@ class TestWarmStart(unittest.TestCase):
         print("Best ML leaner:", automl.best_estimator)
         print("Best hyperparmeter config:", automl.best_config)
         print("Best accuracy on validation data: {0:.4g}".format(automl_val_accuracy))
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                automl.best_config_train_time
-            )
-        )
+        print("Training duration of best run: {0:.4g} s".format(automl.best_config_train_time))
         # 1. Get starting points from previous experiments.
         starting_points = automl.best_config_per_estimator
         print("starting_points", starting_points)
@@ -61,19 +57,13 @@ class TestWarmStart(unittest.TestCase):
                 revised_hps_to_search = {
                     "n_estimators": {
                         "domain": tune.lograndint(lower=10, upper=32768),
-                        "init_value": starting_point.get("n_estimators")
-                        or space["n_estimators"].get("init_value", 10),
-                        "low_cost_init_value": space["n_estimators"].get(
-                            "low_cost_init_value", 10
-                        ),
+                        "init_value": starting_point.get("n_estimators") or space["n_estimators"].get("init_value", 10),
+                        "low_cost_init_value": space["n_estimators"].get("low_cost_init_value", 10),
                     },
                     "num_leaves": {
                         "domain": tune.lograndint(lower=10, upper=3276),
-                        "init_value": starting_point.get("num_leaves")
-                        or space["num_leaves"].get("init_value", 10),
-                        "low_cost_init_value": space["num_leaves"].get(
-                            "low_cost_init_value", 10
-                        ),
+                        "init_value": starting_point.get("num_leaves") or space["num_leaves"].get("init_value", 10),
+                        "low_cost_init_value": space["num_leaves"].get("low_cost_init_value", 10),
                     },
                     # (3.2) Add a new hp which is not in the original search space
                     "subsample": {
@@ -86,9 +76,7 @@ class TestWarmStart(unittest.TestCase):
 
         new_estimator_name = "large_lgbm"
         new_automl = AutoML()
-        new_automl.add_learner(
-            learner_name=new_estimator_name, learner_class=MyPartiallyFreezedLargeLGBM
-        )
+        new_automl.add_learner(learner_name=new_estimator_name, learner_class=MyPartiallyFreezedLargeLGBM)
 
         automl_settings_resume = {
             "time_budget": 3,
@@ -108,14 +96,8 @@ class TestWarmStart(unittest.TestCase):
         new_automl_val_accuracy = 1.0 - new_automl.best_loss
         print("Best ML leaner:", new_automl.best_estimator)
         print("Best hyperparmeter config:", new_automl.best_config)
-        print(
-            "Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy)
-        )
-        print(
-            "Training duration of best run: {0:.4g} s".format(
-                new_automl.best_config_train_time
-            )
-        )
+        print("Best accuracy on validation data: {0:.4g}".format(new_automl_val_accuracy))
+        print("Training duration of best run: {0:.4g} s".format(new_automl.best_config_train_time))
 
     def test_nobudget(self):
         automl = AutoML()
@@ -127,9 +109,7 @@ class TestWarmStart(unittest.TestCase):
         from flaml.automl.data import load_openml_dataset
         from flaml import AutoML
 
-        X_train, X_test, y_train, y_test = load_openml_dataset(
-            dataset_id=1169, data_dir="./"
-        )
+        X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=1169, data_dir="./")
 
         automl_settings = {
             "time_budget": 3,

@@ -126,9 +126,7 @@ class ExperimentAnalysis:
                 'metric {} for scope {} not in ["all", "last", "avg", '
                 '"last-5-avg", "last-10-avg"]. '
                 "If you didn't pass a `metric` parameter to `tune.run()`, "
-                "you have to pass one when fetching the best trial.".format(
-                    metric, scope
-                )
+                "you have to pass one when fetching the best trial.".format(metric, scope)
             )
         best_trial = None
         best_metric_score = None
@@ -155,10 +153,7 @@ class ExperimentAnalysis:
                 best_metric_score = metric_score
                 best_trial = trial
         if not best_trial:
-            logger.warning(
-                "Could not find best trial. Did you pass the correct `metric` "
-                "parameter?"
-            )
+            logger.warning("Could not find best trial. Did you pass the correct `metric` " "parameter?")
         return best_trial
 
     def get_best_config(

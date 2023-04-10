@@ -387,15 +387,11 @@ class AutoML(BaseEstimator):
         settings["free_mem_ratio"] = settings.get("free_mem_ratio", 0)
         settings["metric_constraints"] = settings.get("metric_constraints", [])
         settings["cv_score_agg_func"] = settings.get("cv_score_agg_func", None)
-        settings["fit_kwargs_by_estimator"] = settings.get(
-            "fit_kwargs_by_estimator", {}
-        )
+        settings["fit_kwargs_by_estimator"] = settings.get("fit_kwargs_by_estimator", {})
         settings["custom_hp"] = settings.get("custom_hp", {})
         settings["skip_transform"] = settings.get("skip_transform", False)
 
-        self._estimator_type = (
-            "classifier" if settings["task"] in CLASSIFICATION else "regressor"
-        )
+        self._estimator_type = "classifier" if settings["task"] in CLASSIFICATION else "regressor"
 
     def get_params(self, deep: bool = False) -> dict:
         return self._settings.copy()
@@ -452,18 +448,14 @@ class AutoML(BaseEstimator):
     def best_config_per_estimator(self):
         """A dictionary of all estimators' best configuration."""
         return {
-            e: e_search_state.best_config
-            and AutoMLState.sanitize(e_search_state.best_config)
+            e: e_search_state.best_config and AutoMLState.sanitize(e_search_state.best_config)
             for e, e_search_state in self._search_states.items()
         }
 
     @property
     def best_loss_per_estimator(self):
         """A dictionary of all estimators' best loss."""
-        return {
-            e: e_search_state.best_loss
-            for e, e_search_state in self._search_states.items()
-        }
+        return {e: e_search_state.best_loss for e, e_search_state in self._search_states.items()}
 
     @property
     def best_loss(self):
@@ -482,16 +474,12 @@ class AutoML(BaseEstimator):
         associated with the best config. These two objects correspond to the returned
         objects by the customized metric function for the config with the best loss."""
         state = self._search_states.get(self._best_estimator)
-        return self._state.best_loss, state and getattr(state, "best_result", {}).get(
-            "metric_for_logging"
-        )
+        return self._state.best_loss, state and getattr(state, "best_result", {}).get("metric_for_logging")
 
     @property
     def best_config_train_time(self):
         """A float of the seconds taken by training the best config."""
-        return getattr(
-            self._search_states[self._best_estimator], "best_config_train_time", None
-        )
+        return getattr(self._search_states[self._best_estimator], "best_config_train_time", None)
 
     def save_best_config(self, filename):
         best = {
@@ -544,9 +532,7 @@ class AutoML(BaseEstimator):
     ):
         estimator = getattr(self, "_trained_estimator", None)
         if estimator is None:
-            logger.warning(
-                "No estimator is trained. Please run fit with enough budget."
-            )
+            logger.warning("No estimator is trained. Please run fit with enough budget.")
             return None
         X = self._state.task.preprocess(X, self._transformer)
         if self._label_transformer:
@@ -588,23 +574,15 @@ class AutoML(BaseEstimator):
         """
         estimator = getattr(self, "_trained_estimator", None)
         if estimator is None:
-            logger.warning(
-                "No estimator is trained. Please run fit with enough budget."
-            )
+            logger.warning("No estimator is trained. Please run fit with enough budget.")
             return None
         X = self._state.task.preprocess(X, self._transformer)
         y_pred = estimator.predict(X, **pred_kwargs)
 
-        if (
-            isinstance(y_pred, np.ndarray)
-            and y_pred.ndim > 1
-            and isinstance(y_pred, np.ndarray)
-        ):
+        if isinstance(y_pred, np.ndarray) and y_pred.ndim > 1 and isinstance(y_pred, np.ndarray):
             y_pred = y_pred.flatten()
         if self._label_transformer:
-            return self._label_transformer.inverse_transform(
-                pd.Series(y_pred.astype(int))
-            )
+            return self._label_transformer.inverse_transform(pd.Series(y_pred.astype(int)))
         else:
             return y_pred
 
@@ -623,9 +601,7 @@ class AutoML(BaseEstimator):
         """
         estimator = getattr(self, "_trained_estimator", None)
         if estimator is None:
-            logger.warning(
-                "No estimator is trained. Please run fit with enough budget."
-            )
+            logger.warning("No estimator is trained. Please run fit with enough budget.")
             return None
         X = self._state.task.preprocess(X, self._transformer)
         proba = self._trained_estimator.predict_proba(X, **pred_kwargs)
@@ -640,9 +616,7 @@ class AutoML(BaseEstimator):
         """
         self._state.learner_classes[learner_name] = learner_class
 
-    def get_estimator_from_log(
-        self, log_file_name: str, record_id: int, task: Union[str, Task]
-    ):
+    def get_estimator_from_log(self, log_file_name: str, record_id: int, task: Union[str, Task]):
         """Get the estimator from log file.
 
         Args:
@@ -820,30 +794,18 @@ class AutoML(BaseEstimator):
         split_ratio = split_ratio or self._settings.get("split_ratio")
         n_splits = n_splits or self._settings.get("n_splits")
         split_type = split_type or self._settings.get("split_type")
-        auto_augment = (
-            self._settings.get("auto_augment") if auto_augment is None else auto_augment
-        )
+        auto_augment = self._settings.get("auto_augment") if auto_augment is None else auto_augment
         self._state.task = task
         self._estimator_type = "classifier" if task.is_classification() else "regressor"
 
         self._state.fit_kwargs = fit_kwargs
         self._state.custom_hp = custom_hp or self._settings.get("custom_hp")
-        self._skip_transform = (
-            self._settings.get("skip_transform")
-            if skip_transform is None
-            else skip_transform
-        )
-        self._state.fit_kwargs_by_estimator = (
-            fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
-        )
+        self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
+        self._state.fit_kwargs_by_estimator = fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
         self.preserve_checkpoint = (
-            self._settings.get("preserve_checkpoint")
-            if preserve_checkpoint is None
-            else preserve_checkpoint
+            self._settings.get("preserve_checkpoint") if preserve_checkpoint is None else preserve_checkpoint
         )
-        task.validate_data(
-            self, self._state, X_train, y_train, dataframe, label, groups=groups
-        )
+        task.validate_data(self, self._state, X_train, y_train, dataframe, label, groups=groups)
 
         logger.info("log file name {}".format(log_file_name))
 
@@ -877,9 +839,7 @@ class AutoML(BaseEstimator):
                             best_val_loss = val_loss
                             sample_size = size
                 if not training_duration:
-                    logger.warning(
-                        f"No estimator found within time_budget={time_budget}"
-                    )
+                    logger.warning(f"No estimator found within time_budget={time_budget}")
                     from .model import BaseEstimator as Estimator
 
                     self._trained_estimator = Estimator()
@@ -901,9 +861,7 @@ class AutoML(BaseEstimator):
             self._state.fit_kwargs_by_estimator[best_estimator] = self._state.fit_kwargs
 
         logger.info(
-            "estimator = {}, config = {}, #training instances = {}".format(
-                best_estimator, best_config, sample_size
-            )
+            "estimator = {}, config = {}, #training instances = {}".format(best_estimator, best_config, sample_size)
         )
         # Partially copied from fit() function
         # Initilize some attributes required for retrain_from_log
@@ -944,9 +902,7 @@ class AutoML(BaseEstimator):
                 "auto",
                 "cv",
             ], "eval_method must be 'auto' or 'cv' for custom data splitter."
-            assert (
-                self._state.X_val is None
-            ), "custom splitter and custom validation data can't be used together."
+            assert self._state.X_val is None, "custom splitter and custom validation data can't be used together."
             return "cv"
         if self._state.X_val is not None:
             assert eval_method in [
@@ -1051,10 +1007,7 @@ class AutoML(BaseEstimator):
                 c = self._search_states[estimator].cat_hp_cost
                 configs.append(c)
             configs.append(
-                [
-                    self._state.learner_classes.get(estimator).cost_relative2lgbm()
-                    for estimator in self.estimator_list
-                ]
+                [self._state.learner_classes.get(estimator).cost_relative2lgbm() for estimator in self.estimator_list]
             )
             config = {"ml": configs}
         return config
@@ -1112,9 +1065,7 @@ class AutoML(BaseEstimator):
         for estimator in self.estimator_list:
             search_state = self._search_states[estimator]
             if hasattr(search_state, "training_function"):
-                estimator_to_training_function[
-                    estimator
-                ] = search_state.training_function
+                estimator_to_training_function[estimator] = search_state.training_function
                 del search_state.training_function
 
         with open(output_file_name, "wb") as f:
@@ -1577,74 +1528,44 @@ class AutoML(BaseEstimator):
         eval_method = eval_method or self._settings.get("eval_method")
         split_ratio = split_ratio or self._settings.get("split_ratio")
         n_splits = n_splits or self._settings.get("n_splits")
-        auto_augment = (
-            self._settings.get("auto_augment") if auto_augment is None else auto_augment
-        )
+        auto_augment = self._settings.get("auto_augment") if auto_augment is None else auto_augment
         metric = metric or self._settings.get("metric")
         estimator_list = estimator_list or self._settings.get("estimator_list")
-        log_file_name = (
-            self._settings.get("log_file_name")
-            if log_file_name is None
-            else log_file_name
-        )
+        log_file_name = self._settings.get("log_file_name") if log_file_name is None else log_file_name
         max_iter = self._settings.get("max_iter") if max_iter is None else max_iter
         sample_is_none = sample is None
         if sample_is_none:
             sample = self._settings.get("sample")
         ensemble = self._settings.get("ensemble") if ensemble is None else ensemble
         log_type = log_type or self._settings.get("log_type")
-        model_history = (
-            self._settings.get("model_history")
-            if model_history is None
-            else model_history
-        )
+        model_history = self._settings.get("model_history") if model_history is None else model_history
         log_training_metric = (
-            self._settings.get("log_training_metric")
-            if log_training_metric is None
-            else log_training_metric
+            self._settings.get("log_training_metric") if log_training_metric is None else log_training_metric
         )
         mem_thres = mem_thres or self._settings.get("mem_thres")
         pred_time_limit = pred_time_limit or self._settings.get("pred_time_limit")
         train_time_limit = train_time_limit or self._settings.get("train_time_limit")
-        self._metric_constraints = metric_constraints or self._settings.get(
-            "metric_constraints"
-        )
+        self._metric_constraints = metric_constraints or self._settings.get("metric_constraints")
         if np.isfinite(pred_time_limit):
             self._metric_constraints.append(("pred_time", "<=", pred_time_limit))
         verbose = self._settings.get("verbose") if verbose is None else verbose
-        retrain_full = (
-            self._settings.get("retrain_full") if retrain_full is None else retrain_full
-        )
+        retrain_full = self._settings.get("retrain_full") if retrain_full is None else retrain_full
         split_type = split_type or self._settings.get("split_type")
         hpo_method = hpo_method or self._settings.get("hpo_method")
         learner_selector = learner_selector or self._settings.get("learner_selector")
         no_starting_points = starting_points is None
         if no_starting_points:
             starting_points = self._settings.get("starting_points")
-        n_concurrent_trials = n_concurrent_trials or self._settings.get(
-            "n_concurrent_trials"
-        )
-        keep_search_state = (
-            self._settings.get("keep_search_state")
-            if keep_search_state is None
-            else keep_search_state
-        )
+        n_concurrent_trials = n_concurrent_trials or self._settings.get("n_concurrent_trials")
+        keep_search_state = self._settings.get("keep_search_state") if keep_search_state is None else keep_search_state
         self.preserve_checkpoint = (
-            self._settings.get("preserve_checkpoint")
-            if preserve_checkpoint is None
-            else preserve_checkpoint
+            self._settings.get("preserve_checkpoint") if preserve_checkpoint is None else preserve_checkpoint
         )
-        early_stop = (
-            self._settings.get("early_stop") if early_stop is None else early_stop
-        )
-        force_cancel = (
-            self._settings.get("force_cancel") if force_cancel is None else force_cancel
-        )
+        early_stop = self._settings.get("early_stop") if early_stop is None else early_stop
+        force_cancel = self._settings.get("force_cancel") if force_cancel is None else force_cancel
         # no search budget is provided?
         no_budget = time_budget < 0 and max_iter is None and not early_stop
-        append_log = (
-            self._settings.get("append_log") if append_log is None else append_log
-        )
+        append_log = self._settings.get("append_log") if append_log is None else append_log
         min_sample_size = min_sample_size or self._settings.get("min_sample_size")
         use_ray = self._settings.get("use_ray") if use_ray is None else use_ray
         use_spark = self._settings.get("use_spark") if use_spark is None else use_spark
@@ -1698,11 +1619,7 @@ class AutoML(BaseEstimator):
         if self._use_ray is not False:
             import ray
 
-            n_cpus = (
-                ray.is_initialized()
-                and ray.available_resources()["CPU"]
-                or os.cpu_count()
-            )
+            n_cpus = ray.is_initialized() and ray.available_resources()["CPU"] or os.cpu_count()
 
             self._state.resources_per_trial = (
                 # when using gpu, default cpu is 1 per job; otherwise, default cpu is n_cpus / n_concurrent_trials
@@ -1724,30 +1641,16 @@ class AutoML(BaseEstimator):
                 dataframe = ray.get(dataframe)
         else:
             # TODO: Integrate with Spark
-            self._state.resources_per_trial = (
-                {"cpu": n_jobs} if n_jobs > 0 else {"cpu": 1}
-            )
-        self._state.free_mem_ratio = (
-            self._settings.get("free_mem_ratio")
-            if free_mem_ratio is None
-            else free_mem_ratio
-        )
+            self._state.resources_per_trial = {"cpu": n_jobs} if n_jobs > 0 else {"cpu": 1}
+        self._state.free_mem_ratio = self._settings.get("free_mem_ratio") if free_mem_ratio is None else free_mem_ratio
         self._state.task = task
         self._state.log_training_metric = log_training_metric
 
         self._state.fit_kwargs = fit_kwargs
         custom_hp = custom_hp or self._settings.get("custom_hp")
-        self._skip_transform = (
-            self._settings.get("skip_transform")
-            if skip_transform is None
-            else skip_transform
-        )
-        fit_kwargs_by_estimator = fit_kwargs_by_estimator or self._settings.get(
-            "fit_kwargs_by_estimator"
-        )
-        self._state.fit_kwargs_by_estimator = (
-            fit_kwargs_by_estimator.copy()
-        )  # shallow copy of fit_kwargs_by_estimator
+        self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
+        fit_kwargs_by_estimator = fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
+        self._state.fit_kwargs_by_estimator = fit_kwargs_by_estimator.copy()  # shallow copy of fit_kwargs_by_estimator
         self._state.weight_val = sample_weight_val
 
         task.validate_data(
@@ -1777,13 +1680,9 @@ class AutoML(BaseEstimator):
         eval_method = self._decide_eval_method(eval_method, time_budget)
         self._state.eval_method = eval_method
         logger.info("Evaluation method: {}".format(eval_method))
-        self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get(
-            "cv_score_agg_func"
-        )
+        self._state.cv_score_agg_func = cv_score_agg_func or self._settings.get("cv_score_agg_func")
 
-        self._retrain_in_budget = retrain_full == "budget" and (
-            eval_method == "holdout" and self._state.X_val is None
-        )
+        self._retrain_in_budget = retrain_full == "budget" and (eval_method == "holdout" and self._state.X_val is None)
         self._auto_augment = auto_augment
 
         _sample_size_from_starting_points = {}
@@ -1805,9 +1704,7 @@ class AutoML(BaseEstimator):
                         ]
                     )
                     if _sample_size_set:
-                        _sample_size_from_starting_points[_estimator] = min(
-                            _sample_size_set
-                        )
+                        _sample_size_from_starting_points[_estimator] = min(_sample_size_set)
                     if len(_sample_size_set) > 1:
                         logger.warning(
                             "Using the min FLAML_sample_size of all the provided starting points for estimator {}. (Provided FLAML_sample_size are: {})".format(
@@ -1831,10 +1728,7 @@ class AutoML(BaseEstimator):
                     sample
                     and not task.is_rank()
                     and eval_method != "cv"
-                    and (
-                        self._min_sample_size[k] * SAMPLE_MULTIPLY_FACTOR
-                        < self._state.data_size[0]
-                    ),
+                    and (self._min_sample_size[k] * SAMPLE_MULTIPLY_FACTOR < self._state.data_size[0]),
                 )
                 for k in self._min_sample_size.keys()
             }
@@ -1843,10 +1737,7 @@ class AutoML(BaseEstimator):
                 sample
                 and not task.is_rank()
                 and eval_method != "cv"
-                and (
-                    self._min_sample_size * SAMPLE_MULTIPLY_FACTOR
-                    < self._state.data_size[0]
-                )
+                and (self._min_sample_size * SAMPLE_MULTIPLY_FACTOR < self._state.data_size[0])
             )
 
         metric = task.default_metric(metric)
@@ -1874,10 +1765,7 @@ class AutoML(BaseEstimator):
             if task.is_nlp():
                 from flaml.automl.ml import huggingface_metric_to_mode
 
-                if (
-                    metric in huggingface_metric_to_mode
-                    and huggingface_metric_to_mode[metric] == "max"
-                ):
+                if metric in huggingface_metric_to_mode and huggingface_metric_to_mode[metric] == "max":
                     return True, f"-{metric}"
             return False, None
 
@@ -1891,9 +1779,7 @@ class AutoML(BaseEstimator):
             error_metric = "customized metric"
         logger.info(f"Minimizing error metric: {error_metric}")
 
-        is_spark_dataframe = isinstance(X_train, psDataFrame) or isinstance(
-            dataframe, psDataFrame
-        )
+        is_spark_dataframe = isinstance(X_train, psDataFrame) or isinstance(dataframe, psDataFrame)
         estimator_list = task.default_estimator_list(estimator_list, is_spark_dataframe)
 
         if is_spark_dataframe and self._use_spark:
@@ -1954,9 +1840,7 @@ class AutoML(BaseEstimator):
                         location,
                         k=1,
                     )
-                    starting_points[estimator_name] = [
-                        x["hyperparameters"] for x in configs
-                    ]
+                    starting_points[estimator_name] = [x["hyperparameters"] for x in configs]
                 except FileNotFoundError:
                     pass
             try:
@@ -1978,9 +1862,7 @@ class AutoML(BaseEstimator):
         for estimator_name in estimator_list:
             estimator_class = self._state.learner_classes[estimator_name]
             estimator_class.init()
-            this_estimator_kwargs = self._state.fit_kwargs_by_estimator.get(
-                estimator_name
-            )
+            this_estimator_kwargs = self._state.fit_kwargs_by_estimator.get(estimator_name)
             if this_estimator_kwargs:
                 # make another shallow copy of the value (a dict obj), so user's fit_kwargs_by_estimator won't be updated
                 this_estimator_kwargs = this_estimator_kwargs.copy()
@@ -1991,9 +1873,7 @@ class AutoML(BaseEstimator):
                     estimator_name
                 ] = this_estimator_kwargs  # set self._state.fit_kwargs_by_estimator[estimator_name] to the update, so only self._state.fit_kwargs_by_estimator will be updated
             else:
-                self._state.fit_kwargs_by_estimator[
-                    estimator_name
-                ] = self._state.fit_kwargs
+                self._state.fit_kwargs_by_estimator[estimator_name] = self._state.fit_kwargs
 
             self._search_states[estimator_name] = SearchState(
                 learner_class=estimator_class,
@@ -2004,9 +1884,7 @@ class AutoML(BaseEstimator):
                     "period"
                 ),  # NOTE: this is after kwargs is updated to fit_kwargs_by_estimator
                 custom_hp=custom_hp and custom_hp.get(estimator_name),
-                max_iter=max_iter / len(estimator_list)
-                if self._learner_selector == "roundrobin"
-                else max_iter,
+                max_iter=max_iter / len(estimator_list) if self._learner_selector == "roundrobin" else max_iter,
                 budget=self._state.time_budget,
             )
         logger.info("List of ML learners in AutoML Run: {}".format(estimator_list))
@@ -2040,9 +1918,7 @@ class AutoML(BaseEstimator):
             self._search()
         if self._best_estimator:
             logger.info("fit succeeded")
-            logger.info(
-                f"Time taken to find the best model: {self._time_taken_best_iter}"
-            )
+            logger.info(f"Time taken to find the best model: {self._time_taken_best_iter}")
             if (
                 self._hpo_method in ("cfo", "bs")
                 and self._state.time_budget > 0
@@ -2085,10 +1961,7 @@ class AutoML(BaseEstimator):
                     from ray.tune.search import ConcurrencyLimiter
                 import ray
             except (ImportError, AssertionError):
-                raise ImportError(
-                    "use_ray=True requires installation of ray. "
-                    "Please run pip install flaml[ray]"
-                )
+                raise ImportError("use_ray=True requires installation of ray. " "Please run pip install flaml[ray]")
         else:
             from flaml.tune.searcher.suggestion import ConcurrencyLimiter
 
@@ -2116,16 +1989,11 @@ class AutoML(BaseEstimator):
                 from flaml.tune.searcher.suggestion import OptunaSearch as SearchAlgo
         else:
             raise NotImplementedError(
-                f"hpo_method={self._hpo_method} is not recognized. "
-                "'auto', 'cfo' and 'bs' are supported."
+                f"hpo_method={self._hpo_method} is not recognized. " "'auto', 'cfo' and 'bs' are supported."
             )
         space = self.search_space
         self._state.time_from_start = time.time() - self._start_time_flag
-        time_budget_s = (
-            self._state.time_budget - self._state.time_from_start
-            if self._state.time_budget >= 0
-            else None
-        )
+        time_budget_s = self._state.time_budget - self._state.time_from_start if self._state.time_budget >= 0 else None
         if self._hpo_method != "optuna":
             min_resource = self.min_resource
             if isinstance(min_resource, dict):
@@ -2146,9 +2014,7 @@ class AutoML(BaseEstimator):
                 resource_attr=self.resource_attr,
                 min_resource=min_resource_all_estimator,
                 max_resource=self.max_resource,
-                config_constraints=[
-                    (partial(size, self._state.learner_classes), "<=", self._mem_thres)
-                ],
+                config_constraints=[(partial(size, self._state.learner_classes), "<=", self._mem_thres)],
                 metric_constraints=self.metric_constraints,
                 seed=self._seed,
                 time_budget_s=time_budget_s,
@@ -2171,9 +2037,7 @@ class AutoML(BaseEstimator):
             search_alg = SearchAlgo(
                 metric="val_loss",
                 mode="min",
-                points_to_evaluate=[
-                    p for p in new_points_to_evaluate if len(p) == len(converted_space)
-                ],
+                points_to_evaluate=[p for p in new_points_to_evaluate if len(p) == len(converted_space)],
             )
         search_alg = ConcurrencyLimiter(search_alg, self._n_concurrent_trials)
         resources_per_trial = self._state.resources_per_trial
@@ -2218,8 +2082,7 @@ class AutoML(BaseEstimator):
             (
                 trial
                 for trial in analysis.trials
-                if trial.last_result
-                and trial.last_result.get("wall_clock_time") is not None
+                if trial.last_result and trial.last_result.get("wall_clock_time") is not None
             ),
             key=lambda x: x.last_result["wall_clock_time"],
         )
@@ -2272,14 +2135,10 @@ class AutoML(BaseEstimator):
                 if (search_state.metric_for_logging is not None) and (
                     "intermediate_results" in search_state.metric_for_logging
                 ):
-                    for each_entry in search_state.metric_for_logging[
-                        "intermediate_results"
-                    ]:
+                    for each_entry in search_state.metric_for_logging["intermediate_results"]:
                         with mlflow.start_run(nested=True):
                             mlflow.log_metrics(each_entry)
-                            mlflow.log_metric(
-                                "iter_counter", self._iter_per_learner[estimator]
-                            )
+                            mlflow.log_metric("iter_counter", self._iter_per_learner[estimator])
                     del search_state.metric_for_logging["intermediate_results"]
                 if search_state.metric_for_logging:
                     mlflow.log_metrics(search_state.metric_for_logging)
@@ -2325,8 +2184,7 @@ class AutoML(BaseEstimator):
             from flaml.tune.searcher.cfo_cat import CFOCat as SearchAlgo
         else:
             raise NotImplementedError(
-                f"hpo_method={self._hpo_method} is not recognized. "
-                "'cfo' and 'bs' are supported."
+                f"hpo_method={self._hpo_method} is not recognized. " "'cfo' and 'bs' are supported."
             )
 
         est_retrain_time = next_trial_time = 0
@@ -2348,8 +2206,7 @@ class AutoML(BaseEstimator):
                 if not self._retrain_in_budget
                 or better
                 or (not self.best_estimator)
-                or self._search_states[self.best_estimator].sample_size
-                < self._state.data_size[0]
+                or self._search_states[self.best_estimator].sample_size < self._state.data_size[0]
                 else time_left - est_retrain_time
             )
             if not search_state.search_alg:
@@ -2363,8 +2220,7 @@ class AutoML(BaseEstimator):
                     resource_attr = "FLAML_sample_size"
                     min_resource = (
                         self._min_sample_size[estimator]
-                        if isinstance(self._min_sample_size, dict)
-                        and estimator in self._min_sample_size
+                        if isinstance(self._min_sample_size, dict) and estimator in self._min_sample_size
                         else self._min_sample_size_input
                     )
                     max_resource = self._state.data_size[0]
@@ -2391,9 +2247,7 @@ class AutoML(BaseEstimator):
 
                     low_cost_partial_config = search_state.low_cost_partial_config
                 time_budget_s = (
-                    min(budget_left, self._state.train_time_limit or np.inf)
-                    if self._state.time_budget >= 0
-                    else None
+                    min(budget_left, self._state.train_time_limit or np.inf) if self._state.time_budget >= 0 else None
                 )
                 if self._hpo_method in ("bs", "cfo", "grid", "cfocat", "random"):
                     algo = SearchAlgo(
@@ -2406,9 +2260,7 @@ class AutoML(BaseEstimator):
                         resource_attr=resource_attr,
                         min_resource=min_resource,
                         max_resource=max_resource,
-                        config_constraints=[
-                            (learner_class.size, "<=", self._mem_thres)
-                        ],
+                        config_constraints=[(learner_class.size, "<=", self._mem_thres)],
                         metric_constraints=self.metric_constraints,
                         seed=self._seed,
                         allow_empty_config=True,
@@ -2419,9 +2271,7 @@ class AutoML(BaseEstimator):
                     # if self._hpo_method is optuna, sometimes the search space and the initial config dimension do not match
                     # need to remove the extra keys from the search space to be consistent with the initial config
                     converted_space = SearchAlgo.convert_search_space(search_space)
-                    removed_keys = set(search_space.keys()).difference(
-                        converted_space.keys()
-                    )
+                    removed_keys = set(search_space.keys()).difference(converted_space.keys())
                     new_points_to_evaluate = []
                     for idx in range(len(points_to_evaluate)):
                         r = points_to_evaluate[idx].copy()
@@ -2434,9 +2284,7 @@ class AutoML(BaseEstimator):
                         metric="val_loss",
                         mode="min",
                         space=search_space,
-                        points_to_evaluate=[
-                            p for p in points_to_evaluate if len(p) == len(search_space)
-                        ],
+                        points_to_evaluate=[p for p in points_to_evaluate if len(p) == len(search_space)],
                     )
                 search_state.search_alg = ConcurrencyLimiter(algo, max_concurrent=1)
                 # search_state.search_alg = algo
@@ -2467,9 +2315,7 @@ class AutoML(BaseEstimator):
                     eci_base = search_state.init_eci
                     self._eci.append(search_state.estimated_cost4improvement)
                     for e in self.estimator_list[1:]:
-                        self._eci.append(
-                            self._search_states[e].init_eci / eci_base * self._eci[0]
-                        )
+                        self._eci.append(self._search_states[e].init_eci / eci_base * self._eci[0])
                     self._estimator_index = 0
                     min_budget = max(10 * self._eci[0], sum(self._eci))
                     max_budget = 10000 * self._eci[0]
@@ -2536,14 +2382,10 @@ class AutoML(BaseEstimator):
                 if (
                     self._hpo_method in ("cfo", "bs")
                     and all(
-                        state.search_alg
-                        and state.search_alg.searcher.is_ls_ever_converged
+                        state.search_alg and state.search_alg.searcher.is_ls_ever_converged
                         for state in self._search_states.values()
                     )
-                    and (
-                        self._state.time_from_start
-                        > self._warn_threshold * self._time_taken_best_iter
-                    )
+                    and (self._state.time_from_start > self._warn_threshold * self._time_taken_best_iter)
                 ):
                     logger.warning(
                         "All estimator hyperparameters local search has "
@@ -2566,8 +2408,7 @@ class AutoML(BaseEstimator):
                 and best_config_sig
                 and est_retrain_time
                 and not better
-                and self._search_states[self._best_estimator].sample_size
-                == self._state.data_size[0]
+                and self._search_states[self._best_estimator].sample_size == self._state.data_size[0]
                 and (
                     est_retrain_time
                     <= self._state.time_budget - self._state.time_from_start
@@ -2580,18 +2421,11 @@ class AutoML(BaseEstimator):
                     state.best_config,
                     self.data_size_full,
                 )
-                logger.info(
-                    "retrain {} for {:.1f}s".format(self._best_estimator, retrain_time)
-                )
-                self._retrained_config[
-                    best_config_sig
-                ] = state.best_config_train_time = retrain_time
+                logger.info("retrain {} for {:.1f}s".format(self._best_estimator, retrain_time))
+                self._retrained_config[best_config_sig] = state.best_config_train_time = retrain_time
                 est_retrain_time = 0
             self._state.time_from_start = time.time() - self._start_time_flag
-            if (
-                self._state.time_from_start >= self._state.time_budget >= 0
-                or not self._active_estimators
-            ):
+            if self._state.time_from_start >= self._state.time_budget >= 0 or not self._active_estimators:
                 break
             if self._ensemble and self._best_estimator:
                 time_left = self._state.time_budget - self._state.time_from_start
@@ -2636,9 +2470,7 @@ class AutoML(BaseEstimator):
         self._state.time_from_start = time.time() - self._start_time_flag
         if self._best_estimator:
             self._selected = self._search_states[self._best_estimator]
-            self.modelcount = sum(
-                search_state.total_iter for search_state in self._search_states.values()
-            )
+            self.modelcount = sum(search_state.total_iter for search_state in self._search_states.values())
             if self._trained_estimator:
                 logger.info(f"selected model: {self._trained_estimator.model}")
             estimators = []
@@ -2647,9 +2479,7 @@ class AutoML(BaseEstimator):
                 "multiclass",
                 "regression",
             ):
-                search_states = list(
-                    x for x in self._search_states.items() if x[1].best_config
-                )
+                search_states = list(x for x in self._search_states.items() if x[1].best_config)
                 search_states.sort(key=lambda x: x[1].best_loss)
                 estimators = [
                     (
@@ -2674,9 +2504,7 @@ class AutoML(BaseEstimator):
                     for x in search_states[2:]
                     if x[1].best_loss < 4 * self._selected.best_loss
                 ]
-                logger.info(
-                    [(estimator[0], estimator[1].params) for estimator in estimators]
-                )
+                logger.info([(estimator[0], estimator[1].params) for estimator in estimators])
             if len(estimators) > 1:
                 if self._state.task.is_classification():
                     from sklearn.ensemble import StackingClassifier as Stacker
@@ -2685,11 +2513,7 @@ class AutoML(BaseEstimator):
                 if self._use_ray is not False:
                     import ray
 
-                    n_cpus = (
-                        ray.is_initialized()
-                        and ray.available_resources()["CPU"]
-                        or os.cpu_count()
-                    )
+                    n_cpus = ray.is_initialized() and ray.available_resources()["CPU"] or os.cpu_count()
                 elif self._use_spark:
                     from flaml.tune.spark.utils import get_n_cpus
 
@@ -2698,15 +2522,12 @@ class AutoML(BaseEstimator):
                     n_cpus = os.cpu_count()
                 ensemble_n_jobs = (
                     -self._state.n_jobs  # maximize total parallelization degree
-                    if abs(self._state.n_jobs)
-                    == 1  # 1 and -1 correspond to min/max parallelization
+                    if abs(self._state.n_jobs) == 1  # 1 and -1 correspond to min/max parallelization
                     else max(1, int(n_cpus / 2 / self._state.n_jobs))
                     # the total degree of parallelization = parallelization degree per estimator * parallelization degree of ensemble
                 )
                 if isinstance(self._ensemble, dict):
-                    final_estimator = self._ensemble.get(
-                        "final_estimator", self._trained_estimator
-                    )
+                    final_estimator = self._ensemble.get("final_estimator", self._trained_estimator)
                     passthrough = self._ensemble.get("passthrough", True)
                     ensemble_n_jobs = self._ensemble.get("n_jobs", ensemble_n_jobs)
                 else:
@@ -2719,9 +2540,7 @@ class AutoML(BaseEstimator):
                     passthrough=passthrough,
                 )
                 sample_weight_dict = (
-                    (self._sample_weight_full is not None)
-                    and {"sample_weight": self._sample_weight_full}
-                    or {}
+                    (self._sample_weight_full is not None) and {"sample_weight": self._sample_weight_full} or {}
                 )
                 for e in estimators:
                     e[1].__class__.init()
@@ -2776,8 +2595,7 @@ class AutoML(BaseEstimator):
                         or self._state.time_budget - self._state.time_from_start
                         > self._selected.est_retrain_time(self.data_size_full)
                     )
-                    and self._selected.best_config_sample_size
-                    == self._state.data_size[0]
+                    and self._selected.best_config_sample_size == self._state.data_size[0]
                 ):
                     state = self._search_states[self._best_estimator]
                     (
@@ -2788,11 +2606,7 @@ class AutoML(BaseEstimator):
                         state.best_config,
                         self.data_size_full,
                     )
-                    logger.info(
-                        "retrain {} for {:.1f}s".format(
-                            self._best_estimator, retrain_time
-                        )
-                    )
+                    logger.info("retrain {} for {:.1f}s".format(self._best_estimator, retrain_time))
                     state.best_config_train_time = retrain_time
                     if self._trained_estimator:
                         logger.info(f"retrained model: {self._trained_estimator.model}")
@@ -2827,16 +2641,12 @@ class AutoML(BaseEstimator):
                     self._state.time_budget >= 0
                     and self._search_states[estimator].time2eval_best
                     > self._state.time_budget - self._state.time_from_start
-                    or self._iter_per_learner_fullsize[estimator]
-                    >= self._max_iter_per_learner
+                    or self._iter_per_learner_fullsize[estimator] >= self._max_iter_per_learner
                 ):
                     inv.append(0)
                     continue
                 estimated_cost = search_state.estimated_cost4improvement
-                if (
-                    search_state.sample_size < self._state.data_size[0]
-                    and self._state.time_budget >= 0
-                ):
+                if search_state.sample_size < self._state.data_size[0] and self._state.time_budget >= 0:
                     estimated_cost = min(
                         estimated_cost,
                         search_state.time2eval_best
@@ -2847,12 +2657,8 @@ class AutoML(BaseEstimator):
                     )
                 gap = search_state.best_loss - self._state.best_loss
                 if gap > 0 and not self._ensemble:
-                    delta_loss = (
-                        search_state.best_loss_old - search_state.best_loss
-                    ) or search_state.best_loss
-                    delta_time = (
-                        search_state.total_time_used - search_state.time_best_found_old
-                    ) or 1e-10
+                    delta_loss = (search_state.best_loss_old - search_state.best_loss) or search_state.best_loss
+                    delta_time = (search_state.total_time_used - search_state.time_best_found_old) or 1e-10
                     speed = delta_loss / delta_time
                     if speed:
                         estimated_cost = max(2 * gap / speed, estimated_cost)

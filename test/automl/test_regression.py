@@ -45,13 +45,7 @@ class TestRegression(unittest.TestCase):
         }
         X_train, y_train = fetch_california_housing(return_X_y=True)
         n = int(len(y_train) * 9 // 10)
-        automl.fit(
-            X_train=X_train[:n],
-            y_train=y_train[:n],
-            X_val=X_train[n:],
-            y_val=y_train[n:],
-            **automl_settings
-        )
+        automl.fit(X_train=X_train[:n], y_train=y_train[:n], X_val=X_train[n:], y_val=y_train[n:], **automl_settings)
         assert automl._state.eval_method == "holdout"
         y_pred = automl.predict(X_train)
         print(y_pred)
@@ -88,10 +82,7 @@ class TestRegression(unittest.TestCase):
         print(automl.model.estimator)
         y_pred2 = automl.predict(X_train)
         # In some rare case, the last config is early stopped and it's the best config. But the logged config's n_estimator is not reduced.
-        assert (
-            n_iter != automl.model.estimator.get_params("n_estimator")
-            or (y_pred == y_pred2).all()
-        )
+        assert n_iter != automl.model.estimator.get_params("n_estimator") or (y_pred == y_pred2).all()
 
     def test_sparse_matrix_regression(self):
         X_train = scipy.sparse.random(300, 900, density=0.0001)
@@ -110,9 +101,7 @@ class TestRegression(unittest.TestCase):
             "verbose": 0,
             "early_stop": True,
         }
-        automl.fit(
-            X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **settings)
         assert automl._state.X_val.shape == X_val.shape
         print(automl.predict(X_train))
         print(automl.model)
@@ -135,9 +124,7 @@ class TestRegression(unittest.TestCase):
                 "custom_hp": {"catboost": {"n_estimators": {"domain": 100}}},
             }
         )
-        automl.fit(
-            X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **settings)
 
     def test_parallel(self, hpo_method=None):
         automl_experiment = AutoML()
@@ -203,13 +190,7 @@ class TestRegression(unittest.TestCase):
             "keep_search_state": True,
             "early_stop": True,
         }
-        automl_experiment.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl_experiment.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
         assert automl_experiment._state.X_val.shape == X_val.shape
         print(automl_experiment.predict(X_train))
         print(automl_experiment.model)
@@ -231,9 +212,7 @@ def test_multioutput():
     X, y = make_regression(n_targets=3)
 
     # split into train and test data
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.30, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
 
     # train the model
     model = MultiOutputRegressor(AutoML(task="regression", time_budget=1))

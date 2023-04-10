@@ -5,9 +5,7 @@ import os
 import shutil
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"], reason="do not run on mac os or windows"
-)
+@pytest.mark.skipif(sys.platform in ["darwin", "win32"], reason="do not run on mac os or windows")
 def test_mcc():
     from flaml import AutoML
     import requests
@@ -27,13 +25,7 @@ def test_mcc():
     automl_settings["metric"] = "accuracy"
 
     try:
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     except requests.exceptions.HTTPError:
         return
 

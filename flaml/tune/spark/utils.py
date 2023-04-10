@@ -69,11 +69,7 @@ def get_n_cpus(node="driver"):
     """
     assert node in ["driver", "executor"]
     try:
-        n_cpus = int(
-            SparkSession.builder.getOrCreate()
-            .sparkContext.getConf()
-            .get(f"spark.{node}.cores")
-        )
+        n_cpus = int(SparkSession.builder.getOrCreate().sparkContext.getConf().get(f"spark.{node}.cores"))
     except (TypeError, RuntimeError):
         n_cpus = os.cpu_count()
     return n_cpus
@@ -113,9 +109,7 @@ def with_parameters(trainable, **kwargs):
 
     if not callable(trainable):
         raise ValueError(
-            f"`with_parameters() only works with function trainables`. "
-            f"Got type: "
-            f"{type(trainable)}."
+            f"`with_parameters() only works with function trainables`. " f"Got type: " f"{type(trainable)}."
         )
 
     spark_available, spark_error_msg = check_spark()

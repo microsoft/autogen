@@ -23,65 +23,47 @@ model_path_list = [
 
 def test_switch_1_1():
     data_idx, model_path_idx = 0, 0
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_1_2():
     data_idx, model_path_idx = 0, 1
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_1_3():
     data_idx, model_path_idx = 0, 2
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_2_1():
     data_idx, model_path_idx = 1, 0
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_2_2():
     data_idx, model_path_idx = 1, 1
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_2_3():
     data_idx, model_path_idx = 1, 2
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_3_1():
     data_idx, model_path_idx = 2, 0
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_3_2():
     data_idx, model_path_idx = 2, 1
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def test_switch_3_3():
     data_idx, model_path_idx = 2, 2
-    _test_switch_classificationhead(
-        data_list[data_idx], model_path_list[model_path_idx]
-    )
+    _test_switch_classificationhead(data_list[data_idx], model_path_list[model_path_idx])
 
 
 def _test_switch_classificationhead(each_data, each_model_path):
@@ -102,13 +84,7 @@ def _test_switch_classificationhead(each_data, each_model_path):
         automl_settings["metric"] = "accuracy"
 
     try:
-        automl.fit(
-            X_train=X_train,
-            y_train=y_train,
-            X_val=X_val,
-            y_val=y_val,
-            **automl_settings
-        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
     except requests.exceptions.HTTPError:
         return
 

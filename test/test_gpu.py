@@ -23,9 +23,7 @@ def test_xgboost():
             gpu_per_trial=1,
         )
 
-        train, label = make_moons(
-            n_samples=300000, shuffle=True, noise=0.3, random_state=None
-        )
+        train, label = make_moons(n_samples=300000, shuffle=True, noise=0.3, random_state=None)
         automl = AutoML()
         automl.fit(
             train,
@@ -89,18 +87,10 @@ def _test_hf_data():
         }
     }
 
-    automl.fit(
-        X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings
-    )
+    automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
 
     automl = AutoML()
-    automl.retrain_from_log(
-        X_train=X_train,
-        y_train=y_train,
-        train_full=True,
-        record_id=0,
-        **automl_settings
-    )
+    automl.retrain_from_log(X_train=X_train, y_train=y_train, train_full=True, record_id=0, **automl_settings)
     with open("automl.pkl", "wb") as f:
         pickle.dump(automl, f, pickle.HIGHEST_PROTOCOL)
     with open("automl.pkl", "rb") as f:

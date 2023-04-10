@@ -65,11 +65,7 @@ class ExperimentAnalysis(EA):
             return self.get_best_config(self.default_metric, self.default_mode)
 
     def lexico_best(self, trials):
-        results = {
-            index: trial.last_result
-            for index, trial in enumerate(trials)
-            if trial.last_result
-        }
+        results = {index: trial.last_result for index, trial in enumerate(trials) if trial.last_result}
         metrics = self.lexico_objectives["metrics"]
         modes = self.lexico_objectives["modes"]
         f_best = {}
@@ -79,15 +75,11 @@ class ExperimentAnalysis(EA):
         for time_index in range(length):
             for objective, mode in zip(metrics, modes):
                 histories[objective].append(
-                    results[keys[time_index]][objective]
-                    if mode == "min"
-                    else -results[keys[time_index]][objective]
+                    results[keys[time_index]][objective] if mode == "min" else -results[keys[time_index]][objective]
                 )
         obj_initial = self.lexico_objectives["metrics"][0]
         feasible_index = np.array([*range(len(histories[obj_initial]))])
-        for k_metric, k_mode in zip(
-            self.lexico_objectives["metrics"], self.lexico_objectives["modes"]
-        ):
+        for k_metric, k_mode in zip(self.lexico_objectives["metrics"], self.lexico_objectives["modes"]):
             k_values = np.array(histories[k_metric])
             k_target = (
                 -self.lexico_objectives["targets"][k_metric]
@@ -101,19 +93,9 @@ class ExperimentAnalysis(EA):
                 feasible_value
                 <= max(
                     f_best[k_metric] + self.lexico_objectives["tolerances"][k_metric]
-                    if not isinstance(
-                        self.lexico_objectives["tolerances"][k_metric], str
-                    )
+                    if not isinstance(self.lexico_objectives["tolerances"][k_metric], str)
                     else f_best[k_metric]
-                    * (
-                        1
-                        + 0.01
-                        * float(
-                            self.lexico_objectives["tolerances"][k_metric].replace(
-                                "%", ""
-                            )
-                        )
-                    ),
+                    * (1 + 0.01 * float(self.lexico_objectives["tolerances"][k_metric].replace("%", ""))),
                     k_target,
                 )
             )[0]
@@ -237,9 +219,7 @@ def run(
     local_dir: Optional[str] = None,
     num_samples: Optional[int] = 1,
     resources_per_trial: Optional[dict] = None,
-    config_constraints: Optional[
-        List[Tuple[Callable[[dict], float], str, float]]
-    ] = None,
+    config_constraints: Optional[List[Tuple[Callable[[dict], float], str, float]]] = None,
     metric_constraints: Optional[List[Tuple[str, str, float]]] = None,
     max_failure: Optional[int] = 100,
     use_ray: Optional[bool] = False,
@@ -463,9 +443,7 @@ def run(
             os.makedirs(dir_name, exist_ok=True)
     elif local_dir and verbose > 0:
         os.makedirs(local_dir, exist_ok=True)
-        log_file_name = os.path.join(
-            local_dir, "tune_" + str(datetime.datetime.now()).replace(":", "-") + ".log"
-        )
+        log_file_name = os.path.join(local_dir, "tune_" + str(datetime.datetime.now()).replace(":", "-") + ".log")
     if use_ray and use_spark:
         raise ValueError("use_ray and use_spark cannot be both True.")
     if not use_ray:
@@ -506,9 +484,7 @@ def run(
     from .searcher.blendsearch import BlendSearch, CFO
 
     if lexico_objectives is not None:
-        logger.warning(
-            "If lexico_objectives is not None, search_alg is forced to be CFO"
-        )
+        logger.warning("If lexico_objectives is not None, search_alg is forced to be CFO")
         search_alg = None
     if search_alg is None:
         flaml_scheduler_resource_attr = (
@@ -529,14 +505,10 @@ def run(
                 import optuna as _
 
                 SearchAlgorithm = BlendSearch
-                logger.info(
-                    "Using search algorithm {}.".format(SearchAlgorithm.__name__)
-                )
+                logger.info("Using search algorithm {}.".format(SearchAlgorithm.__name__))
             except ImportError:
                 SearchAlgorithm = CFO
-                logger.warning(
-                    "Using CFO for search. To use BlendSearch, run: pip install flaml[blendsearch]"
-                )
+                logger.warning("Using CFO for search. To use BlendSearch, run: pip install flaml[blendsearch]")
             metric = metric or DEFAULT_METRIC
         else:
             SearchAlgorithm = CFO
@@ -581,14 +553,8 @@ def run(
             ]
             and use_incumbent_result_in_evaluation is not None
         ):
-            search_alg.use_incumbent_result_in_evaluation = (
-                use_incumbent_result_in_evaluation
-            )
-        searcher = (
-            search_alg.searcher
-            if isinstance(search_alg, ConcurrencyLimiter)
-            else search_alg
-        )
+            search_alg.use_incumbent_result_in_evaluation = use_incumbent_result_in_evaluation
+        searcher = search_alg.searcher if isinstance(search_alg, ConcurrencyLimiter) else search_alg
         if isinstance(searcher, BlendSearch):
             setting = {}
             if time_budget_s:
@@ -617,10 +583,7 @@ def run(
         try:
             from ray import tune
         except ImportError:
-            raise ImportError(
-                "Failed to import ray tune. "
-                "Please install ray[tune] or set use_ray=False"
-            )
+            raise ImportError("Failed to import ray tune. " "Please install ray[tune] or set use_ray=False")
         _use_ray = True
         try:
             analysis = tune.run(
@@ -659,19 +622,14 @@ def run(
             from joblib import Parallel, delayed, parallel_backend
             from joblibspark import register_spark
         except ImportError as e:
-            raise ImportError(
-                f"{e}. Try pip install flaml[spark] or set use_spark=False."
-            )
+            raise ImportError(f"{e}. Try pip install flaml[spark] or set use_spark=False.")
         from flaml.tune.searcher.suggestion import ConcurrencyLimiter
         from .trial_runner import SparkTrialRunner
 
         register_spark()
         spark = SparkSession.builder.getOrCreate()
         sc = spark._jsc.sc()
-        num_executors = (
-            len([executor.host() for executor in sc.statusTracker().getExecutorInfos()])
-            - 1
-        )
+        num_executors = len([executor.host() for executor in sc.statusTracker().getExecutorInfos()]) - 1
         """
         By default, the number of executors is the number of VMs in the cluster. And we can
         launch one trial per executor. However, sometimes we can launch more trials than
@@ -708,9 +666,7 @@ def run(
             max_concurrent,
         )
         with parallel_backend("spark"):
-            with Parallel(
-                n_jobs=n_concurrent_trials, verbose=max(0, (verbose - 1) * 50)
-            ) as parallel:
+            with Parallel(n_jobs=n_concurrent_trials, verbose=max(0, (verbose - 1) * 50)) as parallel:
                 try:
                     _runner = SparkTrialRunner(
                         search_alg=search_alg,
@@ -722,9 +678,7 @@ def run(
                     if time_budget_s is None:
                         time_budget_s = np.inf
                     num_failures = 0
-                    upperbound_num_failures = (
-                        len(evaluated_rewards) if evaluated_rewards else 0
-                    ) + max_failure
+                    upperbound_num_failures = (len(evaluated_rewards) if evaluated_rewards else 0) + max_failure
                     while (
                         time.time() - time_start < time_budget_s
                         and (num_samples < 0 or num_trials < num_samples)
@@ -742,9 +696,7 @@ def run(
                                     break
                         trials_to_run = _runner.running_trials
                         if not trials_to_run:
-                            logger.warning(
-                                f"fail to sample a trial for {max_failure} times in a row, stopping."
-                            )
+                            logger.warning(f"fail to sample a trial for {max_failure} times in a row, stopping.")
                             break
                         logger.info(
                             f"Number of trials: {num_trials}/{num_samples}, {len(_runner.running_trials)} RUNNING,"
@@ -754,12 +706,9 @@ def run(
                             f"Configs of Trials to run: {[trial_to_run.config for trial_to_run in trials_to_run]}"
                         )
                         results = None
-                        with PySparkOvertimeMonitor(
-                            time_start, time_budget_s, force_cancel, parallel=parallel
-                        ):
+                        with PySparkOvertimeMonitor(time_start, time_budget_s, force_cancel, parallel=parallel):
                             results = parallel(
-                                delayed(evaluation_function)(trial_to_run.config)
-                                for trial_to_run in trials_to_run
+                                delayed(evaluation_function)(trial_to_run.config) for trial_to_run in trials_to_run
                             )
                         # results = [evaluation_function(trial_to_run.config) for trial_to_run in trials_to_run]
                         while results:
@@ -775,9 +724,7 @@ def run(
                                         # When the result returned is an empty dict, set the trial status to error
                                         trial_to_run.set_status(Trial.ERROR)
                                 else:
-                                    logger.info(
-                                        "Brief result: {}".format({metric: result})
-                                    )
+                                    logger.info("Brief result: {}".format({metric: result}))
                                     report(_metric=result)
                             _runner.stop_trial(trial_to_run)
                         num_failures = 0
@@ -817,9 +764,7 @@ def run(
         if time_budget_s is None:
             time_budget_s = np.inf
         num_failures = 0
-        upperbound_num_failures = (
-            len(evaluated_rewards) if evaluated_rewards else 0
-        ) + max_failure
+        upperbound_num_failures = (len(evaluated_rewards) if evaluated_rewards else 0) + max_failure
         while (
             time.time() - time_start < time_budget_s
             and (num_samples < 0 or num_trials < num_samples)
@@ -852,9 +797,7 @@ def run(
                 # break with upperbound_num_failures consecutive failures
                 num_failures += 1
         if num_failures == upperbound_num_failures:
-            logger.warning(
-                f"fail to sample a trial for {max_failure} times in a row, stopping."
-            )
+            logger.warning(f"fail to sample a trial for {max_failure} times in a row, stopping.")
         analysis = ExperimentAnalysis(
             _runner.get_trials(),
             metric=metric,

@@ -132,9 +132,7 @@ def get_estimator_class(task: str, estimator_name: str) -> EstimatorSubclass:
     if "xgboost" == estimator_name:
         estimator_class = XGBoost_TS if task in TS_FORECAST else XGBoostSklearnEstimator
     elif "xgb_limitdepth" == estimator_name:
-        estimator_class = (
-            XGBoostLimitDepth_TS if task in TS_FORECAST else XGBoostLimitDepthEstimator
-        )
+        estimator_class = XGBoostLimitDepth_TS if task in TS_FORECAST else XGBoostLimitDepthEstimator
     elif "rf" == estimator_name:
         estimator_class = RF_TS if task in TS_FORECAST else RandomForestEstimator
     elif "lgbm" == estimator_name:
@@ -203,40 +201,27 @@ def metric_loss_score(
         try:
             import datasets
 
-            datasets_metric_name = huggingface_submetric_to_metric.get(
-                metric_name, metric_name.split(":")[0]
-            )
+            datasets_metric_name = huggingface_submetric_to_metric.get(metric_name, metric_name.split(":")[0])
             metric = datasets.load_metric(datasets_metric_name)
             metric_mode = huggingface_metric_to_mode[datasets_metric_name]
 
             if metric_name.startswith("seqeval"):
-                y_processed_true = [
-                    [labels[tr] for tr in each_list] for each_list in y_processed_true
-                ]
+                y_processed_true = [[labels[tr] for tr in each_list] for each_list in y_processed_true]
             elif metric in ("pearsonr", "spearmanr"):
                 y_processed_true = (
-                    y_processed_true.to_list()
-                    if isinstance(y_processed_true, pd.Series)
-                    else list(y_processed_true)
+                    y_processed_true.to_list() if isinstance(y_processed_true, pd.Series) else list(y_processed_true)
                 )
-            score_dict = metric.compute(
-                predictions=y_processed_predict, references=y_processed_true
-            )
+            score_dict = metric.compute(predictions=y_processed_predict, references=y_processed_true)
             if "rouge" in metric_name:
                 score = score_dict[metric_name].mid.fmeasure
             elif metric_name.startswith("seqeval"):
                 metric_submetric_names = metric_name.split(":")
-                score = score_dict[
-                    metric_submetric_names[1]
-                    if len(metric_submetric_names) > 1
-                    else "overall_accuracy"
-                ]
+                score = score_dict[metric_submetric_names[1] if len(metric_submetric_names) > 1 else "overall_accuracy"]
             else:
                 score = score_dict[metric_name]
         except ImportError:
             raise ValueError(
-                metric_name
-                + " is not an built-in sklearn metric and [hf] is not installed. "
+                metric_name + " is not an built-in sklearn metric and [hf] is not installed. "
                 "Currently built-in sklearn metrics are: "
                 "r2, rmse, mae, mse, accuracy, roc_auc, roc_auc_ovr, roc_auc_ovo,"
                 "log_loss, mape, f1, micro_f1, macro_f1, ap. "
@@ -303,9 +288,7 @@ def sklearn_metric_loss_score(
     if "r2" == metric_name:
         score = 1.0 - r2_score(y_true, y_predict, sample_weight=sample_weight)
     elif metric_name == "rmse":
-        score = np.sqrt(
-            mean_squared_error(y_true, y_predict, sample_weight=sample_weight)
-        )
+        score = np.sqrt(mean_squared_error(y_true, y_predict, sample_weight=sample_weight))
     elif metric_name == "mae":
         score = mean_absolute_error(y_true, y_predict, sample_weight=sample_weight)
     elif metric_name == "mse":
@@ -315,17 +298,11 @@ def sklearn_metric_loss_score(
     elif metric_name == "roc_auc":
         score = 1.0 - roc_auc_score(y_true, y_predict, sample_weight=sample_weight)
     elif metric_name == "roc_auc_ovr":
-        score = 1.0 - roc_auc_score(
-            y_true, y_predict, sample_weight=sample_weight, multi_class="ovr"
-        )
+        score = 1.0 - roc_auc_score(y_true, y_predict, sample_weight=sample_weight, multi_class="ovr")
     elif metric_name == "roc_auc_ovo":
-        score = 1.0 - roc_auc_score(
-            y_true, y_predict, sample_weight=sample_weight, multi_class="ovo"
-        )
+        score = 1.0 - roc_auc_score(y_true, y_predict, sample_weight=sample_weight, multi_class="ovo")
     elif metric_name == "roc_auc_weighted":
-        score = 1.0 - roc_auc_score(
-            y_true, y_predict, sample_weight=sample_weight, average="weighted"
-        )
+        score = 1.0 - roc_auc_score(y_true, y_predict, sample_weight=sample_weight, average="weighted")
     elif metric_name == "roc_auc_ovo_weighted":
         score = 1.0 - roc_auc_score(
             y_true,
@@ -350,19 +327,13 @@ def sklearn_metric_loss_score(
         except ValueError:
             return np.inf
     elif "micro_f1" == metric_name:
-        score = 1 - f1_score(
-            y_true, y_predict, sample_weight=sample_weight, average="micro"
-        )
+        score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight, average="micro")
     elif "macro_f1" == metric_name:
-        score = 1 - f1_score(
-            y_true, y_predict, sample_weight=sample_weight, average="macro"
-        )
+        score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight, average="macro")
     elif "f1" == metric_name:
         score = 1 - f1_score(y_true, y_predict, sample_weight=sample_weight)
     elif "ap" == metric_name:
-        score = 1 - average_precision_score(
-            y_true, y_predict, sample_weight=sample_weight
-        )
+        score = 1 - average_precision_score(y_true, y_predict, sample_weight=sample_weight)
     elif "ndcg" in metric_name:
         if "@" in metric_name:
             k = int(metric_name.split("@", 1)[-1])
@@ -524,9 +495,7 @@ def default_cv_score_agg_func(val_loss_folds, log_metrics_folds):
     if metrics_to_log:
         n = len(val_loss_folds)
         metrics_to_log = (
-            {k: v / n for k, v in metrics_to_log.items()}
-            if isinstance(metrics_to_log, dict)
-            else metrics_to_log / n
+            {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
         )
     return metric_to_minimize, metrics_to_log
 
@@ -546,9 +515,7 @@ def compute_estimator(
     eval_method: str,
     eval_metric: Union[str, Callable],
     best_val_loss=np.Inf,
-    n_jobs: Optional[
-        int
-    ] = 1,  # some estimators of EstimatorSubclass don't accept n_jobs. Should be None in that case.
+    n_jobs: Optional[int] = 1,  # some estimators of EstimatorSubclass don't accept n_jobs. Should be None in that case.
     estimator_class: Optional[EstimatorSubclass] = None,
     cv_score_agg_func: Optional[callable] = None,
     log_training_metric: Optional[bool] = False,
@@ -583,9 +550,7 @@ def compute_estimator(
             groups_val,
             eval_metric,
             task,
-            labels=fit_kwargs.get(
-                "label_list"
-            ),  # pass the label list on to compute the evaluation metric
+            labels=fit_kwargs.get("label_list"),  # pass the label list on to compute the evaluation metric
             budget=budget,
             log_training_metric=log_training_metric,
             fit_kwargs=fit_kwargs,
@@ -619,9 +584,7 @@ def train_estimator(
     y_train,
     task: str,
     estimator_name: str,
-    n_jobs: Optional[
-        int
-    ] = 1,  # some estimators of EstimatorSubclass don't accept n_jobs. Should be None in that case.
+    n_jobs: Optional[int] = 1,  # some estimators of EstimatorSubclass don't accept n_jobs. Should be None in that case.
     estimator_class: Optional[EstimatorSubclass] = None,
     budget=None,
     fit_kwargs: Optional[dict] = None,
@@ -642,18 +605,14 @@ def train_estimator(
         fit_kwargs["metric"] = eval_metric
 
     if X_train is not None:
-        train_time = estimator.fit(
-            X_train, y_train, budget, free_mem_ratio, **fit_kwargs
-        )
+        train_time = estimator.fit(X_train, y_train, budget, free_mem_ratio, **fit_kwargs)
     else:
         estimator = estimator.estimator_class(**estimator.params)
     train_time = time.time() - start_time
     return estimator, train_time
 
 
-def norm_confusion_matrix(
-    y_true: Union[np.array, pd.Series], y_pred: Union[np.array, pd.Series]
-):
+def norm_confusion_matrix(y_true: Union[np.array, pd.Series], y_pred: Union[np.array, pd.Series]):
     """normalized confusion matrix.
 
     Args:

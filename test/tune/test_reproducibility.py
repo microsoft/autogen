@@ -41,9 +41,7 @@ def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False)
             metric="mean_loss",
             mode="min",
         )
-        assert (
-            searcher.cost_attr == "time_total_s"
-        ), "when time_budget_s is provided, cost_attr should be time_total_s"
+        assert searcher.cost_attr == "time_total_s", "when time_budget_s is provided, cost_attr should be time_total_s"
 
         searcher = BlendSearch(
             space=search_space,
@@ -51,9 +49,7 @@ def test_tune(externally_setup_searcher=False, use_ray=False, use_raytune=False)
             metric="mean_loss",
             mode="min",
         )
-        assert (
-            searcher.cost_attr is None
-        ), "when time_budget_s is not provided, cost_attr should be None."
+        assert searcher.cost_attr is None, "when time_budget_s is not provided, cost_attr should be None."
 
         searcher = BlendSearch(
             space=search_space,
@@ -116,9 +112,7 @@ def test_reproducibility():
     best_config_2 = test_tune(externally_setup_searcher=True)
     print(best_config_1)
     print(best_config_2)
-    assert (
-        best_config_1 == best_config_2
-    ), "flaml.tune not reproducible when the searcher is set up externally"
+    assert best_config_1 == best_config_2, "flaml.tune not reproducible when the searcher is set up externally"
 
 
 def test_gs_reproducibility():

@@ -85,9 +85,7 @@ def _test_xgboost(method="BlendSearch"):
     else:
         from ray import tune
     search_space = {
-        "max_depth": tune.randint(1, 9)
-        if method in ["BlendSearch", "BOHB", "Optuna"]
-        else tune.randint(1, 9),
+        "max_depth": tune.randint(1, 9) if method in ["BlendSearch", "BOHB", "Optuna"] else tune.randint(1, 9),
         "min_child_weight": tune.choice([1, 2, 3]),
         "subsample": tune.uniform(0.5, 1.0),
         "eta": tune.loguniform(1e-4, 1e-1),
@@ -226,9 +224,7 @@ def test_nested_space():
     }
 
     def simple_func(config):
-        obj = (config["cost_related"]["a"] - 4) ** 2 + (
-            config["b"] - config["cost_related"]["a"]
-        ) ** 2
+        obj = (config["cost_related"]["a"] - 4) ** 2 + (config["b"] - config["cost_related"]["a"]) ** 2
         tune.report(obj=obj)
         tune.report(obj=obj, ab=config["cost_related"]["a"] * config["b"])
 
@@ -291,8 +287,7 @@ def test_nested_space():
         low_cost_partial_config={"cost_related": {"a": 1}},
         points_to_evaluate=points_to_evaluate,
         evaluated_rewards=[
-            (config["cost_related"]["a"] - 4) ** 2
-            + (config["b"] - config["cost_related"]["a"]) ** 2
+            (config["cost_related"]["a"] - 4) ** 2 + (config["b"] - config["cost_related"]["a"]) ** 2
             for config in points_to_evaluate[:-1]
         ],
         metric="obj",

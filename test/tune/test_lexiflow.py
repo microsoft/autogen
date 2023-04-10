@@ -89,9 +89,7 @@ def test_lexiflow():
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
         accuracy = correct / N_VALID_EXAMPLES
-        flops, params = thop.profile(
-            model, inputs=(torch.randn(1, 28 * 28).to(DEVICE),), verbose=False
-        )
+        flops, params = thop.profile(model, inputs=(torch.randn(1, 28 * 28).to(DEVICE),), verbose=False)
         return np.log2(flops), 1 - accuracy, params
 
     def evaluate_function(configuration):
@@ -198,9 +196,7 @@ def test_lexiflow_performance():
     print(analysis.best_config)
     print(analysis.best_result)
 
-    assert (
-        analysis.best_result["currin"] <= 2.2
-    ), "the value of currin function should be less than 2.2"
+    assert analysis.best_result["currin"] <= 2.2, "the value of currin function should be less than 2.2"
 
 
 if __name__ == "__main__":

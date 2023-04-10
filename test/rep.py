@@ -28,9 +28,7 @@ settings = {
 
 for trial_num in range(8):
     automl = AutoML()
-    automl.add_learner(
-        learner_name="extra_trees_seeded", learner_class=ExtraTreesEstimatorSeeded
-    )
+    automl.add_learner(learner_name="extra_trees_seeded", learner_class=ExtraTreesEstimatorSeeded)
     automl.fit(X_train=X_train, y_train=y_train, **settings)
     print(automl.best_loss)
     print(automl.best_config)

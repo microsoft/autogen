@@ -70,15 +70,11 @@ def define_by_run_func(trial, space: Dict, path: str = "") -> Optional[Dict[str,
             else:
                 raise ValueError(
                     "Optuna search does not support parameters of type "
-                    "`{}` with samplers of type `{}`".format(
-                        type(domain).__name__, type(domain.sampler).__name__
-                    )
+                    "`{}` with samplers of type `{}`".format(type(domain).__name__, type(domain.sampler).__name__)
                 )
         elif isinstance(domain, sample.Integer):
             if isinstance(sampler, sample.LogUniform):
-                trial.suggest_int(
-                    key, domain.lower, domain.upper - int(bool(not quantize)), log=True
-                )
+                trial.suggest_int(key, domain.lower, domain.upper - int(bool(not quantize)), log=True)
             elif isinstance(sampler, sample.Uniform):
                 # Upper bound should be inclusive for quantization and
                 # exclusive otherwise
@@ -103,9 +99,7 @@ def define_by_run_func(trial, space: Dict, path: str = "") -> Optional[Dict[str,
         else:
             raise ValueError(
                 "Optuna search does not support parameters of type "
-                "`{}` with samplers of type `{}`".format(
-                    type(domain).__name__, type(domain.sampler).__name__
-                )
+                "`{}` with samplers of type `{}`".format(type(domain).__name__, type(domain.sampler).__name__)
             )
     # Return all constants in a dictionary.
     return config
@@ -148,9 +142,7 @@ def unflatten_hierarchical(config: Dict, space: Dict) -> Tuple[Dict, Dict]:
             pos = key.rfind(":")
             true_key = key[:pos]
             choice = int(key[pos + 1 :])
-            hier[true_key], subspace[true_key] = unflatten_hierarchical(
-                value, space[true_key][choice]
-            )
+            hier[true_key], subspace[true_key] = unflatten_hierarchical(value, space[true_key][choice])
         else:
             if key.endswith("_choice_"):
                 key = key[:-8]
@@ -212,9 +204,7 @@ def add_cost_to_space(space: Dict, low_cost_point: Dict, choice_cost: Dict):
                         choice_cost_dict = choice_cost_list[i]
                     else:
                         choice_cost_dict = {}
-                    domain.const.append(
-                        add_cost_to_space(cat, low_cost_dict, choice_cost_dict)
-                    )
+                    domain.const.append(add_cost_to_space(cat, low_cost_dict, choice_cost_dict))
                 else:
                     domain.const.append(None)
             if choice_cost_list:
@@ -233,18 +223,14 @@ def add_cost_to_space(space: Dict, low_cost_point: Dict, choice_cost: Dict):
                 ordered = getattr(domain, "ordered", None)
                 if ordered is None:
                     # automatically decide whether to order the choices based on the value type
-                    domain.ordered = ordered = all(
-                        isinstance(x, (int, float)) for x in domain.categories
-                    )
+                    domain.ordered = ordered = all(isinstance(x, (int, float)) for x in domain.categories)
                 if ordered:
                     # sort the choices by value
                     ind = np.argsort(domain.categories)
                     domain.categories = [domain.categories[i] for i in ind]
 
             if low_cost and low_cost not in domain.categories:
-                assert isinstance(
-                    low_cost, list
-                ), f"low cost {low_cost} not in domain {domain.categories}"
+                assert isinstance(low_cost, list), f"low cost {low_cost} not in domain {domain.categories}"
                 if domain.ordered:
                     sorted_points = [low_cost[i] for i in ind]
                     for i, point in enumerate(sorted_points):
@@ -292,11 +278,7 @@ def normalize(
                     # low_cost_point list
                     norm = []
                     for i, cat in enumerate(domain.categories):
-                        norm.append(
-                            normalize(value[i], cat, reference_config[key][i], {})
-                            if recursive
-                            else value[i]
-                        )
+                        norm.append(normalize(value[i], cat, reference_config[key][i], {}) if recursive else value[i])
                     if len(value) > len(domain.categories):
                         # the low cost index was appended to low_cost_point list
                         index = value[-1]
@@ -335,16 +317,10 @@ def normalize(
         else:
             quantize = None
         if str(sampler) == "LogUniform":
-            upper = domain.upper - (
-                isinstance(domain, sample.Integer) & (quantize is None)
-            )
-            config_norm[key] = np.log(value / domain.lower) / np.log(
-                upper / domain.lower
-            )
+            upper = domain.upper - (isinstance(domain, sample.Integer) & (quantize is None))
+            config_norm[key] = np.log(value / domain.lower) / np.log(upper / domain.lower)
         elif str(sampler) == "Uniform":
-            upper = domain.upper - (
-                isinstance(domain, sample.Integer) & (quantize is None)
-            )
+            upper = domain.upper - (isinstance(domain, sample.Integer) & (quantize is None))
             config_norm[key] = (value - domain.lower) / (upper - domain.lower)
         elif str(sampler) == "Normal":
             # N(mean, sd) -> N(0,1)
@@ -366,9 +342,7 @@ def denormalize(
         if key in space:
             # domain: sample.Categorical/Integer/Float/Function
             domain = space[key]
-            if isinstance(value, dict) or not callable(
-                getattr(domain, "get_sampler", None)
-            ):
+            if isinstance(value, dict) or not callable(getattr(domain, "get_sampler", None)):
                 config_denorm[key] = value
             else:
                 if isinstance(domain, sample.Categorical):
@@ -376,16 +350,12 @@ def denormalize(
                     n = len(domain.categories)
                     if isinstance(value, list):
                         # denormalize list
-                        choice = min(
-                            n - 1, int(np.floor(value[-1] * n))
-                        )  # max choice is n-1
+                        choice = min(n - 1, int(np.floor(value[-1] * n)))  # max choice is n-1
                         config_denorm[key] = point = value[choice]
                         point["_choice_"] = choice
                         continue
                     if domain.ordered:
-                        config_denorm[key] = domain.categories[
-                            min(n - 1, int(np.floor(value * n)))
-                        ]
+                        config_denorm[key] = domain.categories[min(n - 1, int(np.floor(value * n)))]
                     else:
                         assert key in normalized_reference_config
                         if min(n - 1, np.floor(value * n)) == min(
@@ -394,11 +364,7 @@ def denormalize(
                             config_denorm[key] = reference_config[key]
                         else:  # ****random value each time!****
                             config_denorm[key] = random_state.choice(
-                                [
-                                    x
-                                    for x in domain.categories
-                                    if x != reference_config[key]
-                                ]
+                                [x for x in domain.categories if x != reference_config[key]]
                             )
                     continue
                 # Uniform/LogUniform/Normal/Base
@@ -411,14 +377,10 @@ def denormalize(
                     quantize = None
                 # Handle Log/Uniform
                 if str(sampler) == "LogUniform":
-                    upper = domain.upper - (
-                        isinstance(domain, sample.Integer) & (quantize is None)
-                    )
+                    upper = domain.upper - (isinstance(domain, sample.Integer) & (quantize is None))
                     config_denorm[key] = (upper / domain.lower) ** value * domain.lower
                 elif str(sampler) == "Uniform":
-                    upper = domain.upper - (
-                        isinstance(domain, sample.Integer) & (quantize is None)
-                    )
+                    upper = domain.upper - (isinstance(domain, sample.Integer) & (quantize is None))
                     config_denorm[key] = value * (upper - domain.lower) + domain.lower
                 elif str(sampler) == "Normal":
                     # denormalization for 'Normal'
@@ -427,9 +389,7 @@ def denormalize(
                 #     config_denorm[key] = value
                 # Handle quantized
                 if quantize is not None:
-                    config_denorm[key] = (
-                        np.round(np.divide(config_denorm[key], quantize)) * quantize
-                    )
+                    config_denorm[key] = np.round(np.divide(config_denorm[key], quantize)) * quantize
                 # Handle int (4.6 -> 5)
                 if isinstance(domain, sample.Integer):
                     config_denorm[key] = int(round(config_denorm[key]))
@@ -525,9 +485,7 @@ def complete_config(
     for key, value in space.items():
         if key not in config:
             config[key] = value
-    for _, generated in generate_variants_compatible(
-        {"config": config}, random_state=flow2.rs_random
-    ):
+    for _, generated in generate_variants_compatible({"config": config}, random_state=flow2.rs_random):
         config = generated["config"]
         break
     subspace = {}
@@ -550,9 +508,7 @@ def complete_config(
                     lower and lower.get(key) and lower[key][index],
                     upper and upper.get(key) and upper[key][index],
                 )
-                assert (
-                    "_choice_" not in subspace[key]
-                ), "_choice_ is a reserved key for hierarchical search space"
+                assert "_choice_" not in subspace[key], "_choice_ is a reserved key for hierarchical search space"
                 subspace[key]["_choice_"] = index
             else:
                 config[key], subspace[key] = complete_config(

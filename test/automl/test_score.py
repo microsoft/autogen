@@ -11,12 +11,7 @@ class TestScore:
         import statsmodels.api as sm
 
         data = sm.datasets.co2.load_pandas().data["co2"].resample("MS").mean()
-        data = (
-            data.fillna(data.bfill())
-            .to_frame()
-            .reset_index()
-            .rename(columns={"index": "ds", "co2": "y"})
-        )
+        data = data.fillna(data.bfill()).to_frame().reset_index().rename(columns={"index": "ds", "co2": "y"})
         num_samples = data.shape[0]
         time_horizon = 12
         split_idx = num_samples - time_horizon
@@ -48,9 +43,7 @@ class TestScore:
             with open("automl.pkl", "rb") as f:
                 pickle.load(f)  # v1.1 of prophet raises RecursionError
         except (ImportError, RecursionError):
-            print(
-                "not using prophet due to ImportError or RecursionError (when unpickling in v1.1)"
-            )
+            print("not using prophet due to ImportError or RecursionError (when unpickling in v1.1)")
             automl.fit(
                 dataframe=df,
                 **settings,

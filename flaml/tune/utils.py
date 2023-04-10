@@ -23,9 +23,5 @@ def choice(categories: Sequence, order=None):
             Numerical categories have an order, while string categories do not.
     """
     domain = sample.Categorical(categories).uniform()
-    domain.ordered = (
-        order
-        if order is not None
-        else all(isinstance(x, (int, float)) for x in categories)
-    )
+    domain.ordered = order if order is not None else all(isinstance(x, (int, float)) for x in categories)
     return domain

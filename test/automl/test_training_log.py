@@ -9,9 +9,7 @@ from flaml.automl.training_log import training_log_reader
 
 
 class TestTrainingLog(unittest.TestCase):
-    def test_training_log(
-        self, path="test_training_log.log", estimator_list="auto", use_ray=False
-    ):
+    def test_training_log(self, path="test_training_log.log", estimator_list="auto", use_ray=False):
         with TemporaryDirectory() as d:
             filename = os.path.join(d, path)
 
@@ -64,11 +62,9 @@ class TestTrainingLog(unittest.TestCase):
                 assert (
                     str(model.estimator) == str(automl.model.estimator)
                     or estimator == "xgboost"
-                    and str(model.estimator.get_dump())
-                    == str(automl.model.estimator.get_dump())
+                    and str(model.estimator.get_dump()) == str(automl.model.estimator.get_dump())
                     or estimator == "catboost"
-                    and str(model.estimator.get_all_params())
-                    == str(automl.model.estimator.get_all_params())
+                    and str(model.estimator.get_all_params()) == str(automl.model.estimator.get_all_params())
                 )
                 automl.fit(
                     X_train=X_train,

@@ -40,9 +40,7 @@ def _process_df(df, label_col, prediction_col):
 def _compute_label_from_probability(df, probability_col, prediction_col):
     # array_max finds the maximum value in the 'probability' array
     # array_position finds the index of the maximum value in the 'probability' array
-    max_index_expr = F.expr(
-        f"array_position({probability_col}, array_max({probability_col}))-1"
-    )
+    max_index_expr = F.expr(f"array_position({probability_col}, array_max({probability_col}))-1")
     # Create a new column 'prediction' based on the maximum probability value
     df = df.withColumn(prediction_col, max_index_expr.cast("double"))
     return df
@@ -143,9 +141,7 @@ def spark_metric_loss_score(
         )
     elif metric_name == "log_loss":
         # For log_loss, prediction_col should be probability, and we need to convert it to label
-        df = _compute_label_from_probability(
-            df, prediction_col, prediction_col + "_label"
-        )
+        df = _compute_label_from_probability(df, prediction_col, prediction_col + "_label")
         evaluator = MulticlassClassificationEvaluator(
             metricName="logLoss",
             labelCol=label_col,
@@ -214,17 +210,11 @@ def spark_metric_loss_score(
                 score /= len(counts)
                 score += 1
         else:
-            evaluator = RankingEvaluator(
-                metricName="ndcgAtK", labelCol=label_col, predictionCol=prediction_col
-            )
+            evaluator = RankingEvaluator(metricName="ndcgAtK", labelCol=label_col, predictionCol=prediction_col)
             df = _process_df(df, label_col, prediction_col)
             score = 1 - evaluator.evaluate(df)
         return score
     else:
         raise ValueError(f"Unknown metric name: {metric_name} for spark models.")
 
-    return (
-        evaluator.evaluate(df)
-        if metric_name in min_mode_metrics
-        else 1 - evaluator.evaluate(df)
-    )
+    return evaluator.evaluate(df) if metric_name in min_mode_metrics else 1 - evaluator.evaluate(df)

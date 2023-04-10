@@ -24,9 +24,7 @@ def remote_run():
     # load component functions
     ################################################
 
-    pipeline_tuning_func = Component.from_yaml(
-        ws, yaml_file=LOCAL_DIR / "tuner/component_spec.yaml"
-    )
+    pipeline_tuning_func = Component.from_yaml(ws, yaml_file=LOCAL_DIR / "tuner/component_spec.yaml")
 
     ################################################
     # build pipeline
@@ -61,9 +59,7 @@ if __name__ == "__main__":
         help="your_subscription_id",
         required=False,
     )
-    parser.add_argument(
-        "--resource_group", type=str, help="your_resource_group", required=False
-    )
+    parser.add_argument("--resource_group", type=str, help="your_resource_group", required=False)
     parser.add_argument("--workspace", type=str, help="your_workspace", required=False)
 
     parser.add_argument("--remote", dest="remote", action="store_true")

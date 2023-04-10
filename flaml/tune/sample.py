@@ -53,13 +53,9 @@ except ImportError:
 
         def __init__(
             self,
-            generator_or_seed: Optional[
-                Union["np_random_generator", np.random.RandomState, int]
-            ] = None,
+            generator_or_seed: Optional[Union["np_random_generator", np.random.RandomState, int]] = None,
         ):
-            if generator_or_seed is None or isinstance(
-                generator_or_seed, (np.random.RandomState, np_random_generator)
-            ):
+            if generator_or_seed is None or isinstance(generator_or_seed, (np.random.RandomState, np_random_generator)):
                 self._rng = generator_or_seed
             elif LEGACY_RNG:
                 self._rng = np.random.RandomState(generator_or_seed)
@@ -85,9 +81,7 @@ except ImportError:
             return getattr(self.rng, name)
 
 
-RandomState = Union[
-    None, _BackwardsCompatibleNumpyRng, np_random_generator, np.random.RandomState, int
-]
+RandomState = Union[None, _BackwardsCompatibleNumpyRng, np_random_generator, np.random.RandomState, int]
 
 
 class Domain:
@@ -112,9 +106,7 @@ class Domain:
             raise ValueError(
                 "You can only choose one sampler for parameter "
                 "domains. Existing sampler for parameter {}: "
-                "{}. Tried to add {}".format(
-                    self.__class__.__name__, self.sampler, sampler
-                )
+                "{}. Tried to add {}".format(self.__class__.__name__, self.sampler, sampler)
             )
         self.sampler = sampler
 
@@ -231,9 +223,7 @@ class Float(Domain):
             if not isinstance(random_state, _BackwardsCompatibleNumpyRng):
                 random_state = _BackwardsCompatibleNumpyRng(random_state)
             assert domain.lower > 0, "LogUniform needs a lower bound greater than 0"
-            assert (
-                0 < domain.upper < float("inf")
-            ), "LogUniform needs a upper bound greater than 0"
+            assert 0 < domain.upper < float("inf"), "LogUniform needs a upper bound greater than 0"
             logmin = np.log(domain.lower) / np.log(self.base)
             logmax = np.log(domain.upper) / np.log(self.base)
 
@@ -271,15 +261,9 @@ class Float(Domain):
 
     def uniform(self):
         if not self.lower > float("-inf"):
-            raise ValueError(
-                "Uniform requires a lower bound. Make sure to set the "
-                "`lower` parameter of `Float()`."
-            )
+            raise ValueError("Uniform requires a lower bound. Make sure to set the " "`lower` parameter of `Float()`.")
         if not self.upper < float("inf"):
-            raise ValueError(
-                "Uniform requires a upper bound. Make sure to set the "
-                "`upper` parameter of `Float()`."
-            )
+            raise ValueError("Uniform requires a upper bound. Make sure to set the " "`upper` parameter of `Float()`.")
         new = copy(self)
         new.set_sampler(self._Uniform())
         return new
@@ -309,20 +293,10 @@ class Float(Domain):
         return new
 
     def quantized(self, q: float):
-        if self.lower > float("-inf") and not isclose(
-            self.lower / q, round(self.lower / q)
-        ):
-            raise ValueError(
-                f"Your lower variable bound {self.lower} is not divisible by "
-                f"quantization factor {q}."
-            )
-        if self.upper < float("inf") and not isclose(
-            self.upper / q, round(self.upper / q)
-        ):
-            raise ValueError(
-                f"Your upper variable bound {self.upper} is not divisible by "
-                f"quantization factor {q}."
-            )
+        if self.lower > float("-inf") and not isclose(self.lower / q, round(self.lower / q)):
+            raise ValueError(f"Your lower variable bound {self.lower} is not divisible by " f"quantization factor {q}.")
+        if self.upper < float("inf") and not isclose(self.upper / q, round(self.upper / q)):
+            raise ValueError(f"Your upper variable bound {self.upper} is not divisible by " f"quantization factor {q}.")
 
         new = copy(self)
         new.set_sampler(Quantized(new.get_sampler(), q), allow_override=True)
@@ -361,9 +335,7 @@ class Integer(Domain):
             if not isinstance(random_state, _BackwardsCompatibleNumpyRng):
                 random_state = _BackwardsCompatibleNumpyRng(random_state)
             assert domain.lower > 0, "LogUniform needs a lower bound greater than 0"
-            assert (
-                0 < domain.upper < float("inf")
-            ), "LogUniform needs a upper bound greater than 0"
+            assert 0 < domain.upper < float("inf"), "LogUniform needs a upper bound greater than 0"
             logmin = np.log(domain.lower) / np.log(self.base)
             logmax = np.log(domain.upper) / np.log(self.base)
 
@@ -430,9 +402,7 @@ class Categorical(Domain):
                 random_state = _BackwardsCompatibleNumpyRng(random_state)
             # do not use .choice() directly on domain.categories
             # as that will coerce them to a single dtype
-            indices = random_state.choice(
-                np.arange(0, len(domain.categories)), size=size
-            )
+            indices = random_state.choice(np.arange(0, len(domain.categories)), size=size)
             items = [domain.categories[index] for index in indices]
             return items if len(items) > 1 else domain.cast(items[0])
 
@@ -491,9 +461,7 @@ class Quantized(Sampler):
         quantized_domain = copy(domain)
         quantized_domain.lower = np.ceil(domain.lower / self.q) * self.q
         quantized_domain.upper = np.floor(domain.upper / self.q) * self.q
-        values = self.sampler.sample(
-            quantized_domain, spec, size, random_state=random_state
-        )
+        values = self.sampler.sample(quantized_domain, spec, size, random_state=random_state)
         quantized = np.round(np.divide(values, self.q)) * self.q
 
         if not isinstance(quantized, np.ndarray):
@@ -509,11 +477,7 @@ class PolynomialExpansionSet:
         allow_self_inter: bool = False,
     ):
         self._init_monomials = init_monomials
-        self._highest_poly_order = (
-            highest_poly_order
-            if highest_poly_order is not None
-            else len(self._init_monomials)
-        )
+        self._highest_poly_order = highest_poly_order if highest_poly_order is not None else len(self._init_monomials)
         self._allow_self_inter = allow_self_inter
 
     @property
@@ -644,7 +608,5 @@ def qrandn(mean: float, sd: float, q: float):
     return Float(None, None).normal(mean, sd).quantized(q)
 
 
-def polynomial_expansion_set(
-    init_monomials: set, highest_poly_order: int = None, allow_self_inter: bool = False
-):
+def polynomial_expansion_set(init_monomials: set, highest_poly_order: int = None, allow_self_inter: bool = False):
     return PolynomialExpansionSet(init_monomials, highest_poly_order, allow_self_inter)

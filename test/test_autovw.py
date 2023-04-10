@@ -18,9 +18,7 @@ NS_LIST = list(string.ascii_lowercase) + list(string.ascii_uppercase)
 logger = logging.getLogger(__name__)
 
 
-def oml_to_vw_w_grouping(
-    X, y, ds_dir, fname, orginal_dim, group_num, grouping_method="sequential"
-):
+def oml_to_vw_w_grouping(X, y, ds_dir, fname, orginal_dim, group_num, grouping_method="sequential"):
     # split all_indexes into # group_num of groups
     max_size_per_group = int(np.ceil(orginal_dim / float(group_num)))
     # sequential grouping
@@ -49,17 +47,11 @@ def oml_to_vw_w_grouping(
                 for i in range(len(X)):
                     NS_content = []
                     for zz in range(len(group_indexes)):
-                        ns_features = " ".join(
-                            "{}:{:.6f}".format(ind, X[i][ind])
-                            for ind in group_indexes[zz]
-                        )
+                        ns_features = " ".join("{}:{:.6f}".format(ind, X[i][ind]) for ind in group_indexes[zz])
                         NS_content.append(ns_features)
                     ns_line = "{} |{}".format(
                         str(y[i]),
-                        "|".join(
-                            "{} {}".format(NS_LIST[j], NS_content[j])
-                            for j in range(len(group_indexes))
-                        ),
+                        "|".join("{} {}".format(NS_LIST[j], NS_content[j]) for j in range(len(group_indexes))),
                     )
                     f.write(ns_line)
                     f.write("\n")
@@ -140,10 +132,7 @@ def load_vw_dataset(did, ds_dir, is_regression, max_ns_num):
         fname = "ds_{}_{}_{}.vw".format(did, max_ns_num, 0)
         vw_dataset_file = os.path.join(ds_dir, fname)
         # if file does not exist, generate and save the datasets
-        if (
-            not os.path.exists(vw_dataset_file)
-            or os.stat(vw_dataset_file).st_size < 1000
-        ):
+        if not os.path.exists(vw_dataset_file) or os.stat(vw_dataset_file).st_size < 1000:
             get_oml_to_vw(did, max_ns_num)
         print(ds_dir, vw_dataset_file)
         if not os.path.exists(ds_dir):
@@ -175,9 +164,7 @@ def get_data(
     # Y = data.Y
     if vw_format:
         # vw_examples = data.vw_examples
-        vw_examples = load_vw_dataset(
-            did=data_id, ds_dir=VW_DS_DIR, is_regression=True, max_ns_num=max_ns_num
-        )
+        vw_examples = load_vw_dataset(did=data_id, ds_dir=VW_DS_DIR, is_regression=True, max_ns_num=max_ns_num)
         Y = []
         for i, e in enumerate(vw_examples):
             Y.append(float(e.split("|")[0]))
@@ -230,9 +217,7 @@ class VowpalWabbitNamesspaceTuningProblem:
         }
         self._problem_info.update(kwargs)
         self._fixed_hp_config = kwargs.get("fixed_hp_config", {})
-        self.namespace_feature_dim = AutoVW.get_ns_feature_dim_from_vw_example(
-            self.vw_examples[0]
-        )
+        self.namespace_feature_dim = AutoVW.get_ns_feature_dim_from_vw_example(self.vw_examples[0])
         self._raw_namespaces = list(self.namespace_feature_dim.keys())
         self._setup_search()
 
@@ -355,13 +340,9 @@ def get_vw_tuning_problem(tuning_hp="NamesapceInteraction"):
         "fixed_hp_config": online_vw_exp_setting["fixed_hp_config"],
     }
     if tuning_hp == "NamesapceInteraction":
-        vw_online_aml_problem = VowpalWabbitNamesspaceTuningProblem(
-            **vw_oml_problem_args
-        )
+        vw_online_aml_problem = VowpalWabbitNamesspaceTuningProblem(**vw_oml_problem_args)
     elif tuning_hp == "NamesapceInteraction+LearningRate":
-        vw_online_aml_problem = VowpalWabbitNamesspaceLRTuningProblem(
-            **vw_oml_problem_args
-        )
+        vw_online_aml_problem = VowpalWabbitNamesspaceLRTuningProblem(**vw_oml_problem_args)
     else:
         NotImplementedError
 
@@ -382,13 +363,9 @@ class TestAutoVW(unittest.TestCase):
             vw_online_aml_problem.max_iter_num,
             vw_online_aml_problem.vw_examples,
             vanilla_vw,
-            loss_func=vw_oml_problem_args["fixed_hp_config"].get(
-                "loss_function", "squared"
-            ),
+            loss_func=vw_oml_problem_args["fixed_hp_config"].get("loss_function", "squared"),
         )
-        print(
-            "final average loss:", sum(cumulative_loss_list) / len(cumulative_loss_list)
-        )
+        print("final average loss:", sum(cumulative_loss_list) / len(cumulative_loss_list))
 
     def test_supervised_vw_tune_namespace(self):
         # basic experiment setting
@@ -405,13 +382,9 @@ class TestAutoVW(unittest.TestCase):
             vw_online_aml_problem.max_iter_num,
             vw_online_aml_problem.vw_examples,
             autovw,
-            loss_func=vw_oml_problem_args["fixed_hp_config"].get(
-                "loss_function", "squared"
-            ),
+            loss_func=vw_oml_problem_args["fixed_hp_config"].get("loss_function", "squared"),
         )
-        print(
-            "final average loss:", sum(cumulative_loss_list) / len(cumulative_loss_list)
-        )
+        print("final average loss:", sum(cumulative_loss_list) / len(cumulative_loss_list))
 
     def test_supervised_vw_tune_namespace_learningrate(self):
         # basic experiment setting
@@ -430,13 +403,9 @@ class TestAutoVW(unittest.TestCase):
             vw_online_aml_problem.max_iter_num,
             vw_online_aml_problem.vw_examples,
             autovw,
-            loss_func=vw_oml_problem_args["fixed_hp_config"].get(
-                "loss_function", "squared"
-            ),
+            loss_func=vw_oml_problem_args["fixed_hp_config"].get("loss_function", "squared"),
         )
-        print(
-            "final average loss:", sum(cumulative_loss_list) / len(cumulative_loss_list)
-        )
+        print("final average loss:", sum(cumulative_loss_list) / len(cumulative_loss_list))
 
     def test_bandit_vw_tune_namespace(self):
         pass

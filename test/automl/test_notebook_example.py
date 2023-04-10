@@ -60,9 +60,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
     print("Best ML leaner:", automl.best_estimator)
     print("Best hyperparmeter config:", automl.best_config)
     print("Best accuracy on validation data: {0:.4g}".format(1 - automl.best_loss))
-    print(
-        "Training duration of best run: {0:.4g} s".format(automl.best_config_train_time)
-    )
+    print("Training duration of best run: {0:.4g} s".format(automl.best_config_train_time))
     print(automl.model.estimator)
     print(automl.best_config_per_estimator)
     print("time taken to find best model:", automl.time_to_find_best_model)
@@ -81,9 +79,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
 
     accuracy = 1 - sklearn_metric_loss_score("accuracy", y_pred, y_test)
     print("accuracy", "=", accuracy)
-    print(
-        "roc_auc", "=", 1 - sklearn_metric_loss_score("roc_auc", y_pred_proba, y_test)
-    )
+    print("roc_auc", "=", 1 - sklearn_metric_loss_score("roc_auc", y_pred_proba, y_test))
     print("log_loss", "=", sklearn_metric_loss_score("log_loss", y_pred_proba, y_test))
     if budget is None:
         assert accuracy >= 0.669, "the accuracy of flaml should be larger than 0.67"
@@ -122,9 +118,7 @@ def test_mlflow():
     from flaml.automl.data import load_openml_task
 
     try:
-        X_train, X_test, y_train, y_test = load_openml_task(
-            task_id=7592, data_dir="test/"
-        )
+        X_train, X_test, y_train, y_test = load_openml_task(task_id=7592, data_dir="test/")
     except (OpenMLServerException, ChunkedEncodingError, SSLError) as e:
         print(e)
         return

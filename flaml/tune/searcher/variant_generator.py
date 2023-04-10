@@ -143,9 +143,7 @@ def _generate_variants(
     for resolved_spec in grid_search:
         if not constant_grid_search or not all_resolved:
             # In this path, we sample the remaining random variables
-            _, resolved_vars = _resolve_domain_vars(
-                resolved_spec, to_resolve, random_state=random_state
-            )
+            _, resolved_vars = _resolve_domain_vars(resolved_spec, to_resolve, random_state=random_state)
 
         for resolved, spec in _generate_variants(
             resolved_spec,
@@ -155,11 +153,7 @@ def _generate_variants(
             for path, value in grid_vars:
                 resolved_vars[path] = _get_value(spec, path)
             for k, v in resolved.items():
-                if (
-                    k in resolved_vars
-                    and v != resolved_vars[k]
-                    and _is_resolved(resolved_vars[k])
-                ):
+                if k in resolved_vars and v != resolved_vars[k] and _is_resolved(resolved_vars[k]):
                     raise ValueError(
                         "The variable `{}` could not be unambiguously "
                         "resolved to a single value. Consider simplifying "
@@ -197,9 +191,7 @@ def _resolve_domain_vars(
             if path in resolved:
                 continue
             try:
-                value = domain.sample(
-                    _UnresolvedAccessGuard(spec), random_state=random_state
-                )
+                value = domain.sample(_UnresolvedAccessGuard(spec), random_state=random_state)
             except RecursiveDependencyError as e:
                 error = e
             # except Exception:
@@ -217,9 +209,7 @@ def _resolve_domain_vars(
     return True, resolved
 
 
-def _grid_search_generator(
-    unresolved_spec: Dict, grid_vars: List
-) -> Generator[Dict, None, None]:
+def _grid_search_generator(unresolved_spec: Dict, grid_vars: List) -> Generator[Dict, None, None]:
     value_indices = [0] * len(grid_vars)
 
     def increment(i):
@@ -260,9 +250,7 @@ def _try_resolve(v) -> Tuple[bool, Any]:
         # Grid search values
         grid_values = v["grid_search"]
         if not isinstance(grid_values, list):
-            raise TuneError(
-                "Grid search expected list of values, got: {}".format(grid_values)
-            )
+            raise TuneError("Grid search expected list of values, got: {}".format(grid_values))
         return False, Categorical(grid_values).grid()
     return True, v
 
@@ -318,9 +306,7 @@ class _UnresolvedAccessGuard(dict):
     def __getattribute__(self, item):
         value = dict.__getattribute__(self, item)
         if not _is_resolved(value):
-            raise RecursiveDependencyError(
-                "`{}` recursively depends on {}".format(item, value)
-            )
+            raise RecursiveDependencyError("`{}` recursively depends on {}".format(item, value))
         elif isinstance(value, dict):
             return _UnresolvedAccessGuard(value)
         else:

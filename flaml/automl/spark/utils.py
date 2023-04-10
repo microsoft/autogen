@@ -73,9 +73,7 @@ def to_pandas_on_spark(
     elif isinstance(df, (ps.DataFrame, ps.Series)):
         return df
     else:
-        raise TypeError(
-            f"{type(df)} is not one of pandas.DataFrame, pandas.Series and pyspark.sql.DataFrame"
-        )
+        raise TypeError(f"{type(df)} is not one of pandas.DataFrame, pandas.Series and pyspark.sql.DataFrame")
 
 
 def train_test_split_pyspark(
@@ -106,10 +104,7 @@ def train_test_split_pyspark(
     if stratify_column:
         # Test data
         test_fraction_dict = (
-            df.select(stratify_column)
-            .distinct()
-            .withColumn("fraction", F.lit(test_fraction))
-            .rdd.collectAsMap()
+            df.select(stratify_column).distinct().withColumn("fraction", F.lit(test_fraction)).rdd.collectAsMap()
         )
         df_test = df.stat.sampleBy(stratify_column, test_fraction_dict, seed)
         # Train data
@@ -128,9 +123,7 @@ def train_test_split_pyspark(
     return [df_train, df_test]
 
 
-def unique_pandas_on_spark(
-    psds: Union[ps.Series, ps.DataFrame]
-) -> Tuple[np.ndarray, np.ndarray]:
+def unique_pandas_on_spark(psds: Union[ps.Series, ps.DataFrame]) -> Tuple[np.ndarray, np.ndarray]:
     """Get the unique values and counts of a pandas_on_spark series."""
     if isinstance(psds, ps.DataFrame):
         psds = psds.iloc[:, 0]
@@ -140,9 +133,7 @@ def unique_pandas_on_spark(
     return label_set, counts
 
 
-def len_labels(
-    y: Union[ps.Series, np.ndarray], return_labels=False
-) -> Union[int, Optional[np.ndarray]]:
+def len_labels(y: Union[ps.Series, np.ndarray], return_labels=False) -> Union[int, Optional[np.ndarray]]:
     """Get the number of unique labels in y."""
     if not isinstance(y, (ps.DataFrame, ps.Series)):
         labels = np.unique(y)
@@ -153,9 +144,7 @@ def len_labels(
     return len(labels)
 
 
-def unique_value_first_index(
-    y: Union[pd.Series, ps.Series, np.ndarray]
-) -> Tuple[np.ndarray, np.ndarray]:
+def unique_value_first_index(y: Union[pd.Series, ps.Series, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
     """Get the unique values and indices of a pandas series,
     pandas_on_spark series or numpy array."""
     if isinstance(y, ps.Series):
@@ -196,9 +185,7 @@ def iloc_pandas_on_spark(
             psdfiloc = psdfiloc.drop(columns=[index_col])
         return psdfiloc
     else:
-        raise TypeError(
-            f"{type(index)} is not one of int, slice and list for pandas_on_spark iloc"
-        )
+        raise TypeError(f"{type(index)} is not one of int, slice and list for pandas_on_spark iloc")
 
 
 def spark_kFold(
@@ -241,9 +228,7 @@ def spark_kFold(
             condition = (df[randCol] >= validateLB) & (df[randCol] < validateUB)
             validation = to_pandas_on_spark(df.filter(condition), index_col=index_col)
             train = to_pandas_on_spark(df.filter(~condition), index_col=index_col)
-            datasets.append(
-                (train.drop(columns=[randCol]), validation.drop(columns=[randCol]))
-            )
+            datasets.append((train.drop(columns=[randCol]), validation.drop(columns=[randCol])))
     else:
         # Use user-specified fold column
         def get_fold_num(foldNum: int) -> int:

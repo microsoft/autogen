@@ -29,13 +29,9 @@ def _test(split_type):
 
         X, y = load_wine(return_X_y=True)
     if split_type != "time":
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.33, random_state=42
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
     else:
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.33, shuffle=False
-        )
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, shuffle=False)
     automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
 
     pred = automl.predict(X_test)
@@ -83,9 +79,7 @@ def test_groups():
     automl_settings["split_type"] = GroupKFold(n_splits=3)
     try:
         automl.fit(X, y, **automl_settings)
-        raise RuntimeError(
-            "GroupKFold object as split_type should fail when eval_method is holdout"
-        )
+        raise RuntimeError("GroupKFold object as split_type should fail when eval_method is holdout")
     except AssertionError:
         # eval_method must be 'auto' or 'cv' for custom data splitter.
         pass
@@ -140,9 +134,7 @@ def test_rank():
         "log_file_name": "test/{}.log".format(dataset),
         "model_history": True,
         "eval_method": "cv",
-        "groups": np.array(  # group labels
-            [0] * 200 + [1] * 200 + [2] * 200 + [3] * 200 + [4] * 100 + [5] * 100
-        ),
+        "groups": np.array([0] * 200 + [1] * 200 + [2] * 200 + [3] * 200 + [4] * 100 + [5] * 100),  # group labels
         "learner_selector": "roundrobin",
     }
     automl.fit(X, y, **automl_settings)
@@ -197,9 +189,7 @@ def test_object():
         "split_type": TestKFold(5),
     }
     automl.fit(X, y, **automl_settings)
-    assert (
-        automl._state.eval_method == "cv"
-    ), "eval_method must be 'cv' for custom data splitter"
+    assert automl._state.eval_method == "cv", "eval_method must be 'cv' for custom data splitter"
 
     kf = TestKFold(5)
     kf.shuffle = True

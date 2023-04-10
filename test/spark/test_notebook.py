@@ -8,9 +8,7 @@ import pytest
 spark_available, _ = check_spark()
 skip_spark = not spark_available
 
-pytestmark = pytest.mark.skipif(
-    skip_spark, reason="Spark is not installed. Skip all spark tests."
-)
+pytestmark = pytest.mark.skipif(skip_spark, reason="Spark is not installed. Skip all spark tests.")
 
 here = os.path.abspath(os.path.dirname(__file__))
 os.environ["FLAML_MAX_CONCURRENT"] = "2"

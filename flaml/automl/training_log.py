@@ -111,9 +111,7 @@ class TrainingLogWriter(object):
         if self.file is None:
             raise IOError("Call open() to open the output file first.")
         if self.current_best_loss_record_id is None:
-            logger.warning(
-                "flaml.training_log: checkpoint() called before any record is written, skipped."
-            )
+            logger.warning("flaml.training_log: checkpoint() called before any record is written, skipped.")
             return
         record = TrainingLogCheckPoint(self.current_best_loss_record_id)
         record.dump(self.file)

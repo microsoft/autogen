@@ -109,9 +109,7 @@ def serialize(configs, regret, meta_features, output_file, config_path):
     except FileNotFoundError:
         pass
 
-    meta_features_norm, preferences, proc = config_predictor_tuple(
-        regret.columns, configs, meta_features, regret
-    )
+    meta_features_norm, preferences, proc = config_predictor_tuple(regret.columns, configs, meta_features, regret)
     portfolio = [load_json(config_path.joinpath(m + ".json")) for m in configs]
     regret = regret.loc[configs]
 
@@ -122,9 +120,7 @@ def serialize(configs, regret, meta_features, output_file, config_path):
         "preprocessing": proc,
         "neighbors": [
             {"features": tuple(x), "choice": _filter(preferences[y], regret[y])}
-            for x, y in zip(
-                meta_features_norm.to_records(index=False), preferences.columns
-            )
+            for x, y in zip(meta_features_norm.to_records(index=False), preferences.columns)
         ],
         "configsource": list(configs),
     }
@@ -164,9 +160,7 @@ def serialize(configs, regret, meta_features, output_file, config_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Build a portfolio.")
-    parser.add_argument(
-        "--strategy", help="One of {greedy, greedy-feedback}", default="greedy"
-    )
+    parser.add_argument("--strategy", help="One of {greedy, greedy-feedback}", default="greedy")
     parser.add_argument("--input", help="Input path")
     parser.add_argument("--metafeatures", help="CSV of task metafeatures")
     parser.add_argument("--exclude", help="One task name to exclude (for LOO purposes)")
@@ -188,9 +182,7 @@ def main():
     all_results = None
     for estimator in args.estimator:
         # produce regret
-        all, baseline = load_result(
-            f"{args.input}/{estimator}/results.csv", args.task, "result"
-        )
+        all, baseline = load_result(f"{args.input}/{estimator}/results.csv", args.task, "result")
         regret = build_regret(all, baseline)
         regret = regret.replace(np.inf, np.nan).dropna(axis=1, how="all")
 
@@ -198,9 +190,7 @@ def main():
             regret = regret.loc[[i for i in regret.index if args.exclude not in i]]
             regret = regret[[c for c in regret.columns if args.exclude not in c]]
 
-        print(
-            f"Regret matrix complete: {100 * regret.count().sum() / regret.shape[0] / regret.shape[1]}%"
-        )
+        print(f"Regret matrix complete: {100 * regret.count().sum() / regret.shape[0] / regret.shape[1]}%")
         print(f"Num models considered: {regret.shape[0]}")
 
         configs = build_portfolio(meta_features, regret, args.strategy)
@@ -214,11 +204,7 @@ def main():
         configsource = meta_predictor["configsource"]
         all = all.loc[configsource]
         all.rename({x: f"{estimator}/{x}" for x in regret.index.values}, inplace=True)
-        baseline_best = (
-            baseline
-            if baseline_best is None
-            else pd.DataFrame({0: baseline_best, 1: baseline}).max(1)
-        )
+        baseline_best = baseline if baseline_best is None else pd.DataFrame({0: baseline_best, 1: baseline}).max(1)
         all_results = all if all_results is None else pd.concat([all_results, all])
         # analyze(regret, meta_predictor)
     regrets = build_regret(all_results, baseline_best)

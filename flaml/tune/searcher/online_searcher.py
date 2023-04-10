@@ -128,9 +128,7 @@ class ChampionFrontierSearcher(BaseSearcher):
 
         self._challenger_list = []
         # initialize the search in set_search_properties
-        self.set_search_properties(
-            setting={self.CHAMPION_TRIAL_NAME: None}, init_call=True
-        )
+        self.set_search_properties(setting={self.CHAMPION_TRIAL_NAME: None}, init_call=True)
         logger.debug("using random seed %s in config oracle", self._seed)
 
     def set_search_properties(
@@ -202,16 +200,12 @@ class ChampionFrontierSearcher(BaseSearcher):
             config_domain = self._space[k]
             if isinstance(config_domain, PolynomialExpansionSet):
                 # get candidate configs for hyperparameters of the PolynomialExpansionSet type
-                partial_new_configs = self._generate_independent_hp_configs(
-                    k, v, config_domain
-                )
+                partial_new_configs = self._generate_independent_hp_configs(k, v, config_domain)
                 if partial_new_configs:
                     hyperparameter_config_groups.append(partial_new_configs)
                     # does not have searcher_trial_ids
                     searcher_trial_ids_groups.append([])
-            elif isinstance(config_domain, Float) or isinstance(
-                config_domain, Categorical
-            ):
+            elif isinstance(config_domain, Float) or isinstance(config_domain, Categorical):
                 # otherwise we need to deal with them in group
                 nonpoly_config[k] = v
                 if k not in self._space_of_nonpoly_hp:
@@ -229,29 +223,17 @@ class ChampionFrontierSearcher(BaseSearcher):
                         metric=self.CFO_SEARCHER_METRIC_NAME,
                     )
                     # initialize the search in set_search_properties
-                    self._searcher_for_nonpoly_hp[
-                        seed_config_trial_id
-                    ].set_search_properties(
+                    self._searcher_for_nonpoly_hp[seed_config_trial_id].set_search_properties(
                         setting={"metric_target": self.CFO_SEARCHER_LARGE_LOSS}
                     )
                     # We need to call this for once, such that the seed config in points_to_evaluate will be called
                     # to be tried
-                    self._searcher_for_nonpoly_hp[seed_config_trial_id].suggest(
-                        seed_config_searcher_trial_id
-                    )
+                    self._searcher_for_nonpoly_hp[seed_config_trial_id].suggest(seed_config_searcher_trial_id)
                 # assuming minimization
-                if (
-                    self._searcher_for_nonpoly_hp[seed_config_trial_id].metric_target
-                    is None
-                ):
+                if self._searcher_for_nonpoly_hp[seed_config_trial_id].metric_target is None:
                     pseudo_loss = self.CFO_SEARCHER_LARGE_LOSS
                 else:
-                    pseudo_loss = (
-                        self._searcher_for_nonpoly_hp[
-                            seed_config_trial_id
-                        ].metric_target
-                        * 0.95
-                    )
+                    pseudo_loss = self._searcher_for_nonpoly_hp[seed_config_trial_id].metric_target * 0.95
                 pseudo_result_to_report = {}
                 for k, v in nonpoly_config.items():
                     pseudo_result_to_report["config/" + str(k)] = v
@@ -264,14 +246,10 @@ class ChampionFrontierSearcher(BaseSearcher):
                     # suggest multiple times
                     new_searcher_trial_id = Trial.generate_id()
                     new_searcher_trial_ids.append(new_searcher_trial_id)
-                    suggestion = self._searcher_for_nonpoly_hp[
-                        seed_config_trial_id
-                    ].suggest(new_searcher_trial_id)
+                    suggestion = self._searcher_for_nonpoly_hp[seed_config_trial_id].suggest(new_searcher_trial_id)
                     if suggestion is not None:
                         partial_new_nonpoly_configs.append(suggestion)
-                logger.info(
-                    "partial_new_nonpoly_configs %s", partial_new_nonpoly_configs
-                )
+                logger.info("partial_new_nonpoly_configs %s", partial_new_nonpoly_configs)
             else:
                 raise NotImplementedError
             if partial_new_nonpoly_configs:
@@ -298,20 +276,14 @@ class ChampionFrontierSearcher(BaseSearcher):
                     new_searcher_trial_id = searcher_trial_ids_groups[i][j]
                 else:
                     new_searcher_trial_id = None
-                new_trial = self._create_trial_from_config(
-                    new_seed_config, new_searcher_trial_id
-                )
+                new_trial = self._create_trial_from_config(new_seed_config, new_searcher_trial_id)
                 new_trials.append(new_trial)
         logger.info("new_configs %s", [t.trial_id for t in new_trials])
         return new_trials
 
-    def _generate_independent_hp_configs(
-        self, hp_name, current_config_value, config_domain
-    ) -> List:
+    def _generate_independent_hp_configs(self, hp_name, current_config_value, config_domain) -> List:
         if isinstance(config_domain, PolynomialExpansionSet):
-            seed_interactions = list(current_config_value) + list(
-                config_domain.init_monomials
-            )
+            seed_interactions = list(current_config_value) + list(config_domain.init_monomials)
             logger.info(
                 "**Important** Seed namespaces (singletons and interactions): %s",
                 seed_interactions,
@@ -340,13 +312,7 @@ class ChampionFrontierSearcher(BaseSearcher):
         champion_all_combinations = self._generate_all_comb(
             seed_interactions, order, allow_self_inter, highest_poly_order
         )
-        space = sorted(
-            list(
-                itertools.combinations(
-                    champion_all_combinations, interaction_num_to_add
-                )
-            )
-        )
+        space = sorted(list(itertools.combinations(champion_all_combinations, interaction_num_to_add)))
         self._random_state.shuffle(space)
         candidate_configs = [set(seed_interactions) | set(item) for item in space]
         final_candidate_configs = []
@@ -413,15 +379,10 @@ class ChampionFrontierSearcher(BaseSearcher):
             all_interactions_no_self_inter = []
             for s in all_interactions:
                 s_no_inter = strip_self_inter(s)
-                if (
-                    len(s_no_inter) > 1
-                    and s_no_inter not in all_interactions_no_self_inter
-                ):
+                if len(s_no_inter) > 1 and s_no_inter not in all_interactions_no_self_inter:
                     all_interactions_no_self_inter.append(s_no_inter)
             all_interactions = all_interactions_no_self_inter
         if highest_poly_order is not None:
-            all_interactions = [
-                c for c in all_interactions if len(c) <= highest_poly_order
-            ]
+            all_interactions = [c for c in all_interactions if len(c) <= highest_poly_order]
         logger.info("all_combinations %s", all_interactions)
         return all_interactions

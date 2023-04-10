@@ -8,9 +8,7 @@ import ray
 
 data = fetch_california_housing(return_X_y=False, as_frame=True)
 X, y = data.data, data.target
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.33, random_state=42
-)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 X_train_ref = ray.put(X_train)
 print(isinstance(X_train_ref, ray.ObjectRef))
 
@@ -33,22 +31,14 @@ def train_lgbm(config: dict) -> dict:
 # load a built-in search space from flaml
 flaml_lgbm_search_space = LGBMEstimator.search_space(X_train.shape)
 # specify the search space as a dict from hp name to domain; you can define your own search space same way
-config_search_space = {
-    hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()
-}
+config_search_space = {hp: space["domain"] for hp, space in flaml_lgbm_search_space.items()}
 # give guidance about hp values corresponding to low training cost, i.e., {"n_estimators": 4, "num_leaves": 4}
 low_cost_partial_config = {
-    hp: space["low_cost_init_value"]
-    for hp, space in flaml_lgbm_search_space.items()
-    if "low_cost_init_value" in space
+    hp: space["low_cost_init_value"] for hp, space in flaml_lgbm_search_space.items() if "low_cost_init_value" in space
 }
 # initial points to evaluate
 points_to_evaluate = [
-    {
-        hp: space["init_value"]
-        for hp, space in flaml_lgbm_search_space.items()
-        if "init_value" in space
-    }
+    {hp: space["init_value"] for hp, space in flaml_lgbm_search_space.items() if "init_value" in space}
 ]
 # run the tuning, minimizing mse, with total time budget 3 seconds
 analysis = tune.run(

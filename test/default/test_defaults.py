@@ -69,23 +69,15 @@ def test_regret():
 def test_suggest_classification():
     location = "test/default"
     X_train, y_train = load_breast_cancer(return_X_y=True, as_frame=True)
-    suggested = suggest_hyperparams(
-        "classification", X_train, y_train, "lgbm", location=location
-    )
+    suggested = suggest_hyperparams("classification", X_train, y_train, "lgbm", location=location)
     print(suggested)
-    suggested = preprocess_and_suggest_hyperparams(
-        "classification", X_train, y_train, "xgboost", location=location
-    )
+    suggested = preprocess_and_suggest_hyperparams("classification", X_train, y_train, "xgboost", location=location)
     print(suggested)
-    suggested = suggest_hyperparams(
-        "classification", X_train, y_train, "xgb_limitdepth", location=location
-    )
+    suggested = suggest_hyperparams("classification", X_train, y_train, "xgb_limitdepth", location=location)
     print(suggested)
 
     X, y = load_iris(return_X_y=True, as_frame=True)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.33, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
     (
         hyperparams,
         estimator_class,
@@ -93,29 +85,21 @@ def test_suggest_classification():
         y,
         feature_transformer,
         label_transformer,
-    ) = preprocess_and_suggest_hyperparams(
-        "classification", X_train, y_train, "lgbm", location=location
-    )
+    ) = preprocess_and_suggest_hyperparams("classification", X_train, y_train, "lgbm", location=location)
     with open("test/default/feature_transformer", "wb") as f:
         pickle.dump(feature_transformer, f, pickle.HIGHEST_PROTOCOL)
     model = estimator_class(**hyperparams)  # estimator_class is LGBMClassifier
     model.fit(X, y)
     X_test = feature_transformer.transform(X_test)
-    y_pred = label_transformer.inverse_transform(
-        pd.Series(model.predict(X_test).astype(int))
-    )
+    y_pred = label_transformer.inverse_transform(pd.Series(model.predict(X_test).astype(int)))
     print(y_pred)
-    suggested = suggest_hyperparams(
-        "classification", X_train, y_train, "xgboost", location=location
-    )
+    suggested = suggest_hyperparams("classification", X_train, y_train, "xgboost", location=location)
     print(suggested)
     suggested = preprocess_and_suggest_hyperparams(
         "classification", X_train, y_train, "xgb_limitdepth", location=location
     )
     print(suggested)
-    suggested = suggest_hyperparams(
-        "classification", X_train, y_train, "xgb_limitdepth", location=location
-    )
+    suggested = suggest_hyperparams("classification", X_train, y_train, "xgb_limitdepth", location=location)
     suggested = suggest_learner(
         "classification",
         X_train,
@@ -129,17 +113,11 @@ def test_suggest_classification():
 def test_suggest_regression():
     location = "test/default"
     X_train, y_train = fetch_california_housing(return_X_y=True, as_frame=True)
-    suggested = suggest_hyperparams(
-        "regression", X_train, y_train, "lgbm", location=location
-    )
+    suggested = suggest_hyperparams("regression", X_train, y_train, "lgbm", location=location)
     print(suggested)
-    suggested = preprocess_and_suggest_hyperparams(
-        "regression", X_train, y_train, "xgboost", location=location
-    )
+    suggested = preprocess_and_suggest_hyperparams("regression", X_train, y_train, "xgboost", location=location)
     print(suggested)
-    suggested = suggest_hyperparams(
-        "regression", X_train, y_train, "xgb_limitdepth", location=location
-    )
+    suggested = suggest_hyperparams("regression", X_train, y_train, "xgb_limitdepth", location=location)
     print(suggested)
     suggested = suggest_learner("regression", X_train, y_train, location=location)
     print(suggested)

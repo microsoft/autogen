@@ -56,9 +56,7 @@ class BlendSearch(Searcher):
         max_resource: Optional[float] = None,
         reduction_factor: Optional[float] = None,
         global_search_alg: Optional[Searcher] = None,
-        config_constraints: Optional[
-            List[Tuple[Callable[[dict], float], str, float]]
-        ] = None,
+        config_constraints: Optional[List[Tuple[Callable[[dict], float], str, float]]] = None,
         metric_constraints: Optional[List[Tuple[str, str, float]]] = None,
         seed: Optional[int] = 20,
         cost_attr: Optional[str] = "auto",
@@ -196,9 +194,7 @@ class BlendSearch(Searcher):
         self._config_constraints = config_constraints
         self._metric_constraints = metric_constraints
         if metric_constraints:
-            assert all(
-                x[1] in ["<=", ">="] for x in metric_constraints
-            ), "sign of metric constraints must be <= or >=."
+            assert all(x[1] in ["<=", ">="] for x in metric_constraints), "sign of metric constraints must be <= or >=."
             # metric modified by lagrange
             metric += self.lagrange
         self._cat_hp_cost = cat_hp_cost or {}
@@ -232,9 +228,7 @@ class BlendSearch(Searcher):
             if experimental:
                 import optuna as ot
 
-                sampler = ot.samplers.TPESampler(
-                    seed=gs_seed, multivariate=True, group=True
-                )
+                sampler = ot.samplers.TPESampler(seed=gs_seed, multivariate=True, group=True)
             else:
                 sampler = None
             try:
@@ -260,11 +254,7 @@ class BlendSearch(Searcher):
         else:
             self._gs = None
         self._experimental = experimental
-        if (
-            getattr(self, "__name__", None) == "CFO"
-            and points_to_evaluate
-            and len(self._points_to_evaluate) > 1
-        ):
+        if getattr(self, "__name__", None) == "CFO" and points_to_evaluate and len(self._points_to_evaluate) > 1:
             # use the best config in points_to_evaluate as the start point
             self._candidate_start_points = {}
             self._started_from_low_cost = not low_cost_partial_config
@@ -383,9 +373,7 @@ class BlendSearch(Searcher):
 
         if self._metric_constraints:
             self._metric_constraint_satisfied = False
-            self._metric_constraint_penalty = [
-                self.penalty for _ in self._metric_constraints
-            ]
+            self._metric_constraint_penalty = [self.penalty for _ in self._metric_constraints]
         else:
             self._metric_constraint_satisfied = True
             self._metric_constraint_penalty = None
@@ -424,9 +412,7 @@ class BlendSearch(Searcher):
     def is_ls_ever_converged(self):
         return self._is_ls_ever_converged
 
-    def on_trial_complete(
-        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
-    ):
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None, error: bool = False):
         """search thread updater and cleaner."""
         metric_constraint_satisfied = True
         if result and not error and self._metric_constraints:
@@ -440,11 +426,7 @@ class BlendSearch(Searcher):
                     violation = (value - threshold) * sign_op
                     if violation > 0:
                         # add penalty term to the metric
-                        objective += (
-                            self._metric_constraint_penalty[i]
-                            * violation
-                            * self._ls.metric_op
-                        )
+                        objective += self._metric_constraint_penalty[i] * violation * self._ls.metric_op
                         metric_constraint_satisfied = False
                         if self._metric_constraint_penalty[i] < self.penalty:
                             self._metric_constraint_penalty[i] += violation
@@ -455,9 +437,7 @@ class BlendSearch(Searcher):
             self._metric_constraint_satisfied |= metric_constraint_satisfied
         thread_id = self._trial_proposed_by.get(trial_id)
         if thread_id in self._search_thread_pool:
-            self._search_thread_pool[thread_id].on_trial_complete(
-                trial_id, result, error
-            )
+            self._search_thread_pool[thread_id].on_trial_complete(trial_id, result, error)
             del self._trial_proposed_by[trial_id]
         if result:
             config = result.get("config", {})
@@ -467,9 +447,7 @@ class BlendSearch(Searcher):
                         config[key[7:]] = value
             if self._allow_empty_config and not config:
                 return
-            signature = self._ls.config_signature(
-                config, self._subspace.get(trial_id, {})
-            )
+            signature = self._ls.config_signature(config, self._subspace.get(trial_id, {}))
             if error:  # remove from result cache
                 del self._result[signature]
             else:  # add to result cache
@@ -489,11 +467,7 @@ class BlendSearch(Searcher):
                             self._ls_bound_max,
                             self._subspace.get(trial_id, self._ls.space),
                         )
-                    if (
-                        self._gs is not None
-                        and self._experimental
-                        and (not self._ls.hierarchical)
-                    ):
+                    if self._gs is not None and self._experimental and (not self._ls.hierarchical):
                         self._gs.add_evaluated_point(flatten_dict(config), objective)
                         # TODO: recover when supported
                         # converted = convert_key(config, self._gs.space)
@@ -502,17 +476,12 @@ class BlendSearch(Searcher):
                 elif metric_constraint_satisfied and self._create_condition(result):
                     # thread creator
                     thread_id = self._thread_count
-                    self._started_from_given = (
-                        self._candidate_start_points
-                        and trial_id in self._candidate_start_points
-                    )
+                    self._started_from_given = self._candidate_start_points and trial_id in self._candidate_start_points
                     if self._started_from_given:
                         del self._candidate_start_points[trial_id]
                     else:
                         self._started_from_low_cost = True
-                    self._create_thread(
-                        config, result, self._subspace.get(trial_id, self._ls.space)
-                    )
+                    self._create_thread(config, result, self._subspace.get(trial_id, self._ls.space))
                 # reset admissible region to ls bounding box
                 self._gs_admissible_min.update(self._ls_bound_min)
                 self._gs_admissible_max.update(self._ls_bound_max)
@@ -595,9 +564,7 @@ class BlendSearch(Searcher):
         """create thread condition"""
         if len(self._search_thread_pool) < 2:
             return True
-        obj_median = np.median(
-            [thread.obj_best1 for id, thread in self._search_thread_pool.items() if id]
-        )
+        obj_median = np.median([thread.obj_best1 for id, thread in self._search_thread_pool.items() if id])
         return result[self._ls.metric] * self._ls.metric_op < obj_median
 
     def _clean(self, thread_id: int):
@@ -648,10 +615,7 @@ class BlendSearch(Searcher):
         best_trial_id = None
         obj_best = None
         for trial_id, r in self._candidate_start_points.items():
-            if r and (
-                best_trial_id is None
-                or r[self._ls.metric] * self._ls.metric_op < obj_best
-            ):
+            if r and (best_trial_id is None or r[self._ls.metric] * self._ls.metric_op < obj_best):
                 best_trial_id = trial_id
                 obj_best = r[self._ls.metric] * self._ls.metric_op
         if best_trial_id:
@@ -663,9 +627,7 @@ class BlendSearch(Searcher):
                     config[key[7:]] = value
             self._started_from_given = True
             del self._candidate_start_points[best_trial_id]
-            self._create_thread(
-                config, result, self._subspace.get(best_trial_id, self._ls.space)
-            )
+            self._create_thread(config, result, self._subspace.get(best_trial_id, self._ls.space))
 
     def _expand_admissible_region(self, lower, upper, space):
         """expand the admissible region for the subspace `space`"""
@@ -674,9 +636,7 @@ class BlendSearch(Searcher):
             if isinstance(ub, list):
                 choice = space[key].get("_choice_")
                 if choice:
-                    self._expand_admissible_region(
-                        lower[key][choice], upper[key][choice], space[key]
-                    )
+                    self._expand_admissible_region(lower[key][choice], upper[key][choice], space[key])
             elif isinstance(ub, dict):
                 self._expand_admissible_region(lower[key], ub, space[key])
             else:
@@ -752,9 +712,7 @@ class BlendSearch(Searcher):
                 if choice == backup:
                     # use CFO's init point
                     init_config = self._ls.init_config
-                    config, space = self._ls.complete_config(
-                        init_config, self._ls_bound_min, self._ls_bound_max
-                    )
+                    config, space = self._ls.complete_config(init_config, self._ls_bound_min, self._ls_bound_max)
                     self._trial_proposed_by[trial_id] = choice
                     self._search_thread_pool[choice].running += 1
                 else:
@@ -801,9 +759,7 @@ class BlendSearch(Searcher):
             if self._allow_empty_config and not init_config:
                 assert reward is None, "Empty config can't have reward."
                 return init_config
-            config, space = self._ls.complete_config(
-                init_config, self._ls_bound_min, self._ls_bound_max
-            )
+            config, space = self._ls.complete_config(init_config, self._ls_bound_min, self._ls_bound_max)
             config_signature = self._ls.config_signature(config, space)
             if reward is None:
                 result = self._result.get(config_signature)
@@ -827,9 +783,7 @@ class BlendSearch(Searcher):
                 return
         if self._use_incumbent_result_in_evaluation:
             if self._trial_proposed_by[trial_id] > 0:
-                choice_thread = self._search_thread_pool[
-                    self._trial_proposed_by[trial_id]
-                ]
+                choice_thread = self._search_thread_pool[self._trial_proposed_by[trial_id]]
                 config[INCUMBENT_RESULT] = choice_thread.best_result
         return config
 
@@ -874,9 +828,7 @@ class BlendSearch(Searcher):
             if choice >= 0:  # not fallback to rs
                 result = self._result.get(config_signature)
                 if result:  # finished
-                    self._search_thread_pool[choice].on_trial_complete(
-                        trial_id, result, error=False
-                    )
+                    self._search_thread_pool[choice].on_trial_complete(trial_id, result, error=False)
                     if choice:
                         # local search thread
                         self._clean(choice)
@@ -938,9 +890,7 @@ class BlendSearch(Searcher):
                     backup_thread_id = thread_id
         return top_thread_id, backup_thread_id
 
-    def _valid(
-        self, config: Dict, space: Dict, subspace: Dict, lower: Dict, upper: Dict
-    ) -> bool:
+    def _valid(self, config: Dict, space: Dict, subspace: Dict, lower: Dict, upper: Dict) -> bool:
         """config validator"""
         normalized_config = normalize(config, subspace, config, {})
         for key, lb in lower.items():
@@ -962,10 +912,7 @@ class BlendSearch(Searcher):
                     valid = self._valid(value, domain, nestedspace, lb, ub)
                     if not valid:
                         return False
-                elif (
-                    value + self._ls.STEPSIZE < lower[key]
-                    or value > upper[key] + self._ls.STEPSIZE
-                ):
+                elif value + self._ls.STEPSIZE < lower[key] or value > upper[key] + self._ls.STEPSIZE:
                     return False
         return True
 
@@ -1033,9 +980,7 @@ class BlendSearchTuner(BlendSearch, NNITuner):
         result = {
             "config": parameters,
             self._metric: extract_scalar_reward(value),
-            self.cost_attr: 1
-            if isinstance(value, float)
-            else value.get(self.cost_attr, value.get("sequence", 1))
+            self.cost_attr: 1 if isinstance(value, float) else value.get(self.cost_attr, value.get("sequence", 1))
             # if nni does not report training cost,
             # using sequence as an approximation.
             # if no sequence, using a constant 1
@@ -1145,11 +1090,7 @@ class CFO(BlendSearchTuner):
         if self._candidate_start_points and self._thread_count == 1:
             # result needs to match or exceed the best candidate start point
             obj_best = min(
-                (
-                    self._ls.metric_op * r[self._ls.metric]
-                    for r in self._candidate_start_points.values()
-                    if r
-                ),
+                (self._ls.metric_op * r[self._ls.metric] for r in self._candidate_start_points.values() if r),
                 default=-np.inf,
             )
 
@@ -1157,9 +1098,7 @@ class CFO(BlendSearchTuner):
         else:
             return True
 
-    def on_trial_complete(
-        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
-    ):
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None, error: bool = False):
         super().on_trial_complete(trial_id, result, error)
         if self._candidate_start_points and trial_id in self._candidate_start_points:
             # the trial is a candidate start point
@@ -1177,9 +1116,7 @@ class RandomSearch(CFO):
         config, _ = self._ls.complete_config({})
         return config
 
-    def on_trial_complete(
-        self, trial_id: str, result: Optional[Dict] = None, error: bool = False
-    ):
+    def on_trial_complete(self, trial_id: str, result: Optional[Dict] = None, error: bool = False):
         return
 
     def on_trial_result(self, trial_id: str, result: Dict):
