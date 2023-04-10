@@ -216,6 +216,7 @@ def test_math(num_samples=-1):
     print("tuned config", config)
     result = oai.ChatCompletion.test(test_data_sample, config)
     print("result from tuned config:", result)
+    print("empty responses", eval_math_responses([], None))
 
 
 if __name__ == "__main__":

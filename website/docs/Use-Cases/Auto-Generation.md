@@ -44,13 +44,13 @@ Collect a diverse set of instances. They can be stored in an iterable of dicts. 
 The evaluation function should take a list of responses, and other keyword arguments corresponding to the keys in each validation data instance as input, and output a dict of metrics. For example,
 
 ```python
-def success_metrics(responses: List[str], problem: str, solution: str) -> Dict:
+def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     # select a response from the list of responses
     # check whether the answer is correct
     return {"success": True or False}
 ```
 
-`flaml.autogen` offers some example evaluation functions for common tasks such as code generation and math problem solving.
+[`flaml.autogen.code_utils`](../reference/autogen/code_utils) and [`flaml.autogen.math_utils`](../reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
 
 ### Metric to optimize
 
