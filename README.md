@@ -14,7 +14,7 @@
     <br>
 </p>
 
-:fire: OpenAI GPT-3 models support in v1.1.3. ChatGPT and GPT-4 support will be added in v1.2.0.
+:fire: v1.2.0 is released with support for ChatGPT and GPT-4.
 
 :fire: A [lab forum](https://github.com/microsoft/FLAML/tree/tutorial-aaai23/tutorial) on FLAML at AAAI 2023.
 

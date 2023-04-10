@@ -843,7 +843,7 @@ class Completion:
         choices = response["choices"]
         if "text" in choices[0]:
             return [choice["text"] for choice in choices]
-        return [choice["message"]["content"] for choice in choices]
+        return [choice["message"].get("content", "") for choice in choices]
 
 
 class ChatCompletion(Completion):

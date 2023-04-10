@@ -290,8 +290,16 @@ def eval_math_responses(responses, solution=None, **args):
     Returns:
         dict: The success metrics.
     """
-    success_list = []
     n = len(responses)
+    if not n:
+        return {
+            "expected_success": 0,
+            "success": False,
+            "success_vote": 0,
+            "voted_answer": None,
+            "votes": 0,
+        }
+    success_list = []
     if solution is not None:
         for i in range(n):
             response = responses[i]

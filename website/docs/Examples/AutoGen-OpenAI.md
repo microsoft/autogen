@@ -56,7 +56,7 @@ test_data = [
 ]
 ```
 
-### Defining the metric
+### Define the metric
 
 Before starting tuning, you need to define the metric for the optimization. For each code generation task, we can use the model to generate multiple candidate responses, and then select one from them. If the final selected response can pass a unit test, we consider the task as successfully solved. Then we can define the average success rate on a collection of tasks as the optimization metric.
 
@@ -69,7 +69,7 @@ eval_with_generated_assertions = partial(eval_function_completions, assertions=g
 
 This function will first generate assertion statements for each problem. Then, it uses the assertions to select the generated responses.
 
-### Tuning Hyperparameters for OpenAI
+### Tune the hyperparameters
 
 The tuning will be performed under the specified optimization budgets.
 
