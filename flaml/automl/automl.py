@@ -491,6 +491,16 @@ class AutoML(BaseEstimator):
             json.dump(best, f)
 
     @property
+    def feature_transformer(self):
+        """Returns AutoML Transformer"""
+        return getattr(self, "_transformer", None)
+
+    @property
+    def label_transformer(self):
+        """Returns AutoML label transformer"""
+        return getattr(self, "_label_transformer", None)
+
+    @property
     def classes_(self):
         """A numpy array of shape (n_classes,) for class labels."""
         attr = getattr(self, "_label_transformer", None)
