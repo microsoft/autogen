@@ -63,7 +63,7 @@ setuptools.setup(
             "statsmodels>=0.12.2",
             "psutil==5.8.0",
             "dataclasses",
-            "transformers[torch]",
+            "transformers[torch]==4.26",
             "datasets",
             "nltk",
             "rouge_score",
