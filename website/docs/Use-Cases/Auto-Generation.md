@@ -12,7 +12,7 @@ which can significantly affect both the utility and the cost of the generated te
 
 The tunable hyperparameters include:
 1. model - this is a required input, specifying the model ID to use.
-1. prompt - the input prompt to the model, which provides the context for the text generation task.
+1. prompt/messages - the input prompt/messages to the model, which provides the context for the text generation task.
 1. max_tokens - the maximum number of tokens (words or word pieces) to generate in the output.
 1. temperature - a value between 0 and 1 that controls the randomness of the generated text. A higher temperature will result in more random and diverse text, while a lower temperature will result in more predictable text.
 1. top_p - a value between 0 and 1 that controls the sampling probability mass for each token generation. A lower top_p value will make it more likely to generate text based on the most likely tokens, while a higher value will allow the model to explore a wider range of possible tokens.
@@ -61,8 +61,8 @@ The metric to optimize is usually an aggregated metric over all the tuning data 
 Users can specify the (optional) search range for each hyperparameter.
 
 1. model. Either a constant str, or multiple choices specified by `flaml.tune.choice`.
-1. prompt. Either a str or a list of strs, of the prompt templates.
-Each prompt template will be formatted with each data instance. For example, the prompt template can be:
+1. prompt/messages. Prompt is either a str or a list of strs, of the prompt templates. messages is a list of dicts or a list of lists, of the message templates.
+Each prompt/message template will be formatted with each data instance. For example, the prompt template can be:
 "{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
 And `{problem}` will be replaced by the "problem" field of each data instance.
 1. max_tokens, n, best_of. They can be constants, or specified by `flaml.tune.randint`, `flaml.tune.qrandint`, `flaml.tune.lograndint` or `flaml.qlograndint`. By default, max_tokens is searched in [50, 1000); n is searched in [1, 100); and best_of is fixed to 1.
@@ -98,19 +98,39 @@ config, analysis = oai.Completion.tune(
 `num_samples` is the number of configurations to sample. -1 means unlimited (until optimization budget is exhausted).
 The returned `config` contains the optimized configuration and `analysis` contains an [ExperimentAnalysis](../reference/tune/analysis#experimentanalysis-objects) object for all the tried configurations and results.
 
-### Perform inference with the tuned config
+## Perform inference with the tuned config
 
-One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to performance inference. It materializes a prompt using a given context. For example,
+One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to performance inference.
+There are a number of benefits of using `flaml.oai.Completion.create` to perform inference.
+
+A template is either a format str, or a function which produces a str from several input fields.
+
+### API unification
+
+`flaml.oai.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API. When only tuning the chat-based models, `flaml.oai.ChatCompletion` can be used.
+
+### Caching
+
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](../reference/autogen/oai/completion#set_cache) or specifying in `create()`.
+
+### Error handling
+
+It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `flaml.oai.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `flaml.oai.request_timeout`, `flaml.oai.retry_timeout` and `flaml.oai.retry_time`.
+
+### Templating
+
+If the provided prompt or message is a template, it will be automatically materialized with a given context. For example,
 
 ```python
-response = oai.Completion.create(problme=problem, **config)
-responses = oai.Completion.extract_text(response)
-# Extract a list of str responses
+response = oai.Completion.create(problme=problem, prompt="{problem} Solve the problem carefully.", **config)
 ```
 
-`flaml.oai.Completion` is compatible with both `openai.Completion` and `openai.ChatCompletion`. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API. When only tuning the chat-based models, `flaml.oai.ChatCompletion` can be used.
-
-`flaml.oai.Completion` also offers some additional utilities including a `test` function to conveniently evaluate the configuration over test data, a `cost` function to calculate the cost of an API call, and caching and error handling. It also supports both OpenAI API and Azure OpenAI API.
+## Other utilities
+`flaml.oai.Completion` also offers some additional utilities, such as:
+- a [`cost`](../reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
+- a [`test`](../reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
+- a [`extract_text`](../reference/autogen/oai/completion#extract_text) function to extract the text from a completion or chat response.
+- a [`set_cache`](../reference/autogen/oai/completion#extract_text) function to set the seed and cache path. The caching is introduced in the section above, with the benefit of cost saving, reproducibility, and controlled randomness.
 
 Interested in trying it yourself? Please check the following notebook examples:
 * [Optimize for Code Gen](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb)

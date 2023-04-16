@@ -116,8 +116,8 @@ print("best result on tuning data", analysis.best_result)
 We can apply the tuned config to the request for an instance:
 
 ```python
-responses = oai.Completion.create(context=tune_data[1], **config)
-print(responses)
+response = oai.Completion.create(context=tune_data[1], **config)
+print(response)
 print(eval_with_generated_assertions(oai.Completion.extract_text(response), **tune_data[1]))
 ```
 

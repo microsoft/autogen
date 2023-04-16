@@ -12,6 +12,17 @@ from flaml.autogen.code_utils import (
 from flaml.autogen.math_utils import eval_math_responses
 
 
+def test_nocontext():
+    try:
+        import openai
+        import diskcache
+    except ImportError as exc:
+        print(exc)
+        return
+    response = oai.Completion.create(model="text-ada-001", prompt="1+1=", max_tokens=1)
+    print(response)
+
+
 @pytest.mark.skipif(
     sys.platform == "win32",
     reason="do not run on windows",
@@ -223,5 +234,6 @@ if __name__ == "__main__":
     import openai
 
     openai.api_key_path = "test/openai/key.txt"
+    test_nocontext()
     test_humaneval(1)
-    # test_math(1)
+    test_math(1)
