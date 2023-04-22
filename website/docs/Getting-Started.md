@@ -108,11 +108,10 @@ The optimization can help you maximize the utility out of these expensive models
 
 ### Where to Go Next?
 
-* Understand the use cases for [Task-oriented AutoML](Use-Cases/task-oriented-automl), [Tune user-defined function](Use-Cases/Tune-User-Defined-Function) and [Zero-shot AutoML](Use-Cases/Zero-Shot-AutoML).
-* Find code examples under "Examples": from [AutoML - Classification](Examples/AutoML-Classification) to [Tune - PyTorch](Examples/Tune-PyTorch).
-* Find [talks](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A) and [tutorials](https://github.com/microsoft/FLAML/tree/tutorial/tutorial) about FLAML.
+* Understand the use cases for [Auto Generation](Use-Cases/Auto-Generation), [Task-oriented AutoML](Use-Cases/Task-Oriented-Automl), [Tune user-defined function](Use-Cases/Tune-User-Defined-Function) and [Zero-shot AutoML](Use-Cases/Zero-Shot-AutoML).
+* Find code examples under "Examples": from [AutoGen - OpenAI](Examples/AutoGen-OpenAI) to [Tune - PyTorch](Examples/Tune-PyTorch).
 * Learn about [research](Research) around FLAML.
-* Refer to [SDK](reference/automl/automl) and [FAQ](FAQ).
+* Chat on [Discord](https://discord.gg/Cppx2vSPVP).
 
 If you like our project, please give it a [star](https://github.com/microsoft/FLAML/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](Contribute).
 

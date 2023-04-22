@@ -3,7 +3,7 @@
 [![Build](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/FLAML/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-blue)
 [![Downloads](https://pepy.tech/badge/flaml)](https://pepy.tech/project/flaml)
-[![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+<!-- [![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) -->
 [![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/Cppx2vSPVP)
 
 
@@ -117,11 +117,9 @@ You can find a detailed documentation about FLAML [here](https://microsoft.githu
 
 In addition, you can find:
 
-- [Talks](https://www.youtube.com/channel/UCfU0zfFXHXdAd5x-WvFBk5A) and [tutorials](https://github.com/microsoft/FLAML/tree/tutorial/tutorial) about FLAML.
-
 - Research around FLAML [here](https://microsoft.github.io/FLAML/docs/Research).
 
-- FAQ [here](https://microsoft.github.io/FLAML/docs/FAQ).
+- Discord [here](https://discord.gg/Cppx2vSPVP).
 
 - Contributing guide [here](https://microsoft.github.io/FLAML/docs/Contribute).
 

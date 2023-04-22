@@ -32,6 +32,7 @@ module.exports = {
             position: 'left',
             label: 'SDK',
         },
+        {to: 'blog', label: 'Blog', position: 'left'},
         {
           type: 'doc',
           docId: 'FAQ',
@@ -57,23 +58,23 @@ module.exports = {
         //     },
         //   ],
         // },
-        // {
-        //   title: 'Community',
-        //   items: [
+        {
+          title: 'Community',
+          items: [
         //     // {
         //     //   label: 'Stack Overflow',
         //     //   href: 'https://stackoverflow.com/questions/tagged/pymarlin',
         //     // },
-        //     // {
-        //     //   label: 'Discord',
-        //     //   href: 'https://discordapp.com/invite/docusaurus',
-        //     // },
+            {
+              label: 'Discord',
+              href: 'https://discord.gg/Cppx2vSPVP',
+            },
         //     // {
         //     //   label: 'Twitter',
         //     //   href: 'https://twitter.com/docusaurus',
         //     // },
-        //   ],
-        // },
+          ],
+        },
         // {
         //   title: 'More',
         //   items: [
