@@ -8,8 +8,70 @@ from flaml.autogen.code_utils import (
     eval_function_completions,
     generate_assertions,
     implement,
+    generate_code,
+    extract_code,
+    improve_function,
+    improve_code,
+    execute_code,
 )
-from flaml.autogen.math_utils import eval_math_responses
+from flaml.autogen.math_utils import eval_math_responses, solve_problem
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"],
+    reason="do not run on MacOS or windows",
+)
+def test_execute_code():
+    try:
+        import docker
+    except ImportError as exc:
+        print(exc)
+        return
+    exitcode, msg = execute_code("print('hello world')", filename="tmp/codetest.py")
+    assert exitcode == 0 and msg == b"hello world\n", msg
+    # read a file
+    print(execute_code("with open('tmp/codetest.py', 'r') as f: a=f.read()"))
+    # create a file
+    print(execute_code("with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir="test/openai/my_tmp"))
+    # execute code in a file
+    print(execute_code(filename="tmp/codetest.py"))
+    # execute code for assertion error
+    exit_code, msg = execute_code("assert 1==2")
+    assert exit_code, msg
+    # execute code which takes a long time
+    exit_code, error = execute_code("import time; time.sleep(2)", timeout=1)
+    assert exit_code and error == "Timeout"
+    exit_code, error = execute_code("import time; time.sleep(2)", timeout=1, use_docker=False)
+    assert exit_code and error == "Timeout"
+
+
+def test_improve():
+    try:
+        import openai
+        import diskcache
+    except ImportError as exc:
+        print(exc)
+        return
+    improved, _ = improve_function(
+        "flaml/autogen/math_utils.py",
+        "solve_problem",
+        "Solve math problems accurately, by avoiding calculation errors and reduce reasoning errors.",
+    )
+    with open("test/openai/math_utils.py.improved", "w") as f:
+        f.write(improved)
+    suggestion, _ = improve_code(
+        ["flaml/autogen/code_utils.py", "flaml/autogen/math_utils.py"],
+        "leverage generative AI smartly and cost-effectively",
+    )
+    print(suggestion)
+    improvement, cost = improve_code(
+        ["flaml/autogen/code_utils.py", "flaml/autogen/math_utils.py"],
+        "leverage generative AI smartly and cost-effectively",
+        suggest_only=False,
+    )
+    print(cost)
+    with open("test/openai/suggested_improvement.txt", "w") as f:
+        f.write(improvement)
 
 
 def test_nocontext():
@@ -19,8 +81,59 @@ def test_nocontext():
     except ImportError as exc:
         print(exc)
         return
-    response = oai.Completion.create(model="text-ada-001", prompt="1+1=", max_tokens=1)
+    response = oai.Completion.create(
+        model="text-ada-001", prompt="1+1=", max_tokens=1, use_cache=False, request_timeout=10
+    )
     print(response)
+    code, _ = generate_code(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "system",
+                "content": "You want to become a better assistant by learning new skills and improving your existing ones.",
+            },
+            {
+                "role": "user",
+                "content": "Write reusable code to use web scraping to get information from websites.",
+            },
+        ],
+    )
+    print(code)
+    # test extract_code from markdown
+    code = extract_code(
+        """
+Example:
+```
+print("hello extract code")
+```
+"""
+    )
+    print(code)
+
+    code = extract_code(
+        """
+Example:
+```python
+def scrape(url):
+    import requests
+    from bs4 import BeautifulSoup
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    title = soup.find("title").text
+    text = soup.find("div", {"id": "bodyContent"}).text
+    return title, text
+```
+Test:
+```python
+url = "https://en.wikipedia.org/wiki/Web_scraping"
+title, text = scrape(url)
+print(f"Title: {title}")
+print(f"Text: {text}")
+"""
+    )
+    print(code)
+    solution, cost = solve_problem("1+1=")
+    print(solution, cost)
 
 
 @pytest.mark.skipif(
@@ -102,6 +215,7 @@ def test_humaneval(num_samples=1):
         inference_budget=0.002,
         optimization_budget=2,
         num_samples=num_samples,
+        # logging_level=logging.INFO,
         prompt=[
             "{definition}",
             "# Python 3{definition}",
@@ -175,12 +289,10 @@ def test_math(num_samples=-1):
     }
     test_data_sample = test_data[0:3]
     result = oai.ChatCompletion.test(test_data_sample, vanilla_config, eval_math_responses)
-    test_data_sample = test_data[3:6]
     result = oai.ChatCompletion.test(
         test_data_sample,
         vanilla_config,
         eval_math_responses,
-        use_cache=False,
         agg_method="median",
     )
 
@@ -194,14 +306,12 @@ def test_math(num_samples=-1):
         test_data_sample,
         vanilla_config,
         eval_math_responses,
-        use_cache=False,
         agg_method=my_median,
     )
     result = oai.ChatCompletion.test(
         test_data_sample,
         vanilla_config,
         eval_math_responses,
-        use_cache=False,
         agg_method={
             "expected_success": my_median,
             "success": my_average,
@@ -231,9 +341,11 @@ def test_math(num_samples=-1):
 
 
 if __name__ == "__main__":
-    import openai
+    # import openai
 
-    openai.api_key_path = "test/openai/key.txt"
-    test_nocontext()
-    test_humaneval(1)
-    test_math(1)
+    # openai.api_key_path = "test/openai/key.txt"
+    test_execute_code()
+    # test_improve()
+    # test_nocontext()
+    # test_humaneval(1)
+    # test_math(1)

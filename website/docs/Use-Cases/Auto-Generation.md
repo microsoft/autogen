@@ -126,12 +126,29 @@ response = oai.Completion.create(problme=problem, prompt="{problem} Solve the pr
 ```
 
 ## Other utilities
-`flaml.oai.Completion` also offers some additional utilities, such as:
+
+### Completion
+
+[`flaml.oai.Completion`](../reference/autogen/oai/completion) also offers some additional utilities, such as:
 - a [`cost`](../reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
 - a [`test`](../reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
 - a [`extract_text`](../reference/autogen/oai/completion#extract_text) function to extract the text from a completion or chat response.
 - a [`set_cache`](../reference/autogen/oai/completion#extract_text) function to set the seed and cache path. The caching is introduced in the section above, with the benefit of cost saving, reproducibility, and controlled randomness.
 
-Interested in trying it yourself? Please check the following notebook examples:
+### Code
+
+[`flaml.autogen.code_utils`](../reference/autogen/code_utils) offers code-related utilities, such as:
+- a [`improve_code`](../reference/autogen/code_utils#improve_code) function to improve code for a given objective.
+- a [`generate_assertions`](../reference/autogen/code_utils#generate_assertions) function to generate assertion statements from function signature and docstr.
+- a [`implement`](../reference/autogen/code_utils#implement) function to implement a function from a definition.
+- a [`eval_function_completions`](../reference/autogen/code_utils#eval_function_completions) function to evaluate the success of a function completion task, or select a response from a list of responses using generated assertions.
+
+### Math
+
+[`flaml.autogen.math_utils`](../reference/autogen/math_utils) offers utilities for math problems, such as:
+- a [eval_math_responses](../reference/autogen/math_utils#eval_math_responses) function to select a response using voting, and check if the final answer is correct if the canonical solution is provided.
+
+
+*Interested in trying it yourself? Please check the following notebook examples:*
 * [Optimize for Code Gen](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb)
 * [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt.ipynb)

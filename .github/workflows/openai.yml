@@ -29,10 +29,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
         run: |
+          docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pip install -e .[autogen,blendsearch]
           python -c "import flaml"
-          pip install -e .[openai]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

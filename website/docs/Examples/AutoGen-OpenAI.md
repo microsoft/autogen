@@ -5,9 +5,9 @@ In this example, we will tune several hyperparameters for the OpenAI's completio
 
 ### Prerequisites
 
-Install the [openai] option. The OpenAI integration is in preview.
+Install the [autogen,blendsearch] option. The OpenAI integration is in preview.
 ```bash
-pip install "flaml[openai]==1.2.0"
+pip install "flaml[autogen,blendsearch]==1.2.1 datasets"
 ```
 
 Setup your OpenAI key:
