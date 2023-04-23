@@ -145,9 +145,10 @@ class Completion:
         request_timeout = cls.request_timeout
         while True:
             try:
-                response = openai_completion.create(request_timeout=request_timeout, **config)
-                cls._cache.set(key, response)
-                return response
+                if "request_timeout" in config:
+                    response = openai_completion.create(**config)
+                else:
+                    response = openai_completion.create(request_timeout=request_timeout, **config)
             except (
                 ServiceUnavailableError,
                 APIError,
@@ -170,6 +171,8 @@ class Completion:
                 else:
                     break
                 if isinstance(e, Timeout):
+                    if "request_timeout" in config:
+                        raise
                     request_timeout <<= 1
                 request_timeout = min(request_timeout, time_left)
                 sleep(cls.retry_time)
@@ -180,11 +183,16 @@ class Completion:
                     config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
                 else:
                     raise
+            else:
+                if use_cache:
+                    cls._cache.set(key, response)
+                return response
         logger.warning(
             f"Failed to get response from openai api due to getting RateLimitError or Timeout for {cls.retry_timeout} seconds."
         )
         response = -1
-        cls._cache.set(key, response)
+        if use_cache:
+            cls._cache.set(key, response)
         return response
 
     @classmethod

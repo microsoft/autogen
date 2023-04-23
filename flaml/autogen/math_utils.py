@@ -1,4 +1,28 @@
 from typing import Optional
+from flaml.autogen import oai, DEFAULT_MODEL
+
+_MATH_PROMPT = "{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
+_MATH_CONFIG = {
+    "model": DEFAULT_MODEL,
+    "prompt": _MATH_PROMPT,
+}
+
+
+def solve_problem(problem: str, **config) -> str:
+    """(work in progress) Solve the math problem.
+
+    Args:
+        problem (str): The problem statement.
+        config (Optional, dict): The configuration for the API call.
+
+    Returns:
+        str: The solution to the problem.
+    """
+    params = {**_MATH_CONFIG, **config}
+    response = oai.Completion.create({"problem": problem}, **params)
+    cost = oai.Completion.cost(params["model"], response)
+    results = eval_math_responses(oai.Completion.extract_text(response))
+    return results.get("voted_answer"), cost
 
 
 def remove_boxed(string: str) -> Optional[str]:
