@@ -1,6 +1,6 @@
 # Auto Generation
 
-`flaml.autogen` is a subpackage for automating generation tasks. It uses [`flaml.tune`](../reference/tune/tune) to find good hyperparameter configurations under budget constraints.
+`flaml.autogen` is a package for automating generation tasks (in preview). It uses [`flaml.tune`](../reference/tune/tune) to find good hyperparameter configurations under budget constraints.
 Such optimization has several benefits:
 * Maximize the utility out of using expensive foundation models.
 * Reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.

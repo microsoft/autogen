@@ -5,9 +5,9 @@ In this example, we will tune several hyperparameters for the OpenAI's completio
 
 ### Prerequisites
 
-Install the [autogen,blendsearch] option. The OpenAI integration is in preview.
+Install the [autogen,blendsearch] option.
 ```bash
-pip install "flaml[autogen,blendsearch]==1.2.1 datasets"
+pip install "flaml[autogen,blendsearch]==1.2.2 datasets"
 ```
 
 Setup your OpenAI key:
@@ -64,7 +64,9 @@ Before starting tuning, you need to define the metric for the optimization. For 
 from functools import partial
 from flaml.autogen.code_utils import eval_function_completions, generate_assertions
 
-eval_with_generated_assertions = partial(eval_function_completions, assertions=generate_assertions)
+eval_with_generated_assertions = partial(
+    eval_function_completions, assertions=generate_assertions,
+)
 ```
 
 This function will first generate assertion statements for each problem. Then, it uses the assertions to select the generated responses.
