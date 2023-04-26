@@ -103,7 +103,6 @@ The returned `config` contains the optimized configuration and `analysis` contai
 One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to perform inference.
 There are a number of benefits of using `flaml.oai.Completion.create` to perform inference.
 
-A template is either a format str, or a function which produces a str from several input fields.
 
 ### API unification
 
@@ -124,6 +123,8 @@ If the provided prompt or message is a template, it will be automatically materi
 ```python
 response = oai.Completion.create(problme=problem, prompt="{problem} Solve the problem carefully.", **config)
 ```
+
+A template is either a format str, or a function which produces a str from several input fields.
 
 ## Other utilities
 
