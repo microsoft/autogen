@@ -16,9 +16,6 @@
 
 :fire: v1.2.0 is released with support for ChatGPT and GPT-4.
 
-:fire: A [lab forum](https://github.com/microsoft/FLAML/tree/tutorial-aaai23/tutorial) on FLAML at AAAI 2023.
-
-:fire: A [hands-on tutorial](https://github.com/microsoft/FLAML/tree/tutorial/tutorial) on FLAML presented at KDD 2022
 
 ## What is FLAML
 FLAML is a lightweight Python library that finds accurate machine
