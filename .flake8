@@ -1,5 +1,0 @@
-[flake8]
-ignore = E203, E266, E501, W503, F403, F401, C901
-max-line-length = 127
-max-complexity = 10
-select = B,C,E,F,W,T4,B9

@@ -49,7 +49,6 @@ setuptools.setup(
             "joblibspark>=0.5.0",
         ],
         "test": [
-            "flake8>=3.8.4",
             "thop",
             "pytest>=6.1.1",
             "coverage>=5.3",

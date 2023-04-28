@@ -2324,10 +2324,7 @@ class HoltWinters(ARIMA):
         if self.params["trend"] == "mul" and (train_df.y == 0).sum() > 0:
             self.params["trend"] = "add"
 
-        if not self.params["seasonal"] or not self.params["trend"] in [
-            "mul",
-            "add",
-        ]:
+        if not self.params["seasonal"] or self.params["trend"] not in ["mul", "add"]:
             self.params["damped_trend"] = False
 
         model = HWExponentialSmoothing(
