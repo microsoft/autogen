@@ -12,7 +12,7 @@
 
 ## Checks
 
-- [ ] I've used [pre-commit](https://microsoft.github.io/FLAML/docs/Contribute#pre-commit) to lint the changes in this PR, or I've made sure [lint with flake8](https://github.com/microsoft/FLAML/blob/816a82a1155b4de4705b21a615ccdff67c6da379/.github/workflows/python-package.yml#L54-L59) output is two 0s.
+- I've used [pre-commit](https://microsoft.github.io/FLAML/docs/Contribute#pre-commit) to lint the changes in this PR (note the same in integrated in our CI checks).
 - [ ] I've included any doc changes needed for https://microsoft.github.io/FLAML/. See https://microsoft.github.io/FLAML/docs/Contribute#documentation to build and test documentation locally.
 - [ ] I've added tests (if relevant) corresponding to the changes introduced in this PR.
 - [ ] I've made sure all auto checks have passed.
