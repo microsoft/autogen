@@ -8,9 +8,9 @@ const FeatureList = [
     Svg: require('../../static/img/auto.svg').default,
     description: (
       <>
-        FLAML finds accurate ML models with low computational resources
-        for common ML tasks.
-        It frees users from selecting learners and hyperparameters.
+        FLAML finds accurate models or configurations with low computational resources
+        for common ML/AI tasks.
+        It frees users from selecting models and hyperparameters for training or inference.
         {/* It is fast and economical. */}
       </>
     ),

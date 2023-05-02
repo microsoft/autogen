@@ -100,7 +100,7 @@ def test_nocontext():
     )
     print(code)
     # test extract_code from markdown
-    code = extract_code(
+    code, _ = extract_code(
         """
 Example:
 ```
@@ -110,7 +110,7 @@ print("hello extract code")
     )
     print(code)
 
-    code = extract_code(
+    code, _ = extract_code(
         """
 Example:
 ```python

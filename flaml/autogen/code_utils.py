@@ -6,10 +6,11 @@ import pathlib
 from typing import List, Dict, Tuple, Optional, Union, Callable
 import re
 import time
+from hashlib import md5
 from flaml.autogen import oai, DEFAULT_MODEL, FAST_MODEL
 
 # Regular expression for finding a code block
-CODE_BLOCK_PATTERN = r"```\w*\n(.*?)\n```"
+CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 
 
@@ -18,9 +19,9 @@ def extract_code(text: str, pattern: str = CODE_BLOCK_PATTERN) -> str:
     match = re.search(pattern, text, flags=re.DOTALL)
     # If a match is found, return the code
     if match:
-        return match.group(1)
+        return match.group(2), match.group(1)
     # If no code block is found, return the whole text
-    return text
+    return text, "unknown"
 
 
 def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, float]:
@@ -36,7 +37,7 @@ def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, flo
         float: The cost of the generation.
     """
     response = oai.Completion.create(**config)
-    cost = oai.Completion.cost(config["model"], response)
+    cost = oai.Completion.cost(response)
     return extract_code(oai.Completion.extract_text(response)[0], pattern), cost
 
 
@@ -58,7 +59,7 @@ def improve_function(file_name, func_name, objective, **config):
     response = oai.Completion.create(
         {"func_name": func_name, "objective": objective, "file_string": file_string}, **params
     )
-    cost = oai.Completion.cost(params["model"], response)
+    cost = oai.Completion.cost(response)
     return oai.Completion.extract_text(response)[0], cost
 
 
@@ -96,7 +97,7 @@ def improve_code(files, objective, suggest_only=True, **config):
     params = {**_IMPROVE_CODE_CONFIG, **config}
     followup = "" if suggest_only else " followed by the improved code"
     response = oai.Completion.create({"objective": objective, "code": code, "followup": followup}, **params)
-    cost = oai.Completion.cost(params["model"], response)
+    cost = oai.Completion.cost(response)
     return oai.Completion.extract_text(response)[0], cost
 
 
@@ -141,7 +142,7 @@ def execute_code(
 
     original_filename = filename
     if filename is None:
-        code_hash = hash(code)
+        code_hash = md5(code.encode()).hexdigest()
         # create a file with a automatically generated name
         filename = f"tmp_code_{code_hash}.py"
     if work_dir is None:
@@ -151,7 +152,6 @@ def execute_code(
     os.makedirs(file_dir, exist_ok=True)
 
     if code is not None:
-        code = code.strip()
         with open(filepath, "w") as fout:
             fout.write(code)
     # check if already running in a docker container
@@ -281,7 +281,7 @@ def generate_assertions(definition: str, **config) -> Tuple[str, float]:
         {"definition": definition},
         **params,
     )
-    cost = oai.Completion.cost(params["model"], response)
+    cost = oai.Completion.cost(response)
     assertions = oai.Completion.extract_text(response)[0]
     return assertions, cost
 
@@ -410,7 +410,7 @@ def implement(
         assertions, cost = assertions(definition)
     for i, config in enumerate(configs):
         response = oai.Completion.create({"definition": definition}, **config)
-        cost += oai.Completion.cost(config["model"], response)
+        cost += oai.Completion.cost(response)
         responses = oai.Completion.extract_text(response)
         metrics = eval_function_completions(responses, definition, assertions=assertions)
         assertions = metrics["assertions"]

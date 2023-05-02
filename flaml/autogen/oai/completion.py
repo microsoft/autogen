@@ -4,6 +4,7 @@ import numpy as np
 import time
 from typing import List, Optional, Dict
 import sys
+import json
 from flaml import tune, BlendSearch
 from flaml.automl.logger import logger_formatter
 
@@ -41,11 +42,12 @@ def get_key(config):
     Returns:
         tuple: A unique identifier which can be used as a key for a dict.
     """
-    if isinstance(config, dict):
-        return tuple(get_key(x) for x in sorted(config.items()))
-    if isinstance(config, list):
-        return tuple(get_key(x) for x in config)
-    return config
+    # if isinstance(config, dict):
+    #     return tuple(get_key(x) for x in sorted(config.items()))
+    # if isinstance(config, list):
+    #     return tuple(get_key(x) for x in config)
+    # return config
+    return json.dumps(config, sort_keys=True)
 
 
 class Completion(openai_Completion):
@@ -117,6 +119,8 @@ class Completion(openai_Completion):
     _total_cost = 0
     optimization_budget = None
 
+    _history_dict = _count_create = None
+
     @classmethod
     def set_cache(cls, seed=41, cache_path=".cache"):
         """Set cache path.
@@ -131,6 +135,35 @@ class Completion(openai_Completion):
         cls.cache_path = f"{cache_path}/{seed}"
 
     @classmethod
+    def _book_keeping(cls, config: Dict, response):
+        """Book keeping for the created completions."""
+        if cls._history_dict is None:
+            return
+        if cls._history_compact:
+            value = {
+                "created_at": [],
+                "cost": [],
+            }
+            if "messages" in config:
+                messages = config["messages"]
+                if len(messages) > 1 and messages[-1]["role"] != "assistant":
+                    existing_key = get_key(messages[:-1])
+                    value = cls._history_dict.pop(existing_key, value)
+                key = get_key(messages + [choice["message"] for choice in response["choices"]])
+            else:
+                key = get_key([config["prompt"]] + [choice.get("text") for choice in response["choices"]])
+            value["created_at"].append(cls._count_create)
+            value["cost"].append(cls.cost(response))
+            cls._history_dict[key] = value
+            cls._count_create += 1
+            return
+        cls._history_dict[cls._count_create] = {
+            "request": config,
+            "response": response.to_dict_recursive(),
+        }
+        cls._count_create += 1
+
+    @classmethod
     def _get_response(cls, config: dict, eval_only=False, use_cache=True):
         """Get the response from the openai api call.
 
@@ -141,6 +174,7 @@ class Completion(openai_Completion):
             response = cls._cache.get(key, None)
             if response is not None and (response != -1 or not eval_only):
                 # print("using cached response")
+                cls._book_keeping(config, response)
                 return response
         openai_completion = openai.ChatCompletion if config["model"] in cls.chat_models else openai.Completion
         start_time = time.time()
@@ -195,6 +229,7 @@ class Completion(openai_Completion):
             else:
                 if use_cache:
                     cls._cache.set(key, response)
+                cls._book_keeping(config, response)
                 return response
         logger.warning(
             f"Failed to get response from openai api due to getting RateLimitError or Timeout for {cls.retry_timeout} seconds."
@@ -642,8 +677,7 @@ class Completion(openai_Completion):
         Args:
             context (dict, Optional): The context to instantiate the prompt.
                 It needs to contain keys that are used by the prompt template.
-                E.g., `prompt="Complete the following sentence: {prefix}"`.
-                `context={"prefix": "Today I feel"}`.
+                E.g., `prompt="Complete the following sentence: {prefix}, context={"prefix": "Today I feel"}`.
                 The actual prompt sent to OpenAI will be:
                 "Complete the following sentence: Today I feel".
             use_cache (bool, Optional): Whether to use cached responses.
@@ -781,13 +815,12 @@ class Completion(openai_Completion):
         result_agg, responses_list, result_list = {}, [], []
         metric_keys = None
         cost = 0
-        model = config["model"]
         old_level = logger.getEffectiveLevel()
         logger.setLevel(logging_level)
         for i, data_i in enumerate(data):
             logger.info(f"evaluating data instance {i}")
             response = cls.create(data_i, use_cache, **config)
-            cost += cls.cost(model, response)
+            cost += cls.cost(response)
             # evaluate the quality of the responses
             responses = cls.extract_text(response)
             if eval_func is not None:
@@ -846,16 +879,16 @@ class Completion(openai_Completion):
             return result_agg
 
     @classmethod
-    def cost(cls, model: str, response: dict):
+    def cost(cls, response: dict):
         """Compute the cost of an API call.
 
         Args:
-            model (str): The model name.
             response (dict): The response from OpenAI API.
 
         Returns:
             The cost in USD.
         """
+        model = response["model"]
         if model not in cls.price1K:
             raise ValueError(f"Unknown model: {model}")
         usage = response["usage"]
@@ -880,6 +913,68 @@ class Completion(openai_Completion):
         if "text" in choices[0]:
             return [choice["text"] for choice in choices]
         return [choice["message"].get("content", "") for choice in choices]
+
+    @classmethod
+    @property
+    def logged_history(cls) -> Dict:
+        """Return the book keeping dictionary."""
+        return cls._history_dict
+
+    @classmethod
+    def start_logging(
+        cls, history_dict: Optional[Dict] = None, compact: Optional[bool] = True, reset_counter: Optional[bool] = True
+    ):
+        """Start book keeping.
+
+        Args:
+            history_dict (Dict): A dictionary for book keeping.
+                If no provided, a new one will be created.
+            compact (bool): Whether to keep the history dictionary compact.
+                Compact history contains one key per conversation, and the value is a dictionary
+                like:
+        ```python
+        {
+            "create_at": [0, 1],
+            "cost": [0.1, 0.2],
+        }
+        ```
+                where "created_at" is the index of API calls indicating the order of all the calls,
+                and "cost" is the cost of each call. This example shows that the conversation is based
+                on two API calls. The compact format is useful for condensing the history of a conversation.
+                If compact is False, the history dictionary will contain all the API calls: the key
+                is the index of the API call, and the value is a dictionary like:
+        ```python
+        {
+            "request": request_dict,
+            "response": response_dict,
+        }
+        ```
+                where request_dict is the request sent to OpenAI API, and response_dict is the response.
+                For a conversation containing two API calls, the non-compact history dictionary will be like:
+        ```python
+        {
+            0: {
+                "request": request_dict_0,
+                "response": response_dict_0,
+            },
+            1: {
+                "request": request_dict_1,
+                "response": response_dict_1,
+            },
+        ```
+                The first request's messages plus the response is equal to the second request's messages.
+                For a conversation with many turns, the non-compact history dictionary has a quadratic size
+                while the compact history dict has a linear size.
+            reset_counter (bool): whether to reset the counter of the number of API calls.
+        """
+        cls._history_dict = {} if history_dict is None else history_dict
+        cls._history_compact = compact
+        cls._count_create = 0 if reset_counter or cls._count_create is None else cls._count_create
+
+    @classmethod
+    def stop_logging(cls):
+        """End book keeping."""
+        cls._history_dict = cls._count_create = None
 
 
 class ChatCompletion(Completion):

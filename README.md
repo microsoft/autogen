@@ -18,13 +18,14 @@
 
 
 ## What is FLAML
-FLAML is a lightweight Python library that finds accurate machine
-learning models automatically, efficiently and economically. It frees users from selecting
-models and hyperparameters for each model. It can also be used to tune generic hyperparameters for foundation models, MLOps/LMOps workflows, pipelines, mathematical/statistical models, algorithms, computing experiments, software configurations and so on.
+FLAML is a lightweight Python library for efficient automation of machine
+learning, including selection of
+models, hyperparameters, and other tunable choices of an application (e.g., inference hyperparameters for foundation models, configurations in MLOps/LMOps workflows, pipelines, mathematical/statistical models, algorithms, computing experiments, software configurations).
 
-1. For common machine learning or AI tasks like classification, regression, and generation, it quickly finds quality models for user-provided data with low computational resources. It supports both classical machine learning models and deep neural networks, including foundation models such as the GPT series.
-1. It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training and evaluation code).
-1. It supports fast automatic tuning, capable of handling complex constraints/guidance/early stopping. FLAML is powered by a new, [cost-effective
+* For foundation models like the GPT series, it automates the experimentation and optimization of their inference performance to maximize the effectiveness for downstream applications and minimize the inference cost.
+* For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources.
+* It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training/inference/evaluation code).
+* It supports fast automatic tuning, capable of handling complex constraints/guidance/early stopping. FLAML is powered by a [cost-effective
 hyperparameter optimization](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function/#hyperparameter-optimization-algorithm)
 and model selection method invented by Microsoft Research, and many followup [research studies](https://microsoft.github.io/FLAML/docs/Research).
 
@@ -58,6 +59,25 @@ Use the following guides to get started with FLAML in .NET:
 
 ## Quickstart
 
+* (New) You can optimize [generations](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) by ChatGPT or GPT-4 etc. with your own tuning data, success metrics and budgets.
+
+```python
+from flaml import oai
+
+config, analysis = oai.Completion.tune(
+    data=tune_data,
+    metric="success",
+    mode="max",
+    eval_func=eval_func,
+    inference_budget=0.05,
+    optimization_budget=3,
+    num_samples=-1,
+)
+```
+
+The automated experimentation and optimization can help you maximize the utility out of these expensive models.
+A suite of utilities such as caching and templating are offered to accelerate the experimentation and application development.
+
 * With three lines of code, you can start using this economical and fast
 AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).
 
@@ -90,22 +110,6 @@ from flaml.default import LGBMRegressor
 estimator = LGBMRegressor()
 # The hyperparameters are automatically set according to the training data.
 estimator.fit(X_train, y_train)
-```
-
-* (New) You can optimize [generations](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) by ChatGPT or GPT-4 etc. with your own tuning data, success metrics and budgets.
-
-```python
-from flaml import oai
-
-config, analysis = oai.Completion.tune(
-    data=tune_data,
-    metric="success",
-    mode="max",
-    eval_func=eval_func,
-    inference_budget=0.05,
-    optimization_budget=3,
-    num_samples=-1,
-)
 ```
 
 ## Documentation
