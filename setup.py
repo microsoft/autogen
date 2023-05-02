@@ -55,7 +55,7 @@ setuptools.setup(
             "pre-commit",
             "torch",
             "torchvision",
-            "catboost>=0.26",
+            "catboost>=0.26,<1.2",
             "rgf-python",
             "optuna==2.8.0",
             "openml==0.10.2",
@@ -77,7 +77,7 @@ setuptools.setup(
             "ipykernel",
             "pytorch-lightning<1.9.1",  # test_forecast_panel
         ],
-        "catboost": ["catboost>=0.26"],
+        "catboost": ["catboost>=0.26,<1.2"],
         "blendsearch": ["optuna==2.8.0"],
         "ray": [
             "ray[tune]~=1.13",
@@ -118,7 +118,7 @@ setuptools.setup(
             "hcrystalball==0.1.10",
             "pytorch-forecasting>=0.9.0",
         ],
-        "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
+        "benchmark": ["catboost>=0.26,<1.2", "psutil==5.8.0", "xgboost==1.3.3"],
         "openai": ["openai==0.27.4", "diskcache"],
         "autogen": ["openai==0.27.4", "diskcache", "docker"],
         "synapse": ["joblibspark>=0.5.0", "optuna==2.8.0", "pyspark>=3.2.0"],
