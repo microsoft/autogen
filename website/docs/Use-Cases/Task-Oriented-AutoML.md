@@ -477,6 +477,18 @@ with mlflow.start_run():
     automl.fit(X_train=X_train, y_train=y_train, **settings)
 ```
 
+To disable mlflow logging pre-configured in FLAML, set `mlflow_logging=False`:
+```python
+automl = AutoML(mlflow_logging=False)
+```
+or
+```python
+automl.fit(X_train=X_train, y_train=y_train, mlflow_logging=False, **settings)
+```
+
+Setting `mlflow_logging=False` in the constructor will disable mlflow logging for all the `fit()` calls.
+Setting `mlflow_logging=False` in `fit()` will disable mlflow logging for that `fit()` call only.
+
 ### Extra fit arguments
 
 Extra fit arguments that are needed by the estimators can be passed to `AutoML.fit()`. For example, if there is a weight associated with each training example, they can be passed via `sample_weight`. For another example, `period` can be passed for time series forecaster. For any extra keywork argument passed to `AutoML.fit()` which has not been explicitly listed in the function signature, it will be passed to the underlying estimators' `fit()` as is. For another example, you can set the number of gpus used by each trial with the `gpu_per_trial` argument, which is only used by TransformersEstimator and XGBoostSklearnEstimator.

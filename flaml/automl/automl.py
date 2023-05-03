@@ -341,6 +341,9 @@ class AutoML(BaseEstimator):
             }
         }
         ```
+            mlflow_logging: boolean, default=True | Whether to log the training results to mlflow.
+                This requires mlflow to be installed and to have an active mlflow run.
+                FLAML will create nested runs.
 
         """
         self._track_iter = 0
@@ -390,6 +393,7 @@ class AutoML(BaseEstimator):
         settings["fit_kwargs_by_estimator"] = settings.get("fit_kwargs_by_estimator", {})
         settings["custom_hp"] = settings.get("custom_hp", {})
         settings["skip_transform"] = settings.get("skip_transform", False)
+        settings["mlflow_logging"] = settings.get("mlflow_logging", True)
 
         self._estimator_type = "classifier" if settings["task"] in CLASSIFICATION else "regressor"
 
@@ -1213,6 +1217,7 @@ class AutoML(BaseEstimator):
         custom_hp=None,
         cv_score_agg_func=None,
         skip_transform=None,
+        mlflow_logging=None,
         fit_kwargs_by_estimator=None,
         **fit_kwargs,
     ):
@@ -1474,6 +1479,11 @@ class AutoML(BaseEstimator):
         ```
 
             skip_transform: boolean, default=False | Whether to pre-process data prior to modeling.
+            mlflow_logging: boolean, default=None | Whether to log the training results to mlflow.
+                Default value is None, which means the logging decision is made based on
+                AutoML.__init__'s mlflow_logging argument.
+                This requires mlflow to be installed and to have an active mlflow run.
+                FLAML will create nested runs.
             fit_kwargs_by_estimator: dict, default=None | The user specified keywords arguments, grouped by estimator name.
                 For TransformersEstimator, available fit_kwargs can be found from
                 [TrainingArgumentsForAuto](nlp/huggingface/training_args).
@@ -1659,6 +1669,7 @@ class AutoML(BaseEstimator):
         self._state.fit_kwargs = fit_kwargs
         custom_hp = custom_hp or self._settings.get("custom_hp")
         self._skip_transform = self._settings.get("skip_transform") if skip_transform is None else skip_transform
+        self._mlflow_logging = self._settings.get("mlflow_logging") if mlflow_logging is None else mlflow_logging
         fit_kwargs_by_estimator = fit_kwargs_by_estimator or self._settings.get("fit_kwargs_by_estimator")
         self._state.fit_kwargs_by_estimator = fit_kwargs_by_estimator.copy()  # shallow copy of fit_kwargs_by_estimator
         self._state.weight_val = sample_weight_val
@@ -2139,7 +2150,7 @@ class AutoML(BaseEstimator):
                 estimator,
                 search_state.sample_size,
             )
-        if mlflow is not None and mlflow.active_run():
+        if self._mlflow_logging and mlflow is not None and mlflow.active_run():
             with mlflow.start_run(nested=True):
                 mlflow.log_metric("iter_counter", self._track_iter)
                 if (search_state.metric_for_logging is not None) and (
