@@ -311,6 +311,8 @@ def tokenize_swag(this_row, tokenizer, hf_args=None, return_column_name=False):
 
 def postprocess_prediction_and_true(task, y_pred, tokenizer, hf_args, y_true=None, X=None):
     # postprocess the matrix prediction y_pred and ground truth y_true into user readable format, e.g., for summarization, decode into text
+    if y_pred is None:
+        return np.array([0.0] * len(X)), y_true
     if task == SEQCLASSIFICATION:
         return np.argmax(y_pred, axis=1), y_true
     elif task == SEQREGRESSION:
