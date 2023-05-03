@@ -2,6 +2,7 @@ import os
 import sys
 import warnings
 import pytest
+import mlflow
 import sklearn.datasets as skds
 from flaml import AutoML
 from flaml.tune.spark.utils import check_spark
@@ -18,16 +19,25 @@ else:
 
         spark = (
             pyspark.sql.SparkSession.builder.appName("MyApp")
-            .master("local[1]")
+            .master("local[2]")
             .config(
                 "spark.jars.packages",
-                "com.microsoft.azure:synapseml_2.12:0.10.2,org.apache.hadoop:hadoop-azure:3.3.5,com.microsoft.azure:azure-storage:8.6.6",
+                (
+                    "com.microsoft.azure:synapseml_2.12:0.10.2,"
+                    "org.apache.hadoop:hadoop-azure:3.3.5,"
+                    "com.microsoft.azure:azure-storage:8.6.6,"
+                    f"org.mlflow:mlflow-spark:{mlflow.__version__}"
+                ),
             )
             .config("spark.jars.repositories", "https://mmlspark.azureedge.net/maven")
             .config("spark.sql.debug.maxToStringFields", "100")
             .config("spark.driver.extraJavaOptions", "-Xss1m")
             .config("spark.executor.extraJavaOptions", "-Xss1m")
             .getOrCreate()
+        )
+        spark.sparkContext._conf.set(
+            "spark.mlflow.pysparkml.autolog.logModelAllowlistFile",
+            "https://mmlspark.blob.core.windows.net/publicwasb/log_model_allowlist.txt",
         )
         # spark.sparkContext.setLogLevel("ERROR")
         spark_available, _ = check_spark()
