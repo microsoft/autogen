@@ -187,14 +187,10 @@ def test_n_current_trials():
     def get_n_current_trials(n_concurrent_trials=0, num_executors=num_executors):
         try:
             FLAML_MAX_CONCURRENT = int(os.getenv("FLAML_MAX_CONCURRENT", 0))
-            num_executors = max(num_executors, FLAML_MAX_CONCURRENT, 1)
         except ValueError:
             FLAML_MAX_CONCURRENT = 0
-        max_spark_parallelism = (
-            min(spark.sparkContext.defaultParallelism, FLAML_MAX_CONCURRENT)
-            if FLAML_MAX_CONCURRENT > 0
-            else spark.sparkContext.defaultParallelism
-        )
+        num_executors = max(num_executors, FLAML_MAX_CONCURRENT, 1)
+        max_spark_parallelism = max(spark.sparkContext.defaultParallelism, FLAML_MAX_CONCURRENT)
         max_concurrent = max(1, max_spark_parallelism)
         n_concurrent_trials = min(
             n_concurrent_trials if n_concurrent_trials > 0 else num_executors,
@@ -204,16 +200,21 @@ def test_n_current_trials():
         return n_concurrent_trials
 
     os.environ["FLAML_MAX_CONCURRENT"] = "invlaid"
-    assert get_n_current_trials() == num_executors
+    assert get_n_current_trials() == max(num_executors, 1)
+    tmp_max = spark.sparkContext.defaultParallelism
+    assert get_n_current_trials(1) == 1
+    assert get_n_current_trials(2) == min(2, tmp_max)
+    assert get_n_current_trials(50) == min(50, tmp_max)
+    assert get_n_current_trials(200) == min(200, tmp_max)
     os.environ["FLAML_MAX_CONCURRENT"] = "0"
     assert get_n_current_trials() == max(num_executors, 1)
     os.environ["FLAML_MAX_CONCURRENT"] = "4"
-    tmp_max = min(4, spark.sparkContext.defaultParallelism)
-    assert get_n_current_trials() == tmp_max
+    tmp_max = max(4, spark.sparkContext.defaultParallelism)
+    assert get_n_current_trials() == min(4, tmp_max)
     os.environ["FLAML_MAX_CONCURRENT"] = "9999999"
-    assert get_n_current_trials() == spark.sparkContext.defaultParallelism
+    assert get_n_current_trials() == 9999999
     os.environ["FLAML_MAX_CONCURRENT"] = "100"
-    tmp_max = min(100, spark.sparkContext.defaultParallelism)
+    tmp_max = max(100, spark.sparkContext.defaultParallelism)
     assert get_n_current_trials(1) == 1
     assert get_n_current_trials(2) == min(2, tmp_max)
     assert get_n_current_trials(50) == min(50, tmp_max)
@@ -410,7 +411,7 @@ if __name__ == "__main__":
     # test_broadcast_code()
     # test_get_broadcast_data()
     # test_train_test_split_pyspark()
-    # test_n_current_trials()
+    test_n_current_trials()
     # test_len_labels()
     # test_iloc_pandas_on_spark()
     test_spark_metric_loss_score()

@@ -647,14 +647,10 @@ def run(
         time_start = time.time()
         try:
             FLAML_MAX_CONCURRENT = int(os.getenv("FLAML_MAX_CONCURRENT", 0))
-            num_executors = max(num_executors, FLAML_MAX_CONCURRENT, 1)
         except ValueError:
             FLAML_MAX_CONCURRENT = 0
-        max_spark_parallelism = (
-            min(spark.sparkContext.defaultParallelism, FLAML_MAX_CONCURRENT)
-            if FLAML_MAX_CONCURRENT > 0
-            else spark.sparkContext.defaultParallelism
-        )
+        num_executors = max(num_executors, FLAML_MAX_CONCURRENT, 1)
+        max_spark_parallelism = max(spark.sparkContext.defaultParallelism, FLAML_MAX_CONCURRENT)
         if scheduler:
             scheduler.set_search_properties(metric=metric, mode=mode)
         if isinstance(search_alg, ConcurrencyLimiter):
