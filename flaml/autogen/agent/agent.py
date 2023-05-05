@@ -2,7 +2,7 @@ from collections import defaultdict
 
 
 class Agent:
-    """An abstract class for AI agent.
+    """(Experimental) An abstract class for AI agent.
     An agent can communicate with other agents, human and perform actions.
     Different agents can differ in how and who they communicate with, and what actions they can perform. For example, an autonomous agent can communicate with human and other agents, and perform actions by creating agents and sending messages to other agents. A planning agent can communicate with other agents to make a plan and keep track of tasks. An execution agent can only communicate with other agents, and perform actions such as executing a command or code.
     """

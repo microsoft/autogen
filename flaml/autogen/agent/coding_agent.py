@@ -5,7 +5,7 @@ from flaml import oai
 
 
 class PythonAgent(Agent):
-    """Suggest code blocks."""
+    """(Experimental) Suggest code blocks."""
 
     DEFAULT_SYSTEM_MESSAGE = """You are a coding agent. You suggest python code for a user to execute for a given task. Don't suggest shell command. Output the code in a coding block. Check the execution result. If the result indicates there is an error, fix the error and output the code again.
     """

@@ -76,6 +76,7 @@ setuptools.setup(
             "nbformat",
             "ipykernel",
             "pytorch-lightning<1.9.1",  # test_forecast_panel
+            "requests<2.29.0",  # https://github.com/docker/docker-py/issues/3113
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
