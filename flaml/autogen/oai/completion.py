@@ -164,11 +164,17 @@ class Completion(openai_Completion):
         cls._count_create += 1
 
     @classmethod
-    def _get_response(cls, config: dict, eval_only=False, use_cache=True):
+    def _get_response(cls, config: Dict, eval_only=False, use_cache=True):
         """Get the response from the openai api call.
 
         Try cache first. If not found, call the openai api. If the api call fails, retry after retry_time.
         """
+        config = config.copy()
+        openai.api_key = config.pop("api_key", openai.api_key)
+        openai.api_base = config.pop("api_base", openai.api_base)
+        openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
+        openai.api_type = config.pop("api_type", openai.api_type)
+        openai.api_version = config.pop("api_version", openai.api_version)
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
@@ -222,7 +228,6 @@ class Completion(openai_Completion):
             except InvalidRequestError:
                 if "azure" == openai.api_type and "model" in config:
                     # azure api uses "engine" instead of "model"
-                    config = config.copy()
                     config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
                 else:
                     raise
@@ -671,16 +676,56 @@ class Completion(openai_Completion):
         return params, analysis
 
     @classmethod
-    def create(cls, context: Optional[Dict] = None, use_cache: Optional[bool] = True, **config):
+    def create(
+        cls,
+        context: Optional[Dict] = None,
+        use_cache: Optional[bool] = True,
+        config_list: Optional[List] = None,
+        **config,
+    ):
         """Make a completion for a given context.
 
         Args:
-            context (dict, Optional): The context to instantiate the prompt.
+            context (Dict, Optional): The context to instantiate the prompt.
                 It needs to contain keys that are used by the prompt template.
                 E.g., `prompt="Complete the following sentence: {prefix}, context={"prefix": "Today I feel"}`.
-                The actual prompt sent to OpenAI will be:
+                The actual prompt will be:
                 "Complete the following sentence: Today I feel".
+                More examples can be found at [templating](/docs/Use-Cases/Auto-Generation#templating).
             use_cache (bool, Optional): Whether to use cached responses.
+            config_list (List, Optional): List of configurations for the completion to try.
+                The first one that does not raise an error will be used.
+                Only the differences from the default config need to be provided.
+                E.g.,
+
+        ```python
+        response = oai.Completion.create(
+            config_list=[
+                {
+                    "model": "gpt-4",
+                    "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
+                    "api_type": "azure",
+                    "api_base": os.environ.get("AZURE_OPENAI_API_BASE"),
+                    "api_version": "2023-03-15-preview",
+                },
+                {
+                    "model": "gpt-3.5-turbo",
+                    "api_key": os.environ.get("OPENAI_API_KEY"),
+                    "api_type": "open_ai",
+                    "api_base": "https://api.openai.com/v1",
+                    "api_version": None,
+                },
+                {
+                    "model": "llama-7B",
+                    "api_base": "http://127.0.0.1:8080",
+                    "api_type": "open_ai",
+                    "api_version": None,
+                }
+            ],
+            prompt="Hi",
+        )
+        ```
+
             **config: Configuration for the completion.
                 Besides the parameters for the openai API call, it can also contain a seed (int) for the cache.
                 This is useful when implementing "controlled randomness" for the completion.
@@ -691,6 +736,21 @@ class Completion(openai_Completion):
         """
         if ERROR:
             raise ERROR
+        if config_list:
+            retry_timeout = cls.retry_timeout
+            for i, each_config in enumerate(config_list):
+                base_config = config.copy()
+                base_config.update(each_config)
+                try:
+                    cls.retry_timeout = 0 if i < len(config_list) - 1 else retry_timeout
+                    # retry_timeout = 0 to avoid retrying
+                    return cls.create(context, use_cache, **base_config)
+                except (RateLimitError, Timeout):
+                    logger.info(f"failed with config {i}", exc_info=1)
+                    if i == len(config_list) - 1:
+                        raise
+                finally:
+                    cls.retry_timeout = retry_timeout
         params = cls._construct_params(context, config)
         if not use_cache:
             return cls._get_response(params, eval_only=True, use_cache=False)

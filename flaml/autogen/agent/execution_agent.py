@@ -3,7 +3,7 @@ from flaml.autogen.code_utils import execute_code, extract_code
 
 
 class ExecutionAgent(Agent):
-    """Perform actions based on instructions from other agents.
+    """(Experimental) Perform actions based on instructions from other agents.
     An execution agent can only communicate with other agents, and perform actions such as executing a command or code.
     """
 

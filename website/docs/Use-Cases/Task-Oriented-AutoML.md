@@ -515,7 +515,7 @@ automl_settings = {
 automl.fit(X_train=X_train, y_train=y_train, **automl_settings)
 ```
 
-## Retrieve and analyze the outcomes of AutoML.fit()
+## Retrieve the Outcomes
 
 ### Get best model
 
