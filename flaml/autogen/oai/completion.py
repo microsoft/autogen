@@ -17,6 +17,7 @@ try:
         InvalidRequestError,
         APIConnectionError,
         Timeout,
+        AuthenticationError,
     )
     from openai import Completion as openai_Completion
     import diskcache
@@ -745,7 +746,7 @@ class Completion(openai_Completion):
                     cls.retry_timeout = 0 if i < len(config_list) - 1 else retry_timeout
                     # retry_timeout = 0 to avoid retrying
                     return cls.create(context, use_cache, **base_config)
-                except (RateLimitError, Timeout):
+                except (AuthenticationError, RateLimitError, Timeout):
                     logger.info(f"failed with config {i}", exc_info=1)
                     if i == len(config_list) - 1:
                         raise
