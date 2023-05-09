@@ -20,7 +20,7 @@ def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=Fals
         file_path = os.path.join(here, os.pardir, os.pardir, "notebook", input_nb)
         with open(file_path) as f:
             nb = nbformat.read(f, as_version=4)
-        ep = ExecutePreprocessor(timeout=3600, kernel_name="python3")
+        ep = ExecutePreprocessor(timeout=4800, kernel_name="python3")
         ep.preprocess(nb, {"metadata": {"path": here}})
 
         output_file_name = "executed_openai_notebook_output.txt"
