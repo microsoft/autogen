@@ -171,11 +171,7 @@ class Completion(openai_Completion):
         Try cache first. If not found, call the openai api. If the api call fails, retry after retry_time.
         """
         config = config.copy()
-        openai.api_key = config.pop("api_key", openai.api_key)
-        openai.api_base = config.pop("api_base", openai.api_base)
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
-        openai.api_type = config.pop("api_type", openai.api_type)
-        openai.api_version = config.pop("api_version", openai.api_version)
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
@@ -183,7 +179,11 @@ class Completion(openai_Completion):
                 # print("using cached response")
                 cls._book_keeping(config, response)
                 return response
-        openai_completion = openai.ChatCompletion if config["model"] in cls.chat_models else openai.Completion
+        openai_completion = (
+            openai.ChatCompletion
+            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
+            else openai.Completion
+        )
         start_time = time.time()
         request_timeout = cls.request_timeout
         while True:
@@ -227,7 +227,7 @@ class Completion(openai_Completion):
                 request_timeout = min(request_timeout, time_left)
                 sleep(cls.retry_time)
             except InvalidRequestError:
-                if "azure" == openai.api_type and "model" in config:
+                if "azure" == config.get("api_type", openai.api_type) and "model" in config:
                     # azure api uses "engine" instead of "model"
                     config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
                 else:
@@ -291,7 +291,7 @@ class Completion(openai_Completion):
     @classmethod
     def _get_prompt_messages_from_config(cls, model, config):
         prompt, messages = None, None
-        if model in cls.chat_models:
+        if model in cls.chat_models or issubclass(cls, ChatCompletion):
             # either "prompt" should be in config (for being compatible with non-chat models)
             # or "messages" should be in config (for tuning chat models only)
             prompt = config.get("prompt")
@@ -778,7 +778,7 @@ class Completion(openai_Completion):
         messages = config.get("messages") if messages is None else messages
         # either "prompt" should be in config (for being compatible with non-chat models)
         # or "messages" should be in config (for tuning chat models only)
-        if prompt is None and model in cls.chat_models:
+        if prompt is None and (model in cls.chat_models or issubclass(cls, ChatCompletion)):
             if messages is None:
                 raise ValueError("Either prompt or messages should be in config for chat models.")
         if prompt is None:
@@ -793,7 +793,7 @@ class Completion(openai_Completion):
                 if data_instance
                 else messages
             )
-        elif model in cls.chat_models:
+        elif model in cls.chat_models or issubclass(cls, ChatCompletion):
             # convert prompt to messages
             params["messages"] = [
                 {

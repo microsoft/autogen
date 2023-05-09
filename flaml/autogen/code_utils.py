@@ -46,7 +46,7 @@ _IMPROVE_FUNCTION_CONFIG = {
 The current implementation of the function is as follows:
 {file_string}""",
     "model": DEFAULT_MODEL,
-    "request_timeout": 300,
+    "request_timeout": 600,
 }
 
 

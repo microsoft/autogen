@@ -107,9 +107,12 @@ There are a number of benefits of using `flaml.oai.Completion.create` to perform
 
 ### API unification
 
-`flaml.oai.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API. When only tuning the chat-based models, `flaml.oai.ChatCompletion` can be used.
+`flaml.oai.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
+When chat models are used and `prompt` is given as the input to `flaml.oai.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
 
 For local LLMs, one can spin up an endpoint using a package like [simple_ai_server](https://github.com/lhenault/simpleAI), and then use the same API to send a request.
+
+When only working with the chat-based models, `flaml.oai.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
 
 ### Caching
 
@@ -149,7 +152,8 @@ response = oai.Completion.create(
 )
 ```
 
-It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and llama-7B one by one, until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck.
+It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
+until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
 ### Templating
 

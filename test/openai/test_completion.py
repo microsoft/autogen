@@ -18,6 +18,27 @@ from flaml.autogen.code_utils import (
 from flaml.autogen.math_utils import eval_math_responses, solve_problem
 
 
+def test_chatcompletion():
+    params = oai.ChatCompletion._construct_params(
+        data_instance=None,
+        config={"model": "unknown"},
+        prompt="hi",
+    )
+    assert "messages" in params
+    params = oai.Completion._construct_params(
+        data_instance=None,
+        config={"model": "unknown"},
+        prompt="hi",
+    )
+    assert "messages" not in params
+    params = oai.Completion._construct_params(
+        data_instance=None,
+        config={"model": "gpt-4"},
+        prompt="hi",
+    )
+    assert "messages" in params
+
+
 def test_multi_model():
     try:
         import openai
@@ -389,9 +410,10 @@ if __name__ == "__main__":
     openai.api_key = os.environ["OPENAI_API_KEY"] = open("test/openai/key.txt").read().strip()
     os.environ["AZURE_OPENAI_API_KEY"] = open("test/openai/key_azure.txt").read().strip()
     os.environ["AZURE_OPENAI_API_BASE"] = open("test/openai/base_azure.txt").read().strip()
+    test_chatcompletion()
     # test_multi_model()
     # test_execute_code()
-    test_improve()
+    # test_improve()
     # test_nocontext()
     # test_humaneval(1)
     # test_math(1)
