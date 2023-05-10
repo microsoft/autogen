@@ -22,7 +22,7 @@ def test_summarization():
     automl_settings["task"] = "summarization"
     automl_settings["metric"] = "rouge1"
     automl_settings["time_budget"] = 2 * automl_settings["time_budget"]
-    automl_settings["fit_kwargs_by_estimator"]["transformer"]["model_path"] = "patrickvonplaten/t5-tiny-random"
+    automl_settings["fit_kwargs_by_estimator"]["transformer"]["model_path"] = "google/flan-t5-small"
 
     try:
         automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
