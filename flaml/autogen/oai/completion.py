@@ -98,7 +98,7 @@ class Completion(openai_Completion):
         ),
         "temperature_or_top_p": tune.choice(
             [
-                {"temperature": tune.uniform(0, 1)},
+                {"temperature": tune.uniform(0, 2)},
                 {"top_p": tune.uniform(0, 1)},
             ]
         ),
