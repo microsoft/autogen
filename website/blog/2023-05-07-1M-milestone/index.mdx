@@ -1,0 +1,43 @@
+---
+title: Surpassing 1 Million Downloads - A Retrospective and a Look into the Future
+authors: qingyunwu
+tags: [LLM, LLMOps, FLAMLv2]
+---
+
+**TL;DR:**
+* **Celebrating FLAML's milestone: 1 million downloads**
+* **Introducing Large Language Model (LLM) support in the upcoming FLAML v2**
+
+
+This week, FLAML has reached a significant milestone: 1 million downloads. Originating as an intern research project within Microsoft Research, FLAML has grown into an open-source library used widely across the industry and supported by an active community.
+As we celebrate this milestone, we want to recognize the passionate contributors and users who have played an essential role in molding FLAML into the flourishing project it is today. Our heartfelt gratitude goes out to each of you for your unwavering support, constructive feedback, and innovative contributions that have driven FLAML to new heights.
+A big shoutout to our industrial collaborators from Azure Core, Azure Machine Learning, Azure Synapse Analytics, Microsoft 365, ML.NET, Vowpal Wabbit, Anyscale, Databricks, and Wise; and academic collaborators from MIT, Penn State University, Stevens Institute of Technology, Tel Aviv University, Texas A & M University, University of Manchester, University of Washington, and The Chinese University of Hong Kong etc.
+
+We'd also like to take the opportunity to reflect on FLAML's past achievements and its future roadmap, with a particular focus on large language models (LLM) and LLMOps.
+
+## FLAML's Journey: Past Achievements and Milestones
+
+### Bring AutoML to One's Fingertips
+FLAML offers an off-the-shelf AutoML solution that enables users to quickly discover high-quality models or configurations for common ML/AI tasks. By automatically selecting models and hyperparameters for training or inference, FLAML saves users time and effort. FLAML has significantly reduced development time for developers and data scientists alike, while also providing a convenient way to integrate new algorithms into the pipeline, enabling easy extensions and large-scale parallel tuning. These features make FLAML a valuable tool in R&D efforts for many enterprise users.
+FLAML is capable of handling a variety of common ML tasks, such as [classification](https://microsoft.github.io/FLAML/docs/Examples/AutoML-Classification), [regression](https://microsoft.github.io/FLAML/docs/Examples/AutoML-Regression), [time series forecasting](https://microsoft.github.io/FLAML/docs/Examples/AutoML-Time%20series%20forecast), [NLP tasks](https://microsoft.github.io/FLAML/docs/Examples/AutoML-Rank), and [generative tasks](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation), providing a comprehensive solution for various applications.
+
+### Speed and Efficiency: The FLAML Advantage
+What sets FLAML apart from other AutoML libraries is its exceptional efficiency, thanks to the economical and efficient hyperparameter optimization and model selection methods developed in our [research](https://microsoft.github.io/FLAML/docs/Research). FLAML is also capable of handling large search spaces with heterogeneous evaluation costs, complex constraints, guidance, and early stopping. The [zero-shot AutoML](https://microsoft.github.io/FLAML/docs/Use-Cases/Zero-Shot-AutoML) option further reduces the cost of AutoML, making FLAML an even more attractive solution for a wide range of applications with low resources.
+
+### Easy Customization and Extensibility
+FLAML is designed for easy extensibility and customization, allowing users to add custom learners, metrics, search space, etc. For example, the support of hierarchical search spaces allows one to first choose an ML learner and then sampling from the hyperparameter space specific to that learner. The level of customization ranges from minimal (providing only training data and task type as input) to full (tuning a user-defined function). This flexibility and support for easy customization have led to FLAML's adoption in various domains, including security, finance, marketing, engineering, supply chain, insurance, and healthcare, delivering highly accurate results.
+
+## Embracing Large Language Models in FLAML v2
+As large language models continue to reshape the AI ecosystem, FLAML is poised to adapt and grow alongside these advancements. Recognizing the importance of large language models, we have recently incorporated an autogen package into FLAML, and are committed to focusing our collective efforts on addressing the unique challenges that arise in LLMOps (Large Language Model Operations).
+
+In its current iteration, FLAML offers support for model selection and inference parameter tuning for large language models. We are actively working on the development of new features, such as LLM selection, inference hyperparameter tuning for LLM, and agent-based LLM operations, to further expand FLAML's capabilities.
+
+We are eagerly preparing for the launch of FLAML v2, where we will place special emphasis on incorporating and enhancing features specifically tailored for large language models (LLMs), further expanding FLAML's capabilities.
+We invite contributions from anyone interested in this topic and look forward to collaborating with the community as we shape the future of FLAML and LLMOps together.
+
+## For Further Reading
+
+* [Documentation about `flaml.autogen`](/docs/Use-Cases/Auto-Generation)
+* [Code Example: Tune chatGPT for Math Problem Solving with FLAML](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt.ipynb)
+
+*Do you have any experience to share about LLM applications? Do you like to see more support or research of LLMOps? Please join our [Discord](https://discord.gg/Cppx2vSPVP) server for discussion.*
