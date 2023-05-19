@@ -12,7 +12,7 @@
 
 ## Checks
 
-- I've used [pre-commit](https://microsoft.github.io/FLAML/docs/Contribute#pre-commit) to lint the changes in this PR (note the same in integrated in our CI checks).
+<!-- - I've used [pre-commit](https://microsoft.github.io/FLAML/docs/Contribute#pre-commit) to lint the changes in this PR (note the same in integrated in our CI checks). -->
 - [ ] I've included any doc changes needed for https://microsoft.github.io/FLAML/. See https://microsoft.github.io/FLAML/docs/Contribute#documentation to build and test documentation locally.
 - [ ] I've added tests (if relevant) corresponding to the changes introduced in this PR.
 - [ ] I've made sure all auto checks have passed.

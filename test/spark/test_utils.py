@@ -219,6 +219,7 @@ def test_n_current_trials():
     assert get_n_current_trials(2) == min(2, tmp_max)
     assert get_n_current_trials(50) == min(50, tmp_max)
     assert get_n_current_trials(200) == min(200, tmp_max)
+    del os.environ["FLAML_MAX_CONCURRENT"]
 
 
 def test_iloc_pandas_on_spark():
