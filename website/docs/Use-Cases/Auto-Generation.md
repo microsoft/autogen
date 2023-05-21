@@ -26,6 +26,9 @@ There are also complex interactions among subsets of the hyperparameters. For ex
 the temperature and top_p are not recommended to be altered from their default values together because they both control the randomness of the generated text, and changing both at the same time can result in conflicting effects; n and best_of are rarely tuned together because if the application can process multiple outputs, filtering on the server side causes unnecessary information loss; both n and max_tokens will affect the total number of tokens generated, which in turn will affect the cost of the request.
 These interactions and trade-offs make it difficult to manually determine the optimal hyperparameter settings for a given text generation task.
 
+*Do the choices matter? Check this [blog post](/blog/2023/04/21/LLM-tuning-math) for a case study.*
+
+
 ## Tune Hyperparameters
 
 The tuning can be performed with the following information:
@@ -46,8 +49,9 @@ The evaluation function should take a list of responses, and other keyword argum
 ```python
 def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     # select a response from the list of responses
+    answer = voted_answer(responses)
     # check whether the answer is correct
-    return {"success": True or False}
+    return {"success": is_equivalent(answer, solution)}
 ```
 
 [`flaml.autogen.code_utils`](../reference/autogen/code_utils) and [`flaml.autogen.math_utils`](../reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
@@ -100,6 +104,8 @@ The returned `config` contains the optimized configuration and `analysis` contai
 
 The tuend config can be used to perform inference.
 
+*Refer to this [page](../Examples/AutoGen-OpenAI) for a full example.*
+
 ## Perform Inference
 
 One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to perform inference.
@@ -119,6 +125,8 @@ When only working with the chat-based models, `flaml.oai.ChatCompletion` can be 
 API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](../reference/autogen/oai/completion#set_cache) or specifying in `create()`.
 
 ### Error handling
+
+#### Runtime error
 
 It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `flaml.oai.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `flaml.oai.request_timeout`, `flaml.oai.retry_timeout` and `flaml.oai.retry_time`.
 
@@ -154,6 +162,29 @@ response = oai.Completion.create(
 
 It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
+
+#### Logic error
+
+Another type of error is that the returned response does not satisfy a requirement. For example, if the response is required to be a valid json string, one would like to filter the responses that are not. This can be achieved by providing a list of configurations and a filter function. For example,
+
+```python
+def valid_json_filter(context, config, response):
+    for text in oai.Completion.extract_text(response):
+        try:
+            json.loads(text)
+            return True
+        except ValueError:
+            pass
+    return False
+
+response = oai.Completion.create(
+    config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+    prompt="How to construct a json request to Bing API to search for 'latest AI news'? Return the JSON request.",
+    filter_func=valid_json_filter,
+)
+```
+
+The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times to try one model multiple times for increasing the robustness of the final response.
 
 ### Templating
 
@@ -359,5 +390,5 @@ The compact history is more efficient and the individual API call history contai
 
 
 *Interested in trying it yourself? Please check the following notebook examples:*
-* [Optimize for Code Gen](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb)
-* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt.ipynb)
+* [Optimize for Code Gen](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)

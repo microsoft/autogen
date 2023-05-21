@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from functools import partial
 import os
+import json
 from flaml import oai
 from flaml.autogen.code_utils import (
     eval_function_completions,
@@ -16,6 +17,54 @@ from flaml.autogen.code_utils import (
     execute_code,
 )
 from flaml.autogen.math_utils import eval_math_responses, solve_problem
+
+KEY_LOC = "test/autogen"
+here = os.path.abspath(os.path.dirname(__file__))
+
+
+def yes_or_no_filter(context, response, **_):
+    return context.get("yes_or_no_choice", False) is False or any(
+        text in ["Yes.", "No."] for text in oai.Completion.extract_text(response)
+    )
+
+
+def valid_json_filter(response, **_):
+    for text in oai.Completion.extract_text(response):
+        try:
+            json.loads(text)
+            return True
+        except ValueError:
+            pass
+    return False
+
+
+def test_filter():
+    try:
+        import openai
+    except ImportError as exc:
+        print(exc)
+        return
+    response = oai.Completion.create(
+        context={"yes_or_no_choice": True},
+        config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+        prompt="Is 37 a prime number? Please answer 'Yes.' or 'No.'",
+        filter_func=yes_or_no_filter,
+    )
+    assert oai.Completion.extract_text(response)[0] in ["Yes.", "No."]
+    response = oai.Completion.create(
+        context={"yes_or_no_choice": False},
+        config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+        prompt="Is 37 a prime number?",
+        filter_func=yes_or_no_filter,
+    )
+    assert response["model"] == "text-ada-001"
+    response = oai.Completion.create(
+        config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+        prompt="How to construct a json request to Bing API to search for 'latest AI news'? Return the JSON request.",
+        filter_func=valid_json_filter,
+    )
+    assert response["config_id"] == 2 or response["pass_filter"], "the response must pass filter unless all fail"
+    assert not response["pass_filter"] or json.loads(oai.Completion.extract_text(response)[0])
 
 
 def test_chatcompletion():
@@ -46,36 +95,7 @@ def test_multi_model():
         print(exc)
         return
     response = oai.Completion.create(
-        config_list=[
-            {
-                "model": "gpt-4",
-                "api_key": os.environ.get("OPENAI_API_KEY"),
-                "api_type": "open_ai",
-                "api_base": "https://api.openai.com/v1",
-                "api_version": None,
-            },
-            {
-                "model": "gpt-4",
-                "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
-                "api_type": "azure",
-                "api_base": os.environ.get("AZURE_OPENAI_API_BASE"),
-                "api_version": "2023-03-15-preview",
-            },
-            {
-                "model": "gpt-3.5-turbo",
-                "api_key": os.environ.get("OPENAI_API_KEY"),
-                "api_type": "open_ai",
-                "api_base": "https://api.openai.com/v1",
-                "api_version": None,
-            },
-            {
-                "model": "gpt-3.5-turbo",
-                "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
-                "api_type": "azure",
-                "api_base": os.environ.get("AZURE_OPENAI_API_BASE"),
-                "api_version": "2023-03-15-preview",
-            },
-        ],
+        config_list=oai.config_list_gpt4_gpt35(KEY_LOC),
         prompt="Hi",
     )
     print(response)
@@ -96,7 +116,7 @@ def test_execute_code():
     # read a file
     print(execute_code("with open('tmp/codetest.py', 'r') as f: a=f.read()"))
     # create a file
-    print(execute_code("with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir="test/openai/my_tmp"))
+    print(execute_code("with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp"))
     # execute code in a file
     print(execute_code(filename="tmp/codetest.py"))
     # execute code for assertion error
@@ -116,25 +136,29 @@ def test_improve():
     except ImportError as exc:
         print(exc)
         return
+    config_list = oai.config_list_openai_aoai(KEY_LOC)
     improved, _ = improve_function(
         "flaml/autogen/math_utils.py",
         "solve_problem",
         "Solve math problems accurately, by avoiding calculation errors and reduce reasoning errors.",
+        config_list=config_list,
     )
-    with open("test/openai/math_utils.py.improved", "w") as f:
+    with open(f"{here}/math_utils.py.improved", "w") as f:
         f.write(improved)
     suggestion, _ = improve_code(
         ["flaml/autogen/code_utils.py", "flaml/autogen/math_utils.py"],
         "leverage generative AI smartly and cost-effectively",
+        config_list=config_list,
     )
     print(suggestion)
     improvement, cost = improve_code(
         ["flaml/autogen/code_utils.py", "flaml/autogen/math_utils.py"],
         "leverage generative AI smartly and cost-effectively",
         suggest_only=False,
+        config_list=config_list,
     )
     print(cost)
-    with open("test/openai/suggested_improvement.txt", "w") as f:
+    with open(f"{here}/suggested_improvement.txt", "w") as f:
         f.write(improvement)
 
 
@@ -196,7 +220,7 @@ print(f"Text: {text}")
 """
     )
     print(code)
-    solution, cost = solve_problem("1+1=")
+    solution, cost = solve_problem("1+1=", config_list=oai.config_list_gpt4_gpt35(KEY_LOC))
     print(solution, cost)
 
 
@@ -226,6 +250,7 @@ def test_humaneval(num_samples=1):
         }
         for x in range(n_tune_data, len(data))
     ]
+    oai.Completion.clear_cache(cache_path_root="{here}/cache")
     oai.Completion.set_cache(seed)
     try:
         import openai
@@ -233,6 +258,7 @@ def test_humaneval(num_samples=1):
     except ImportError as exc:
         print(exc)
         return
+    oai.Completion.clear_cache(400)
     # a minimal tuning example
     config, _ = oai.Completion.tune(
         data=tune_data,
@@ -254,7 +280,8 @@ def test_humaneval(num_samples=1):
         prompt="{definition}",
     )
     responses = oai.Completion.create(context=test_data[0], **config)
-    # a minimal tuning example for tuning chat completion models using the Completion class
+    # a minimal tuning example for tuning chat completion models using the ChatCompletion class
+    config_list = oai.config_list_openai_aoai(KEY_LOC)
     config, _ = oai.ChatCompletion.tune(
         data=tune_data,
         metric="expected_success",
@@ -262,12 +289,14 @@ def test_humaneval(num_samples=1):
         eval_func=eval_function_completions,
         n=1,
         messages=[{"role": "user", "content": "{definition}"}],
+        config_list=config_list,
     )
-    responses = oai.ChatCompletion.create(context=test_data[0], **config)
+    responses = oai.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
     print(responses)
-    code, cost, _ = implement(tune_data[1], [config])
+    code, cost, selected = implement(tune_data[1], [{**config_list[-1], **config}])
     print(code)
     print(cost)
+    assert selected == 0
     print(eval_function_completions([code], **tune_data[1]))
     # a more comprehensive tuning example
     config2, analysis = oai.Completion.tune(
@@ -295,9 +324,11 @@ def test_humaneval(num_samples=1):
     oai.Completion.data = test_data[:num_samples]
     result = oai.Completion._eval(analysis.best_config, prune=False, eval_only=True)
     print("result without pruning", result)
-    result = oai.Completion.test(test_data[:num_samples], config=config2)
+    result = oai.Completion.test(test_data[:num_samples], **config2)
     print(result)
     code, cost, selected = implement(tune_data[1], [config2, config])
+    print(code)
+    print(cost)
     print(selected)
     print(eval_function_completions([code], **tune_data[1]))
 
@@ -352,12 +383,12 @@ def test_math(num_samples=-1):
         "stop": "###",
     }
     test_data_sample = test_data[0:3]
-    result = oai.ChatCompletion.test(test_data_sample, vanilla_config, eval_math_responses)
+    result = oai.ChatCompletion.test(test_data_sample, eval_math_responses, **vanilla_config)
     result = oai.ChatCompletion.test(
         test_data_sample,
-        vanilla_config,
         eval_math_responses,
         agg_method="median",
+        **vanilla_config,
     )
 
     def my_median(results):
@@ -368,13 +399,12 @@ def test_math(num_samples=-1):
 
     result = oai.ChatCompletion.test(
         test_data_sample,
-        vanilla_config,
         eval_math_responses,
         agg_method=my_median,
+        **vanilla_config,
     )
     result = oai.ChatCompletion.test(
         test_data_sample,
-        vanilla_config,
         eval_math_responses,
         agg_method={
             "expected_success": my_median,
@@ -382,6 +412,7 @@ def test_math(num_samples=-1):
             "success_vote": my_average,
             "votes": np.mean,
         },
+        **vanilla_config,
     )
 
     print(result)
@@ -399,7 +430,7 @@ def test_math(num_samples=-1):
         stop="###",  # the stop sequence
     )
     print("tuned config", config)
-    result = oai.ChatCompletion.test(test_data_sample, config)
+    result = oai.ChatCompletion.test(test_data_sample, config_list=oai.config_list_openai_aoai(KEY_LOC), **config)
     print("result from tuned config:", result)
     print("empty responses", eval_math_responses([], None))
 
@@ -407,13 +438,15 @@ def test_math(num_samples=-1):
 if __name__ == "__main__":
     import openai
 
-    openai.api_key = os.environ["OPENAI_API_KEY"] = open("test/openai/key.txt").read().strip()
-    os.environ["AZURE_OPENAI_API_KEY"] = open("test/openai/key_azure.txt").read().strip()
-    os.environ["AZURE_OPENAI_API_BASE"] = open("test/openai/base_azure.txt").read().strip()
-    test_chatcompletion()
+    config_list = oai.config_list_openai_aoai(KEY_LOC)
+    assert len(config_list) >= 3, config_list
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+
+    # test_filter()
+    # test_chatcompletion()
     # test_multi_model()
     # test_execute_code()
     # test_improve()
     # test_nocontext()
-    # test_humaneval(1)
+    test_humaneval(1)
     # test_math(1)

@@ -37,7 +37,7 @@ class Agent:
 
     def _receive(self, message, sender):
         """Receive a message from another agent."""
-        print("****", self.name, "received message from", sender.name, "****")
+        print("\n****", self.name, "received message from", sender.name, "****\n")
         print(message)
         self._conversations[sender.name].append({"content": message, "role": "user"})
 

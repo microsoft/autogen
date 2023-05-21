@@ -128,10 +128,10 @@ print(eval_with_generated_assertions(oai.Completion.extract_text(response), **tu
 You can use flaml's `oai.Completion.test` to evaluate the performance of an entire dataset with the tuned config.
 
 ```python
-result = oai.Completion.test(test_data, config)
+result = oai.Completion.test(test_data, **config)
 print("performance on test data with the tuned config:", result)
 ```
 
 The result will vary with the inference budget and optimization budget.
 
-[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/autogen_openai.ipynb)
+[Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)

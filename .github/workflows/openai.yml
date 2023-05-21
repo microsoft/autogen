@@ -7,10 +7,10 @@ on:
   pull_request:
     branches: ['main']
     paths:
-      - 'flaml/integrations/oai/**'
-      - 'test/openai/**'
-      - 'notebook/integrate_openai.ipynb'
-      - 'notebook/integrate_chatgpt_math.ipynb'
+      - 'flaml/autogen/**'
+      - 'test/autogen/**'
+      - 'notebook/autogen_openai_completion.ipynb'
+      - 'notebook/autogen_chatgpt_gpt4.ipynb'
       - '.github/workflows/openai.yml'
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9]
+        python-version: ["3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.os }}
     environment: openai
     steps:
@@ -33,14 +33,27 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .[autogen,blendsearch]
           python -c "import flaml"
+          pip install coverage pytest datasets
       - name: Coverage
+        if: matrix.python-version == '3.9'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
         run: |
-          pip install coverage pytest datasets nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/openai
+          coverage run -a -m pytest test/autogen
           coverage xml
-          cat "$(pwd)/test/openai/executed_openai_notebook_output.txt"
+      - name: Coverage and check notebook outputs
+        if: matrix.python-version != '3.9'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+        run: |
+          pip install nbconvert nbformat ipykernel
+          coverage run -a -m pytest test/autogen/oai/test_notebook.py
+          coverage xml
+          cat "$(pwd)/test/autogen/oai/executed_openai_notebook_output.txt"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

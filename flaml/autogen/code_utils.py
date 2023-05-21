@@ -37,8 +37,7 @@ def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, flo
         float: The cost of the generation.
     """
     response = oai.Completion.create(**config)
-    cost = oai.Completion.cost(response)
-    return extract_code(oai.Completion.extract_text(response)[0], pattern), cost
+    return extract_code(oai.Completion.extract_text(response)[0], pattern), response["cost"]
 
 
 _IMPROVE_FUNCTION_CONFIG = {
@@ -59,8 +58,7 @@ def improve_function(file_name, func_name, objective, **config):
     response = oai.Completion.create(
         {"func_name": func_name, "objective": objective, "file_string": file_string}, **params
     )
-    cost = oai.Completion.cost(response)
-    return oai.Completion.extract_text(response)[0], cost
+    return oai.Completion.extract_text(response)[0], response["cost"]
 
 
 _IMPROVE_CODE_CONFIG = {
@@ -97,8 +95,7 @@ def improve_code(files, objective, suggest_only=True, **config):
     params = {**_IMPROVE_CODE_CONFIG, **config}
     followup = "" if suggest_only else " followed by the improved code"
     response = oai.Completion.create({"objective": objective, "code": code, "followup": followup}, **params)
-    cost = oai.Completion.cost(response)
-    return oai.Completion.extract_text(response)[0], cost
+    return oai.Completion.extract_text(response)[0], response["cost"]
 
 
 def timeout_handler(signum, frame):
@@ -281,9 +278,8 @@ def generate_assertions(definition: str, **config) -> Tuple[str, float]:
         {"definition": definition},
         **params,
     )
-    cost = oai.Completion.cost(response)
     assertions = oai.Completion.extract_text(response)[0]
-    return assertions, cost
+    return assertions, response["cost"]
 
 
 def _remove_check(response):
@@ -387,6 +383,23 @@ _IMPLEMENT_CONFIGS = [
 ]
 
 
+class PassAssertionFilter:
+    def __init__(self, assertions):
+        self._assertions = assertions
+        self.cost = 0
+        self.metrics = self.responses = None
+
+    def pass_assertions(self, context, response, **_):
+        """Check if the response passes the assertions."""
+        responses = oai.Completion.extract_text(response)
+        metrics = eval_function_completions(responses, context["definition"], assertions=self._assertions)
+        self._assertions = metrics["assertions"]
+        self.cost += metrics["gen_cost"]
+        self.metrics = metrics
+        self.responses = responses
+        return metrics["succeed_assertions"]
+
+
 def implement(
     definition: str,
     configs: Optional[List[Dict]] = None,
@@ -408,12 +421,19 @@ def implement(
     configs = configs or _IMPLEMENT_CONFIGS
     if len(configs) > 1 and callable(assertions):
         assertions, cost = assertions(definition)
-    for i, config in enumerate(configs):
-        response = oai.Completion.create({"definition": definition}, **config)
-        cost += oai.Completion.cost(response)
-        responses = oai.Completion.extract_text(response)
-        metrics = eval_function_completions(responses, definition, assertions=assertions)
-        assertions = metrics["assertions"]
-        cost += metrics["gen_cost"]
-        if metrics["succeed_assertions"] or i == len(configs) - 1:
-            return responses[metrics["index_selected"]], cost, i
+    assertion_filter = PassAssertionFilter(assertions)
+    response = oai.Completion.create(
+        {"definition": definition}, config_list=configs, filter_func=assertion_filter.pass_assertions
+    )
+    cost += assertion_filter.cost + response["cost"]
+    return assertion_filter.responses[assertion_filter.metrics["index_selected"]], cost, response["config_id"]
+
+    # for i, config in enumerate(configs):
+    #     response = oai.Completion.create({"definition": definition}, **config)
+    #     cost += oai.Completion.cost(response)
+    #     responses = oai.Completion.extract_text(response)
+    #     metrics = eval_function_completions(responses, definition, assertions=assertions)
+    #     assertions = metrics["assertions"]
+    #     cost += metrics["gen_cost"]
+    #     if metrics["succeed_assertions"] or i == len(configs) - 1:
+    #         return responses[metrics["index_selected"]], cost, i
