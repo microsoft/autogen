@@ -20,9 +20,8 @@ def solve_problem(problem: str, **config) -> str:
     """
     params = {**_MATH_CONFIG, **config}
     response = oai.Completion.create({"problem": problem}, **params)
-    cost = oai.Completion.cost(response)
     results = eval_math_responses(oai.Completion.extract_text(response))
-    return results.get("voted_answer"), cost
+    return results.get("voted_answer"), response["cost"]
 
 
 def remove_boxed(string: str) -> Optional[str]:

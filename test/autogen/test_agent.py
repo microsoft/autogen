@@ -1,5 +1,9 @@
+import os
 from flaml.autogen.code_utils import extract_code
 from flaml import oai
+
+KEY_LOC = "test/autogen"
+here = os.path.abspath(os.path.dirname(__file__))
 
 
 def test_extract_code():
@@ -12,12 +16,13 @@ def test_coding_agent(human_input_mode="NEVER", max_consecutive_auto_reply=10):
     except ImportError:
         return
     from flaml.autogen.agent.coding_agent import PythonAgent
-    from flaml.autogen.agent.human_proxy_agent import HumanProxyAgent
+    from flaml.autogen.agent.user_proxy_agent import UserProxyAgent
 
+    config_list = oai.config_list_gpt4_gpt35(key_file_path=KEY_LOC)
     conversations = {}
     oai.ChatCompletion.start_logging(conversations)
-    agent = PythonAgent("coding_agent", request_timeout=600, seed=42)
-    user = HumanProxyAgent(
+    agent = PythonAgent("coding_agent", request_timeout=600, seed=42, config_list=config_list)
+    user = UserProxyAgent(
         "user",
         human_input_mode=human_input_mode,
         max_consecutive_auto_reply=max_consecutive_auto_reply,
@@ -48,8 +53,9 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
     except ImportError:
         return
     from flaml.autogen.agent.coding_agent import PythonAgent
-    from flaml.autogen.agent.human_proxy_agent import HumanProxyAgent
+    from flaml.autogen.agent.user_proxy_agent import UserProxyAgent
 
+    config_list = oai.config_list_openai_aoai(key_file_path=KEY_LOC)
     hard_questions = [
         "What if we must go from node 1 to node 2?",
         "Can we double all distances?",
@@ -57,14 +63,14 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
     ]
 
     oai.ChatCompletion.start_logging()
-    agent = PythonAgent("coding_agent", temperature=0)
-    user = HumanProxyAgent(
+    agent = PythonAgent("coding_agent", temperature=0, config_list=config_list)
+    user = UserProxyAgent(
         "user",
-        work_dir="test/autogen",
+        work_dir=f"{here}",
         human_input_mode=human_input_mode,
         max_consecutive_auto_reply=max_consecutive_auto_reply,
     )
-    with open("test/autogen/tsp_prompt.txt", "r") as f:
+    with open(f"{here}/tsp_prompt.txt", "r") as f:
         prompt = f.read()
     # agent.receive(prompt.format(question=hard_questions[0]), user)
     # agent.receive(prompt.format(question=hard_questions[1]), user)
@@ -74,14 +80,6 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
 
 
 if __name__ == "__main__":
-    import openai
-
-    openai.api_key_path = "test/openai/key.txt"
-    # if you use Azure OpenAI, comment the above line and uncomment the following lines
-    # openai.api_type = "azure"
-    # openai.api_base = "https://<your_endpoint>.openai.azure.com/"
-    # openai.api_version = "2023-03-15-preview"  # change if necessary
-    # openai.api_key = "<your_api_key>"
     # test_extract_code()
     test_coding_agent(human_input_mode="TERMINATE")
     # when GPT-4, i.e., the DEFAULT_MODEL, is used, conversation in the following test

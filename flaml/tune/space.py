@@ -11,7 +11,7 @@ try:
 except (ImportError, AssertionError):
     from . import sample
     from .searcher.variant_generator import generate_variants
-from typing import Dict, Optional, Any, Tuple, Generator
+from typing import Dict, Optional, Any, Tuple, Generator, List, Union
 import numpy as np
 import logging
 
@@ -25,6 +25,29 @@ def generate_variants_compatible(
         return generate_variants(unresolved_spec, constant_grid_search, random_state)
     except TypeError:
         return generate_variants(unresolved_spec, constant_grid_search)
+
+
+def is_constant(space: Union[Dict, List]) -> bool:
+    """Whether the search space is all constant.
+
+    Returns:
+        A bool of whether the search space is all constant.
+    """
+    if isinstance(space, dict):
+        for domain in space.values():
+            if isinstance(domain, (dict, list)):
+                if not is_constant(domain):
+                    return False
+                continue
+            if isinstance(domain, sample.Domain):
+                return False
+        return True
+    elif isinstance(space, list):
+        for item in space:
+            if not is_constant(item):
+                return False
+        return True
+    return not isinstance(space, sample.Domain)
 
 
 def define_by_run_func(trial, space: Dict, path: str = "") -> Optional[Dict[str, Any]]:
