@@ -1,11 +1,17 @@
 # Auto Generation
 
-`flaml.autogen` is a package for automating generation tasks (in preview). It uses [`flaml.tune`](../reference/tune/tune) to find good hyperparameter configurations under budget constraints.
-Such optimization has several benefits:
-* Maximize the utility out of using expensive foundation models.
-* Reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
+`flaml.autogen` is a package for automating generation tasks (in preview), featuring:
+* Leveraging [`flaml.tune`](../reference/tune/tune) to find good hyperparameter configurations under budget constraints, such that:
+  - Maximize the utility out of using expensive foundation models.
+  - Reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
+* An enhanced inference API with utilities like API unification, caching, error handling, multi-config inference, context programming etc.
+* Higher-level utility functions like LLM-based coding and interactive agents.
 
-## Choices to Optimize
+The package is under active development with more features upcoming.
+
+## Tune Inference Parameters
+
+### Choices to optimize
 
 The cost of using foundation models for text generation is typically measured in terms of the number of tokens in the input and output combined. From the perspective of an application builder using foundation models, the use case is to maximize the utility of the generated text under an inference budget constraint (e.g., measured by the average dollar cost needed to solve a coding problem). This can be achieved by optimizing the hyperparameters of the inference,
 which can significantly affect both the utility and the cost of the generated text.
@@ -31,7 +37,7 @@ These interactions and trade-offs make it difficult to manually determine the op
 
 ## Tune Hyperparameters
 
-The tuning can be performed with the following information:
+With `flaml.autogen`, the tuning can be performed with the following information:
 1. Validation data.
 1. Evaluation function.
 1. Metric to optimize.
@@ -365,15 +371,18 @@ Set `compact=False` in `start_logging()` to switch.
 It can be seen that the individual API call history contain redundant information of the conversation. For a long conversation the degree of redundancy is high.
 The compact history is more efficient and the individual API call history contains more details.
 
-## Other Utilities
+### Other Utilities
 
-### Completion
-
-[`flaml.oai.Completion`](../reference/autogen/oai/completion) also offers some additional utilities, such as:
 - a [`cost`](../reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
 - a [`test`](../reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
 - a [`extract_text`](../reference/autogen/oai/completion#extract_text) function to extract the text from a completion or chat response.
-- a [`set_cache`](../reference/autogen/oai/completion#extract_text) function to set the seed and cache path. The caching is introduced in the section above, with the benefit of cost saving, reproducibility, and controlled randomness.
+
+
+## Agents (Experimental)
+
+[`flaml.autogen.agents`](../reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
+
+## Utilities for Applications
 
 ### Code
 
