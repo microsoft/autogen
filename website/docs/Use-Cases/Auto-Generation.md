@@ -1,7 +1,7 @@
 # Auto Generation
 
 `flaml.autogen` is a package for automating generation tasks (in preview), featuring:
-* Leveraging [`flaml.tune`](../reference/tune/tune) to find good hyperparameter configurations under budget constraints, such that:
+* Leveraging [`flaml.tune`](../reference/tune/tune) to adapt LLMs to applications, such that:
   - Maximize the utility out of using expensive foundation models.
   - Reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
 * An enhanced inference API with utilities like API unification, caching, error handling, multi-config inference, context programming etc.
@@ -34,8 +34,6 @@ These interactions and trade-offs make it difficult to manually determine the op
 
 *Do the choices matter? Check this [blog post](/blog/2023/04/21/LLM-tuning-math) for a case study.*
 
-
-## Tune Hyperparameters
 
 With `flaml.autogen`, the tuning can be performed with the following information:
 1. Validation data.

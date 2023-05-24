@@ -19,10 +19,10 @@
 
 ## What is FLAML
 FLAML is a lightweight Python library for efficient automation of machine
-learning, including selection of
+learning and AI operations, including selection of
 models, hyperparameters, and other tunable choices of an application (e.g., inference hyperparameters for foundation models, configurations in MLOps/LMOps workflows, pipelines, mathematical/statistical models, algorithms, computing experiments, software configurations).
 
-* For foundation models like the GPT series, it automates the experimentation and optimization of their inference performance to maximize the effectiveness for downstream applications and minimize the inference cost.
+* For foundation models like the GPT series and AI agents based on them, it automates the experimentation and optimization of their performance to maximize the effectiveness for applications and minimize the inference cost.
 * For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources.
 * It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training/inference/evaluation code).
 * It supports fast automatic tuning, capable of handling complex constraints/guidance/early stopping. FLAML is powered by a [cost-effective
@@ -76,7 +76,7 @@ config, analysis = oai.Completion.tune(
 ```
 
 The automated experimentation and optimization can help you maximize the utility out of these expensive models.
-A suite of utilities such as caching and templating are offered to accelerate the experimentation and application development.
+A suite of utilities are offered to accelerate the experimentation and application development, such as low-level inference API with caching, templating, filtering, and higher-level components like LLM-based coding and interactive agents.
 
 * With three lines of code, you can start using this economical and fast
 AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).
@@ -118,11 +118,11 @@ You can find a detailed documentation about FLAML [here](https://microsoft.githu
 
 In addition, you can find:
 
-- Research around FLAML [here](https://microsoft.github.io/FLAML/docs/Research).
+- [Research](https://microsoft.github.io/FLAML/docs/Research) and [blogposts](https://microsoft.github.io/FLAML/blog) around FLAML.
 
-- Discord [here](https://discord.gg/Cppx2vSPVP).
+- [Discord](https://discord.gg/Cppx2vSPVP).
 
-- Contributing guide [here](https://microsoft.github.io/FLAML/docs/Contribute).
+- [Contributing guide](https://microsoft.github.io/FLAML/docs/Contribute).
 
 - ML.NET documentation and tutorials for [Model Builder](https://learn.microsoft.com/dotnet/machine-learning/tutorials/predict-prices-with-model-builder), [ML.NET CLI](https://learn.microsoft.com/dotnet/machine-learning/tutorials/sentiment-analysis-cli), and [AutoML API](https://learn.microsoft.com/dotnet/machine-learning/how-to-guides/how-to-use-the-automl-api).
 
