@@ -2,24 +2,9 @@
 #  * Copyright (c) FLAML authors. All rights reserved.
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
-import os
 import time
 import numpy as np
-import pandas as pd
 from typing import Union, Callable, TypeVar, Optional, Tuple
-
-from sklearn.metrics import (
-    mean_squared_error,
-    r2_score,
-    roc_auc_score,
-    accuracy_score,
-    mean_absolute_error,
-    log_loss,
-    average_precision_score,
-    f1_score,
-    mean_absolute_percentage_error,
-    ndcg_score,
-)
 from flaml.automl.model import (
     XGBoostSklearnEstimator,
     XGBoost_TS,
@@ -47,27 +32,26 @@ from flaml.automl.model import (
 from flaml.automl.data import group_counts
 from flaml.automl.task.task import TS_FORECAST, Task
 from flaml.automl.model import BaseEstimator
+from flaml.automl.spark import psDataFrame, psSeries, ERROR as SPARK_ERROR, Series
 
 try:
-    from flaml.automl.spark.utils import len_labels
+    from sklearn.metrics import (
+        mean_squared_error,
+        r2_score,
+        roc_auc_score,
+        accuracy_score,
+        mean_absolute_error,
+        log_loss,
+        average_precision_score,
+        f1_score,
+        mean_absolute_percentage_error,
+        ndcg_score,
+    )
 except ImportError:
-    from flaml.automl.utils import len_labels
-try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    from pyspark.sql.functions import col
-    import pyspark.pandas as ps
-    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
-    from flaml.automl.spark.utils import to_pandas_on_spark, iloc_pandas_on_spark
+    pass
+
+if SPARK_ERROR is None:
     from flaml.automl.spark.metrics import spark_metric_loss_score
-except ImportError:
-    ps = None
-
-    class psDataFrame:
-        pass
-
-    class psSeries:
-        pass
-
 
 EstimatorSubclass = TypeVar("EstimatorSubclass", bound=BaseEstimator)
 
@@ -209,7 +193,7 @@ def metric_loss_score(
                 y_processed_true = [[labels[tr] for tr in each_list] for each_list in y_processed_true]
             elif metric in ("pearsonr", "spearmanr"):
                 y_processed_true = (
-                    y_processed_true.to_list() if isinstance(y_processed_true, pd.Series) else list(y_processed_true)
+                    y_processed_true.to_list() if isinstance(y_processed_true, Series) else list(y_processed_true)
                 )
             score_dict = metric.compute(predictions=y_processed_predict, references=y_processed_true)
             if "rouge" in metric_name:
@@ -612,7 +596,7 @@ def train_estimator(
     return estimator, train_time
 
 
-def norm_confusion_matrix(y_true: Union[np.array, pd.Series], y_pred: Union[np.array, pd.Series]):
+def norm_confusion_matrix(y_true: Union[np.array, Series], y_pred: Union[np.array, Series]):
     """normalized confusion matrix.
 
     Args:
@@ -631,8 +615,8 @@ def norm_confusion_matrix(y_true: Union[np.array, pd.Series], y_pred: Union[np.a
 
 
 def multi_class_curves(
-    y_true: Union[np.array, pd.Series],
-    y_pred_proba: Union[np.array, pd.Series],
+    y_true: Union[np.array, Series],
+    y_pred_proba: Union[np.array, Series],
     curve_func: Callable,
 ):
     """Binarize the data for multi-class tasks and produce ROC or precision-recall curves.

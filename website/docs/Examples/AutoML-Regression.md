@@ -1,5 +1,12 @@
 # AutoML - Regression
 
+### Prerequisites
+
+Install the [automl] option.
+```bash
+pip install "flaml[automl]"
+```
+
 ### A basic regression example
 
 ```python

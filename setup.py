@@ -15,11 +15,6 @@ __version__ = version["__version__"]
 
 install_requires = [
     "NumPy>=1.17.0rc1",
-    "lightgbm>=2.3.1",
-    "xgboost>=0.90",
-    "scipy>=1.4.1",
-    "pandas>=1.1.4",
-    "scikit-learn>=0.24",
 ]
 
 
@@ -39,16 +34,28 @@ setuptools.setup(
     include_package_data=True,
     install_requires=install_requires,
     extras_require={
+        "automl": [
+            "lightgbm>=2.3.1",
+            "xgboost>=0.90",
+            "scipy>=1.4.1",
+            "pandas>=1.1.4",
+            "scikit-learn>=0.24",
+        ],
         "notebook": [
             "jupyter",
             "matplotlib",
-            "openml==0.10.2",
+            "openml",
         ],
         "spark": [
             "pyspark>=3.2.0",
             "joblibspark>=0.5.0",
         ],
         "test": [
+            "lightgbm>=2.3.1",
+            "xgboost>=0.90",
+            "scipy>=1.4.1",
+            "pandas>=1.1.4",
+            "scikit-learn>=0.24",
             "thop",
             "pytest>=6.1.1",
             "coverage>=5.3",
@@ -58,7 +65,7 @@ setuptools.setup(
             "catboost>=0.26,<1.2",
             "rgf-python",
             "optuna==2.8.0",
-            "openml==0.10.2",
+            "openml",
             "statsmodels>=0.12.2",
             "psutil==5.8.0",
             "dataclasses",
@@ -77,6 +84,7 @@ setuptools.setup(
             "ipykernel",
             "pytorch-lightning<1.9.1",  # test_forecast_panel
             "requests<2.29.0",  # https://github.com/docker/docker-py/issues/3113
+            "packaging",
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
@@ -91,6 +99,7 @@ setuptools.setup(
         ],
         "vw": [
             "vowpalwabbit>=8.10.0, <9.0.0",
+            "scikit-learn",
         ],
         "hf": [
             "transformers[torch]==4.26",
@@ -122,7 +131,12 @@ setuptools.setup(
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3"],
         "openai": ["openai==0.27.4", "diskcache"],
         "autogen": ["openai==0.27.4", "diskcache", "docker"],
-        "synapse": ["joblibspark>=0.5.0", "optuna==2.8.0", "pyspark>=3.2.0"],
+        "synapse": [
+            "joblibspark>=0.5.0",
+            "optuna==2.8.0",
+            "pyspark>=3.2.0",
+        ],
+        "autozero": ["scikit-learn", "pandas", "packaging"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

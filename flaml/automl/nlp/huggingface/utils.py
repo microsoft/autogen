@@ -1,7 +1,5 @@
-import pandas as pd
 from itertools import chain
 import numpy as np
-
 from flaml.automl.task.task import (
     SUMMARIZATION,
     SEQREGRESSION,
@@ -10,6 +8,7 @@ from flaml.automl.task.task import (
     TOKENCLASSIFICATION,
     NLG_TASKS,
 )
+from flaml.automl.data import pd
 
 
 def todf(X, Y, column_name):

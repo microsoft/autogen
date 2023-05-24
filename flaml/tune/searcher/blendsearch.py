@@ -958,9 +958,7 @@ try:
     from nni.tuner import Tuner as NNITuner
     from nni.utils import extract_scalar_reward
 except ImportError:
-
-    class NNITuner:
-        pass
+    NNITuner = object
 
     def extract_scalar_reward(x: Dict):
         return x.get("default")

@@ -9,14 +9,8 @@ import os
 from typing import Callable, List, Union
 import numpy as np
 import time
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.dummy import DummyClassifier, DummyRegressor
-from scipy.sparse import issparse
 import logging
 import shutil
-from pandas import DataFrame, Series, to_datetime
 import sys
 import math
 from flaml import tune
@@ -37,36 +31,28 @@ from flaml.automl.task.task import (
 )
 
 try:
-    from flaml.automl.spark.utils import len_labels, to_pandas_on_spark
+    from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+    from sklearn.ensemble import ExtraTreesRegressor, ExtraTreesClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.dummy import DummyClassifier, DummyRegressor
 except ImportError:
-    from flaml.automl.utils import len_labels
+    pass
 
-    to_pandas_on_spark = None
+try:
+    from scipy.sparse import issparse
+except ImportError:
+    pass
+
+from flaml.automl.spark import psDataFrame, sparkDataFrame, psSeries, ERROR as SPARK_ERROR, DataFrame, Series
+from flaml.automl.spark.utils import len_labels, to_pandas_on_spark
 from flaml.automl.spark.configs import (
     ParamList_LightGBM_Classifier,
     ParamList_LightGBM_Regressor,
     ParamList_LightGBM_Ranker,
 )
 
-try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    from pyspark.sql.dataframe import DataFrame as sparkDataFrame
-    from pyspark.sql import SparkSession
-    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
-
-    _have_spark = True
-except ImportError:
-    _have_spark = False
-
-    class psDataFrame:
-        pass
-
-    class psSeries:
-        pass
-
-    class sparkDataFrame:
-        pass
-
+if DataFrame is not None:
+    from pandas import to_datetime
 
 try:
     import psutil
@@ -415,8 +401,8 @@ class SparkEstimator(BaseEstimator):
     """The base class for fine-tuning spark models, using pyspark.ml and SynapseML API."""
 
     def __init__(self, task="binary", **config):
-        if not _have_spark:
-            raise ImportError("pyspark is not installed. Try `pip install flaml[spark]`.")
+        if SPARK_ERROR:
+            raise SPARK_ERROR
         super().__init__(task, **config)
         self.df_train = None
 

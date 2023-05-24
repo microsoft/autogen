@@ -1,28 +1,16 @@
-import logging
-import os
 import numpy as np
 from typing import Union
-
-try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    from pyspark.sql import DataFrame
-    import pyspark.pandas as ps
-    from pyspark.ml.evaluation import (
-        BinaryClassificationEvaluator,
-        RegressionEvaluator,
-        MulticlassClassificationEvaluator,
-        MultilabelClassificationEvaluator,
-        RankingEvaluator,
-    )
-    import pyspark.sql.functions as F
-except ImportError:
-    msg = """use_spark=True requires installation of PySpark. Please run pip install flaml[spark]
-    and check [here](https://spark.apache.org/docs/latest/api/python/getting_started/install.html)
-    for more details about installing Spark."""
-    raise ImportError(msg)
+from flaml.automl.spark import psSeries, F
+from pyspark.ml.evaluation import (
+    BinaryClassificationEvaluator,
+    RegressionEvaluator,
+    MulticlassClassificationEvaluator,
+    MultilabelClassificationEvaluator,
+    RankingEvaluator,
+)
 
 
-def ps_group_counts(groups: Union[ps.Series, np.ndarray]) -> np.ndarray:
+def ps_group_counts(groups: Union[psSeries, np.ndarray]) -> np.ndarray:
     if isinstance(groups, np.ndarray):
         _, i, c = np.unique(groups, return_counts=True, return_index=True)
     else:
@@ -48,20 +36,20 @@ def _compute_label_from_probability(df, probability_col, prediction_col):
 
 def spark_metric_loss_score(
     metric_name: str,
-    y_predict: ps.Series,
-    y_true: ps.Series,
-    sample_weight: ps.Series = None,
-    groups: ps.Series = None,
+    y_predict: psSeries,
+    y_true: psSeries,
+    sample_weight: psSeries = None,
+    groups: psSeries = None,
 ) -> float:
     """
     Compute the loss score of a metric for spark models.
 
     Args:
         metric_name: str | the name of the metric.
-        y_predict: ps.Series | the predicted values.
-        y_true: ps.Series | the true values.
-        sample_weight: ps.Series | the sample weights. Default: None.
-        groups: ps.Series | the group of each row. Default: None.
+        y_predict: psSeries | the predicted values.
+        y_true: psSeries | the true values.
+        sample_weight: psSeries | the sample weights. Default: None.
+        groups: psSeries | the group of each row. Default: None.
 
     Returns:
         float | the loss score. A lower value indicates a better model.

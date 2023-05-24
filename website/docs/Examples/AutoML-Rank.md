@@ -1,5 +1,12 @@
 # AutoML - Rank
 
+### Prerequisites
+
+Install the [automl] option.
+```bash
+pip install "flaml[automl]"
+```
+
 ### A simple learning-to-rank example
 
 ```python

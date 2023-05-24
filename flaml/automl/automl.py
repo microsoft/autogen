@@ -9,8 +9,6 @@ import sys
 from typing import Callable, List, Union, Optional
 from functools import partial
 import numpy as np
-from sklearn.base import BaseEstimator
-import pandas as pd
 import logging
 import json
 
@@ -38,36 +36,18 @@ from flaml.automl.logger import logger, logger_formatter
 from flaml.automl.training_log import training_log_reader, training_log_writer
 from flaml.default import suggest_learner
 from flaml.version import __version__ as flaml_version
+from flaml.automl.spark import psDataFrame, psSeries, DataFrame, Series
 from flaml.tune.spark.utils import check_spark, get_broadcast_data
 
+ERROR = (
+    DataFrame is None and ImportError("please install flaml[automl] option to use the flaml.automl package.") or None
+)
+
 try:
-    from flaml.automl.spark.utils import (
-        train_test_split_pyspark,
-        unique_pandas_on_spark,
-        len_labels,
-        unique_value_first_index,
-    )
+    from sklearn.base import BaseEstimator
 except ImportError:
-    train_test_split_pyspark = None
-    unique_pandas_on_spark = None
-    from flaml.automl.utils import (
-        len_labels,
-        unique_value_first_index,
-    )
-try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    import pyspark.pandas as ps
-    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
-    from pyspark.pandas.config import set_option, reset_option
-except ImportError:
-    ps = None
-
-    class psDataFrame:
-        pass
-
-    class psSeries:
-        pass
-
+    BaseEstimator = object
+    ERROR = ERROR or ImportError("please install flaml[automl] option to use the flaml.automl package.")
 
 try:
     import mlflow
@@ -78,7 +58,6 @@ try:
     from ray import __version__ as ray_version
 
     assert ray_version >= "1.10.0"
-
     ray_available = True
 except (ImportError, AssertionError):
     ray_available = False
@@ -346,6 +325,8 @@ class AutoML(BaseEstimator):
                 FLAML will create nested runs.
 
         """
+        if ERROR:
+            raise ERROR
         self._track_iter = 0
         self._state = AutoMLState()
         self._state.learner_classes = {}
@@ -540,8 +521,8 @@ class AutoML(BaseEstimator):
 
     def score(
         self,
-        X: Union[pd.DataFrame, psDataFrame],
-        y: Union[pd.Series, psSeries],
+        X: Union[DataFrame, psDataFrame],
+        y: Union[Series, psSeries],
         **kwargs,
     ):
         estimator = getattr(self, "_trained_estimator", None)
@@ -555,7 +536,7 @@ class AutoML(BaseEstimator):
 
     def predict(
         self,
-        X: Union[np.array, pd.DataFrame, List[str], List[List[str]], psDataFrame],
+        X: Union[np.array, DataFrame, List[str], List[List[str]], psDataFrame],
         **pred_kwargs,
     ):
         """Predict label from features.
@@ -574,7 +555,7 @@ class AutoML(BaseEstimator):
                 the searched learners, such as per_device_eval_batch_size.
 
         ```python
-        multivariate_X_test = pd.DataFrame({
+        multivariate_X_test = DataFrame({
             'timeStamp': pd.date_range(start='1/1/2022', end='1/07/2022'),
             'categorical_col': ['yes', 'yes', 'no', 'no', 'yes', 'no', 'yes'],
             'continuous_col': [105, 107, 120, 118, 110, 112, 115]
@@ -596,7 +577,7 @@ class AutoML(BaseEstimator):
         if isinstance(y_pred, np.ndarray) and y_pred.ndim > 1 and isinstance(y_pred, np.ndarray):
             y_pred = y_pred.flatten()
         if self._label_transformer:
-            return self._label_transformer.inverse_transform(pd.Series(y_pred.astype(int)))
+            return self._label_transformer.inverse_transform(Series(y_pred.astype(int)))
         else:
             return y_pred
 

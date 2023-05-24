@@ -2,12 +2,10 @@
 
 ### Prerequisites for this example
 
-Install the [notebook] option.
+Install the [automl] option.
 ```bash
-pip install "flaml[notebook]"
+pip install "flaml[automl] matplotlib openml"
 ```
-
-This option is not necessary in general.
 
 ### Use built-in LGBMEstimator
 

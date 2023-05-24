@@ -15,16 +15,16 @@ try:
 
     assert ray_version >= "1.10.0"
     from ray.tune.analysis import ExperimentAnalysis as EA
-
-    ray_available = True
 except (ImportError, AssertionError):
     ray_available = False
     from .analysis import ExperimentAnalysis as EA
+else:
+    ray_available = True
 
 from .trial import Trial
 from .result import DEFAULT_METRIC
 import logging
-from flaml.tune.spark.utils import PySparkOvertimeMonitor
+from flaml.tune.spark.utils import PySparkOvertimeMonitor, check_spark
 
 logger = logging.getLogger(__name__)
 logger.propagate = False
@@ -231,7 +231,7 @@ def run(
     n_concurrent_trials: Optional[int] = 0,
     **ray_args,
 ):
-    """The trigger for HPO.
+    """The function-based way of performing HPO.
 
     Example:
 
@@ -612,8 +612,6 @@ def run(
 
     if use_spark:
         # parallel run with spark
-        from flaml.tune.spark.utils import check_spark
-
         spark_available, spark_error_msg = check_spark()
         if not spark_available:
             raise spark_error_msg
@@ -811,3 +809,84 @@ def run(
             _runner = old_runner
             logger.handlers = old_handlers
             logger.setLevel(old_level)
+
+
+class Tuner:
+    """Tuner is the class-based way of launching hyperparameter tuning jobs compatible with Ray Tune 2.
+
+    Args:
+        trainable: A user-defined evaluation function.
+            It takes a configuration as input, outputs a evaluation
+            result (can be a numerical value or a dictionary of string
+            and numerical value pairs) for the input configuration.
+            For machine learning tasks, it usually involves training and
+            scoring a machine learning model, e.g., through validation loss.
+        param_space: Search space of the tuning job.
+            One thing to note is that both preprocessor and dataset can be tuned here.
+        tune_config: Tuning algorithm specific configs.
+            Refer to ray.tune.tune_config.TuneConfig for more info.
+        run_config: Runtime configuration that is specific to individual trials.
+            If passed, this will overwrite the run config passed to the Trainer,
+            if applicable. Refer to ray.air.config.RunConfig for more info.
+
+    Usage pattern:
+
+    .. code-block:: python
+
+        from sklearn.datasets import load_breast_cancer
+
+        from ray import tune
+        from ray.data import from_pandas
+        from ray.air.config import RunConfig, ScalingConfig
+        from ray.train.xgboost import XGBoostTrainer
+        from ray.tune.tuner import Tuner
+
+        def get_dataset():
+            data_raw = load_breast_cancer(as_frame=True)
+            dataset_df = data_raw["data"]
+            dataset_df["target"] = data_raw["target"]
+            dataset = from_pandas(dataset_df)
+            return dataset
+
+        trainer = XGBoostTrainer(
+            label_column="target",
+            params={},
+            datasets={"train": get_dataset()},
+        )
+
+        param_space = {
+            "scaling_config": ScalingConfig(
+                num_workers=tune.grid_search([2, 4]),
+                resources_per_worker={
+                    "CPU": tune.grid_search([1, 2]),
+                },
+            ),
+            # You can even grid search various datasets in Tune.
+            # "datasets": {
+            #     "train": tune.grid_search(
+            #         [ds1, ds2]
+            #     ),
+            # },
+            "params": {
+                "objective": "binary:logistic",
+                "tree_method": "approx",
+                "eval_metric": ["logloss", "error"],
+                "eta": tune.loguniform(1e-4, 1e-1),
+                "subsample": tune.uniform(0.5, 1.0),
+                "max_depth": tune.randint(1, 9),
+            },
+        }
+        tuner = Tuner(trainable=trainer, param_space=param_space,
+            run_config=RunConfig(name="my_tune_run"))
+        analysis = tuner.fit()
+
+    To retry a failed tune run, you can then do
+
+    .. code-block:: python
+
+        tuner = Tuner.restore(experiment_checkpoint_dir)
+        tuner.fit()
+
+    ``experiment_checkpoint_dir`` can be easily located near the end of the
+    console output of your first failed run.
+    """

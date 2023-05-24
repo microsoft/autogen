@@ -1,5 +1,12 @@
 # AutoML - Classification
 
+### Prerequisites
+
+Install the [automl] option.
+```bash
+pip install "flaml[automl]"
+```
+
 ### A basic classification example
 
 ```python

@@ -2,9 +2,9 @@
 
 ### Prerequisites
 
-Install the [ts_forecast] option.
+Install the [automl,ts_forecast] option.
 ```bash
-pip install "flaml[ts_forecast]"
+pip install "flaml[automl,ts_forecast]"
 ```
 
 ### Simple NumPy Example
