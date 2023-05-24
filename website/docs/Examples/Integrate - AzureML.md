@@ -2,9 +2,9 @@ FLAML can be used together with AzureML. On top of that, using mlflow and ray is
 
 ### Prerequisites
 
-Install the [azureml] option.
+Install the [automl,azureml] option.
 ```bash
-pip install "flaml[azureml]"
+pip install "flaml[automl,azureml]"
 ```
 
 Setup a AzureML workspace:

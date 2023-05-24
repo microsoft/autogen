@@ -11,20 +11,19 @@ logger_formatter = logging.Formatter(
     "[%(name)s: %(asctime)s] {%(lineno)d} %(levelname)s - %(message)s", "%m-%d %H:%M:%S"
 )
 logger.propagate = False
+os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
 try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
     import pyspark
     from pyspark.sql import SparkSession
     from pyspark.util import VersionUtils
     import py4j
-
-    _have_spark = True
-    _spark_major_minor_version = VersionUtils.majorMinorVersion(pyspark.__version__)
-except ImportError as e:
-    logger.debug("Could not import pyspark: %s", e)
+except ImportError:
     _have_spark = False
     py4j = None
     _spark_major_minor_version = (0, 0)
+else:
+    _have_spark = True
+    _spark_major_minor_version = VersionUtils.majorMinorVersion(pyspark.__version__)
 
 
 @lru_cache(maxsize=2)
@@ -37,7 +36,7 @@ def check_spark():
         Return (True, None) if the check passes, otherwise log the exception message and
         return (False, Exception(msg)). The exception can be raised by the caller.
     """
-    logger.debug("\ncheck Spark installation...This line should appear only once.\n")
+    logger.debug("\nchecking Spark installation...This line should appear only once.\n")
     if not _have_spark:
         msg = """use_spark=True requires installation of PySpark. Please run pip install flaml[spark]
         and check [here](https://spark.apache.org/docs/latest/api/python/getting_started/install.html)
@@ -51,7 +50,6 @@ def check_spark():
     try:
         SparkSession.builder.getOrCreate()
     except RuntimeError as e:
-        # logger.warning(f"\nSparkSession is not available: {e}\n")
         return False, RuntimeError(e)
 
     return True, None

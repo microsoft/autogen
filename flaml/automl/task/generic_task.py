@@ -1,22 +1,7 @@
-import os
 import logging
 import time
 from typing import List, Optional
-
-import pandas as pd
 import numpy as np
-from scipy.sparse import issparse
-from sklearn.utils import shuffle
-from sklearn.model_selection import (
-    train_test_split,
-    RepeatedStratifiedKFold,
-    RepeatedKFold,
-    GroupKFold,
-    TimeSeriesSplit,
-    GroupShuffleSplit,
-    StratifiedGroupKFold,
-)
-
 from flaml.automl.data import TS_TIMESTAMP_COL, concat
 from flaml.automl.ml import EstimatorSubclass, default_cv_score_agg_func, get_val_loss
 from flaml.automl.model import (
@@ -40,40 +25,34 @@ from flaml.automl.task.task import (
     TS_FORECASTPANEL,
 )
 from flaml.config import RANDOM_SEED
+from flaml.automl.spark import ps, psDataFrame, psSeries, pd
+from flaml.automl.spark.utils import (
+    iloc_pandas_on_spark,
+    spark_kFold,
+    train_test_split_pyspark,
+    unique_pandas_on_spark,
+    unique_value_first_index,
+    len_labels,
+    set_option,
+)
 
 try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    from pyspark.sql.functions import col
-    import pyspark.pandas as ps
-    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
-    from pyspark.pandas.config import set_option, reset_option
-    from flaml.automl.spark.utils import (
-        to_pandas_on_spark,
-        iloc_pandas_on_spark,
-        spark_kFold,
-        train_test_split_pyspark,
-        unique_pandas_on_spark,
-        unique_value_first_index,
-        len_labels,
-    )
-    from flaml.automl.spark.metrics import spark_metric_loss_score
+    from scipy.sparse import issparse
 except ImportError:
-    train_test_split_pyspark = None
-    unique_pandas_on_spark = None
-    iloc_pandas_on_spark = None
-    from flaml.automl.utils import (
-        len_labels,
-        unique_value_first_index,
+    pass
+try:
+    from sklearn.utils import shuffle
+    from sklearn.model_selection import (
+        train_test_split,
+        RepeatedStratifiedKFold,
+        RepeatedKFold,
+        GroupKFold,
+        TimeSeriesSplit,
+        GroupShuffleSplit,
+        StratifiedGroupKFold,
     )
-
-    ps = None
-
-    class psDataFrame:
-        pass
-
-    class psSeries:
-        pass
-
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 

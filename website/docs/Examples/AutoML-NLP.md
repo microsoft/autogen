@@ -2,9 +2,9 @@
 
 ### Requirements
 
-This example requires GPU. Install the [hf] option:
+This example requires GPU. Install the [automl,hf] option:
 ```python
-pip install "flaml[hf]"
+pip install "flaml[automl,hf]"
 ```
 
 ### A simple sequence classification example

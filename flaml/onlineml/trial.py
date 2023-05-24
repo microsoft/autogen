@@ -5,8 +5,12 @@ import math
 import copy
 import collections
 from typing import Optional, Union
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 from flaml.tune import Trial
+
+try:
+    from sklearn.metrics import mean_squared_error, mean_absolute_error
+except ImportError:
+    pass
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,3 @@
-import sklearn.ensemble as ensemble
 from functools import wraps
 from flaml.automl.task.task import CLASSIFICATION
 from .suggest import preprocess_and_suggest_hyperparams
@@ -143,22 +142,31 @@ def flamlize_estimator(super_class, name: str, task: str, alternatives=None):
     return EstimatorClass
 
 
-RandomForestRegressor = flamlize_estimator(ensemble.RandomForestRegressor, "rf", "regression")
-RandomForestClassifier = flamlize_estimator(ensemble.RandomForestClassifier, "rf", "classification")
-ExtraTreesRegressor = flamlize_estimator(ensemble.ExtraTreesRegressor, "extra_tree", "regression")
-ExtraTreesClassifier = flamlize_estimator(ensemble.ExtraTreesClassifier, "extra_tree", "classification")
+try:
+    import sklearn.ensemble as ensemble
+except ImportError:
+    RandomForestClassifier = RandomForestRegressor = ExtraTreesClassifier = ExtraTreesRegressor = ImportError(
+        "Using flaml.default.* requires scikit-learn."
+    )
+else:
+    RandomForestRegressor = flamlize_estimator(ensemble.RandomForestRegressor, "rf", "regression")
+    RandomForestClassifier = flamlize_estimator(ensemble.RandomForestClassifier, "rf", "classification")
+    ExtraTreesRegressor = flamlize_estimator(ensemble.ExtraTreesRegressor, "extra_tree", "regression")
+    ExtraTreesClassifier = flamlize_estimator(ensemble.ExtraTreesClassifier, "extra_tree", "classification")
 
 try:
     import lightgbm
-
+except ImportError:
+    LGBMRegressor = LGBMClassifier = ImportError("Using flaml.default.LGBM* requires lightgbm.")
+else:
     LGBMRegressor = flamlize_estimator(lightgbm.LGBMRegressor, "lgbm", "regression")
     LGBMClassifier = flamlize_estimator(lightgbm.LGBMClassifier, "lgbm", "classification")
-except ImportError:
-    pass
 
 try:
     import xgboost
-
+except ImportError:
+    XGBClassifier = XGBRegressor = ImportError("Using flaml.default.XGB* requires xgboost.")
+else:
     XGBRegressor = flamlize_estimator(
         xgboost.XGBRegressor,
         "xgb_limitdepth",
@@ -171,5 +179,3 @@ try:
         "classification",
         [("max_depth", 0, "xgboost")],
     )
-except ImportError:
-    pass

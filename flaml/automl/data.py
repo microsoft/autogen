@@ -3,30 +3,16 @@
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
 import numpy as np
-from scipy.sparse import vstack, issparse
-import pandas as pd
-from pandas import DataFrame, Series
-
-from flaml.automl.training_log import training_log_reader
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Union
-
 import os
+from flaml.automl.training_log import training_log_reader
+from flaml.automl.spark import ps, psDataFrame, psSeries, DataFrame, Series, pd
 
 try:
-    os.environ["PYARROW_IGNORE_TIMEZONE"] = "1"
-    import pyspark.pandas as ps
-    from pyspark.pandas import DataFrame as psDataFrame, Series as psSeries
+    from scipy.sparse import vstack, issparse
 except ImportError:
-    ps = None
-
-    class psDataFrame:
-        pass
-
-    class psSeries:
-        pass
-
+    pass
 
 if TYPE_CHECKING:
     from flaml.automl.task import Task
@@ -55,7 +41,6 @@ def load_openml_dataset(dataset_id, data_dir=None, random_state=0, dataset_forma
         y_train: A series or array of labels for training data.
         y_test:  A series or array of labels for test data.
     """
-    import os
     import openml
     import pickle
     from sklearn.model_selection import train_test_split
@@ -108,7 +93,6 @@ def load_openml_task(task_id, data_dir):
         y_train: A series of labels for training data.
         y_test:  A series of labels for test data.
     """
-    import os
     import openml
     import pickle
 

@@ -1,8 +1,7 @@
 import argparse
 from dataclasses import dataclass, field
-
-from flaml.automl.task.task import NLG_TASKS
 from typing import Optional, List
+from flaml.automl.task.task import NLG_TASKS
 
 try:
     from transformers import TrainingArguments

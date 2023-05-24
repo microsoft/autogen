@@ -2,9 +2,15 @@
 
 Flamlized estimators automatically use data-dependent default hyperparameter configurations for each estimator, offering a unique zero-shot AutoML capability, or "no tuning" AutoML.
 
-This example requires openml==0.10.2.
-
 ## Flamlized LGBMRegressor
+
+### Prerequisites
+
+This example requires the [autozero] option.
+
+```bash
+pip install flaml[autozero] lightgbm openml
+```
 
 ### Zero-shot AutoML
 
@@ -61,6 +67,10 @@ X_test.shape: (5160, 8), y_test.shape: (5160,)
 [Link to notebook](https://github.com/microsoft/FLAML/blob/main/notebook/zeroshot_lightgbm.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/FLAML/blob/main/notebook/zeroshot_lightgbm.ipynb)
 
 ## Flamlized XGBClassifier
+
+### Prerequisites
+
+This example requires xgboost, sklearn, openml==0.10.2.
 
 ### Zero-shot AutoML
 
