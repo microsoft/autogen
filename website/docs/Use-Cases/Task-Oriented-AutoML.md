@@ -414,7 +414,7 @@ To do parallel tuning with Spark, install the `spark` and `blendsearch` options:
 pip install flaml[spark,blendsearch]>=1.1.0
 ```
 
-For more details about installing Spark, please refer to [Installation](../Installation#Distributed-tuning).
+For more details about installing Spark, please refer to [Installation](../Installation#distributed-tuning).
 
 An example of using Spark for parallel tuning is:
 ```python
