@@ -24,7 +24,7 @@ class UserProxyAgent(Agent):
             name (str): name of the agent
             system_message (str): system message to be sent to the agent
             work_dir (str): working directory for the agent
-            human_input_mode (bool): whether to ask for human inputs every time a message is received.
+            human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
                 (1) When "ALWAYS", the agent prompts for human input every time a message is received.
                     Under this mode, the conversation stops when the human input is "exit",
@@ -34,12 +34,12 @@ class UserProxyAgent(Agent):
                 (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or or when is_termination_msg is True.
             max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
-                default: None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
+                default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             is_termination_msg (function): a function that takes a message and returns a boolean value.
                 This function is used to determine if a received message is a termination message.
-            config (dict): other configurations.
-
+            use_docker (bool): whether to use docker to execute the code.
+            **config (dict): other configurations.
         """
         super().__init__(name, system_message)
         self._work_dir = work_dir
