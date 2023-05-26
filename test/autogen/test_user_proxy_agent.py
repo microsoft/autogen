@@ -3,7 +3,7 @@ from flaml import oai
 KEY_LOC = "test/autogen"
 
 
-def test_human_agent():
+def test_user_proxy_agent():
     try:
         import openai
     except ImportError:
@@ -29,4 +29,4 @@ def test_human_agent():
 
 
 if __name__ == "__main__":
-    test_human_agent()
+    test_user_proxy_agent()
