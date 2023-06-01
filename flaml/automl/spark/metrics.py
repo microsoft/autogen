@@ -54,6 +54,10 @@ def spark_metric_loss_score(
     Returns:
         float | the loss score. A lower value indicates a better model.
     """
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
     label_col = "label"
     prediction_col = "prediction"
     kwargs = {}

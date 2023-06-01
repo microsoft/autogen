@@ -92,6 +92,10 @@ def train_test_split_pyspark(
         pyspark.sql.DataFrame/pandas_on_spark DataFrame | The train dataframe.
         pyspark.sql.DataFrame/pandas_on_spark DataFrame | The test dataframe.
     """
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
     if isinstance(df, psDataFrame):
         df = df.to_spark(index_col=index_col)
 
@@ -156,6 +160,10 @@ def iloc_pandas_on_spark(
     index_col: Optional[str] = "tmp_index_col",
 ) -> Union[psDataFrame, psSeries]:
     """Get the rows of a pandas_on_spark dataframe/series by index."""
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
     if isinstance(psdf, (DataFrame, Series)):
         return psdf.iloc[index]
     if isinstance(index, (int, slice)):
@@ -207,6 +215,10 @@ def spark_kFold(
     Returns:
         A list of (train, validation) DataFrames.
     """
+    import warnings
+
+    warnings.filterwarnings("ignore")
+
     if isinstance(dataset, psDataFrame):
         dataset = dataset.to_spark(index_col=index_col)
 
