@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <RestoreSuccess Condition=" '$(RestoreSuccess)' == '' ">True</RestoreSuccess>
+    <RestoreTool Condition=" '$(RestoreTool)' == '' ">NuGet</RestoreTool>
+    <ProjectAssetsFile Condition=" '$(ProjectAssetsFile)' == '' ">$(MSBuildThisFileDirectory)project.assets.json</ProjectAssetsFile>
+    <NuGetPackageRoot Condition=" '$(NuGetPackageRoot)' == '' ">/Users/ryan/.nuget/packages/</NuGetPackageRoot>
+    <NuGetPackageFolders Condition=" '$(NuGetPackageFolders)' == '' ">/Users/ryan/.nuget/packages/</NuGetPackageFolders>
+    <NuGetProjectStyle Condition=" '$(NuGetProjectStyle)' == '' ">PackageReference</NuGetProjectStyle>
+    <NuGetToolVersion Condition=" '$(NuGetToolVersion)' == '' ">6.5.0</NuGetToolVersion>
+  </PropertyGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <SourceRoot Include="/Users/ryan/.nuget/packages/" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Content Include="$(NuGetPackageRoot)microsoft.semantickernel.connectors.ai.openai/0.14.547.1-preview/contentFiles/any/netstandard2.0/Tokenizers/Settings/encoder.json" Condition="Exists('$(NuGetPackageRoot)microsoft.semantickernel.connectors.ai.openai/0.14.547.1-preview/contentFiles/any/netstandard2.0/Tokenizers/Settings/encoder.json')">
+      <NuGetPackageId>Microsoft.SemanticKernel.Connectors.AI.OpenAI</NuGetPackageId>
+      <NuGetPackageVersion>0.14.547.1-preview</NuGetPackageVersion>
+      <NuGetItemType>Content</NuGetItemType>
+      <Pack>false</Pack>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Tokenizers/Settings/encoder.json</TargetPath>
+      <DestinationSubDirectory>Tokenizers/Settings/</DestinationSubDirectory>
+      <Private>True</Private>
+      <Link>Tokenizers/Settings/encoder.json</Link>
+    </Content>
+    <Content Include="$(NuGetPackageRoot)microsoft.semantickernel.connectors.ai.openai/0.14.547.1-preview/contentFiles/any/netstandard2.0/Tokenizers/Settings/vocab.bpe" Condition="Exists('$(NuGetPackageRoot)microsoft.semantickernel.connectors.ai.openai/0.14.547.1-preview/contentFiles/any/netstandard2.0/Tokenizers/Settings/vocab.bpe')">
+      <NuGetPackageId>Microsoft.SemanticKernel.Connectors.AI.OpenAI</NuGetPackageId>
+      <NuGetPackageVersion>0.14.547.1-preview</NuGetPackageVersion>
+      <NuGetItemType>Content</NuGetItemType>
+      <Pack>false</Pack>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Tokenizers/Settings/vocab.bpe</TargetPath>
+      <DestinationSubDirectory>Tokenizers/Settings/</DestinationSubDirectory>
+      <Private>True</Private>
+      <Link>Tokenizers/Settings/vocab.bpe</Link>
+    </Content>
+  </ItemGroup>
+  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <Import Project="$(NuGetPackageRoot)microsoft.extensions.configuration.usersecrets/6.0.1/buildTransitive/netstandard2.0/Microsoft.Extensions.Configuration.UserSecrets.props" Condition="Exists('$(NuGetPackageRoot)microsoft.extensions.configuration.usersecrets/6.0.1/buildTransitive/netstandard2.0/Microsoft.Extensions.Configuration.UserSecrets.props')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.azure.functions.worker.sdk/1.10.0/build/Microsoft.Azure.Functions.Worker.Sdk.props" Condition="Exists('$(NuGetPackageRoot)microsoft.azure.functions.worker.sdk/1.10.0/build/Microsoft.Azure.Functions.Worker.Sdk.props')" />
+  </ImportGroup>
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <PkgMicrosoft_CodeAnalysis_Analyzers Condition=" '$(PkgMicrosoft_CodeAnalysis_Analyzers)' == '' ">/Users/ryan/.nuget/packages/microsoft.codeanalysis.analyzers/2.9.4</PkgMicrosoft_CodeAnalysis_Analyzers>
+    <PkgMicrosoft_Azure_Functions_Worker_Sdk_Analyzers Condition=" '$(PkgMicrosoft_Azure_Functions_Worker_Sdk_Analyzers)' == '' ">/Users/ryan/.nuget/packages/microsoft.azure.functions.worker.sdk.analyzers/1.1.2</PkgMicrosoft_Azure_Functions_Worker_Sdk_Analyzers>
+    <PkgMicrosoft_Azure_Functions_Worker_Sdk Condition=" '$(PkgMicrosoft_Azure_Functions_Worker_Sdk)' == '' ">/Users/ryan/.nuget/packages/microsoft.azure.functions.worker.sdk/1.10.0</PkgMicrosoft_Azure_Functions_Worker_Sdk>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>sk-csharp-azure-functions</name>
+    </assembly>
+    <members>
+        <member name="M:KernelConfigExtensions.AddCompletionBackend(Microsoft.SemanticKernel.KernelConfig,KernelSettings)">
+            <summary>
+            Adds a text completion service to the list. It can be either an OpenAI or Azure OpenAI backend service.
+            </summary>
+            <param name="kernelConfig"></param>
+            <param name="kernelSettings"></param>
+            <exception cref="T:System.ArgumentException"></exception>
+        </member>
+        <member name="M:KernelSettings.LoadSettings">
+            <summary>
+            Load the kernel settings from settings.json if the file exists and if not attempt to use user secrets.
+            </summary>
+        </member>
+        <member name="M:KernelSettings.FromFile(System.String)">
+            <summary>
+            Load the kernel settings from the specified configuration file if it exists.
+            </summary>
+        </member>
+        <member name="M:KernelSettings.FromUserSecrets">
+            <summary>
+            Load the kernel settings from user secrets.
+            </summary>
+        </member>
+    </members>
+</doc>

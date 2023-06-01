@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Host": {
+    "CORS": "*"
+  },
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+  }
+}

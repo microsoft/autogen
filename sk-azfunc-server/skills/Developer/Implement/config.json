@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "description": "From a description of a coding task out put the code or scripts necessary to complete the task.",
+  "type": "completion",
+  "completion": {
+    "max_tokens": 4096,
+    "temperature": 0.0,
+    "top_p": 0.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0
+  }
+}

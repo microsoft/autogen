@@ -1,0 +1,7 @@
+Please write a bash script with the commands that would be required to generate two new .NET applications as follows:  
+The first application will be a web service called "skdtwebapi" with a two methods: /prompt, which accepts a PUT request with a text body of no more than 2048k, and /skills which accepts a GET request and lists the semantic skills it has. 
+The second application will be a command line client of the web service and is called "skdt" and will accept one argument, a file name. The command line application will PUT the contents of the text file to the /prompt method of the first application. 
+You may add comments to the script and the generated output but do not add any other text except the bash script. 
+You may include commands to build the applications but do not run them. 
+Use .NET 7. 
+Configuration parameters required for the webapi applicaton will include AzureOpenAIServiceEndpoint, AIServiceKey, AIModel. 

@@ -1,0 +1,7 @@
+{
+  "serviceType": "AzureOpenAI",
+  "serviceId": "text-davinci-003",
+  "deploymentOrModelId": "text-davinci-003",
+  "endpoint": "https:// ... your endpoint ... .openai.azure.com/",
+  "apiKey": "... your Azure OpenAI key ..."
+}

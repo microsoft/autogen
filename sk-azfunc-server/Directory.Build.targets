@@ -1,0 +1,25 @@
+<Project>
+  <!-- Direct all packages under 'dotnet' to get versions from Directory.Packages.props -->
+  <!-- using Central Package Management feature -->
+  <!-- https://learn.microsoft.com/en-us/nuget/consume-packages/Central-Package-Management -->
+  <Sdk Name="Microsoft.Build.CentralPackageVersions" Version="2.1.3" />
+
+  <!-- Only run 'dotnet format' on dev machines, Release builds. Skip on GitHub Actions -->
+  <!-- as this runs in its own Actions job. -->
+  <Target Name="DotnetFormatOnBuild" BeforeTargets="Build"
+          Condition=" '$(Configuration)' == 'Release' AND '$(GITHUB_ACTIONS)' == '' ">
+    <Message Text="Running dotnet format" Importance="high" />
+    <Exec Command="dotnet format --no-restore -v diag $(ProjectFileName)" />
+  </Target>
+
+  <Target Name="AddInternalsVisibleTo" BeforeTargets="BeforeCompile">
+    <!-- Handle Add InternalsVisibleTo to any targets that don't support it. -->
+    <ItemGroup Condition="'@(InternalsVisibleTo->Count())' &gt; 0 AND $([MSBuild]::VersionLessThan($(NETCoreSdkVersion), '5.0.0'))">
+      <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+        <_Parameter1 Condition="'%(InternalsVisibleTo.PublicKey)' != ''">%(InternalsVisibleTo.Identity), PublicKey="%(InternalsVisibleTo.PublicKey)</_Parameter1>
+        <_Parameter1 Condition="'%(InternalsVisibleTo.PublicKey)' == ''">%(InternalsVisibleTo.Identity)</_Parameter1>
+        <_Parameter1_TypeName>System.String</_Parameter1_TypeName>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+</Project>

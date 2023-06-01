@@ -1,0 +1,201 @@
+{
+    "skillName": "FunSkill",
+    "functionName": "Excuses",
+    "description": "Turn a scenario into a creative or humorous excuse to send your boss",
+    "filePath": "skills/FunSkill/Excuses/skprompt.txt",
+    "results": [
+        {
+            "completionConfig": {
+                "label": "gpt-4",
+                "aiService": "AzureOpenAI",
+                "deploymentOrModelId": "gpt-4",
+                "endpoint": "https://lightspeed-team-shared-openai-eastus.openai.azure.com/",
+                "useCustomEndpoint": false,
+                "endpointType": "chat-completion",
+                "chatSystemMessage": "You are an AI assistant that helps people find information."
+            },
+            "requestSettings": {
+                "temperature": 0,
+                "topP": 0,
+                "presencePenalty": 0,
+                "frequencyPenalty": 0,
+                "maxTokens": 0,
+                "stopSequences": []
+            },
+            "variables": [
+                {
+                    "key": "input",
+                    "value": "bob"
+                }
+            ],
+            "output": {
+                "prompt": "Generate a creative reason or excuse for the given event. Be creative and be funny. Let your imagination run wild.\n\nEvent:I am running late.\nExcuse:I was being held ransom by giraffe gangsters. \n\nEvent:bob",
+                "durationInMilliseconds": 3171.3077,
+                "inputTokens": 46,
+                "outputTokens": 24,
+                "result": "Excuse: Bob was busy teaching a group of squirrels how to knit sweaters for the upcoming winter fashion show.",
+                "chatCompletionResult": "Excuse: Bob was busy teaching a group of squirrels how to knit sweaters for the upcoming winter fashion show."
+            }
+        },
+        {
+            "completionConfig": {
+                "label": "text-davinci-003",
+                "aiService": "AzureOpenAI",
+                "deploymentOrModelId": "text-davinci-003",
+                "endpoint": "https://lightspeed-team-shared-openai-eastus.openai.azure.com/",
+                "useCustomEndpoint": false,
+                "endpointType": "text-completion"
+            },
+            "requestSettings": {
+                "temperature": 0,
+                "topP": 0,
+                "presencePenalty": 0,
+                "frequencyPenalty": 0,
+                "maxTokens": 0,
+                "stopSequences": []
+            },
+            "variables": [
+                {
+                    "key": "input",
+                    "value": "bob"
+                }
+            ],
+            "output": {
+                "prompt": "Generate a creative reason or excuse for the given event. Be creative and be funny. Let your imagination run wild.\n\nEvent:I am running late.\nExcuse:I was being held ransom by giraffe gangsters. \n\nEvent:bob",
+                "durationInMilliseconds": 2507.7456,
+                "inputTokens": 55,
+                "outputTokens": 26,
+                "result": " didn't show up to work\nExcuse:Bob was abducted by aliens and they needed him to help them fix their spaceship.",
+                "textCompletionResult": " didn't show up to work\nExcuse:Bob was abducted by aliens and they needed him to help them fix their spaceship."
+            }
+        },
+        {
+            "completionConfig": {
+                "label": "text-davinci-003",
+                "aiService": "AzureOpenAI",
+                "deploymentOrModelId": "text-davinci-003",
+                "endpoint": "https://lightspeed-team-shared-openai-eastus.openai.azure.com/",
+                "useCustomEndpoint": false,
+                "endpointType": "text-completion"
+            },
+            "requestSettings": {
+                "temperature": 0,
+                "topP": 0,
+                "presencePenalty": 0,
+                "frequencyPenalty": 0,
+                "maxTokens": 0,
+                "stopSequences": []
+            },
+            "variables": [
+                {
+                    "key": "input",
+                    "value": "bob"
+                }
+            ],
+            "output": {
+                "prompt": "Generate a creative reason or excuse for the given event. Be creative and be funny. Let your imagination run wild.\n\nEvent:I am running late.\nExcuse:I was being held ransom by giraffe gangsters. \n\nEvent:bob",
+                "durationInMilliseconds": 1427.7162,
+                "inputTokens": 55,
+                "outputTokens": 26,
+                "result": " didn't show up to work\nExcuse:Bob was abducted by aliens and they needed him to help them fix their spaceship.",
+                "textCompletionResult": " didn't show up to work\nExcuse:Bob was abducted by aliens and they needed him to help them fix their spaceship."
+            }
+        },
+        {
+            "completionConfig": {
+                "label": "gpt-4",
+                "aiService": "AzureOpenAI",
+                "deploymentOrModelId": "gpt-4",
+                "endpoint": "https://lightspeed-team-shared-openai-eastus.openai.azure.com/",
+                "useCustomEndpoint": false,
+                "endpointType": "text-completion"
+            },
+            "requestSettings": {
+                "temperature": 0,
+                "topP": 0,
+                "presencePenalty": 0,
+                "frequencyPenalty": 0,
+                "maxTokens": 0,
+                "stopSequences": []
+            },
+            "variables": [
+                {
+                    "key": "input",
+                    "value": "bob"
+                }
+            ],
+            "output": {
+                "prompt": "Generate a creative reason or excuse for the given event. Be creative and be funny. Let your imagination run wild.\n\nEvent:I am running late.\nExcuse:I was being held ransom by giraffe gangsters. \n\nEvent:bob",
+                "durationInMilliseconds": 725.1863,
+                "inputTokens": 46,
+                "outputTokens": 1,
+                "result": "bob",
+                "textCompletionResult": "bob"
+            }
+        },
+        {
+            "completionConfig": {
+                "label": "gpt-4",
+                "aiService": "AzureOpenAI",
+                "deploymentOrModelId": "gpt-4",
+                "endpoint": "https://lightspeed-team-shared-openai-eastus.openai.azure.com/",
+                "useCustomEndpoint": false,
+                "endpointType": "text-completion"
+            },
+            "requestSettings": {
+                "temperature": 0,
+                "topP": 0,
+                "presencePenalty": 0,
+                "frequencyPenalty": 0,
+                "maxTokens": 0,
+                "stopSequences": []
+            },
+            "variables": [
+                {
+                    "key": "input",
+                    "value": "I'm in pain"
+                }
+            ],
+            "output": {
+                "prompt": "Generate a creative reason or excuse for the given event. Be creative and be funny. Let your imagination run wild.\n\nEvent:I am running late.\nExcuse:I was being held ransom by giraffe gangsters. \n\nEvent:I'm in pain",
+                "durationInMilliseconds": 725.0451,
+                "inputTokens": 48,
+                "outputTokens": 4,
+                "result": "I'm in pain",
+                "textCompletionResult": "I'm in pain"
+            }
+        },
+        {
+            "completionConfig": {
+                "label": "gpt-4",
+                "aiService": "AzureOpenAI",
+                "deploymentOrModelId": "gpt-4",
+                "endpoint": "https://lightspeed-team-shared-openai-eastus.openai.azure.com/",
+                "useCustomEndpoint": false,
+                "endpointType": "text-completion"
+            },
+            "requestSettings": {
+                "temperature": 0,
+                "topP": 0,
+                "presencePenalty": 0,
+                "frequencyPenalty": 0,
+                "maxTokens": 0,
+                "stopSequences": []
+            },
+            "variables": [
+                {
+                    "key": "input",
+                    "value": "I'm in pain"
+                }
+            ],
+            "output": {
+                "prompt": "Generate a creative reason or excuse for the given event. Be creative and be funny. Let your imagination run wild.\n\nEvent:I am running late.\nExcuse:I was being held ransom by giraffe gangsters. \n\nEvent:I'm in pain",
+                "durationInMilliseconds": 1296.1323,
+                "inputTokens": 48,
+                "outputTokens": 4,
+                "result": "I'm in pain",
+                "textCompletionResult": "I'm in pain"
+            }
+        }
+    ]
+}
