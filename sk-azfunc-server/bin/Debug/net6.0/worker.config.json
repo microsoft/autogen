@@ -1,9 +1,0 @@
-{
-  "description": {
-    "language": "dotnet-isolated",
-    "extensions": [ ".dll" ],
-    "defaultExecutablePath": "dotnet",
-    "defaultWorkerPath": "sk-csharp-azure-functions.dll",
-    "workerIndexing": "false"
-  }
-}
