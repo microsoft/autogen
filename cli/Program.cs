@@ -18,22 +18,22 @@ class Program
 
         var pmCommand = new Command("pm", "Commands for the PM team");
         var pmReadmeCommand = new Command("readme", "Produce a Readme for a given input");
-        pmReadmeCommand.SetHandler(async (file) => await CallFunction(nameof(PM), PM.Readme , file.FullName), fileOption);
+        pmReadmeCommand.SetHandler(async (file) => await CallFunction<string>(nameof(PM), PM.Readme , file.FullName), fileOption);
 
         var pmBootstrapCommand = new Command("bootstrap", "Bootstrap a project for a given input");
-        pmBootstrapCommand.SetHandler(async (file) => await CallFunction(nameof(PM), PM.BootstrapProject, file.FullName), fileOption);
+        pmBootstrapCommand.SetHandler(async (file) => await CallFunction<string>(nameof(PM), PM.BootstrapProject, file.FullName), fileOption);
 
         pmCommand.AddCommand(pmReadmeCommand);
         pmCommand.AddCommand(pmBootstrapCommand);
 
         var devleadCommand = new Command("devlead", "Commands for the Dev Lead team");
         var devleadPlanCommand = new Command("plan", "Plan the work for a given input");
-        devleadPlanCommand.SetHandler(async (file) => await CallFunction(nameof(DevLead), DevLead.Plan, file.FullName), fileOption);
+        devleadPlanCommand.SetHandler(async (file) => await CallFunction<DevLeadPlanResponse>(nameof(DevLead), DevLead.Plan, file.FullName), fileOption);
         devleadCommand.AddCommand(devleadPlanCommand);
 
         var devCommand = new Command("dev", "Commands for the Dev team");
         var devPlanCommand = new Command("plan", "Implement the module for a given input");
-        devPlanCommand.SetHandler(async (file) => await CallFunction(nameof(Developer), Developer.Implement, file.FullName), fileOption);
+        devPlanCommand.SetHandler(async (file) => await CallFunction<string>(nameof(Developer), Developer.Implement, file.FullName), fileOption);
         devCommand.AddCommand(devPlanCommand);
        
         rootCommand.AddCommand(pmCommand);
@@ -43,12 +43,12 @@ class Program
         await rootCommand.InvokeAsync(args);
     }
 
-    public static async Task CallFunction(string skillName, string functionName, string file)
+    public static async Task<T> CallFunction<T>(string skillName, string functionName, string file)
     {
         if (!File.Exists(file))
         {
             Console.WriteLine($"File not found: {file}");
-            return;
+            return default;
         }
 
         var variables = new[]
@@ -69,22 +69,16 @@ class Program
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine($"Error: {response.StatusCode} - {response.ReasonPhrase}");
-            return;
+            return default;
         }
 
         var responseJson = await response.Content.ReadAsStringAsync();
-        //if we have a successful response, we can deserialize the response body and write it to console
-        var responseBody = JsonSerializer.Deserialize<object>(responseJson);
-        // response body is a dictionary of key/value pairs and responseBody.response is not null, write it to console
-        if (responseBody is not null && responseBody is JsonElement jsonElement && jsonElement.TryGetProperty("response", out var responseValue))
-        {
-            Console.WriteLine(responseValue);
-        }
-        else
-        {
-            Console.WriteLine(responseJson);
-        }
-        return;
+        
+        var skillResponse = JsonSerializer.Deserialize<SkillsResponse>(responseJson);
+        var result = typeof(T) != typeof(string) ? JsonSerializer.Deserialize<T>(skillResponse.Response) : (T)(object)skillResponse.Response;
+        
+        Console.WriteLine(responseJson);
+        return result;
     }
 }
 

@@ -1,4 +1,5 @@
 Please write a bash script with the commands that would be required to generate applications as described in the following input.
 You may add comments to the script and the generated output but do not add any other text except the bash script. 
 You may include commands to build the applications but do not run them. 
+Do not include any git commands.
 Input: {{$input}}
