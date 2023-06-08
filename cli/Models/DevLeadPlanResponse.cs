@@ -2,24 +2,18 @@ using System.Text.Json.Serialization;
 
 public class Subtask
 {
-    [JsonPropertyName("subtask")]
-    public string Name { get; set; }
-    [JsonPropertyName("LLM_prompt")]
-    public string LLMPrompt { get; set; }
+    public string subtask { get; set; }
+    public string LLM_prompt { get; set; }
 }
 
 public class Step
 {
-    [JsonPropertyName("step")]
-    public string Name { get; set; }
-    [JsonPropertyName("description")]
-    public string Description { get; set; }
-    [JsonPropertyName("subtasks")]
-    public List<Subtask> Subtasks { get; set; }
+    public string description { get; set; }
+    public string step { get; set; }
+    public List<Subtask> subtasks { get; set; }
 }
 
 public class DevLeadPlanResponse
 {
-    [JsonPropertyName("steps")]
-    public List<Step> Steps { get; set; }
+    public List<Step> steps { get; set; }
 }
