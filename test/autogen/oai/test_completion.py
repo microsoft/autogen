@@ -11,10 +11,8 @@ from flaml.autogen.code_utils import (
     generate_assertions,
     implement,
     generate_code,
-    extract_code,
     improve_function,
     improve_code,
-    execute_code,
 )
 from flaml.autogen.math_utils import eval_math_responses, solve_problem
 
@@ -101,34 +99,6 @@ def test_multi_model():
     print(response)
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows",
-)
-def test_execute_code():
-    try:
-        import docker
-    except ImportError as exc:
-        print(exc)
-        return
-    exitcode, msg = execute_code("print('hello world')", filename="tmp/codetest.py")
-    assert exitcode == 0 and msg == b"hello world\n", msg
-    # read a file
-    print(execute_code("with open('tmp/codetest.py', 'r') as f: a=f.read()"))
-    # create a file
-    print(execute_code("with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp"))
-    # execute code in a file
-    print(execute_code(filename="tmp/codetest.py"))
-    # execute code for assertion error
-    exit_code, msg = execute_code("assert 1==2")
-    assert exit_code, msg
-    # execute code which takes a long time
-    exit_code, error = execute_code("import time; time.sleep(2)", timeout=1)
-    assert exit_code and error == "Timeout"
-    exit_code, error = execute_code("import time; time.sleep(2)", timeout=1, use_docker=False)
-    assert exit_code and error == "Timeout"
-
-
 def test_improve():
     try:
         import openai
@@ -187,39 +157,7 @@ def test_nocontext():
         ],
     )
     print(code)
-    # test extract_code from markdown
-    code, _ = extract_code(
-        """
-Example:
-```
-print("hello extract code")
-```
-"""
-    )
-    print(code)
 
-    code, _ = extract_code(
-        """
-Example:
-```python
-def scrape(url):
-    import requests
-    from bs4 import BeautifulSoup
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-    title = soup.find("title").text
-    text = soup.find("div", {"id": "bodyContent"}).text
-    return title, text
-```
-Test:
-```python
-url = "https://en.wikipedia.org/wiki/Web_scraping"
-title, text = scrape(url)
-print(f"Title: {title}")
-print(f"Text: {text}")
-"""
-    )
-    print(code)
     solution, cost = solve_problem("1+1=", config_list=oai.config_list_gpt4_gpt35(KEY_LOC))
     print(solution, cost)
 
@@ -445,7 +383,6 @@ if __name__ == "__main__":
     # test_filter()
     # test_chatcompletion()
     # test_multi_model()
-    # test_execute_code()
     # test_improve()
     # test_nocontext()
     test_humaneval(1)

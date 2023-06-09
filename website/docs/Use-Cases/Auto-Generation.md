@@ -4,8 +4,8 @@
 * Leveraging [`flaml.tune`](../reference/tune/tune) to adapt LLMs to applications, such that:
   - Maximize the utility out of using expensive foundation models.
   - Reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
-* An enhanced inference API with utilities like API unification, caching, error handling, multi-config inference, context programming etc.
-* Higher-level utility functions like LLM-based coding and interactive agents.
+* An enhanced inference API as a drop-in replacement of `openai.Completion.create` or `openai.ChatCompletion.create` with utilities like API unification, caching, error handling, multi-config inference, context programming etc.
+* Higher-level components like LLM-based intelligent agents which can perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
 The package is under active development with more features upcoming.
 
@@ -32,7 +32,7 @@ There are also complex interactions among subsets of the hyperparameters. For ex
 the temperature and top_p are not recommended to be altered from their default values together because they both control the randomness of the generated text, and changing both at the same time can result in conflicting effects; n and best_of are rarely tuned together because if the application can process multiple outputs, filtering on the server side causes unnecessary information loss; both n and max_tokens will affect the total number of tokens generated, which in turn will affect the cost of the request.
 These interactions and trade-offs make it difficult to manually determine the optimal hyperparameter settings for a given text generation task.
 
-*Do the choices matter? Check this [blog post](/blog/2023/04/21/LLM-tuning-math) for a case study.*
+*Do the choices matter? Check this [blogpost](/blog/2023/04/21/LLM-tuning-math) to find example tuning results about gpt-3.5-turbo and gpt-4.*
 
 
 With `flaml.autogen`, the tuning can be performed with the following information:
@@ -189,6 +189,8 @@ response = oai.Completion.create(
 ```
 
 The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times to try one model multiple times for increasing the robustness of the final response.
+
+*Advanced use case: Check this [blogpost](/blog/2023/05/18/GPT-adaptive-humaneval) to find how to improve GPT-4's coding performance from 68% to 90% while reducing the inference cost.*
 
 ### Templating
 

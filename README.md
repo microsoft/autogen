@@ -14,7 +14,9 @@
     <br>
 </p>
 
-:fire: v1.2.0 is released with support for ChatGPT and GPT-4.
+:fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web)
+:fire: [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
+:fire: FLAML supports AutoML and Hyperparameter Tuning features in [Microsoft Fabric](https://learn.microsoft.com/en-us/fabric/get-started/microsoft-fabric-overview) private preview. Sign up for these features at: https://aka.ms/fabric/data-science/sign-up.
 
 
 ## What is FLAML
@@ -22,10 +24,9 @@ FLAML is a lightweight Python library for efficient automation of machine
 learning and AI operations, including selection of
 models, hyperparameters, and other tunable choices of an application (e.g., inference hyperparameters for foundation models, configurations in MLOps/LMOps workflows, pipelines, mathematical/statistical models, algorithms, computing experiments, software configurations).
 
-* For foundation models like the GPT series and AI agents based on them, it automates the experimentation and optimization of their performance to maximize the effectiveness for applications and minimize the inference cost.
-* For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources.
-* It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., scikit-style learner, search space and metric), or full customization (arbitrary training/inference/evaluation code).
-* It supports fast automatic tuning, capable of handling complex constraints/guidance/early stopping. FLAML is powered by a [cost-effective
+* For foundation models like the GPT models, it automates the experimentation and optimization of their performance to maximize the effectiveness for applications and minimize the inference cost. FLAML enables users to build and use adaptive AI agents with minimal effort.
+* For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources. It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., search space and metric), or full customization (arbitrary training/inference/evaluation code).
+* It supports fast and economical automatic tuning, capable of handling complex constraints/guidance/early stopping. FLAML is powered by a [cost-effective
 hyperparameter optimization](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function/#hyperparameter-optimization-algorithm)
 and model selection method invented by Microsoft Research, and many followup [research studies](https://microsoft.github.io/FLAML/docs/Research).
 
@@ -42,12 +43,13 @@ FLAML requires **Python version >= 3.7**. It can be installed from pip:
 pip install flaml
 ```
 
-To run the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/notebook),
-install flaml with the [notebook] option:
-
+Minimal dependencies are installed without extra options. You can install extra options based on the feature you need. For example, use the following to install the dependencies needed by the [`autogen`](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) package.
 ```bash
-pip install flaml[notebook]
+pip install "flaml[autogen]"
 ```
+
+Find more options in [Installation](Installation).
+Each of the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/notebook) may require a specific option to be installed.
 
 ### .NET
 
@@ -59,25 +61,31 @@ Use the following guides to get started with FLAML in .NET:
 
 ## Quickstart
 
-* (New) You can optimize [generations](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) by ChatGPT or GPT-4 etc. with your own tuning data, success metrics and budgets.
+* (New) The [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) package can help you maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4, including:
+    - A drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, templating, filtering. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
+    ```python
+    from flaml import oai
 
-```python
-from flaml import oai
+    # perform tuning
+    config, analysis = oai.Completion.tune(
+        data=tune_data,
+        metric="success",
+        mode="max",
+        eval_func=eval_func,
+        inference_budget=0.05,
+        optimization_budget=3,
+        num_samples=-1,
+    )
 
-config, analysis = oai.Completion.tune(
-    data=tune_data,
-    metric="success",
-    mode="max",
-    eval_func=eval_func,
-    inference_budget=0.05,
-    optimization_budget=3,
-    num_samples=-1,
-)
-```
-
-The automated experimentation and optimization can help you maximize the utility out of these expensive models.
-A suite of utilities are offered to accelerate the experimentation and application development, such as low-level inference API with caching, templating, filtering, and higher-level components like LLM-based coding and interactive agents.
-
+    # perform inference for a test instance
+    response = oai.Completion.create(context=test_instance, **config)
+    ```
+    - LLM-driven intelligent agents which can perform tasks autonomously or with human feedback, including tasks that require using tools via code.
+    ```python
+    assistant = AssistantAgent("assistant")
+    user = UserProxyAgent("user", human_input_mode="TERMINATE")
+    assistant.receive("Draw a rocket and save to a file named 'rocket.svg'")
+    ```
 * With three lines of code, you can start using this economical and fast
 AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).
 

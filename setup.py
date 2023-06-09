@@ -43,8 +43,6 @@ setuptools.setup(
         ],
         "notebook": [
             "jupyter",
-            "matplotlib",
-            "openml",
         ],
         "spark": [
             "pyspark>=3.2.0",
