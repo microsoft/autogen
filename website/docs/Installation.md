@@ -15,47 +15,60 @@ conda install flaml -c conda-forge
 
 ### Optional Dependencies
 
+#### [Auto Generation](Use-Cases/Auto-Generation)
+
+```bash
+pip install "flaml[autogen]"
+```
+
+#### [Task-oriented AutoML](Use-Cases/Task-Oriented-AutoML)
+
+```bash
+pip install "flaml[automl]"
+```
+
+#### Extra learners/models
+
+* openai models
+```bash
+pip install "flaml[openai]"
+```
+* catboost
+```bash
+pip install "flaml[catboost]"
+```
+* vowpal wabbit
+```bash
+pip install "flaml[vw]"
+```
+* time series forecaster: prophet, statsmodels
+```bash
+pip install "flaml[forecast]"
+```
+* huggingface transformers
+```bash
+pip install "flaml[hf]"
+```
+
 #### Notebook
 
 To run the [notebook examples](https://github.com/microsoft/FLAML/tree/main/notebook),
 install flaml with the [notebook] option:
 
 ```bash
-pip install flaml[notebook]
-```
-
-#### Extra learners/models
-* openai models
-```bash
-pip install flaml[openai]
-```
-* catboost
-```bash
-pip install flaml[catboost]
-```
-* vowpal wabbit
-```bash
-pip install flaml[vw]
-```
-* time series forecaster: prophet, statsmodels
-```bash
-pip install flaml[forecast]
-```
-* huggingface transformers
-```bash
-pip install flaml[hf]
+pip install "flaml[notebook]"
 ```
 
 #### Distributed tuning
 
 * ray
 ```bash
-pip install flaml[ray]
+pip install "flaml[ray]"
 ```
 * spark
 > *Spark support is added in v1.1.0*
 ```bash
-pip install flaml[spark]>=1.1.0
+pip install "flaml[spark]>=1.1.0"
 ```
 
 For cloud platforms such as [Azure Synapse](https://azure.microsoft.com/en-us/products/synapse-analytics/), Spark clusters are provided.
@@ -76,11 +89,11 @@ export PATH=$PATH:$SPARK_HOME/bin
 
 * nni
 ```bash
-pip install flaml[nni]
+pip install "flaml[nni]"
 ```
 * blendsearch
 ```bash
-pip install flaml[blendsearch]
+pip install "flaml[blendsearch]"
 ```
 
 * synapse

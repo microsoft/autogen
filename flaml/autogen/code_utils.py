@@ -12,16 +12,36 @@ from flaml.autogen import oai, DEFAULT_MODEL, FAST_MODEL
 # Regular expression for finding a code block
 CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
+UNKNOWN = "unknown"
 
 
-def extract_code(text: str, pattern: str = CODE_BLOCK_PATTERN) -> str:
-    # Use a regular expression to find the code block
-    match = re.search(pattern, text, flags=re.DOTALL)
+def infer_lang(code):
+    """infer the language for the code.
+    TODO: make it robust.
+    """
+    if code.startswith("python ") or code.startswith("pip"):
+        return "sh"
+    return "python"
+
+
+def extract_code(text: str, pattern: str = CODE_BLOCK_PATTERN) -> List[Tuple[str, str]]:
+    """Extract code from a text.
+
+    Args:
+        text (str): The text to extract code from.
+        pattern (Optional, str): The regular expression pattern for finding the code block.
+
+    Returns:
+        list: A list of tuples, each containing the language and the code.
+    """
+    # Use a regular expression to find all the code blocks
+    match = re.findall(pattern, text, flags=re.DOTALL)
+    # match = re.search(pattern, text, flags=re.DOTALL)
     # If a match is found, return the code
-    if match:
-        return match.group(2), match.group(1)
+    # if match:
+    #     return match.group(2), match.group(1)
     # If no code block is found, return the whole text
-    return text, "unknown"
+    return match if match else [(UNKNOWN, text)]
 
 
 def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, float]:
@@ -102,13 +122,22 @@ def timeout_handler(signum, frame):
     raise TimeoutError("Timed out!")
 
 
+def _cmd(lang):
+    if lang.startswith("python") or lang in ["bash", "sh"]:
+        return lang
+    if lang == "shell":
+        return "sh"
+    raise NotImplementedError(f"{lang} not recognized in code execution")
+
+
 def execute_code(
     code: Optional[str] = None,
     timeout: Optional[int] = 600,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[bool] = True,
-) -> Tuple[int, bytes]:
+    use_docker: Optional[Union[List[str], str, bool]] = True,
+    lang: Optional[str] = "python",
+) -> Tuple[int, bytes, str]:
     """Execute code in a docker container.
     This function is not tested on MacOS.
 
@@ -125,15 +154,19 @@ def execute_code(
             If None, a default working directory will be used.
             The default working directory is the "extensions" directory under
             "xxx/flaml/autogen", where "xxx" is the path to the flaml package.
-        use_docker (Optional, bool): Whether to use a docker container for code execution.
-            If True, the code will be executed in a docker container.
-            If False, the code will be executed in the current environment.
-            Default is True. If the code is executed in the current environment,
+        use_docker (Optional, list, str or bool): The docker image to use for code execution.
+            If a list or a str of image name(s) is provided, the code will be executed in a docker container
+              with the first image successfully pulled.
+            If None, False or empty, the code will be executed in the current environment.
+            Default is True, which will be converted into a list.
+            If the code is executed in the current environment,
             the code must be trusted.
+        lang (Optional, str): The language of the code. Default is "python".
 
     Returns:
         int: 0 if the code executes successfully.
         bytes: The error message if the code fails to execute; the stdout otherwise.
+        image: The docker image name after container run when docker is used.
     """
     assert code is not None or filename is not None, "Either code or filename must be provided."
 
@@ -141,7 +174,7 @@ def execute_code(
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
         # create a file with a automatically generated name
-        filename = f"tmp_code_{code_hash}.py"
+        filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
     if work_dir is None:
         work_dir = WORKING_DIR
     filepath = os.path.join(work_dir, filename)
@@ -155,12 +188,13 @@ def execute_code(
     in_docker_container = os.path.exists("/.dockerenv")
     if not use_docker or in_docker_container:
         # already running in a docker container
+        cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename]
         signal.signal(signal.SIGALRM, timeout_handler)
         try:
             signal.alarm(timeout)
             # run the code in a subprocess in the current docker container in the working directory
             result = subprocess.run(
-                [sys.executable, filename],
+                cmd,
                 cwd=work_dir,
                 capture_output=True,
             )
@@ -168,17 +202,22 @@ def execute_code(
         except TimeoutError:
             if original_filename is None:
                 os.remove(filepath)
-            return 1, "Timeout"
+            return 1, "Timeout", None
         if original_filename is None:
             os.remove(filepath)
-        return result.returncode, result.stderr if result.returncode else result.stdout
+        return result.returncode, result.stderr if result.returncode else result.stdout, None
 
     import docker
-    from requests.exceptions import ReadTimeout, ConnectionError
 
     # create a docker client
     client = docker.from_env()
-    image_list = ["python:3-alpine", "python:3", "python:3-windowsservercore"]
+    image_list = (
+        ["python:3-alpine", "python:3", "python:3-windowsservercore"]
+        if use_docker is True
+        else [use_docker]
+        if isinstance(use_docker, str)
+        else use_docker
+    )
     for image in image_list:
         # check if the image exists
         try:
@@ -198,14 +237,15 @@ def execute_code(
     # if sys.platform == "win32":
     #     abs_path = str(abs_path).replace("\\", "/")
     #     abs_path = f"/{abs_path[0].lower()}{abs_path[2:]}"
+    cmd = [
+        "sh",
+        "-c",
+        f"{_cmd(lang)} {filename}; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}",
+    ]
     # create a docker container
     container = client.containers.run(
         image,
-        command=[
-            "sh",
-            "-c",
-            f"python {filename}; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}",
-        ],
+        command=cmd,
         working_dir="/workspace",
         detach=True,
         # get absolute path to the working directory
@@ -220,7 +260,7 @@ def execute_code(
         container.remove()
         if original_filename is None:
             os.remove(filepath)
-        return 1, "Timeout"
+        return 1, "Timeout", image
     # try:
     #     container.wait(timeout=timeout)
     # except (ReadTimeout, ConnectionError):
@@ -231,6 +271,8 @@ def execute_code(
     #     return 1, "Timeout"
     # get the container logs
     logs = container.logs().decode("utf-8").rstrip()
+    # commit the image
+    container.commit(repository="python", tag=filename.replace("/", ""))
     # remove the container
     container.remove()
     # check if the code executed successfully
@@ -246,8 +288,8 @@ def execute_code(
     logs = bytes(logs, "utf-8")
     if original_filename is None:
         os.remove(filepath)
-    # return the exit code and logs
-    return exit_code, logs
+    # return the exit code, logs and image
+    return exit_code, logs, f"python:{filename}"
 
 
 _GENERATE_ASSERTIONS_CONFIG = {

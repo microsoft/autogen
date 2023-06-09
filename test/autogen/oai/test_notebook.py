@@ -45,7 +45,15 @@ def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=Fals
 
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.10"),
-    reason="do not run openai test if openai is not installed or py!=3.10",
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_autogen_agent_auto_feedback_from_code(save=False):
+    run_notebook("autogen_agent_auto_feedback_from_code_execution.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
 )
 def test_autogen_openai_completion(save=False):
     run_notebook("autogen_openai_completion.ipynb", save=save)
@@ -53,7 +61,7 @@ def test_autogen_openai_completion(save=False):
 
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.11"),
-    reason="do not run openai test if openai is not installed or py!=3.11",
+    reason="do not run if openai is not installed or py!=3.11",
 )
 def test_autogen_chatgpt_gpt4(save=False):
     run_notebook("autogen_chatgpt_gpt4.ipynb", save=save)

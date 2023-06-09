@@ -10,22 +10,33 @@ const FeatureList = [
       <>
         FLAML finds accurate models or configurations with low computational resources
         for common ML/AI tasks.
-        It frees users from selecting models and hyperparameters for training or inference.
-        {/* It is fast and economical. */}
+        It frees users from selecting models and hyperparameters for training or inference,
+        with smooth customizability.
       </>
     ),
   },
   {
-    title: 'Easy to Customize or Extend',
+    title: 'Adapt Large Language Models to Your Needs',
     Svg: require('../../static/img/extend.svg').default,
     description: (
       <>
-        FLAML is designed easy to extend, such as adding custom learners or metrics.
-        The customization level ranges smoothly from minimal
-(training data and task type as only input) to full (tuning a user-defined function).
+        By automatically adapting LLMs to applications, FLAML
+        maximizes the benefits of expensive LLMs and reduce monetary cost.
+        FLAML enables users to build and use intelligent adaptive AI agents with minimal effort.
       </>
     ),
   },
+//   {
+//     title: 'Easy to Customize or Extend',
+//     Svg: require('../../static/img/extend.svg').default,
+//     description: (
+//       <>
+//         FLAML is designed easy to extend, such as adding custom learners or metrics.
+//         The customization level ranges smoothly from minimal
+// (training data and task type as only input) to full (tuning a user-defined function).
+//       </>
+//     ),
+//   },
   {
     title: 'Tune It Fast, Tune It As You Like',
     Svg: require('../../static/img/fast.svg').default,

@@ -49,22 +49,21 @@ jobs:
           export CFLAGS="$CFLAGS -I/usr/local/opt/libomp/include"
           export CXXFLAGS="$CXXFLAGS -I/usr/local/opt/libomp/include"
           export LDFLAGS="$LDFLAGS -Wl,-rpath,/usr/local/opt/libomp/lib -L/usr/local/opt/libomp/lib -lomp"
-      - name: On Linux + python 3.8, install pyspark 3.2.3
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.8'
-        run: |
-          python -m pip install --upgrade pip wheel
-          pip install pyspark==3.2.3
       - name: Install packages and dependencies
         run: |
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import flaml"
           pip install -e .[test]
+      - name: On Ubuntu python 3.8, install pyspark 3.2.3
+        if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
+        run: |
+          pip install pyspark==3.2.3
           pip list | grep "pyspark"
       - name: If linux, install ray 2
         if: matrix.os == 'ubuntu-latest'
         run: |
-          pip install ray[tune]
+          pip install "ray[tune]<2.5.0"
       - name: If mac, install ray
         if: matrix.os == 'macOS-latest'
         run: |
@@ -77,8 +76,8 @@ jobs:
         if: matrix.python-version != '3.10'
         run: |
           pip install -e .[vw]
-      - name: Uninstall pyspark on python 3.9
-        if: matrix.python-version == '3.9'
+      - name: Uninstall pyspark on python 3.8 or 3.9 for windows
+        if: matrix.python-version == '3.8' || matrix.python-version == '3.9' && matrix.os == 'windows-2019'
         run: |
           # Uninstall pyspark to test env without pyspark
           pip uninstall -y pyspark
