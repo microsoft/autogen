@@ -45,7 +45,16 @@ public class ExecuteFunctionEndpoint
                 return await CreateResponseAsync(requestData, HttpStatusCode.NotFound, new ErrorResponse() { Message = $"Unable to find {skillName}" }).ConfigureAwait(false);
             }
 
+
+            //var pmReadme = _kernel.CreateSemanticFunction(skills.PM.Readme.PromptTemplate,);
+
+
             var skill = this._kernel.ImportSemanticSkillFromDirectory(skillsDirectory, skillName);
+
+
+
+            
+            
             if (!skill.ContainsKey(functionName))
             {
                 return await CreateResponseAsync(requestData, HttpStatusCode.NotFound, new ErrorResponse() { Message = $"Unable to find {skillName}.{functionName}" }).ConfigureAwait(false);
