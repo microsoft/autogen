@@ -1,4 +1,5 @@
 namespace skills;
+
 public class SemanticFunctionConfig
 {
     public string PromptTemplate { get; set; }
@@ -10,4 +11,13 @@ public class SemanticFunctionConfig
     public double TopP { get; set; }
     public double PPenalty { get; set; }
     public double FPenalty { get; set; }
+    private static SemanticFunctionConfig ForSkillAndFunction(string skillName, string functionName) => 
+    (skillName, functionName) switch
+    {
+        (nameof(PM), nameof(PM.BootstrapProject)) => PM.BootstrapProject,
+        (nameof(PM), nameof(PM.Readme)) => PM.Readme,
+        (nameof(DevLead), nameof(DevLead.Plan)) => DevLead.Plan,
+        (nameof(Developer), nameof(Developer.Implement)) => Developer.Implement,
+        _ => throw new ArgumentException($"Unable to find {skillName}.{functionName}")
+    };
 }
