@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>skills</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+  <PackageReference Include="Microsoft.SemanticKernel" Version="0.14.547.1-preview" />
+  </ItemGroup>
+</Project>

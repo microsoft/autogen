@@ -6,6 +6,7 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Orchestration;
 using Models;
+using skills;
 
 public class ExecuteFunctionEndpoint
 {
@@ -31,27 +32,14 @@ public class ExecuteFunctionEndpoint
         HttpRequestData requestData,
         FunctionContext executionContext, string skillName, string functionName)
     {
-#pragma warning disable CA1062
         try
         {
             var functionRequest = await JsonSerializer.DeserializeAsync<ExecuteFunctionRequest>(requestData.Body, s_jsonOptions).ConfigureAwait(false);
-#pragma warning disable CA1062
-            // note: using skills from the repo
-            var skillsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "skills");
 
-            var skillDirectory = Path.Combine(skillsDirectory, skillName);
-            if (!System.IO.Directory.Exists(skillDirectory))
-            {
-                return await CreateResponseAsync(requestData, HttpStatusCode.NotFound, new ErrorResponse() { Message = $"Unable to find {skillName}" }).ConfigureAwait(false);
-            }
-
-            var skill = this._kernel.ImportSemanticSkillFromDirectory(skillsDirectory, skillName);
-            if (!skill.ContainsKey(functionName))
-            {
-                return await CreateResponseAsync(requestData, HttpStatusCode.NotFound, new ErrorResponse() { Message = $"Unable to find {skillName}.{functionName}" }).ConfigureAwait(false);
-            }
-
-            var function = skill[functionName];
+            var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
+            var function = _kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
+                                                       skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
+                                                       skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
 
             var context = new ContextVariables();
             foreach (var v in functionRequest.Variables)
@@ -71,8 +59,6 @@ public class ExecuteFunctionEndpoint
 
             return await CreateResponseAsync(requestData, HttpStatusCode.BadRequest, new ErrorResponse() { Message = $"Invalid request body." }).ConfigureAwait(false);
         }
-
-
     }
 
     private static async Task<HttpResponseData> CreateResponseAsync(HttpRequestData requestData, HttpStatusCode statusCode, object responseBody)
