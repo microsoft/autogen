@@ -14,8 +14,10 @@
     <br>
 </p>
 
-:fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web)
+:fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
+
 :fire: [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
+
 :fire: FLAML supports AutoML and Hyperparameter Tuning features in [Microsoft Fabric](https://learn.microsoft.com/en-us/fabric/get-started/microsoft-fabric-overview) private preview. Sign up for these features at: https://aka.ms/fabric/data-science/sign-up.
 
 
