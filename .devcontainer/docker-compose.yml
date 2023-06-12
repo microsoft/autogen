@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  devcontainer:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ..:/workspace:cached
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+    network_mode: service:cosmos
+    depends_on:
+      - cosmos
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+    mem_limit: "3g"
+    cpu_count: 2
+    init: true
+    restart: unless-stopped
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "10"
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - 6333:6333
