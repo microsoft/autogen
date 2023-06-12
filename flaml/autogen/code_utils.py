@@ -13,6 +13,7 @@ from flaml.autogen import oai, DEFAULT_MODEL, FAST_MODEL
 CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
+TIMEOUT_MSG = bytes("Timeout", "utf-8")
 
 
 def infer_lang(code):
@@ -180,7 +181,6 @@ def execute_code(
     filepath = os.path.join(work_dir, filename)
     file_dir = os.path.dirname(filepath)
     os.makedirs(file_dir, exist_ok=True)
-
     if code is not None:
         with open(filepath, "w") as fout:
             fout.write(code)
@@ -202,7 +202,7 @@ def execute_code(
         except TimeoutError:
             if original_filename is None:
                 os.remove(filepath)
-            return 1, "Timeout", None
+            return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
         return result.returncode, result.stderr if result.returncode else result.stdout, None
@@ -260,7 +260,7 @@ def execute_code(
         container.remove()
         if original_filename is None:
             os.remove(filepath)
-        return 1, "Timeout", image
+        return 1, TIMEOUT_MSG, image
     # try:
     #     container.wait(timeout=timeout)
     # except (ReadTimeout, ConnectionError):
