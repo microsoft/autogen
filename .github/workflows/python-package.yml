@@ -76,8 +76,8 @@ jobs:
         if: matrix.python-version != '3.10'
         run: |
           pip install -e .[vw]
-      - name: Uninstall pyspark on python 3.8 or 3.9 for windows
-        if: matrix.python-version == '3.8' || matrix.python-version == '3.9' && matrix.os == 'windows-2019'
+      - name: Uninstall pyspark on (python 3.9) or (python 3.8 + windows)
+        if: matrix.python-version == '3.9' || (matrix.python-version == '3.8' && matrix.os == 'windows-2019')
         run: |
           # Uninstall pyspark to test env without pyspark
           pip uninstall -y pyspark
