@@ -16,6 +16,8 @@ internal class KernelSettings
 
     [JsonPropertyName("deploymentOrModelId")]
     public string DeploymentOrModelId { get; set; } = string.Empty;
+     [JsonPropertyName("embeddingDeploymentOrModelId")]
+    public string EmbeddingDeploymentOrModelId { get; set; } = string.Empty;
 
     [JsonPropertyName("endpoint")]
     public string Endpoint { get; set; } = string.Empty;

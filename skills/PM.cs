@@ -9,11 +9,12 @@ public static class PM
         You may include commands to build the applications but do not run them. 
         Do not include any git commands.
         Input: {{$input}}
+        {{$wafContext}}
        """,
        Name = nameof(BootstrapProject),
        SkillName = nameof(PM),
        Description = "Bootstrap a new project",
-        MaxTokens = 7000,
+        MaxTokens = 6500,
         Temperature = 0.0,
         TopP = 0.0,
         PPenalty = 0.0,
@@ -27,11 +28,12 @@ public static class PM
         Do not describe how to create the application. 
         Write the README as if it were documenting the features and architecture of the application. You may include instructions for how to run the application. 
         Input: {{$input}}
+        {{$wafContext}}
        """,
        Name = nameof(Readme),
        SkillName = nameof(PM),
        Description = "From a simple description output a README.md file for a GitHub repository.",
-        MaxTokens = 7600,
+        MaxTokens = 6500,
         Temperature = 0.0,
         TopP = 0.0,
         PPenalty = 0.0,

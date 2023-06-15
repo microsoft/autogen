@@ -3,3 +3,4 @@ Key features of the Todo List application include the ability to add, edit, and 
 The Todo List applications also offer collaboration features, such as sharing tasks with others or assigning tasks to team members.
 Additionally, the Todo List application will offer offer mobile and web-based interfaces, allowing users to access their tasks from anywhere.
 Use C# as the language.
+The app needs to be deployed to Azure, be highly performant, cost effective and secure, following the rules of Well Architected Framework.

@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "skills", "skills\skills.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cli", "cli\cli.csproj", "{C0073CEA-8A1B-43BC-BADE-F6323CDFA853}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "util", "util", "{16A0621E-E1B8-4737-9B3D-08EB9CEF87B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "seed-memory", "util\seed-memory\seed-memory.csproj", "{94C4BF5F-50BF-41CF-8B94-11F39CA430FA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,11 +31,18 @@ Global
 		{C0073CEA-8A1B-43BC-BADE-F6323CDFA853}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C0073CEA-8A1B-43BC-BADE-F6323CDFA853}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C0073CEA-8A1B-43BC-BADE-F6323CDFA853}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94C4BF5F-50BF-41CF-8B94-11F39CA430FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94C4BF5F-50BF-41CF-8B94-11F39CA430FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94C4BF5F-50BF-41CF-8B94-11F39CA430FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94C4BF5F-50BF-41CF-8B94-11F39CA430FA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {30612385-E4F4-4FD9-B648-45AF74CB4915}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{94C4BF5F-50BF-41CF-8B94-11F39CA430FA} = {16A0621E-E1B8-4737-9B3D-08EB9CEF87B0}
 	EndGlobalSection
 EndGlobal

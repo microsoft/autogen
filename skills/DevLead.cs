@@ -12,11 +12,12 @@ public static class DevLead {
         Please output a JSON data structure with a list of steps and a description of each step, and the steps or subtasks that each requires, and the LLM prompts for each subtask. 
         Do not output any other text. 
         Input: {{$input}}
+        {{$wafContext}}
         """,
         Name = nameof(Plan),
         SkillName = nameof(DevLead),
         Description = "From a simple description of an application output a development plan for building the application.",
-        MaxTokens = 4096,
+        MaxTokens = 6500,
         Temperature = 0.0,
         TopP = 0.0,
         PPenalty = 0.0,

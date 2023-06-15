@@ -23,7 +23,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.14.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.OpenApi" Version="2.0.0-preview2" />
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.OpenApi" Version="2.0.0-preview2" TreatAsUsed="true" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="0.14.547.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="0.15.230609.2-preview" />
     <ProjectReference Include="..\skills\skills.csproj" />
   </ItemGroup>
 

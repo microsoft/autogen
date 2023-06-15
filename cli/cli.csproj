@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <PublishAot>true</PublishAot>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
@@ -13,7 +12,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="6.0.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="0.14.547.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="0.15.230609.2-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="0.15.230609.2-preview" />
     <PackageReference Include="Testcontainers" Version="3.2.0" />
     <ProjectReference Include="..\skills\skills.csproj" />
   </ItemGroup>
