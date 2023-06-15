@@ -108,7 +108,10 @@ The returned `config` contains the optimized configuration and `analysis` contai
 
 The tuend config can be used to perform inference.
 
-*Refer to this [page](../Examples/AutoGen-OpenAI) for a full example.*
+*Refer to this [page](../Examples/AutoGen-OpenAI) for a full example. Or check the following notebook examples:*
+* [Optimize for Code Generation](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
+
 
 ## Perform Inference
 
@@ -452,6 +455,6 @@ Notes:
 - a [eval_math_responses](../reference/autogen/math_utils#eval_math_responses) function to select a response using voting, and check if the final answer is correct if the canonical solution is provided.
 
 
-*Interested in trying it yourself? Please check the following notebook examples:*
-* [Optimize for Code Gen](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
+*Interested in the research that leads to this package? Please check the following papers.*
+* [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673). Chi Wang, Susan Xueqing Liu, Ahmed H. Awadallah. ArXiv preprint arXiv:2303.04673 (2023).
+* [An Empirical Study on Challenging Math Problem Solving with GPT-4](https://arxiv.org/abs/2306.01337). Yiran Wu, Feiran Jia, Shaokun Zhang, Hangyu Li, Erkang Zhu, Yue Wang, Yin Tat Lee, Richard Peng, Qingyun Wu, Chi Wang. ArXiv preprint arXiv:2306.01337 (2023).
