@@ -12,6 +12,7 @@ The easiest way to run the project is in Codespaces. Codespaces will start a qdr
 cli> dotnet build
 cli> dotnet run --file util/ToDoListSamplePrompt.txt do it
 ```
+You will find the output in the *output/* directory. 
 
 # Goal
 From a natural language specification, set out to integrate a team of AI copilot skills into your team’s dev process, either for discrete tasks on an existing repo (unit tests, pipeline expansions, PRs for specific intents), developing a new feature, or even building an application from scratch.  Starting from an existing repo and a broad statement of intent, work with multiple AI copilot dev skills, each of which has a different emphasis - from architecture, to task breakdown, to plans for individual tasks, to code output, code review, efficiency, documentation, build, writing tests, setting up pipelines, deployment, integration tests, and then validation. 
