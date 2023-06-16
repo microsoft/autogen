@@ -45,12 +45,16 @@ class Completion(openai_Completion):
     # set of models that support chat completion
     chat_models = {
         "gpt-3.5-turbo",
-        "gpt-3.5-turbo-0301",
+        "gpt-3.5-turbo-0301",  # deprecate in Sep
+        "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo-16k",
         "gpt-35-turbo",
         "gpt-4",
         "gpt-4-32k",
-        "gpt-4-32k-0314",
-        "gpt-4-0314",
+        "gpt-4-32k-0314",  # deprecate in Sep
+        "gpt-4-0314",  # deprecate in Sep
+        "gpt-4-0613",
+        "gpt-4-32k-0613",
     }
 
     # price per 1k tokens
@@ -62,13 +66,17 @@ class Completion(openai_Completion):
         "code-davinci-002": 0.1,
         "text-davinci-002": 0.02,
         "text-davinci-003": 0.02,
-        "gpt-3.5-turbo": 0.002,
-        "gpt-3.5-turbo-0301": 0.002,
+        "gpt-3.5-turbo": (0.0015, 0.002),
+        "gpt-3.5-turbo-0301": (0.0015, 0.002),  # deprecate in Sep
+        "gpt-3.5-turbo-0613": (0.0015, 0.002),
+        "gpt-3.5-turbo-16k": (0.003, 0.004),
         "gpt-35-turbo": 0.002,
         "gpt-4": (0.03, 0.06),
-        "gpt-4-0314": (0.03, 0.06),
         "gpt-4-32k": (0.06, 0.12),
-        "gpt-4-32k-0314": (0.06, 0.12),
+        "gpt-4-0314": (0.03, 0.06),  # deprecate in Sep
+        "gpt-4-32k-0314": (0.06, 0.12),  # deprecate in Sep
+        "gpt-4-0613": (0.03, 0.06),
+        "gpt-4-32k-0613": (0.06, 0.12),
     }
 
     default_search_space = {
@@ -386,7 +394,7 @@ class Completion(openai_Completion):
                         result["cost"] = cost
                         return result
                     # evaluate the quality of the responses
-                    responses = cls.extract_text(response)
+                    responses = cls.extract_text_or_function_call(response)
                     usage = response["usage"]
                     n_input_tokens = usage["prompt_tokens"]
                     n_output_tokens = usage.get("completion_tokens", 0)
@@ -898,7 +906,7 @@ class Completion(openai_Completion):
             response = cls.create(data_i, use_cache, **config)
             cost += response["cost"]
             # evaluate the quality of the responses
-            responses = cls.extract_text(response)
+            responses = cls.extract_text_or_function_call(response)
             if eval_func is not None:
                 metrics = eval_func(responses, **data_i)
             elif hasattr(cls, "_eval_func"):
@@ -990,6 +998,24 @@ class Completion(openai_Completion):
         if "text" in choices[0]:
             return [choice["text"] for choice in choices]
         return [choice["message"].get("content", "") for choice in choices]
+
+    @classmethod
+    def extract_text_or_function_call(cls, response: dict) -> List[str]:
+        """Extract the text or function calls from a completion or chat response.
+
+        Args:
+            response (dict): The response from OpenAI API.
+
+        Returns:
+            A list of text or function calls in the responses.
+        """
+        choices = response["choices"]
+        if "text" in choices[0]:
+            return [choice["text"] for choice in choices]
+        return [
+            choice["message"] if "function_call" in choice["message"] else choice["message"].get("content", "")
+            for choice in choices
+        ]
 
     @classmethod
     @property

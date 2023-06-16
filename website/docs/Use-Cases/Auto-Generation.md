@@ -371,14 +371,14 @@ Set `compact=False` in `start_logging()` to switch.
     },
 }
 ```
-It can be seen that the individual API call history contain redundant information of the conversation. For a long conversation the degree of redundancy is high.
+It can be seen that the individual API call history contains redundant information of the conversation. For a long conversation the degree of redundancy is high.
 The compact history is more efficient and the individual API call history contains more details.
 
 ### Other Utilities
 
 - a [`cost`](../reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
 - a [`test`](../reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
-- a [`extract_text`](../reference/autogen/oai/completion#extract_text) function to extract the text from a completion or chat response.
+- an [`extract_text_or_function_call`](../reference/autogen/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
 
 
 ## Agents (Experimental)
