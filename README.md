@@ -4,6 +4,8 @@
 This is a nascent project - we will use the README to describe the project's intent - as we build it out we will document what exists and eventually move roadmap/intent to the discussion. 
 
 ## Trying it out
+Currently the project can take as input a brief description of a desired application, and as output can create the project files for that application, using a PM skill, a Dev Lead Planning Skill, and a Developer Skill. 
+
 The easiest way to run the project is in Codespaces. Codespaces will start a qdrant instance for you, and will inject all the necessary secrets into environment variables. 
 1. Create a new codespace from the *code* button on the main branch.
 2. Once the code space setup is finished, from the terminal:
