@@ -31,7 +31,18 @@ class Program
                             .WithLogger(loggerFactory.CreateLogger<IKernel>())
                             .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
                             .WithMemory(semanticTextMemory)
-                            .WithConfiguration(kernelConfig).Build();
+                            .WithConfiguration(kernelConfig)
+                            .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
+                            {
+                                MaxRetryCount = 6,
+                                UseExponentialBackoff = true,
+                                //  MinRetryDelay = TimeSpan.FromSeconds(2),
+                                //  MaxRetryDelay = TimeSpan.FromSeconds(8),
+                                //  MaxTotalRetryTime = TimeSpan.FromSeconds(30),
+                                //  RetryableStatusCodes = new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.RequestTimeout },
+                                //  RetryableExceptions = new[] { typeof(HttpRequestException) }
+                            }))
+                            .Build();
 
 
         var fileOption = new Option<FileInfo?>(
