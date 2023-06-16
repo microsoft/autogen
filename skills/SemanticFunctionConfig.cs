@@ -18,6 +18,7 @@ public class SemanticFunctionConfig
         (nameof(PM), nameof(PM.Readme)) => PM.Readme,
         (nameof(DevLead), nameof(DevLead.Plan)) => DevLead.Plan,
         (nameof(Developer), nameof(Developer.Implement)) => Developer.Implement,
+        (nameof(Developer), nameof(Developer.Improve)) => Developer.Improve,
         _ => throw new ArgumentException($"Unable to find {skillName}.{functionName}")
     };
 }

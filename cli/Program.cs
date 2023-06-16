@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
+using Microsoft.SemanticKernel.Reliability;
 using skills;
 
 class Program
@@ -31,7 +32,18 @@ class Program
                             .WithLogger(loggerFactory.CreateLogger<IKernel>())
                             .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
                             .WithMemory(semanticTextMemory)
-                            .WithConfiguration(kernelConfig).Build();
+                            .WithConfiguration(kernelConfig)
+                            .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
+                            {
+                                MaxRetryCount = 6,
+                                UseExponentialBackoff = true,
+                                //  MinRetryDelay = TimeSpan.FromSeconds(2),
+                                //  MaxRetryDelay = TimeSpan.FromSeconds(8),
+                                //  MaxTotalRetryTime = TimeSpan.FromSeconds(30),
+                                //  RetryableStatusCodes = new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.RequestTimeout },
+                                //  RetryableExceptions = new[] { typeof(HttpRequestException) }
+                            }))
+                            .Build();
 
 
         var fileOption = new Option<FileInfo?>(
@@ -93,9 +105,10 @@ class Program
             (step) => step.subtasks.Select(
                 async (subtask) => {
                         var implementationResult = await CallFunction<string>(nameof(Developer), Developer.Implement, subtask.LLM_prompt, kernel);
+                        var improvementResult = await CallFunction<string>(nameof(Developer), Developer.Improve, subtask.LLM_prompt, kernel); 
                         await sandboxSkill.RunInDotnetAlpineAsync(implementationResult);
-                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), implementationResult);
-                        return implementationResult; }));
+                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), improvementResult);
+                        return improvementResult; }));
         await Task.WhenAll(implementationTasks);
     }
 
@@ -139,4 +152,4 @@ class Program
 
 public static class PM { public static string Readme = "Readme"; public static string BootstrapProject = "BootstrapProject"; }
 public static class DevLead { public static string Plan="Plan"; }
-public static class Developer { public static string Implement="Implement"; }
+public static class Developer { public static string Implement="Implement"; public static string Improve="Improve";}
