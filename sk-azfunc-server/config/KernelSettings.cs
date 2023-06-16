@@ -82,6 +82,7 @@ internal class KernelSettings
     {
         var configuration = new ConfigurationBuilder()
             .AddUserSecrets<KernelSettings>()
+            .AddEnvironmentVariables()
             .Build();
 
         return configuration.Get<KernelSettings>()
