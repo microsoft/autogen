@@ -2,6 +2,17 @@
 # Build a Virtual AI Dev Team using Semantic Kernel Skills
 ## Status
 This is a nascent project - we will use the README to describe the project's intent - as we build it out we will document what exists and eventually move roadmap/intent to the discussion. 
+
+## Trying it out
+The easiest way to run the project is in Codespaces. Codespaces will start a qdrant instance for you, and will inject all the necessary secrets into environment variables. 
+1. Create a new codespace from the *code* button on the main branch.
+2. Once the code space setup is finished, from the terminal:
+```
+> cd cli
+cli> dotnet build
+cli> dotnet run --file util/ToDoListSamplePrompt.txt do it
+```
+
 # Goal
 From a natural language specification, set out to integrate a team of AI copilot skills into your team’s dev process, either for discrete tasks on an existing repo (unit tests, pipeline expansions, PRs for specific intents), developing a new feature, or even building an application from scratch.  Starting from an existing repo and a broad statement of intent, work with multiple AI copilot dev skills, each of which has a different emphasis - from architecture, to task breakdown, to plans for individual tasks, to code output, code review, efficiency, documentation, build, writing tests, setting up pipelines, deployment, integration tests, and then validation. 
 The system will present a view that facilitates chain-of-thought coordination across multiple trees of reasoning with the dev team skills. 
