@@ -11,10 +11,10 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
         import openai
     except ImportError:
         return
-    config_list = oai.config_list_from_models(key_file_path=KEY_LOC, model_list=["gpt-3.5-turbo"])
+    config_list = oai.config_list_from_models(key_file_path=KEY_LOC, model_list=["gpt-3.5-turbo-0613"])
     assistant = AssistantAgent(
         "coding_agent",
-        request_timeout=600,
+        # request_timeout=600,
         seed=40,
         max_tokens=1024,
         config_list=config_list,

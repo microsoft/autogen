@@ -39,6 +39,7 @@ class AssistantAgent(Agent):
             self._conversations[sender.name] = [{"content": self._system_message, "role": "system"}]
         super().receive(message, sender)
         responses = oai.ChatCompletion.create(messages=self._conversations[sender.name], **self._config)
+        # TODO: handle function_call
         response = oai.ChatCompletion.extract_text(responses)[0]
         self._send(response, sender)
 

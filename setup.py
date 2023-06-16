@@ -127,8 +127,8 @@ setuptools.setup(
             "pytorch-forecasting>=0.9.0",
         ],
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3", "pandas==1.1.4"],
-        "openai": ["openai==0.27.4", "diskcache"],
-        "autogen": ["openai==0.27.4", "diskcache", "docker"],
+        "openai": ["openai==0.27.8", "diskcache"],
+        "autogen": ["openai==0.27.8", "diskcache", "docker"],
         "synapse": [
             "joblibspark>=0.5.0",
             "optuna==2.8.0",
