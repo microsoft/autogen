@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
+using Microsoft.SemanticKernel.Reliability;
 using skills;
 
 class Program
@@ -91,22 +92,24 @@ class Program
         var outputPath = Directory.CreateDirectory("output");
 
         var readme = await CallWithFile<string>(nameof(PM), PM.Readme , file, kernel);
-        await SaveToFile(Path.Combine(outputPath.FullName, "README.md"), readme);
+        string readmeFile = Path.Combine(outputPath.FullName, "README.md");
+        await SaveToFile(readmeFile, readme);
 
         var script = await CallWithFile<string>(nameof(PM), PM.BootstrapProject, file, kernel);
         await sandboxSkill.RunInDotnetAlpineAsync(script);
         await SaveToFile(Path.Combine(outputPath.FullName, "bootstrap.sh"), script);
 
-        var plan = await CallWithFile<DevLeadPlanResponse>(nameof(DevLead), DevLead.Plan, file, kernel);
+        var plan = await CallWithFile<DevLeadPlanResponse>(nameof(DevLead), DevLead.Plan, readmeFile, kernel);
         await SaveToFile(Path.Combine(outputPath.FullName, "plan.json"), JsonSerializer.Serialize(plan));
 
         var implementationTasks = plan.steps.SelectMany(
             (step) => step.subtasks.Select(
                 async (subtask) => {
                         var implementationResult = await CallFunction<string>(nameof(Developer), Developer.Implement, subtask.LLM_prompt, kernel);
+                        var improvementResult = await CallFunction<string>(nameof(Developer), Developer.Improve, subtask.LLM_prompt, kernel); 
                         await sandboxSkill.RunInDotnetAlpineAsync(implementationResult);
-                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), implementationResult);
-                        return implementationResult; }));
+                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), improvementResult);
+                        return improvementResult; }));
         await Task.WhenAll(implementationTasks);
     }
 
@@ -150,4 +153,4 @@ class Program
 
 public static class PM { public static string Readme = "Readme"; public static string BootstrapProject = "BootstrapProject"; }
 public static class DevLead { public static string Plan="Plan"; }
-public static class Developer { public static string Implement="Implement"; }
+public static class Developer { public static string Implement="Implement"; public static string Improve="Improve";}
