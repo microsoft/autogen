@@ -21,7 +21,8 @@ def test_eval_math_responses():
                 "type": "object",
                 "properties": {
                     "responses": {
-                        "type": "string",
+                        "type": "array",
+                        "items": {"type": "string"},
                         "description": "The responses in a list",
                     },
                     "solution": {
@@ -51,8 +52,8 @@ def test_eval_math_responses():
     name, arguments = function_call["name"], json.loads(function_call["arguments"])
     assert name == "eval_math_responses"
     print(arguments["responses"])
-    if isinstance(arguments["responses"], str):
-        arguments["responses"] = json.loads(arguments["responses"])
+    # if isinstance(arguments["responses"], str):
+    #     arguments["responses"] = json.loads(arguments["responses"])
     arguments["responses"] = [f"\\boxed{{{x}}}" for x in arguments["responses"]]
     print(arguments["responses"])
     arguments["solution"] = f"\\boxed{{{arguments['solution']}}}"
