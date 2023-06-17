@@ -65,25 +65,47 @@ class Program
         var sandboxSkill = new SandboxSkill();
         var outputPath = Directory.CreateDirectory("output");
 
+        Console.WriteLine($"Using output directory: {outputPath}");
+
         var readme = await CallWithFile<string>(nameof(PM), PM.Readme , file, maxRetry);
         string readmeFile = Path.Combine(outputPath.FullName, "README.md");
         await SaveToFile(readmeFile, readme);
+        Console.WriteLine($"Saved README to {readmeFile}");
 
         var script = await CallWithFile<string>(nameof(PM), PM.BootstrapProject, file, maxRetry);
         await sandboxSkill.RunInDotnetAlpineAsync(script);
         await SaveToFile(Path.Combine(outputPath.FullName, "bootstrap.sh"), script);
+        Console.WriteLine($"Saved bootstrap script to {outputPath.FullName}bootstrap.sh");
 
         var plan = await CallWithFile<DevLeadPlanResponse>(nameof(DevLead), DevLead.Plan, readmeFile, maxRetry);
         await SaveToFile(Path.Combine(outputPath.FullName, "plan.json"), JsonSerializer.Serialize(plan));
+        Console.WriteLine($"Using Plan: \n {plan}");
 
         var implementationTasks = plan.steps.SelectMany(
             (step) => step.subtasks.Select(
                 async (subtask) => {
-                        var implementationResult = await CallFunction<string>(nameof(Developer), Developer.Implement, subtask.LLM_prompt, maxRetry);
-                        //var improvementResult = await CallFunction<string>(nameof(Developer), Developer.Improve, subtask.LLM_prompt, maxRetry); 
-                        await sandboxSkill.RunInDotnetAlpineAsync(implementationResult);
-                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), implementationResult);
-                        return implementationResult; }));
+                    Console.WriteLine($"Implementing {step.step}-{subtask.subtask}");
+                    var implementationResult = string.Empty;
+                    while (true)
+                    {
+                        try 
+                        {
+                            implementationResult = await CallFunction<string>(nameof(Developer), Developer.Implement, subtask.LLM_prompt, maxRetry);
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ex.Message.Contains("TooMany"))
+                            {
+                                Console.WriteLine("Throttled, retrying...");
+                                continue;
+                            }
+                            throw;
+                        }
+                    }
+                    await sandboxSkill.RunInDotnetAlpineAsync(implementationResult);
+                    await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), implementationResult);
+                    return implementationResult; }));
         await Task.WhenAll(implementationTasks);
     }
 
@@ -132,7 +154,7 @@ class Program
                                 //  RetryableExceptions = new[] { typeof(HttpRequestException) }
                             }))
                             .Build();
-        Console.WriteLine($"Calling skill '{skillName}' function '{functionName}' with input '{input}'");
+        //Console.WriteLine($"Calling skill '{skillName}' function '{functionName}' with input '{input}'");
         var interestingMemories = kernel.Memory.SearchAsync("waf-pages", input, 2);
         var wafContext = "Consider the following architectural guidelines:";
         await foreach (var memory in interestingMemories)
@@ -150,7 +172,7 @@ class Program
 
         var answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
         var result = typeof(T) != typeof(string) ? JsonSerializer.Deserialize<T>(answer.ToString()) : (T)(object)answer.ToString();
-        Console.WriteLine(answer);
+        //Console.WriteLine(answer);
         return result;
     }
 }
