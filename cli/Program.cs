@@ -80,10 +80,10 @@ class Program
             (step) => step.subtasks.Select(
                 async (subtask) => {
                         var implementationResult = await CallFunction<string>(nameof(Developer), Developer.Implement, subtask.LLM_prompt, maxRetry);
-                        var improvementResult = await CallFunction<string>(nameof(Developer), Developer.Improve, subtask.LLM_prompt, maxRetry); 
+                        //var improvementResult = await CallFunction<string>(nameof(Developer), Developer.Improve, subtask.LLM_prompt, maxRetry); 
                         await sandboxSkill.RunInDotnetAlpineAsync(implementationResult);
-                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), improvementResult);
-                        return improvementResult; }));
+                        await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), implementationResult);
+                        return implementationResult; }));
         await Task.WhenAll(implementationTasks);
     }
 
