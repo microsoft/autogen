@@ -92,13 +92,14 @@ class Program
         var outputPath = Directory.CreateDirectory("output");
 
         var readme = await CallWithFile<string>(nameof(PM), PM.Readme , file, kernel);
-        await SaveToFile(Path.Combine(outputPath.FullName, "README.md"), readme);
+        string readmeFile = Path.Combine(outputPath.FullName, "README.md");
+        await SaveToFile(readmeFile, readme);
 
         var script = await CallWithFile<string>(nameof(PM), PM.BootstrapProject, file, kernel);
         await sandboxSkill.RunInDotnetAlpineAsync(script);
         await SaveToFile(Path.Combine(outputPath.FullName, "bootstrap.sh"), script);
 
-        var plan = await CallWithFile<DevLeadPlanResponse>(nameof(DevLead), DevLead.Plan, file, kernel);
+        var plan = await CallWithFile<DevLeadPlanResponse>(nameof(DevLead), DevLead.Plan, readmeFile, kernel);
         await SaveToFile(Path.Combine(outputPath.FullName, "plan.json"), JsonSerializer.Serialize(plan));
 
         var implementationTasks = plan.steps.SelectMany(
