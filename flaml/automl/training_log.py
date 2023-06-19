@@ -29,7 +29,7 @@ class TrainingLogRecord(object):
         self.logged_metric = logged_metric
         self.trial_time = trial_time
         self.wall_clock_time = wall_clock_time
-        self.validation_loss = validation_loss
+        self.validation_loss = float(validation_loss)
         self.config = config
         self.learner = learner
         self.sample_size = sample_size

@@ -3,36 +3,16 @@
 #  * Licensed under the MIT License. See LICENSE file in the
 #  * project root for license information.
 import time
-import numpy as np
 from typing import Union, Callable, TypeVar, Optional, Tuple
-from flaml.automl.model import (
-    XGBoostSklearnEstimator,
-    XGBoost_TS,
-    XGBoostLimitDepthEstimator,
-    XGBoostLimitDepth_TS,
-    RandomForestEstimator,
-    RF_TS,
-    LGBMEstimator,
-    LGBM_TS,
-    LRL1Classifier,
-    LRL2Classifier,
-    CatBoostEstimator,
-    ExtraTreesEstimator,
-    ExtraTrees_TS,
-    KNeighborsEstimator,
-    Prophet,
-    ARIMA,
-    SARIMAX,
-    HoltWinters,
-    TransformersEstimator,
-    TemporalFusionTransformerEstimator,
-    TransformersEstimatorModelSelection,
-    SparkLGBMEstimator,
-)
+import logging
+
+import numpy as np
+
+
 from flaml.automl.data import group_counts
-from flaml.automl.task.task import TS_FORECAST, Task
-from flaml.automl.model import BaseEstimator
-from flaml.automl.spark import psDataFrame, psSeries, ERROR as SPARK_ERROR, Series
+from flaml.automl.task.task import Task
+from flaml.automl.model import BaseEstimator, TransformersEstimator
+from flaml.automl.spark import psDataFrame, psSeries, ERROR as SPARK_ERROR, Series, DataFrame
 
 try:
     from sklearn.metrics import (
@@ -52,6 +32,11 @@ except ImportError:
 
 if SPARK_ERROR is None:
     from flaml.automl.spark.metrics import spark_metric_loss_score
+
+from flaml.automl.time_series import TimeSeriesDataset
+
+logger = logging.getLogger(__name__)
+
 
 EstimatorSubclass = TypeVar("EstimatorSubclass", bound=BaseEstimator)
 
@@ -104,55 +89,6 @@ huggingface_metric_to_mode = {
     "wer": "min",
 }
 huggingface_submetric_to_metric = {"rouge1": "rouge", "rouge2": "rouge"}
-
-
-def get_estimator_class(task: str, estimator_name: str) -> EstimatorSubclass:
-    """Given a task and an estimator name, return the relevant flaml-wrapped estimator class
-
-    NOTE: See why the return type is declarad by using TypeVar here on the mypy doc
-    https://mypy.readthedocs.io/en/stable/kinds_of_types.html#the-type-of-class-objects
-    """
-    # when adding a new learner, need to add an elif branch
-    if "xgboost" == estimator_name:
-        estimator_class = XGBoost_TS if task in TS_FORECAST else XGBoostSklearnEstimator
-    elif "xgb_limitdepth" == estimator_name:
-        estimator_class = XGBoostLimitDepth_TS if task in TS_FORECAST else XGBoostLimitDepthEstimator
-    elif "rf" == estimator_name:
-        estimator_class = RF_TS if task in TS_FORECAST else RandomForestEstimator
-    elif "lgbm" == estimator_name:
-        estimator_class = LGBM_TS if task in TS_FORECAST else LGBMEstimator
-    elif "lgbm_spark" == estimator_name:
-        estimator_class = SparkLGBMEstimator
-    elif "lrl1" == estimator_name:
-        estimator_class = LRL1Classifier
-    elif "lrl2" == estimator_name:
-        estimator_class = LRL2Classifier
-    elif "catboost" == estimator_name:
-        estimator_class = CatBoostEstimator
-    elif "extra_tree" == estimator_name:
-        estimator_class = ExtraTrees_TS if task in TS_FORECAST else ExtraTreesEstimator
-    elif "kneighbor" == estimator_name:
-        estimator_class = KNeighborsEstimator
-    elif "prophet" in estimator_name:
-        estimator_class = Prophet
-    elif estimator_name == "arima":
-        estimator_class = ARIMA
-    elif estimator_name == "sarimax":
-        estimator_class = SARIMAX
-    elif estimator_name == "holt-winters":
-        estimator_class = HoltWinters
-    elif estimator_name == "transformer":
-        estimator_class = TransformersEstimator
-    elif estimator_name == "tft":
-        estimator_class = TemporalFusionTransformerEstimator
-    elif estimator_name == "transformer_ms":
-        estimator_class = TransformersEstimatorModelSelection
-    else:
-        raise ValueError(
-            estimator_name + " is not a built-in learner. "
-            "Please use AutoML.add_learner() to add a customized learner."
-        )
-    return estimator_class
 
 
 def metric_loss_score(
@@ -267,6 +203,7 @@ def sklearn_metric_loss_score(
     Returns:
         score: A float number of the loss, the lower the better.
     """
+
     metric_name = metric_name.lower()
 
     if "r2" == metric_name:
@@ -356,132 +293,20 @@ def get_y_pred(estimator, X, eval_metric, task: Task):
         y_pred = estimator.predict_proba(X)
     else:
         y_pred = estimator.predict(X)
+
+    if isinstance(y_pred, Series) or isinstance(y_pred, DataFrame):
+        y_pred = y_pred.values
+
     return y_pred
 
 
-def _eval_estimator(
-    config,
-    estimator,
-    X_train,
-    y_train,
-    X_val,
-    y_val,
-    weight_val,
-    groups_val,
-    eval_metric: Union[str, Callable],
-    task,
-    labels=None,
-    log_training_metric=False,
-    fit_kwargs: Optional[dict] = None,
-):
-    if fit_kwargs is None:
-        fit_kwargs = {}
-    if isinstance(eval_metric, str):
-        pred_start = time.time()
-        val_pred_y = get_y_pred(estimator, X_val, eval_metric, task)
-        pred_time = (time.time() - pred_start) / X_val.shape[0]
+def to_numpy(x):
+    if isinstance(x, Series or isinstance(x, DataFrame)):
+        x = x.values
+    else:
+        x = np.ndarray(x)
 
-        val_loss = metric_loss_score(
-            eval_metric,
-            y_processed_predict=val_pred_y,
-            y_processed_true=y_val,
-            labels=labels,
-            sample_weight=weight_val,
-            groups=groups_val,
-        )
-        metric_for_logging = {"pred_time": pred_time}
-        if log_training_metric:
-            train_pred_y = get_y_pred(estimator, X_train, eval_metric, task)
-            metric_for_logging["train_loss"] = metric_loss_score(
-                eval_metric,
-                train_pred_y,
-                y_train,
-                labels,
-                fit_kwargs.get("sample_weight"),
-                fit_kwargs.get("groups"),
-            )
-    else:  # customized metric function
-        val_loss, metric_for_logging = eval_metric(
-            X_val,
-            y_val,
-            estimator,
-            labels,
-            X_train,
-            y_train,
-            weight_val,
-            fit_kwargs.get("sample_weight"),
-            config,
-            groups_val,
-            fit_kwargs.get("groups"),
-        )
-        pred_time = metric_for_logging.get("pred_time", 0)
-        val_pred_y = None
-        # eval_metric may return val_pred_y but not necessarily. Setting None for now.
-    return val_loss, metric_for_logging, pred_time, val_pred_y
-
-
-def get_val_loss(
-    config,
-    estimator: EstimatorSubclass,
-    X_train,
-    y_train,
-    X_val,
-    y_val,
-    weight_val,
-    groups_val,
-    eval_metric: Union[str, Callable],
-    obj,
-    labels=None,
-    budget=None,
-    log_training_metric=False,
-    fit_kwargs: Optional[dict] = None,
-    free_mem_ratio=0,
-):
-    if fit_kwargs is None:
-        fit_kwargs = {}
-    start = time.time()
-    # if groups_val is not None:
-    #     fit_kwargs['groups_val'] = groups_val
-    #     fit_kwargs['X_val'] = X_val
-    #     fit_kwargs['y_val'] = y_val
-    estimator.fit(X_train, y_train, budget, free_mem_ratio, **fit_kwargs)
-    val_loss, metric_for_logging, pred_time, _ = _eval_estimator(
-        config,
-        estimator,
-        X_train,
-        y_train,
-        X_val,
-        y_val,
-        weight_val,
-        groups_val,
-        eval_metric,
-        obj,
-        labels,
-        log_training_metric,
-        fit_kwargs,
-    )
-    if hasattr(estimator, "intermediate_results"):
-        metric_for_logging["intermediate_results"] = estimator.intermediate_results
-    train_time = time.time() - start
-    return val_loss, metric_for_logging, train_time, pred_time
-
-
-def default_cv_score_agg_func(val_loss_folds, log_metrics_folds):
-    metric_to_minimize = sum(val_loss_folds) / len(val_loss_folds)
-    metrics_to_log = None
-    for single_fold in log_metrics_folds:
-        if metrics_to_log is None:
-            metrics_to_log = single_fold
-        elif isinstance(metrics_to_log, dict):
-            metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold.items()}
-        else:
-            metrics_to_log += single_fold
-    if metrics_to_log:
-        n = len(val_loss_folds)
-        metrics_to_log = (
-            {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
-        )
-    return metric_to_minimize, metrics_to_log
+    return x.reshape((-1, 1))
 
 
 def compute_estimator(
@@ -494,7 +319,7 @@ def compute_estimator(
     budget,
     kf,
     config_dic: dict,
-    task: str,
+    task: Union[str, Task],
     estimator_name: str,
     eval_method: str,
     eval_metric: Union[str, Callable],
@@ -509,7 +334,7 @@ def compute_estimator(
     if fit_kwargs is None:
         fit_kwargs = {}
 
-    estimator_class = estimator_class or get_estimator_class(task, estimator_name)
+    estimator_class = estimator_class or task.estimator_class_from_str(estimator_name)
     estimator = estimator_class(
         **config_dic,
         task=task,
@@ -576,7 +401,7 @@ def train_estimator(
     free_mem_ratio=0,
 ) -> Tuple[EstimatorSubclass, float]:
     start_time = time.time()
-    estimator_class = estimator_class or get_estimator_class(task, estimator_name)
+    estimator_class = estimator_class or task.estimator_class_from_str(estimator_name)
     estimator = estimator_class(
         **config_dic,
         task=task,
@@ -589,7 +414,7 @@ def train_estimator(
         fit_kwargs["metric"] = eval_metric
 
     if X_train is not None:
-        train_time = estimator.fit(X_train, y_train, budget, free_mem_ratio, **fit_kwargs)
+        train_time = estimator.fit(X_train, y_train, budget=budget, free_mem_ratio=free_mem_ratio, **fit_kwargs)
     else:
         estimator = estimator.estimator_class(**estimator.params)
     train_time = time.time() - start_time
@@ -642,3 +467,140 @@ def multi_class_curves(
     for i in range(len(classes)):
         curve_x[i], curve_y[i], _ = curve_func(y_true_binary[:, i], y_pred_proba[:, i])
     return curve_x, curve_y
+
+
+def get_val_loss(
+    config,
+    estimator,
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    weight_val,
+    groups_val,
+    eval_metric,
+    task,
+    labels=None,
+    budget=None,
+    log_training_metric=False,
+    fit_kwargs={},
+    free_mem_ratio=0,
+):
+    start = time.time()
+    # if groups_val is not None:
+    #     fit_kwargs['groups_val'] = groups_val
+    #     fit_kwargs['X_val'] = X_val
+    #     fit_kwargs['y_val'] = y_val
+    estimator.fit(X_train, y_train, budget=budget, free_mem_ratio=free_mem_ratio, **fit_kwargs)
+    val_loss, metric_for_logging, pred_time, _ = _eval_estimator(
+        config,
+        estimator,
+        X_train,
+        y_train,
+        X_val,
+        y_val,
+        weight_val,
+        groups_val,
+        eval_metric,
+        task,
+        labels,
+        log_training_metric,
+        fit_kwargs,
+    )
+    if hasattr(estimator, "intermediate_results"):
+        metric_for_logging["intermediate_results"] = estimator.intermediate_results
+    train_time = time.time() - start
+    return val_loss, metric_for_logging, train_time, pred_time
+
+
+def default_cv_score_agg_func(val_loss_folds, log_metrics_folds):
+    metric_to_minimize = sum(val_loss_folds) / len(val_loss_folds)
+    metrics_to_log = None
+    for single_fold in log_metrics_folds:
+        if metrics_to_log is None:
+            metrics_to_log = single_fold
+        elif isinstance(metrics_to_log, dict):
+            metrics_to_log = {k: metrics_to_log[k] + v for k, v in single_fold.items()}
+        else:
+            metrics_to_log += single_fold
+    if metrics_to_log:
+        n = len(val_loss_folds)
+        metrics_to_log = (
+            {k: v / n for k, v in metrics_to_log.items()} if isinstance(metrics_to_log, dict) else metrics_to_log / n
+        )
+    return metric_to_minimize, metrics_to_log
+
+
+def _eval_estimator(
+    config,
+    estimator,
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    weight_val,
+    groups_val,
+    eval_metric,
+    task,
+    labels=None,
+    log_training_metric=False,
+    fit_kwargs={},
+):
+    if isinstance(eval_metric, str):
+        pred_start = time.time()
+        val_pred_y = get_y_pred(estimator, X_val, eval_metric, task)
+
+        # TODO: why are integer labels being cast to str in the first place?
+
+        if isinstance(val_pred_y, Series) or isinstance(val_pred_y, DataFrame) or isinstance(val_pred_y, np.ndarray):
+            test = val_pred_y if isinstance(val_pred_y, np.ndarray) else val_pred_y.values
+            if not np.issubdtype(test.dtype, np.number):
+                # some NLP models return a list
+                val_pred_y = val_pred_y.astype(str)
+
+        if isinstance(X_val, TimeSeriesDataset):
+            num_val_rows = len(X_val.test_data)
+            y_val = X_val.test_data[X_val.target_names].values.astype(val_pred_y.dtype)
+            y_train = X_val.train_data[X_val.target_names].values.astype(val_pred_y.dtype)
+        else:
+            num_val_rows = X_val.shape[0]
+
+        pred_time = (time.time() - pred_start) / num_val_rows
+
+        val_loss = metric_loss_score(
+            eval_metric,
+            y_processed_predict=val_pred_y,
+            y_processed_true=y_val,
+            labels=labels,
+            sample_weight=weight_val,
+            groups=groups_val,
+        )
+        metric_for_logging = {"pred_time": pred_time}
+        if log_training_metric:
+            train_pred_y = get_y_pred(estimator, X_train, eval_metric, task)
+            metric_for_logging["train_loss"] = metric_loss_score(
+                eval_metric,
+                train_pred_y,
+                y_train,
+                labels,
+                fit_kwargs.get("sample_weight"),
+                fit_kwargs.get("groups"),
+            )
+    else:  # customized metric function
+        val_loss, metric_for_logging = eval_metric(
+            X_val,
+            y_val,
+            estimator,
+            labels,
+            X_train,
+            y_train,
+            weight_val,
+            fit_kwargs.get("sample_weight"),
+            config,
+            groups_val,
+            fit_kwargs.get("groups"),
+        )
+        pred_time = metric_for_logging.get("pred_time", 0)
+        val_pred_y = None
+        # eval_metric may return val_pred_y but not necessarily. Setting None for now.
+    return val_loss, metric_for_logging, pred_time, val_pred_y

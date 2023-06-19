@@ -5,7 +5,7 @@ import json
 from flaml.automl.data import DataTransformer
 from flaml.automl.task.task import CLASSIFICATION, get_classification_objective
 from flaml.automl.task.generic_task import len_labels
-from flaml.automl.ml import get_estimator_class
+from flaml.automl.task.factory import task_factory
 from flaml.version import __version__
 
 try:
@@ -162,9 +162,10 @@ def suggest_hyperparams(task, X, y, estimator_or_predictor, location=None):
     """
     config = suggest_config(task, X, y, estimator_or_predictor, location=location, k=1)[0]
     estimator = config["class"]
-    model_class = get_estimator_class(task, estimator)
+    task = task_factory(task)
+    model_class = task.estimator_class_from_str(estimator)
     hyperparams = config["hyperparameters"]
-    model = model_class(task=task, **hyperparams)
+    model = model_class(task=task.name, **hyperparams)
     estimator_class = model.estimator_class
     hyperparams = hyperparams and model.params
     return hyperparams, estimator_class
@@ -246,7 +247,7 @@ def preprocess_and_suggest_hyperparams(
         )
     config = suggest_config(task, X, y, estimator_or_predictor, location=location, k=1)[0]
     estimator = config["class"]
-    model_class = get_estimator_class(task, estimator)
+    model_class = task_factory(task).estimator_class_from_str(estimator)
     hyperparams = config["hyperparameters"]
     model = model_class(task=task, **hyperparams)
     if model.estimator_class is None:

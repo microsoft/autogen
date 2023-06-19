@@ -1,11 +1,12 @@
 import inspect
+import copy
 import time
 from typing import Any, Optional
 import numpy as np
 from flaml import tune
 from flaml.automl.logger import logger
 from flaml.automl.ml import compute_estimator, train_estimator
-from flaml.automl.task.task import TS_FORECAST
+from flaml.automl.time_series.ts_data import TimeSeriesDataset
 from flaml.automl.spark import psDataFrame, psSeries, DataFrame, Series
 
 
@@ -55,7 +56,7 @@ class SearchState:
     def __init__(
         self,
         learner_class,
-        data_size,
+        data,
         task,
         starting_point=None,
         period=None,
@@ -68,14 +69,18 @@ class SearchState:
         self.init_config = None
         self.low_cost_partial_config = {}
         self.cat_hp_cost = {}
-        self.data_size = data_size
+
         self.ls_ever_converged = False
         self.learner_class = learner_class
         self._budget = budget
-        if task in TS_FORECAST:
-            search_space = learner_class.search_space(data_size=data_size, task=task, pred_horizon=period)
+
+        if task.is_ts_forecast():
+            data_size = data.train_data.shape
+            search_space = learner_class.search_space(data=data, task=task, pred_horizon=period)
         else:
+            data_size = data.shape
             search_space = learner_class.search_space(data_size=data_size, task=task)
+        self.data_size = data_size
 
         if custom_hp is not None:
             search_space.update(custom_hp)
@@ -211,17 +216,22 @@ class SearchState:
 
 
 class AutoMLState:
-    def _prepare_sample_train_data(self, sample_size: int):
+    def prepare_sample_train_data(self, sample_size: int):
         sampled_weight = groups = None
         if sample_size <= self.data_size[0]:
-            if isinstance(self.X_train, (DataFrame, psDataFrame)):
-                sampled_X_train = self.X_train.iloc[:sample_size]
+            if isinstance(self.X_train, TimeSeriesDataset):
+                sampled_X_train = copy.copy(self.X_train)
+                sampled_X_train.train_data = self.X_train.train_data.iloc[-sample_size:]
+                sampled_y_train = None
             else:
-                sampled_X_train = self.X_train[:sample_size]
-            if isinstance(self.y_train, (Series, psSeries)):
-                sampled_y_train = self.y_train.iloc[:sample_size]
-            else:
-                sampled_y_train = self.y_train[:sample_size]
+                if isinstance(self.X_train, (DataFrame, psDataFrame)):
+                    sampled_X_train = self.X_train.iloc[:sample_size]
+                else:
+                    sampled_X_train = self.X_train[:sample_size]
+                if isinstance(self.y_train, (Series, psSeries)):
+                    sampled_y_train = self.y_train.iloc[:sample_size]
+                else:
+                    sampled_y_train = self.y_train[:sample_size]
             weight = self.fit_kwargs.get(
                 "sample_weight"
             )  # NOTE: _prepare_sample_train_data is before kwargs is updated to fit_kwargs_by_estimator
@@ -266,7 +276,7 @@ class AutoMLState:
             sampled_y_train,
             sampled_weight,
             groups,
-        ) = state._prepare_sample_train_data(sample_size)
+        ) = state.task.prepare_sample_train_data(state, sample_size)
         if sampled_weight is not None:
             weight = this_estimator_kwargs["sample_weight"]
             this_estimator_kwargs["sample_weight"] = sampled_weight
@@ -354,7 +364,7 @@ class AutoMLState:
             sampled_y_train,
             sampled_weight,
             groups,
-        ) = self._prepare_sample_train_data(sample_size)
+        ) = self.task.prepare_sample_train_data(self, sample_size)
         if sampled_weight is not None:
             weight = this_estimator_kwargs[
                 "sample_weight"

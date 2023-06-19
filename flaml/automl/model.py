@@ -16,19 +16,16 @@ import math
 from flaml import tune
 from flaml.automl.data import (
     group_counts,
-    add_time_idx_col,
-    TS_TIMESTAMP_COL,
-    TS_VALUE_COL,
 )
 from flaml.automl.task.task import (
-    CLASSIFICATION,
-    TS_FORECASTREGRESSION,
+    Task,
     SEQCLASSIFICATION,
     SEQREGRESSION,
     TOKENCLASSIFICATION,
     SUMMARIZATION,
     NLG_TASKS,
 )
+from flaml.automl.task.factory import task_factory
 
 try:
     from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
@@ -119,13 +116,13 @@ class BaseEstimator:
             config: A dictionary containing the hyperparameter names, 'n_jobs' as keys.
                 n_jobs is the number of parallel threads.
         """
-        self._task = task
+        self._task = task if isinstance(task, Task) else task_factory(task, None, None)
         self.params = self.config2params(config)
         self.estimator_class = self._model = None
         if "_estimator_type" in config:
             self._estimator_type = self.params.pop("_estimator_type")
         else:
-            self._estimator_type = "classifier" if task in CLASSIFICATION else "regressor"
+            self._estimator_type = "classifier" if self._task.is_classification() else "regressor"
 
     def get_params(self, deep=False):
         params = self.params.copy()
@@ -247,7 +244,7 @@ class BaseEstimator:
                     train_time = self._fit(X_train, y_train, **kwargs)
             except (MemoryError, TimeoutError) as e:
                 logger.warning(f"{e.__class__} {e}")
-                if self._task in CLASSIFICATION:
+                if self._task.is_classification():
                     model = DummyClassifier()
                 else:
                     model = DummyRegressor()
@@ -289,7 +286,7 @@ class BaseEstimator:
             Each element at (i,j) is the probability for instance i to be in
                 class j.
         """
-        assert self._task in CLASSIFICATION, "predict_proba() only for classification."
+        assert self._task.is_classification(), "predict_proba() only for classification."
 
         X = self._preprocess(X)
         return self._model.predict_proba(X, **kwargs)
@@ -490,7 +487,7 @@ class SparkEstimator(BaseEstimator):
             Each element at (i,j) is the probability for instance i to be in
                 class j.
         """
-        assert self._task in CLASSIFICATION, "predict_proba() only for classification."
+        assert self._task.is_classification(), "predict_proba() only for classification."
         if self._model is not None:
             X = self._preprocess(X, index_col=index_col)
             predictions = to_pandas_on_spark(self._model.transform(X), index_col=index_col)
@@ -1111,7 +1108,7 @@ class TransformersEstimator(BaseEstimator):
             for key, val in pred_kwargs.items():
                 setattr(self._training_args, key, val)
 
-        assert self._task in CLASSIFICATION, "predict_proba() only for classification tasks."
+        assert self._task.is_classification(), "predict_proba() only for classification tasks."
 
         X_test, _ = self._tokenize_text(X, **self._kwargs)
         test_dataset = Dataset.from_pandas(X_test)
@@ -1297,18 +1294,21 @@ class LGBMEstimator(BaseEstimator):
         super().__init__(task, **config)
         if "verbose" not in self.params:
             self.params["verbose"] = -1
-        if "regression" == task:
-            from lightgbm import LGBMRegressor
 
-            self.estimator_class = LGBMRegressor
-        elif "rank" == task:
+        if self._task.is_classification():
+            from lightgbm import LGBMClassifier
+
+            self.estimator_class = LGBMClassifier
+
+        elif task == "rank":
             from lightgbm import LGBMRanker
 
             self.estimator_class = LGBMRanker
         else:
-            from lightgbm import LGBMClassifier
+            from lightgbm import LGBMRegressor
 
-            self.estimator_class = LGBMClassifier
+            self.estimator_class = LGBMRegressor
+
         self._time_per_iter = None
         self._train_size = 0
         self._mem_per_iter = -1
@@ -1626,11 +1626,13 @@ class XGBoostSklearnEstimator(SKLearnEstimator, LGBMEstimator):
         self.params["verbosity"] = 0
         import xgboost as xgb
 
-        self.estimator_class = xgb.XGBRegressor
         if "rank" == task:
             self.estimator_class = xgb.XGBRanker
-        elif task in CLASSIFICATION:
+        elif self._task.is_classification():
             self.estimator_class = xgb.XGBClassifier
+        else:
+            self.estimator_class = xgb.XGBRegressor
+
         self._xgb_version = xgb.__version__
 
     def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
@@ -1678,7 +1680,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
     def search_space(cls, data_size, task, **params):
         RandomForestEstimator.nrows = int(data_size[0])
         upper = min(2048, RandomForestEstimator.nrows)
-        init = 1 / np.sqrt(data_size[1]) if task in CLASSIFICATION else 1
+        init = 1 / np.sqrt(data_size[1]) if task.is_classification() else 1
         lower = min(0.1, init)
         space = {
             "n_estimators": {
@@ -1699,7 +1701,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
                 "low_cost_init_value": 4,
             },
         }
-        if task in CLASSIFICATION:
+        if task.is_classification():
             space["criterion"] = {
                 "domain": tune.choice(["gini", "entropy"]),
                 # "init_value": "gini",
@@ -1714,7 +1716,7 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
         params = super().config2params(config)
         if "max_leaves" in params:
             params["max_leaf_nodes"] = params.get("max_leaf_nodes", params.pop("max_leaves"))
-        if self._task not in CLASSIFICATION and "criterion" in config:
+        if not self._task.is_classification() and "criterion" in config:
             params.pop("criterion")
         if "random_state" not in params:
             params["random_state"] = 12032022
@@ -1722,14 +1724,16 @@ class RandomForestEstimator(SKLearnEstimator, LGBMEstimator):
 
     def __init__(
         self,
-        task="binary",
+        task: Task,
         **params,
     ):
         super().__init__(task, **params)
         self.params["verbose"] = 0
-        self.estimator_class = RandomForestRegressor
-        if task in CLASSIFICATION:
+
+        if self._task.is_classification():
             self.estimator_class = RandomForestClassifier
+        else:
+            self.estimator_class = RandomForestRegressor
 
 
 class ExtraTreesEstimator(RandomForestEstimator):
@@ -1776,7 +1780,7 @@ class LRL1Classifier(SKLearnEstimator):
 
     def __init__(self, task="binary", **config):
         super().__init__(task, **config)
-        assert task in CLASSIFICATION, "LogisticRegression for classification task only"
+        assert self._task.is_classification(), "LogisticRegression for classification task only"
         self.estimator_class = LogisticRegression
 
 
@@ -1802,7 +1806,7 @@ class LRL2Classifier(SKLearnEstimator):
 
     def __init__(self, task="binary", **config):
         super().__init__(task, **config)
-        assert task in CLASSIFICATION, "LogisticRegression for classification task only"
+        assert self._task.is_classification(), "LogisticRegression for classification task only"
         self.estimator_class = LogisticRegression
 
 
@@ -1877,13 +1881,14 @@ class CatBoostEstimator(BaseEstimator):
                 "random_seed": config.get("random_seed", 10242048),
             }
         )
-        from catboost import CatBoostRegressor
-
-        self.estimator_class = CatBoostRegressor
-        if task in CLASSIFICATION:
+        if self._task.is_classification():
             from catboost import CatBoostClassifier
 
             self.estimator_class = CatBoostClassifier
+        else:
+            from catboost import CatBoostRegressor
+
+            self.estimator_class = CatBoostRegressor
 
     def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
         start_time = time.time()
@@ -1976,7 +1981,7 @@ class KNeighborsEstimator(BaseEstimator):
 
     def __init__(self, task="binary", **config):
         super().__init__(task, **config)
-        if task in CLASSIFICATION:
+        if self._task.is_classification():
             from sklearn.neighbors import KNeighborsClassifier
 
             self.estimator_class = KNeighborsClassifier
@@ -2001,660 +2006,6 @@ class KNeighborsEstimator(BaseEstimator):
             X = X.drop(cat_columns, axis=1)
             X = X.to_numpy()
         return X
-
-
-class Prophet(SKLearnEstimator):
-    """The class for tuning Prophet."""
-
-    @classmethod
-    def search_space(cls, **params):
-        space = {
-            "changepoint_prior_scale": {
-                "domain": tune.loguniform(lower=0.001, upper=0.05),
-                "init_value": 0.05,
-                "low_cost_init_value": 0.001,
-            },
-            "seasonality_prior_scale": {
-                "domain": tune.loguniform(lower=0.01, upper=10),
-                "init_value": 10,
-            },
-            "holidays_prior_scale": {
-                "domain": tune.loguniform(lower=0.01, upper=10),
-                "init_value": 10,
-            },
-            "seasonality_mode": {
-                "domain": tune.choice(["additive", "multiplicative"]),
-                "init_value": "multiplicative",
-            },
-        }
-        return space
-
-    def __init__(self, task="ts_forecast", n_jobs=1, **params):
-        super().__init__(task, **params)
-
-    def _join(self, X_train, y_train):
-        assert TS_TIMESTAMP_COL in X_train, (
-            "Dataframe for training ts_forecast model must have column"
-            f' "{TS_TIMESTAMP_COL}" with the dates in X_train.'
-        )
-        y_train = DataFrame(y_train, columns=[TS_VALUE_COL])
-        train_df = X_train.join(y_train)
-        return train_df
-
-    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
-        from prophet import Prophet
-
-        current_time = time.time()
-        train_df = self._join(X_train, y_train)
-        train_df = self._preprocess(train_df)
-        cols = list(train_df)
-        cols.remove(TS_TIMESTAMP_COL)
-        cols.remove(TS_VALUE_COL)
-        logging.getLogger("prophet").setLevel(logging.WARNING)
-        model = Prophet(**self.params)
-        for regressor in cols:
-            model.add_regressor(regressor)
-        with suppress_stdout_stderr():
-            model.fit(train_df)
-        train_time = time.time() - current_time
-        self._model = model
-        return train_time
-
-    def predict(self, X, **kwargs):
-        if isinstance(X, int):
-            raise ValueError(
-                "predict() with steps is only supported for arima/sarimax."
-                " For Prophet, pass a dataframe with the first column containing"
-                " the timestamp values."
-            )
-        if self._model is not None:
-            X = self._preprocess(X)
-            forecast = self._model.predict(X, **kwargs)
-            return forecast["yhat"]
-        else:
-            logger.warning("Estimator is not fit yet. Please run fit() before predict().")
-            return np.ones(X.shape[0])
-
-    def score(self, X_val: DataFrame, y_val: Series, **kwargs):
-        from sklearn.metrics import r2_score
-        from .ml import metric_loss_score
-
-        y_pred = self.predict(X_val, **kwargs)
-        self._metric = kwargs.get("metric", None)
-        if self._metric:
-            return metric_loss_score(self._metric, y_pred, y_val)
-        else:
-            return r2_score(y_pred, y_val)
-
-
-class ARIMA(Prophet):
-    """The class for tuning ARIMA."""
-
-    @classmethod
-    def search_space(cls, **params):
-        space = {
-            "p": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 2,
-                "low_cost_init_value": 0,
-            },
-            "d": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 2,
-                "low_cost_init_value": 0,
-            },
-            "q": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 1,
-                "low_cost_init_value": 0,
-            },
-        }
-        return space
-
-    def _join(self, X_train, y_train):
-        train_df = super()._join(X_train, y_train)
-        train_df.index = to_datetime(train_df[TS_TIMESTAMP_COL])
-        train_df = train_df.drop(TS_TIMESTAMP_COL, axis=1)
-        return train_df
-
-    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
-        import warnings
-
-        warnings.filterwarnings("ignore")
-        from statsmodels.tsa.arima.model import ARIMA as ARIMA_estimator
-
-        current_time = time.time()
-        train_df = self._join(X_train, y_train)
-        train_df = self._preprocess(train_df)
-        regressors = list(train_df)
-        regressors.remove(TS_VALUE_COL)
-        if regressors:
-            model = ARIMA_estimator(
-                train_df[[TS_VALUE_COL]],
-                exog=train_df[regressors],
-                order=(self.params["p"], self.params["d"], self.params["q"]),
-                enforce_stationarity=False,
-                enforce_invertibility=False,
-            )
-        else:
-            model = ARIMA_estimator(
-                train_df,
-                order=(self.params["p"], self.params["d"], self.params["q"]),
-                enforce_stationarity=False,
-                enforce_invertibility=False,
-            )
-        with suppress_stdout_stderr():
-            model = model.fit()
-        train_time = time.time() - current_time
-        self._model = model
-        return train_time
-
-    def predict(self, X, **kwargs):
-        if self._model is not None:
-            if isinstance(X, int):
-                forecast = self._model.forecast(steps=X)
-            elif isinstance(X, DataFrame):
-                start = X[TS_TIMESTAMP_COL].iloc[0]
-                end = X[TS_TIMESTAMP_COL].iloc[-1]
-                if len(X.columns) > 1:
-                    X = self._preprocess(X.drop(columns=TS_TIMESTAMP_COL))
-                    regressors = list(X)
-                    forecast = self._model.predict(start=start, end=end, exog=X[regressors], **kwargs)
-                else:
-                    forecast = self._model.predict(start=start, end=end, **kwargs)
-            else:
-                raise ValueError(
-                    "X needs to be either a pandas Dataframe with dates as the first column"
-                    " or an int number of periods for predict()."
-                )
-            return forecast
-        else:
-            return np.ones(X if isinstance(X, int) else X.shape[0])
-
-
-class SARIMAX(ARIMA):
-    """The class for tuning SARIMA."""
-
-    @classmethod
-    def search_space(cls, **params):
-        space = {
-            "p": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 2,
-                "low_cost_init_value": 0,
-            },
-            "d": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 2,
-                "low_cost_init_value": 0,
-            },
-            "q": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 1,
-                "low_cost_init_value": 0,
-            },
-            "P": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 1,
-                "low_cost_init_value": 0,
-            },
-            "D": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 1,
-                "low_cost_init_value": 0,
-            },
-            "Q": {
-                "domain": tune.qrandint(lower=0, upper=10, q=1),
-                "init_value": 1,
-                "low_cost_init_value": 0,
-            },
-            "s": {
-                "domain": tune.choice([1, 4, 6, 12]),
-                "init_value": 12,
-            },
-        }
-        return space
-
-    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
-        import warnings
-
-        warnings.filterwarnings("ignore")
-        from statsmodels.tsa.statespace.sarimax import SARIMAX as SARIMAX_estimator
-
-        current_time = time.time()
-        train_df = self._join(X_train, y_train)
-        train_df = self._preprocess(train_df)
-        regressors = list(train_df)
-        regressors.remove(TS_VALUE_COL)
-        if regressors:
-            model = SARIMAX_estimator(
-                train_df[[TS_VALUE_COL]],
-                exog=train_df[regressors],
-                order=(self.params["p"], self.params["d"], self.params["q"]),
-                seasonal_order=(
-                    self.params["P"],
-                    self.params["D"],
-                    self.params["Q"],
-                    self.params["s"],
-                ),
-                enforce_stationarity=False,
-                enforce_invertibility=False,
-            )
-        else:
-            model = SARIMAX_estimator(
-                train_df,
-                order=(self.params["p"], self.params["d"], self.params["q"]),
-                seasonal_order=(
-                    self.params["P"],
-                    self.params["D"],
-                    self.params["Q"],
-                    self.params["s"],
-                ),
-                enforce_stationarity=False,
-                enforce_invertibility=False,
-            )
-        with suppress_stdout_stderr():
-            model = model.fit()
-        train_time = time.time() - current_time
-        self._model = model
-        return train_time
-
-
-class HoltWinters(ARIMA):
-    """
-    The class for tuning Holt Winters model, aka 'Triple Exponential Smoothing'.
-    """
-
-    @classmethod
-    def search_space(cls, **params):
-        space = {
-            "damped_trend": {"domain": tune.choice([True, False]), "init_value": False},
-            "trend": {"domain": tune.choice(["add", "mul", None]), "init_value": "add"},
-            "seasonal": {
-                "domain": tune.choice(["add", "mul", None]),
-                "init_value": "add",
-            },
-            "use_boxcox": {"domain": tune.choice([False, True]), "init_value": False},
-            "seasonal_periods": {  # statsmodels casts this to None if "seasonal" is None
-                "domain": tune.choice([7, 12, 4, 52, 6]),  # weekly, yearly, quarterly, weekly w yearly data
-                "init_value": 7,
-            },
-        }
-        return space
-
-    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
-        import warnings
-
-        warnings.filterwarnings("ignore")
-        from statsmodels.tsa.holtwinters import (
-            ExponentialSmoothing as HWExponentialSmoothing,
-        )
-
-        current_time = time.time()
-        train_df = self._join(X_train, y_train)
-        train_df = self._preprocess(train_df)
-        regressors = list(train_df)
-        regressors.remove(TS_VALUE_COL)
-        if regressors:
-            logger.warning("Regressors are ignored for Holt-Winters ETS models.")
-
-        # Override incompatible parameters
-        if (
-            X_train.shape[0] < 2 * self.params["seasonal_periods"]
-        ):  # this would prevent heuristic initialization to work properly
-            self.params["seasonal"] = None
-        if (
-            self.params["seasonal"] == "mul" and (train_df.y == 0).sum() > 0
-        ):  # cannot have multiplicative seasonality in this case
-            self.params["seasonal"] = "add"
-        if self.params["trend"] == "mul" and (train_df.y == 0).sum() > 0:
-            self.params["trend"] = "add"
-
-        if not self.params["seasonal"] or self.params["trend"] not in ["mul", "add"]:
-            self.params["damped_trend"] = False
-
-        model = HWExponentialSmoothing(
-            train_df[[TS_VALUE_COL]],
-            damped_trend=self.params["damped_trend"],
-            seasonal=self.params["seasonal"],
-            trend=self.params["trend"],
-        )
-        with suppress_stdout_stderr():
-            model = model.fit()
-        train_time = time.time() - current_time
-        self._model = model
-        return train_time
-
-    def predict(self, X, **kwargs):
-        if self._model is not None:
-            if isinstance(X, int):
-                forecast = self._model.forecast(steps=X)
-            elif isinstance(X, DataFrame):
-                start = X[TS_TIMESTAMP_COL].iloc[0]
-                end = X[TS_TIMESTAMP_COL].iloc[-1]
-                forecast = self._model.predict(start=start, end=end, **kwargs)
-            else:
-                raise ValueError(
-                    "X needs to be either a pandas Dataframe with dates as the first column"
-                    " or an int number of periods for predict()."
-                )
-            return forecast
-        else:
-            return np.ones(X if isinstance(X, int) else X.shape[0])
-
-
-class TS_SKLearn(SKLearnEstimator):
-    """The class for tuning SKLearn Regressors for time-series forecasting, using hcrystalball"""
-
-    base_class = SKLearnEstimator
-
-    @classmethod
-    def search_space(cls, data_size, pred_horizon, **params):
-        space = cls.base_class.search_space(data_size, **params)
-        space.update(
-            {
-                "optimize_for_horizon": {
-                    "domain": tune.choice([True, False]),
-                    "init_value": False,
-                    "low_cost_init_value": False,
-                },
-                "lags": {
-                    "domain": tune.randint(lower=1, upper=max(2, int(np.sqrt(data_size[0])))),
-                    "init_value": 3,
-                },
-            }
-        )
-        return space
-
-    def __init__(self, task="ts_forecast", **params):
-        super().__init__(task, **params)
-        self.hcrystaball_model = None
-        self.ts_task = "regression" if task in TS_FORECASTREGRESSION else "classification"
-
-    def transform_X(self, X):
-        cols = list(X)
-        if len(cols) == 1:
-            ds_col = cols[0]
-            X = DataFrame(index=X[ds_col])
-        elif len(cols) > 1:
-            ds_col = cols[0]
-            exog_cols = cols[1:]
-            X = X[exog_cols].set_index(X[ds_col])
-        return X
-
-    def _fit(self, X_train, y_train, budget=None, **kwargs):
-        from hcrystalball.wrappers import get_sklearn_wrapper
-
-        X_train = self.transform_X(X_train)
-        X_train = self._preprocess(X_train)
-        params = self.params.copy()
-        lags = params.pop("lags")
-        optimize_for_horizon = params.pop("optimize_for_horizon")
-        estimator = self.base_class(task=self.ts_task, **params)
-        self.hcrystaball_model = get_sklearn_wrapper(estimator.estimator_class)
-        self.hcrystaball_model.lags = int(lags)
-        self.hcrystaball_model.fit(X_train, y_train)
-        if optimize_for_horizon:
-            # Direct Multi-step Forecast Strategy - fit a seperate model for each horizon
-            model_list = []
-            for i in range(1, kwargs["period"] + 1):
-                (
-                    X_fit,
-                    y_fit,
-                ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(X_train, y_train, i)
-                self.hcrystaball_model.model.set_params(**estimator.params)
-                model = self.hcrystaball_model.model.fit(X_fit, y_fit)
-                model_list.append(model)
-            self._model = model_list
-        else:
-            (
-                X_fit,
-                y_fit,
-            ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(X_train, y_train, kwargs["period"])
-            self.hcrystaball_model.model.set_params(**estimator.params)
-            model = self.hcrystaball_model.model.fit(X_fit, y_fit)
-            self._model = model
-
-    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
-        current_time = time.time()
-        self._fit(X_train, y_train, budget=budget, **kwargs)
-        train_time = time.time() - current_time
-        return train_time
-
-    def predict(self, X, **kwargs):
-        if self._model is not None:
-            X = self.transform_X(X)
-            X = self._preprocess(X)
-            if isinstance(self._model, list):
-                assert len(self._model) == len(
-                    X
-                ), "Model is optimized for horizon, length of X must be equal to `period`."
-                preds = []
-                for i in range(1, len(self._model) + 1):
-                    (
-                        X_pred,
-                        _,
-                    ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(X.iloc[:i, :])
-                    preds.append(self._model[i - 1].predict(X_pred, **kwargs)[-1])
-                forecast = Series(preds)
-            else:
-                (
-                    X_pred,
-                    _,
-                ) = self.hcrystaball_model._transform_data_to_tsmodel_input_format(X)
-                forecast = self._model.predict(X_pred, **kwargs)
-            return forecast
-        else:
-            logger.warning("Estimator is not fit yet. Please run fit() before predict().")
-            return np.ones(X.shape[0])
-
-
-class LGBM_TS(TS_SKLearn):
-    """The class for tuning LGBM Regressor for time-series forecasting"""
-
-    base_class = LGBMEstimator
-
-
-class XGBoost_TS(TS_SKLearn):
-    """The class for tuning XGBoost Regressor for time-series forecasting"""
-
-    base_class = XGBoostSklearnEstimator
-
-
-# catboost regressor is invalid because it has a `name` parameter, making it incompatible with hcrystalball
-# class CatBoost_TS_Regressor(TS_Regressor):
-#     base_class = CatBoostEstimator
-
-
-class RF_TS(TS_SKLearn):
-    """The class for tuning Random Forest Regressor for time-series forecasting"""
-
-    base_class = RandomForestEstimator
-
-
-class ExtraTrees_TS(TS_SKLearn):
-    """The class for tuning Extra Trees Regressor for time-series forecasting"""
-
-    base_class = ExtraTreesEstimator
-
-
-class XGBoostLimitDepth_TS(TS_SKLearn):
-    """The class for tuning XGBoost Regressor with unlimited depth for time-series forecasting"""
-
-    base_class = XGBoostLimitDepthEstimator
-
-
-class TemporalFusionTransformerEstimator(SKLearnEstimator):
-    """The class for tuning Temporal Fusion Transformer"""
-
-    @classmethod
-    def search_space(cls, data_size, pred_horizon, **params):
-        space = {
-            "gradient_clip_val": {
-                "domain": tune.loguniform(lower=0.01, upper=100.0),
-                "init_value": 0.01,
-            },
-            "hidden_size": {
-                "domain": tune.lograndint(lower=8, upper=512),
-                "init_value": 16,
-            },
-            "hidden_continuous_size": {
-                "domain": tune.randint(lower=1, upper=65),
-                "init_value": 8,
-            },
-            "attention_head_size": {
-                "domain": tune.randint(lower=1, upper=5),
-                "init_value": 4,
-            },
-            "dropout": {
-                "domain": tune.uniform(lower=0.1, upper=0.3),
-                "init_value": 0.1,
-            },
-            "learning_rate": {
-                "domain": tune.loguniform(lower=0.00001, upper=1.0),
-                "init_value": 0.001,
-            },
-        }
-        return space
-
-    def transform_ds(self, X_train, y_train, **kwargs):
-        y_train = DataFrame(y_train, columns=[TS_VALUE_COL])
-        self.data = X_train.join(y_train)
-
-        max_prediction_length = kwargs["period"]
-        self.max_encoder_length = kwargs["max_encoder_length"]
-        training_cutoff = self.data["time_idx"].max() - max_prediction_length
-
-        from pytorch_forecasting import TimeSeriesDataSet
-        from pytorch_forecasting.data import GroupNormalizer
-
-        self.group_ids = kwargs["group_ids"].copy()
-        training = TimeSeriesDataSet(
-            self.data[lambda x: x.time_idx <= training_cutoff],
-            time_idx="time_idx",
-            target=TS_VALUE_COL,
-            group_ids=self.group_ids,
-            min_encoder_length=kwargs.get(
-                "min_encoder_length", self.max_encoder_length // 2
-            ),  # keep encoder length long (as it is in the validation set)
-            max_encoder_length=self.max_encoder_length,
-            min_prediction_length=1,
-            max_prediction_length=max_prediction_length,
-            static_categoricals=kwargs.get("static_categoricals", []),
-            static_reals=kwargs.get("static_reals", []),
-            time_varying_known_categoricals=kwargs.get("time_varying_known_categoricals", []),
-            time_varying_known_reals=kwargs.get("time_varying_known_reals", []),
-            time_varying_unknown_categoricals=kwargs.get("time_varying_unknown_categoricals", []),
-            time_varying_unknown_reals=kwargs.get("time_varying_unknown_reals", []),
-            variable_groups=kwargs.get(
-                "variable_groups", {}
-            ),  # group of categorical variables can be treated as one variable
-            lags=kwargs.get("lags", {}),
-            target_normalizer=GroupNormalizer(
-                groups=kwargs["group_ids"], transformation="softplus"
-            ),  # use softplus and normalize by group
-            add_relative_time_idx=True,
-            add_target_scales=True,
-            add_encoder_length=True,
-        )
-
-        # create validation set (predict=True) which means to predict the last max_prediction_length points in time
-        # for each series
-        validation = TimeSeriesDataSet.from_dataset(training, self.data, predict=True, stop_randomization=True)
-
-        # create dataloaders for model
-        batch_size = kwargs.get("batch_size", 64)
-        train_dataloader = training.to_dataloader(train=True, batch_size=batch_size, num_workers=0)
-        val_dataloader = validation.to_dataloader(train=False, batch_size=batch_size * 10, num_workers=0)
-
-        return training, train_dataloader, val_dataloader
-
-    def fit(self, X_train, y_train, budget=None, free_mem_ratio=0, **kwargs):
-        import warnings
-        import pytorch_lightning as pl
-        from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
-        import torch
-        from pytorch_forecasting import TemporalFusionTransformer
-        from pytorch_forecasting.metrics import QuantileLoss
-
-        warnings.filterwarnings("ignore")
-        current_time = time.time()
-        training, train_dataloader, val_dataloader = self.transform_ds(X_train, y_train, **kwargs)
-        params = self.params.copy()
-        gradient_clip_val = params.pop("gradient_clip_val")
-        params.pop("n_jobs")
-        max_epochs = kwargs.get("max_epochs", 20)
-        early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-4, patience=10, verbose=False, mode="min")
-
-        def _fit(log):
-            default_trainer_kwargs = dict(
-                gpus=kwargs.get("gpu_per_trial", [0]) if torch.cuda.is_available() else None,
-                max_epochs=max_epochs,
-                gradient_clip_val=gradient_clip_val,
-                callbacks=[LearningRateMonitor(), early_stop_callback] if log else [early_stop_callback],
-                logger=log,
-            )
-            trainer = pl.Trainer(
-                **default_trainer_kwargs,
-            )
-            tft = TemporalFusionTransformer.from_dataset(
-                training,
-                **params,
-                lstm_layers=2,  # 2 is mostly optimal according to documentation
-                output_size=7,  # 7 quantiles by default
-                loss=QuantileLoss(),
-                log_interval=10 if log else 0,
-                # uncomment for learning rate finder and otherwise, e.g. to 10 for logging every 10 batches
-                reduce_on_plateau_patience=4,
-            )
-            # fit network
-            trainer.fit(
-                tft,
-                train_dataloaders=train_dataloader,
-                val_dataloaders=val_dataloader,
-            )
-            return trainer
-
-        # try:
-        #     from pytorch_lightning.loggers import TensorBoardLogger
-
-        #     logger = TensorBoardLogger(
-        #         kwargs.get("log_dir", "lightning_logs")
-        #     )  # logging results to a tensorboard
-        #     trainer = _fit(log=logger)
-        # except ValueError:
-        # issue with pytorch forecasting model log_prediction() function
-        # pytorch-forecasting issue #1145
-        trainer = _fit(log=False)
-        best_model_path = trainer.checkpoint_callback.best_model_path
-        best_tft = TemporalFusionTransformer.load_from_checkpoint(best_model_path)
-        train_time = time.time() - current_time
-        self._model = best_tft
-        return train_time
-
-    def predict(self, X):
-        import pandas as pd
-
-        ids = self.group_ids.copy()
-        ids.append(TS_TIMESTAMP_COL)
-        encoder_data = self.data[lambda x: x.time_idx > x.time_idx.max() - self.max_encoder_length]
-        # following pytorchforecasting example, make all target values equal to the last data
-        last_data_cols = self.group_ids.copy()
-        last_data_cols.append(TS_VALUE_COL)
-        last_data = self.data[lambda x: x.time_idx == x.time_idx.max()][last_data_cols]
-        decoder_data = X
-        if "time_idx" not in decoder_data:
-            decoder_data = add_time_idx_col(decoder_data)
-        decoder_data["time_idx"] += encoder_data["time_idx"].max() + 1 - decoder_data["time_idx"].min()
-        # decoder_data[TS_VALUE_COL] = 0
-        decoder_data = decoder_data.merge(last_data, how="inner", on=self.group_ids)
-        decoder_data = decoder_data.sort_values(ids)
-        new_prediction_data = pd.concat([encoder_data, decoder_data], ignore_index=True)
-        new_prediction_data["time_idx"] = new_prediction_data["time_idx"].astype("int")
-        new_raw_predictions = self._model.predict(new_prediction_data)
-        index = [decoder_data[idx].to_numpy() for idx in ids]
-        predictions = pd.Series(new_raw_predictions.numpy().ravel(), index=index)
-        return predictions
 
 
 class suppress_stdout_stderr(object):

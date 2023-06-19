@@ -13,10 +13,9 @@ import logging
 import json
 
 from flaml.automl.state import SearchState, AutoMLState
-from flaml.automl.ml import (
-    train_estimator,
-    get_estimator_class,
-)
+from flaml.automl.ml import train_estimator
+
+from flaml.automl.time_series import TimeSeriesDataset
 from flaml.config import (
     MIN_SAMPLE_TRAIN,
     MEM_THRES,
@@ -29,7 +28,7 @@ from flaml.config import (
 )
 
 # TODO check to see when we can remove these
-from flaml.automl.task.task import CLASSIFICATION, TS_FORECAST, Task
+from flaml.automl.task.task import CLASSIFICATION, Task
 from flaml.automl.task.factory import task_factory
 from flaml import tune
 from flaml.automl.logger import logger, logger_formatter
@@ -899,7 +898,9 @@ class AutoML(BaseEstimator):
             ], "eval_method must be 'auto' or 'cv' for custom data splitter."
             assert self._state.X_val is None, "custom splitter and custom validation data can't be used together."
             return "cv"
-        if self._state.X_val is not None:
+        if self._state.X_val is not None and (
+            not isinstance(self._state.X_val, TimeSeriesDataset) or len(self._state.X_val.test_data) > 0
+        ):
             assert eval_method in [
                 "auto",
                 "holdout",
@@ -1144,7 +1145,7 @@ class AutoML(BaseEstimator):
             self._df,
             self._sample_weight_full,
         )
-        self.data_size_full = len(self._state.y_train_all)
+        self.data_size_full = self._state.data_size_full
 
     def fit(
         self,
@@ -1196,6 +1197,7 @@ class AutoML(BaseEstimator):
         free_mem_ratio=0,
         metric_constraints=None,
         custom_hp=None,
+        time_col=None,
         cv_score_agg_func=None,
         skip_transform=None,
         mlflow_logging=None,
@@ -1428,6 +1430,8 @@ class AutoML(BaseEstimator):
             }
         }
         ```
+            time_col: for a time series task, name of the column containing the timestamps. If not
+                provided, defaults to the first column of X_train/X_val
 
             cv_score_agg_func: customized cross-validation scores aggregate function. Default to average metrics across folds. If specificed, this function needs to
                 have the following input arguments:
@@ -1522,6 +1526,7 @@ class AutoML(BaseEstimator):
         if isinstance(task, str):
             task = task_factory(task, X_train, y_train)
         self._state.task = task
+        self._state.task.time_col = time_col
         self._estimator_type = "classifier" if task.is_classification() else "regressor"
         time_budget = time_budget or self._settings.get("time_budget")
         n_jobs = n_jobs or self._settings.get("n_jobs")
@@ -1824,7 +1829,7 @@ class AutoML(BaseEstimator):
             if estimator_name not in self._state.learner_classes:
                 self.add_learner(
                     estimator_name,
-                    get_estimator_class(self._state.task, estimator_name),
+                    self._state.task.estimator_class_from_str(estimator_name),
                 )
         # set up learner search space
         if isinstance(starting_points, str) and starting_points.startswith("data"):
@@ -1879,7 +1884,8 @@ class AutoML(BaseEstimator):
 
             self._search_states[estimator_name] = SearchState(
                 learner_class=estimator_class,
-                data_size=self._state.data_size,
+                # data_size=self._state.data_size,
+                data=self._state.X_train,
                 task=self._state.task,
                 starting_point=starting_points.get(estimator_name),
                 period=self._state.fit_kwargs.get(
@@ -2589,7 +2595,7 @@ class AutoML(BaseEstimator):
                 if self._max_iter > 1:
                     self._state.time_budget = -1
                 if (
-                    self._state.task in TS_FORECAST
+                    self._state.task.is_ts_forecast()
                     or self._trained_estimator is None
                     or self._trained_estimator.model is None
                     or (
