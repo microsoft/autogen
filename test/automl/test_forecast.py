@@ -1,8 +1,14 @@
+import datetime
+
 import numpy as np
+import pandas as pd
+
 from flaml import AutoML
 
+from flaml.automl.task.time_series_task import TimeSeriesTask
 
-def test_forecast_automl(budget=5, estimators_when_no_prophet=["arima", "sarimax", "holt-winters"]):
+
+def test_forecast_automl(budget=10, estimators_when_no_prophet=["arima", "sarimax", "holt-winters"]):
     # using dataframe
     import statsmodels.api as sm
 
@@ -86,6 +92,32 @@ def test_forecast_automl(budget=5, estimators_when_no_prophet=["arima", "sarimax
             estimator_list=estimators_when_no_prophet,
             period=time_horizon,
         )
+
+
+def test_models(budget=3):
+    n = 100
+    X = pd.DataFrame(
+        {
+            "A": pd.date_range(start="1900-01-01", periods=n, freq="D"),
+        }
+    )
+    y = np.exp(np.random.randn(n))
+
+    task = TimeSeriesTask("ts_forecast")
+
+    for est in task.estimators.keys():
+        if est == "tft":
+            continue  # TFT is covered by its own test
+        automl = AutoML()
+        automl.fit(
+            X_train=X[:72],  # a single column of timestamp
+            y_train=y[:72],  # value for each timestamp
+            estimator_list=[est],
+            period=12,  # time horizon to forecast, e.g., 12 months
+            task="ts_forecast",
+            time_budget=budget,  # time budget in seconds
+        )
+        automl.predict(X[72:])
 
 
 def test_numpy():
@@ -500,7 +532,7 @@ def test_forecast_panel(budget=5):
             ],
             "time_varying_unknown_categoricals": [],
             "time_varying_unknown_reals": [
-                "y",  # always need a 'y' column for the target column
+                "volume",  # target column
                 "log_volume",
                 "industry_volume",
                 "soda_volume",
@@ -572,10 +604,69 @@ def test_forecast_panel(budget=5):
     print(automl.min_resource)
 
 
+def test_cv_step():
+    n = 300
+    time_col = "date"
+    df = pd.DataFrame(
+        {
+            time_col: pd.date_range(start="1/1/2001", periods=n, freq="D"),
+            "y": np.sin(np.linspace(start=0, stop=200, num=n)),
+        }
+    )
+
+    def split_by_date(df: pd.DataFrame, dt: datetime.date):
+        dt = datetime.datetime(dt.year, dt.month, dt.day)
+        return df[df[time_col] <= dt], df[df[time_col] > dt]
+
+    horizon = 60
+    data_end = df.date.max()
+    train_end = data_end - datetime.timedelta(days=horizon)
+
+    train_df, val_df = split_by_date(df, train_end)
+    from flaml import AutoML
+
+    tgts = ["y"]
+    # tgt = "SERIES_SANCTIONS"
+
+    preds = {}
+    for tgt in tgts:
+        features = []  # [c for c in train_df.columns if "SERIES" not in c and c != time_col]
+
+        automl = AutoML(time_budget=5, metric="mae", task="ts_forecast", eval_method="cv")
+
+        automl.fit(
+            dataframe=train_df[[time_col] + features + [tgt]],
+            label=tgt,
+            period=horizon,
+            time_col=time_col,
+            verbose=4,
+            n_splits=5,
+            cv_step_size=5,
+        )
+
+        pred = automl.predict(val_df)
+
+        if isinstance(pred, pd.DataFrame):
+            pred = pred[tgt]
+        assert not np.isnan(pred.sum())
+
+        import matplotlib.pyplot as plt
+
+        preds[tgt] = pred
+        # plt.figure(figsize=(16, 8), dpi=80)
+        # plt.plot(df[time_col], df[tgt])
+        # plt.plot(val_df[time_col], pred)
+        # plt.legend(["actual", "predicted"])
+        # plt.show()
+
+    print("yahoo!")
+
+
 if __name__ == "__main__":
-    test_forecast_automl(60)
-    test_multivariate_forecast_num(5)
-    test_multivariate_forecast_cat(5)
-    test_numpy()
-    test_forecast_classification(5)
+    # test_forecast_automl(60)
+    # test_multivariate_forecast_num(5)
+    # test_multivariate_forecast_cat(5)
+    # test_numpy()
+    # test_forecast_classification(5)
     test_forecast_panel(5)
+    # test_cv_step()

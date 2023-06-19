@@ -69,8 +69,6 @@ class Task(ABC):
     operations which vary between tasks.
     """
 
-    estimators = {}
-
     def __init__(
         self,
         task_name: str,
@@ -88,6 +86,7 @@ class Task(ABC):
                 such as in binary vs multilabel classification.
         """
         self.name = task_name
+        self._estimators = None
 
     def __str__(self) -> str:
         """Name of this task type."""
@@ -326,8 +325,7 @@ class Task(ABC):
         """For backward compatibility with all the string comparisons to task"""
         return self.name == other
 
-    @classmethod
-    def estimator_class_from_str(cls, estimator_name: str) -> "flaml.automl.ml.BaseEstimator":
+    def estimator_class_from_str(self, estimator_name: str) -> "flaml.automl.ml.BaseEstimator":
         """Determine the estimator class corresponding to the provided name.
 
         Args:
@@ -339,11 +337,11 @@ class Task(ABC):
         Raises:
             ValueError: The provided estimator_name has not been registered for this task type.
         """
-        if estimator_name in cls.estimators:
-            return cls.estimators[estimator_name]
+        if estimator_name in self.estimators:
+            return self.estimators[estimator_name]
         else:
             raise ValueError(
                 f"{estimator_name} is not a built-in learner for this task type, "
-                f"only {list(cls.estimators.keys())} are supported."
+                f"only {list(self.estimators.keys())} are supported."
                 "Please use AutoML.add_learner() to add a customized learner."
             )
