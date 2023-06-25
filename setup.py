@@ -84,6 +84,9 @@ setuptools.setup(
             "tensorboardX==2.6",  # test_forecast_panel
             "requests<2.29.0",  # https://github.com/docker/docker-py/issues/3113
             "packaging",
+            "pydantic",
+            "sympy",
+            "wolframalpha",
         ],
         "catboost": ["catboost>=0.26"],
         "blendsearch": ["optuna==2.8.0"],
@@ -132,6 +135,7 @@ setuptools.setup(
         "benchmark": ["catboost>=0.26", "psutil==5.8.0", "xgboost==1.3.3", "pandas==1.1.4"],
         "openai": ["openai==0.27.8", "diskcache"],
         "autogen": ["openai==0.27.8", "diskcache", "docker"],
+        "mathchat": ["openai==0.27.8", "diskcache", "docker", "sympy", "pydantic", "wolframalpha"],
         "synapse": [
             "joblibspark>=0.5.0",
             "optuna==2.8.0",
