@@ -34,6 +34,10 @@ jobs:
           pip install -e .[autogen,blendsearch]
           python -c "import flaml"
           pip install coverage pytest datasets
+      - name: Install packages for MathChat when needed
+        if: matrix.python-version != '3.11'
+        run: |
+          pip install -e .[mathchat]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
@@ -49,6 +53,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          WOLFRAM_ALPHA_APPID: ${{ secrets.WOLFRAM_ALPHA_APPID }}
         run: |
           pip install nbconvert nbformat ipykernel
           coverage run -a -m pytest test/autogen/oai/test_notebook.py

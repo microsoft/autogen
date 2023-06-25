@@ -101,3 +101,14 @@ For technical details, please check our research publications.
     booktitle={ArXiv preprint arXiv:2303.04673},
 }
 ```
+
+* [An Empirical Study on Challenging Math Problem Solving with GPT-4](https://arxiv.org/abs/2306.01337). Yiran Wu, Feiran Jia, Shaokun Zhang, Hangyu Li, Erkang Zhu, Yue Wang, Yin Tat Lee, Richard Peng, Qingyun Wu, Chi Wang. ArXiv preprint arXiv:2306.01337 (2023).
+
+```bibtex
+@inproceedings{wu2023empirical,
+    title={An Empirical Study on Challenging Math Problem Solving with GPT-4},
+    author={Yiran Wu and Feiran Jia and Shaokun Zhang and Hangyu Li and Erkang Zhu and Yue Wang and Yin Tat Lee and Richard Peng and Qingyun Wu and Chi Wang},
+    year={2023},
+    booktitle={ArXiv preprint arXiv:2306.01337},
+}
+```
