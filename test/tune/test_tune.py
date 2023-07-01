@@ -1,6 +1,6 @@
 """Require: pip install flaml[test,ray]
 """
-from flaml import BlendSearch
+from flaml import BlendSearch, CFO
 import time
 import os
 from sklearn.model_selection import train_test_split
@@ -8,6 +8,7 @@ import sklearn.metrics
 import sklearn.datasets
 import xgboost as xgb
 import logging
+import math
 
 try:
     from ray.tune.integration.xgboost import TuneReportCheckpointCallback
@@ -18,6 +19,32 @@ logger = logging.getLogger(__name__)
 os.makedirs("logs", exist_ok=True)
 logger.addHandler(logging.FileHandler("logs/tune.log"))
 logger.setLevel(logging.INFO)
+
+
+def _BraninCurrin(config):
+    # Rescale brain
+    x_1 = 15 * config["x1"] - 5
+    x_2 = 15 * config["x2"]
+    # Brain function
+    t1 = x_2 - 5.1 / (4 * math.pi**2) * x_1**2 + 5 / math.pi * x_1 - 6
+    t2 = 10 * (1 - 1 / (8 * math.pi)) * math.cos(x_1)
+    brain_result = t1**2 + t2 + 10
+    # Currin function
+    xc_1 = config["x1"]
+    xc_2 = config["x2"]
+    factor1 = 1 - math.exp(-1 / (2 * xc_2))
+    numer = 2300 * pow(xc_1, 3) + 1900 * pow(xc_1, 2) + 2092 * xc_1 + 60
+    denom = 100 * pow(xc_1, 3) + 500 * pow(xc_1, 2) + 4 * xc_1 + 20
+    currin_result = factor1 * numer / denom
+    return {"brain": brain_result, "currin": currin_result}
+
+
+def _easy_objective(config):
+    # Hyperparameters
+    width, height, step = config["width"], config["height"], config["steps"]
+
+    # get_result
+    return {"mean_loss": (0.1 + width * step / 100) ** (-1) + height * 0.1}
 
 
 def test_nested_run():
@@ -349,6 +376,72 @@ def test_run_training_function_return_value():
         },
         num_samples=10,
         mode="max",
+    )
+
+
+def test_passing_search_alg():
+    from flaml import tune
+
+    # search_space
+    so_search_space = {
+        "steps": 100,
+        "width": tune.uniform(0, 20),
+        "height": tune.uniform(-100, 100),
+    }
+    mo_search_space = {
+        "x1": tune.uniform(lower=0.000001, upper=1.0),
+        "x2": tune.uniform(lower=0.000001, upper=1.0),
+    }
+
+    # lexicographic objectives
+    lexico_objectives = {}
+    lexico_objectives["metrics"] = ["brain", "currin"]
+    lexico_objectives["tolerances"] = {"brain": 10.0, "currin": 0.0}
+    lexico_objectives["targets"] = {"brain": 0.0, "currin": 0.0}
+    lexico_objectives["modes"] = ["min", "min"]
+
+    ## Passing search_alg through string
+    # Non lexico tune
+    tune.run(
+        _easy_objective,
+        search_alg="BlendSearch",
+        metric="mean_loss",
+        mode="min",
+        num_samples=10,
+        config=so_search_space,
+    )
+    # lexico tune
+    tune.run(
+        _BraninCurrin, search_alg="CFO", num_samples=10, config=mo_search_space, lexico_objectives=lexico_objectives
+    )
+    tune.run(
+        _BraninCurrin,
+        search_alg="BlendSearch",
+        num_samples=10,
+        config=mo_search_space,
+        lexico_objectives=lexico_objectives,
+    )
+
+    ## Passing search_alg through instance
+    so_bs = BlendSearch(time_budget_s=5, metric="mean_loss", mode="min")
+    # TODO: We will change CFO into blendsearch in the future
+    mo_bs = CFO(time_budget_s=5)
+    # Non lexico tune
+    tune.run(
+        _easy_objective,
+        search_alg=so_bs,
+        metric="mean_loss",
+        mode="min",
+        num_samples=10,
+        config=so_search_space,
+    )
+    # lexico tune
+    tune.run(
+        _BraninCurrin,
+        search_alg=mo_bs,
+        num_samples=10,
+        config=mo_search_space,
+        lexico_objectives=lexico_objectives,
     )
 
 
