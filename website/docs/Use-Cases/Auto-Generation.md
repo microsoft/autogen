@@ -1,17 +1,84 @@
-# Auto Generation
+# AutoGen: AutoML for GPT-X Applications
 
-`flaml.autogen` is a package for automating generation tasks (in preview), featuring:
-* Leveraging [`flaml.tune`](../reference/tune/tune) to adapt LLMs to applications, such that:
-  - Maximize the utility out of using expensive foundation models.
-  - Reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
-* An enhanced inference API as a drop-in replacement of `openai.Completion.create` or `openai.ChatCompletion.create` with utilities like API unification, caching, error handling, multi-config inference, context programming etc.
-* Higher-level components like LLM-based intelligent agents which can perform tasks autonomously or with human feedback, including tasks that require using tools via code.
+`flaml.autogen` simplifies hard choices (such as model, prompt, inference parameters and orchestration choices) for developers when finding an optimal operating point in a large and complex design space of large language model (LLM) hierarchy, and offers a virtual interface to highly capable, economical, and fast LLM agents.
+
+## Features
+
+* An enhanced inference API as a drop-in replacement of `openai.Completion.create` or `openai.ChatCompletion.create`. It allows easy performance tuning and advanced usage patterns, including:
+  - Leveraging [`flaml.tune`](../reference/tune/tune) to adapt LLMs to applications, to maximize the utility out of using expensive foundation models and reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
+  - Utilities like API unification, caching, error handling, multi-config inference, context programming etc.
+* A higher-level abstraction of using foundation models: intelligent agents which can perform tasks autonomously or with human feedback. The same abstraction allows both automated feedback and human feedback sent between agents, so that complex tasks can be accomplished, including tasks that require using tools via code.
 
 The package is under active development with more features upcoming.
 
-## Tune Inference Parameters
+## Agents (Experimental)
 
-### Choices to optimize
+[`flaml.autogen.agents`](../reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
+
+We have designed different classes of Agents that are capable of communicating with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform in the `receive` method.
+
+### `AssistantAgent`
+
+`AssistantAgent` is an Agent class designed to act as an assistant by responding to user requests. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4).
+
+### `UserProxyAgent`
+`UserProxyAgent` is an Agent class that serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
+
+Currently, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. We plan to add more capabilities in `UserProxyAgent` beyond code execution. One can also easily extend it by overriding the `auto_reply` function of the `UserProxyAgent` to add or modify responses to the `AssistantAgent`'s specific type of message. For example, one can easily extend it to execute function calls to external API, which is especially useful with the newly added [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com).  This auto-reply capability allows for more autonomous user-agent communication while retaining the possibility of human intervention.
+
+Example usage of the agents to solve a task with code:
+```python
+from flaml.autogen.agent import AssistantAgent, UserProxyAgent
+
+# create an AssistantAgent instance named "assistant"
+assistant = AssistantAgent(name="assistant")
+
+# create a UserProxyAgent instance named "user_proxy"
+user_proxy = UserProxyAgent(
+    name="user_proxy",
+    human_input_mode="NEVER",  # in this mode, the agent will never solicit human input but always auto reply
+    max_consecutive_auto_reply=10,  # the maximum number of consecutive auto replies
+    is_termination_msg=lambda x: x.rstrip().endswith("TERMINATE") or x.rstrip().endswith('"TERMINATE".'),  # the function to determine whether a message is a termination message
+    work_dir=".",
+)
+
+# the assistant receives a message from the user, which contains the task description
+assistant.receive(
+    """What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
+    user_proxy,
+)
+```
+In the example above, we create an AssistantAgent named "assistant" to serve as the assistant and a UserProxyAgent named "user_proxy" to serve as a proxy for the human user.
+1. The assistant receives a message from the user_proxy, which contains the task description.
+2. The assistant then tries to write Python code to solve the task and sends the response to the user_proxy.
+3. Once the user_proxy receives a response from the assistant, it tries to reply by either soliciting human input or preparing an automatically generated reply. In this specific example, since `human_input_mode` is set to `"NEVER"`, the user_proxy will not solicit human input but prepare an automatically generated reply (auto reply). More specifically, the user_proxy executes the code and uses the result as the auto-reply.
+4. The assistant then generates a further response for the user_proxy. The user_proxy can then decide whether to terminate the conversation. If not, steps 3 and 4 are repeated.
+
+Please find a visual illustration of how UserProxyAgent and AssistantAgent collaboratively solve the above task below:
+![Agent Example](images/agent_example.png)
+
+Notes:
+- Under the mode `human_input_mode="NEVER"`, the multi-turn conversation between the assistant and the user_proxy stops when the number of auto-reply reaches the upper limit specified by `max_consecutive_auto_reply` or the received message is a termination message according to `is_termination_msg`.
+- When `human_input_mode` is set to `"ALWAYS"`, the user proxy agent solicits human input every time a message is received; and the conversation stops when the human input is "exit", or when the received message is a termination message and no human input is provided.
+- When `human_input_mode` is set to `"TERMINATE"`, the user proxy agent solicits human input only when a termination message is received or the number of auto reply reaches `max_consecutive_auto_reply`.
+
+*Interested in trying it yourself? Please check the following notebook examples:*
+* [Interactive LLM Agent with Auto Feedback from Code Execution](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_auto_feedback_from_code_execution.ipynb)
+
+* [Interactive LLM Agent with Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_human_feedback.ipynb)
+
+* [Interactive LLM Agent Dealing with Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_web_info.ipynb)
+
+* [Using MathChat to Solve Math Problems](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_MathChat.ipynb)
+
+## Enhanced Inference
+
+One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to perform inference.
+There are a number of benefits of using `flaml.oai.Completion.create` to perform inference.
+
+### Tune Inference Parameters
+
+#### Choices to optimize
 
 The cost of using foundation models for text generation is typically measured in terms of the number of tokens in the input and output combined. From the perspective of an application builder using foundation models, the use case is to maximize the utility of the generated text under an inference budget constraint (e.g., measured by the average dollar cost needed to solve a coding problem). This can be achieved by optimizing the hyperparameters of the inference,
 which can significantly affect both the utility and the cost of the generated text.
@@ -42,11 +109,11 @@ With `flaml.autogen`, the tuning can be performed with the following information
 1. Search space.
 1. Budgets: inference and optimization respectively.
 
-### Validation data
+#### Validation data
 
 Collect a diverse set of instances. They can be stored in an iterable of dicts. For example, each instance dict can contain "problem" as a key and the description str of a math problem as the value; and "solution" as a key and the solution str as the value.
 
-### Evaluation function
+#### Evaluation function
 
 The evaluation function should take a list of responses, and other keyword arguments corresponding to the keys in each validation data instance as input, and output a dict of metrics. For example,
 
@@ -60,11 +127,11 @@ def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
 
 [`flaml.autogen.code_utils`](../reference/autogen/code_utils) and [`flaml.autogen.math_utils`](../reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
 
-### Metric to optimize
+#### Metric to optimize
 
 The metric to optimize is usually an aggregated metric over all the tuning data instances. For example, users can specify "success" as the metric and "max" as the optimization mode. By default, the aggregation function is taking the average. Users can provide a customized aggregation function if needed.
 
-### Search space
+#### Search space
 
 Users can specify the (optional) search range for each hyperparameter.
 
@@ -79,13 +146,13 @@ And `{problem}` will be replaced by the "problem" field of each data instance.
 Please don't provide both. By default, each configuration will choose either a temperature or a top_p in [0, 1] uniformly.
 1. presence_penalty, frequency_penalty. They can be constants or specified by `flaml.tune.uniform` etc. Not tuned by default.
 
-### Budgets
+#### Budgets
 
 One can specify an inference budget and an optimization budget.
 The inference budget refers to the average inference cost per data instance.
 The optimization budget refers to the total budget allowed in the tuning process. Both are measured by dollars and follow the price per 1000 tokens.
 
-### Perform tuning
+#### Perform tuning
 
 Now, you can use [`flaml.oai.Completion.tune`](../reference/autogen/oai/completion#tune) for tuning. For example,
 
@@ -112,11 +179,6 @@ The tuend config can be used to perform inference.
 * [Optimize for Code Generation](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
 * [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
 
-
-## Perform Inference
-
-One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to perform inference.
-There are a number of benefits of using `flaml.oai.Completion.create` to perform inference.
 
 ### API unification
 
@@ -380,64 +442,6 @@ The compact history is more efficient and the individual API call history contai
 - a [`test`](../reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
 - an [`extract_text_or_function_call`](../reference/autogen/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
 
-
-## Agents (Experimental)
-
-[`flaml.autogen.agents`](../reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
-
-We have designed different classes of Agents that are capable of communicating with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform in the `receive` method.
-
-### `AssistantAgent`
-
-`AssistantAgent` is an Agent class designed to act as an assistant by responding to user requests. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4).
-
-### `UserProxyAgent`
-`UserProxyAgent` is an Agent class that serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
-
-Currently, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. We plan to add more capabilities in `UserProxyAgent` beyond code execution. One can also easily extend it by overriding the `auto_reply` function of the `UserProxyAgent` to add or modify responses to the `AssistantAgent`'s specific type of message. For example, one can easily extend it to execute function calls to external API, which is especially useful with the newly added [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com).  This auto-reply capability allows for more autonomous user-agent communication while retaining the possibility of human intervention.
-
-Example usage of the agents to solve a task with code:
-```python
-from flaml.autogen.agent import AssistantAgent, UserProxyAgent
-
-# create an AssistantAgent instance named "assistant"
-assistant = AssistantAgent(name="assistant")
-
-# create a UserProxyAgent instance named "user_proxy"
-user_proxy = UserProxyAgent(
-    name="user_proxy",
-    human_input_mode="NEVER",  # in this mode, the agent will never solicit human input but always auto reply
-    max_consecutive_auto_reply=10,  # the maximum number of consecutive auto replies
-    is_termination_msg=lambda x: x.rstrip().endswith("TERMINATE") or x.rstrip().endswith('"TERMINATE".'),  # the function to determine whether a message is a termination message
-    work_dir=".",
-)
-
-# the assistant receives a message from the user, which contains the task description
-assistant.receive(
-    """What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
-    user_proxy,
-)
-```
-In the example above, we create an AssistantAgent named "assistant" to serve as the assistant and a UserProxyAgent named "user_proxy" to serve as a proxy for the human user.
-1. The assistant receives a message from the user_proxy, which contains the task description.
-2. The assistant then tries to write Python code to solve the task and sends the response to the user_proxy.
-3. Once the user_proxy receives a response from the assistant, it tries to reply by either soliciting human input or preparing an automatically generated reply. In this specific example, since `human_input_mode` is set to `"NEVER"`, the user_proxy will not solicit human input but prepare an automatically generated reply (auto reply). More specifically, the user_proxy executes the code and uses the result as the auto-reply.
-4. The assistant then generates a further response for the user_proxy. The user_proxy can then decide whether to terminate the conversation. If not, steps 3 and 4 are repeated.
-
-Please find a visual illustration of how UserProxyAgent and AssistantAgent collaboratively solve the above task below:
-![Agent Example](images/agent_example.png)
-
-Notes:
-- Under the mode `human_input_mode="NEVER"`, the multi-turn conversation between the assistant and the user_proxy stops when the number of auto-reply reaches the upper limit specified by `max_consecutive_auto_reply` or the received message is a termination message according to `is_termination_msg`.
-- When `human_input_mode` is set to `"ALWAYS"`, the user proxy agent solicits human input every time a message is received; and the conversation stops when the human input is "exit", or when the received message is a termination message and no human input is provided.
-- When `human_input_mode` is set to `"TERMINATE"`, the user proxy agent solicits human input only when a termination message is received or the number of auto reply reaches `max_consecutive_auto_reply`.
-
-*Interested in trying it yourself? Please check the following notebook examples:*
-* [Interactive LLM Agent with Auto Feedback from Code Execution](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_auto_feedback_from_code_execution.ipynb)
-
-* [Interactive LLM Agent with Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_human_feedback.ipynb)
-
-* [Interactive LLM Agent Dealing with Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_web_info.ipynb)
 
 ## Utilities for Applications
 

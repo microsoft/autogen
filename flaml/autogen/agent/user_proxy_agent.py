@@ -1,3 +1,4 @@
+from typing import Union
 from .agent import Agent
 from flaml.autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
 from collections import defaultdict
@@ -38,7 +39,8 @@ class UserProxyAgent(Agent):
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             is_termination_msg (function): a function that takes a message and returns a boolean value.
                 This function is used to determine if a received message is a termination message.
-            use_docker (bool): whether to use docker to execute the code.
+            use_docker (bool or str): bool value of whether to use docker to execute the code,
+                or str value of the docker image name to use.
             **config (dict): other configurations.
         """
         super().__init__(name, system_message)
@@ -53,6 +55,12 @@ class UserProxyAgent(Agent):
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._use_docker = use_docker
+
+    @property
+    def use_docker(self) -> Union[bool, str]:
+        """bool value of whether to use docker to execute the code,
+        or str value of the docker image name to use."""
+        return self._use_docker
 
     def _execute_code(self, code_blocks):
         """Execute the code and return the result."""
