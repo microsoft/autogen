@@ -38,7 +38,7 @@ user_proxy = UserProxyAgent(
     name="user_proxy",
     human_input_mode="NEVER",  # in this mode, the agent will never solicit human input but always auto reply
     max_consecutive_auto_reply=10,  # the maximum number of consecutive auto replies
-    is_termination_msg=lambda x: x.rstrip().endswith("TERMINATE") or x.rstrip().endswith('"TERMINATE".'),  # the function to determine whether a message is a termination message
+    is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE") or x.get("content", "").rstrip().endswith('"TERMINATE".'),  # the function to determine whether a message is a termination message
     work_dir=".",
 )
 
