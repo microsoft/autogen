@@ -23,7 +23,7 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
         "user",
         work_dir=f"{here}/test_agent_scripts",
         human_input_mode=human_input_mode,
-        is_termination_msg=lambda x: x.rstrip().endswith("TERMINATE"),
+        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         max_consecutive_auto_reply=max_consecutive_auto_reply,
         use_docker="python:3",
     )
@@ -51,7 +51,7 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
         "user",
         human_input_mode=human_input_mode,
         max_consecutive_auto_reply=max_consecutive_auto_reply,
-        is_termination_msg=lambda x: x.rstrip().endswith("TERMINATE"),
+        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
     )
     assistant.receive(
         """Create and execute a script to plot a rocket without using matplotlib""",
