@@ -70,8 +70,8 @@ def test_searchers():
     searcher = OptunaSearch(["a", config["a"]], metric="m", mode="max")
     try:
         searcher.suggest("t0")
-    except ValueError:
-        # not enough values to unpack (expected 3, got 1)
+    except AttributeError:
+        # 'list' object has no attribute 'items'
         pass
     searcher = OptunaSearch(
         config,
@@ -221,6 +221,21 @@ def test_searchers():
         upper={"root": [{"a": 0.9}, {"a": 0.8}]},
         space={"root": config1},
     )
+    searcher = OptunaSearch(
+        define_search_space,
+        points_to_evaluate=[{"a": 6, "b": 1e-3}],
+        metric=["a", "b"],
+        mode=["max", "max"],
+    )
+    searcher.set_search_properties("m", "min", config)
+    searcher.suggest("t1")
+    searcher.on_trial_complete("t1", None, False)
+    searcher.suggest("t2")
+    searcher.on_trial_complete("t2", None, True)
+    searcher.suggest("t3")
+    searcher.on_trial_complete("t3", {"m": np.nan})
+    searcher.save("test/tune/optuna.pkl")
+    searcher.restore("test/tune/optuna.pkl")
     searcher = CFO(
         metric="m",
         mode="min",
