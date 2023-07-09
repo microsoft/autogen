@@ -71,6 +71,8 @@ Notes:
 
 * [Using MathChat to Solve Math Problems](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_MathChat.ipynb)
 
+* [Multi-Agent Communication and Planning](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_planning.ipynb)
+
 ## Enhanced Inference
 
 One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to perform inference.
