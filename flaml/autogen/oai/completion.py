@@ -769,7 +769,7 @@ class Completion(openai_Completion):
                         response["pass_filter"] = pass_filter
                         return response
                     cost += response["cost"]
-                except (AuthenticationError, RateLimitError, Timeout):
+                except (AuthenticationError, RateLimitError, Timeout, InvalidRequestError):
                     logger.debug(f"failed with config {i}", exc_info=1)
                     if i == last:
                         raise
