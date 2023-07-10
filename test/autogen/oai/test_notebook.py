@@ -63,6 +63,14 @@ def test_autogen_openai_completion(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
+def test_autogen_agent_function_call(save=False):
+    run_notebook("autogen_agent_function_call.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
 def test_autogen_agent_MathChat(save=False):
     run_notebook("autogen_agent_MathChat.ipynb", save=save)
 
@@ -79,3 +87,4 @@ if __name__ == "__main__":
     test_autogen_chatgpt_gpt4(save=True)
     test_autogen_openai_completion(save=True)
     test_autogen_agent_MathChat(save=True)
+    test_autogen_agent_function_call(save=True)
