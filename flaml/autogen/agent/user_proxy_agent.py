@@ -2,7 +2,7 @@ from .agent import Agent
 from flaml.autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
 from collections import defaultdict
 import json
-from typing import Dict, Union
+from typing import Callable, Dict, List, Optional, Union
 
 
 class UserProxyAgent(Agent):
@@ -12,21 +12,25 @@ class UserProxyAgent(Agent):
 
     def __init__(
         self,
-        name,
-        system_message="",
-        work_dir=None,
-        human_input_mode="ALWAYS",
-        function_map={},
-        max_consecutive_auto_reply=None,
-        is_termination_msg=None,
-        use_docker=True,
+        name: str,
+        system_message: Optional[str] = "",
+        work_dir: Optional[str] = None,
+        human_input_mode: Optional[str] = "ALWAYS",
+        function_map: Optional[Dict[str, Callable]] = {},
+        max_consecutive_auto_reply: Optional[int] = None,
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
+        use_docker: Optional[Union[List[str], str, bool]] = True,
+        timeout: Optional[int] = 600,
         **config,
     ):
         """
         Args:
-            name (str): name of the agent
-            system_message (str): system message to be sent to the agent
-            work_dir (str): working directory for the agent
+            name (str): name of the agent.
+            system_message (str): system message for the agent.
+            work_dir (Optional, str): The working directory for the code execution.
+                If None, a default working directory will be used.
+                The default working directory is the "extensions" directory under
+                "path_to_flaml/autogen".
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
                 (1) When "ALWAYS", the agent prompts for human input every time a message is received.
@@ -42,8 +46,14 @@ class UserProxyAgent(Agent):
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             is_termination_msg (function): a function that takes a message in the form of a dictionary and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
-            use_docker (bool or str): bool value of whether to use docker to execute the code,
-                or str value of the docker image name to use.
+            use_docker (Optional, list, str or bool): The docker image to use for code execution.
+                If a list or a str of image name(s) is provided, the code will be executed in a docker container
+                with the first image successfully pulled.
+                If None, False or empty, the code will be executed in the current environment.
+                Default is True, which will be converted into a list.
+                If the code is executed in the current environment,
+                the code must be trusted.
+            timeout (Optional, int): The maximum execution time in seconds.
             **config (dict): other configurations.
         """
         super().__init__(name, system_message)
@@ -58,7 +68,7 @@ class UserProxyAgent(Agent):
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._use_docker = use_docker
-
+        self._time_out = timeout
         self._function_map = function_map
 
     @property
@@ -75,22 +85,21 @@ class UserProxyAgent(Agent):
             if not lang:
                 lang = infer_lang(code)
             if lang in ["bash", "shell", "sh"]:
-                # if code.startswith("python "):
-                #     # return 1, f"please do not suggest bash or shell commands like {code}"
-                #     file_name = code[len("python ") :]
-                #     exitcode, logs = execute_code(filename=file_name, work_dir=self._work_dir, use_docker=self._use_docker)
-                # else:
                 exitcode, logs, image = execute_code(
-                    code, work_dir=self._work_dir, use_docker=self._use_docker, lang=lang
+                    code, work_dir=self._work_dir, use_docker=self._use_docker, lang=lang, timeout=self._time_out
                 )
                 logs = logs.decode("utf-8")
-            elif lang == "python":
+            elif lang in ["python", "Python"]:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:
                     filename = None
                 exitcode, logs, image = execute_code(
-                    code, work_dir=self._work_dir, filename=filename, use_docker=self._use_docker
+                    code,
+                    work_dir=self._work_dir,
+                    filename=filename,
+                    use_docker=self._use_docker,
+                    timeout=self._time_out,
                 )
                 logs = logs.decode("utf-8")
             else:

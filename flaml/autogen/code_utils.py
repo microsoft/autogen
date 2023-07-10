@@ -14,6 +14,7 @@ CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
 TIMEOUT_MSG = bytes("Timeout", "utf-8")
+DEFAULT_TIMEOUT = 600
 
 
 def infer_lang(code):
@@ -133,7 +134,7 @@ def _cmd(lang):
 
 def execute_code(
     code: Optional[str] = None,
-    timeout: Optional[int] = 600,
+    timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
     use_docker: Optional[Union[List[str], str, bool]] = True,
@@ -154,7 +155,7 @@ def execute_code(
         work_dir (Optional, str): The working directory for the code execution.
             If None, a default working directory will be used.
             The default working directory is the "extensions" directory under
-            "xxx/flaml/autogen", where "xxx" is the path to the flaml package.
+            "path_to_flaml/autogen".
         use_docker (Optional, list, str or bool): The docker image to use for code execution.
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
               with the first image successfully pulled.
@@ -170,7 +171,7 @@ def execute_code(
         image: The docker image name after container run when docker is used.
     """
     assert code is not None or filename is not None, "Either code or filename must be provided."
-
+    timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
