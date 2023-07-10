@@ -739,7 +739,7 @@ class Completion(openai_Completion):
 
             raise_error (bool, Optional): Whether to raise error when all configs fail.
                 When set to False, -1 will be returned when all configs fail.
-            **config: Configuration for the completion.
+            **config: Configuration for the openai API call. This is used as parameters for calling openai API.
                 Besides the parameters for the openai API call, it can also contain a seed (int) for the cache.
                 This is useful when implementing "controlled randomness" for the completion.
                 Also, the "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
