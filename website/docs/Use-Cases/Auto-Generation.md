@@ -24,7 +24,7 @@ We have designed different classes of Agents that are capable of communicating w
 ### `UserProxyAgent`
 `UserProxyAgent` is an Agent class that serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
 
-Currently, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. We plan to add more capabilities in `UserProxyAgent` beyond code execution. One can also easily extend it by overriding the `auto_reply` function of the `UserProxyAgent` to add or modify responses to the `AssistantAgent`'s specific type of message. For example, one can easily extend it to execute function calls to external API, which is especially useful with the newly added [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com).  This auto-reply capability allows for more autonomous user-agent communication while retaining the possibility of human intervention.
+Currently, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. We plan to add more capabilities in `UserProxyAgent` beyond code execution. One can also easily extend it by overriding the `auto_reply` function of the `UserProxyAgent` to add or modify responses to the `AssistantAgent`'s specific type of message. This auto-reply capability allows for more autonomous user-agent communication while retaining the possibility of human intervention.
 
 Example usage of the agents to solve a task with code:
 ```python
@@ -57,10 +57,67 @@ In the example above, we create an AssistantAgent named "assistant" to serve as 
 Please find a visual illustration of how UserProxyAgent and AssistantAgent collaboratively solve the above task below:
 ![Agent Example](images/agent_example.png)
 
-Notes:
+#### Human Input Mode
+The `human_input_mode` parameter of `UserProxyAgent` controls the behavior of the agent when it receives a message. It can be set to `"NEVER"`, `"ALWAYS"`, or `"TERMINATE"`.
 - Under the mode `human_input_mode="NEVER"`, the multi-turn conversation between the assistant and the user_proxy stops when the number of auto-reply reaches the upper limit specified by `max_consecutive_auto_reply` or the received message is a termination message according to `is_termination_msg`.
 - When `human_input_mode` is set to `"ALWAYS"`, the user proxy agent solicits human input every time a message is received; and the conversation stops when the human input is "exit", or when the received message is a termination message and no human input is provided.
 - When `human_input_mode` is set to `"TERMINATE"`, the user proxy agent solicits human input only when a termination message is received or the number of auto reply reaches `max_consecutive_auto_reply`.
+
+#### Function Calling
+To leverage [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com), one can pass in a list of callable functions or class methods to `UserProxyAgent`, which corresponds to the description of functions passed to OpenAI's API.
+
+Example usage of the agents to solve a task with function calling feature:
+```python
+from flaml.autogen.agent import AssistantAgent, UserProxyAgent
+
+# put the descriptions of functions in config to be passed to OpenAI's API
+oai_config = {
+    "model": "gpt-4-0613",
+    "functions": [
+        {
+            "name": "execute_code",
+            "description": "Receive a list of python code or shell script and return the execution result.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code_type": {
+                        "type": "string",
+                        "description": "Code type, 'python' or 'sh'.",
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Valid Python code to execute.",
+                    }
+                },
+                "required": ["code_type", "code"],
+            },
+        }
+    ],
+    "function_call": "auto",
+}
+
+# create an AssistantAgent instance named "assistant"
+chatbot = AssistantAgent("assistant", config_list=config_list, **oai_config)
+
+# define your own function. Here we use a pre-defined '_execute_code' function from a UserProxyAgent instance
+# we define a wrapper function to call `exec_func`
+exec_func = UserProxyAgent(name="execute_code", work_dir="coding", use_docker=False)._execute_code
+def execute_code(code_type, code):
+    return exec_func([(code_type, code)])
+
+# create a UserProxyAgent instance named "user", the execute_code_function is passed
+user = UserProxyAgent(
+    "user",
+    human_input_mode="NEVER",
+    function_map={"execute_code": execute_code},
+)
+
+# start the conversation
+chatbot.receive(
+    "Draw a rocket and save to a file named 'rocket.svg'",
+    user,
+)
+```
 
 *Interested in trying it yourself? Please check the following notebook examples:*
 * [Interactive LLM Agent with Auto Feedback from Code Execution](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_auto_feedback_from_code_execution.ipynb)
@@ -70,6 +127,8 @@ Notes:
 * [Interactive LLM Agent Dealing with Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_web_info.ipynb)
 
 * [Using MathChat to Solve Math Problems](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_MathChat.ipynb)
+
+* [Interactive LLM Agent with Function Calls](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_function_call.ipynb)
 
 * [Multi-Agent Communication and Planning](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_planning.ipynb)
 
