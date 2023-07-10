@@ -110,7 +110,7 @@ public class SemanticKernelSkill : CodeActivity<string>
 
         var context = new ContextVariables();
         context.Set("input", prompt);
-        context.Set("wafContext", wafContext);
+        //context.Set("wafContext", wafContext);
 
         var answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
         var result = typeof(T) != typeof(string) ? JsonSerializer.Deserialize<T>(answer.ToString()) : (T)(object)answer.ToString();
