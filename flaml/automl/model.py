@@ -408,6 +408,7 @@ class SparkEstimator(BaseEstimator):
         X_train: Union[psDataFrame, sparkDataFrame],
         y_train: psSeries = None,
         index_col: str = "tmp_index_col",
+        return_label: bool = False,
     ):
         # TODO: optimize this, support pyspark.sql.DataFrame
         if y_train is not None:
@@ -416,7 +417,10 @@ class SparkEstimator(BaseEstimator):
             self.df_train = X_train
         if isinstance(self.df_train, psDataFrame):
             self.df_train = self.df_train.to_spark(index_col=index_col)
-        return self.df_train
+        if return_label:
+            return self.df_train, y_train.name
+        else:
+            return self.df_train
 
     def fit(
         self,
@@ -437,7 +441,8 @@ class SparkEstimator(BaseEstimator):
         Returns:
             train_time: A float of the training time in seconds.
         """
-        df_train = self._preprocess(X_train, y_train, index_col=index_col)
+        df_train, label_col = self._preprocess(X_train, y_train, index_col=index_col, return_label=True)
+        kwargs["labelCol"] = label_col
         train_time = self._fit(df_train, **kwargs)
         return train_time
 
@@ -505,8 +510,6 @@ class SparkEstimator(BaseEstimator):
 
 class SparkLGBMEstimator(SparkEstimator):
     """The class for fine-tuning spark version lightgbm models, using SynapseML API."""
-
-    """The class for tuning LGBM, using sklearn API."""
 
     ITER_HP = "numIterations"
     DEFAULT_ITER = 100
@@ -614,7 +617,7 @@ class SparkLGBMEstimator(SparkEstimator):
         start_time = time.time()
         if self.model_n_classes_ is None and self._task not in ["regression", "rank"]:
             self.model_n_classes_, self.model_classes_ = len_labels(y_train, return_labels=True)
-        df_train = self._preprocess(X_train, y_train, index_col=index_col)
+        df_train, label_col = self._preprocess(X_train, y_train, index_col=index_col, return_label=True)
         # n_iter = self.params.get(self.ITER_HP, self.DEFAULT_ITER)
         # trained = False
         # mem0 = psutil.virtual_memory().available if psutil is not None else 1
@@ -673,6 +676,7 @@ class SparkLGBMEstimator(SparkEstimator):
         #         return time.time() - start_time
         #     # when not trained, train at least one iter
         #     self.params[self.ITER_HP] = max(max_iter, 1)
+        _kwargs["labelCol"] = label_col
         self._fit(df_train, **_kwargs)
         train_time = time.time() - start_time
         return train_time

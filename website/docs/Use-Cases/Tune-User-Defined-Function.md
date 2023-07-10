@@ -293,6 +293,8 @@ Related arguments:
 - `use_spark`: A boolean of whether to use spark as the backend.
 - `resources_per_trial`: A dictionary of the hardware resources to allocate per trial, e.g., `{'cpu': 1}`. Only valid when using ray backend.
 
+Details about parallel tuning with Spark could be found [here](../Examples/Integrate%20-%20Spark#parallel-spark-jobs).
+
 
 You can perform parallel tuning by specifying `use_ray=True` (requiring flaml[ray] option installed) or `use_spark=True`
 (requiring flaml[spark] option installed). You can also limit the amount of resources allocated per trial by specifying `resources_per_trial`,
