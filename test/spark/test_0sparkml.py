@@ -165,7 +165,6 @@ def test_spark_input_df():
     automl.fit(
         dataframe=df,
         label="Bankrupt?",
-        labelCol="Bankrupt?",
         isUnbalance=True,
         **settings,
     )
@@ -196,7 +195,6 @@ def test_spark_input_df():
         automl.fit(
             dataframe=df,
             label="Bankrupt?",
-            labelCol="Bankrupt?",
             isUnbalance=True,
             **settings,
         )
