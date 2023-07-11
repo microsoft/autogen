@@ -487,4 +487,4 @@ $RECYCLE.BIN/
 elsa.sqlite.*
 
 # env files
-#.env
+.env
