@@ -484,5 +484,4 @@ $RECYCLE.BIN/
 *.swp
 
 # SQLite workflows DB
-elsa.sqlite.db
-elsa.dqlite.db*
+elsa.sqlite.*
