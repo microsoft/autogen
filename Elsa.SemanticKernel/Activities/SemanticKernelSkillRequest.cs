@@ -19,20 +19,20 @@ using skills;
 /// <summary>
 /// Invoke a Semantic Kernel skill.
 /// </summary>
-[Activity("Elsa", "SemanticKernelSkill", "Invoke a Semantic Kernel skill. ", DisplayName = "Semantic Kernel Skill", Kind = ActivityKind.Task)]
+[Activity("Elsa", "AI Chat", "Invoke a Semantic Kernel skill. ", DisplayName = "Semantic Kernel Skill", Kind = ActivityKind.Task)]
 [PublicAPI]
 public class SemanticKernelSkill : CodeActivity<string>
 {
     [Input(
-    Description = "System Prompt.",
-    UIHint = InputUIHints.MultiText,
-    DefaultValue = new string[0])]
-    public Input<string> SystemPrompt { get; set; } = default!;
+    Description = "System Prompt",
+    UIHint = InputUIHints.MultiLine,
+    DefaultValue = PromptDefaults.SystemPrompt)]
+    public Input<string> SysPrompt { get; set; } = default!;
 
     [Input(
-    Description = "User Input Prompt.",
-    UIHint = InputUIHints.MultiText,
-    DefaultValue = new string[0])]
+    Description = "User Input Prompt",
+    UIHint = InputUIHints.MultiLine,
+    DefaultValue = PromptDefaults.UserPrompt)]
     public Input<string> Prompt { get; set; }
 
     [Input(
@@ -44,13 +44,13 @@ public class SemanticKernelSkill : CodeActivity<string>
     [Input(
     Description = "The skill to invoke from the semantic kernel",
     UIHint = InputUIHints.SingleLine,
-    DefaultValue = "PM")]
+    DefaultValue = "Chat")]
     public Input<string> SkillName { get; set; }
 
     [Input(
     Description = "The function to invoke from the skill",
     UIHint = InputUIHints.SingleLine,
-    DefaultValue = "README")]
+    DefaultValue = "ChatCompletion")]
     public Input<string> FunctionName { get; set; }
 
     /// <inheritdoc />
@@ -58,7 +58,7 @@ public class SemanticKernelSkill : CodeActivity<string>
     {
         var skillName = SkillName.Get(context);
         var functionName = FunctionName.Get(context);
-        var systemPrompt = SystemPrompt.Get(context);
+        var systemPrompt = SysPrompt.Get(context);
         var prompt = Prompt.Get(context);
         var maxRetries = MaxRetries.Get(context);
         var result = await ChatCompletion<string>(skillName, functionName, prompt, maxRetries);
@@ -114,6 +114,8 @@ public class SemanticKernelSkill : CodeActivity<string>
 
         var answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
         var result = typeof(T) != typeof(string) ? JsonSerializer.Deserialize<T>(answer.ToString()) : (T)(object)answer.ToString();
+        //debug output to console
+        Console.WriteLine($"Skill: {skillName} Function: {functionName} Prompt: {prompt} Answer: {result}");
         return result;
     }
 }

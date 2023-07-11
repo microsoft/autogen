@@ -14,6 +14,7 @@ public class SemanticFunctionConfig
     public static SemanticFunctionConfig ForSkillAndFunction(string skillName, string functionName) => 
     (skillName, functionName) switch
     {
+        (nameof(Chat), nameof(Chat.ChatCompletion)) => Chat.ChatCompletion,
         (nameof(PM), nameof(PM.BootstrapProject)) => PM.BootstrapProject,
         (nameof(PM), nameof(PM.Readme)) => PM.Readme,
         (nameof(DevLead), nameof(DevLead.Plan)) => DevLead.Plan,
