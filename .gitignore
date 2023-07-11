@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # SQLite workflows DB
 elsa.sqlite.*
+
+# env files
+#.env
