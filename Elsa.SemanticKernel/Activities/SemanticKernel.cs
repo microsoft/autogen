@@ -54,19 +54,14 @@ public class SemanticKernelSkill : CodeActivity<string>
     public Input<string> FunctionName { get; set; }
 
     /// <inheritdoc />
-    protected override async ValueTask ExecuteAsync(ActivityExecutionContext context)
+    protected override async ValueTask ExecuteAsync(ActivityExecutionContext workflowContext)
     {
-        var skillName = SkillName.Get(context);
-        var functionName = FunctionName.Get(context);
-        var systemPrompt = SysPrompt.Get(context);
-        var prompt = Prompt.Get(context);
-        var maxRetries = MaxRetries.Get(context);
-        var result = await ChatCompletion<string>(skillName, functionName, prompt, maxRetries);
-        context.SetResult(result);
-    }
-
-    private async Task<T> ChatCompletion<T>(string skillName, string functionName, string prompt, int maxRetries)
-    {
+        var test = SkillName.Get(workflowContext);
+        var skillName = SkillName.Get(workflowContext);
+        var functionName = FunctionName.Get(workflowContext);
+        var systemPrompt = SysPrompt.Get(workflowContext);
+        var maxRetries = MaxRetries.Get(workflowContext);
+        var prompt = Prompt.Get(workflowContext);
         var kernelSettings = KernelSettings.LoadSettings();
         var kernelConfig = new KernelConfig();
 
@@ -113,9 +108,8 @@ public class SemanticKernelSkill : CodeActivity<string>
         //context.Set("wafContext", wafContext);
 
         var answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
-        var result = typeof(T) != typeof(string) ? JsonSerializer.Deserialize<T>(answer.ToString()) : (T)(object)answer.ToString();
         //debug output to console
-        Console.WriteLine($"Skill: {skillName} Function: {functionName} Prompt: {prompt} Answer: {result}");
-        return result;
+        Console.WriteLine($"Skill: {skillName} Function: {functionName} Prompt: {prompt} Answer: {answer}");
+        workflowContext.SetResult(answer);
     }
 }
