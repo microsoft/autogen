@@ -1,6 +1,7 @@
 using Elsa.EntityFrameworkCore.Extensions;
 using Elsa.EntityFrameworkCore.Modules.Management;
 using Elsa.Extensions;
+using Elsa.Workflows.Core.Models;
 using Elsa.Identity.Features;
 using Elsa.SemanticKernel;
 
