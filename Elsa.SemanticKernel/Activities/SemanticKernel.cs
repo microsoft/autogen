@@ -107,9 +107,11 @@ public class SemanticKernelSkill : CodeActivity<string>
         context.Set("input", prompt);
         //context.Set("wafContext", wafContext);
 
-        var answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
+        SKContext answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
+        string result = answer.Result;
+
         //debug output to console
-        Console.WriteLine($"Skill: {skillName} Function: {functionName} Prompt: {prompt} Answer: {answer}");
-        workflowContext.SetResult(answer);
+        Console.WriteLine($"Skill: {skillName}\nFunction: {functionName}\nPrompt: {prompt}Answer: {result}");
+        workflowContext.SetResult(result);
     }
 }
