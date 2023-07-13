@@ -1785,6 +1785,7 @@ class AutoML(BaseEstimator):
         else:
             error_metric = "customized metric"
         logger.info(f"Minimizing error metric: {error_metric}")
+        self._state.error_metric = error_metric
 
         is_spark_dataframe = isinstance(X_train, psDataFrame) or isinstance(dataframe, psDataFrame)
         estimator_list = task.default_estimator_list(estimator_list, is_spark_dataframe)
@@ -2159,6 +2160,14 @@ class AutoML(BaseEstimator):
                 mlflow.log_metric("best_validation_loss", search_state.best_loss)
                 mlflow.log_param("best_config", search_state.best_config)
                 mlflow.log_param("best_learner", self._best_estimator)
+                mlflow.log_metric(
+                    self._state.metric if isinstance(self._state.metric, str) else self._state.error_metric,
+                    1 - search_state.val_loss
+                    if self._state.error_metric.startswith("1-")
+                    else -search_state.val_loss
+                    if self._state.error_metric.startswith("-")
+                    else search_state.val_loss,
+                )
 
     def _search_sequential(self):
         try:
