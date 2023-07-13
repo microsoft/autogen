@@ -53,6 +53,12 @@ public class SemanticKernelSkill : CodeActivity<string>
     DefaultValue = "ChatCompletion")]
     public Input<string> FunctionName { get; set; }
 
+/*     [Input(
+        Description = "Mockup - don't actually call the AI, just output the prompts",
+        UIHint = InputUIHints.Checkbox,
+        DefaultValue = false)]
+    public Input<bool> Mockup { get; set; } */
+
     /// <inheritdoc />
     protected override async ValueTask ExecuteAsync(ActivityExecutionContext workflowContext)
     {
@@ -62,56 +68,68 @@ public class SemanticKernelSkill : CodeActivity<string>
         var systemPrompt = SysPrompt.Get(workflowContext);
         var maxRetries = MaxRetries.Get(workflowContext);
         var prompt = Prompt.Get(workflowContext);
-        var kernelSettings = KernelSettings.LoadSettings();
-        var kernelConfig = new KernelConfig();
+        //var mockup = Mockup.Get(workflowContext);
+        var mockup = false;
 
-        using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+        string info = ($"#################\nSkill: {skillName}\nFunction: {functionName}\nPrompt: {prompt}\n#################\n\n");
+
+        if (mockup)
         {
-            builder
-    .SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning);
-        });
-        /* var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient("http://qdrant", 1536, port: 6333));
-        var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
-        var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
- */
-        var kernel = new KernelBuilder()
-        .WithLogger(loggerFactory.CreateLogger<IKernel>())
-        .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
-        //.WithMemory(semanticTextMemory)
-        .WithConfiguration(kernelConfig)
-        .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
+            workflowContext.SetResult(info);
+        }
+        else
         {
-            MaxRetryCount = maxRetries,
-            UseExponentialBackoff = true,
-            // MinRetryDelay = TimeSpan.FromSeconds(2),
-            // MaxRetryDelay = TimeSpan.FromSeconds(8),
-            MaxTotalRetryTime = TimeSpan.FromSeconds(300),
-            // RetryableStatusCodes = new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.RequestTimeout },
-            // RetryableExceptions = new[] { typeof(HttpRequestException) }
-        }))
-        .Build();
+            var kernelSettings = KernelSettings.LoadSettings();
+            var kernelConfig = new KernelConfig();
 
-/*         var interestingMemories = kernel.Memory.SearchAsync("ImportedMemories", prompt, 2);
-        var wafContext = "Consider the following contextual snippets:";
-        await foreach (var memory in interestingMemories)
-        {
-            wafContext += $"\n {memory.Metadata.Text}";
-        } */
+            using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+        .SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning);
+            });
+            /* var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient("http://qdrant", 1536, port: 6333));
+            var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
+            var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
+     */
+            var kernel = new KernelBuilder()
+            .WithLogger(loggerFactory.CreateLogger<IKernel>())
+            .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
+            //.WithMemory(semanticTextMemory)
+            .WithConfiguration(kernelConfig)
+            .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
+            {
+                MaxRetryCount = maxRetries,
+                UseExponentialBackoff = true,
+                // MinRetryDelay = TimeSpan.FromSeconds(2),
+                // MaxRetryDelay = TimeSpan.FromSeconds(8),
+                MaxTotalRetryTime = TimeSpan.FromSeconds(300),
+                // RetryableStatusCodes = new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.RequestTimeout },
+                // RetryableExceptions = new[] { typeof(HttpRequestException) }
+            }))
+            .Build();
 
-        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
-        var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-        skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-        skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
+            /*         var interestingMemories = kernel.Memory.SearchAsync("ImportedMemories", prompt, 2);
+                    var wafContext = "Consider the following contextual snippets:";
+                    await foreach (var memory in interestingMemories)
+                    {
+                        wafContext += $"\n {memory.Metadata.Text}";
+                    } */
 
-        var context = new ContextVariables();
-        context.Set("input", prompt);
-        //context.Set("wafContext", wafContext);
+            var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
+            var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
+            skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
+            skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
 
-        SKContext answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
-        string result = answer.Result;
+            var context = new ContextVariables();
+            context.Set("input", prompt);
+            //context.Set("wafContext", wafContext);
 
-        //debug output to console
-        Console.WriteLine($"Skill: {skillName}\nFunction: {functionName}\nPrompt: {prompt}Answer: {result}");
-        workflowContext.SetResult(result);
+            SKContext answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
+            string result = answer.Result;
+
+            Console.WriteLine(info);
+
+            workflowContext.SetResult(result);
+        }
     }
 }
