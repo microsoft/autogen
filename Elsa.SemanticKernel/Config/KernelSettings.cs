@@ -46,7 +46,7 @@ internal class KernelSettings
                 return FromFile(DefaultConfigFile);
             }
 
-            Console.WriteLine($"Semantic kernel settings '{DefaultConfigFile}' not found, attempting to load configuration from user secrets.");
+            Console.Debug.WriteLine($"Semantic kernel settings '{DefaultConfigFile}' not found, attempting to load configuration from user secrets.");
 
             return FromUserSecrets();
         }
