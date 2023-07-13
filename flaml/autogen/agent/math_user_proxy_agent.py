@@ -314,6 +314,9 @@ class MathUserProxyAgent(UserProxyAgent):
                     output, is_success = self._execute_one_python_code(code)
                 elif lang == "wolfram":
                     output, is_success = self._execute_one_wolfram_query(code)
+                else:
+                    output = "Error: Unknown language."
+                    is_success = False
 
                 reply += output + "\n"
                 if not is_success:
