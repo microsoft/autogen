@@ -214,7 +214,7 @@ def test_humaneval(num_samples=1):
         mode="max",
         eval_func=eval_with_generated_assertions,
         n=1,
-        model="gpt-3.5-turbo",
+        model="text-davinci-003",
         prompt="{definition}",
     )
     responses = oai.Completion.create(context=test_data[0], **config)
@@ -313,7 +313,7 @@ def test_math(num_samples=-1):
 
     oai.ChatCompletion.set_cache(seed)
     vanilla_config = {
-        "model": "gpt-3.5-turbo",
+        "model": "text-davinci-003",
         "temperature": 1,
         "max_tokens": 2048,
         "n": 1,
