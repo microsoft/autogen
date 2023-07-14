@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System;
 
-
 internal class KernelSettings
 {
     public const string DefaultConfigFile = "config/appsettings.json";
@@ -46,7 +45,7 @@ internal class KernelSettings
                 return FromFile(DefaultConfigFile);
             }
 
-            Console.Debug.WriteLine($"Semantic kernel settings '{DefaultConfigFile}' not found, attempting to load configuration from user secrets.");
+            Console.WriteLine($"Semantic kernel settings '{DefaultConfigFile}' not found, attempting to load configuration from user secrets.");
 
             return FromUserSecrets();
         }
