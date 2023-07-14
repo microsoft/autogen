@@ -19,11 +19,12 @@ def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=Fals
     from nbconvert.preprocessors import CellExecutionError
 
     try:
-        file_path = os.path.join(here, os.pardir, os.pardir, os.pardir, "notebook", input_nb)
+        nb_loc = os.path.join(here, os.pardir, os.pardir, "notebook")
+        file_path = os.path.join(nb_loc, input_nb)
         with open(file_path) as nb_file:
             nb = nbformat.read(nb_file, as_version=4)
         preprocessor = ExecutePreprocessor(timeout=4800, kernel_name="python3")
-        preprocessor.preprocess(nb, {"metadata": {"path": here}})
+        preprocessor.preprocess(nb, {"metadata": {"path": nb_loc}})
 
         output_file_name = "executed_openai_notebook_output.txt"
         output_file = os.path.join(here, output_file_name)
@@ -84,7 +85,8 @@ def test_autogen_chatgpt_gpt4(save=False):
 
 
 if __name__ == "__main__":
-    test_autogen_chatgpt_gpt4(save=True)
-    test_autogen_openai_completion(save=True)
-    test_autogen_agent_MathChat(save=True)
-    test_autogen_agent_function_call(save=True)
+    test_autogen_agent_auto_feedback_from_code(save=True)
+    # test_autogen_chatgpt_gpt4(save=True)
+    # test_autogen_openai_completion(save=True)
+    # test_autogen_agent_MathChat(save=True)
+    # test_autogen_agent_function_call(save=True)

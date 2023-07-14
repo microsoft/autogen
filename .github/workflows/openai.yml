@@ -56,9 +56,9 @@ jobs:
           WOLFRAM_ALPHA_APPID: ${{ secrets.WOLFRAM_ALPHA_APPID }}
         run: |
           pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/autogen/oai/test_notebook.py
+          coverage run -a -m pytest test/autogen/test_notebook.py
           coverage xml
-          cat "$(pwd)/test/autogen/oai/executed_openai_notebook_output.txt"
+          cat "$(pwd)/test/autogen/executed_openai_notebook_output.txt"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

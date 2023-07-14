@@ -107,7 +107,7 @@ def config_list_openai_aoai(
             # Assuming Azure OpenAI api bases in os.environ["AZURE_OPENAI_API_BASE"], in separated lines
             api_bases=os.environ.get("AZURE_OPENAI_API_BASE", "").split("\n"),
             api_type="azure",
-            api_version="2023-03-15-preview",  # change if necessary
+            api_version="2023-06-01-preview",  # change if necessary
         )
         if exclude != "aoai"
         else []
