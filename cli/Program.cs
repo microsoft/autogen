@@ -7,7 +7,8 @@ using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.Reliability;
-using skills;
+using Microsoft.SKDevTeam;
+
 
 class Program
 {
@@ -34,7 +35,7 @@ class Program
 
         var pmCommand = new Command("pm", "Commands for the PM team");
         var pmReadmeCommand = new Command("readme", "Produce a Readme for a given input");
-        pmReadmeCommand.SetHandler(async (file, maxRetry) => await CallWithFile<string>(nameof(PM), PM.Readme , file.FullName, maxRetry), fileOption, maxRetryOption);
+        pmReadmeCommand.SetHandler(async (file, maxRetry) => await CallWithFile<string>(nameof(PM), PM.Readme, file.FullName, maxRetry), fileOption, maxRetryOption);
 
         var pmBootstrapCommand = new Command("bootstrap", "Bootstrap a project for a given input");
         pmBootstrapCommand.SetHandler(async (file, maxRetry) => await CallWithFile<string>(nameof(PM), PM.BootstrapProject, file.FullName, maxRetry), fileOption, maxRetryOption);
@@ -51,7 +52,7 @@ class Program
         var devPlanCommand = new Command("plan", "Implement the module for a given input");
         devPlanCommand.SetHandler(async (file, maxRetry) => await CallWithFile<string>(nameof(Developer), Developer.Implement, file.FullName, maxRetry), fileOption, maxRetryOption);
         devCommand.AddCommand(devPlanCommand);
-       
+
         rootCommand.AddCommand(pmCommand);
         rootCommand.AddCommand(devleadCommand);
         rootCommand.AddCommand(devCommand);
@@ -67,7 +68,7 @@ class Program
 
         Console.WriteLine($"Using output directory: {outputPath}");
 
-        var readme = await CallWithFile<string>(nameof(PM), PM.Readme , file, maxRetry);
+        var readme = await CallWithFile<string>(nameof(PM), PM.Readme, file, maxRetry);
         string readmeFile = Path.Combine(outputPath.FullName, "README.md");
         await SaveToFile(readmeFile, readme);
         Console.WriteLine($"Saved README to {readmeFile}");
@@ -83,12 +84,13 @@ class Program
 
         var implementationTasks = plan.steps.SelectMany(
             (step) => step.subtasks.Select(
-                async (subtask) => {
+                async (subtask) =>
+                {
                     Console.WriteLine($"Implementing {step.step}-{subtask.subtask}");
                     var implementationResult = string.Empty;
                     while (true)
                     {
-                        try 
+                        try
                         {
                             implementationResult = await CallFunction<string>(nameof(Developer), Developer.Implement, subtask.LLM_prompt, maxRetry);
                             break;
@@ -105,7 +107,8 @@ class Program
                     }
                     await sandboxSkill.RunInDotnetAlpineAsync(implementationResult);
                     await SaveToFile(Path.Combine(outputPath.FullName, $"{step.step}-{subtask.subtask}.sh"), implementationResult);
-                    return implementationResult; }));
+                    return implementationResult;
+                }));
         await Task.WhenAll(implementationTasks);
     }
 
@@ -115,8 +118,8 @@ class Program
     }
 
     public static async Task<T> CallWithFile<T>(string skillName, string functionName, string filePath, int maxRetry)
-    { 
-        if(!File.Exists(filePath))
+    {
+        if (!File.Exists(filePath))
             throw new FileNotFoundException($"File not found: {filePath}", filePath);
         var input = File.ReadAllText(filePath);
         return await CallFunction<T>(skillName, functionName, input, maxRetry);
@@ -173,10 +176,11 @@ class Program
         var answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
         var result = typeof(T) != typeof(string) ? JsonSerializer.Deserialize<T>(answer.ToString()) : (T)(object)answer.ToString();
         //Console.WriteLine(answer);
+
         return result;
     }
 }
 
 public static class PM { public static string Readme = "Readme"; public static string BootstrapProject = "BootstrapProject"; }
-public static class DevLead { public static string Plan="Plan"; }
-public static class Developer { public static string Implement="Implement"; public static string Improve="Improve";}
+public static class DevLead { public static string Plan = "Plan"; }
+public static class Developer { public static string Implement = "Implement"; public static string Improve = "Improve"; }

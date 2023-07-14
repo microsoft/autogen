@@ -1,4 +1,4 @@
-namespace skills;
+namespace Microsoft.SKDevTeam;
 public static class PM
 {
    public static SemanticFunctionConfig BootstrapProject = new SemanticFunctionConfig

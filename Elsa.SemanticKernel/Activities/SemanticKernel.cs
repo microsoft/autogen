@@ -10,11 +10,21 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Microsoft.SemanticKernel.Reliability;
-namespace Elsa.SemanticKernel;
+using Microsoft.SemanticKernel.SkillDefinition;
+using Microsoft.SKDevTeam;
+
 using System;
-using System.Text.Json;
+using System.Text;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
-using skills;
+
+
+namespace Elsa.SemanticKernel;
 
 /// <summary>
 /// Invoke a Semantic Kernel skill.
@@ -53,11 +63,11 @@ public class SemanticKernelSkill : CodeActivity<string>
     DefaultValue = "ChatCompletion")]
     public Input<string> FunctionName { get; set; }
 
-/*     [Input(
-        Description = "Mockup - don't actually call the AI, just output the prompts",
-        UIHint = InputUIHints.Checkbox,
-        DefaultValue = false)]
-    public Input<bool> Mockup { get; set; } */
+    /*     [Input(
+            Description = "Mockup - don't actually call the AI, just output the prompts",
+            UIHint = InputUIHints.Checkbox,
+            DefaultValue = false)]
+        public Input<bool> Mockup { get; set; } */
 
     /// <inheritdoc />
     protected override async ValueTask ExecuteAsync(ActivityExecutionContext workflowContext)
@@ -116,20 +126,95 @@ public class SemanticKernelSkill : CodeActivity<string>
                     } */
 
             var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
-            var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-            skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-            skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
 
-            var context = new ContextVariables();
-            context.Set("input", prompt);
+
+            /*             var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
+                        skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
+                        skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty); */
+
+            var contextVars = new ContextVariables();
+            contextVars.Set("input", prompt);
+            SKContext context = kernel.CreateNewContext();
+
+            var theSkills = LoadSkillsFromAssemblyAsync("skills", kernel);
+            var functionsAvailable = context.Skills.GetFunctionsView();
+
+            var list = new StringBuilder();
+            foreach (KeyValuePair<string, List<FunctionView>> skill in functionsAvailable.SemanticFunctions)
+            {
+                Console.WriteLine($"Skill: {skill.Key}");
+                foreach (FunctionView func in skill.Value)
+                {
+                    // Function description
+                    if (func.Description != null)
+                    {
+                        list.AppendLine($"// {func.Description}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0}.{1} is missing a description", func.SkillName, func.Name);
+                        list.AppendLine($"// Function {func.SkillName}.{func.Name}.");
+                    }
+
+                    // Function name
+                    list.AppendLine($"{func.SkillName}.{func.Name}");
+
+                    // Function parameters
+                    foreach (var p in func.Parameters)
+                    {
+                        var description = string.IsNullOrEmpty(p.Description) ? p.Name : p.Description;
+                        var defaultValueString = string.IsNullOrEmpty(p.DefaultValue) ? string.Empty : $" (default value: {p.DefaultValue})";
+                        list.AppendLine($"Parameter \"{p.Name}\": {description} {defaultValueString}");
+                    }
+                }
+            }
+
+            Console.WriteLine($"List of all skills ----- {list.ToString()}");
+
             //context.Set("wafContext", wafContext);
 
-            SKContext answer = await kernel.RunAsync(context, function).ConfigureAwait(false);
+            SKContext answer = await kernel.RunAsync(contextVars, function).ConfigureAwait(false);
             string result = answer.Result;
-
-            Console.WriteLine(info);
-
+            
             workflowContext.SetResult(result);
         }
+    }
+    ///<summary>
+    /// Gets a list of the skills in the assembly
+    ///</summary>
+    private IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, IKernel kernel)
+    {
+        var skills = new List<string>();
+        var assembly = Assembly.Load(assemblyName);
+        Type[] skillTypes = assembly.GetTypes().ToArray();
+        foreach (Type skillType in skillTypes)
+        {
+            if (skillType.Namespace.Equals("Microsoft.SKDevTeam"))
+            {
+                skills.Add(skillType.Name);
+                var functions = skillType.GetFields();
+                foreach (var function in functions)
+                {
+                    string field = function.FieldType.ToString();
+                    if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
+                    {
+                        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillType.Name, function.Name);
+                        var skfunc = kernel.CreateSemanticFunction(
+                            skillConfig.PromptTemplate,
+                            skillConfig.Name,
+                            skillConfig.SkillName,
+                            skillConfig.Description,
+                            skillConfig.MaxTokens,
+                            skillConfig.Temperature,
+                            skillConfig.TopP,
+                            skillConfig.PPenalty,
+                            skillConfig.FPenalty);
+
+                        Console.WriteLine($"SK Added function: {skfunc.SkillName}.{skfunc.Name}");
+                    }
+                }
+            }
+        }
+        return skills;
     }
 }

@@ -488,3 +488,6 @@ elsa.sqlite.*
 
 # env files
 .env
+
+# ignore local elsa-core src
+elsa-core/

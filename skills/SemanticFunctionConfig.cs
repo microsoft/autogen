@@ -1,4 +1,4 @@
-namespace skills;
+namespace Microsoft.SKDevTeam;
 
 public class SemanticFunctionConfig
 {

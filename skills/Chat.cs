@@ -1,4 +1,4 @@
-namespace skills;
+namespace Microsoft.SKDevTeam;
 public static class Chat
 {
    public static SemanticFunctionConfig ChatCompletion = new SemanticFunctionConfig
