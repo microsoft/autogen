@@ -4,13 +4,30 @@
 This is a nascent project - we will use the README to describe the project's intent - as we build it out we will document what exists and eventually move roadmap/intent to the discussion. 
 
 ## Trying it out
-Currently the project can take as input a brief description of a desired application, and as output can create the project files for that application, using a PM skill, a Dev Lead Planning Skill, and a Developer Skill. 
+## Via Workflows
+The project supports running Semantic Kernel Skills as workflows using [Elsa Workflows](https://v3.elsaworkflows.io).  You can build the workflows as .NET code or in the visual designer.
+To run the designer:
+```
+> cd WorkflowsApp
+> cp .env_example .env
+# Edit the .env file to choose your AI model, add your API Endpoint, and secrets.
+> bash .env
+> dotnet build
+> dotnet run
+# Open browser to the URI in the console output
+```
 
-The easiest way to run the project is in Codespaces. Codespaces will start a qdrant instance for you, and will inject all the necessary secrets into environment variables. 
+Once you have the app runing locally, you can login (admin/password - see the [Elsa Workflows](https://v3.elsaworkflows.io) for info about securing). Then you can click "new workflow" to begin building your workflow with semantic kernel skills. 
+
+## Via CLI
+The easiest way to run the project is in Codespaces. Codespaces will start a qdrant instance for you.
 1. Create a new codespace from the *code* button on the main branch.
 2. Once the code space setup is finished, from the terminal:
 ```
 > cd cli
+cli> cp ../WorkflowsApp/.env_example . 
+# Edit the .env file to choose your AI model, add your API Endpoint, and secrets.
+cli> bash .env
 cli> dotnet build
 cli> dotnet run --file util/ToDoListSamplePrompt.txt do it
 ```
