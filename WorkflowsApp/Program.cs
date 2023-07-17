@@ -1,5 +1,6 @@
 using Elsa.EntityFrameworkCore.Extensions;
 using Elsa.EntityFrameworkCore.Modules.Management;
+using Elsa.EntityFrameworkCore.Modules.Runtime;
 using Elsa.Extensions;
 using Elsa.Workflows.Core.Models;
 using Elsa.Identity.Features;
@@ -12,6 +13,8 @@ builder.Services.AddElsa(elsa =>
 {
     // Configure management feature to use EF Core.
     elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
+
+    elsa.UseWorkflowRuntime(runtime =>runtime.UseEntityFrameworkCore());
     
     // Expose API endpoints.
     elsa.UseWorkflowsApi();
@@ -33,6 +36,9 @@ builder.Services.AddElsa(elsa =>
     elsa.AddActivity<SemanticKernelSkill>();
 
 });
+
+// Add dynamic Activity Provider for SK skills.
+builder.Services.AddActivityProvider<SemanticKernelActivityProvider>();
 
 // Add Razor pages.
 builder.Services.AddRazorPages();

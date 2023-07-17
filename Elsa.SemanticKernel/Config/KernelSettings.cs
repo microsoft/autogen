@@ -9,6 +9,7 @@ internal class KernelSettings
     public const string DefaultConfigFile = "config/appsettings.json";
     public const string OpenAI = "OPENAI";
     public const string AzureOpenAI = "AZUREOPENAI";
+    public const int DefaultMaxRetries = 9;
 
     [JsonPropertyName("serviceType")]
     public string ServiceType { get; set; } = string.Empty;

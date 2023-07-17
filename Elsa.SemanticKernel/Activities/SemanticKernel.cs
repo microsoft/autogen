@@ -33,12 +33,6 @@ namespace Elsa.SemanticKernel;
 [PublicAPI]
 public class SemanticKernelSkill : CodeActivity<string>
 {
-    //constructor - called by the workflow engine
-    public SemanticKernelSkill(string? source = default, int? line = default) : base(source, line)
-    {
-
-    }
-
     [Input(
     Description = "System Prompt",
     UIHint = InputUIHints.MultiLine,
@@ -54,7 +48,7 @@ public class SemanticKernelSkill : CodeActivity<string>
     [Input(
     Description = "Max retries",
     UIHint = InputUIHints.SingleLine,
-    DefaultValue = 9)]
+    DefaultValue = KernelSettings.DefaultMaxRetries)]
     public Input<int> MaxRetries { get; set; }
 
     [Input(
@@ -98,6 +92,17 @@ public class SemanticKernelSkill : CodeActivity<string>
             // get the kernel
             var kernel = KernelBuilder();
 
+            // load the skill
+            var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
+
+            var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
+                        skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
+                        skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
+
+            // set the context (our prompt)
+            var contextVars = new ContextVariables();
+            contextVars.Set("input", prompt);
+
             /*         var interestingMemories = kernel.Memory.SearchAsync("ImportedMemories", prompt, 2);
                     var wafContext = "Consider the following contextual snippets:";
                     await foreach (var memory in interestingMemories)
@@ -105,59 +110,58 @@ public class SemanticKernelSkill : CodeActivity<string>
                         wafContext += $"\n {memory.Metadata.Text}";
                     } */
 
-            var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
-
-
-            /*             var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-                        skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-                        skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty); */
-
-            var contextVars = new ContextVariables();
-            contextVars.Set("input", prompt);
-            SKContext context = kernel.CreateNewContext();
-
-            var theSkills = LoadSkillsFromAssemblyAsync("skills", kernel);
-            var functionsAvailable = context.Skills.GetFunctionsView();
-
-            var list = new StringBuilder();
-            foreach (KeyValuePair<string, List<FunctionView>> skill in functionsAvailable.SemanticFunctions)
-            {
-                Console.WriteLine($"Skill: {skill.Key}");
-                foreach (FunctionView func in skill.Value)
-                {
-                    // Function description
-                    if (func.Description != null)
-                    {
-                        list.AppendLine($"// {func.Description}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("{0}.{1} is missing a description", func.SkillName, func.Name);
-                        list.AppendLine($"// Function {func.SkillName}.{func.Name}.");
-                    }
-
-                    // Function name
-                    list.AppendLine($"{func.SkillName}.{func.Name}");
-
-                    // Function parameters
-                    foreach (var p in func.Parameters)
-                    {
-                        var description = string.IsNullOrEmpty(p.Description) ? p.Name : p.Description;
-                        var defaultValueString = string.IsNullOrEmpty(p.DefaultValue) ? string.Empty : $" (default value: {p.DefaultValue})";
-                        list.AppendLine($"Parameter \"{p.Name}\": {description} {defaultValueString}");
-                    }
-                }
-            }
-
-            Console.WriteLine($"List of all skills ----- {list.ToString()}");
 
             //context.Set("wafContext", wafContext);
 
-            SKContext answer = await kernel.RunAsync(contextVars, functionName).ConfigureAwait(false);
+            SKContext answer = await kernel.RunAsync(contextVars, function).ConfigureAwait(false);
             string result = answer.Result;
 
             workflowContext.SetResult(result);
         }
+    }
+
+    /// <summary>
+    /// Load the skills into the kernel
+    /// </summary>
+    private string ListSkillsInKernel(IKernel kernel)
+    {
+
+        var theSkills = LoadSkillsFromAssemblyAsync("skills", kernel);
+        SKContext context = kernel.CreateNewContext();
+        var functionsAvailable = context.Skills.GetFunctionsView();
+
+        var list = new StringBuilder();
+        foreach (KeyValuePair<string, List<FunctionView>> skill in functionsAvailable.SemanticFunctions)
+        {
+            Console.WriteLine($"Skill: {skill.Key}");
+            foreach (FunctionView func in skill.Value)
+            {
+                // Function description
+                if (func.Description != null)
+                {
+                    list.AppendLine($"// {func.Description}");
+                }
+                else
+                {
+                    Console.WriteLine("{0}.{1} is missing a description", func.SkillName, func.Name);
+                    list.AppendLine($"// Function {func.SkillName}.{func.Name}.");
+                }
+
+                // Function name
+                list.AppendLine($"{func.SkillName}.{func.Name}");
+
+                // Function parameters
+                foreach (var p in func.Parameters)
+                {
+                    var description = string.IsNullOrEmpty(p.Description) ? p.Name : p.Description;
+                    var defaultValueString = string.IsNullOrEmpty(p.DefaultValue) ? string.Empty : $" (default value: {p.DefaultValue})";
+                    list.AppendLine($"Parameter \"{p.Name}\": {description} {defaultValueString}");
+                }
+            }
+        }
+
+        Console.WriteLine($"List of all skills ----- {list.ToString()}");
+        return list.ToString();
     }
 
     /// <summary>
@@ -187,7 +191,7 @@ public class SemanticKernelSkill : CodeActivity<string>
         .WithConfiguration(kernelConfig)
         .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
         {
-            MaxRetryCount = maxRetries,
+            MaxRetryCount = KernelSettings.DefaultMaxRetries,
             UseExponentialBackoff = true,
             // MinRetryDelay = TimeSpan.FromSeconds(2),
             // MaxRetryDelay = TimeSpan.FromSeconds(8),
