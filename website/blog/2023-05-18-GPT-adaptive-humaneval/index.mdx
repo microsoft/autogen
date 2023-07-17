@@ -10,7 +10,7 @@ tags: [LLM, GPT, research]
 * **A case study using the HumanEval benchmark shows that an adaptive way of using multiple GPT models can achieve both much higher accuracy (from 68% to 90%) and lower inference cost (by 18%) than using GPT-4 for coding.**
 
 
-GPT-4 is a big upgrade of foundation model capability, e.g., in code and math, accompanied by a much higher (more than 100x) price per token to use over GPT-3.5-Turbo. On a code completion benchmark, [HumanEval](https://huggingface.co/datasets/openai_humaneval), developed by OpenAI, GPT-4 can successfully solve 68% tasks while GPT-3.5-Turbo does 46%. It is possible to increase the success rate of GPT-4 further by generating multiple responses or making multiple calls. However, that will further increase the cost, which is already nearly 20 times of using GPT-3.5-Turbo and with more restricted API call rate limit. Can we achieve more with less?
+GPT-4 is a big upgrade of foundation model capability, e.g., in code and math, accompanied by a much higher (more than 10x) price per token to use over GPT-3.5-Turbo. On a code completion benchmark, [HumanEval](https://huggingface.co/datasets/openai_humaneval), developed by OpenAI, GPT-4 can successfully solve 68% tasks while GPT-3.5-Turbo does 46%. It is possible to increase the success rate of GPT-4 further by generating multiple responses or making multiple calls. However, that will further increase the cost, which is already nearly 20 times of using GPT-3.5-Turbo and with more restricted API call rate limit. Can we achieve more with less?
 
 In this blog post, we will explore a creative, adaptive way of using GPT models which leads to a big leap forward.
 
