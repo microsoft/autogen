@@ -6,7 +6,8 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Orchestration;
 using Models;
-using skills;
+using Microsoft.SKDevTeam;
+
 
 public class ExecuteFunctionEndpoint
 {
@@ -35,6 +36,10 @@ public class ExecuteFunctionEndpoint
         try
         {
             var functionRequest = await JsonSerializer.DeserializeAsync<ExecuteFunctionRequest>(requestData.Body, s_jsonOptions).ConfigureAwait(false);
+            if (functionRequest == null)
+            {
+                return await CreateResponseAsync(requestData, HttpStatusCode.BadRequest, new ErrorResponse() { Message = $"Invalid request body." }).ConfigureAwait(false);
+            }
 
             var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
             var function = _kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
