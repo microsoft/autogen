@@ -33,6 +33,12 @@ namespace Elsa.SemanticKernel;
 [PublicAPI]
 public class SemanticKernelSkill : CodeActivity<string>
 {
+    //constructor - called by the workflow engine
+    public SemanticKernelSkill(string? source = default, int? line = default) : base(source, line)
+    {
+
+    }
+
     [Input(
     Description = "System Prompt",
     UIHint = InputUIHints.MultiLine,
@@ -89,34 +95,8 @@ public class SemanticKernelSkill : CodeActivity<string>
         }
         else
         {
-            var kernelSettings = KernelSettings.LoadSettings();
-            var kernelConfig = new KernelConfig();
-
-            using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder
-        .SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning);
-            });
-            /* var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient("http://qdrant", 1536, port: 6333));
-            var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
-            var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
-     */
-            var kernel = new KernelBuilder()
-            .WithLogger(loggerFactory.CreateLogger<IKernel>())
-            .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
-            //.WithMemory(semanticTextMemory)
-            .WithConfiguration(kernelConfig)
-            .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
-            {
-                MaxRetryCount = maxRetries,
-                UseExponentialBackoff = true,
-                // MinRetryDelay = TimeSpan.FromSeconds(2),
-                // MaxRetryDelay = TimeSpan.FromSeconds(8),
-                MaxTotalRetryTime = TimeSpan.FromSeconds(300),
-                // RetryableStatusCodes = new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.RequestTimeout },
-                // RetryableExceptions = new[] { typeof(HttpRequestException) }
-            }))
-            .Build();
+            // get the kernel
+            var kernel = KernelBuilder();
 
             /*         var interestingMemories = kernel.Memory.SearchAsync("ImportedMemories", prompt, 2);
                     var wafContext = "Consider the following contextual snippets:";
@@ -173,12 +153,53 @@ public class SemanticKernelSkill : CodeActivity<string>
 
             //context.Set("wafContext", wafContext);
 
-            SKContext answer = await kernel.RunAsync(contextVars, function).ConfigureAwait(false);
+            SKContext answer = await kernel.RunAsync(contextVars, functionName).ConfigureAwait(false);
             string result = answer.Result;
-            
+
             workflowContext.SetResult(result);
         }
     }
+
+    /// <summary>
+    /// Gets a semantic kernel instance
+    /// </summary>
+    /// <returns>Microsoft.SemanticKernel.IKernel</returns>
+    private IKernel KernelBuilder()
+    {
+        var kernelSettings = KernelSettings.LoadSettings();
+        var kernelConfig = new KernelConfig();
+
+        using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning);
+        });
+
+        /* 
+        var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient("http://qdrant", 1536, port: 6333));
+        var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
+        var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
+        */
+
+        var kernel = new KernelBuilder()
+        .WithLogger(loggerFactory.CreateLogger<IKernel>())
+        .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
+        //.WithMemory(semanticTextMemory)
+        .WithConfiguration(kernelConfig)
+        .Configure(c => c.SetDefaultHttpRetryConfig(new HttpRetryConfig
+        {
+            MaxRetryCount = maxRetries,
+            UseExponentialBackoff = true,
+            // MinRetryDelay = TimeSpan.FromSeconds(2),
+            // MaxRetryDelay = TimeSpan.FromSeconds(8),
+            MaxTotalRetryTime = TimeSpan.FromSeconds(300),
+            // RetryableStatusCodes = new[] { HttpStatusCode.TooManyRequests, HttpStatusCode.RequestTimeout },
+            // RetryableExceptions = new[] { typeof(HttpRequestException) }
+        }))
+        .Build();
+
+        return kernel;
+    }
+
     ///<summary>
     /// Gets a list of the skills in the assembly
     ///</summary>
