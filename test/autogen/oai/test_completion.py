@@ -311,7 +311,7 @@ def test_math(num_samples=-1):
         % data["problem"]
     ]
 
-    oai.ChatCompletion.set_cache(seed)
+    oai.Completion.set_cache(seed)
     vanilla_config = {
         "model": "text-davinci-003",
         "temperature": 1,
@@ -321,8 +321,8 @@ def test_math(num_samples=-1):
         "stop": "###",
     }
     test_data_sample = test_data[0:3]
-    result = oai.ChatCompletion.test(test_data_sample, eval_math_responses, **vanilla_config)
-    result = oai.ChatCompletion.test(
+    result = oai.Completion.test(test_data_sample, eval_math_responses, **vanilla_config)
+    result = oai.Completion.test(
         test_data_sample,
         eval_math_responses,
         agg_method="median",
@@ -335,13 +335,13 @@ def test_math(num_samples=-1):
     def my_average(results):
         return np.mean(results)
 
-    result = oai.ChatCompletion.test(
+    result = oai.Completion.test(
         test_data_sample,
         eval_math_responses,
         agg_method=my_median,
         **vanilla_config,
     )
-    result = oai.ChatCompletion.test(
+    result = oai.Completion.test(
         test_data_sample,
         eval_math_responses,
         agg_method={
@@ -355,7 +355,7 @@ def test_math(num_samples=-1):
 
     print(result)
 
-    config, _ = oai.ChatCompletion.tune(
+    config, _ = oai.Completion.tune(
         data=tune_data,  # the data for tuning
         metric="expected_success",  # the metric to optimize
         mode="max",  # the optimization mode
@@ -368,7 +368,7 @@ def test_math(num_samples=-1):
         stop="###",  # the stop sequence
     )
     print("tuned config", config)
-    result = oai.ChatCompletion.test(test_data_sample, config_list=oai.config_list_openai_aoai(KEY_LOC), **config)
+    result = oai.Completion.test(test_data_sample, config_list=oai.config_list_openai_aoai(KEY_LOC), **config)
     print("result from tuned config:", result)
     print("empty responses", eval_math_responses([], None))
 

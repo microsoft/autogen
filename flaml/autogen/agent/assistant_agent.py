@@ -42,7 +42,7 @@ class AssistantAgent(Agent):
 
         super().receive(message, sender)
         responses = oai.ChatCompletion.create(messages=self._oai_conversations[sender.name], **self._config)
-        self._send(oai.ChatCompletion.extract_text_or_function_call(responses)[0], sender)
+        self.send(oai.ChatCompletion.extract_text_or_function_call(responses)[0], sender)
 
     def reset(self):
         self._sender_dict.clear()

@@ -64,24 +64,24 @@ def test_execute_one_python_code():
 
     # no output found 1
     code = "x=3"
-    assert mathproxyagent._execute_one_python_code(code)[0] == "No output found. Make sure you print the results."
+    assert mathproxyagent.execute_one_python_code(code)[0] == "No output found. Make sure you print the results."
 
     # no output found 2
     code = "if 4 > 5:\n\tprint('True')"
 
-    assert mathproxyagent._execute_one_python_code(code)[0] == "No output found."
+    assert mathproxyagent.execute_one_python_code(code)[0] == "No output found."
 
     # return error
     code = "2+'2'"
-    assert "Error:" in mathproxyagent._execute_one_python_code(code)[0]
+    assert "Error:" in mathproxyagent.execute_one_python_code(code)[0]
 
     # save previous status
-    mathproxyagent._execute_one_python_code("x=3\ny=x*2")
-    assert mathproxyagent._execute_one_python_code("print(y)")[0].strip() == "6"
+    mathproxyagent.execute_one_python_code("x=3\ny=x*2")
+    assert mathproxyagent.execute_one_python_code("print(y)")[0].strip() == "6"
 
     code = "print('*'*2001)"
     assert (
-        mathproxyagent._execute_one_python_code(code)[0]
+        mathproxyagent.execute_one_python_code(code)[0]
         == "Your requested query response is too long. You might have made a mistake. Please revise your reasoning and query."
     )
 
@@ -91,7 +91,7 @@ def test_execute_one_wolfram_query():
     code = "2x=3"
 
     try:
-        mathproxyagent._execute_one_wolfram_query(code)[0]
+        mathproxyagent.execute_one_wolfram_query(code)[0]
     except ValueError:
         print("Wolfrma API key not found. Skip test.")
 

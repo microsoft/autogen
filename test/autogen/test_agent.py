@@ -19,8 +19,8 @@ def test_agent():
         dummy_agent_1._oai_conversations["dummy_agent_2"]
     ), "When the message is not an valid openai message, it should not be appended to the oai conversation."
 
-    dummy_agent_1._send("hello", dummy_agent_2)  # send a str
-    dummy_agent_1._send(
+    dummy_agent_1.send("hello", dummy_agent_2)  # send a str
+    dummy_agent_1.send(
         {
             "content": "hello",
         },
@@ -29,7 +29,7 @@ def test_agent():
 
     # receive dict with no openai fields
     pre_len = len(dummy_agent_1._oai_conversations["dummy_agent_2"])
-    dummy_agent_1._send({"message": "hello"}, dummy_agent_2)  # send dict with wrong field
+    dummy_agent_1.send({"message": "hello"}, dummy_agent_2)  # send dict with wrong field
 
     assert pre_len == len(
         dummy_agent_1._oai_conversations["dummy_agent_2"]

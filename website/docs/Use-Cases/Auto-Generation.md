@@ -43,9 +43,9 @@ user_proxy = UserProxyAgent(
 )
 
 # the assistant receives a message from the user, which contains the task description
-assistant.receive(
+user.initiate_chat(
+    assistant,
     """What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
-    user_proxy,
 )
 ```
 In the example above, we create an AssistantAgent named "assistant" to serve as the assistant and a UserProxyAgent named "user_proxy" to serve as a proxy for the human user.
@@ -76,7 +76,7 @@ oai_config = {
     "functions": [
         {
             "name": "execute_code",
-            "description": "Receive a list of python code or shell script and return the execution result.",
+            "description": "Receive a python code or shell script and return the execution result.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -99,23 +99,26 @@ oai_config = {
 # create an AssistantAgent instance named "assistant"
 chatbot = AssistantAgent("assistant", config_list=config_list, **oai_config)
 
-# define your own function. Here we use a pre-defined '_execute_code' function from a UserProxyAgent instance
-# we define a wrapper function to call `exec_func`
-exec_func = UserProxyAgent(name="execute_code", work_dir="coding", use_docker=False)._execute_code
-def execute_code(code_type, code):
-    return exec_func([(code_type, code)])
-
-# create a UserProxyAgent instance named "user", the execute_code_function is passed
+# create a UserProxyAgent instance named "user"
 user = UserProxyAgent(
     "user",
     human_input_mode="NEVER",
-    function_map={"execute_code": execute_code},
+    work_dir="coding",
 )
 
+# define an `execute_code` function according to the function desription
+def execute_code(code_type, code):
+    # here we reuse the method in the user proxy agent
+    # in general, this is not necessary
+    return user.execute_code([(code_type, code)])
+
+# register the `execute_code` function
+user.register_function(function_map={"execute_code": execute_code})
+
 # start the conversation
-chatbot.receive(
+user.initiate_chat(
+    assistant,
     "Draw a rocket and save to a file named 'rocket.svg'",
-    user,
 )
 ```
 
