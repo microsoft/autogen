@@ -222,7 +222,7 @@ class MathUserProxyAgent(UserProxyAgent):
         self._previous_code = ""
         self.last_reply = None
 
-    def _execute_one_python_code(self, pycode):
+    def execute_one_python_code(self, pycode):
         """Execute python code blocks.
 
         Previous python code will be saved and executed together with the new code.
@@ -278,7 +278,7 @@ class MathUserProxyAgent(UserProxyAgent):
             self._previous_code = tmp
         return output, is_success
 
-    def _execute_one_wolfram_query(self, query: str):
+    def execute_one_wolfram_query(self, query: str):
         """
         Run one wolfram query and return the output.
         return:
@@ -302,7 +302,7 @@ class MathUserProxyAgent(UserProxyAgent):
             # no code block is found, lang should be `UNKNOWN``
             if default_reply == "":
                 default_reply = "Continue. Please keep solving the problem until you need to query. (If you get to the answer, put it in \\boxed{}.)"
-            self._send(default_reply, sender)
+            self.send(default_reply, sender)
         else:
             is_success, all_success = True, True
             reply = ""
@@ -311,9 +311,9 @@ class MathUserProxyAgent(UserProxyAgent):
                 if not lang:
                     lang = infer_lang(code)
                 if lang == "python":
-                    output, is_success = self._execute_one_python_code(code)
+                    output, is_success = self.execute_one_python_code(code)
                 elif lang == "wolfram":
-                    output, is_success = self._execute_one_wolfram_query(code)
+                    output, is_success = self.execute_one_wolfram_query(code)
                 else:
                     output = "Error: Unknown language."
                     is_success = False
@@ -338,7 +338,7 @@ class MathUserProxyAgent(UserProxyAgent):
                     self._accum_invalid_q_per_step = 0
                     reply = "Please revisit the problem statement and your reasoning. If you think this step is correct, solve it yourself and continue the next step. Otherwise, correct this step."
 
-            self._send(reply, sender)
+            self.send(reply, sender)
 
 
 # Imported from langchain. Langchain is licensed under MIT License:

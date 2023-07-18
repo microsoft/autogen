@@ -77,7 +77,7 @@ class UserProxyAgent(Agent):
         or str value of the docker image name to use."""
         return self._use_docker
 
-    def _execute_code(self, code_blocks):
+    def execute_code(self, code_blocks):
         """Execute the code and return the result."""
         logs_all = ""
         for code_block in code_blocks:
@@ -185,19 +185,19 @@ class UserProxyAgent(Agent):
     def auto_reply(self, message: dict, sender, default_reply=""):
         """Generate an auto reply."""
         if "function_call" in message:
-            is_exec_success, func_return = self._execute_function(message["function_call"])
-            self._send(func_return, sender)
+            _, func_return = self._execute_function(message["function_call"])
+            self.send(func_return, sender)
             return
 
         code_blocks = extract_code(message["content"])
         if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
             # no code block is found, lang should be `UNKNOWN`
-            self._send(default_reply, sender)
+            self.send(default_reply, sender)
         else:
             # try to execute the code
-            exitcode, logs = self._execute_code(code_blocks)
+            exitcode, logs = self.execute_code(code_blocks)
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            self._send(f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}", sender)
+            self.send(f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}", sender)
 
     def receive(self, message: Union[Dict, str], sender):
         """Receive a message from the sender agent.
@@ -230,9 +230,36 @@ class UserProxyAgent(Agent):
         if reply:
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender.name] = 0
-            self._send(reply, sender)
+            self.send(reply, sender)
             return
 
         self._consecutive_auto_reply_counter[sender.name] += 1
         print("\n>>>>>>>> NO HUMAN INPUT RECEIVED. USING AUTO REPLY FOR THE USER...", flush=True)
         self.auto_reply(message, sender, default_reply=reply)
+
+    def generate_init_prompt(self, *args, **kwargs) -> Union[str, Dict]:
+        """Generate the initial prompt for the agent.
+
+        Override this function to customize the initial prompt based on user's request.
+        """
+        return args[0]
+
+    def initiate_chat(self, recipient, *args, **kwargs):
+        """Initiate a chat with the receiver agent.
+
+        `generate_init_prompt` is called to generate the initial prompt for the agent.
+
+        Args:
+            receiver: the receiver agent.
+            *args: any additional arguments.
+            **kwargs: any additional keyword arguments.
+        """
+        self.send(self.generate_init_prompt(*args, **kwargs), recipient)
+
+    def register_function(self, function_map: Dict[str, Callable]):
+        """Register functions to the agent.
+
+        Args:
+            function_map: a dictionary mapping function names to functions.
+        """
+        self._function_map.update(function_map)
