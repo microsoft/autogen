@@ -50,7 +50,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
 
         // get a list of skills in the assembly
         var skills = LoadSkillsFromAssemblyAsync("skills", kernel);
-        SKContext context = new SKContext();
+        SKContext context = kernel.CreateNewContext();
         var functionsAvailable = context.Skills.GetFunctionsView();
 
         // create activity descriptors for each skilland function
@@ -195,7 +195,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
                             skillConfig.PPenalty,
                             skillConfig.FPenalty);
 
-                        Console.WriteLine($"SK Added function: {skfunc.SkillName}.{skfunc.Name}");
+                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.SkillName}.{skfunc.Name}");
                     }
                 }
             }

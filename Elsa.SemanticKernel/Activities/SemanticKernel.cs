@@ -29,7 +29,7 @@ namespace Elsa.SemanticKernel;
 /// <summary>
 /// Invoke a Semantic Kernel skill.
 /// </summary>
-[Activity("Elsa", "AI Chat", "Invoke a Semantic Kernel skill. ", DisplayName = "Semantic Kernel Skill", Kind = ActivityKind.Task)]
+[Activity("Elsa", "Semantic Kernel", "Invoke a Semantic Kernel skill. ", DisplayName = "Generic Semantic Kernel Skill", Kind = ActivityKind.Task)]
 [PublicAPI]
 public class SemanticKernelSkill : CodeActivity<string>
 {
