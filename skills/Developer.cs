@@ -1,5 +1,9 @@
 
+<<<<<<< HEAD
 namespace skills;
+=======
+namespace Microsoft.SKDevTeam;
+>>>>>>> elsa3new
 public static class Developer {
     public static SemanticFunctionConfig Implement = new SemanticFunctionConfig
     {

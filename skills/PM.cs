@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 namespace skills;
+=======
+namespace Microsoft.SKDevTeam;
+>>>>>>> elsa3new
 public static class PM
 {
    public static SemanticFunctionConfig BootstrapProject = new SemanticFunctionConfig

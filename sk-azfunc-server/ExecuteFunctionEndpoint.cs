@@ -6,7 +6,12 @@ using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Orchestration;
 using Models;
+<<<<<<< HEAD
 using skills;
+=======
+using Microsoft.SKDevTeam;
+
+>>>>>>> elsa3new
 
 public class ExecuteFunctionEndpoint
 {
@@ -35,6 +40,13 @@ public class ExecuteFunctionEndpoint
         try
         {
             var functionRequest = await JsonSerializer.DeserializeAsync<ExecuteFunctionRequest>(requestData.Body, s_jsonOptions).ConfigureAwait(false);
+<<<<<<< HEAD
+=======
+            if (functionRequest == null)
+            {
+                return await CreateResponseAsync(requestData, HttpStatusCode.BadRequest, new ErrorResponse() { Message = $"Invalid request body." }).ConfigureAwait(false);
+            }
+>>>>>>> elsa3new
 
             var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
             var function = _kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,

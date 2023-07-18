@@ -482,3 +482,15 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+<<<<<<< HEAD
+=======
+
+# SQLite workflows DB
+elsa.sqlite.*
+
+# env files
+.env
+
+# ignore local elsa-core src
+elsa-core/
+>>>>>>> elsa3new

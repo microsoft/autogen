@@ -1,3 +1,12 @@
 {
+<<<<<<< HEAD
     "dotnet.defaultSolution": "sk-dev-team.sln"
+=======
+    "dotnet.defaultSolution": "sk-dev-team.sln",
+    "azureFunctions.deploySubpath": "sk-azfunc-server/bin/Release/net7.0/publish",
+    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen",
+    "azureFunctions.preDeployTask": "publish (functions)"
+>>>>>>> elsa3new
 }

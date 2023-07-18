@@ -4,12 +4,19 @@ using Microsoft.Extensions.Logging;
 using System.IO;
 using System;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> elsa3new
 internal class KernelSettings
 {
     public const string DefaultConfigFile = "config/appsettings.json";
     public const string OpenAI = "OPENAI";
     public const string AzureOpenAI = "AZUREOPENAI";
+<<<<<<< HEAD
+=======
+    public const int DefaultMaxRetries = 9;
+>>>>>>> elsa3new
 
     [JsonPropertyName("serviceType")]
     public string ServiceType { get; set; } = string.Empty;

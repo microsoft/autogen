@@ -4,7 +4,10 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+<<<<<<< HEAD
     <RootNamespace>skills</RootNamespace>
+=======
+>>>>>>> elsa3new
   </PropertyGroup>
 
   <ItemGroup>
