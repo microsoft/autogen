@@ -5,7 +5,8 @@
 
 ## Status
 
-This is a nascent project - we will use the README to describe the project's intent - as we build it out we will document what exists and eventually move roadmap/intent to the discussion.
+* You can iterate on building a workflow for your semantic kernel ai dev skills using Elsa Workflows designer and run these workflows to see the results.  The workflows do not yet support adding memory context. 
+* You can use the CLI project to run the SK dev skills from the command line. The CLI supports using the [Microsoft Azure Well-Architected Frameworl](https://learn.microsoft.com/en-us/azure/well-architected/) as memory context for the skill invocations. 
 
 ## Trying it out
 
