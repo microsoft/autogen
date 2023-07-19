@@ -26,7 +26,7 @@ To run the designer:
 > cd WorkflowsApp
 > cp .env_example .env
 # Edit the .env file to choose your AI model, add your API Endpoint, and secrets.
-> bash .env
+> . ./.env
 > dotnet build
 > dotnet run
 # Open browser to the URI in the console output
