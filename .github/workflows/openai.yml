@@ -44,6 +44,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           coverage run -a -m pytest test/autogen
           coverage xml
@@ -54,6 +55,7 @@ jobs:
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           WOLFRAM_ALPHA_APPID: ${{ secrets.WOLFRAM_ALPHA_APPID }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
           coverage run -a -m pytest test/autogen/test_notebook.py

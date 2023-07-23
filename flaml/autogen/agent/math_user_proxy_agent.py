@@ -1,12 +1,11 @@
-from .user_proxy_agent import UserProxyAgent
-from flaml.autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
-from flaml.autogen.math_utils import get_answer
-from collections import defaultdict
 import re
 import os
 from pydantic import BaseModel, Extra, root_validator
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Union
 from time import sleep
+from flaml.autogen.agent import UserProxyAgent, Agent
+from flaml.autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
+from flaml.autogen.math_utils import get_answer
 
 
 PROMPTS = {
@@ -82,19 +81,19 @@ Problem: """,
 }
 
 
-def is_termination_msg(x):
+def is_termination_msg_mathchat(message):
     """Check if a message is a termination message."""
-    if isinstance(x, dict):
-        x = x.get("content")
-        if x is None:
+    if isinstance(message, dict):
+        message = message.get("content")
+        if message is None:
             return False
-    cb = extract_code(x)
+    cb = extract_code(message)
     contain_code = False
     for c in cb:
         if c[0] == "python" or c[0] == "wolfram":
             contain_code = True
             break
-    return not contain_code and get_answer(x) is not None and get_answer(x) != ""
+    return not contain_code and get_answer(message) is not None and get_answer(message) != ""
 
 
 def add_print_to_last_line(s):
@@ -130,14 +129,13 @@ class MathUserProxyAgent(UserProxyAgent):
 
     def __init__(
         self,
-        name="MathChatAgent",  # default set to MathChatAgent
-        system_message="",
-        work_dir=None,
-        function_map=defaultdict(callable),
-        human_input_mode="NEVER",  # Fully automated
-        max_consecutive_auto_reply=None,
-        is_termination_msg=is_termination_msg,
-        use_docker=True,
+        name: Optional[str] = "MathChatAgent",  # default set to MathChatAgent
+        system_message: Optional[str] = "",
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
+        human_input_mode: Optional[str] = "NEVER",  # Fully automated
+        function_map: Optional[Dict[str, Callable]] = None,
+        max_consecutive_auto_reply: Optional[int] = None,
+        code_execution_config: Optional[Dict] = None,
         max_invalid_q_per_step=3,  # a parameter needed in MathChat
         **config,
     ):
@@ -145,7 +143,8 @@ class MathUserProxyAgent(UserProxyAgent):
         Args:
             name (str): name of the agent
             system_message (str): system message to be sent to the agent
-            work_dir (str): working directory for the agent
+            is_termination_msg (function): a function that takes a message in the form of a dictionary and returns a boolean value indicating if this received message is a termination message.
+                The dict can contain the following keys: "content", "role", "name", "function_call".
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
                 (1) When "ALWAYS", the agent prompts for human input every time a message is received.
@@ -159,21 +158,30 @@ class MathUserProxyAgent(UserProxyAgent):
             max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
-            is_termination_msg (function): a function that takes a message in the form of a dictionary and returns a boolean value indicating if this received message is a termination message.
-                The dict can contain the following keys: "content", "role", "name", "function_call".
-            use_docker (bool): whether to use docker to execute the code.
+            code_execution_config (dict or False): config for the code execution.
+                To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
+                - work_dir (Optional, str): The working directory for the code execution.
+                    If None, a default working directory will be used.
+                    The default working directory is the "extensions" directory under
+                    "path_to_flaml/autogen".
+                - use_docker (Optional, list, str or bool): The docker image to use for code execution.
+                    If a list or a str of image name(s) is provided, the code will be executed in a docker container
+                    with the first image successfully pulled.
+                    If None, False or empty, the code will be executed in the current environment.
+                    Default is True, which will be converted into a list.
+                    If the code is executed in the current environment,
+                    the code must be trusted.
             max_invalid_q_per_step (int): (ADDED) the maximum number of invalid queries per step.
             **config (dict): other configurations.
         """
         super().__init__(
             name=name,
             system_message=system_message,
-            work_dir=work_dir,
+            is_termination_msg=is_termination_msg,
             function_map=function_map,
             human_input_mode=human_input_mode,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
-            is_termination_msg=is_termination_msg,
-            use_docker=use_docker,
+            code_execution_config=code_execution_config,
             **config,
         )
 
@@ -187,7 +195,7 @@ class MathUserProxyAgent(UserProxyAgent):
         self._previous_code = ""
         self.last_reply = None
 
-    def generate_init_prompt(self, problem, prompt_type="default", customized_prompt=None):
+    def generate_init_message(self, problem, prompt_type="default", customized_prompt=None):
         """Generate a prompt for the assitant agent with the given problem and prompt.
 
         Args:
@@ -211,8 +219,7 @@ class MathUserProxyAgent(UserProxyAgent):
         self._reset()
         if customized_prompt is not None:
             return customized_prompt + problem
-        else:
-            return PROMPTS[prompt_type] + problem
+        return PROMPTS[prompt_type] + problem
 
     def _reset(self):
         self._oai_conversations.clear()
@@ -232,21 +239,21 @@ class MathUserProxyAgent(UserProxyAgent):
         pycode = pycode.replace("; ", "\n").replace(";", "\n")
         pycode = self._previous_code + add_print_to_last_line(pycode)
 
-        return_code, output, _ = execute_code(pycode, use_docker=self._use_docker, timeout=5)
+        return_code, output, _ = execute_code(pycode, **self._code_execution_config, timeout=5)
         is_success = return_code == 0
 
         # Decode the output
         if isinstance(output, bytes):
             try:
                 output = output.decode("utf-8")
-            except Exception:
+            except UnicodeDecodeError:
                 is_success = False
                 output = "The return cannot be decoded."
 
         if not is_success:
             # Remove the file information from the error string
             pattern = r'File "/[^"]+\.py", line \d+, in .+\n'
-            if type(output) == str:
+            if isinstance(output, str):
                 output = re.sub(pattern, "", output)
             output = "Error: " + output
         elif output == "":
@@ -265,14 +272,14 @@ class MathUserProxyAgent(UserProxyAgent):
         if is_success:
             # remove print and check if it still works
             tmp = self._previous_code + "\n" + remove_print(pycode) + "\n"
-            rcode, _, _ = execute_code(tmp, use_docker=self._use_docker)
+            rcode, _, _ = execute_code(tmp, **self._code_execution_config)
         else:
             # only add imports and check if it works
             tmp = self._previous_code + "\n"
             for line in pycode.split("\n"):
                 if "import" in line:
                     tmp += line + "\n"
-            rcode, _, _ = execute_code(tmp, use_docker=self._use_docker)
+            rcode, _, _ = execute_code(tmp, **self._code_execution_config)
 
         if rcode == 0:
             self._previous_code = tmp
@@ -293,8 +300,9 @@ class MathUserProxyAgent(UserProxyAgent):
             is_success = False
         return output, is_success
 
-    def auto_reply(self, message, sender, default_reply=""):
+    def auto_reply(self, sender: "Agent", default_reply: Union[str, Dict] = ""):
         """Generate an auto reply."""
+        message = self.oai_conversations[sender.name][-1]
         message = message.get("content", "")
         code_blocks = extract_code(message)
 
@@ -302,43 +310,39 @@ class MathUserProxyAgent(UserProxyAgent):
             # no code block is found, lang should be `UNKNOWN``
             if default_reply == "":
                 default_reply = "Continue. Please keep solving the problem until you need to query. (If you get to the answer, put it in \\boxed{}.)"
-            self.send(default_reply, sender)
-        else:
-            is_success, all_success = True, True
-            reply = ""
-            for code_block in code_blocks:
-                lang, code = code_block
-                if not lang:
-                    lang = infer_lang(code)
-                if lang == "python":
-                    output, is_success = self.execute_one_python_code(code)
-                elif lang == "wolfram":
-                    output, is_success = self.execute_one_wolfram_query(code)
-                else:
-                    output = "Error: Unknown language."
-                    is_success = False
+            return default_reply
+        is_success, all_success = True, True
+        reply = ""
+        for code_block in code_blocks:
+            lang, code = code_block
+            if not lang:
+                lang = infer_lang(code)
+            if lang == "python":
+                output, is_success = self.execute_one_python_code(code)
+            elif lang == "wolfram":
+                output, is_success = self.execute_one_wolfram_query(code)
+            else:
+                output = "Error: Unknown language."
+                is_success = False
 
-                reply += output + "\n"
-                if not is_success:
-                    all_success = False
-                    self._valid_q_count -= 1  # count invalid queries
+            reply += output + "\n"
+            if not is_success:
+                all_success = False
+                self._valid_q_count -= 1  # count invalid queries
 
-            reply = reply.strip()
+        reply = reply.strip()
 
-            if self.last_reply == reply:
-                return (
-                    reply + "\nYour query or result is same from the last, please try a new approach.",
-                    False,
-                )
-            self.last_reply = reply
+        if self.last_reply == reply:
+            return reply + "\nYour query or result is same from the last, please try a new approach."
+        self.last_reply = reply
 
-            if not all_success:
-                self._accum_invalid_q_per_step += 1
-                if self._accum_invalid_q_per_step > self._max_invalid_q_per_step:
-                    self._accum_invalid_q_per_step = 0
-                    reply = "Please revisit the problem statement and your reasoning. If you think this step is correct, solve it yourself and continue the next step. Otherwise, correct this step."
+        if not all_success:
+            self._accum_invalid_q_per_step += 1
+            if self._accum_invalid_q_per_step > self._max_invalid_q_per_step:
+                self._accum_invalid_q_per_step = 0
+                reply = "Please revisit the problem statement and your reasoning. If you think this step is correct, solve it yourself and continue the next step. Otherwise, correct this step."
 
-            self.send(reply, sender)
+        return reply
 
 
 # Imported from langchain. Langchain is licensed under MIT License:

@@ -1,6 +1,7 @@
 import sys
 from openml.exceptions import OpenMLServerException
 from requests.exceptions import ChunkedEncodingError, SSLError
+from minio.error import ServerError
 from flaml.tune.spark.utils import check_spark
 import os
 import pytest
@@ -34,6 +35,7 @@ def run_automl(budget=3, dataset_format="dataframe", hpo_method=None):
         ChunkedEncodingError,
         urllib3.exceptions.ReadTimeoutError,
         SSLError,
+        ServerError,
     ) as e:
         print(e)
         return

@@ -4,6 +4,7 @@ import pytest
 import sys
 
 KEY_LOC = "test/autogen"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(
@@ -21,7 +22,13 @@ def test_math_user_proxy_agent():
     conversations = {}
     oai.ChatCompletion.start_logging(conversations)
 
-    config_list = oai.config_list_openai_aoai(key_file_path=KEY_LOC)
+    config_list = oai.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={
+            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
+        },
+    )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
@@ -35,7 +42,7 @@ def test_math_user_proxy_agent():
 
     math_problem = "$x^3=125$. What is x?"
     assistant.receive(
-        message=mathproxyagent.generate_init_prompt(math_problem),
+        message=mathproxyagent.generate_init_message(math_problem),
         sender=mathproxyagent,
     )
     print(conversations)
@@ -99,7 +106,7 @@ def test_execute_one_wolfram_query():
 def test_generate_prompt():
     mathproxyagent = MathUserProxyAgent(name="MathChatAgent", human_input_mode="NEVER")
 
-    assert "customized" in mathproxyagent.generate_init_prompt(
+    assert "customized" in mathproxyagent.generate_init_message(
         problem="2x=4", prompt_type="python", customized_prompt="customized"
     )
 

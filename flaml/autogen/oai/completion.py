@@ -176,7 +176,7 @@ class Completion(openai_Completion):
         cls._count_create += 1
 
     @classmethod
-    def _get_response(cls, config: Dict, raise_error=False, use_cache=True):
+    def _get_response(cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True):
         """Get the response from the openai api call.
 
         Try cache first. If not found, call the openai api. If the api call fails, retry after retry_time.
@@ -186,7 +186,7 @@ class Completion(openai_Completion):
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
-            if response is not None and (response != -1 or not raise_error):
+            if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
                 # print("using cached response")
                 cls._book_keeping(config, response)
                 return response
@@ -197,6 +197,7 @@ class Completion(openai_Completion):
         )
         start_time = time.time()
         request_timeout = cls.request_timeout
+        retry_timeout = config.pop("retry_timeout", cls.retry_timeout)
         while True:
             try:
                 if "request_timeout" in config:
@@ -219,30 +220,29 @@ class Completion(openai_Completion):
                 logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
                 sleep(cls.retry_time)
             except (RateLimitError, Timeout) as err:
-                time_left = cls.retry_timeout - (time.time() - start_time + cls.retry_time)
+                time_left = retry_timeout - (time.time() - start_time + cls.retry_time)
                 if (
                     time_left > 0
                     and isinstance(err, RateLimitError)
                     or time_left > request_timeout
                     and isinstance(err, Timeout)
+                    and "request_timeout" not in config
                 ):
+                    if isinstance(err, Timeout):
+                        request_timeout <<= 1
+                    request_timeout = min(request_timeout, time_left)
                     logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                elif raise_error:
+                    sleep(cls.retry_time)
+                elif raise_on_ratelimit_or_timeout:
                     raise
                 else:
                     response = -1
                     if use_cache and isinstance(err, Timeout):
                         cls._cache.set(key, response)
                     logger.warning(
-                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {cls.retry_timeout} seconds."
+                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {retry_timeout} seconds."
                     )
                     return response
-                if isinstance(err, Timeout):
-                    if "request_timeout" in config:
-                        raise
-                    request_timeout <<= 1
-                request_timeout = min(request_timeout, time_left)
-                sleep(cls.retry_time)
             except InvalidRequestError:
                 if "azure" in config.get("api_type", openai.api_type) and "model" in config:
                     # azure api uses "engine" instead of "model"
@@ -386,8 +386,7 @@ class Completion(openai_Completion):
                 for i in range(prev_data_limit, data_limit):
                     logger.debug(f"num_completions={num_completions}, data instance={i}")
                     data_i = data[i]
-                    # params = cls._construct_params(data_i, params, prompt, messages)
-                    response = cls.create(data_i, raise_error=eval_only, **params)
+                    response = cls.create(data_i, raise_on_ratelimit_or_timeout=eval_only, **params)
                     if response == -1:  # rate limit/timeout error, treat as invalid
                         cls._update_invalid_n(prune, region_key, max_tokens, num_completions)
                         result[metric] = 0
@@ -684,7 +683,7 @@ class Completion(openai_Completion):
         use_cache: Optional[bool] = True,
         config_list: Optional[List[Dict]] = None,
         filter_func: Optional[Callable[[Dict, Dict, Dict], bool]] = None,
-        raise_error: Optional[bool] = True,
+        raise_on_ratelimit_or_timeout: Optional[bool] = True,
         **config,
     ):
         """Make a completion for a given context.
@@ -737,7 +736,7 @@ class Completion(openai_Completion):
             )
         ```
 
-            raise_error (bool, Optional): Whether to raise error when all configs fail.
+            raise_on_ratelimit_or_timeout (bool, Optional): Whether to raise RateLimitError or Timeout when all configs fail.
                 When set to False, -1 will be returned when all configs fail.
             **config: Configuration for the openai API call. This is used as parameters for calling openai API.
                 Besides the parameters for the openai API call, it can also contain a seed (int) for the cache.
@@ -750,16 +749,23 @@ class Completion(openai_Completion):
         if ERROR:
             raise ERROR
         if config_list:
-            retry_timeout = cls.retry_timeout
             last = len(config_list) - 1
             cost = 0
             for i, each_config in enumerate(config_list):
                 base_config = config.copy()
                 base_config.update(each_config)
-                try:
-                    cls.retry_timeout = 0 if i < last and filter_func is None else retry_timeout
+                if i < last and filter_func is None and "retry_timeout" not in base_config:
                     # retry_timeout = 0 to avoid retrying when no filter is given
-                    response = cls.create(context, use_cache, **base_config)
+                    base_config["retry_timeout"] = 0
+                try:
+                    response = cls.create(
+                        context,
+                        use_cache,
+                        raise_on_ratelimit_or_timeout=i < last or raise_on_ratelimit_or_timeout,
+                        **base_config,
+                    )
+                    if response == -1:
+                        return response
                     pass_filter = filter_func is None or filter_func(
                         context=context, base_config=config, response=response
                     )
@@ -773,17 +779,17 @@ class Completion(openai_Completion):
                     logger.debug(f"failed with config {i}", exc_info=1)
                     if i == last:
                         raise
-                finally:
-                    cls.retry_timeout = retry_timeout
         params = cls._construct_params(context, config)
         if not use_cache:
-            return cls._get_response(params, raise_error=raise_error, use_cache=False)
+            return cls._get_response(
+                params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout, use_cache=False
+            )
         seed = cls.seed
         if "seed" in params:
             cls.set_cache(params.pop("seed"))
         with diskcache.Cache(cls.cache_path) as cls._cache:
             cls.set_cache(seed)
-            return cls._get_response(params, raise_error=raise_error)
+            return cls._get_response(params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout)
 
     @classmethod
     def _instantiate(cls, template: str, context: Optional[Dict] = None):

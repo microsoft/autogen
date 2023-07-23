@@ -9,5 +9,5 @@
         },
         "terminal.integrated.defaultProfile.linux": "bash"
     },
-    "updateContentCommand": "pip install -e .[test,notebook,openai] && pre-commit install"
+    "updateContentCommand": "pip install -e .[notebook,openai] pre-commit && pre-commit install"
 }

@@ -1,6 +1,7 @@
 import sys
 from openml.exceptions import OpenMLServerException
 from requests.exceptions import ChunkedEncodingError, SSLError
+from minio.error import ServerError
 
 
 def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
@@ -29,6 +30,7 @@ def test_automl(budget=5, dataset_format="dataframe", hpo_method=None):
         ChunkedEncodingError,
         urllib3.exceptions.ReadTimeoutError,
         SSLError,
+        ServerError,
     ) as e:
         print(e)
         return
@@ -119,7 +121,7 @@ def test_mlflow():
 
     try:
         X_train, X_test, y_train, y_test = load_openml_task(task_id=7592, data_dir="test/")
-    except (OpenMLServerException, ChunkedEncodingError, SSLError) as e:
+    except (OpenMLServerException, ChunkedEncodingError, SSLError, ServerError) as e:
         print(e)
         return
     """ import AutoML class from flaml package """

@@ -1,6 +1,6 @@
 import os
 import json
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set, Union
 import logging
 
 NON_CACHE_KEY = ["api_key", "api_base", "api_type", "api_version"]
@@ -155,7 +155,7 @@ def config_list_from_models(
         exclude,
     )
     if model_list:
-        config_list = [{**config, "model": model} for config in config_list for model in model_list]
+        config_list = [{**config, "model": model} for model in model_list for config in config_list]
     return config_list
 
 
@@ -186,3 +186,56 @@ def config_list_gpt4_gpt35(
         exclude,
         model_list=["gpt-4", "gpt-3.5-turbo"],
     )
+
+
+def filter_config(config_list, filter_dict):
+    """Filter the config list by provider and model.
+
+    Args:
+        config_list (list): The config list.
+        filter_dict (dict, optional): The filter dict with keys corresponding to a field in each config,
+            and values corresponding to lists of acceptable values for each key.
+
+    Returns:
+        list: The filtered config list.
+    """
+    if filter_dict:
+        config_list = [
+            config for config in config_list if all(config.get(key) in value for key, value in filter_dict.items())
+        ]
+    return config_list
+
+
+def config_list_from_json(
+    env_or_file: str,
+    file_location: Optional[str] = "",
+    filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]] = None,
+) -> List[Dict]:
+    """Get a list of configs from a json parsed from an env variable or a file.
+
+    Args:
+        env_or_file (str): The env variable name or file name.
+        file_location (str, optional): The file location.
+        filter_dict (dict, optional): The filter dict with keys corresponding to a field in each config,
+            and values corresponding to lists of acceptable values for each key.
+            e.g.,
+    ```python
+    filter_dict = {
+        "api_type": ["open_ai", None],  # None means a missing key is acceptable
+        "model": ["gpt-3.5-turbo", "gpt-4"],
+    }
+    ```
+
+    Returns:
+        list: A list of configs for openai api calls.
+    """
+    json_str = os.environ.get(env_or_file)
+    if json_str:
+        config_list = json.loads(json_str)
+    else:
+        try:
+            with open(os.path.join(file_location, env_or_file)) as json_file:
+                config_list = json.load(json_file)
+        except FileNotFoundError:
+            return []
+    return filter_config(config_list, filter_dict)
