@@ -12,7 +12,9 @@ KEY_LOC = "test/autogen"
 
 @pytest.mark.skipif(openai is None, reason="openai not installed")
 def test_eval_math_responses():
-    config_list = oai.config_list_openai_aoai(KEY_LOC, exclude="aoai")
+    config_list = oai.config_list_from_models(
+        KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+    )
     functions = [
         {
             "name": "eval_math_responses",
@@ -35,7 +37,6 @@ def test_eval_math_responses():
         },
     ]
     response = oai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
         config_list=config_list,
         messages=[
             {

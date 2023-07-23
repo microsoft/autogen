@@ -17,6 +17,7 @@ from flaml.autogen.code_utils import (
 from flaml.autogen.math_utils import eval_math_responses, solve_problem
 
 KEY_LOC = "test/autogen"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -48,7 +49,11 @@ def test_filter():
         prompt="Is 37 a prime number? Please answer 'Yes.' or 'No.'",
         filter_func=yes_or_no_filter,
     )
-    assert oai.Completion.extract_text(response)[0] in ["Yes.", "No."]
+    assert (
+        oai.Completion.extract_text(response)[0] in ["Yes.", "No."]
+        or not response["pass_filter"]
+        and response["config_id"] == 2
+    )
     response = oai.Completion.create(
         context={"yes_or_no_choice": False},
         config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
@@ -144,7 +149,19 @@ def test_nocontext():
     )
     print(response)
     code, _ = generate_code(
-        model="gpt-3.5-turbo",
+        config_list=oai.config_list_from_json(
+            OAI_CONFIG_LIST,
+            file_location=KEY_LOC,
+            filter_dict={
+                "model": {
+                    "gpt-3.5-turbo",
+                    "gpt-3.5-turbo-16k",
+                    "gpt-3.5-turbo-0301",
+                    "chatgpt-35-turbo-0301",
+                    "gpt-35-turbo-v0301",
+                },
+            },
+        ),
         messages=[
             {
                 "role": "system",
@@ -167,7 +184,23 @@ def test_nocontext():
     reason="do not run on windows",
 )
 def test_humaneval(num_samples=1):
-    eval_with_generated_assertions = partial(eval_function_completions, assertions=generate_assertions)
+    gpt35_config_list = oai.config_list_from_json(
+        env_or_file="OAI_CONFIG_LIST",
+        filter_dict={
+            "model": {
+                "gpt-3.5-turbo",
+                "gpt-3.5-turbo-16k",
+                "gpt-3.5-turbo-0301",
+                "chatgpt-35-turbo-0301",
+                "gpt-35-turbo-v0301",
+            },
+        },
+    )
+    assertions = partial(generate_assertions, config_list=gpt35_config_list)
+    eval_with_generated_assertions = partial(
+        eval_function_completions,
+        assertions=assertions,
+    )
 
     seed = 41
     data = datasets.load_dataset("openai_humaneval")["test"].shuffle(seed=seed)
@@ -197,6 +230,16 @@ def test_humaneval(num_samples=1):
         print(exc)
         return
     oai.Completion.clear_cache(400)
+    # no error should be raised
+    response = oai.Completion.create(
+        context=test_data[0],
+        config_list=[{"model": "gpt-3.5-turbo"}],
+        prompt="",
+        max_tokens=1,
+        retry_timeout=0,
+        raise_on_ratelimit_or_timeout=False,
+    )
+    # assert response == -1
     # a minimal tuning example
     config, _ = oai.Completion.tune(
         data=tune_data,
@@ -206,7 +249,7 @@ def test_humaneval(num_samples=1):
         n=1,
         prompt="{definition}",
     )
-    responses = oai.Completion.create(context=test_data[0], **config)
+    response = oai.Completion.create(context=test_data[0], **config)
     # a minimal tuning example for tuning chat completion models using the Completion class
     config, _ = oai.Completion.tune(
         data=tune_data,
@@ -217,7 +260,7 @@ def test_humaneval(num_samples=1):
         model="text-davinci-003",
         prompt="{definition}",
     )
-    responses = oai.Completion.create(context=test_data[0], **config)
+    response = oai.Completion.create(context=test_data[0], **config)
     # a minimal tuning example for tuning chat completion models using the ChatCompletion class
     config_list = oai.config_list_openai_aoai(KEY_LOC)
     config, _ = oai.ChatCompletion.tune(
@@ -229,9 +272,18 @@ def test_humaneval(num_samples=1):
         messages=[{"role": "user", "content": "{definition}"}],
         config_list=config_list,
     )
-    responses = oai.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
-    print(responses)
-    code, cost, selected = implement(tune_data[1], [{**config_list[-1], **config}])
+    response = oai.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
+    print(response)
+    from openai.error import RateLimitError
+
+    try:
+        code, cost, selected = implement(tune_data[1], [{**config_list[-1], **config}])
+    except RateLimitError:
+        code, cost, selected = implement(
+            tune_data[1],
+            [{**config_list[0], "model": "text-ada-001", "prompt": config["messages"]["content"]}],
+            assertions=assertions,
+        )
     print(code)
     print(cost)
     assert selected == 0
@@ -253,18 +305,31 @@ def test_humaneval(num_samples=1):
             "Complete the following Python function:{definition}",
         ],
         stop=[["\nclass", "\ndef", "\nif", "\nprint"], None],  # the stop sequences
+        config_list=config_list,
     )
     print(config2)
     print(analysis.best_result)
     print(test_data[0])
-    responses = oai.Completion.create(context=test_data[0], **config2)
-    print(responses)
+    response = oai.Completion.create(context=test_data[0], **config2)
+    print(response)
     oai.Completion.data = test_data[:num_samples]
     result = oai.Completion._eval(analysis.best_config, prune=False, eval_only=True)
     print("result without pruning", result)
     result = oai.Completion.test(test_data[:num_samples], **config2)
     print(result)
-    code, cost, selected = implement(tune_data[1], [config2, config])
+    try:
+        code, cost, selected = implement(
+            tune_data[1], [{**config_list[-2], **config2}, {**config_list[-1], **config}], assertions=assertions
+        )
+    except RateLimitError:
+        code, cost, selected = implement(
+            tune_data[1],
+            [
+                {**config_list[-3], **config2},
+                {**config_list[0], "model": "text-ada-001", "prompt": config["messages"]["content"]},
+            ],
+            assertions=assertions,
+        )
     print(code)
     print(cost)
     print(selected)

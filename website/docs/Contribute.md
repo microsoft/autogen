@@ -61,10 +61,10 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ```bash
 git clone https://github.com/microsoft/FLAML.git
-pip install -e FLAML[test,notebook]
+pip install -e FLAML[notebook,autogen]
 ```
 
-In case the `pip install` command fails, try escaping the brackets such as `pip install -e FLAML\[test,notebook\]`
+In case the `pip install` command fails, try escaping the brackets such as `pip install -e FLAML\[notebook,autogen\]`.
 
 ### Docker
 
@@ -87,9 +87,10 @@ Run `pre-commit install` to install pre-commit into your git hooks. Before you c
 
 ### Coverage
 
-Any code you commit should not decrease coverage. To run all unit tests:
+Any code you commit should not decrease coverage. To run all unit tests, install the [test] option under FLAML/:
 
 ```bash
+pip install -e."[test]"
 coverage run -m pytest test
 ```
 

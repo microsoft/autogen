@@ -1,7 +1,5 @@
 from .agent import Agent
-from flaml.autogen.code_utils import DEFAULT_MODEL
-from flaml import oai
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 
 class AssistantAgent(Agent):
@@ -17,33 +15,19 @@ class AssistantAgent(Agent):
     Reply "TERMINATE" in the end when everything is done.
     """
 
-    DEFAULT_CONFIG = {
-        "model": DEFAULT_MODEL,
-    }
-
-    def __init__(self, name, system_message=DEFAULT_SYSTEM_MESSAGE, **config):
+    def __init__(self, name: str, system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE, **kwargs):
         """
         Args:
             name (str): agent name.
             system_message (str): system message to be sent to the agent.
-            **config (dict): other configurations allowed in
-              [oai.Completion.create](../oai/Completion#create).
-              These configurations will be used when invoking LLM.
+            **kwargs (dict): other kwargs allowed in
+              [Agent](agent#__init__).
         """
-        super().__init__(name, system_message)
-        self._config = self.DEFAULT_CONFIG.copy()
-        self._config.update(config)
-        self._sender_dict = {}
+        super().__init__(name, system_message, **kwargs)
 
     def receive(self, message: Union[Dict, str], sender):
-        if sender.name not in self._sender_dict:
-            self._sender_dict[sender.name] = sender
-            self._oai_conversations[sender.name] = [{"content": self._system_message, "role": "system"}]
-
+        message = self._message_to_dict(message)
         super().receive(message, sender)
-        responses = oai.ChatCompletion.create(messages=self._oai_conversations[sender.name], **self._config)
-        self.send(oai.ChatCompletion.extract_text_or_function_call(responses)[0], sender)
-
-    def reset(self):
-        self._sender_dict.clear()
-        self._oai_conversations.clear()
+        if self._is_termination_msg(message):
+            return
+        self.send(self._ai_reply(sender), sender)

@@ -13,9 +13,9 @@ The package is under active development with more features upcoming.
 
 ## Agents (Experimental)
 
-[`flaml.autogen.agents`](../reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
+[`flaml.autogen.agent`](../reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
 
-We have designed different classes of Agents that are capable of communicating with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform in the `receive` method.
+We have designed different classes of Agents that are capable of communicating with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages.
 
 ### `AssistantAgent`
 
@@ -24,7 +24,9 @@ We have designed different classes of Agents that are capable of communicating w
 ### `UserProxyAgent`
 `UserProxyAgent` is an Agent class that serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
 
-Currently, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. We plan to add more capabilities in `UserProxyAgent` beyond code execution. One can also easily extend it by overriding the `auto_reply` function of the `UserProxyAgent` to add or modify responses to the `AssistantAgent`'s specific type of message. This auto-reply capability allows for more autonomous user-agent communication while retaining the possibility of human intervention.
+By default, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. One can also easily extend it by overriding the `auto_reply` function of the `UserProxyAgent` to add or modify responses.
+For example, `AIUserProxyAgent` is a subclass of `UserProxyAgent` which can generate replies using an LLM when code execution is not performed. Code execution can be disabled by setting `code_execution_config` to False.
+This auto-reply capability allows for more autonomous user-agent communication while retaining the possibility of human intervention.
 
 Example usage of the agents to solve a task with code:
 ```python
@@ -39,13 +41,13 @@ user_proxy = UserProxyAgent(
     human_input_mode="NEVER",  # in this mode, the agent will never solicit human input but always auto reply
     max_consecutive_auto_reply=10,  # the maximum number of consecutive auto replies
     is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE") or x.get("content", "").rstrip().endswith('"TERMINATE".'),  # the function to determine whether a message is a termination message
-    work_dir=".",
+    code_execution_config={"work_dir": "."},
 )
 
 # the assistant receives a message from the user, which contains the task description
 user.initiate_chat(
     assistant,
-    """What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
+    message="""What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
 )
 ```
 In the example above, we create an AssistantAgent named "assistant" to serve as the assistant and a UserProxyAgent named "user_proxy" to serve as a proxy for the human user.
@@ -61,7 +63,7 @@ Please find a visual illustration of how UserProxyAgent and AssistantAgent colla
 The `human_input_mode` parameter of `UserProxyAgent` controls the behavior of the agent when it receives a message. It can be set to `"NEVER"`, `"ALWAYS"`, or `"TERMINATE"`.
 - Under the mode `human_input_mode="NEVER"`, the multi-turn conversation between the assistant and the user_proxy stops when the number of auto-reply reaches the upper limit specified by `max_consecutive_auto_reply` or the received message is a termination message according to `is_termination_msg`.
 - When `human_input_mode` is set to `"ALWAYS"`, the user proxy agent solicits human input every time a message is received; and the conversation stops when the human input is "exit", or when the received message is a termination message and no human input is provided.
-- When `human_input_mode` is set to `"TERMINATE"`, the user proxy agent solicits human input only when a termination message is received or the number of auto reply reaches `max_consecutive_auto_reply`.
+- When `human_input_mode` is set to `"TERMINATE"`, the user proxy agent solicits human input only when a termination message is received or the number of auto replies reaches `max_consecutive_auto_reply`.
 
 #### Function Calling
 To leverage [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com), one can pass in a list of callable functions or class methods to `UserProxyAgent`, which corresponds to the description of functions passed to OpenAI's API.
@@ -103,14 +105,14 @@ chatbot = AssistantAgent("assistant", config_list=config_list, **oai_config)
 user = UserProxyAgent(
     "user",
     human_input_mode="NEVER",
-    work_dir="coding",
+    code_execution_config={"work_dir": "coding"},
 )
 
 # define an `execute_code` function according to the function desription
 def execute_code(code_type, code):
     # here we reuse the method in the user proxy agent
     # in general, this is not necessary
-    return user.execute_code([(code_type, code)])
+    return user.execute_code_blocks([(code_type, code)])
 
 # register the `execute_code` function
 user.register_function(function_map={"execute_code": execute_code})
@@ -118,7 +120,7 @@ user.register_function(function_map={"execute_code": execute_code})
 # start the conversation
 user.initiate_chat(
     assistant,
-    "Draw a rocket and save to a file named 'rocket.svg'",
+    message="Draw a rocket and save to a file named 'rocket.svg'",
 )
 ```
 
@@ -134,6 +136,8 @@ user.initiate_chat(
 * [Interactive LLM Agent with Function Calls](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_function_call.ipynb)
 
 * [Multi-Agent Communication and Planning](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_planning.ipynb)
+
+* [Multi-Agent Multi-User Application](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_two_users.ipynb)
 
 ## Enhanced Inference
 
@@ -261,7 +265,7 @@ API call results are cached locally and reused when the same request is issued. 
 
 #### Runtime error
 
-It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `flaml.oai.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `flaml.oai.request_timeout`, `flaml.oai.retry_timeout` and `flaml.oai.retry_time`.
+It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `flaml.oai.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `flaml.oai.Completion.retry_time`.
 
 Moreover, one can pass a list of configurations of different models/endpoints to mitigate the rate limits. For example,
 
@@ -273,7 +277,7 @@ response = oai.Completion.create(
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_type": "azure",
             "api_base": os.environ.get("AZURE_OPENAI_API_BASE"),
-            "api_version": "2023-03-15-preview",
+            "api_version": "2023-06-01-preview",
         },
         {
             "model": "gpt-3.5-turbo",
