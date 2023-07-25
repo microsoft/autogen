@@ -1,0 +1,11 @@
+# Documentation for branch policy: https://aka.ms/gim/docs/policy/branch-protection
+
+name: Default branch protection policy
+description: Requires one reviewer for merges into main branch
+resource: repository
+where: 
+configuration:
+  branchProtectionRules:
+    - branchNamePattern: "main"
+      requiredApprovingReviewsCount: 1
+      dismissStaleReviews: true
