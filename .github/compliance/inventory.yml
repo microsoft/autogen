@@ -1,0 +1,5 @@
+inventory:
+- source: DirectOwners
+  items:
+  - id: kopetan@microsoft.com
+  isProduction: false
