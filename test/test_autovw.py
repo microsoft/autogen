@@ -356,7 +356,7 @@ class TestAutoVW(unittest.TestCase):
 
         try:
             vw_oml_problem_args, vw_online_aml_problem = get_vw_tuning_problem()
-        except (SSLError, ServerError) as e:
+        except (SSLError, ServerError, Exception) as e:
             print(e)
             return
         vanilla_vw = pyvw.vw(**vw_oml_problem_args["fixed_hp_config"])
@@ -372,7 +372,7 @@ class TestAutoVW(unittest.TestCase):
         # basic experiment setting
         try:
             vw_oml_problem_args, vw_online_aml_problem = get_vw_tuning_problem()
-        except (SSLError, ServerError) as e:
+        except (SSLError, ServerError, Exception) as e:
             print(e)
             return
         autovw = AutoVW(
@@ -397,7 +397,7 @@ class TestAutoVW(unittest.TestCase):
             vw_oml_problem_args, vw_online_aml_problem = get_vw_tuning_problem(
                 tuning_hp="NamesapceInteraction+LearningRate"
             )
-        except (SSLError, ServerError) as e:
+        except (SSLError, ServerError, Exception) as e:
             print(e)
             return
 

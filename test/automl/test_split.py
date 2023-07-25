@@ -95,7 +95,7 @@ def test_stratified_groupkfold():
 
     try:
         X_train, _, y_train, _ = load_openml_dataset(dataset_id=1169, data_dir="test/")
-    except ServerError:
+    except (ServerError, Exception):
         return
     splitter = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=0)
 

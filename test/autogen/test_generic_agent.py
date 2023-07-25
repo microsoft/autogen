@@ -1,10 +1,16 @@
-def test_agent():
-    from flaml.autogen.agent import Agent
+import sys
+from io import StringIO
+import pytest
+from flaml.autogen.agent import GenericAgent
 
-    dummy_agent_1 = Agent(name="dummy_agent_1")
-    dummy_agent_2 = Agent(name="dummy_agent_2")
 
+def test_generic_agent(monkeypatch):
+    dummy_agent_1 = GenericAgent(name="dummy_agent_1")
+    dummy_agent_2 = GenericAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
+
+    monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.receive("hello", dummy_agent_2)  # receive a str
+    monkeypatch.setattr(sys, "stdin", StringIO("TERMINATE\n\n"))
     dummy_agent_1.receive(
         {
             "content": "hello",
@@ -19,10 +25,12 @@ def test_agent():
         dummy_agent_1.oai_conversations["dummy_agent_2"]
     ), "When the message is not an valid openai message, it should not be appended to the oai conversation."
 
-    dummy_agent_1.send("hello", dummy_agent_2)  # send a str
+    monkeypatch.setattr(sys, "stdin", StringIO("exit"))
+    dummy_agent_1.send("TERMINATE", dummy_agent_2)  # send a str
+    monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.send(
         {
-            "content": "hello",
+            "content": "TERMINATE",
         },
         dummy_agent_2,
     )  # send a dict
@@ -37,4 +45,4 @@ def test_agent():
 
 
 if __name__ == "__main__":
-    test_agent()
+    test_generic_agent(pytest.monkeypatch)

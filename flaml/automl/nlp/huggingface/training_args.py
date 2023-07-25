@@ -30,7 +30,7 @@ class TrainingArgumentsForAuto(TrainingArguments):
             When the task is sequence labeling/token classification, there are two formats of the labels:
             (1) The token labels, i.e., [B-PER, I-PER, B-LOC]; (2) Id labels. For (2), need to pass the label_list (e.g., [B-PER, I-PER, B-LOC])
             to convert the Id to token labels when computing the metric with metric_loss_score.
-            See the example in [a simple token classification example](../../../../Examples/AutoML-NLP#a-simple-token-classification-example).
+            See the example in [a simple token classification example](/docs/Examples/AutoML-NLP#a-simple-token-classification-example).
     """
 
     task: str = field(default="seq-classification")

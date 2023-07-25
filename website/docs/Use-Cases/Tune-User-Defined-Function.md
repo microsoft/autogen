@@ -1,6 +1,6 @@
 # Tune User Defined Function
 
-[`flaml.tune`](../reference/tune/tune) is a module for economical hyperparameter tuning. It is used internally by `flaml.AutoML`. It can also be used to directly tune a user-defined function (UDF), which is not limited to machine learning model training. You can use `flaml.tune` instead of `flaml.AutoML` if one of the following is true:
+[`flaml.tune`](/docs/reference/tune/tune) is a module for economical hyperparameter tuning. It is used internally by `flaml.AutoML`. It can also be used to directly tune a user-defined function (UDF), which is not limited to machine learning model training. You can use `flaml.tune` instead of `flaml.AutoML` if one of the following is true:
 
 1. Your machine learning task is not one of the built-in tasks from `flaml.AutoML`.
 1. Your input cannot be represented as X_train + y_train or dataframe + label.
@@ -27,7 +27,7 @@ The first step is to specify your tuning objective.
 To do it, you should first specify your evaluation procedure (e.g., perform a machine learning model training and validation) with respect to the hyperparameters in a user-defined function `evaluation_function`.
 The function requires a hyperparameter configuration as input, and can simply return a metric value in a scalar or return a dictionary of metric name and metric value pairs.
 
-In the following code, we define an evaluation function with respect to two hyperparameters named `x` and `y` according to $obj := (x-85000)^2 - x/y$. Note that we use this toy example here for more accessible demonstration purposes. In real use cases, the evaluation function usually cannot be written in this closed form, but instead involves a black-box and expensive evaluation procedure.  Please check out [Tune HuggingFace](../Examples/Tune-HuggingFace), [Tune PyTorch](../Examples/Tune-PyTorch) and [Tune LightGBM](../Getting-Started#tune-user-defined-function) for real examples of tuning tasks.
+In the following code, we define an evaluation function with respect to two hyperparameters named `x` and `y` according to $obj := (x-85000)^2 - x/y$. Note that we use this toy example here for more accessible demonstration purposes. In real use cases, the evaluation function usually cannot be written in this closed form, but instead involves a black-box and expensive evaluation procedure.  Please check out [Tune HuggingFace](/docs/Examples/Tune-HuggingFace), [Tune PyTorch](/docs/Examples/Tune-PyTorch) and [Tune LightGBM](/docs/Getting-Started#tune-user-defined-function) for real examples of tuning tasks.
 
 ```python
 import time
@@ -220,7 +220,7 @@ Optionally, you can provide a list of config constraints to be satisfied through
 
 
 ### Put together
-After the aforementioned key steps, one is ready to perform a tuning task by calling [`flaml.tune.run()`](../reference/tune/tune#run). Below is a quick sequential tuning example using the pre-defined search space `config_search_space` and a minimization (`mode='min'`) objective for the `score` metric evaluated in `evaluate_config`, using the default serach algorithm in flaml. The time budget is 10 seconds (`time_budget_s=10`).
+After the aforementioned key steps, one is ready to perform a tuning task by calling [`flaml.tune.run()`](/docs/reference/tune/tune#run). Below is a quick sequential tuning example using the pre-defined search space `config_search_space` and a minimization (`mode='min'`) objective for the `score` metric evaluated in `evaluate_config`, using the default serach algorithm in flaml. The time budget is 10 seconds (`time_budget_s=10`).
 ```python
 # require: pip install flaml[blendsearch]
 analysis = tune.run(
@@ -236,7 +236,7 @@ analysis = tune.run(
 
 ### Result analysis
 
-Once the tuning process finishes, it returns an [ExperimentAnalysis](../reference/tune/analysis) object, which provides methods to analyze the tuning.
+Once the tuning process finishes, it returns an [ExperimentAnalysis](/docs/reference/tune/analysis) object, which provides methods to analyze the tuning.
 
 In the following code example, we retrieve the best configuration found during the tuning, and retrieve the best trial's result from the returned `analysis`.
 
@@ -293,7 +293,7 @@ Related arguments:
 - `use_spark`: A boolean of whether to use spark as the backend.
 - `resources_per_trial`: A dictionary of the hardware resources to allocate per trial, e.g., `{'cpu': 1}`. Only valid when using ray backend.
 
-Details about parallel tuning with Spark could be found [here](../Examples/Integrate%20-%20Spark#parallel-spark-jobs).
+Details about parallel tuning with Spark could be found [here](/docs/Examples/Integrate%20-%20Spark#parallel-spark-jobs).
 
 
 You can perform parallel tuning by specifying `use_ray=True` (requiring flaml[ray] option installed) or `use_spark=True`
