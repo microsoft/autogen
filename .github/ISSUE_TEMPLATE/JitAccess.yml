@@ -3,7 +3,7 @@ description: Request for temporary repository administrator access to this repos
 title: "JIT Request"
 labels: ["jit"]
 assignees:
-  - gimsvc_1essec
+  - gimsvc_microsoft
   - 
 body:
   - type: markdown
@@ -22,7 +22,7 @@ body:
     id: duration
     attributes:
       label: Duration (hours)
-      description: How long do you need access for? The duration you select is in hours. If you do not specify the duration, it will be defaulted to 2 hours. 
+      description: How long do you need access for? The duration you select is in hours.
       options:
         - 1
         - 2
