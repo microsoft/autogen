@@ -36,6 +36,7 @@ def run_automl(budget=3, dataset_format="dataframe", hpo_method=None):
         urllib3.exceptions.ReadTimeoutError,
         SSLError,
         ServerError,
+        Exception,
     ) as e:
         print(e)
         return

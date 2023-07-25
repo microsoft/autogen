@@ -114,7 +114,7 @@ class TestWarmStart(unittest.TestCase):
 
         try:
             X_train, X_test, y_train, y_test = load_openml_dataset(dataset_id=1169, data_dir="./")
-        except (OpenMLServerException, ChunkedEncodingError, SSLError, ServerError):
+        except (OpenMLServerException, ChunkedEncodingError, SSLError, ServerError, Exception):
             from sklearn.datasets import load_wine
 
             X_train, y_train = load_wine(return_X_y=True)

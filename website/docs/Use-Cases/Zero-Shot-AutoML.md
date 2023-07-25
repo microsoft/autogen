@@ -1,6 +1,6 @@
 # Zero Shot AutoML
 
-`flaml.default` is a package for zero-shot AutoML, or "no-tuning" AutoML. It uses [`flaml.AutoML`](../reference/automl/automl#automl-objects) and [`flaml.default.portfolio`](../reference/default/portfolio) to mine good hyperparameter configurations across different datasets offline, and recommend data-dependent default configurations at runtime without expensive tuning.
+`flaml.default` is a package for zero-shot AutoML, or "no-tuning" AutoML. It uses [`flaml.AutoML`](/docs/reference/automl/automl#automl-objects) and [`flaml.default.portfolio`](/docs/reference/default/portfolio) to mine good hyperparameter configurations across different datasets offline, and recommend data-dependent default configurations at runtime without expensive tuning.
 
 Zero-shot AutoML has several benefits:
 * The computation cost is just training one model. No tuning is involved.
@@ -236,7 +236,7 @@ Change "binary" into "multiclass" or "regression", or your own types in your "re
 
 You have now effectively built your own zero-shot AutoML solution. Congratulations!
 
-Optionally, you can "flamlize" a learner using [`flaml.default.flamlize_estimator`](../reference/default/estimator#flamlize_estimator) for easy dissemination. For example,
+Optionally, you can "flamlize" a learner using [`flaml.default.flamlize_estimator`](/docs/reference/default/estimator#flamlize_estimator) for easy dissemination. For example,
 
 ```python
 import sklearn.ensemble as ensemble

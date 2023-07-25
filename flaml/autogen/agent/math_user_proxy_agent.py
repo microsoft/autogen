@@ -1,9 +1,9 @@
 import re
 import os
 from pydantic import BaseModel, Extra, root_validator
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from time import sleep
-from flaml.autogen.agent import UserProxyAgent, Agent
+from flaml.autogen.agent import UserProxyAgent
 from flaml.autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
 from flaml.autogen.math_utils import get_answer
 
@@ -81,7 +81,7 @@ Problem: """,
 }
 
 
-def is_termination_msg_mathchat(message):
+def _is_termination_msg_mathchat(message):
     """Check if a message is a termination message."""
     if isinstance(message, dict):
         message = message.get("content")
@@ -96,7 +96,7 @@ def is_termination_msg_mathchat(message):
     return not contain_code and get_answer(message) is not None and get_answer(message) != ""
 
 
-def add_print_to_last_line(s):
+def _add_print_to_last_line(s):
     """Add print() to the last line of a string."""
     # 1. check if there is already a print statement
     if "print(" in s:
@@ -115,7 +115,7 @@ def add_print_to_last_line(s):
     return "\n".join(lines)
 
 
-def remove_print(s):
+def _remove_print(s):
     """remove all print statements from a string."""
     lines = s.splitlines()
     lines = [line for line in lines if not line.startswith("print(")]
@@ -130,19 +130,16 @@ class MathUserProxyAgent(UserProxyAgent):
     def __init__(
         self,
         name: Optional[str] = "MathChatAgent",  # default set to MathChatAgent
-        system_message: Optional[str] = "",
-        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
+        is_termination_msg: Optional[
+            Callable[[Dict], bool]
+        ] = _is_termination_msg_mathchat,  # terminate if \boxed{} in message
         human_input_mode: Optional[str] = "NEVER",  # Fully automated
-        function_map: Optional[Dict[str, Callable]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
-        code_execution_config: Optional[Dict] = None,
         max_invalid_q_per_step=3,  # a parameter needed in MathChat
-        **config,
+        **kwargs,
     ):
         """
         Args:
             name (str): name of the agent
-            system_message (str): system message to be sent to the agent
             is_termination_msg (function): a function that takes a message in the form of a dictionary and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
             human_input_mode (str): whether to ask for human inputs every time a message is received.
@@ -152,37 +149,16 @@ class MathUserProxyAgent(UserProxyAgent):
                     or when is_termination_msg is True and there is no human input.
                 (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
                     the number of auto reply reaches the max_consecutive_auto_reply.
-                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
+                (3) (Default) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
-            function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions.
-            max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
-                default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
-                The limit only plays a role when human_input_mode is not "ALWAYS".
-            code_execution_config (dict or False): config for the code execution.
-                To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
-                - work_dir (Optional, str): The working directory for the code execution.
-                    If None, a default working directory will be used.
-                    The default working directory is the "extensions" directory under
-                    "path_to_flaml/autogen".
-                - use_docker (Optional, list, str or bool): The docker image to use for code execution.
-                    If a list or a str of image name(s) is provided, the code will be executed in a docker container
-                    with the first image successfully pulled.
-                    If None, False or empty, the code will be executed in the current environment.
-                    Default is True, which will be converted into a list.
-                    If the code is executed in the current environment,
-                    the code must be trusted.
             max_invalid_q_per_step (int): (ADDED) the maximum number of invalid queries per step.
-            **config (dict): other configurations.
+            **kwargs (dict): other kwargs in [UserProxyAgent](user_proxy_agent#__init__).
         """
         super().__init__(
             name=name,
-            system_message=system_message,
             is_termination_msg=is_termination_msg,
-            function_map=function_map,
             human_input_mode=human_input_mode,
-            max_consecutive_auto_reply=max_consecutive_auto_reply,
-            code_execution_config=code_execution_config,
-            **config,
+            **kwargs,
         )
 
         # fixed var
@@ -222,7 +198,7 @@ class MathUserProxyAgent(UserProxyAgent):
         return PROMPTS[prompt_type] + problem
 
     def _reset(self):
-        self._oai_conversations.clear()
+        super().reset()
         self._valid_q_count = 0
         self._total_q_count = 0
         self._accum_invalid_q_per_step = 0
@@ -237,7 +213,7 @@ class MathUserProxyAgent(UserProxyAgent):
         """
         # Need to replace all "; " with "\n" to avoid syntax error when adding `print` to the last line
         pycode = pycode.replace("; ", "\n").replace(";", "\n")
-        pycode = self._previous_code + add_print_to_last_line(pycode)
+        pycode = self._previous_code + _add_print_to_last_line(pycode)
 
         return_code, output, _ = execute_code(pycode, **self._code_execution_config, timeout=5)
         is_success = return_code == 0
@@ -271,7 +247,7 @@ class MathUserProxyAgent(UserProxyAgent):
 
         if is_success:
             # remove print and check if it still works
-            tmp = self._previous_code + "\n" + remove_print(pycode) + "\n"
+            tmp = self._previous_code + "\n" + _remove_print(pycode) + "\n"
             rcode, _, _ = execute_code(tmp, **self._code_execution_config)
         else:
             # only add imports and check if it works
@@ -286,11 +262,14 @@ class MathUserProxyAgent(UserProxyAgent):
         return output, is_success
 
     def execute_one_wolfram_query(self, query: str):
-        """
-        Run one wolfram query and return the output.
-        return:
-            output: string with the output of the query
-            is_success: boolean indicating whether the query was successful
+        """Run one wolfram query and return the output.
+
+        Args:
+            query: string of the query.
+
+        Returns:
+            output: string with the output of the query.
+            is_success: boolean indicating whether the query was successful.
         """
         # wolfram query handler
         wolfram = WolframAlphaAPIWrapper()
@@ -300,9 +279,9 @@ class MathUserProxyAgent(UserProxyAgent):
             is_success = False
         return output, is_success
 
-    def auto_reply(self, sender: "Agent", default_reply: Union[str, Dict] = ""):
+    def auto_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
         """Generate an auto reply."""
-        message = self.oai_conversations[sender.name][-1]
+        message = messages[-1]
         message = message.get("content", "")
         code_blocks = extract_code(message)
 
@@ -345,7 +324,7 @@ class MathUserProxyAgent(UserProxyAgent):
         return reply
 
 
-# Imported from langchain. Langchain is licensed under MIT License:
+# Modified based on langchain. Langchain is licensed under MIT License:
 # The MIT License
 
 # Copyright (c) Harrison Chase
@@ -385,7 +364,6 @@ def get_from_dict_or_env(data: Dict[str, Any], key: str, env_key: str, default: 
         )
 
 
-# Imported from langchain
 class WolframAlphaAPIWrapper(BaseModel):
     """Wrapper for Wolfram Alpha.
 
@@ -453,11 +431,11 @@ class WolframAlphaAPIWrapper(BaseModel):
                 )
             assumption = next(res.pods).text
             answer = ""
-            for r in res["pod"]:
-                if r["@title"] == "Solution":
-                    answer = r["subpod"]["plaintext"]
-                if r["@title"] == "Results" or r["@title"] == "Solutions":
-                    for i, sub in enumerate(r["subpod"]):
+            for result in res["pod"]:
+                if result["@title"] == "Solution":
+                    answer = result["subpod"]["plaintext"]
+                if result["@title"] == "Results" or result["@title"] == "Solutions":
+                    for i, sub in enumerate(result["subpod"]):
                         answer += f"ans {i}: " + sub["plaintext"] + "\n"
                     break
             if answer == "":
@@ -472,6 +450,5 @@ class WolframAlphaAPIWrapper(BaseModel):
         if answer is None or answer == "":
             # We don't want to return the assumption alone if answer is empty
             return "No good Wolfram Alpha Result was found", is_success
-        else:
-            is_success = True
-            return f"Assumption: {assumption} \nAnswer: {answer}", is_success
+        is_success = True
+        return f"Assumption: {assumption} \nAnswer: {answer}", is_success

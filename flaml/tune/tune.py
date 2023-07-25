@@ -369,7 +369,7 @@ def run(
         resources_per_trial: A dictionary of the hardware resources to allocate
             per trial, e.g., `{'cpu': 1}`. It is only valid when using ray backend
             (by setting 'use_ray = True'). It shall be used when you need to do
-            [parallel tuning](../../Use-Cases/Tune-User-Defined-Function#parallel-tuning).
+            [parallel tuning](/docs/Use-Cases/Tune-User-Defined-Function#parallel-tuning).
         config_constraints: A list of config constraints to be satisfied.
             e.g., ```config_constraints = [(mem_size, '<=', 1024**3)]```
 

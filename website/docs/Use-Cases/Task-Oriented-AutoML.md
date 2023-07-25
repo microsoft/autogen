@@ -2,7 +2,7 @@
 
 ## Overview
 
-[`flaml.AutoML`](../reference/automl/automl#automl-objects) is a class for task-oriented AutoML. It can be used as a scikit-learn style estimator with the standard `fit` and `predict` functions. The minimal inputs from users are the training data and the task type.
+[`flaml.AutoML`](/docs/reference/automl/automl#automl-objects) is a class for task-oriented AutoML. It can be used as a scikit-learn style estimator with the standard `fit` and `predict` functions. The minimal inputs from users are the training data and the task type.
 
 * Training data:
     - numpy array. When the input data are stored in numpy array, they are passed to `fit()` as `X_train` and `y_train`.
@@ -135,7 +135,7 @@ The estimator list can contain one or more estimator names, each corresponding t
 #### Guidelines on tuning a custom estimator
 
 To tune a custom estimator that is not built-in, you need to:
-1. Build a custom estimator by inheritting [`flaml.model.BaseEstimator`](../reference/automl/model#baseestimator-objects) or a derived class.
+1. Build a custom estimator by inheritting [`flaml.model.BaseEstimator`](/docs/reference/automl/model#baseestimator-objects) or a derived class.
 For example, if you have a estimator class with scikit-learn style `fit()` and `predict()` functions, you only need to set `self.estimator_class` to be that class in your constructor.
 
 ```python
@@ -177,7 +177,7 @@ class MyRegularizedGreedyForest(SKLearnEstimator):
         return space
 ```
 
-In the constructor, we set `self.estimator_class` as `RGFClassifier` or `RGFRegressor` according to the task type. If the estimator you want to tune does not have a scikit-learn style `fit()` and `predict()` API, you can override the `fit()` and `predict()` function of `flaml.model.BaseEstimator`, like [XGBoostEstimator](../reference/automl/model#xgboostestimator-objects). Importantly, we also add the `task="binary"` parameter in the signature of `__init__` so that it doesn't get grouped together with the `**config` kwargs that determines the parameters with which the underlying estimator (`self.estimator_class`) is constructed. If your estimator doesn't use one of the parameters that it is passed, for example some regressors in `scikit-learn` don't use the `n_jobs` parameter, it is enough to add `n_jobs=None` to the signature so that it is ignored by the `**config` dict.
+In the constructor, we set `self.estimator_class` as `RGFClassifier` or `RGFRegressor` according to the task type. If the estimator you want to tune does not have a scikit-learn style `fit()` and `predict()` API, you can override the `fit()` and `predict()` function of `flaml.model.BaseEstimator`, like [XGBoostEstimator](/docs/reference/automl/model#xgboostestimator-objects). Importantly, we also add the `task="binary"` parameter in the signature of `__init__` so that it doesn't get grouped together with the `**config` kwargs that determines the parameters with which the underlying estimator (`self.estimator_class`) is constructed. If your estimator doesn't use one of the parameters that it is passed, for example some regressors in `scikit-learn` don't use the `n_jobs` parameter, it is enough to add `n_jobs=None` to the signature so that it is ignored by the `**config` dict.
 
 2. Give the custom estimator a name and add it in AutoML. E.g.,
 
@@ -198,7 +198,7 @@ This registers the `MyRegularizedGreedyForest` class in AutoML, with the name "r
 Each estimator class, built-in or not, must have a `search_space` function. In the `search_space` function, we return a dictionary about the hyperparameters, the keys of which are the names of the hyperparameters to tune, and each value is a set of detailed search configurations about the corresponding hyperparameters represented in a dictionary. A search configuration dictionary includes the following fields:
 * `domain`, which specifies the possible values of the hyperparameter and their distribution. Please refer to [more details about the search space domain](Tune-User-Defined-Function#more-details-about-the-search-space-domain).
 * `init_value` (optional), which specifies the initial value of the hyperparameter.
-* `low_cost_init_value`(optional), which specifies the value of the hyperparameter that is associated with low computation cost. See [cost related hyperparameters](Tune-User-Defined-Function#cost-related-hyperparameters) or [FAQ](../FAQ#about-low_cost_partial_config-in-tune) for more details.
+* `low_cost_init_value`(optional), which specifies the value of the hyperparameter that is associated with low computation cost. See [cost related hyperparameters](Tune-User-Defined-Function#cost-related-hyperparameters) or [FAQ](/docs/FAQ#about-low_cost_partial_config-in-tune) for more details.
 
 In the example above, we tune four hyperparameters, three integers and one float. They all follow a log-uniform distribution. "max_leaf" and "n_iter" have "low_cost_init_value" specified as their values heavily influence the training cost.
 
@@ -246,7 +246,7 @@ We override the `search_space` function to tune two hyperparameters only, "n_est
 
 ##### A shortcut to override the search space
 
-One can use the `custom_hp` argument in [`AutoML.fit()`](../reference/automl/automl#fit) to override the search space for an existing estimator quickly. For example, if you would like to temporarily change the search range of "n_estimators" of xgboost, disable searching "max_leaves" in random forest, and add "subsample" in the search space of lightgbm, you can set:
+One can use the `custom_hp` argument in [`AutoML.fit()`](/docs/reference/automl/automl#fit) to override the search space for an existing estimator quickly. For example, if you would like to temporarily change the search range of "n_estimators" of xgboost, disable searching "max_leaves" in random forest, and add "subsample" in the search space of lightgbm, you can set:
 
 ```python
 custom_hp = {
@@ -414,13 +414,13 @@ To do parallel tuning with Spark, install the `spark` and `blendsearch` options:
 pip install flaml[spark,blendsearch]>=1.1.0
 ```
 
-For more details about installing Spark, please refer to [Installation](../Installation#distributed-tuning).
+For more details about installing Spark, please refer to [Installation](/docs/Installation#distributed-tuning).
 
 An example of using Spark for parallel tuning is:
 ```python
 automl.fit(X_train, y_train, n_concurrent_trials=4, use_spark=True)
 ```
-Details about parallel tuning with Spark could be found [here](../Examples/Integrate%20-%20Spark#parallel-spark-jobs). For Spark clusters, by default, we will launch one trial per executor. However, sometimes we want to launch more trials than the number of executors (e.g., local mode). In this case, we can set the environment variable `FLAML_MAX_CONCURRENT` to override the detected `num_executors`. The final number of concurrent trials will be the minimum of `n_concurrent_trials` and `num_executors`. Also, GPU training is not supported yet when use_spark is True.
+Details about parallel tuning with Spark could be found [here](/docs/Examples/Integrate%20-%20Spark#parallel-spark-jobs). For Spark clusters, by default, we will launch one trial per executor. However, sometimes we want to launch more trials than the number of executors (e.g., local mode). In this case, we can set the environment variable `FLAML_MAX_CONCURRENT` to override the detected `num_executors`. The final number of concurrent trials will be the minimum of `n_concurrent_trials` and `num_executors`. Also, GPU training is not supported yet when use_spark is True.
 
 #### **Guidelines on parallel vs sequential tuning**
 
@@ -527,7 +527,7 @@ print(automl.model)
 # <flaml.model.LGBMEstimator object at 0x7f9b502c4550>
 ```
 
-[`flaml.model.LGBMEstimator`](../reference/automl/model#lgbmestimator-objects) is a wrapper class for LightGBM models. To access the underlying model, use the `estimator` property of the `flaml.model.LGBMEstimator` instance.
+[`flaml.model.LGBMEstimator`](/docs/reference/automl/model#lgbmestimator-objects) is a wrapper class for LightGBM models. To access the underlying model, use the `estimator` property of the `flaml.model.LGBMEstimator` instance.
 
 ```python
 print(automl.model.estimator)

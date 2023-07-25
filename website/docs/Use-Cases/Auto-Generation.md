@@ -5,7 +5,7 @@
 ## Features
 
 * An enhanced inference API as a drop-in replacement of `openai.Completion.create` or `openai.ChatCompletion.create`. It allows easy performance tuning and advanced usage patterns, including:
-  - Leveraging [`flaml.tune`](../reference/tune/tune) to adapt LLMs to applications, to maximize the utility out of using expensive foundation models and reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
+  - Leveraging [`flaml.tune`](/docs/reference/tune/tune) to adapt LLMs to applications, to maximize the utility out of using expensive foundation models and reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
   - Utilities like API unification, caching, error handling, multi-config inference, context programming etc.
 * A higher-level abstraction of using foundation models: intelligent agents which can perform tasks autonomously or with human feedback. The same abstraction allows both automated feedback and human feedback sent between agents, so that complex tasks can be accomplished, including tasks that require using tools via code.
 
@@ -13,7 +13,7 @@ The package is under active development with more features upcoming.
 
 ## Agents (Experimental)
 
-[`flaml.autogen.agent`](../reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
+[`flaml.autogen.agent`](/docs/reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
 
 We have designed different classes of Agents that are capable of communicating with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages.
 
@@ -141,7 +141,7 @@ user.initiate_chat(
 
 ## Enhanced Inference
 
-One can use [`flaml.oai.Completion.create`](../reference/autogen/oai/completion#create) to perform inference.
+One can use [`flaml.oai.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
 There are a number of benefits of using `flaml.oai.Completion.create` to perform inference.
 
 ### Tune Inference Parameters
@@ -193,7 +193,7 @@ def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     return {"success": is_equivalent(answer, solution)}
 ```
 
-[`flaml.autogen.code_utils`](../reference/autogen/code_utils) and [`flaml.autogen.math_utils`](../reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
+[`flaml.autogen.code_utils`](/docs/reference/autogen/code_utils) and [`flaml.autogen.math_utils`](/docs/reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
 
 #### Metric to optimize
 
@@ -222,7 +222,7 @@ The optimization budget refers to the total budget allowed in the tuning process
 
 #### Perform tuning
 
-Now, you can use [`flaml.oai.Completion.tune`](../reference/autogen/oai/completion#tune) for tuning. For example,
+Now, you can use [`flaml.oai.Completion.tune`](/docs/reference/autogen/oai/completion#tune) for tuning. For example,
 
 ```python
 from flaml import oai
@@ -239,11 +239,11 @@ config, analysis = oai.Completion.tune(
 ```
 
 `num_samples` is the number of configurations to sample. -1 means unlimited (until optimization budget is exhausted).
-The returned `config` contains the optimized configuration and `analysis` contains an [ExperimentAnalysis](../reference/tune/analysis#experimentanalysis-objects) object for all the tried configurations and results.
+The returned `config` contains the optimized configuration and `analysis` contains an [ExperimentAnalysis](/docs/reference/tune/analysis#experimentanalysis-objects) object for all the tried configurations and results.
 
 The tuend config can be used to perform inference.
 
-*Refer to this [page](../Examples/AutoGen-OpenAI) for a full example. Or check the following notebook examples:*
+*Refer to this [page](/docs/Examples/AutoGen-OpenAI) for a full example. Or check the following notebook examples:*
 * [Optimize for Code Generation](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
 * [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
 
@@ -253,13 +253,13 @@ The tuend config can be used to perform inference.
 `flaml.oai.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
 When chat models are used and `prompt` is given as the input to `flaml.oai.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
 
-For local LLMs, one can spin up an endpoint using a package like [simple_ai_server](https://github.com/lhenault/simpleAI) and [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](../../blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
+For local LLMs, one can spin up an endpoint using a package like [simple_ai_server](https://github.com/lhenault/simpleAI) and [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
 When only working with the chat-based models, `flaml.oai.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
 
 ### Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](../reference/autogen/oai/completion#set_cache) or specifying in `create()`.
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](/docs/reference/autogen/oai/completion#set_cache) or specifying in `create()`.
 
 ### Error handling
 
@@ -506,25 +506,25 @@ The compact history is more efficient and the individual API call history contai
 
 ### Other Utilities
 
-- a [`cost`](../reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
-- a [`test`](../reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
-- an [`extract_text_or_function_call`](../reference/autogen/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
+- a [`cost`](/docs/reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
+- a [`test`](/docs/reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
+- an [`extract_text_or_function_call`](/docs/reference/autogen/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
 
 
 ## Utilities for Applications
 
 ### Code
 
-[`flaml.autogen.code_utils`](../reference/autogen/code_utils) offers code-related utilities, such as:
-- a [`improve_code`](../reference/autogen/code_utils#improve_code) function to improve code for a given objective.
-- a [`generate_assertions`](../reference/autogen/code_utils#generate_assertions) function to generate assertion statements from function signature and docstr.
-- a [`implement`](../reference/autogen/code_utils#implement) function to implement a function from a definition.
-- a [`eval_function_completions`](../reference/autogen/code_utils#eval_function_completions) function to evaluate the success of a function completion task, or select a response from a list of responses using generated assertions.
+[`flaml.autogen.code_utils`](/docs/reference/autogen/code_utils) offers code-related utilities, such as:
+- a [`improve_code`](/docs/reference/autogen/code_utils#improve_code) function to improve code for a given objective.
+- a [`generate_assertions`](/docs/reference/autogen/code_utils#generate_assertions) function to generate assertion statements from function signature and docstr.
+- a [`implement`](/docs/reference/autogen/code_utils#implement) function to implement a function from a definition.
+- a [`eval_function_completions`](/docs/reference/autogen/code_utils#eval_function_completions) function to evaluate the success of a function completion task, or select a response from a list of responses using generated assertions.
 
 ### Math
 
-[`flaml.autogen.math_utils`](../reference/autogen/math_utils) offers utilities for math problems, such as:
-- a [eval_math_responses](../reference/autogen/math_utils#eval_math_responses) function to select a response using voting, and check if the final answer is correct if the canonical solution is provided.
+[`flaml.autogen.math_utils`](/docs/reference/autogen/math_utils) offers utilities for math problems, such as:
+- a [eval_math_responses](/docs/reference/autogen/math_utils#eval_math_responses) function to select a response using voting, and check if the final answer is correct if the canonical solution is provided.
 
 
 *Interested in the research that leads to this package? Please check the following papers.*

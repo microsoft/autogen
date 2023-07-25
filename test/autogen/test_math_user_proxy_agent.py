@@ -1,5 +1,5 @@
 from flaml import oai
-from flaml.autogen.agent.math_user_proxy_agent import MathUserProxyAgent, remove_print, add_print_to_last_line
+from flaml.autogen.agent.math_user_proxy_agent import MathUserProxyAgent, _remove_print, _add_print_to_last_line
 import pytest
 import sys
 
@@ -32,9 +32,11 @@ def test_math_user_proxy_agent():
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
-        request_timeout=600,
-        seed=42,
-        config_list=config_list,
+        oai_config={
+            "request_timeout": 600,
+            "seed": 42,
+            "config_list": config_list,
+        },
     )
 
     mathproxyagent = MathUserProxyAgent(name="MathChatAgent", human_input_mode="NEVER")
@@ -51,15 +53,15 @@ def test_math_user_proxy_agent():
 def test_add_remove_print():
     # test add print
     code = "a = 4\nb = 5\na,b"
-    assert add_print_to_last_line(code) == "a = 4\nb = 5\nprint(a,b)"
+    assert _add_print_to_last_line(code) == "a = 4\nb = 5\nprint(a,b)"
 
     # test remove print
     code = """print("hello")\na = 4*5\nprint("wolrld")"""
-    assert remove_print(code) == "a = 4*5"
+    assert _remove_print(code) == "a = 4*5"
 
     # test remove print. Only remove prints without indentation
     code = "if 4 > 5:\n\tprint('True')"
-    assert remove_print(code) == code
+    assert _remove_print(code) == code
 
 
 @pytest.mark.skipif(
