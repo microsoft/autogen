@@ -1,0 +1,28 @@
+name: Temporary administrator access request
+description: Request for temporary repository administrator access to this repository, a.k.a Just-in-Time (JIT) access.
+title: "JIT Request"
+labels: ["jit"]
+assignees:
+  - gimsvc_1essec
+  - 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        :closed_lock_with_key: Permanent repository administrator access is not allowed as per Microsoft security policy. You can use this form to request for temporary administrator access to this repository.
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification
+      description: Describe the actions that you will perform with your temporary administrator access.
+      placeholder: I need to create secrets.
+    validations:
+      required: true
+  - type: dropdown
+    id: duration
+    attributes:
+      label: Duration (hours)
+      description: How long do you need access for? The duration you select is in hours. If you do not specify the duration, it will be defaulted to 2 hours. 
+      options:
+        - 1
+        - 2
