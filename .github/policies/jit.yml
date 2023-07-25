@@ -1,0 +1,20 @@
+# Documentation for JIT policy: https://aka.ms/gim/docs/policy/jit
+
+# metadata
+id: id
+name: JIT_Access
+description: Policy for admin JIT for repos in this org
+
+# filters
+resource: repository
+
+# primitive configuration
+configuration:
+    jitAccess:
+        enabled: true
+        maxHours: 2
+        approvers:
+            role: Maintain
+        requestors:
+            role: Write
+
