@@ -1,13 +1,18 @@
-from .generic_agent import GenericAgent
+from .responsive_agent import ResponsiveAgent
 from typing import Callable, Dict, Optional, Union
 
 
-class UserProxyAgent(GenericAgent):
+class UserProxyAgent(ResponsiveAgent):
     """(Experimental) A proxy agent for the user, that can execute code and provide feedback to the other agents.
 
-    UserProxyAgent is a subclass of GenericAgent configured with `human_input_mode` to ALWAYS
+    UserProxyAgent is a subclass of ResponsiveAgent configured with `human_input_mode` to ALWAYS
     and `oai_config` to False. By default, the agent will prompt for human input every time a message is received.
     Code execution is enabled by default. LLM-based auto reply is disabled by default.
+    To modify auto reply, override `generate_reply` method.
+    To modify the way to get human input, override `get_human_input` method.
+    To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
+    `run_code`, and `execute_function` methods respectively.
+    To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
     def __init__(

@@ -1,8 +1,9 @@
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 
 class Agent:
     """(Experimental) An abstract class for AI agent.
+
     An agent can communicate with other agents and perform actions.
     Different agents can differ in what actions they perform in the `receive` method.
     """
@@ -31,3 +32,13 @@ class Agent:
 
     def reset(self):
         """(Abstract method) Reset the agent."""
+
+    def generate_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
+        """(Abstract method) Generate a reply based on the received messages.
+
+        Args:
+            messages (list[dict]): a list of messages received.
+            default_reply (str or dict): the default reply if no other reply is generated.
+        Returns:
+            str or dict: the generated reply.
+        """

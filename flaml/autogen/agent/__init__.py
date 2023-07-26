@@ -1,7 +1,7 @@
 from .agent import Agent
-from .generic_agent import GenericAgent
+from .responsive_agent import ResponsiveAgent
 from .assistant_agent import AssistantAgent
 from .user_proxy_agent import UserProxyAgent
 
 
-__all__ = ["Agent", "GenericAgent", "AssistantAgent", "UserProxyAgent"]
+__all__ = ["Agent", "ResponsiveAgent", "AssistantAgent", "UserProxyAgent"]

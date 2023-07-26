@@ -279,7 +279,7 @@ class MathUserProxyAgent(UserProxyAgent):
             is_success = False
         return output, is_success
 
-    def auto_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
+    def generate_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
         """Generate an auto reply."""
         message = messages[-1]
         message = message.get("content", "")
