@@ -6,11 +6,19 @@ from .agent import Agent
 from flaml.autogen.code_utils import DEFAULT_MODEL, UNKNOWN, execute_code, extract_code, infer_lang
 
 
-class GenericAgent(Agent):
-    """(Experimental) An generic agent which can be configured as assistant or user proxy.
+class ResponsiveAgent(Agent):
+    """(Experimental) A class for generic responsive agents which can be configured as assistant or user proxy.
 
-    For example, AssistantAgent and UserProxyAgent are subclasses of GenericAgent,
+    After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
+    For example, AssistantAgent and UserProxyAgent are subclasses of ResponsiveAgent,
     configured with different default settings.
+
+    To modify auto reply, override `generate_reply` method.
+    To disable/enable human response in every turn, set `human_input_mode` to "NEVER" or "ALWAYS".
+    To modify the way to get human input, override `get_human_input` method.
+    To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
+    `run_code`, and `execute_function` methods respectively.
+    To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
     DEFAULT_CONFIG = {
@@ -24,7 +32,7 @@ class GenericAgent(Agent):
         system_message: Optional[str] = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, bool]] = None,
         oai_config: Optional[Union[Dict, bool]] = None,
@@ -220,7 +228,7 @@ class GenericAgent(Agent):
         self._consecutive_auto_reply_counter[sender.name] += 1
         if self.human_input_mode != "NEVER":
             print("\n>>>>>>>> NO HUMAN INPUT RECEIVED. USING AUTO REPLY FOR THE USER...", flush=True)
-        self.send(self.auto_reply(self._oai_conversations[sender.name], default_reply=reply), sender)
+        self.send(self.generate_reply(self._oai_conversations[sender.name], default_reply=reply), sender)
 
     def reset(self):
         """Reset the agent."""
@@ -232,7 +240,7 @@ class GenericAgent(Agent):
         response = oai.ChatCompletion.create(messages=self._oai_system_message + messages, **self.oai_config)
         return oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
-    def auto_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
+    def generate_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
         """Reply based on the conversation history.
 
         First, execute function or code and return the result.

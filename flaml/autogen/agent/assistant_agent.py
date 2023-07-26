@@ -1,11 +1,11 @@
-from .generic_agent import GenericAgent
+from .responsive_agent import ResponsiveAgent
 from typing import Callable, Dict, Optional, Union
 
 
-class AssistantAgent(GenericAgent):
+class AssistantAgent(ResponsiveAgent):
     """(Experimental) Assistant agent, designed to solve a task with LLM.
 
-    AssistantAgent is a subclass of GenericAgent configured with a default system message.
+    AssistantAgent is a subclass of ResponsiveAgent configured with a default system message.
     The default system message is designed to solve a task with LLM,
     including suggesting python code blocks and debugging.
     `human_input_mode` is default to "NEVER"
@@ -49,7 +49,7 @@ class AssistantAgent(GenericAgent):
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             **kwargs (dict): Please refer to other kwargs in
-                [GenericAgent](generic_agent#__init__).
+                [ResponsiveAgent](responsive_agent#__init__).
         """
         super().__init__(
             name,

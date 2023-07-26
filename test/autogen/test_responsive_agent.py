@@ -1,12 +1,12 @@
 import sys
 from io import StringIO
 import pytest
-from flaml.autogen.agent import GenericAgent
+from flaml.autogen.agent import ResponsiveAgent
 
 
-def test_generic_agent(monkeypatch):
-    dummy_agent_1 = GenericAgent(name="dummy_agent_1")
-    dummy_agent_2 = GenericAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
+def test_responsive_agent(monkeypatch):
+    dummy_agent_1 = ResponsiveAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
+    dummy_agent_2 = ResponsiveAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
 
     monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.receive("hello", dummy_agent_2)  # receive a str
@@ -45,4 +45,4 @@ def test_generic_agent(monkeypatch):
 
 
 if __name__ == "__main__":
-    test_generic_agent(pytest.monkeypatch)
+    test_responsive_agent(pytest.monkeypatch)
