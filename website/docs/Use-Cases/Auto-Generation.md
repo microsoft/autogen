@@ -7,13 +7,13 @@
 * An enhanced inference API as a drop-in replacement of `openai.Completion.create` or `openai.ChatCompletion.create`. It allows easy performance tuning and advanced usage patterns, including:
   - Leveraging [`flaml.tune`](/docs/reference/tune/tune) to adapt LLMs to applications, to maximize the utility out of using expensive foundation models and reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
   - Utilities like API unification, caching, error handling, multi-config inference, context programming etc.
-* A higher-level abstraction of using foundation models: intelligent agents which can perform tasks autonomously or with human feedback. The same abstraction allows both automated feedback and human feedback sent between agents, so that complex tasks can be accomplished, including tasks that require using tools via code.
+* A higher-level abstraction of using foundation models: intelligent agents which can perform tasks autonomously or with human feedback. The same abstraction allows both automated feedback and human feedback sent between agents, so that complex tasks can be accomplished via agent collaborations, including tasks that require using tools via code.
 
 The package is under active development with more features upcoming.
 
 ## Agents (Experimental)
 
-[`flaml.autogen.agent`](/docs/reference/autogen/agent/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
+[`flaml.autogen.agentchat`](/docs/reference/autogen/agentchat/agent) contains an experimental implementation of interactive agents which can adapt to human or simulated feedback. This subpackage is under active development.
 
 We have designed different classes of Agents that are capable of communicating with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages.
 
@@ -57,7 +57,7 @@ In the example above, we create an AssistantAgent named "assistant" to serve as 
 4. The assistant then generates a further response for the user_proxy. The user_proxy can then decide whether to terminate the conversation. If not, steps 3 and 4 are repeated.
 
 Please find a visual illustration of how UserProxyAgent and AssistantAgent collaboratively solve the above task below:
-![Agent Example](images/agent_example.png)
+![Agent Chat Example](images/agent_example.png)
 
 #### Human Input Mode
 The `human_input_mode` parameter of `UserProxyAgent` controls the behavior of the agent when it receives a message. It can be set to `"NEVER"`, `"ALWAYS"`, or `"TERMINATE"`.
@@ -125,19 +125,19 @@ user.initiate_chat(
 ```
 
 *Interested in trying it yourself? Please check the following notebook examples:*
-* [Interactive LLM Agent with Auto Feedback from Code Execution](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_auto_feedback_from_code_execution.ipynb)
+* [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
 
-* [Interactive LLM Agent with Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_human_feedback.ipynb)
+* [Task Solving with Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
 
-* [Interactive LLM Agent Dealing with Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_web_info.ipynb)
+* [Solve Tasks Requiring Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_web_info.ipynb)
 
-* [Using MathChat to Solve Math Problems](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_MathChat.ipynb)
+* [Using MathChat to Solve Math Problems](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_MathChat.ipynb)
 
-* [Interactive LLM Agent with Function Calls](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_function_call.ipynb)
+* [Use Provided Tools as Functions](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_function_call.ipynb)
 
-* [Multi-Agent Communication and Planning](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_planning.ipynb)
+* [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_planning.ipynb)
 
-* [Multi-Agent Multi-User Application](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agent_two_users.ipynb)
+* [Automated Task Solving with Multiple Human Users](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_two_users.ipynb)
 
 ## Enhanced Inference
 

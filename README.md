@@ -82,11 +82,11 @@ Use the following guides to get started with FLAML in .NET:
     # perform inference for a test instance
     response = oai.Completion.create(context=test_instance, **config)
     ```
-    - LLM-driven intelligent agents which can perform tasks autonomously or with human feedback, including tasks that require using tools via code.
+    - LLM-driven intelligent agents which can collaborately perform tasks autonomously or with human feedback, including tasks that require using tools via code.
     ```python
     assistant = AssistantAgent("assistant")
-    user = UserProxyAgent("user", human_input_mode="TERMINATE")
-    assistant.receive("Draw a rocket and save to a file named 'rocket.svg'")
+    user_proxy = UserProxyAgent("user_proxy")
+    user_proxy.initiate_chat("Show me the YTD gain of 10 largest technology companies as of today.")
     ```
 * With three lines of code, you can start using this economical and fast
 AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).

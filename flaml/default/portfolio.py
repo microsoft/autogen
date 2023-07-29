@@ -42,7 +42,7 @@ def config_predictor_tuple(tasks, configs, meta_features, regret_matrix):
         .apply(lambda row: row.apply(lambda x: (x, row.name)), axis=1)
     )
     print(regret)
-    preferences = np.argsort(regret, axis=0)
+    preferences = pd.DataFrame(np.argsort(regret, axis=0), columns=regret.columns)
     print(preferences)
     return (meta_features_norm, preferences, proc)
 
@@ -119,12 +119,11 @@ def serialize(configs, regret, meta_features, output_file, config_path):
         "portfolio": portfolio,
         "preprocessing": proc,
         "neighbors": [
-            {"features": tuple(x), "choice": _filter(preferences[y], regret[y])}
+            {"features": x.tolist(), "choice": _filter(preferences[y], regret[y])}
             for x, y in zip(meta_features_norm.to_records(index=False), preferences.columns)
         ],
         "configsource": list(configs),
     }
-
     with open(output_file, "w+") as f:
         json.dump(meta_predictor, f, indent=4)
     return meta_predictor

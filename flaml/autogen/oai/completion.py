@@ -1,10 +1,10 @@
 from time import sleep
 import logging
-import numpy as np
 import time
-from typing import List, Optional, Dict, Callable, Any
+from typing import List, Optional, Dict, Callable, Union
 import sys
 import shutil
+import numpy as np
 from flaml import tune, BlendSearch
 from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
@@ -792,15 +792,15 @@ class Completion(openai_Completion):
             return cls._get_response(params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout)
 
     @classmethod
-    def _instantiate(cls, template: str, context: Optional[Dict] = None):
-        if not context:
+    def _instantiate(cls, template: Union[str, None], context: Optional[Dict] = None):
+        if not context or template is None:
             return template
         if isinstance(template, str):
             return template.format(**context)
         return template(context)
 
     @classmethod
-    def _construct_params(cls, data_instance, config, prompt=None, messages=None):
+    def _construct_params(cls, context, config, prompt=None, messages=None):
         params = config.copy()
         model = config["model"]
         prompt = config.get("prompt") if prompt is None else prompt
@@ -814,12 +814,14 @@ class Completion(openai_Completion):
             params["messages"] = (
                 [
                     {
-                        "role": m["role"],
-                        "content": cls._instantiate(m["content"], data_instance),
+                        **m,
+                        "content": cls._instantiate(m["content"], context),
                     }
+                    if m.get("content")
+                    else m
                     for m in messages
                 ]
-                if data_instance
+                if context
                 else messages
             )
         elif model in cls.chat_models or issubclass(cls, ChatCompletion):
@@ -827,12 +829,12 @@ class Completion(openai_Completion):
             params["messages"] = [
                 {
                     "role": "user",
-                    "content": cls._instantiate(prompt, data_instance),
+                    "content": cls._instantiate(prompt, context),
                 },
             ]
             params.pop("prompt", None)
         else:
-            params["prompt"] = cls._instantiate(prompt, data_instance)
+            params["prompt"] = cls._instantiate(prompt, context)
         return params
 
     @classmethod

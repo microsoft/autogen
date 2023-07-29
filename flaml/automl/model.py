@@ -60,6 +60,11 @@ try:
 except ImportError:
     resource = None
 
+try:
+    from lightgbm import LGBMClassifier, LGBMRegressor, LGBMRanker
+except ImportError:
+    LGBMClassifier = LGBMRegressor = LGBMRanker = None
+
 logger = logging.getLogger("flaml.automl")
 # FREE_MEM_RATIO = 0.2
 
@@ -1300,17 +1305,10 @@ class LGBMEstimator(BaseEstimator):
             self.params["verbose"] = -1
 
         if self._task.is_classification():
-            from lightgbm import LGBMClassifier
-
             self.estimator_class = LGBMClassifier
-
         elif task == "rank":
-            from lightgbm import LGBMRanker
-
             self.estimator_class = LGBMRanker
         else:
-            from lightgbm import LGBMRegressor
-
             self.estimator_class = LGBMRegressor
 
         self._time_per_iter = None

@@ -62,7 +62,7 @@ def test_eval_math_responses():
 
 
 def test_json_extraction():
-    from flaml.autogen.agent import UserProxyAgent
+    from flaml.autogen.agentchat import UserProxyAgent
 
     user = UserProxyAgent(name="test", code_execution_config={"use_docker": False})
 
@@ -77,7 +77,7 @@ def test_json_extraction():
 
 
 def test_execute_function():
-    from flaml.autogen.agent import UserProxyAgent
+    from flaml.autogen.agentchat import UserProxyAgent
 
     # 1. test calling a simple function
     def add_num(num_to_be_added):

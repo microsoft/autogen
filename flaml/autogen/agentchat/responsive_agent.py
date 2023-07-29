@@ -46,7 +46,7 @@ class ResponsiveAgent(Agent):
                 The dict can contain the following keys: "content", "role", "name", "function_call".
             max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
-                The limit only plays a role when human_input_mode is not "ALWAYS".
+                When set to 0, no auto reply will be generated.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
                 (1) When "ALWAYS", the agent prompts for human input every time a message is received.
@@ -104,6 +104,27 @@ class ResponsiveAgent(Agent):
         """A dictionary of conversations from name to list of oai messages."""
         return self._oai_conversations
 
+    def last_message(self, agent: Optional[Agent] = None) -> Dict:
+        """The last message exchanged with the agent.
+
+        Args:
+            agent (Agent): The agent in the conversation.
+                If None and more than one agent's conversations are found, an error will be raised.
+                If None and only one conversation is found, the last message of the only conversation will be returned.
+
+        Returns:
+            The last message exchanged with the agent.
+        """
+        if agent is None:
+            n_conversations = len(self._oai_conversations)
+            if n_conversations == 0:
+                return None
+            if n_conversations == 1:
+                for conversation in self._oai_conversations.values():
+                    return conversation[-1]
+            raise ValueError("More than one conversation is found. Please specify the sender to get the last message.")
+        return self._oai_conversations[agent.name][-1]
+
     @property
     def use_docker(self) -> Union[bool, str, None]:
         """Bool value of whether to use docker to execute the code,
@@ -147,11 +168,43 @@ class ResponsiveAgent(Agent):
         return True
 
     def send(self, message: Union[Dict, str], recipient: "Agent"):
-        """Send a message to another agent."""
-        # When the agent composes and sends the message, the role of the message is "assistant". (If 'role' exists and is 'function', it will remain unchanged.)
+        """Send a message to another agent.
+
+        Args:
+            message (dict or str): message to be sent.
+                The message could contain the following fields (either content or function_call must be provided):
+                - content (str): the content of the message.
+                - function_call (str): the name of the function to be called.
+                - name (str): the name of the function to be called.
+                - role (str): the role of the message, any role that is not "function"
+                    will be modified to "assistant".
+                - context (dict): the context of the message, which will be passed to
+                    [oai.Completion.create](../oai/Completion#create).
+                    For example, one agent can send a message A as:
+            ```python
+            {
+                "content": "{use_tool_msg}",
+                "context": {
+                    "use_tool_msg": "Use tool X if they are relevant."
+                }
+            }
+            ```
+                    Next time, one agent can send a message B with a different "use_tool_msg".
+                    Then the content of message A will be refreshed to the new "use_tool_msg".
+                    So effectively, this provides a way for an agent to send a "link" and modify
+                    the content of the "link" later.
+            recipient (Agent): the recipient of the message.
+
+        Raises:
+            ValueError: if the message is not a valid oai message.
+        """
+        # When the agent composes and sends the message, the role of the message is "assistant"
+        # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient.name)
         if valid:
             recipient.receive(message, self)
+        else:
+            raise ValueError("Message is not a valid oai message. Either content or function_call must be provided.")
 
     def _print_received_message(self, message: Union[Dict, str], sender: "Agent"):
         # print the message received
@@ -200,35 +253,63 @@ class ResponsiveAgent(Agent):
 
         # default reply is empty (i.e., no reply, in this case we will try to generate auto reply)
         reply = ""
+        no_human_input_msg = ""
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
-                "Provide feedback to the sender. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
-        elif self._consecutive_auto_reply_counter[
-            sender.name
-        ] >= self.max_consecutive_auto_reply or self._is_termination_msg(message):
-            if self.human_input_mode == "TERMINATE":
-                reply = self.get_human_input(
-                    "Please give feedback to the sender. (Press enter or type 'exit' to stop the conversation): "
-                )
-                reply = reply if reply else "exit"
-            else:
-                # this corresponds to the case when self._human_input_mode == "NEVER"
-                reply = "exit"
-        if reply == "exit" or (self._is_termination_msg(message) and not reply):
+            no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+            # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+            reply = reply if reply or not self._is_termination_msg(message) else "exit"
+        else:
+            if self._consecutive_auto_reply_counter[sender.name] >= self.max_consecutive_auto_reply:
+                if self.human_input_mode == "NEVER":
+                    reply = "exit"
+                else:
+                    # self.human_input_mode == "TERMINATE":
+                    terminate = self._is_termination_msg(message)
+                    reply = self.get_human_input(
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        if terminate
+                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                    )
+                    no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+                    # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+                    reply = reply if reply or not terminate else "exit"
+            elif self._is_termination_msg(message):
+                if self.human_input_mode == "NEVER":
+                    reply = "exit"
+                else:
+                    # self.human_input_mode == "TERMINATE":
+                    reply = self.get_human_input(
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                    )
+                    no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+                    # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+                    reply = reply or "exit"
+
+        # print the no_human_input_msg
+        if no_human_input_msg:
+            print(f"\n>>>>>>>> {no_human_input_msg}", flush=True)
+
+        # stop the conversation
+        if reply == "exit":
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender.name] = 0
             return
-        if reply:
+
+        # send the human reply
+        if reply or self.max_consecutive_auto_reply == 0:
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender.name] = 0
             self.send(reply, sender)
             return
 
+        # send the auto reply
         self._consecutive_auto_reply_counter[sender.name] += 1
         if self.human_input_mode != "NEVER":
-            print("\n>>>>>>>> NO HUMAN INPUT RECEIVED. USING AUTO REPLY FOR THE USER...", flush=True)
-        self.send(self.generate_reply(self._oai_conversations[sender.name], default_reply=reply), sender)
+            print("\n>>>>>>>> USING AUTO REPLY...", flush=True)
+        self.send(self.generate_reply(sender=sender), sender)
 
     def reset(self):
         """Reset the agent."""
@@ -237,23 +318,35 @@ class ResponsiveAgent(Agent):
 
     def _oai_reply(self, messages: List[Dict]) -> Union[str, Dict]:
         # TODO: #1143 handle token limit exceeded error
-        response = oai.ChatCompletion.create(messages=self._oai_system_message + messages, **self.oai_config)
+        response = oai.ChatCompletion.create(
+            context=messages[-1].get("context"), messages=self._oai_system_message + messages, **self.oai_config
+        )
         return oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
-    def generate_reply(self, messages: List[Dict], default_reply: Union[str, Dict] = "") -> Union[str, Dict]:
+    def generate_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        default_reply: Optional[Union[str, Dict]] = "",
+        sender: Optional["Agent"] = None,
+    ) -> Union[str, Dict]:
         """Reply based on the conversation history.
 
         First, execute function or code and return the result.
         AI replies are generated only when no code execution is performed.
         Subclasses can override this method to customize the reply.
+        Either messages or sender must be provided.
 
         Args:
             messages: a list of messages in the conversation history.
             default_reply (str or dict): default reply.
+            sender: sender of an Agent instance.
 
         Returns:
             str or dict: reply.
         """
+        assert messages is not None or sender is not None, "Either messages or sender must be provided."
+        if messages is None:
+            messages = self._oai_conversations[sender.name]
         message = messages[-1]
         if "function_call" in message:
             _, func_return = self.execute_function(message["function_call"])
