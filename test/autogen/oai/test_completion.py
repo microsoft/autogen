@@ -72,19 +72,19 @@ def test_filter():
 
 def test_chatcompletion():
     params = oai.ChatCompletion._construct_params(
-        data_instance=None,
+        context=None,
         config={"model": "unknown"},
         prompt="hi",
     )
     assert "messages" in params
     params = oai.Completion._construct_params(
-        data_instance=None,
+        context=None,
         config={"model": "unknown"},
         prompt="hi",
     )
     assert "messages" not in params
     params = oai.Completion._construct_params(
-        data_instance=None,
+        context=None,
         config={"model": "gpt-4"},
         prompt="hi",
     )

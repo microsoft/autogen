@@ -1,5 +1,9 @@
 from flaml import oai
-from flaml.autogen.agent.math_user_proxy_agent import MathUserProxyAgent, _remove_print, _add_print_to_last_line
+from flaml.autogen.agentchat.contrib.math_user_proxy_agent import (
+    MathUserProxyAgent,
+    _remove_print,
+    _add_print_to_last_line,
+)
 import pytest
 import sys
 
@@ -17,7 +21,7 @@ def test_math_user_proxy_agent():
     except ImportError:
         return
 
-    from flaml.autogen.agent.assistant_agent import AssistantAgent
+    from flaml.autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}
     oai.ChatCompletion.start_logging(conversations)

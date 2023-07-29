@@ -7,6 +7,7 @@ from typing import List, Dict, Tuple, Optional, Union, Callable
 import re
 import time
 from hashlib import md5
+import logging
 from flaml.autogen import oai, DEFAULT_MODEL, FAST_MODEL
 
 # Regular expression for finding a code block
@@ -21,7 +22,7 @@ def infer_lang(code):
     """infer the language for the code.
     TODO: make it robust.
     """
-    if code.startswith("python ") or code.startswith("pip"):
+    if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
         return "sh"
     return "python"
 
@@ -148,6 +149,7 @@ def execute_code(
             If None, the code from the file specified by filename will be executed.
             Either code or filename must be provided.
         timeout (Optional, int): The maximum execution time in seconds.
+            If None, a default timeout will be used. The default timeout is 600 seconds. On Windows, the timeout is not enforced when use_docker=False.
         filename (Optional, str): The file name to save the code or where the code is stored when `code` is None.
             If None, a file with a randomly generated name will be created.
             The randomly generated file will be deleted after execution.
@@ -158,7 +160,7 @@ def execute_code(
             "path_to_flaml/autogen".
         use_docker (Optional, list, str or bool): The docker image to use for code execution.
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
-              with the first image successfully pulled.
+            with the first image successfully pulled.
             If None, False or empty, the code will be executed in the current environment.
             Default is True, which will be converted into a list.
             If the code is executed in the current environment,
@@ -190,20 +192,28 @@ def execute_code(
     if not use_docker or in_docker_container:
         # already running in a docker container
         cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename]
-        signal.signal(signal.SIGALRM, timeout_handler)
-        try:
-            signal.alarm(timeout)
-            # run the code in a subprocess in the current docker container in the working directory
+        if sys.platform == "win32":
+            logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,
                 capture_output=True,
             )
-            signal.alarm(0)
-        except TimeoutError:
-            if original_filename is None:
-                os.remove(filepath)
-            return 1, TIMEOUT_MSG, None
+        else:
+            signal.signal(signal.SIGALRM, timeout_handler)
+            try:
+                signal.alarm(timeout)
+                # run the code in a subprocess in the current docker container in the working directory
+                result = subprocess.run(
+                    cmd,
+                    cwd=work_dir,
+                    capture_output=True,
+                )
+                signal.alarm(0)
+            except TimeoutError:
+                if original_filename is None:
+                    os.remove(filepath)
+                return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
         return result.returncode, result.stderr if result.returncode else result.stdout, None

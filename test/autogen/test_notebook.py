@@ -48,8 +48,8 @@ def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=Fals
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_autogen_agent_auto_feedback_from_code(save=False):
-    run_notebook("autogen_agent_auto_feedback_from_code_execution.ipynb", save=save)
+def test_autogen_agentchat_auto_feedback_from_code(save=False):
+    run_notebook("autogen_agentchat_auto_feedback_from_code_execution.ipynb", save=save)
 
 
 @pytest.mark.skipif(
@@ -64,16 +64,16 @@ def test_autogen_openai_completion(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_autogen_agent_function_call(save=False):
-    run_notebook("autogen_agent_function_call.ipynb", save=save)
+def test_autogen_agentchat_function_call(save=False):
+    run_notebook("autogen_agentchat_function_call.ipynb", save=save)
 
 
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_autogen_agent_MathChat(save=False):
-    run_notebook("autogen_agent_MathChat.ipynb", save=save)
+def test_autogen_agentchat_MathChat(save=False):
+    run_notebook("autogen_agentchat_MathChat.ipynb", save=save)
 
 
 @pytest.mark.skipif(
@@ -85,8 +85,8 @@ def test_autogen_chatgpt_gpt4(save=False):
 
 
 if __name__ == "__main__":
-    test_autogen_agent_auto_feedback_from_code(save=True)
+    test_autogen_agentchat_auto_feedback_from_code(save=True)
     # test_autogen_chatgpt_gpt4(save=True)
     # test_autogen_openai_completion(save=True)
-    # test_autogen_agent_MathChat(save=True)
-    # test_autogen_agent_function_call(save=True)
+    # test_autogen_agentchat_MathChat(save=True)
+    # test_autogen_agentchat_function_call(save=True)

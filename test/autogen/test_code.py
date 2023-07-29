@@ -75,8 +75,14 @@ def test_execute_code():
     # execute code which takes a long time
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1)
     assert exit_code and error.decode() == "Timeout"
+    assert isinstance(image, str)
+
+
+def test_execute_code_no_docker():
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=False)
-    assert exit_code and error.decode() == "Timeout" and image is None
+    if sys.platform != "win32":
+        assert exit_code and error.decode() == "Timeout"
+    assert image is None
 
 
 if __name__ == "__main__":

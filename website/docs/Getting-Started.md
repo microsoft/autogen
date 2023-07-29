@@ -44,8 +44,8 @@ response = oai.Completion.create(context=test_instance, **config)
 - LLM-driven intelligent agents which can perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
 assistant = AssistantAgent("assistant")
-user = UserProxyAgent("user", human_input_mode="TERMINATE")
-assistant.receive("Draw a rocket and save to a file named 'rocket.svg'")
+user_proxy = UserProxyAgent("user_proxy")
+user_proxy.initiate_chat("Show me the YTD gain of 10 largest technology companies as of today.")
 ```
 
 #### [Task-oriented AutoML](/docs/Use-Cases/task-oriented-automl)
