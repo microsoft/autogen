@@ -1508,7 +1508,12 @@ class XGBoostEstimator(SKLearnEstimator):
             params["grow_policy"] = params.get("grow_policy", "lossguide")
             params["tree_method"] = params.get("tree_method", "hist")
         # params["booster"] = params.get("booster", "gbtree")
-        params["use_label_encoder"] = params.get("use_label_encoder", False)
+
+        # use_label_encoder is deprecated in 1.7.
+        from xgboost import __version__ as xgboost_version
+
+        if xgboost_version < "1.7.0":
+            params["use_label_encoder"] = params.get("use_label_encoder", False)
         if "n_jobs" in config:
             params["nthread"] = params.pop("n_jobs")
         return params
