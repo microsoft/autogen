@@ -26,7 +26,7 @@ try:
 
     ERROR = None
 except ImportError:
-    ERROR = ImportError("please install flaml[openai] option to use the flaml.oai subpackage.")
+    ERROR = ImportError("please install flaml[openai] option to use the flaml.autogen.oai subpackage.")
     openai_Completion = object
 logger = logging.getLogger(__name__)
 if not logger.handlers:

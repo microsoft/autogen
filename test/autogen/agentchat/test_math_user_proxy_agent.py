@@ -1,14 +1,12 @@
-from flaml import oai
+import pytest
+import sys
+from flaml import autogen
 from flaml.autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
     _remove_print,
     _add_print_to_last_line,
 )
-import pytest
-import sys
-
-KEY_LOC = "test/autogen"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 
 @pytest.mark.skipif(
@@ -24,9 +22,9 @@ def test_math_user_proxy_agent():
     from flaml.autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}
-    oai.ChatCompletion.start_logging(conversations)
+    autogen.ChatCompletion.start_logging(conversations)
 
-    config_list = oai.config_list_from_json(
+    config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
@@ -36,7 +34,7 @@ def test_math_user_proxy_agent():
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
-        oai_config={
+        llm_config={
             "request_timeout": 600,
             "seed": 42,
             "config_list": config_list,

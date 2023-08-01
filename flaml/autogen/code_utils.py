@@ -8,13 +8,20 @@ import re
 import time
 from hashlib import md5
 import logging
-from flaml.autogen import oai, DEFAULT_MODEL, FAST_MODEL
+from flaml.autogen import oai
 
+try:
+    import docker
+except ImportError:
+    docker = None
+
+DEFAULT_MODEL = "gpt-4"
+FAST_MODEL = "gpt-3.5-turbo"
 # Regular expression for finding a code block
 CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
-TIMEOUT_MSG = bytes("Timeout", "utf-8")
+TIMEOUT_MSG = "Timeout"
 DEFAULT_TIMEOUT = 600
 
 
@@ -45,6 +52,47 @@ def extract_code(text: str, pattern: str = CODE_BLOCK_PATTERN) -> List[Tuple[str
     #     return match.group(2), match.group(1)
     # If no code block is found, return the whole text
     return match if match else [(UNKNOWN, text)]
+
+
+# _FIND_CODE_SYS_MSG = [
+#     {
+#         "role": "system",
+#         "content": """In the following conversation, an assistant suggests code and a user is expected to run it.
+# Read the conversation, and then find all the right code blocks for the user to run next in the right order.
+# Only return the code blocks that are expected to run.
+# Don't include code blocks which have been executed unless the user is requested to run the same block again.
+# When the user needs to run multiple blocks in sequence, make sure to output all the blocks to run in a right order.
+# If the line beginning with "# filename" is put before a code block, move it into the code block as the first line.
+# Make sure to add the right "python" or "sh" identifier if the language identifier is missing for a code block.
+# Don't make other changes to the code blocks.
+# Don't reply anything else if at least one code block is expected to run.
+# If no code block is expeted to run, check whether the task has been successfully finished at full satisfaction.
+# If not, reply with the reason why the task is not finished.""",
+#     },
+# ]
+# _FIND_CODE_CONFIG = {
+#     "model": FAST_MODEL,
+# }
+
+
+# def find_code(messages: List[Dict], sys_msg=None, **config) -> Tuple[List[Tuple[str, str]], str]:
+#     """Find code from a list of messages.
+
+#     Args:
+#         messages (str): The list of messages to find code from.
+#         sys_msg (Optional, str): The system message to prepend to the messages.
+#         config (Optional, dict): The configuration for the API call.
+
+#     Returns:
+#         list: A list of tuples, each containing the language and the code.
+#         str: The generated text by llm.
+#     """
+#     params = {**_FIND_CODE_CONFIG, **config}
+#     if sys_msg is None or not sys_msg[0]["content"]:
+#         sys_msg = _FIND_CODE_SYS_MSG
+#     response = oai.ChatCompletion.create(messages=sys_msg + messages, **params)
+#     content = oai.Completion.extract_text(response)[0]
+#     return extract_code(content), content
 
 
 def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, float]:
@@ -138,9 +186,9 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[Union[List[str], str, bool]] = True,
+    use_docker: Optional[Union[List[str], str, bool]] = docker is not None,
     lang: Optional[str] = "python",
-) -> Tuple[int, bytes, str]:
+) -> Tuple[int, str, str]:
     """Execute code in a docker container.
     This function is not tested on MacOS.
 
@@ -169,7 +217,7 @@ def execute_code(
 
     Returns:
         int: 0 if the code executes successfully.
-        bytes: The error message if the code fails to execute; the stdout otherwise.
+        str: The error message if the code fails to execute; the stdout otherwise.
         image: The docker image name after container run when docker is used.
     """
     assert code is not None or filename is not None, "Either code or filename must be provided."
@@ -216,9 +264,15 @@ def execute_code(
                 return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
-        return result.returncode, result.stderr if result.returncode else result.stdout, None
-
-    import docker
+            abs_path = str(pathlib.Path(filepath).absolute())
+        else:
+            abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
+        if result.returncode:
+            logs = result.stderr.decode("utf-8")
+            logs = logs.replace(str(abs_path), "")
+        else:
+            logs = result.stdout.decode("utf-8")
+        return result.returncode, logs, None
 
     # create a docker client
     client = docker.from_env()
@@ -283,7 +337,8 @@ def execute_code(
     # get the container logs
     logs = container.logs().decode("utf-8").rstrip()
     # commit the image
-    container.commit(repository="python", tag=filename.replace("/", ""))
+    tag = filename.replace("/", "")
+    container.commit(repository="python", tag=tag)
     # remove the container
     container.remove()
     # check if the code executed successfully
@@ -296,11 +351,12 @@ def execute_code(
         # remove the exit code from the logs
         logs = pattern.sub("", logs)
 
-    logs = bytes(logs, "utf-8")
     if original_filename is None:
         os.remove(filepath)
+    if exit_code:
+        logs = logs.replace(f"/workspace/{filename if original_filename is None else ''}", "")
     # return the exit code, logs and image
-    return exit_code, logs, f"python:{filename}"
+    return exit_code, logs, f"python:{tag}"
 
 
 _GENERATE_ASSERTIONS_CONFIG = {

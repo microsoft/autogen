@@ -6,7 +6,7 @@ class UserProxyAgent(ResponsiveAgent):
     """(Experimental) A proxy agent for the user, that can execute code and provide feedback to the other agents.
 
     UserProxyAgent is a subclass of ResponsiveAgent configured with `human_input_mode` to ALWAYS
-    and `oai_config` to False. By default, the agent will prompt for human input every time a message is received.
+    and `llm_config` to False. By default, the agent will prompt for human input every time a message is received.
     Code execution is enabled by default. LLM-based auto reply is disabled by default.
     To modify auto reply, override `generate_reply` method.
     To modify the way to get human input, override `get_human_input` method.
@@ -23,7 +23,8 @@ class UserProxyAgent(ResponsiveAgent):
         human_input_mode: Optional[str] = "ALWAYS",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, bool]] = None,
-        oai_config: Optional[Union[Dict, bool]] = False,
+        default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        llm_config: Optional[Union[Dict, bool]] = False,
         system_message: Optional[str] = "",
     ):
         """
@@ -59,12 +60,13 @@ class UserProxyAgent(ResponsiveAgent):
                     If the code is executed in the current environment,
                     the code must be trusted.
                 - timeout (Optional, int): The maximum execution time in seconds.
-            oai_config (dict or False): oai inference configuration.
-                Please refer to [oai.Completion.create](/docs/reference/autogen/oai/completion#create)
+            default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
+            llm_config (dict or False): llm inference configuration.
+                Please refer to [autogen.Completion.create](/docs/reference/autogen/oai/completion#create)
                 for available options.
-                Default to false, which disables oai-based auto reply.
-            system_message (str): system message for oai inference.
-                Only used when oai_config is not False. Use it to reprogram the agent.
+                Default to false, which disables llm-based auto reply.
+            system_message (str): system message for ChatCompletion inference.
+                Only used when llm_config is not False. Use it to reprogram the agent.
         """
         super().__init__(
             name,
@@ -74,5 +76,6 @@ class UserProxyAgent(ResponsiveAgent):
             human_input_mode,
             function_map,
             code_execution_config,
-            oai_config,
+            llm_config,
+            default_auto_reply,
         )

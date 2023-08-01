@@ -4,15 +4,14 @@ except ImportError:
     openai = None
 import pytest
 import json
-from flaml import oai
+from flaml import autogen
 from flaml.autogen.math_utils import eval_math_responses
-
-KEY_LOC = "test/autogen"
+from test_code import KEY_LOC
 
 
 @pytest.mark.skipif(openai is None, reason="openai not installed")
 def test_eval_math_responses():
-    config_list = oai.config_list_from_models(
+    config_list = autogen.config_list_from_models(
         KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
     )
     functions = [
@@ -36,7 +35,7 @@ def test_eval_math_responses():
             },
         },
     ]
-    response = oai.ChatCompletion.create(
+    response = autogen.ChatCompletion.create(
         config_list=config_list,
         messages=[
             {
@@ -47,7 +46,7 @@ def test_eval_math_responses():
         functions=functions,
     )
     print(response)
-    responses = oai.ChatCompletion.extract_text_or_function_call(response)
+    responses = autogen.ChatCompletion.extract_text_or_function_call(response)
     print(responses[0])
     function_call = responses[0]["function_call"]
     name, arguments = function_call["name"], json.loads(function_call["arguments"])
