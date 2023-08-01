@@ -9,7 +9,7 @@ _MATH_CONFIG = {
 
 
 def solve_problem(problem: str, **config) -> str:
-    """(work in progress) Solve the math problem.
+    """(Experimental) Solve the math problem.
 
     Args:
         problem (str): The problem statement.

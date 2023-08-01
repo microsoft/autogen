@@ -82,9 +82,9 @@ The tuning will be performed under the specified optimization budgets.
 Users can specify tuning data, optimization metric, optimization mode, evaluation function, search spaces etc.
 
 ```python
-from flaml import oai
+from flaml import autogen
 
-config, analysis = oai.Completion.tune(
+config, analysis = autogen.Completion.tune(
     data=tune_data,  # the data for tuning
     metric="success",  # the metric to optimize
     mode="max",  # the optimization mode
@@ -106,7 +106,7 @@ config, analysis = oai.Completion.tune(
 
 #### Output tuning results
 
-After the tuning, we can print out the optimized config and the result found by FLAML:
+After the tuning, we can print out the optimized config and the result:
 
 ```python
 print("optimized config", config)
@@ -118,17 +118,17 @@ print("best result on tuning data", analysis.best_result)
 We can apply the tuned config to the request for an instance:
 
 ```python
-response = oai.Completion.create(context=tune_data[1], **config)
+response = autogen.Completion.create(context=tune_data[1], **config)
 print(response)
-print(eval_with_generated_assertions(oai.Completion.extract_text(response), **tune_data[1]))
+print(eval_with_generated_assertions(autogen.Completion.extract_text(response), **tune_data[1]))
 ```
 
 #### Evaluate the success rate on the test data
 
-You can use flaml's `oai.Completion.test` to evaluate the performance of an entire dataset with the tuned config.
+You can use `autogen.Completion.test` to evaluate the performance of an entire dataset with the tuned config.
 
 ```python
-result = oai.Completion.test(test_data, **config)
+result = autogen.Completion.test(test_data, **config)
 print("performance on test data with the tuned config:", result)
 ```
 

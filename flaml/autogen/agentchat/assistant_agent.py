@@ -27,7 +27,7 @@ class AssistantAgent(ResponsiveAgent):
         self,
         name: str,
         system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
-        oai_config: Optional[Union[Dict, bool]] = None,
+        llm_config: Optional[Union[Dict, bool]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
@@ -37,10 +37,10 @@ class AssistantAgent(ResponsiveAgent):
         """
         Args:
             name (str): agent name.
-            system_message (str): system message for the oai inference.
+            system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
-            oai_config (dict): oai inference configuration.
-                Please refer to [oai.Completion.create](/docs/reference/autogen/oai/completion#create)
+            llm_config (dict): llm inference configuration.
+                Please refer to [autogen.Completion.create](/docs/reference/autogen/oai/completion#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
@@ -58,6 +58,6 @@ class AssistantAgent(ResponsiveAgent):
             max_consecutive_auto_reply,
             human_input_mode,
             code_execution_config=code_execution_config,
-            oai_config=oai_config,
+            llm_config=llm_config,
             **kwargs,
         )

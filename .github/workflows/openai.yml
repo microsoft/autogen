@@ -34,6 +34,10 @@ jobs:
           pip install -e .[autogen,blendsearch]
           python -c "import flaml"
           pip install coverage pytest datasets
+      - name: Install packages for test when needed
+        if: matrix.python-version == '3.9'
+        run: |
+          pip install docker
       - name: Install packages for MathChat when needed
         if: matrix.python-version != '3.11'
         run: |

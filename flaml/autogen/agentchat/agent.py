@@ -38,7 +38,7 @@ class Agent:
         messages: Optional[List[Dict]] = None,
         default_reply: Optional[Union[str, Dict]] = "",
         sender: Optional["Agent"] = None,
-    ) -> Union[str, Dict]:
+    ) -> Union[str, Dict, None]:
         """(Abstract method) Generate a reply based on the received messages.
 
         Args:
@@ -46,5 +46,5 @@ class Agent:
             default_reply (str or dict): the default reply if no other reply is generated.
             sender: sender of an Agent instance.
         Returns:
-            str or dict: the generated reply.
+            str or dict or None: the generated reply. If None, no reply is generated.
         """

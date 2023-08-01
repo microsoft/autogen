@@ -136,6 +136,7 @@ class MathUserProxyAgent(UserProxyAgent):
             Callable[[Dict], bool]
         ] = _is_termination_msg_mathchat,  # terminate if \boxed{} in message
         human_input_mode: Optional[str] = "NEVER",  # Fully automated
+        default_auto_reply: Optional[Union[str, Dict, None]] = DEFAULT_REPLY,
         max_invalid_q_per_step=3,  # a parameter needed in MathChat
         **kwargs,
     ):
@@ -153,6 +154,7 @@ class MathUserProxyAgent(UserProxyAgent):
                     the number of auto reply reaches the max_consecutive_auto_reply.
                 (3) (Default) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
+            default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
             max_invalid_q_per_step (int): (ADDED) the maximum number of invalid queries per step.
             **kwargs (dict): other kwargs in [UserProxyAgent](user_proxy_agent#__init__).
         """
@@ -160,6 +162,7 @@ class MathUserProxyAgent(UserProxyAgent):
             name=name,
             is_termination_msg=is_termination_msg,
             human_input_mode=human_input_mode,
+            default_auto_reply=default_auto_reply,
             **kwargs,
         )
 
@@ -220,14 +223,6 @@ class MathUserProxyAgent(UserProxyAgent):
         return_code, output, _ = execute_code(pycode, **self._code_execution_config, timeout=5)
         is_success = return_code == 0
 
-        # Decode the output
-        if isinstance(output, bytes):
-            try:
-                output = output.decode("utf-8")
-            except UnicodeDecodeError:
-                is_success = False
-                output = "The return cannot be decoded."
-
         if not is_success:
             # Remove the file information from the error string
             pattern = r'File "/[^"]+\.py", line \d+, in .+\n'
@@ -285,11 +280,11 @@ class MathUserProxyAgent(UserProxyAgent):
         self,
         messages: Optional[List[Dict]] = None,
         default_reply: Optional[Union[str, Dict]] = DEFAULT_REPLY,
-        sender: Optional["Agent"] = None,
-    ) -> Union[str, Dict]:
+        sender: Optional[Agent] = None,
+    ) -> Union[str, Dict, None]:
         """Generate an auto reply."""
         if messages is None:
-            messages = self._oai_conversations[sender.name]
+            messages = self._oai_messages[sender.name]
         message = messages[-1]
         message = message.get("content", "")
         code_blocks = extract_code(message)

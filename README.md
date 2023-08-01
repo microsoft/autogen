@@ -66,10 +66,10 @@ Use the following guides to get started with FLAML in .NET:
 * (New) The [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Auto-Generation) package can help you maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4, including:
     - A drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, templating, filtering. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
     ```python
-    from flaml import oai
+    from flaml import autogen
 
     # perform tuning
-    config, analysis = oai.Completion.tune(
+    config, analysis = autogen.Completion.tune(
         data=tune_data,
         metric="success",
         mode="max",
@@ -80,13 +80,13 @@ Use the following guides to get started with FLAML in .NET:
     )
 
     # perform inference for a test instance
-    response = oai.Completion.create(context=test_instance, **config)
+    response = autogen.Completion.create(context=test_instance, **config)
     ```
     - LLM-driven intelligent agents which can collaborately perform tasks autonomously or with human feedback, including tasks that require using tools via code.
     ```python
-    assistant = AssistantAgent("assistant")
-    user_proxy = UserProxyAgent("user_proxy")
-    user_proxy.initiate_chat("Show me the YTD gain of 10 largest technology companies as of today.")
+    assistant = autogen.AssistantAgent("assistant")
+    user_proxy = autogen.UserProxyAgent("user_proxy")
+    user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
     ```
 * With three lines of code, you can start using this economical and fast
 AutoML engine as a [scikit-learn style estimator](https://microsoft.github.io/FLAML/docs/Use-Cases/Task-Oriented-AutoML).
