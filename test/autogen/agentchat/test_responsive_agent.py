@@ -4,6 +4,67 @@ import pytest
 from flaml.autogen.agentchat import ResponsiveAgent
 
 
+def test_context():
+    agent = ResponsiveAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ResponsiveAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1.send(
+        {
+            "content": "hello {name}",
+            "context": {
+                "name": "there",
+            },
+        },
+        agent,
+    )
+    # expect hello {name} to be printed
+    agent1.send(
+        {
+            "content": lambda context: f"hello {context['name']}",
+            "context": {
+                "name": "there",
+            },
+        },
+        agent,
+    )
+    # expect hello there to be printed
+    agent.llm_config = {"allow_format_str_template": True}
+    agent1.send(
+        {
+            "content": "hello {name}",
+            "context": {
+                "name": "there",
+            },
+        },
+        agent,
+    )
+    # expect hello there to be printed
+
+
+def test_max_consecutive_auto_reply():
+    agent = ResponsiveAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
+    agent1 = ResponsiveAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 2
+    agent.update_max_consecutive_auto_reply(1)
+    assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
+
+    agent1.initiate_chat(agent, message="hello")
+    assert agent._consecutive_auto_reply_counter[agent1.name] == 1
+    agent1.initiate_chat(agent, message="hello again")
+    # with auto reply because the counter is reset
+    assert agent1.last_message(agent)["role"] == "user"
+    assert len(agent1.chat_messages[agent.name]) == 2
+    assert len(agent.chat_messages[agent1.name]) == 2
+
+    assert agent._consecutive_auto_reply_counter[agent1.name] == 1
+    agent1.send(message="bye", recipient=agent)
+    # no auto reply
+    assert agent1.last_message(agent)["role"] == "assistant"
+
+    agent1.initiate_chat(agent, clear_history=False, message="hi")
+    assert len(agent1.chat_messages[agent.name]) > 2
+    assert len(agent.chat_messages[agent1.name]) > 2
+
+
 def test_responsive_agent(monkeypatch):
     dummy_agent_1 = ResponsiveAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
     dummy_agent_2 = ResponsiveAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
@@ -54,4 +115,6 @@ def test_responsive_agent(monkeypatch):
 
 
 if __name__ == "__main__":
-    test_responsive_agent(pytest.monkeypatch)
+    test_context()
+    # test_max_consecutive_auto_reply()
+    # test_responsive_agent(pytest.monkeypatch)

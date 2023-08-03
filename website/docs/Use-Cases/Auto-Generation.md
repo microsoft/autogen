@@ -23,7 +23,7 @@ By default, the automatically generated reply is crafted based on automatic code
 When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
 
 The auto-reply capability of `ResponsiveAgent` allows for more autonomous multi-agent communication while retaining the possibility of human intervention.
-One can also easily extend it by overriding the `generate_reply` function of the `UserProxyAgent` to add or modify responses.
+One can also easily extend it by registering auto_reply functions with the `register_auto_reply()` method.
 
 Example usage of the agents to solve a task with code:
 ```python
@@ -144,7 +144,7 @@ user_proxy.initiate_chat(
 *Interested in trying it yourself? Please check the following notebook examples:*
 * [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
 
-* [Task Solving with Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
+* [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
 
 * [Solve Tasks Requiring Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_web_info.ipynb)
 
@@ -152,7 +152,9 @@ user_proxy.initiate_chat(
 
 * [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_planning.ipynb)
 
-* [Automated Task Solving with Multiple Human Users](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_two_users.ipynb)
+* [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_two_users.ipynb)
+
+* [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_chess.ipynb)
 
 ## Enhanced Inference
 
@@ -348,6 +350,7 @@ If the provided prompt or message is a template, it will be automatically materi
 response = autogen.Completion.create(
     context={"problem": "How many positive integers, not exceeding 100, are multiples of 2 or 3 but not 4?"},
     prompt="{problem} Solve the problem carefully.",
+    allow_format_str_template=True,
     **config
 )
 ```
@@ -355,7 +358,7 @@ response = autogen.Completion.create(
 A template is either a format str, like the example above, or a function which produces a str from several input fields, like the example below.
 
 ```python
-def content(turn, **context):
+def content(turn, context):
     return "\n".join(
         [
             context[f"user_message_{turn}"],

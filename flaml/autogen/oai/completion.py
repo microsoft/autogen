@@ -684,6 +684,7 @@ class Completion(openai_Completion):
         config_list: Optional[List[Dict]] = None,
         filter_func: Optional[Callable[[Dict, Dict, Dict], bool]] = None,
         raise_on_ratelimit_or_timeout: Optional[bool] = True,
+        allow_format_str_template: Optional[bool] = False,
         **config,
     ):
         """Make a completion for a given context.
@@ -738,6 +739,7 @@ class Completion(openai_Completion):
 
             raise_on_ratelimit_or_timeout (bool, Optional): Whether to raise RateLimitError or Timeout when all configs fail.
                 When set to False, -1 will be returned when all configs fail.
+            allow_format_str_template (bool, Optional): Whether to allow format string template in the config.
             **config: Configuration for the openai API call. This is used as parameters for calling openai API.
                 Besides the parameters for the openai API call, it can also contain a seed (int) for the cache.
                 This is useful when implementing "controlled randomness" for the completion.
@@ -753,6 +755,7 @@ class Completion(openai_Completion):
             cost = 0
             for i, each_config in enumerate(config_list):
                 base_config = config.copy()
+                base_config["allow_format_str_template"] = allow_format_str_template
                 base_config.update(each_config)
                 if i < last and filter_func is None and "retry_timeout" not in base_config:
                     # retry_timeout = 0 to avoid retrying when no filter is given
@@ -779,7 +782,7 @@ class Completion(openai_Completion):
                     logger.debug(f"failed with config {i}", exc_info=1)
                     if i == last:
                         raise
-        params = cls._construct_params(context, config)
+        params = cls._construct_params(context, config, allow_format_str_template=allow_format_str_template)
         if not use_cache:
             return cls._get_response(
                 params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout, use_cache=False
@@ -792,15 +795,20 @@ class Completion(openai_Completion):
             return cls._get_response(params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout)
 
     @classmethod
-    def _instantiate(cls, template: Union[str, None], context: Optional[Dict] = None):
+    def instantiate(
+        cls,
+        template: Union[str, None],
+        context: Optional[Dict] = None,
+        allow_format_str_template: Optional[bool] = False,
+    ):
         if not context or template is None:
             return template
         if isinstance(template, str):
-            return template.format(**context)
+            return template.format(**context) if allow_format_str_template else template
         return template(context)
 
     @classmethod
-    def _construct_params(cls, context, config, prompt=None, messages=None):
+    def _construct_params(cls, context, config, prompt=None, messages=None, allow_format_str_template=False):
         params = config.copy()
         model = config["model"]
         prompt = config.get("prompt") if prompt is None else prompt
@@ -815,7 +823,7 @@ class Completion(openai_Completion):
                 [
                     {
                         **m,
-                        "content": cls._instantiate(m["content"], context),
+                        "content": cls.instantiate(m["content"], context, allow_format_str_template),
                     }
                     if m.get("content")
                     else m
@@ -829,12 +837,12 @@ class Completion(openai_Completion):
             params["messages"] = [
                 {
                     "role": "user",
-                    "content": cls._instantiate(prompt, context),
+                    "content": cls.instantiate(prompt, context, allow_format_str_template),
                 },
             ]
             params.pop("prompt", None)
         else:
-            params["prompt"] = cls._instantiate(prompt, context)
+            params["prompt"] = cls.instantiate(prompt, context, allow_format_str_template)
         return params
 
     @classmethod

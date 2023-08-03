@@ -165,7 +165,7 @@ class MathUserProxyAgent(UserProxyAgent):
             default_auto_reply=default_auto_reply,
             **kwargs,
         )
-
+        self.register_auto_reply(Agent, self._generate_math_reply)
         # fixed var
         self._max_invalid_q_per_step = max_invalid_q_per_step
 
@@ -276,12 +276,11 @@ class MathUserProxyAgent(UserProxyAgent):
             is_success = False
         return output, is_success
 
-    def generate_reply(
+    def _generate_math_reply(
         self,
         messages: Optional[List[Dict]] = None,
-        default_reply: Optional[Union[str, Dict]] = DEFAULT_REPLY,
         sender: Optional[Agent] = None,
-    ) -> Union[str, Dict, None]:
+    ):
         """Generate an auto reply."""
         if messages is None:
             messages = self._oai_messages[sender.name]
@@ -291,7 +290,7 @@ class MathUserProxyAgent(UserProxyAgent):
 
         if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
             # no code block is found, lang should be `UNKNOWN``
-            return default_reply
+            return True, self._default_auto_reply
         is_success, all_success = True, True
         reply = ""
         for code_block in code_blocks:
@@ -323,7 +322,7 @@ class MathUserProxyAgent(UserProxyAgent):
                 self._accum_invalid_q_per_step = 0
                 reply = "Please revisit the problem statement and your reasoning. If you think this step is correct, solve it yourself and continue the next step. Otherwise, correct this step."
 
-        return reply
+        return True, reply
 
 
 # Modified based on langchain. Langchain is licensed under MIT License:
