@@ -101,6 +101,7 @@ config, analysis = autogen.Completion.tune(
         "Complete the following Python function:{definition}",
     ],  # the prompt templates to choose from
     stop=[["\nclass", "\ndef", "\nif", "\nprint"], None],  # the stop sequences
+    allow_format_str_template=True,
 )
 ```
 

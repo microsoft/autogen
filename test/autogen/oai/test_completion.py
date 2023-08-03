@@ -87,6 +87,19 @@ def test_chatcompletion():
         prompt="hi",
     )
     assert "messages" in params
+    params = autogen.Completion._construct_params(
+        context={"name": "there"},
+        config={"model": "unknown"},
+        prompt="hi {name}",
+        allow_format_str_template=True,
+    )
+    assert params["prompt"] == "hi there"
+    params = autogen.Completion._construct_params(
+        context={"name": "there"},
+        config={"model": "unknown"},
+        prompt="hi {name}",
+    )
+    assert params["prompt"] != "hi there"
 
 
 def test_multi_model():
@@ -213,6 +226,7 @@ def test_humaneval(num_samples=1):
         eval_func=eval_function_completions,
         n=1,
         prompt="{definition}",
+        allow_format_str_template=True,
     )
     response = autogen.Completion.create(context=test_data[0], **config)
     # a minimal tuning example for tuning chat completion models using the Completion class
@@ -224,6 +238,7 @@ def test_humaneval(num_samples=1):
         n=1,
         model="text-davinci-003",
         prompt="{definition}",
+        allow_format_str_template=True,
     )
     response = autogen.Completion.create(context=test_data[0], **config)
     # a minimal tuning example for tuning chat completion models using the ChatCompletion class
@@ -236,6 +251,7 @@ def test_humaneval(num_samples=1):
         n=1,
         messages=[{"role": "user", "content": "{definition}"}],
         config_list=config_list,
+        allow_format_str_template=True,
     )
     response = autogen.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
     print(response)
@@ -271,6 +287,7 @@ def test_humaneval(num_samples=1):
         ],
         stop=[["\nclass", "\ndef", "\nif", "\nprint"], None],  # the stop sequences
         config_list=config_list,
+        allow_format_str_template=True,
     )
     print(config2)
     print(analysis.best_result)
@@ -411,9 +428,9 @@ if __name__ == "__main__":
     openai.api_key = os.environ["OPENAI_API_KEY"]
 
     # test_filter()
-    # test_chatcompletion()
+    test_chatcompletion()
     # test_multi_model()
     # test_improve()
     # test_nocontext()
-    test_humaneval(1)
+    # test_humaneval(1)
     # test_math(1)

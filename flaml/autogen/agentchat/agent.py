@@ -36,14 +36,12 @@ class Agent:
     def generate_reply(
         self,
         messages: Optional[List[Dict]] = None,
-        default_reply: Optional[Union[str, Dict]] = "",
         sender: Optional["Agent"] = None,
     ) -> Union[str, Dict, None]:
         """(Abstract method) Generate a reply based on the received messages.
 
         Args:
             messages (list[dict]): a list of messages received.
-            default_reply (str or dict): the default reply if no other reply is generated.
             sender: sender of an Agent instance.
         Returns:
             str or dict or None: the generated reply. If None, no reply is generated.
