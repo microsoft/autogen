@@ -156,6 +156,8 @@ user_proxy.initiate_chat(
 
 * [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_chess.ipynb)
 
+* [Automated Task Solving by Group Chat](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
+
 ## Enhanced Inference
 
 One can use [`flaml.autogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
