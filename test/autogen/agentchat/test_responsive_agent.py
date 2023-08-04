@@ -1,5 +1,3 @@
-import sys
-from io import StringIO
 import pytest
 from flaml.autogen.agentchat import ResponsiveAgent
 
@@ -48,30 +46,34 @@ def test_max_consecutive_auto_reply():
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
 
     agent1.initiate_chat(agent, message="hello")
-    assert agent._consecutive_auto_reply_counter[agent1.name] == 1
+    assert agent._consecutive_auto_reply_counter[agent1] == 1
     agent1.initiate_chat(agent, message="hello again")
     # with auto reply because the counter is reset
     assert agent1.last_message(agent)["role"] == "user"
-    assert len(agent1.chat_messages[agent.name]) == 2
-    assert len(agent.chat_messages[agent1.name]) == 2
+    assert len(agent1.chat_messages[agent]) == 2
+    assert len(agent.chat_messages[agent1]) == 2
 
-    assert agent._consecutive_auto_reply_counter[agent1.name] == 1
+    assert agent._consecutive_auto_reply_counter[agent1] == 1
     agent1.send(message="bye", recipient=agent)
     # no auto reply
     assert agent1.last_message(agent)["role"] == "assistant"
 
     agent1.initiate_chat(agent, clear_history=False, message="hi")
-    assert len(agent1.chat_messages[agent.name]) > 2
-    assert len(agent.chat_messages[agent1.name]) > 2
+    assert len(agent1.chat_messages[agent]) > 2
+    assert len(agent.chat_messages[agent1]) > 2
+
+    assert agent1.reply_at_receive[agent] == agent.reply_at_receive[agent1] is True
+    agent1.stop_reply_at_receive(agent)
+    assert agent1.reply_at_receive[agent] is False and agent.reply_at_receive[agent1] is True
 
 
-def test_responsive_agent(monkeypatch):
+def test_responsive_agent():
     dummy_agent_1 = ResponsiveAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
     dummy_agent_2 = ResponsiveAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
 
-    monkeypatch.setattr(sys, "stdin", StringIO("exit"))
+    # monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.receive("hello", dummy_agent_2)  # receive a str
-    monkeypatch.setattr(sys, "stdin", StringIO("TERMINATE\n\n"))
+    # monkeypatch.setattr(sys, "stdin", StringIO("TERMINATE\n\n"))
     dummy_agent_1.receive(
         {
             "content": "hello {name}",
@@ -81,18 +83,18 @@ def test_responsive_agent(monkeypatch):
         },
         dummy_agent_2,
     )  # receive a dict
-    assert "context" in dummy_agent_1.chat_messages["dummy_agent_2"][-2]
+    assert "context" in dummy_agent_1.chat_messages[dummy_agent_2][-1]
     # receive dict without openai fields to be printed, such as "content", 'function_call'. There should be no error raised.
-    pre_len = len(dummy_agent_1.chat_messages["dummy_agent_2"])
+    pre_len = len(dummy_agent_1.chat_messages[dummy_agent_2])
     with pytest.raises(ValueError):
         dummy_agent_1.receive({"message": "hello"}, dummy_agent_2)
     assert pre_len == len(
-        dummy_agent_1.chat_messages["dummy_agent_2"]
+        dummy_agent_1.chat_messages[dummy_agent_2]
     ), "When the message is not an valid openai message, it should not be appended to the oai conversation."
 
-    monkeypatch.setattr(sys, "stdin", StringIO("exit"))
+    # monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.send("TERMINATE", dummy_agent_2)  # send a str
-    monkeypatch.setattr(sys, "stdin", StringIO("exit"))
+    # monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.send(
         {
             "content": "TERMINATE",
@@ -101,17 +103,17 @@ def test_responsive_agent(monkeypatch):
     )  # send a dict
 
     # send dict with no openai fields
-    pre_len = len(dummy_agent_1.chat_messages["dummy_agent_2"])
+    pre_len = len(dummy_agent_1.chat_messages[dummy_agent_2])
     with pytest.raises(ValueError):
         dummy_agent_1.send({"message": "hello"}, dummy_agent_2)
 
     assert pre_len == len(
-        dummy_agent_1.chat_messages["dummy_agent_2"]
+        dummy_agent_1.chat_messages[dummy_agent_2]
     ), "When the message is not a valid openai message, it should not be appended to the oai conversation."
 
     # update system message
     dummy_agent_1.update_system_message("new system message")
-    assert dummy_agent_1._oai_system_message[0]["content"] == "new system message"
+    assert dummy_agent_1.system_message == "new system message"
 
 
 if __name__ == "__main__":
