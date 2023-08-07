@@ -8,7 +8,7 @@ class UserProxyAgent(ResponsiveAgent):
     UserProxyAgent is a subclass of ResponsiveAgent configured with `human_input_mode` to ALWAYS
     and `llm_config` to False. By default, the agent will prompt for human input every time a message is received.
     Code execution is enabled by default. LLM-based auto reply is disabled by default.
-    To modify auto reply, register a method with `register_class_specific_reply`.
+    To modify auto reply, register a method with (`register_auto_reply`)[responsive_agent#register_auto_reply].
     The method should have a similar signature with `_generate_oai_reply` method.
     To modify the way to get human input, override `get_human_input` method.
     To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
