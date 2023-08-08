@@ -1,3 +1,4 @@
+import asyncio
 from collections import defaultdict
 import copy
 import json
@@ -309,6 +310,48 @@ class ResponsiveAgent(Agent):
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
+    async def a_send(self, message: Union[Dict, str], recipient: Agent, request_reply: Optional[bool] = None) -> bool:
+        """(async) Send a message to another agent.
+
+        Args:
+            message (dict or str): message to be sent.
+                The message could contain the following fields (either content or function_call must be provided):
+                - content (str): the content of the message.
+                - function_call (str): the name of the function to be called.
+                - name (str): the name of the function to be called.
+                - role (str): the role of the message, any role that is not "function"
+                    will be modified to "assistant".
+                - context (dict): the context of the message, which will be passed to
+                    [autogen.Completion.create](../oai/Completion#create).
+                    For example, one agent can send a message A as:
+        ```python
+        {
+            "content": lambda context: context["use_tool_msg"],
+            "context": {
+                "use_tool_msg": "Use tool X if they are relevant."
+            }
+        }
+        ```
+                    Next time, one agent can send a message B with a different "use_tool_msg".
+                    Then the content of message A will be refreshed to the new "use_tool_msg".
+                    So effectively, this provides a way for an agent to send a "link" and modify
+                    the content of the "link" later.
+            recipient (Agent): the recipient of the message.
+            request_reply (bool or None): whether to request a reply from the recipient.
+
+        Raises:
+            ValueError: if the message can't be converted into a valid ChatCompletion message.
+        """
+        # When the agent composes and sends the message, the role of the message is "assistant"
+        # unless it's "function".
+        valid = self._append_oai_message(message, "assistant", recipient)
+        if valid:
+            await recipient.a_receive(message, self, request_reply)
+        else:
+            raise ValueError(
+                "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
+            )
+
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
         print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
@@ -339,6 +382,16 @@ class ResponsiveAgent(Agent):
                 print(colored("*" * len(func_print), "green"), flush=True)
         print("\n", "-" * 80, flush=True, sep="")
 
+    def _process_received_message(self, message, sender):
+        message = self._message_to_dict(message)
+        # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
+        valid = self._append_oai_message(message, "user", sender)
+        if not valid:
+            raise ValueError(
+                "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
+            )
+        self._print_received_message(message, sender)
+
     def receive(self, message: Union[Dict, str], sender: Agent, request_reply: Optional[bool] = None):
         """Receive a message from another agent.
 
@@ -361,19 +414,49 @@ class ResponsiveAgent(Agent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        message = self._message_to_dict(message)
-        # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
-        valid = self._append_oai_message(message, "user", sender)
-        if not valid:
-            raise ValueError(
-                "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
-            )
-        self._print_received_message(message, sender)
+        self._process_received_message(message, sender)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = self.generate_reply(sender=sender)
         if reply is not None:
             self.send(reply, sender)
+
+    async def a_receive(self, message: Union[Dict, str], sender: Agent, request_reply: Optional[bool] = None):
+        """(async) Receive a message from another agent.
+
+        Once a message is received, this function sends a reply to the sender or stop.
+        The reply can be generated automatically or entered manually by a human.
+
+        Args:
+            message (dict or str): message from the sender. If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
+                1. "content": content of the message, can be None.
+                2. "function_call": a dictionary containing the function name and arguments.
+                3. "role": role of the message, can be "assistant", "user", "function".
+                    This field is only needed to distinguish between "function" or "assistant"/"user".
+                4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                5. "context" (dict): the context of the message, which will be passed to
+                    [autogen.Completion.create](../oai/Completion#create).
+            sender: sender of an Agent instance.
+            request_reply (bool or None): whether a reply is requested from the sender.
+                If None, the value is determined by `self.reply_at_receive[sender]`.
+
+        Raises:
+            ValueError: if the message can't be converted into a valid ChatCompletion message.
+        """
+        self._process_received_message(message, sender)
+        if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
+            return
+        reply = await self.a_generate_reply(sender=sender)
+        if reply is not None:
+            await self.a_send(reply, sender)
+
+    def _prepare_chat(self, recipient, clear_history):
+        self.reset_consecutive_auto_reply_counter(recipient)
+        recipient.reset_consecutive_auto_reply_counter(self)
+        self.reply_at_receive[recipient] = recipient.reply_at_receive[self] = True
+        if clear_history:
+            self.clear_history(recipient)
+            recipient.clear_history(self)
 
     def initiate_chat(self, recipient: "ResponsiveAgent", clear_history: Optional[bool] = True, **context):
         """Initiate a chat with the recipient agent.
@@ -388,13 +471,24 @@ class ResponsiveAgent(Agent):
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
         """
-        self.reset_consecutive_auto_reply_counter(recipient)
-        recipient.reset_consecutive_auto_reply_counter(self)
-        self.reply_at_receive[recipient] = recipient.reply_at_receive[self] = True
-        if clear_history:
-            self.clear_history(recipient)
-            recipient.clear_history(self)
+        self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient)
+
+    async def a_initiate_chat(self, recipient: "ResponsiveAgent", clear_history: Optional[bool] = True, **context):
+        """(async) Initiate a chat with the recipient agent.
+
+        Reset the consecutive auto reply counter.
+        If `clear_history` is True, the chat history with the recipient agent will be cleared.
+        `generate_init_message` is called to generate the initial message for the agent.
+
+        Args:
+            recipient: the recipient agent.
+            clear_history (bool): whether to clear the chat history with the agent.
+            **context: any context information.
+                "message" needs to be provided if the `generate_init_message` method is not overridden.
+        """
+        self._prepare_chat(recipient, clear_history)
+        await self.a_send(self.generate_init_message(**context), recipient)
 
     def reset(self):
         """Reset the agent."""
@@ -573,12 +667,12 @@ class ResponsiveAgent(Agent):
         """Reply based on the conversation history and the sender.
 
         Either messages or sender must be provided.
-        Use registered class-specific reply functions to generate replies.
+        Use registered auto reply functions to generate replies.
         By default, the following functions are checked in order:
-        1. _check_termination_and_human_reply
-        2. _generate_function_call_reply
-        3. _generate_code_execution_reply
-        4. _generate_oai_reply
+        1. check_termination_and_human_reply
+        2. generate_function_call_reply
+        3. generate_code_execution_reply
+        4. generate_oai_reply
         Every function returns a tuple (final, reply).
         When a function returns final=False, the next function will be checked.
         So by default, termination and human reply will be checked first.
@@ -597,12 +691,64 @@ class ResponsiveAgent(Agent):
         assert messages is not None or sender is not None, "Either messages or sender must be provided."
         if sender is not None:
             for reply_func_tuple in self._reply_func_list:
-                if exclude and reply_func_tuple["reply_func"] in exclude:
+                reply_func = reply_func_tuple["reply_func"]
+                if exclude and reply_func in exclude:
+                    continue
+                if asyncio.coroutines.iscoroutinefunction(reply_func):
                     continue
                 if self._match_trigger(reply_func_tuple["trigger"], sender):
-                    final, reply = reply_func_tuple["reply_func"](
+                    final, reply = reply_func(
                         self, messages=messages, sender=sender, context=reply_func_tuple["context"]
                     )
+                    if final:
+                        return reply
+        return self._default_auto_reply
+
+    async def a_generate_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        exclude: Optional[List[Callable]] = None,
+    ) -> Union[str, Dict, None]:
+        """(async) Reply based on the conversation history and the sender.
+
+        Either messages or sender must be provided.
+        Use registered auto reply functions to generate replies.
+        By default, the following functions are checked in order:
+        1. check_termination_and_human_reply
+        2. generate_function_call_reply
+        3. generate_code_execution_reply
+        4. generate_oai_reply
+        Every function returns a tuple (final, reply).
+        When a function returns final=False, the next function will be checked.
+        So by default, termination and human reply will be checked first.
+        If not terminating and human reply is skipped, execute function or code and return the result.
+        AI replies are generated only when no code execution is performed.
+
+        Args:
+            messages: a list of messages in the conversation history.
+            default_reply (str or dict): default reply.
+            sender: sender of an Agent instance.
+            exclude: a list of functions to exclude.
+
+        Returns:
+            str or dict or None: reply. None if no reply is generated.
+        """
+        assert messages is not None or sender is not None, "Either messages or sender must be provided."
+        if sender is not None:
+            for reply_func_tuple in self._reply_func_list:
+                reply_func = reply_func_tuple["reply_func"]
+                if exclude and reply_func in exclude:
+                    continue
+                if self._match_trigger(reply_func_tuple["trigger"], sender):
+                    if asyncio.coroutines.iscoroutinefunction(reply_func):
+                        final, reply = await reply_func(
+                            self, messages=messages, sender=sender, context=reply_func_tuple["context"]
+                        )
+                    else:
+                        final, reply = reply_func(
+                            self, messages=messages, sender=sender, context=reply_func_tuple["context"]
+                        )
                     if final:
                         return reply
         return self._default_auto_reply

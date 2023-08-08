@@ -27,8 +27,14 @@ class Agent:
     def send(self, message: Union[Dict, str], recipient: "Agent", request_reply: Optional[bool] = None):
         """(Aabstract method) Send a message to another agent."""
 
+    async def a_send(self, message: Union[Dict, str], recipient: "Agent", request_reply: Optional[bool] = None):
+        """(Aabstract async method) Send a message to another agent."""
+
     def receive(self, message: Union[Dict, str], sender: "Agent", request_reply: Optional[bool] = None):
         """(Abstract method) Receive a message from another agent."""
+
+    async def a_receive(self, message: Union[Dict, str], sender: "Agent", request_reply: Optional[bool] = None):
+        """(Abstract async method) Receive a message from another agent."""
 
     def reset(self):
         """(Abstract method) Reset the agent."""
@@ -37,8 +43,24 @@ class Agent:
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional["Agent"] = None,
+        **kwargs,
     ) -> Union[str, Dict, None]:
         """(Abstract method) Generate a reply based on the received messages.
+
+        Args:
+            messages (list[dict]): a list of messages received.
+            sender: sender of an Agent instance.
+        Returns:
+            str or dict or None: the generated reply. If None, no reply is generated.
+        """
+
+    async def a_generate_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional["Agent"] = None,
+        **kwargs,
+    ) -> Union[str, Dict, None]:
+        """(Abstract async method) Generate a reply based on the received messages.
 
         Args:
             messages (list[dict]): a list of messages received.
