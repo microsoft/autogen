@@ -50,7 +50,7 @@ Minimal dependencies are installed without extra options. You can install extra 
 pip install "flaml[autogen]"
 ```
 
-Find more options in [Installation](Installation).
+Find more options in [Installation](https://microsoft.github.io/FLAML/docs/Installation).
 Each of the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/notebook) may require a specific option to be installed.
 
 ### .NET
