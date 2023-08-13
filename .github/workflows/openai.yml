@@ -42,6 +42,10 @@ jobs:
         if: matrix.python-version != '3.11'
         run: |
           pip install -e .[mathchat]
+      - name: Install packages for RetrieveChat when needed
+        if: matrix.python-version != '3.11'
+        run: |
+          pip install -e .[retrievechat]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:

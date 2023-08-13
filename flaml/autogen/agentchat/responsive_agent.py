@@ -5,7 +5,13 @@ import json
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from flaml.autogen import oai
 from .agent import Agent
-from flaml.autogen.code_utils import DEFAULT_MODEL, UNKNOWN, execute_code, extract_code, infer_lang
+from flaml.autogen.code_utils import (
+    DEFAULT_MODEL,
+    UNKNOWN,
+    execute_code,
+    extract_code,
+    infer_lang,
+)
 
 try:
     from termcolor import colored
@@ -229,7 +235,8 @@ class ResponsiveAgent(Agent):
     @property
     def use_docker(self) -> Union[bool, str, None]:
         """Bool value of whether to use docker to execute the code,
-        or str value of the docker image name to use, or None when code execution is disabled."""
+        or str value of the docker image name to use, or None when code execution is disabled.
+        """
         return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
 
     @staticmethod
@@ -268,7 +275,12 @@ class ResponsiveAgent(Agent):
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
-    def send(self, message: Union[Dict, str], recipient: Agent, request_reply: Optional[bool] = None) -> bool:
+    def send(
+        self,
+        message: Union[Dict, str],
+        recipient: Agent,
+        request_reply: Optional[bool] = None,
+    ) -> bool:
         """Send a message to another agent.
 
         Args:
@@ -805,7 +817,13 @@ class ResponsiveAgent(Agent):
             lang, code = code_block
             if not lang:
                 lang = infer_lang(code)
-            print(colored(f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...", "red"), flush=True)
+            print(
+                colored(
+                    f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
+                    "red",
+                ),
+                flush=True,
+            )
             if lang in ["bash", "shell", "sh"]:
                 exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
             elif lang in ["python", "Python"]:
@@ -815,12 +833,17 @@ class ResponsiveAgent(Agent):
                     filename = None
                 exitcode, logs, image = self.run_code(
                     code,
+                    lang="python",
                     filename=filename,
                     **self._code_execution_config,
                 )
             else:
                 # In case the language is not supported, we return an error message.
-                exitcode, logs, image = 1, f"unknown language {lang}", self._code_execution_config["use_docker"]
+                exitcode, logs, image = (
+                    1,
+                    f"unknown language {lang}",
+                    self._code_execution_config["use_docker"],
+                )
                 # raise NotImplementedError
             self._code_execution_config["use_docker"] = image
             logs_all += "\n" + logs
@@ -886,7 +909,10 @@ class ResponsiveAgent(Agent):
 
             # Try to execute the function
             if arguments:
-                print(colored(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", "magenta"), flush=True)
+                print(
+                    colored(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", "magenta"),
+                    flush=True,
+                )
                 try:
                     content = func(**arguments)
                     is_exec_success = True
