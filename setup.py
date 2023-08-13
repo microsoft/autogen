@@ -141,6 +141,14 @@ setuptools.setup(
         "openai": ["openai==0.27.8", "diskcache"],
         "autogen": ["openai==0.27.8", "diskcache", "termcolor"],
         "mathchat": ["openai==0.27.8", "diskcache", "termcolor", "sympy", "pydantic==1.10.9", "wolframalpha"],
+        "retrievechat": [
+            "openai==0.27.8",
+            "diskcache",
+            "termcolor",
+            "chromadb",
+            "tiktoken",
+            "sentence_transformers",
+        ],
         "synapse": [
             "joblibspark>=0.5.0",
             "optuna==2.8.0",
