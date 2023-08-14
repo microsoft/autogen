@@ -203,7 +203,7 @@ class MathUserProxyAgent(UserProxyAgent):
         return PROMPTS[prompt_type] + problem
 
     def _reset(self):
-        super().reset()
+        # super().reset()
         self._valid_q_count = 0
         self._total_q_count = 0
         self._accum_invalid_q_per_step = 0
@@ -280,6 +280,7 @@ class MathUserProxyAgent(UserProxyAgent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ):
         """Generate an auto reply."""
         if messages is None:

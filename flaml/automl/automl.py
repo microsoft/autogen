@@ -230,7 +230,7 @@ class AutoML(BaseEstimator):
         ```
 
             seed: int or None, default=None | The random seed for hpo.
-            n_concurrent_trials: [Experimental] int, default=1 | The number of
+            n_concurrent_trials: [In preview] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
                 [parallel tuning](/docs/Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray or spark is required: `pip install flaml[ray]`
@@ -1366,7 +1366,7 @@ class AutoML(BaseEstimator):
         ```
 
             seed: int or None, default=None | The random seed for hpo.
-            n_concurrent_trials: [Experimental] int, default=1 | The number of
+            n_concurrent_trials: [In preview] int, default=1 | The number of
                 concurrent trials. When n_concurrent_trials > 1, flaml performes
                 [parallel tuning](/docs/Use-Cases/Task-Oriented-AutoML#parallel-tuning)
                 and installation of ray or spark is required: `pip install flaml[ray]`

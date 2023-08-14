@@ -33,7 +33,9 @@ class GroupChat:
     def select_speaker_msg(self):
         """Return the message for selecting the next speaker."""
         return f"""You are in a role play game. The following roles are available:
-{self._participant_roles()}. Read the following conversation.
+{self._participant_roles()}.
+
+Read the following conversation.
 Then select the next role from {self.agent_names} to play. Only return the role."""
 
     def select_speaker(self, last_speaker: Agent, selctor: ResponsiveAgent):
@@ -73,32 +75,35 @@ class GroupChatManager(ResponsiveAgent):
             system_message=system_message,
             **kwargs,
         )
-        self.register_auto_reply(Agent, GroupChatManager.run_chat, context=groupchat, reset_context=GroupChat.reset)
+        self.register_auto_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # self._random = random.Random(seed)
 
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        context: Optional[GroupChat] = None,
+        config: Optional[GroupChat] = None,
     ) -> Union[str, Dict, None]:
         """Run a group chat."""
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
         speaker = sender
-        for i in range(context.max_round):
+        for i in range(config.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
                 message["name"] = speaker.name
-            context.messages.append(message)
+            config.messages.append(message)
             # broadcast the message to all agents except the speaker
-            for agent in context.agents:
+            for agent in config.agents:
                 if agent != speaker:
-                    self.send(message, agent, request_reply=False)
-            if i != context.max_round - 1:
+                    self.send(message, agent, request_reply=False, silent=True)
+            if i != config.max_round - 1:
                 # speaker selection msg from an agent
-                speaker = context.select_speaker(speaker, self)
-                speaker.send(speaker.generate_reply(sender=self), self, request_reply=False)
+                speaker = config.select_speaker(speaker, self)
+                reply = speaker.generate_reply(sender=self)
+                if reply is None:
+                    break
+                speaker.send(reply, self, request_reply=False)
                 message = self.last_message(speaker)
         return True, None

@@ -76,7 +76,7 @@ class OnlineResult:
             init_cb: a float to specify the intial confidence bound.
             mode: A string in ['min', 'max'] to specify the objective as
                 minimization or maximization.
-            sliding_window_size: An int to specify the size of the sliding windown
+            sliding_window_size: An int to specify the size of the sliding window
                 (for experimental purpose).
         """
         self._result_type_name = result_type_name  # for example 'mse' or 'mae'

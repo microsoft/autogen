@@ -207,10 +207,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        context: Optional[Any] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
-        if context is None:
-            context = self
+        if config is None:
+            config = self
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]

@@ -3,16 +3,16 @@
 <!-- ### Welcome to FLAML, a Fast Library for Automated Machine Learning & Tuning! -->
 
 FLAML is a lightweight Python library for efficient automation of machine
-learning and AI operations, including selection of
-models, hyperparameters, and other tunable choices of an application.
+learning and AI operations. It automates workflow based on large language models, machine learning models, etc.
+and optimizes their performance.
 
 ### Main Features
 
-* For foundation models like the GPT models, it automates the experimentation and optimization of their performance to maximize the effectiveness for applications and minimize the inference cost. FLAML enables users to build and use adaptive AI agents with minimal effort.
-* For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources. It is easy to customize or extend. Users can find their desired customizability from a smooth range: minimal customization (computational resource budget), medium customization (e.g., search space and metric), or full customization (arbitrary training/inference/evaluation code).
-* It supports fast and economical automatic tuning, capable of handling large search space with heterogeneous evaluation cost and complex constraints/guidance/early stopping. FLAML is powered by a [cost-effective
-hyperparameter optimization](/docs/Use-Cases/Tune-User-Defined-Function#hyperparameter-optimization-algorithm)
-and model selection method invented by Microsoft Research, and many followup [research studies](/docs/Research).
+* FLAML enables building next-gen GPT-X applications based on multi-agent conversations with minimal effort. It simplifies the orchestration, automation and optimization of a complex GPT-X workflow. It maximizes the performance of GPT-X models and augments their weakness.
+* For common machine learning tasks like classification and regression, it quickly finds quality models for user-provided data with low computational resources. It is easy to customize or extend.
+* It supports fast and economical automatic tuning, capable of handling large search space with heterogeneous evaluation cost and complex constraints/guidance/early stopping.
+
+FLAML is powered by a series of [research studies](/docs/Research) from Microsoft Research and collaborators such as Penn State University, Stevens Institute of Technology, University of Washington, and University of Waterloo.
 
 ### Quickstart
 
@@ -20,13 +20,21 @@ Install FLAML from pip: `pip install flaml`. Find more options in [Installation]
 
 There are several ways of using flaml:
 
-#### (New) [Auto Generation](/docs/Use-Cases/Auto-Generation)
+#### (New) [Autogen](/docs/Use-Cases/Autogen)
 
-Maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4, including:
-- A drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, templating, filtering. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
+Autogen enables the next-gen GPT-X applications with a generic multi-agent conversation framework.
+It offers customizable and conversable agents which integrate LLMs, tools and human.
+By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
 from flaml import autogen
+assistant = autogen.AssistantAgent("assistant")
+user_proxy = autogen.UserProxyAgent("user_proxy")
+user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
+# This initiates an automated chat between the two agents to solve the task
+```
 
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
+```python
 # perform tuning
 config, analysis = autogen.Completion.tune(
     data=tune_data,
@@ -37,20 +45,13 @@ config, analysis = autogen.Completion.tune(
     optimization_budget=3,
     num_samples=-1,
 )
-
 # perform inference for a test instance
 response = autogen.Completion.create(context=test_instance, **config)
-```
-- LLM-driven intelligent agents which can perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
-```python
-assistant = autogen.AssistantAgent("assistant")
-user_proxy = autogen.UserProxyAgent("user_proxy")
-user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
 ```
 
 #### [Task-oriented AutoML](/docs/Use-Cases/task-oriented-automl)
 
-For example, with three lines of code, you can start using this economical and fast AutoML engine as a scikit-learn style estimator.
+With three lines of code, you can start using this economical and fast AutoML engine as a scikit-learn style estimator.
 
 ```python
 from flaml import AutoML
@@ -117,8 +118,8 @@ Then, you can use it just like you use the original `LGMBClassifier`. Your other
 
 ### Where to Go Next?
 
-* Understand the use cases for [Auto Generation](/docs/Use-Cases/Auto-Generation), [Task-oriented AutoML](/docs/Use-Cases/Task-Oriented-Automl), [Tune user-defined function](/docs/Use-Cases/Tune-User-Defined-Function) and [Zero-shot AutoML](/docs/Use-Cases/Zero-Shot-AutoML).
-* Find code examples under "Examples": from [AutoGen - OpenAI](/docs/Examples/AutoGen-OpenAI) to [Tune - PyTorch](/docs/Examples/Tune-PyTorch).
+* Understand the use cases for [Autogen](/docs/Use-Cases/Autogen), [Task-oriented AutoML](/docs/Use-Cases/Task-Oriented-Automl), [Tune user-defined function](/docs/Use-Cases/Tune-User-Defined-Function) and [Zero-shot AutoML](/docs/Use-Cases/Zero-Shot-AutoML).
+* Find code examples under "Examples": from [AutoGen - AgentChat](/docs/Examples/AutoGen-AgentChat) to [Tune - PyTorch](/docs/Examples/Tune-PyTorch).
 * Learn about [research](/docs/Research) around FLAML and check [blogposts](/blog).
 * Chat on [Discord](https://discord.gg/Cppx2vSPVP).
 
