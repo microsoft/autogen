@@ -72,6 +72,7 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
                 "gpt-3.5-turbo-0301",
                 "chatgpt-35-turbo-0301",
                 "gpt-35-turbo-v0301",
+                "gpt",
             },
         },
     )
@@ -162,7 +163,7 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
+            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
     )
     hard_questions = [

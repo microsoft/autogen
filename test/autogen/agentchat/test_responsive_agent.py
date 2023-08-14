@@ -5,38 +5,38 @@ from flaml.autogen.agentchat import ResponsiveAgent
 def test_trigger():
     agent = ResponsiveAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ResponsiveAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
-    agent.register_auto_reply(agent1, lambda recipient, messages, sender, context: (True, "hello"))
+    agent.register_auto_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello"
-    agent.register_auto_reply("a1", lambda recipient, messages, sender, context: (True, "hello a1"))
+    agent.register_auto_reply("a1", lambda recipient, messages, sender, config: (True, "hello a1"))
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello a1"
     agent.register_auto_reply(
-        ResponsiveAgent, lambda recipient, messages, sender, context: (True, "hello responsive agent")
+        ResponsiveAgent, lambda recipient, messages, sender, config: (True, "hello responsive agent")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello responsive agent"
     agent.register_auto_reply(
-        lambda sender: sender.name.startswith("a"), lambda recipient, messages, sender, context: (True, "hello a")
+        lambda sender: sender.name.startswith("a"), lambda recipient, messages, sender, config: (True, "hello a")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello a"
     agent.register_auto_reply(
-        lambda sender: sender.name.startswith("b"), lambda recipient, messages, sender, context: (True, "hello b")
+        lambda sender: sender.name.startswith("b"), lambda recipient, messages, sender, config: (True, "hello b")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello a"
     agent.register_auto_reply(
-        ["agent2", agent1], lambda recipient, messages, sender, context: (True, "hello agent2 or agent1")
+        ["agent2", agent1], lambda recipient, messages, sender, config: (True, "hello agent2 or agent1")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
     agent.register_auto_reply(
-        ["agent2", "agent3"], lambda recipient, messages, sender, context: (True, "hello agent2 or agent3")
+        ["agent2", "agent3"], lambda recipient, messages, sender, config: (True, "hello agent2 or agent3")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
-    pytest.raises(ValueError, agent.register_auto_reply, 1, lambda recipient, messages, sender, context: (True, "hi"))
+    pytest.raises(ValueError, agent.register_auto_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
 
 

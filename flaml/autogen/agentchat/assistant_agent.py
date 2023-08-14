@@ -3,7 +3,7 @@ from typing import Callable, Dict, Optional, Union
 
 
 class AssistantAgent(ResponsiveAgent):
-    """(Experimental) Assistant agent, designed to solve a task with LLM.
+    """(In preview) Assistant agent, designed to solve a task with LLM.
 
     AssistantAgent is a subclass of ResponsiveAgent configured with a default system message.
     The default system message is designed to solve a task with LLM,

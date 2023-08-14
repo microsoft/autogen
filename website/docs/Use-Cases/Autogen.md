@@ -1,23 +1,22 @@
-# AutoGen: AutoML for GPT-X Applications
+# AutoGen: Enabling Next-Gen GPT-X Applications
 
-`flaml.autogen` simplifies hard choices (such as model, prompt, inference parameters and orchestration choices) for developers when finding an optimal operating point in a large and complex design space of large language model (LLM) hierarchy, and offers a virtual interface to highly capable, economical, and fast LLM agents.
+`flaml.autogen` simplifies the orchestration, automation and optimization of a complex GPT-X workflow. It maximizes the performance of GPT-X models and augments their weakness. It enables building next-gen GPT-X applications based on multi-agent conversations with minimal effort.
 
 ## Features
 
-* An enhanced inference API as a drop-in replacement of `openai.Completion.create` or `openai.ChatCompletion.create`. It allows easy performance tuning and advanced usage patterns, including:
-  - Leveraging [`flaml.tune`](/docs/reference/tune/tune) to adapt LLMs to applications, to maximize the utility out of using expensive foundation models and reduce the inference cost by using cheaper models or configurations which achieve equal or better performance.
-  - Utilities like API unification, caching, error handling, multi-config inference, context programming etc.
-* A higher-level abstraction of using foundation models: intelligent agents which can perform tasks autonomously or with human feedback. The same abstraction allows both automated feedback and human feedback sent between agents, so that complex tasks can be accomplished via agent collaborations, including tasks that require using tools via code.
+* A unified multi-agent conversation framework as a high-level abstraction of using foundation models. It offers customizable and conversable agents which integrate LLM, tool and human.
+By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
+* A drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an enhanced inference API. It allows easy performance tuning, utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
 
 The package is under active development with more features upcoming.
 
 ## Agents
 
-[`flaml.autogen.agentchat`](/docs/reference/autogen/agentchat/agent) offers conversable agents which can adapt to human or simulated feedback. This subpackage is under active development.
+[`flaml.autogen.agentchat`](/docs/reference/autogen/agentchat/agent) offers a multi-agent conversation framework, featuring capable, customizable and conversable agents which integrate LLM, tool and human via automated agent chat.
 
 ### Basic Concept
 
-We have designed a generic `ResponsiveAgent` class for Agents that are capable of conversing with each other through the exchange of messages to collaboratively finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are `AssistantAgent` and `UserProxyAgent`.
+We have designed a generic `ResponsiveAgent` class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are `AssistantAgent` and `UserProxyAgent`.
 
 - `AssistantAgent`. Designed to act as an assistant by responding to user requests. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest code with bug fix. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
 - `UserProxyAgent`. Serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
@@ -150,29 +149,25 @@ user_proxy.initiate_chat(
 
 *Interested in trying it yourself? Please check the following notebook examples:*
 * [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
-
 * [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
-
 * [Solve Tasks Requiring Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_web_info.ipynb)
-
 * [Use Provided Tools as Functions](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_function_call.ipynb)
-
 * [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_planning.ipynb)
-
 * [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_two_users.ipynb)
-
 * [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_chess.ipynb)
-
 * [Automated Task Solving by Group Chat](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
-
 * [Automated Continual Learning from New Data](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_stream.ipynb)
 
 ## Enhanced Inference
 
 One can use [`flaml.autogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
-There are a number of benefits of using `autogen` to perform inference.
+There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
 ### Tune Inference Parameters
+
+*Links to notebook examples:*
+* [Optimize for Code Generation](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
 
 #### Choices to optimize
 
@@ -270,11 +265,6 @@ config, analysis = autogen.Completion.tune(
 The returned `config` contains the optimized configuration and `analysis` contains an [ExperimentAnalysis](/docs/reference/tune/analysis#experimentanalysis-objects) object for all the tried configurations and results.
 
 The tuend config can be used to perform inference.
-
-*Refer to this [page](/docs/Examples/AutoGen-OpenAI) for a full example. Or check the following notebook examples:*
-* [Optimize for Code Generation](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
-
 
 ### API unification
 

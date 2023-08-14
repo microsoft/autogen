@@ -28,7 +28,7 @@ def test_math_user_proxy_agent():
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
+            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
     )
     assistant = AssistantAgent(
@@ -45,10 +45,11 @@ def test_math_user_proxy_agent():
     assistant.reset()
 
     math_problem = "$x^3=125$. What is x?"
-    assistant.receive(
-        message=mathproxyagent.generate_init_message(math_problem),
-        sender=mathproxyagent,
-    )
+    # assistant.receive(
+    #     message=mathproxyagent.generate_init_message(math_problem),
+    #     sender=mathproxyagent,
+    # )
+    mathproxyagent.initiate_chat(assistant, problem=math_problem)
     print(conversations)
 
 
@@ -116,7 +117,7 @@ def test_generate_prompt():
 
 
 if __name__ == "__main__":
-    test_add_remove_print()
-    test_execute_one_python_code()
-    test_generate_prompt()
+    # test_add_remove_print()
+    # test_execute_one_python_code()
+    # test_generate_prompt()
     test_math_user_proxy_agent()

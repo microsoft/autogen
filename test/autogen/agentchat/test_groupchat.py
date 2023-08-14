@@ -52,8 +52,8 @@ def test_plugin():
     group_chat_manager.register_auto_reply(
         autogen.Agent,
         reply_func=autogen.GroupChatManager.run_chat,
-        context=groupchat,
-        reset_context=autogen.GroupChat.reset,
+        config=groupchat,
+        reset_config=autogen.GroupChat.reset,
     )
     agent1.initiate_chat(group_chat_manager, message="hello")
 

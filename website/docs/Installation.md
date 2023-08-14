@@ -15,7 +15,7 @@ conda install flaml -c conda-forge
 
 ### Optional Dependencies
 
-#### [Auto Generation](Use-Cases/Auto-Generation)
+#### [Autogen](Use-Cases/Autogen)
 
 ```bash
 pip install "flaml[autogen]"

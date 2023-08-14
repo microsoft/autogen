@@ -87,6 +87,7 @@ class ResponsiveAgent(Agent):
                     If the code is executed in the current environment,
                     the code must be trusted.
                 - timeout (Optional, int): The maximum execution time in seconds.
+                - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             llm_config (dict or False): llm inference configuration.
                 Please refer to [autogen.Completion.create](/docs/reference/autogen/oai/completion#create)
                 for available options.
@@ -128,8 +129,8 @@ class ResponsiveAgent(Agent):
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         reply_func: Callable,
         position: Optional[int] = 0,
-        context: Optional[Any] = None,
-        reset_context: Optional[Callable] = None,
+        config: Optional[Any] = None,
+        reset_config: Optional[Callable] = None,
     ):
         """Register a reply function.
 
@@ -145,22 +146,22 @@ class ResponsiveAgent(Agent):
                 - If a callable is provided, the reply function will be called when the callable returns True.
                 - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
             reply_func (Callable): the reply function.
-                The function takes a recipient agent, a list of messages, a sender agent and a context as input and returns a reply message.
+                The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
         ```python
         def reply_func(
             recipient: ResponsiveAgent,
             messages: Optional[List[Dict]] = None,
             sender: Optional[Agent] = None,
-            context: Optional[Any] = None,
+            config: Optional[Any] = None,
         ) -> Union[str, Dict, None]:
         ```
             position (int): the position of the reply function in the reply function list.
                 The function registered later will be checked earlier by default.
                 To change the order, set the position to a positive integer.
-            context (Any): the context to be passed to the reply function.
-                When an agent is reset, the context will be reset to the original value.
-            reset_context (Callable): the function to reset the context.
-                The function returns None. Signature: ```def reset_context(context: Any)```
+            config (Any): the config to be passed to the reply function.
+                When an agent is reset, the config will be reset to the original value.
+            reset_config (Callable): the function to reset the config.
+                The function returns None. Signature: ```def reset_config(config: Any)```
         """
         if not isinstance(trigger, (type, str, Agent, Callable, list)):
             raise ValueError("trigger must be a class, a string, an agent, a callable or a list.")
@@ -169,9 +170,9 @@ class ResponsiveAgent(Agent):
             {
                 "trigger": trigger,
                 "reply_func": reply_func,
-                "context": copy.copy(context),
-                "init_context": context,
-                "reset_context": reset_context,
+                "config": copy.copy(config),
+                "init_config": config,
+                "reset_config": reset_config,
             },
         )
 
@@ -280,6 +281,7 @@ class ResponsiveAgent(Agent):
         message: Union[Dict, str],
         recipient: Agent,
         request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
     ) -> bool:
         """Send a message to another agent.
 
@@ -308,6 +310,7 @@ class ResponsiveAgent(Agent):
                     the content of the "link" later.
             recipient (Agent): the recipient of the message.
             request_reply (bool or None): whether to request a reply from the recipient.
+            silent (bool or None): (Experimental) whether to print the message sent.
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
@@ -316,13 +319,19 @@ class ResponsiveAgent(Agent):
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
-            recipient.receive(message, self, request_reply)
+            recipient.receive(message, self, request_reply, silent)
         else:
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
-    async def a_send(self, message: Union[Dict, str], recipient: Agent, request_reply: Optional[bool] = None) -> bool:
+    async def a_send(
+        self,
+        message: Union[Dict, str],
+        recipient: Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
+    ) -> bool:
         """(async) Send a message to another agent.
 
         Args:
@@ -350,6 +359,7 @@ class ResponsiveAgent(Agent):
                     the content of the "link" later.
             recipient (Agent): the recipient of the message.
             request_reply (bool or None): whether to request a reply from the recipient.
+            silent (bool or None): (Experimental) whether to print the message sent.
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
@@ -358,7 +368,7 @@ class ResponsiveAgent(Agent):
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
-            await recipient.a_receive(message, self, request_reply)
+            await recipient.a_receive(message, self, request_reply, silent)
         else:
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -394,7 +404,7 @@ class ResponsiveAgent(Agent):
                 print(colored("*" * len(func_print), "green"), flush=True)
         print("\n", "-" * 80, flush=True, sep="")
 
-    def _process_received_message(self, message, sender):
+    def _process_received_message(self, message, sender, silent):
         message = self._message_to_dict(message)
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
@@ -402,9 +412,16 @@ class ResponsiveAgent(Agent):
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-        self._print_received_message(message, sender)
+        if not silent:
+            self._print_received_message(message, sender)
 
-    def receive(self, message: Union[Dict, str], sender: Agent, request_reply: Optional[bool] = None):
+    def receive(
+        self,
+        message: Union[Dict, str],
+        sender: Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
+    ):
         """Receive a message from another agent.
 
         Once a message is received, this function sends a reply to the sender or stop.
@@ -422,18 +439,25 @@ class ResponsiveAgent(Agent):
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
+            silent (bool or None): (Experimental) whether to print the message received.
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        self._process_received_message(message, sender)
+        self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
-        reply = self.generate_reply(sender=sender)
+        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
         if reply is not None:
-            self.send(reply, sender)
+            self.send(reply, sender, silent=silent)
 
-    async def a_receive(self, message: Union[Dict, str], sender: Agent, request_reply: Optional[bool] = None):
+    async def a_receive(
+        self,
+        message: Union[Dict, str],
+        sender: Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
+    ):
         """(async) Receive a message from another agent.
 
         Once a message is received, this function sends a reply to the sender or stop.
@@ -451,16 +475,17 @@ class ResponsiveAgent(Agent):
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
+            silent (bool or None): (Experimental) whether to print the message received.
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        self._process_received_message(message, sender)
+        self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = await self.a_generate_reply(sender=sender)
         if reply is not None:
-            await self.a_send(reply, sender)
+            await self.a_send(reply, sender, silent=silent)
 
     def _prepare_chat(self, recipient, clear_history):
         self.reset_consecutive_auto_reply_counter(recipient)
@@ -470,7 +495,13 @@ class ResponsiveAgent(Agent):
             self.clear_history(recipient)
             recipient.clear_history(self)
 
-    def initiate_chat(self, recipient: "ResponsiveAgent", clear_history: Optional[bool] = True, **context):
+    def initiate_chat(
+        self,
+        recipient: "ResponsiveAgent",
+        clear_history: Optional[bool] = True,
+        silent: Optional[bool] = False,
+        **context,
+    ):
         """Initiate a chat with the recipient agent.
 
         Reset the consecutive auto reply counter.
@@ -480,13 +511,20 @@ class ResponsiveAgent(Agent):
         Args:
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
+            silent (bool or None): (Experimental) whether to print the messages for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
         """
         self._prepare_chat(recipient, clear_history)
-        self.send(self.generate_init_message(**context), recipient)
+        self.send(self.generate_init_message(**context), recipient, silent=silent)
 
-    async def a_initiate_chat(self, recipient: "ResponsiveAgent", clear_history: Optional[bool] = True, **context):
+    async def a_initiate_chat(
+        self,
+        recipient: "ResponsiveAgent",
+        clear_history: Optional[bool] = True,
+        silent: Optional[bool] = False,
+        **context,
+    ):
         """(async) Initiate a chat with the recipient agent.
 
         Reset the consecutive auto reply counter.
@@ -496,11 +534,12 @@ class ResponsiveAgent(Agent):
         Args:
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
+            silent (bool or None): (Experimental) whether to print the messages for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
         """
         self._prepare_chat(recipient, clear_history)
-        await self.a_send(self.generate_init_message(**context), recipient)
+        await self.a_send(self.generate_init_message(**context), recipient, silent=silent)
 
     def reset(self):
         """Reset the agent."""
@@ -508,10 +547,10 @@ class ResponsiveAgent(Agent):
         self.reset_consecutive_auto_reply_counter()
         self.stop_reply_at_receive()
         for reply_func_tuple in self._reply_func_list:
-            if reply_func_tuple["reset_context"] is not None:
-                reply_func_tuple["reset_context"](reply_func_tuple["context"])
+            if reply_func_tuple["reset_config"] is not None:
+                reply_func_tuple["reset_config"](reply_func_tuple["config"])
             else:
-                reply_func_tuple["context"] = copy.copy(reply_func_tuple["init_context"])
+                reply_func_tuple["config"] = copy.copy(reply_func_tuple["init_config"])
 
     def stop_reply_at_receive(self, sender: Optional[Agent] = None):
         """Reset the reply_at_receive of the sender."""
@@ -542,10 +581,10 @@ class ResponsiveAgent(Agent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        context: Optional[Any] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai."""
-        llm_config = self.llm_config if context is None else context
+        llm_config = self.llm_config if config is None else config
         if llm_config is False:
             return False, None
         if messages is None:
@@ -561,36 +600,44 @@ class ResponsiveAgent(Agent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        context: Optional[Any] = None,
+        config: Optional[Any] = None,
     ):
         """Generate a reply using code execution."""
-        code_execution_config = context if context is not None else self._code_execution_config
+        code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
-        message = messages[-1]
-        code_blocks = extract_code(message["content"])
-        if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-            # no code block is found, lang should be `UNKNOWN`
-            return False, None
-            # code_blocks, _ = find_code(messages, sys_msg=self._oai_system_message, **self.llm_config)
-            # if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-            #     return code_blocks[0][1]
-        # try to execute the code
-        exitcode, logs = self.execute_code_blocks(code_blocks)
-        exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+        last_n_messages = code_execution_config.pop("last_n_messages", 1)
+        for i in range(last_n_messages):
+            message = messages[-(i + 1)]
+            code_blocks = extract_code(message["content"])
+            if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
+                # no code block is found, lang should be `UNKNOWN`
+
+                if i == last_n_messages - 1:
+                    code_execution_config["last_n_messages"] = last_n_messages
+                    return False, None
+                continue
+                # code_blocks, _ = find_code(messages, sys_msg=self._oai_system_message, **self.llm_config)
+                # if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
+                #     return code_blocks[0][1]
+            # try to execute the code
+            exitcode, logs = self.execute_code_blocks(code_blocks)
+            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+            break
+        code_execution_config["last_n_messages"] = last_n_messages
         return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
 
     def generate_function_call_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        context: Optional[Any] = None,
+        config: Optional[Any] = None,
     ):
         """Generate a reply using function call."""
-        if context is None:
-            context = self
+        if config is None:
+            config = self
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
@@ -603,11 +650,11 @@ class ResponsiveAgent(Agent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        context: Optional[Any] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Check if the conversation should be terminated, and if human reply is provided."""
-        if context is None:
-            context = self
+        if config is None:
+            config = self
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
@@ -709,9 +756,7 @@ class ResponsiveAgent(Agent):
                 if asyncio.coroutines.iscoroutinefunction(reply_func):
                     continue
                 if self._match_trigger(reply_func_tuple["trigger"], sender):
-                    final, reply = reply_func(
-                        self, messages=messages, sender=sender, context=reply_func_tuple["context"]
-                    )
+                    final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                     if final:
                         return reply
         return self._default_auto_reply
@@ -755,11 +800,11 @@ class ResponsiveAgent(Agent):
                 if self._match_trigger(reply_func_tuple["trigger"], sender):
                     if asyncio.coroutines.iscoroutinefunction(reply_func):
                         final, reply = await reply_func(
-                            self, messages=messages, sender=sender, context=reply_func_tuple["context"]
+                            self, messages=messages, sender=sender, config=reply_func_tuple["config"]
                         )
                     else:
                         final, reply = reply_func(
-                            self, messages=messages, sender=sender, context=reply_func_tuple["context"]
+                            self, messages=messages, sender=sender, config=reply_func_tuple["config"]
                         )
                     if final:
                         return reply
