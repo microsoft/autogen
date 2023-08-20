@@ -118,6 +118,14 @@ def test_execute_function():
     assert user.execute_function(func_call=func_call)[1]["content"] == "15"
     assert user.execute_function(func_call=func_call)[1]["content"] == "20"
 
+    # 3. test calling a function with no arguments
+    def get_number():
+        return 42
+
+    user = UserProxyAgent("user", function_map={"get_number": get_number})
+    func_call = {"name": "get_number", "arguments": "{}"}
+    assert user.execute_function(func_call)[1]["content"] == "42"
+
 
 if __name__ == "__main__":
     test_json_extraction()

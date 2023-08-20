@@ -953,7 +953,7 @@ class ResponsiveAgent(Agent):
                 content = f"Error: {e}\n You argument should follow json format."
 
             # Try to execute the function
-            if arguments:
+            if arguments is not None:
                 print(
                     colored(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", "magenta"),
                     flush=True,
