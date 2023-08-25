@@ -119,10 +119,10 @@ class ResponsiveAgent(Agent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
-        self.register_auto_reply(Agent, ResponsiveAgent.generate_oai_reply)
-        self.register_auto_reply(Agent, ResponsiveAgent.generate_code_execution_reply)
-        self.register_auto_reply(Agent, ResponsiveAgent.generate_function_call_reply)
-        self.register_auto_reply(Agent, ResponsiveAgent.check_termination_and_human_reply)
+        self.register_auto_reply([Agent, None], ResponsiveAgent.generate_oai_reply)
+        self.register_auto_reply([Agent, None], ResponsiveAgent.generate_code_execution_reply)
+        self.register_auto_reply([Agent, None], ResponsiveAgent.generate_function_call_reply)
+        self.register_auto_reply([Agent, None], ResponsiveAgent.check_termination_and_human_reply)
 
     def register_auto_reply(
         self,
@@ -145,6 +145,8 @@ class ResponsiveAgent(Agent):
                 - If an agent instance is provided, the reply function will be called when the sender is the agent instance.
                 - If a callable is provided, the reply function will be called when the callable returns True.
                 - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
+                - If None is provided, the reply function will be called only when the sender is None.
+                Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
             reply_func (Callable): the reply function.
                 The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
         ```python
@@ -726,6 +728,7 @@ class ResponsiveAgent(Agent):
         """Reply based on the conversation history and the sender.
 
         Either messages or sender must be provided.
+        Register a reply_func with `None` as one trigger for it to be activated when `messages` is non-empty and `sender` is `None`.
         Use registered auto reply functions to generate replies.
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
@@ -748,17 +751,19 @@ class ResponsiveAgent(Agent):
             str or dict or None: reply. None if no reply is generated.
         """
         assert messages is not None or sender is not None, "Either messages or sender must be provided."
-        if sender is not None:
-            for reply_func_tuple in self._reply_func_list:
-                reply_func = reply_func_tuple["reply_func"]
-                if exclude and reply_func in exclude:
-                    continue
-                if asyncio.coroutines.iscoroutinefunction(reply_func):
-                    continue
-                if self._match_trigger(reply_func_tuple["trigger"], sender):
-                    final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
-                    if final:
-                        return reply
+        if messages is None:
+            messages = self._oai_messages[sender]
+
+        for reply_func_tuple in self._reply_func_list:
+            reply_func = reply_func_tuple["reply_func"]
+            if exclude and reply_func in exclude:
+                continue
+            if asyncio.coroutines.iscoroutinefunction(reply_func):
+                continue
+            if self._match_trigger(reply_func_tuple["trigger"], sender):
+                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                if final:
+                    return reply
         return self._default_auto_reply
 
     async def a_generate_reply(
@@ -770,6 +775,7 @@ class ResponsiveAgent(Agent):
         """(async) Reply based on the conversation history and the sender.
 
         Either messages or sender must be provided.
+        Register a reply_func with `None` as one trigger for it to be activated when `messages` is non-empty and `sender` is `None`.
         Use registered auto reply functions to generate replies.
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
@@ -792,27 +798,29 @@ class ResponsiveAgent(Agent):
             str or dict or None: reply. None if no reply is generated.
         """
         assert messages is not None or sender is not None, "Either messages or sender must be provided."
-        if sender is not None:
-            for reply_func_tuple in self._reply_func_list:
-                reply_func = reply_func_tuple["reply_func"]
-                if exclude and reply_func in exclude:
-                    continue
-                if self._match_trigger(reply_func_tuple["trigger"], sender):
-                    if asyncio.coroutines.iscoroutinefunction(reply_func):
-                        final, reply = await reply_func(
-                            self, messages=messages, sender=sender, config=reply_func_tuple["config"]
-                        )
-                    else:
-                        final, reply = reply_func(
-                            self, messages=messages, sender=sender, config=reply_func_tuple["config"]
-                        )
-                    if final:
-                        return reply
+        if messages is None:
+            messages = self._oai_messages[sender]
+
+        for reply_func_tuple in self._reply_func_list:
+            reply_func = reply_func_tuple["reply_func"]
+            if exclude and reply_func in exclude:
+                continue
+            if self._match_trigger(reply_func_tuple["trigger"], sender):
+                if asyncio.coroutines.iscoroutinefunction(reply_func):
+                    final, reply = await reply_func(
+                        self, messages=messages, sender=sender, config=reply_func_tuple["config"]
+                    )
+                else:
+                    final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                if final:
+                    return reply
         return self._default_auto_reply
 
     def _match_trigger(self, trigger, sender):
         """Check if the sender matches the trigger."""
-        if isinstance(trigger, str):
+        if trigger is None:
+            return sender is None
+        elif isinstance(trigger, str):
             return trigger == sender.name
         elif isinstance(trigger, type):
             return isinstance(sender, trigger)
