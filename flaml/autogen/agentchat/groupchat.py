@@ -38,10 +38,18 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {self.agent_names} to play. Only return the role."""
 
-    def select_speaker(self, last_speaker: Agent, selctor: ResponsiveAgent):
+    def select_speaker(self, last_speaker: Agent, selector: ResponsiveAgent):
         """Select the next speaker."""
-        selctor.update_system_message(self.select_speaker_msg())
-        final, name = selctor.generate_oai_reply(self.messages)
+        selector.update_system_message(self.select_speaker_msg())
+        final, name = selector.generate_oai_reply(
+            self.messages
+            + [
+                {
+                    "role": "system",
+                    "content": f"Read the above conversation. Then select the next role from {self.agent_names} to play. Only return the role.",
+                }
+            ]
+        )
         if not final:
             # i = self._random.randint(0, len(self._agent_names) - 1)  # randomly pick an id
             return self.next_agent(last_speaker)
@@ -55,7 +63,7 @@ Then select the next role from {self.agent_names} to play. Only return the role.
 
 
 class GroupChatManager(ResponsiveAgent):
-    """(WIP) A chat manager agent that can manage a group chat of multiple agents."""
+    """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
 
     def __init__(
         self,

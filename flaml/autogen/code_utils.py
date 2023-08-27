@@ -347,9 +347,9 @@ def execute_code(
         # extract the exit code from the logs
         pattern = re.compile(f"{exit_code_str}(\\d+){exit_code_str}")
         match = pattern.search(logs)
-        exit_code = int(match.group(1))
+        exit_code = 1 if match is None else int(match.group(1))
         # remove the exit code from the logs
-        logs = pattern.sub("", logs)
+        logs = logs if match is None else pattern.sub("", logs)
 
     if original_filename is None:
         os.remove(filepath)
