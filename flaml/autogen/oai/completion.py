@@ -746,7 +746,11 @@ class Completion(openai_Completion):
                 Also, the "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
 
         Returns:
-            Responses from OpenAI API.
+            Responses from OpenAI API, with additional fields.
+                - `cost`: the total cost.
+            When `config_list` is provided, the response will contain a few more fields:
+                - `config_id`: the index of the config in the config_list that is used to generate the response.
+                - `pass_filter`: whether the response passes the filter function. None if no filter is provided.
         """
         if ERROR:
             raise ERROR
