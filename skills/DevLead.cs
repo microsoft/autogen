@@ -9,42 +9,28 @@ public static class DevLead {
         For each step or module then break down the steps or subtasks required to complete that step or module.
         For each subtask write an LLM prompt that would be used to tell a model to write the coee that will accomplish that subtask.  If the subtask involves taking action/running commands tell the model to write the script that will run those commands. 
         In each LLM prompt restrict the model from outputting other text that is not in the form of code or code comments. 
-        Please output a JSON array data structure with a list of steps and a description of each step, and the steps or subtasks that each requires, and the LLM prompts for each subtask. 
+        Please output a JSON array data structure, in the precise schema shown below, with a list of steps and a description of each step, and the steps or subtasks that each requires, and the LLM prompts for each subtask. 
         Example: 
-        [
             {
-                "step": "Step 1",
-                "description": "This is the first step",
-                "subtasks": [
+                "steps": [
                     {
-                        "subtask": "Subtask 1",
-                        "description": "This is the first subtask",
-                        "prompt": "Write the code to do the first subtask"
-                    },
-                    {
-                        "subtask": "Subtask 2",
-                        "description": "This is the second subtask",
-                        "prompt": "Write the code to do the second subtask"
-                    }
-                ]
-            },
-            {
-                "step": "Step 2",
-                "description": "This is the second step",
-                "subtasks": [
-                    {
-                        "subtask": "Subtask 1",
-                        "description": "This is the first subtask",
-                        "prompt": "Write the code to do the first subtask"
-                    },
-                    {
-                        "subtask": "Subtask 2",
-                        "description": "This is the second subtask",
-                        "prompt": "Write the code to do the second subtask"
+                        "step": "1",
+                        "description": "This is the first step",
+                        "subtasks": [
+                            {
+                            "subtask": "Subtask 1",
+                                "description": "This is the first subtask",
+                                "prompt": "Write the code to do the first subtask"
+                            },
+                            {
+                                "subtask": "Subtask 2",
+                                "description": "This is the second subtask",
+                                "prompt": "Write the code to do the second subtask"
+                            }
+                        ]
                     }
                 ]
             }
-        ]
         Do not output any other text. 
         Input: {{$input}}
         {{$wafContext}}

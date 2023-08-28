@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 public class Subtask
 {
     public string subtask { get; set; }
-    public string LLM_prompt { get; set; }
+    public string prompt { get; set; }
 }
 
 public class Step

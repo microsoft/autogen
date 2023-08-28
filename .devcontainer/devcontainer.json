@@ -9,7 +9,8 @@
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {},
 		"ghcr.io/devcontainers/features/common-utils:2": {},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/azure/azure-dev/azd:latest": {}
 	},
 	"postCreateCommand": "bash .devcontainer/startup.sh",
 	"hostRequirements": {
@@ -39,7 +40,13 @@
 				"ms-dotnettools.csdevkit",
 				"Azurite.azurite",
 				"ms-dotnettools.csharp",
-				"ms-semantic-kernel.semantic-kernel"
+				"ms-semantic-kernel.semantic-kernel",
+				"GitHub.copilot-chat",
+				"GitHub.vscode-github-actions",
+                "ms-azuretools.azure-dev",
+                "ms-azuretools.vscode-azurefunctions",
+                "ms-azuretools.vscode-bicep",
+                "ms-dotnettools.vscode-dotnet-runtime"
 			]
 		}
 	}

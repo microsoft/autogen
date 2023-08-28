@@ -1,0 +1,1 @@
+![](/docs/images/github-sk-dev-team.png)

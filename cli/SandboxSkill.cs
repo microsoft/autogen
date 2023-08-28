@@ -3,17 +3,11 @@ using Microsoft.SemanticKernel.SkillDefinition;
 
 public class SandboxSkill
 {
-    [SKFunction("Run a script in Alpine sandbox")]
-    [SKFunctionInput(Description = "The script to be executed")]
-    [SKFunctionName("RunInAlpine")]
     public async Task<string> RunInAlpineAsync(string input)
     {
         return await RunInContainer(input, "alpine");
     }
 
-    [SKFunction("Run a script in dotnet alpine sandbox")]
-    [SKFunctionInput(Description = "The script to be executed")]
-    [SKFunctionName("RunInDotnetAlpine")]
     public async Task<string> RunInDotnetAlpineAsync(string input)
     {
         return await RunInContainer(input, "mcr.microsoft.com/dotnet/sdk:7.0");

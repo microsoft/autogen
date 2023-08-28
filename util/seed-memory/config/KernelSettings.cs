@@ -29,6 +29,9 @@ internal class KernelSettings
     [JsonPropertyName("orgId")]
     public string OrgId { get; set; } = string.Empty;
 
+    [JsonPropertyName("qdrantEndoint")]
+    public string QdrantEndpoint { get; set; } = string.Empty;
+
     [JsonPropertyName("logLevel")]
     public LogLevel? LogLevel { get; set; }
 
@@ -71,6 +74,7 @@ internal class KernelSettings
         var configuration = new ConfigurationBuilder()
             .SetBasePath(System.IO.Directory.GetCurrentDirectory())
             .AddJsonFile(configFile, optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
             .Build();
 
         return configuration.Get<KernelSettings>()

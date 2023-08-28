@@ -482,7 +482,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
-
+__azurite**
+__blob**
+__queue**
 # SQLite workflows DB
 elsa.sqlite.*
 
@@ -491,3 +493,6 @@ elsa.sqlite.*
 
 # ignore local elsa-core src
 elsa-core/
+sk-azfunc-server/local.settings.json
+.azure
+temp

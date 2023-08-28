@@ -1,0 +1,11 @@
+{
+    "appManagedEnvironments": "cae-",
+    "containerRegistryRegistries": "cr",
+    "insightsComponents": "appi-",
+    "operationalInsightsWorkspaces": "log-",
+    "portalDashboards": "dash-",
+    "resourcesResourceGroups": "rg-",
+    "storageStorageAccounts": "st",
+    "webServerFarms": "plan-",
+    "webSitesFunctions": "func-"
+}

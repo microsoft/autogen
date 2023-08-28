@@ -25,7 +25,7 @@ class Program
                 .AddDebug();
         });
        
-        var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient("http://qdrant", 1536, port: 6333));
+        var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient(kernelSettings.QdrantEndpoint, 1536));
         var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
         var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
 
@@ -45,13 +45,20 @@ class Program
             var pages = pdfDocument.GetPages();
             foreach (var page in pages)
             {
-                var text = ContentOrderTextExtractor.GetText(page);
-                var descr = text.Take(100);
-                await kernel.Memory.SaveInformationAsync(
-                    collection: "waf-pages",
-                    text: text,
-                    id: $"{Guid.NewGuid()}",
-                    description: $"Document: {descr}");
+                try
+                {
+                    var text = ContentOrderTextExtractor.GetText(page);
+                    var descr = text.Take(100);
+                    await kernel.Memory.SaveInformationAsync(
+                        collection: "waf-pages",
+                        text: text,
+                        id: $"{Guid.NewGuid()}",
+                        description: $"Document: {descr}");
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
         }
 }

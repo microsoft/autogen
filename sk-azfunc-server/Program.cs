@@ -1,13 +1,16 @@
 ﻿using System.Text.Json;
-using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Abstractions;
-using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Configurations;
-using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
+using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
+using Microsoft.SemanticKernel.Memory;
+using Octokit.Webhooks;
+using Octokit.Webhooks.AzureFunctions;
 
 namespace KernelHttpServer;
 
@@ -16,24 +19,66 @@ public static class Program
     public static void Main()
     {
         var host = new HostBuilder()
-            .ConfigureFunctionsWorkerDefaults()
+            .ConfigureFunctionsWebApplication()
+            .ConfigureGitHubWebhooks()
             .ConfigureAppConfiguration(configuration =>
             {
                 var config = configuration.SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true);
+                    .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
+                    .AddEnvironmentVariables();
 
                 var builtConfig = config.Build();
             })
             .ConfigureServices(services =>
             {
-                services.AddSingleton<IOpenApiConfigurationOptions>(_ => s_apiConfigOptions);
                 services.AddTransient((provider) => CreateKernel(provider));
-
-
+                services.AddScoped<GithubService>();
+                services.AddScoped<WebhookEventProcessor, SKWebHookEventProcessor>();
+                services.AddOptions<GithubOptions>()
+                    .Configure<IConfiguration>((settings, configuration) =>
+                    {
+                        configuration.GetSection("GithubOptions").Bind(settings);
+                    });
+                services.AddOptions<AzureOptions>()
+                    .Configure<IConfiguration>((settings, configuration) =>
+                    {
+                        configuration.GetSection("AzureOptions").Bind(settings);
+                    });
+                services.AddOptions<OpenAIOptions>()
+                    .Configure<IConfiguration>((settings, configuration) =>
+                    {
+                        configuration.GetSection("OpenAIOptions").Bind(settings);
+                    });
+                services.AddOptions<QdrantOptions>()
+                    .Configure<IConfiguration>((settings, configuration) =>
+                    {
+                        configuration.GetSection("QdrantOptions").Bind(settings);
+                    });
+                services.AddApplicationInsightsTelemetryWorkerService();
+                services.ConfigureFunctionsApplicationInsights();
                 // return JSON with expected lowercase naming
                 services.Configure<JsonSerializerOptions>(options =>
                 {
                     options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                });
+
+
+                services.AddHttpClient("FunctionsClient", client =>
+                {
+                    var fqdn = Environment.GetEnvironmentVariable("FUNCTIONS_FQDN", EnvironmentVariableTarget.Process);
+                    client.BaseAddress = new Uri($"{fqdn}/api/");
+                });
+            })
+            .ConfigureLogging(logging =>
+            {
+                logging.Services.Configure<LoggerFilterOptions>(options =>
+                {
+                    LoggerFilterRule defaultRule = options.Rules.FirstOrDefault(rule => rule.ProviderName
+                        == "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider");
+                    if (defaultRule is not null)
+                    {
+                        options.Rules.Remove(defaultRule);
+                    }
                 });
             })
             .Build();
@@ -43,43 +88,27 @@ public static class Program
 
     private static IKernel CreateKernel(IServiceProvider provider)
     {
-        var kernelSettings = KernelSettings.LoadSettings();
+        var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
+        var qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
 
         var kernelConfig = new KernelConfig();
-        kernelConfig.AddCompletionBackend(kernelSettings);
 
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         {
             builder
-                .SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning)
+                .SetMinimumLevel(LogLevel.Debug)
                 .AddConsole()
                 .AddDebug();
         });
 
-        return new KernelBuilder().WithLogger(loggerFactory.CreateLogger<IKernel>()).WithConfiguration(kernelConfig).Build();
-    }
+        var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient(qdrantConfig.Endpoint, qdrantConfig.VectorSize));
+        var embedingGeneration = new AzureTextEmbeddingGeneration(openAiConfig.EmbeddingDeploymentOrModelId, openAiConfig.Endpoint, openAiConfig.ApiKey);
+        var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
 
-    private static readonly OpenApiConfigurationOptions s_apiConfigOptions = new()
-    {
-        Info = new OpenApiInfo()
-        {
-            Version = "1.0.0",
-            Title = "Semantic Kernel Azure Functions Starter",
-            Description = "Azure Functions starter application for the [Semantic Kernel](https://github.com/microsoft/semantic-kernel).",
-            Contact = new OpenApiContact()
-            {
-                Name = "Issues",
-                Url = new Uri("https://github.com/microsoft/semantic-kernel-starters/issues"),
-            },
-            License = new OpenApiLicense()
-            {
-                Name = "MIT",
-                Url = new Uri("https://github.com/microsoft/semantic-kernel-starters/blob/main/LICENSE"),
-            }
-        },
-        Servers = DefaultOpenApiConfigurationOptions.GetHostNames(),
-        OpenApiVersion = OpenApiVersionType.V2,
-        ForceHttps = false,
-        ForceHttp = false,
-    };
+        return new KernelBuilder()
+                            .WithLogger(loggerFactory.CreateLogger<IKernel>())
+                            .WithAzureChatCompletionService(openAiConfig.DeploymentOrModelId, openAiConfig.Endpoint, openAiConfig.ApiKey, true, openAiConfig.ServiceId, true)
+                            .WithMemory(semanticTextMemory)
+                            .WithConfiguration(kernelConfig).Build();
+    }
 }
