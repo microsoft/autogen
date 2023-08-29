@@ -146,6 +146,7 @@ user_proxy.initiate_chat(
 ```
 
 ### Notebook Examples
+<!-- Keep aligned with notebooks in docs/Examples/AutoGen-AgentChat.md -->
 
 *Interested in trying it yourself? Please check the following notebook examples:*
 * [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
@@ -157,6 +158,7 @@ user_proxy.initiate_chat(
 * [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_chess.ipynb)
 * [Automated Task Solving by Group Chat](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
 * [Automated Continual Learning from New Data](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_stream.ipynb)
+* [Automated Code Generation and Question Answering with Retrieval Augemented Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_RetrieveChat.ipynb)
 
 ## Enhanced Inference
 
@@ -550,3 +552,4 @@ The compact history is more efficient and the individual API call history contai
 *Interested in the research that leads to this package? Please check the following papers.*
 * [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673). Chi Wang, Susan Xueqing Liu, Ahmed H. Awadallah. ArXiv preprint arXiv:2303.04673 (2023).
 * [An Empirical Study on Challenging Math Problem Solving with GPT-4](https://arxiv.org/abs/2306.01337). Yiran Wu, Feiran Jia, Shaokun Zhang, Hangyu Li, Erkang Zhu, Yue Wang, Yin Tat Lee, Richard Peng, Qingyun Wu, Chi Wang. ArXiv preprint arXiv:2306.01337 (2023).
+* [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework](https://arxiv.org/abs/2308.08155). Qingyun Wu, Gagan Bansal, Jieyu Zhang, Yiran Wu, Shaokun Zhang, Erkang Zhu, Beibin Li, Li Jiang, Xiaoyun Zhang, Chi Wang. ArXiv preprint arXiv:2308.08155 (2023).

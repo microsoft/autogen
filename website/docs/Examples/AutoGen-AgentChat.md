@@ -1,4 +1,5 @@
 # AutoGen - Automated Multi Agent Chat
+<!-- Keep aligned with notebooks in docs/Use-Cases/Autogen#notebook-examples -->
 
 `flaml.autogen` offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. This framwork allows tool use and human participance via multi-agent conversation.
 Please find documentation about this feature [here](/docs/Use-Cases/Autogen#agents).
@@ -13,3 +14,4 @@ Links to notebook examples:
 * [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_chess.ipynb)
 * [Automated Task Solving by Group Chat](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
 * [Automated Continual Learning from New Data](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_stream.ipynb)
+* [Automated Code Generation and Question Answering with Retrieval Augemented Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_RetrieveChat.ipynb)
