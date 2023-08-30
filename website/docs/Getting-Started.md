@@ -19,16 +19,16 @@ AutoGen is powered by collaborative [research studies](/docs/Research) from Micr
 
 ### Quickstart
 
-Install AutoGen from pip: `pip install autogen`. Find more options in [Installation](/docs/Installation).
+Install AutoGen from pip: `pip install pyautogen`. Find more options in [Installation](/docs/Installation).
 
 
 Autogen enables the next-gen GPT-X applications with a generic multi-agent conversation framework.
 It offers customizable and conversable agents which integrate LLMs, tools and human.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
-import autogen
-assistant = autogen.AssistantAgent("assistant")
-user_proxy = autogen.UserProxyAgent("user_proxy")
+from pyautogen import AssistantAgent, UserProxyAgent
+assistant = AssistantAgent("assistant")
+user_proxy = UserProxyAgent("user_proxy")
 user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
 # This initiates an automated chat between the two agents to solve the task
 ```
@@ -36,7 +36,7 @@ user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest 
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
 # perform tuning
-config, analysis = autogen.Completion.tune(
+config, analysis = pyautogen.Completion.tune(
     data=tune_data,
     metric="success",
     mode="max",

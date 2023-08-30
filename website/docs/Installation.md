@@ -5,12 +5,12 @@
 AutoGen requires **Python version >= 3.8**. It can be installed from pip:
 
 ```bash
-pip install autogen
+pip install pyautogen
 ```
 
 or conda:
 ```
-conda install autogen -c conda-forge
+conda install pyautogen -c conda-forge
 ```
 
 ### Optional Dependencies

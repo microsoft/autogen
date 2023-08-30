@@ -43,8 +43,8 @@ feedback:
   your **Python, autogen, scikit-learn versions**. The version of autogen
   can be found by running the following code snippet:
 ```python
-import autogen
-print(autogen.__version__)
+import pyautogen
+print(pyautogen.__version__)
 ```
 
 - Please ensure all **code snippets and error messages are formatted in
@@ -62,10 +62,10 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ```bash
 git clone https://github.com/microsoft/autogen.git
-pip install -e autogen[notebook]
+pip install -e pyautogen[notebook]
 ```
 
-In case the `pip install` command fails, try escaping the brackets such as `pip install -e autogen\[notebook\]`.
+In case the `pip install` command fails, try escaping the brackets such as `pip install -e pyautogen\[notebook\]`.
 
 ### Docker
 

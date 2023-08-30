@@ -1,173 +1,13 @@
-# AutoGen: Enabling Next-Gen GPT-X Applications
-
-`flaml.autogen` simplifies the orchestration, automation and optimization of a complex GPT-X workflow. It maximizes the performance of GPT-X models and augments their weakness. It enables building next-gen GPT-X applications based on multi-agent conversations with minimal effort.
-
-## Features
-
-* A unified multi-agent conversation framework as a high-level abstraction of using foundation models. It offers customizable and conversable agents which integrate LLM, tool and human.
-By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
-* A drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an enhanced inference API. It allows easy performance tuning, utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
-
-The package is under active development with more features upcoming.
-
-## Agents
-
-[`flaml.autogen.agentchat`](/docs/reference/autogen/agentchat/agent) offers a multi-agent conversation framework, featuring capable, customizable and conversable agents which integrate LLM, tool and human via automated agent chat.
-
-### Basic Concept
-
-We have designed a generic `ResponsiveAgent` class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are `AssistantAgent` and `UserProxyAgent`.
-
-- `AssistantAgent`. Designed to act as an assistant by responding to user requests. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest code with bug fix. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
-- `UserProxyAgent`. Serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
-By default, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting `code_execution_config` to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](#enhanced-inference) configuration.
-When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
-
-The auto-reply capability of `ResponsiveAgent` allows for more autonomous multi-agent communication while retaining the possibility of human intervention.
-One can also easily extend it by registering auto_reply functions with the `register_auto_reply()` method.
-
-### Basic Example
-
-Example usage of the agents to solve a task with code:
-```python
-from flaml.autogen import AssistantAgent, UserProxyAgent
-
-# create an AssistantAgent instance named "assistant"
-assistant = AssistantAgent(name="assistant")
-
-# create a UserProxyAgent instance named "user_proxy"
-user_proxy = UserProxyAgent(
-    name="user_proxy",
-    human_input_mode="NEVER",  # in this mode, the agent will never solicit human input but always auto reply
-)
-
-# the assistant receives a message from the user, which contains the task description
-user.initiate_chat(
-    assistant,
-    message="""What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
-)
-```
-In the example above, we create an AssistantAgent named "assistant" to serve as the assistant and a UserProxyAgent named "user_proxy" to serve as a proxy for the human user.
-1. The assistant receives a message from the user_proxy, which contains the task description.
-2. The assistant then tries to write Python code to solve the task and sends the response to the user_proxy.
-3. Once the user_proxy receives a response from the assistant, it tries to reply by either soliciting human input or preparing an automatically generated reply. In this specific example, since `human_input_mode` is set to `"NEVER"`, the user_proxy will not solicit human input but send an automatically generated reply (auto reply). More specifically, the user_proxy executes the code and uses the result as the auto-reply.
-4. The assistant then generates a further response for the user_proxy. The user_proxy can then decide whether to terminate the conversation. If not, steps 3 and 4 are repeated.
-
-Please find a visual illustration of how UserProxyAgent and AssistantAgent collaboratively solve the above task below:
-![Agent Chat Example](images/agent_example.png)
-
-### Human Input Mode
-
-The `human_input_mode` parameter of `UserProxyAgent` controls the behavior of the agent when it receives a message. It can be set to `"NEVER"`, `"ALWAYS"`, or `"TERMINATE"`.
-- Under the mode `human_input_mode="NEVER"`, the multi-turn conversation between the assistant and the user_proxy stops when the number of auto-reply reaches the upper limit specified by `max_consecutive_auto_reply` or the received message is a termination message according to `is_termination_msg`.
-- When `human_input_mode` is set to `"ALWAYS"`, the user proxy agent solicits human input every time a message is received; and the conversation stops when the human input is "exit", or when the received message is a termination message and no human input is provided.
-- When `human_input_mode` is set to `"TERMINATE"`, the user proxy agent solicits human input only when a termination message is received or the number of auto replies reaches `max_consecutive_auto_reply`.
-
-### Function Calling
-To leverage [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com), one can pass in a list of callable functions or class methods to `UserProxyAgent`, which corresponds to the description of functions passed to OpenAI's API.
-
-Example usage of the agents to solve a task with function calling feature:
-```python
-from flaml.autogen import AssistantAgent, UserProxyAgent
-
-# put the descriptions of functions in config to be passed to OpenAI's API
-llm_config = {
-    "model": "gpt-4-0613",
-    "functions": [
-        {
-            "name": "python",
-            "description": "run cell in ipython and return the execution result.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "cell": {
-                        "type": "string",
-                        "description": "Valid Python cell to execute.",
-                    }
-                },
-                "required": ["cell"],
-            },
-        },
-        {
-            "name": "sh",
-            "description": "run a shell script and return the execution result.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "script": {
-                        "type": "string",
-                        "description": "Valid shell script to execute.",
-                    }
-                },
-                "required": ["script"],
-            },
-        },
-    ],
-}
-
-# create an AssistantAgent instance named "assistant"
-chatbot = AssistantAgent("assistant", **llm_config)
-
-# create a UserProxyAgent instance named "user_proxy"
-user_proxy = UserProxyAgent(
-    "user_proxy",
-    human_input_mode="NEVER",
-)
-
-# define functions according to the function desription
-from IPython import get_ipython
-
-def exec_python(cell):
-    ipython = get_ipython()
-    result = ipython.run_cell(cell)
-    log = str(result.result)
-    if result.error_before_exec is not None:
-        log += f"\n{result.error_before_exec}"
-    if result.error_in_exec is not None:
-        log += f"\n{result.error_in_exec}"
-    return log
-
-def exec_sh(script):
-    return user_proxy.execute_code_blocks([("sh", script)])
-
-# register the functions
-user_proxy.register_function(
-    function_map={
-        "python": exec_python,
-        "sh": exec_sh,
-    }
-)
-
-# start the conversation
-user_proxy.initiate_chat(
-    chatbot,
-    message="Draw two agents chatting with each other with an example dialog.",
-)
-```
-
-### Notebook Examples
-
-*Interested in trying it yourself? Please check the following notebook examples:*
-* [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
-* [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
-* [Solve Tasks Requiring Web Info](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_web_info.ipynb)
-* [Use Provided Tools as Functions](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_function_call.ipynb)
-* [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_planning.ipynb)
-* [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_two_users.ipynb)
-* [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_chess.ipynb)
-* [Automated Task Solving by Group Chat](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
-* [Automated Continual Learning from New Data](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_stream.ipynb)
-
 ## Enhanced Inference
 
-One can use [`flaml.autogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
+One can use [`pyautogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
 ### Tune Inference Parameters
 
 *Links to notebook examples:*
-* [Optimize for Code Generation](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_openai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
+* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/autogen_openai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
 
 #### Choices to optimize
 
@@ -193,7 +33,7 @@ These interactions and trade-offs make it difficult to manually determine the op
 *Do the choices matter? Check this [blogpost](/blog/2023/04/21/LLM-tuning-math) to find example tuning results about gpt-3.5-turbo and gpt-4.*
 
 
-With `flaml.autogen`, the tuning can be performed with the following information:
+With AutoGen, the tuning can be performed with the following information:
 1. Validation data.
 1. Evaluation function.
 1. Metric to optimize.
@@ -216,7 +56,7 @@ def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     return {"success": is_equivalent(answer, solution)}
 ```
 
-[`flaml.autogen.code_utils`](/docs/reference/autogen/code_utils) and [`flaml.autogen.math_utils`](/docs/reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
+[`pyautogen.code_utils`](/docs/reference/autogen/code_utils) and [`pyautogen.math_utils`](/docs/reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
 
 #### Metric to optimize
 
@@ -245,12 +85,12 @@ The optimization budget refers to the total budget allowed in the tuning process
 
 #### Perform tuning
 
-Now, you can use [`flaml.autogen.Completion.tune`](/docs/reference/autogen/oai/completion#tune) for tuning. For example,
+Now, you can use [`pyautogen.Completion.tune`](/docs/reference/autogen/oai/completion#tune) for tuning. For example,
 
 ```python
-from flaml import autogen
+import pyautogen
 
-config, analysis = autogen.Completion.tune(
+config, analysis = pyautogen.Completion.tune(
     data=tune_data,
     metric="success",
     mode="max",
@@ -268,12 +108,12 @@ The tuend config can be used to perform inference.
 
 ### API unification
 
-`flaml.autogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
-When chat models are used and `prompt` is given as the input to `flaml.autogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
+`pyautogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
+When chat models are used and `prompt` is given as the input to `pyautogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
 
 For local LLMs, one can spin up an endpoint using a package like [simple_ai_server](https://github.com/lhenault/simpleAI) and [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
-When only working with the chat-based models, `flaml.autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
+When only working with the chat-based models, `pyautogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
 
 ### Caching
 
@@ -283,12 +123,12 @@ API call results are cached locally and reused when the same request is issued. 
 
 #### Runtime error
 
-It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `flaml.autogen.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `flaml.autogen.Completion.retry_time`.
+It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `pyautogen.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `pyautogen.Completion.retry_time`.
 
 Moreover, one can pass a list of configurations of different models/endpoints to mitigate the rate limits. For example,
 
 ```python
-response = autogen.Completion.create(
+response = pyautogen.Completion.create(
     config_list=[
         {
             "model": "gpt-4",
@@ -348,7 +188,7 @@ The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-
 If the provided prompt or message is a template, it will be automatically materialized with a given context. For example,
 
 ```python
-response = autogen.Completion.create(
+response = pyautogen.Completion.create(
     context={"problem": "How many positive integers, not exceeding 100, are multiples of 2 or 3 but not 4?"},
     prompt="{problem} Solve the problem carefully.",
     allow_format_str_template=True,
@@ -382,11 +222,11 @@ context = {
     "external_info_0": "Problem 1: ...",
 }
 
-response = autogen.ChatCompletion.create(context, messages=messages, **config)
+response = pyautogen.ChatCompletion.create(context, messages=messages, **config)
 messages.append(
     {
         "role": "assistant",
-        "content": autogen.ChatCompletion.extract_text(response)[0]
+        "content": pyautogen.ChatCompletion.extract_text(response)[0]
     }
 )
 messages.append(
@@ -401,26 +241,26 @@ context.append(
         "external_info_1": "Theorem 1: ...",
     }
 )
-response = autogen.ChatCompletion.create(context, messages=messages, **config)
+response = pyautogen.ChatCompletion.create(context, messages=messages, **config)
 ```
 
 ### Logging (Experimental)
 
-When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `flaml.autogen.Completion` and `flaml.autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
+When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `pyautogen.Completion` and `pyautogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
-flaml.autogen.ChatCompletion.start_logging()
+pyautogen.ChatCompletion.start_logging()
 ```
 The API calls made after this will be automatically logged. They can be retrieved at any time by:
 ```python
-flaml.autogen.ChatCompletion.logged_history
+pyautogen.ChatCompletion.logged_history
 ```
 To stop logging, use
 ```python
-flaml.autogen.ChatCompletion.stop_logging()
+pyautogen.ChatCompletion.stop_logging()
 ```
 If one would like to append the history to an existing dict, pass the dict like:
 ```python
-flaml.autogen.ChatCompletion.start_logging(history_dict=existing_history_dict)
+pyautogen.ChatCompletion.start_logging(history_dict=existing_history_dict)
 ```
 By default, the counter of API calls will be reset at `start_logging()`. If no reset is desired, set `reset_counter=False`.
 
@@ -528,25 +368,3 @@ The compact history is more efficient and the individual API call history contai
 - a [`cost`](/docs/reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
 - a [`test`](/docs/reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
 - an [`extract_text_or_function_call`](/docs/reference/autogen/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
-
-
-## Utilities for Applications
-
-### Code
-
-[`flaml.autogen.code_utils`](/docs/reference/autogen/code_utils) offers code-related utilities, such as:
-- a [`improve_code`](/docs/reference/autogen/code_utils#improve_code) function to improve code for a given objective.
-- a [`generate_assertions`](/docs/reference/autogen/code_utils#generate_assertions) function to generate assertion statements from function signature and docstr.
-- a [`implement`](/docs/reference/autogen/code_utils#implement) function to implement a function from a definition.
-- a [`eval_function_completions`](/docs/reference/autogen/code_utils#eval_function_completions) function to evaluate the success of a function completion task, or select a response from a list of responses using generated assertions.
-
-### Math
-
-[`flaml.autogen.math_utils`](/docs/reference/autogen/math_utils) offers utilities for math problems, such as:
-- a [eval_math_responses](/docs/reference/autogen/math_utils#eval_math_responses) function to select a response using voting, and check if the final answer is correct if the canonical solution is provided.
-
-## For Further Reading
-
-*Interested in the research that leads to this package? Please check the following papers.*
-* [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673). Chi Wang, Susan Xueqing Liu, Ahmed H. Awadallah. ArXiv preprint arXiv:2303.04673 (2023).
-* [An Empirical Study on Challenging Math Problem Solving with GPT-4](https://arxiv.org/abs/2306.01337). Yiran Wu, Feiran Jia, Shaokun Zhang, Hangyu Li, Erkang Zhu, Yue Wang, Yin Tat Lee, Richard Peng, Qingyun Wu, Chi Wang. ArXiv preprint arXiv:2306.01337 (2023).
