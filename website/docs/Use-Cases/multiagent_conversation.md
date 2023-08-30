@@ -24,7 +24,7 @@ One can also easily extend it by registering auto_reply functions with the `regi
 
 Example usage of the agents to solve a task with code:
 ```python
-from pyautogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent
 
 # create an AssistantAgent instance named "assistant"
 assistant = AssistantAgent(name="assistant")
@@ -62,7 +62,7 @@ To leverage [function calling capability of OpenAI's Chat Completions API](https
 
 Example usage of the agents to solve a task with function calling feature:
 ```python
-from pyautogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent
 
 # put the descriptions of functions in config to be passed to OpenAI's API
 llm_config = {

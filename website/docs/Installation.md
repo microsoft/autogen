@@ -12,7 +12,3 @@ or conda:
 ```
 conda install pyautogen -c conda-forge
 ```
-
-### Optional Dependencies
-
-TBD

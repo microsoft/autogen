@@ -3,7 +3,7 @@ AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCom
 
 ### Code
 
-[`pyautogen.code_utils`](/docs/reference/autogen/code_utils) offers code-related utilities, such as:
+[`autogen.code_utils`](/docs/reference/autogen/code_utils) offers code-related utilities, such as:
 - a [`improve_code`](/docs/reference/autogen/code_utils#improve_code) function to improve code for a given objective.
 - a [`generate_assertions`](/docs/reference/autogen/code_utils#generate_assertions) function to generate assertion statements from function signature and docstr.
 - a [`implement`](/docs/reference/autogen/code_utils#implement) function to implement a function from a definition.
@@ -11,5 +11,5 @@ AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCom
 
 ### Math
 
-[`pyautogen.math_utils`](/docs/reference/autogen/math_utils) offers utilities for math problems, such as:
+[`autogen.math_utils`](/docs/reference/autogen/math_utils) offers utilities for math problems, such as:
 - a [eval_math_responses](/docs/reference/autogen/math_utils#eval_math_responses) function to select a response using voting, and check if the final answer is correct if the canonical solution is provided.

@@ -1,6 +1,6 @@
 ## Enhanced Inference
 
-One can use [`pyautogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
+One can use [`autogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
 ### Tune Inference Parameters
@@ -56,7 +56,7 @@ def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     return {"success": is_equivalent(answer, solution)}
 ```
 
-[`pyautogen.code_utils`](/docs/reference/autogen/code_utils) and [`pyautogen.math_utils`](/docs/reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
+[`autogen.code_utils`](/docs/reference/autogen/code_utils) and [`autogen.math_utils`](/docs/reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
 
 #### Metric to optimize
 
@@ -85,12 +85,12 @@ The optimization budget refers to the total budget allowed in the tuning process
 
 #### Perform tuning
 
-Now, you can use [`pyautogen.Completion.tune`](/docs/reference/autogen/oai/completion#tune) for tuning. For example,
+Now, you can use [`autogen.Completion.tune`](/docs/reference/autogen/oai/completion#tune) for tuning. For example,
 
 ```python
-import pyautogen
+import autogen
 
-config, analysis = pyautogen.Completion.tune(
+config, analysis = autogen.Completion.tune(
     data=tune_data,
     metric="success",
     mode="max",
@@ -108,12 +108,12 @@ The tuend config can be used to perform inference.
 
 ### API unification
 
-`pyautogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
-When chat models are used and `prompt` is given as the input to `pyautogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
+`autogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
+When chat models are used and `prompt` is given as the input to `autogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
 
 For local LLMs, one can spin up an endpoint using a package like [simple_ai_server](https://github.com/lhenault/simpleAI) and [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
-When only working with the chat-based models, `pyautogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
+When only working with the chat-based models, `autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
 
 ### Caching
 
@@ -123,12 +123,12 @@ API call results are cached locally and reused when the same request is issued. 
 
 #### Runtime error
 
-It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `pyautogen.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `pyautogen.Completion.retry_time`.
+It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `autogen.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `autogen.Completion.retry_time`.
 
 Moreover, one can pass a list of configurations of different models/endpoints to mitigate the rate limits. For example,
 
 ```python
-response = pyautogen.Completion.create(
+response = autogen.Completion.create(
     config_list=[
         {
             "model": "gpt-4",
@@ -188,7 +188,7 @@ The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-
 If the provided prompt or message is a template, it will be automatically materialized with a given context. For example,
 
 ```python
-response = pyautogen.Completion.create(
+response = autogen.Completion.create(
     context={"problem": "How many positive integers, not exceeding 100, are multiples of 2 or 3 but not 4?"},
     prompt="{problem} Solve the problem carefully.",
     allow_format_str_template=True,
@@ -222,11 +222,11 @@ context = {
     "external_info_0": "Problem 1: ...",
 }
 
-response = pyautogen.ChatCompletion.create(context, messages=messages, **config)
+response = autogen.ChatCompletion.create(context, messages=messages, **config)
 messages.append(
     {
         "role": "assistant",
-        "content": pyautogen.ChatCompletion.extract_text(response)[0]
+        "content": autogen.ChatCompletion.extract_text(response)[0]
     }
 )
 messages.append(
@@ -241,26 +241,26 @@ context.append(
         "external_info_1": "Theorem 1: ...",
     }
 )
-response = pyautogen.ChatCompletion.create(context, messages=messages, **config)
+response = autogen.ChatCompletion.create(context, messages=messages, **config)
 ```
 
 ### Logging (Experimental)
 
-When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `pyautogen.Completion` and `pyautogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
+When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
-pyautogen.ChatCompletion.start_logging()
+autogen.ChatCompletion.start_logging()
 ```
 The API calls made after this will be automatically logged. They can be retrieved at any time by:
 ```python
-pyautogen.ChatCompletion.logged_history
+autogen.ChatCompletion.logged_history
 ```
 To stop logging, use
 ```python
-pyautogen.ChatCompletion.stop_logging()
+autogen.ChatCompletion.stop_logging()
 ```
 If one would like to append the history to an existing dict, pass the dict like:
 ```python
-pyautogen.ChatCompletion.start_logging(history_dict=existing_history_dict)
+autogen.ChatCompletion.start_logging(history_dict=existing_history_dict)
 ```
 By default, the counter of API calls will be reset at `start_logging()`. If no reset is desired, set `reset_counter=False`.
 

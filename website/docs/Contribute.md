@@ -43,8 +43,8 @@ feedback:
   your **Python, autogen, scikit-learn versions**. The version of autogen
   can be found by running the following code snippet:
 ```python
-import pyautogen
-print(pyautogen.__version__)
+import autogen
+print(autogen.__version__)
 ```
 
 - Please ensure all **code snippets and error messages are formatted in

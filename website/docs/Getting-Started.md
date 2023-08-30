@@ -26,7 +26,7 @@ Autogen enables the next-gen GPT-X applications with a generic multi-agent conve
 It offers customizable and conversable agents which integrate LLMs, tools and human.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
-from pyautogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent
 assistant = AssistantAgent("assistant")
 user_proxy = UserProxyAgent("user_proxy")
 user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
@@ -36,7 +36,7 @@ user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest 
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
 # perform tuning
-config, analysis = pyautogen.Completion.tune(
+config, analysis = autogen.Completion.tune(
     data=tune_data,
     metric="success",
     mode="max",
