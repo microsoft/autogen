@@ -62,10 +62,10 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ```bash
 git clone https://github.com/microsoft/autogen.git
-pip install -e pyautogen[notebook]
+pip install -e autogen
 ```
 
-In case the `pip install` command fails, try escaping the brackets such as `pip install -e pyautogen\[notebook\]`.
+<!-- In case the `pip install` command fails, try escaping the brackets such as `pip install -e autogen`. -->
 
 ### Docker
 

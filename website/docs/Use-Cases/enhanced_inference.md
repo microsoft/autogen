@@ -1,15 +1,15 @@
-## Enhanced Inference
+# Enhanced Inference
 
-One can use [`autogen.Completion.create`](/docs/reference/autogen/oai/completion#create) to perform inference.
+[`autogen.Completion`](/docs/reference/oai/completion) is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` as an enhanced inference API.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
-### Tune Inference Parameters
+## Tune Inference Parameters
 
 *Links to notebook examples:*
 * [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/autogen_openai_completion.ipynb)
 * [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
 
-#### Choices to optimize
+### Choices to optimize
 
 The cost of using foundation models for text generation is typically measured in terms of the number of tokens in the input and output combined. From the perspective of an application builder using foundation models, the use case is to maximize the utility of the generated text under an inference budget constraint (e.g., measured by the average dollar cost needed to solve a coding problem). This can be achieved by optimizing the hyperparameters of the inference,
 which can significantly affect both the utility and the cost of the generated text.
@@ -40,11 +40,11 @@ With AutoGen, the tuning can be performed with the following information:
 1. Search space.
 1. Budgets: inference and optimization respectively.
 
-#### Validation data
+### Validation data
 
 Collect a diverse set of instances. They can be stored in an iterable of dicts. For example, each instance dict can contain "problem" as a key and the description str of a math problem as the value; and "solution" as a key and the solution str as the value.
 
-#### Evaluation function
+### Evaluation function
 
 The evaluation function should take a list of responses, and other keyword arguments corresponding to the keys in each validation data instance as input, and output a dict of metrics. For example,
 
@@ -56,13 +56,13 @@ def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     return {"success": is_equivalent(answer, solution)}
 ```
 
-[`autogen.code_utils`](/docs/reference/autogen/code_utils) and [`autogen.math_utils`](/docs/reference/autogen/math_utils) offer some example evaluation functions for code generation and math problem solving.
+[`autogen.code_utils`](/docs/reference/code_utils) and [`autogen.math_utils`](/docs/reference/math_utils) offer some example evaluation functions for code generation and math problem solving.
 
-#### Metric to optimize
+### Metric to optimize
 
 The metric to optimize is usually an aggregated metric over all the tuning data instances. For example, users can specify "success" as the metric and "max" as the optimization mode. By default, the aggregation function is taking the average. Users can provide a customized aggregation function if needed.
 
-#### Search space
+### Search space
 
 Users can specify the (optional) search range for each hyperparameter.
 
@@ -77,15 +77,15 @@ And `{problem}` will be replaced by the "problem" field of each data instance.
 Please don't provide both. By default, each configuration will choose either a temperature or a top_p in [0, 1] uniformly.
 1. presence_penalty, frequency_penalty. They can be constants or specified by `flaml.tune.uniform` etc. Not tuned by default.
 
-#### Budgets
+### Budgets
 
 One can specify an inference budget and an optimization budget.
 The inference budget refers to the average inference cost per data instance.
 The optimization budget refers to the total budget allowed in the tuning process. Both are measured by dollars and follow the price per 1000 tokens.
 
-#### Perform tuning
+### Perform tuning
 
-Now, you can use [`autogen.Completion.tune`](/docs/reference/autogen/oai/completion#tune) for tuning. For example,
+Now, you can use [`autogen.Completion.tune`](/docs/reference/oai/completion#tune) for tuning. For example,
 
 ```python
 import autogen
@@ -106,22 +106,22 @@ The returned `config` contains the optimized configuration and `analysis` contai
 
 The tuend config can be used to perform inference.
 
-### API unification
+## API unification
 
 `autogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
 When chat models are used and `prompt` is given as the input to `autogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API.
 
-For local LLMs, one can spin up an endpoint using a package like [simple_ai_server](https://github.com/lhenault/simpleAI) and [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
+For local LLMs, one can spin up an endpoint using a package like [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
 When only working with the chat-based models, `autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages.
 
-### Caching
+## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](/docs/reference/autogen/oai/completion#set_cache) or specifying in `create()`.
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](/docs/reference/oai/completion#set_cache) or specifying in `create()`.
 
-### Error handling
+## Error handling
 
-#### Runtime error
+### Runtime error
 
 It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `autogen.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `autogen.Completion.retry_time`.
 
@@ -158,7 +158,9 @@ response = autogen.Completion.create(
 It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
-#### Logic error
+For convenience, we provide a number of utility functions to load config lists, such as [`config_list_from_json`](/docs/references/oai/openai_utils#config_list_from_json).
+
+### Logic error
 
 Another type of error is that the returned response does not satisfy a requirement. For example, if the response is required to be a valid json string, one would like to filter the responses that are not. This can be achieved by providing a list of configurations and a filter function. For example,
 
@@ -183,7 +185,7 @@ The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-
 
 *Advanced use case: Check this [blogpost](/blog/2023/05/18/GPT-adaptive-humaneval) to find how to improve GPT-4's coding performance from 68% to 90% while reducing the inference cost.*
 
-### Templating
+## Templating
 
 If the provided prompt or message is a template, it will be automatically materialized with a given context. For example,
 
@@ -244,7 +246,7 @@ context.append(
 response = autogen.ChatCompletion.create(context, messages=messages, **config)
 ```
 
-### Logging (Experimental)
+## Logging (Experimental)
 
 When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
@@ -363,8 +365,8 @@ Set `compact=False` in `start_logging()` to switch.
 It can be seen that the individual API call history contains redundant information of the conversation. For a long conversation the degree of redundancy is high.
 The compact history is more efficient and the individual API call history contains more details.
 
-### Other Utilities
+## Other Utilities
 
-- a [`cost`](/docs/reference/autogen/oai/completion#cost) function to calculate the cost of an API call.
-- a [`test`](/docs/reference/autogen/oai/completion#test) function to conveniently evaluate the configuration over test data.
-- an [`extract_text_or_function_call`](/docs/reference/autogen/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
+- a [`cost`](/docs/reference/oai/completion#cost) function to calculate the cost of an API call.
+- a [`test`](/docs/reference/oai/completion#test) function to conveniently evaluate the configuration over test data.
+- an [`extract_text_or_function_call`](/docs/reference/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
