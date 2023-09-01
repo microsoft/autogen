@@ -4,20 +4,21 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'TODO',
+    title: 'Customizable and Convertible Agents ',
     Svg: require('../../static/img/auto.svg').default,
     description: (
       <>
-        TODO
+        AutoGen provides customizable and convertible agents that can be backed by 
+        LLMs, humans, tools, or a combination of them.
       </>
     ),
   },
   {
-    title: 'TODO',
+    title: 'Flexible Conversation Patterns',
     Svg: require('../../static/img/extend.svg').default,
     description: (
       <>
-        TODO  
+      AutoGen supports flexible conversation patterns for realizing complex and dynamic workflows. 
       </>
     ),
   },
@@ -33,11 +34,11 @@ const FeatureList = [
 //     ),
 //   },
   {
-    title: 'TODO',
+    title: 'Diverse Applications',
     Svg: require('../../static/img/fast.svg').default,
     description: (
       <>
-        TODO
+        AutoGen offers a collection of working systems spanning span a wide range of applications from various domains and complexities.
       </>
     ),
   },

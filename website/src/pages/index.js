@@ -17,7 +17,7 @@ function HomepageHeader() {
           <Link
             className="button button--secondary button--lg"
             to="/docs/getting-started">
-            TODO ⏱️
+            AutoGen Getting Started - 5min ⏱️
           </Link>
         </div>
       </div>
@@ -29,8 +29,8 @@ export default function Home() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title={`AutoML & Tuning`}
-      description="A Fast Library for Automated Machine Learning and Tuning">
+      title={`AutoGen`}
+      description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
