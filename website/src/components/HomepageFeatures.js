@@ -14,7 +14,7 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Flexible Conversation Patterns',
+    title: 'Flexible Multi-Conversation Patterns',
     Svg: require('../../static/img/extend.svg').default,
     description: (
       <>
