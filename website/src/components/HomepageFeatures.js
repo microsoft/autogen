@@ -1,11 +1,13 @@
 import React from 'react';
 import clsx from 'clsx';
+import { Link } from 'react-router-dom'; 
 import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
     title: 'Customizable and Convertible Agents ',
     Svg: require('../../static/img/auto.svg').default,
+    docLink: './docs/getting-started',
     description: (
       <>
         AutoGen provides customizable and convertible agents that can be backed by 
@@ -16,26 +18,17 @@ const FeatureList = [
   {
     title: 'Flexible Multi-Conversation Patterns',
     Svg: require('../../static/img/extend.svg').default,
+    docLink: './docs/getting-started',
     description: (
       <>
       AutoGen supports flexible conversation patterns for realizing complex and dynamic workflows. 
       </>
     ),
   },
-//   {
-//     title: 'Easy to Customize or Extend',
-//     Svg: require('../../static/img/extend.svg').default,
-//     description: (
-//       <>
-//         FLAML is designed easy to extend, such as adding custom learners or metrics.
-//         The customization level ranges smoothly from minimal
-// (training data and task type as only input) to full (tuning a user-defined function).
-//       </>
-//     ),
-//   },
   {
     title: 'Diverse Applications',
     Svg: require('../../static/img/fast.svg').default,
+    docLink: './docs/getting-started',
     description: (
       <>
         AutoGen offers a collection of working systems spanning span a wide range of applications from various domains and complexities.
@@ -44,14 +37,16 @@ const FeatureList = [
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({Svg, title, description, docLink}) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
         <Svg className={styles.featureSvg} alt={title} />
       </div>
       <div className="text--center padding-horiz--md">
-        <h3>{title}</h3>
+        <Link to={docLink}>
+            <h3>{title}</h3>
+        </Link>
         <p>{description}</p>
       </div>
     </div>
