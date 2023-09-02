@@ -7,7 +7,7 @@ const FeatureList = [
   {
     title: 'Customizable and Convertible Agents ',
     Svg: require('../../static/img/auto.svg').default,
-    docLink: './docs/getting-started',
+    docLink: './docs/Use-Cases/agent_chat#agents',
     description: (
       <>
         AutoGen provides customizable and convertible agents that can be backed by 
@@ -18,7 +18,7 @@ const FeatureList = [
   {
     title: 'Flexible Multi-Conversation Patterns',
     Svg: require('../../static/img/extend.svg').default,
-    docLink: './docs/getting-started',
+    docLink: './docs/Use-Cases/agent_chat#multi-agent-conversations',
     description: (
       <>
       AutoGen supports flexible conversation patterns for realizing complex and dynamic workflows. 
@@ -28,7 +28,7 @@ const FeatureList = [
   {
     title: 'Diverse Applications',
     Svg: require('../../static/img/fast.svg').default,
-    docLink: './docs/getting-started',
+    docLink: './docs/Use-Cases/agent_chat#notebook-examples',
     description: (
       <>
         AutoGen offers a collection of working systems spanning span a wide range of applications from various domains and complexities.

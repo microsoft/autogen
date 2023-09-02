@@ -6,8 +6,8 @@ There are a number of benefits of using `autogen` to perform inference: performa
 ## Tune Inference Parameters
 
 *Links to notebook examples:*
-* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/autogen_openai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
+* [Optimize for Code Generation](https://github.com/microsoft/flaml/blob/main/notebook/autogen_openai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/flaml/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
 
 ### Choices to optimize
 

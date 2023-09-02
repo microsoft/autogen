@@ -5,10 +5,10 @@
 AutoGen requires **Python version >= 3.8**. It can be installed from pip:
 
 ```bash
-pip install pyautogen
+pip install "flaml[autogen]"
 ```
 
 or conda:
 ```
-conda install pyautogen -c conda-forge
+conda install "flaml[autogen]" -c conda-forge
 ```

@@ -69,7 +69,7 @@ pip install -e autogen
 
 ### Docker
 
-We provide a simple [Dockerfile](https://github.com/microsoft/autogen/blob/main/Dockerfile).
+We provide a simple [Dockerfile](https://github.com/microsoft/flaml/blob/main/Dockerfile).
 
 ```bash
 docker build https://github.com/microsoft/autogen.git#main -t autogen-dev
@@ -79,7 +79,7 @@ docker run -it autogen-dev
 ### Develop in Remote Container
 
 If you use vscode, you can open the autogen folder in a [Container](https://code.visualstudio.com/docs/remote/containers).
-We have provided the configuration in [devcontainer](https://github.com/microsoft/autogen/blob/main/.devcontainer).
+We have provided the configuration in [devcontainer](https://github.com/microsoft/flaml/blob/main/.devcontainer).
 
 ### Pre-commit
 

@@ -26,15 +26,15 @@ module.exports = {
           position: 'left',
           label: 'Docs',
         },
-        {to: 'blog', label: 'Blog', position: 'left'},
+        // {to: 'blog', label: 'Blog', position: 'left'},
+        // {
+        //   type: 'doc',
+        //   docId: 'FAQ',
+        //   position: 'left',
+        //   label: 'FAQ',
+        // },
         {
-          type: 'doc',
-          docId: 'FAQ',
-          position: 'left',
-          label: 'FAQ',
-        },
-        {
-          href: 'https://github.com/microsoft/AutoGen',
+          href: 'https://github.com/microsoft/FLAML',
           label: 'GitHub',
           position: 'right',
         },

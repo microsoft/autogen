@@ -18,13 +18,13 @@ AutoGen is powered by collaborative [research studies](/docs/Research) from Micr
 
 ### Quickstart
 
-Install AutoGen from pip: `pip install pyautogen`. Find more options in [Installation](/docs/Installation).
+Install AutoGen from pip: `pip install "flaml[autogen]"`. Find more options in [Installation](/docs/Installation).
 
 
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
-from autogen import AssistantAgent, UserProxyAgent
+from flaml.autogen import AssistantAgent, UserProxyAgent
 assistant = AssistantAgent("assistant")
 user_proxy = UserProxyAgent("user_proxy")
 user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
@@ -49,9 +49,9 @@ response = autogen.Completion.create(context=test_instance, **config)
 
 ### Where to Go Next?
 
-* Understand the use cases for [multi-agent conversation](/docs/Use-Cases/multiagent_conversation).
+* Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat).
 * Understand the use cases for [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
-* Find code examples from [Examples](/docs/Examples).
+* Find code examples from [Examples](/docs/Examples/AutoGen-AgentChat).
 * Learn about [research](/docs/Research) around AutoGen and check [blogposts](/blog).
 * Chat on [Discord](TBD).
 

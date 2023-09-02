@@ -4,12 +4,12 @@ AutoGen offers conversable agents powered by LLM, tool or human, which can be us
 Please find documentation about this feature [here](/docs/Use-Cases/Autogen#agents).
 
 Links to notebook examples:
-* [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
-* [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
-* [Solve Tasks Requiring Web Info](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_web_info.ipynb)
-* [Use Provided Tools as Functions](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_function_call.ipynb)
-* [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_planning.ipynb)
-* [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_two_users.ipynb)
-* [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_chess.ipynb)
-* [Automated Task Solving by Group Chat](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
-* [Automated Continual Learning from New Data](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_stream.ipynb)
+* [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
+* [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
+* [Solve Tasks Requiring Web Info](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_web_info.ipynb)
+* [Use Provided Tools as Functions](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_function_call.ipynb)
+* [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_planning.ipynb)
+* [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_two_users.ipynb)
+* [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_chess.ipynb)
+* [Automated Task Solving by Group Chat](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
+* [Automated Continual Learning from New Data](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_stream.ipynb)

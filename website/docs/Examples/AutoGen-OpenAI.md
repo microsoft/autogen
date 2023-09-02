@@ -4,5 +4,5 @@ AutoGen also offers a cost-effective hyperparameter optimization technique [EcoO
 Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inference).
 
 Links to notebook examples:
-* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/autogen_openai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/autogen_openai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/autogen_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
+* [Optimize for Code Generation](https://github.com/microsoft/flaml/blob/main/notebook/autogen_openai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/flaml/blob/main/notebook/autogen_openai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/flaml/blob/main/notebook/autogen_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/flaml/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
