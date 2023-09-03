@@ -7,18 +7,24 @@ This framework simplifies the orchestration, automation and optimization of a co
 
 ### Agents
 
-We have designed a generic `ResponsiveAgent` class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. 
+AutoGen abstracts and implements conversable agents
+designed to solve tasks through inter-agent conversations. Specifically, the agents in AutoGen have the following notable features:
 
-Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are `AssistantAgent` and `UserProxyAgent`.
+- Conversable: Agent in AutoGen are conversable, which means that any agent can send
+and receive messages to and from the other agents to start or continue a conversation
 
-- `AssistantAgent`. Designed to act as an assistant by responding to user requests. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest code with bug fix. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
+- Customizable: Agents in AutoGen can be customized to integrate LLMs, humans, tools, or a combination of them.
 
-- `UserProxyAgent`. Serves as a proxy for the human user. Upon receiving a message, the UserProxyAgent will either solicit the human user's input or prepare an automatically generated reply. The chosen action depends on the settings of the `human_input_mode` and `max_consecutive_auto_reply` when the `UserProxyAgent` instance is constructed, and whether a human user input is available.
-By default, the automatically generated reply is crafted based on automatic code execution. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting `code_execution_config` to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](#enhanced-inference) configuration.
-When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
+The figure below shows the built-in agents in AutoGen.
+![Agent Chat Example](images/autogen_agents.png)
 
-The auto-reply capability of `ResponsiveAgent` allows for more autonomous multi-agent communication while retaining the possibility of human intervention.
-One can also easily extend it by registering auto_reply functions with the `register_auto_reply()` method.
+The `ResponsiveAgent`  by default can use LLMs, humans, and tools. The `AssistantAgent` and `UserProxyAgent` are two pre-configured versions of `ResponsiveAgent`, each representing a common usage mode. 
+
+- The `AssistantAgent` is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest code with bug fix. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
+
+- The `UserProxyAgent` is conceptually a proxy agent for humans, soliciting human input as the agent's reply at each interaction turn by default and also having the capability to execute code and call functions. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting `code_execution_config` to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](#enhanced-inference) configuration. When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed. When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
+
+In the following code, we construct two agents of the `AssistantAgent` and `UserProxyAgent` classes respectively. We will later employ these two agents to solve a task.
 
 ```python
 from flaml.autogen import AssistantAgent, UserProxyAgent
@@ -27,10 +33,7 @@ from flaml.autogen import AssistantAgent, UserProxyAgent
 assistant = AssistantAgent(name="assistant")
 
 # create a UserProxyAgent instance named "user_proxy"
-user_proxy = UserProxyAgent(
-    name="user_proxy",
-    human_input_mode="NEVER",  # in this mode, the agent will never solicit human input but always auto reply
-)
+user_proxy = UserProxyAgent(name="user_proxy")
 ```
 
 ## Multi-agent Conversations
@@ -54,93 +57,23 @@ In the example above, we create an AssistantAgent named "assistant" to serve as 
 Please find a visual illustration of how UserProxyAgent and AssistantAgent collaboratively solve the above task below:
 ![Agent Chat Example](images/agent_example.png)
 
-### Customizable Conversation Pattern
+### Supporting Diverse Conversation Patterns
 
-### Dynamic Multi-Agent Conversation
+#### Conversations with different autonomisity, and human involvement patterns
+On the one hand, one can achieve fully autonomous conversations after an initialization step. On the other hand, AutoGen can be used to implement human-in-the-loop problem-solving by configuring human involvement levels and patterns (e.g., setting the `human_input_mode` to `ALWAYS`), as human involvement is expected and/or desired in many applications.
 
-### Function Calling
+#### Static and dynamic conversations
 Leveraging [function calling capability of OpenAI's Chat Completions API](https://openai.com/blog/function-calling-and-other-api-updates?ref=upstract.com), one can pass in a list of callable functions or class methods to `UserProxyAgent`, which corresponds to the description of functions passed to OpenAI's API.
+- Registered auto-reply. With the pluggable auto-reply function, one can choose to invoke conversations with other agents depending on the content of the current message and context. A working system demonstrating this type of dynamic conversation can be found in this code example, demonstrating a [dynamic group chat](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_groupchat.ipynb). In the system, we register an auto-reply function in the group chat manager, which lets LLM decide who will the next speaker be in a group chat setting. 
 
-Example usage of the agents to solve a task with function calling feature:
-```python
-from flaml.autogen import AssistantAgent, UserProxyAgent
-
-# put the descriptions of functions in config to be passed to OpenAI's API
-llm_config = {
-    "model": "gpt-4-0613",
-    "functions": [
-        {
-            "name": "python",
-            "description": "run cell in ipython and return the execution result.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "cell": {
-                        "type": "string",
-                        "description": "Valid Python cell to execute.",
-                    }
-                },
-                "required": ["cell"],
-            },
-        },
-        {
-            "name": "sh",
-            "description": "run a shell script and return the execution result.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "script": {
-                        "type": "string",
-                        "description": "Valid shell script to execute.",
-                    }
-                },
-                "required": ["script"],
-            },
-        },
-    ],
-}
-
-# create an AssistantAgent instance named "assistant"
-chatbot = AssistantAgent("assistant", **llm_config)
-
-# create a UserProxyAgent instance named "user_proxy"
-user_proxy = UserProxyAgent(
-    "user_proxy",
-    human_input_mode="NEVER",
-)
-
-# define functions according to the function desription
-from IPython import get_ipython
-
-def exec_python(cell):
-    ipython = get_ipython()
-    result = ipython.run_cell(cell)
-    log = str(result.result)
-    if result.error_before_exec is not None:
-        log += f"\n{result.error_before_exec}"
-    if result.error_in_exec is not None:
-        log += f"\n{result.error_in_exec}"
-    return log
-
-def exec_sh(script):
-    return user_proxy.execute_code_blocks([("sh", script)])
-
-# register the functions
-user_proxy.register_function(
-    function_map={
-        "python": exec_python,
-        "sh": exec_sh,
-    }
-)
-
-# start the conversation
-user_proxy.initiate_chat(
-    chatbot,
-    message="Draw two agents chatting with each other with an example dialog.",
-)
-```
+- LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call. 
+By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls. 
 
 ### Diverse Applications Implemented with AutoGen 
+
+
+The figure below shows six examples of applications built using AutoGen.
+![Applications](images/app.png)
 
 * [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
 * [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)

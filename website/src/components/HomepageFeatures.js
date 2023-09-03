@@ -28,7 +28,7 @@ const FeatureList = [
   {
     title: 'Diverse Applications',
     Svg: require('../../static/img/fast.svg').default,
-    docLink: './docs/Use-Cases/agent_chat#notebook-examples',
+    docLink: './docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen',
     description: (
       <>
         AutoGen offers a collection of working systems spanning span a wide range of applications from various domains and complexities.
