@@ -21,6 +21,7 @@ AutoGen is powered by collaborative [research studies](/docs/Research) from Micr
 Install AutoGen from pip: `pip install "flaml[autogen]"`. Find more options in [Installation](/docs/Installation).
 
 
+#### Multi-Agent Conversation Framework
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
@@ -31,6 +32,8 @@ user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest 
 # This initiates an automated chat between the two agents to solve the task
 ```
 
+
+#### Enhanced LLM Inferences
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
 # perform tuning

@@ -7,11 +7,10 @@ This project welcomes and encourages all forms of contributions, including but n
 -  Code review of pull requests.
 -  Documentation, examples and test cases.
 -  Readability improvement, e.g., improvement on docstr and comments.
--  Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), and [discord](discord).
+-  Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), and discord.
 -  Tutorials, blog posts, talks that promote the project.
 -  Sharing application scenarios and/or related research.
 
-You can take a look at the [Roadmap for Upcoming Features](https://github.com/microsoft/autogen/wiki/Roadmap-for-Upcoming-Features) to identify potential things to work on.
 
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -58,67 +57,8 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ## Developing
 
-### Setup
-
-```bash
-git clone https://github.com/microsoft/autogen.git
-pip install -e autogen
-```
-
-<!-- In case the `pip install` command fails, try escaping the brackets such as `pip install -e autogen`. -->
-
-### Docker
-
-We provide a simple [Dockerfile](https://github.com/microsoft/flaml/blob/main/Dockerfile).
-
-```bash
-docker build https://github.com/microsoft/autogen.git#main -t autogen-dev
-docker run -it autogen-dev
-```
-
-### Develop in Remote Container
-
-If you use vscode, you can open the autogen folder in a [Container](https://code.visualstudio.com/docs/remote/containers).
-We have provided the configuration in [devcontainer](https://github.com/microsoft/flaml/blob/main/.devcontainer).
-
-### Pre-commit
-
-Run `pre-commit install` to install pre-commit into your git hooks. Before you commit, run
-`pre-commit run` to check if you meet the pre-commit requirements. If you use Windows (without WSL) and can't commit after installing pre-commit, you can run `pre-commit uninstall` to uninstall the hook. In WSL or Linux this is supposed to work.
-
-### Coverage
-
-Any code you commit should not decrease coverage. To run all unit tests, install the [test] option under autogen/:
-
-```bash
-pip install -e."[test]"
-coverage run -m pytest test
-```
-
-Then you can see the coverage report by
-`coverage report -m` or `coverage html`.
-
-### Documentation
-
-To build and test documentation locally, install [Node.js](https://nodejs.org/en/download/). For example,
-
-```bash
-nvm install --lts
-```
-
-Then:
-
-```console
-npm install --global yarn  # skip if you use the dev container we provided
-pip install pydoc-markdown==4.5.0  # skip if you use the dev container we provided
-cd website
-yarn install --frozen-lockfile --ignore-engines
-pydoc-markdown
-yarn start
-```
-
-The last command starts a local development server and opens up a browser window.
-Most changes are reflected live without having to restart the server.
+Please find the a general developing guide for AutoGen in FLAML [here](https://microsoft.github.io/FLAML/docs/Contribute#developing).
+Detailed guidence for developing with AutoGen will be added soon. 
 
 Note:
 some tips in this guide are based off the contributor guide from [ray](https://docs.ray.io/en/latest/ray-contribute/getting-involved.html), [scikit-learn](https://scikit-learn.org/stable/developers/contributing.html), [hummingbird](https://github.com/microsoft/hummingbird/blob/main/CONTRIBUTING.md), or [FLAML](https://microsoft.github.io/FLAML/docs/Contribute).
