@@ -55,9 +55,9 @@ response = autogen.Completion.create(context=test_instance, **config)
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat).
 * Understand the use cases for [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
 * Find code examples from [Examples](/docs/Examples/AutoGen-AgentChat).
-* Learn about [research](/docs/Research) around AutoGen and check [blogposts](/blog).
-* Chat on [Discord](TBD).
+* Learn about [research](/docs/Research) around AutoGen.
+* Chat on [Discord](https://discord.gg/Cppx2vSPVP).
 
-If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
+If you like our project, please give it a [star](https://github.com/microsoft/FLAML/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
 
-<iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=autogen&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+<iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=FLAML&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>

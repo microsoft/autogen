@@ -5,28 +5,17 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'Customizable and Convertible Agents ',
+    title: 'Build Workflows with Multi-Agent Conversations',
     Svg: require('../../static/img/auto.svg').default,
-    docLink: './docs/Use-Cases/agent_chat#agents',
+    docLink: './docs/Use-Cases/agent_chat',
     description: (
       <>
-        AutoGen provides customizable and convertible agents that can be backed by 
-        LLMs, humans, tools, or a combination of them.
+        AutoGen provides multi-agent conversation framework as a high-level abstraction. With this framework, one can conveniently build LLM workflows.
       </>
     ),
   },
   {
-    title: 'Flexible Multi-Conversation Patterns',
-    Svg: require('../../static/img/extend.svg').default,
-    docLink: './docs/Use-Cases/agent_chat#multi-agent-conversations',
-    description: (
-      <>
-      AutoGen supports flexible conversation patterns for realizing complex and dynamic workflows. 
-      </>
-    ),
-  },
-  {
-    title: 'Diverse Applications',
+    title: 'Support Diverse Applications At Ease',
     Svg: require('../../static/img/fast.svg').default,
     docLink: './docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen',
     description: (
@@ -35,6 +24,16 @@ const FeatureList = [
       </>
     ),
   },
+  {
+    title: 'Optimize Performance of LLM Inferences',
+    Svg: require('../../static/img/extend.svg').default,
+    docLink: './docs/Use-Cases/enhanced_inference',
+    description: (
+      <>
+      AutoGen supports enhanced LLM inference APIs, which can be used to improve inference performance and reduce cost.
+      </>
+    ),
+  }, 
 ];
 
 function Feature({Svg, title, description, docLink}) {
