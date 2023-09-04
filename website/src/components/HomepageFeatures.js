@@ -5,7 +5,7 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'Multi-Agent Conversations',
+    title: 'Multi-Agent Conversation Framework',
     Svg: require('../../static/img/conv_2.svg').default,
     docLink: './docs/Use-Cases/agent_chat',
     description: (

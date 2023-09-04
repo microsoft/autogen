@@ -4,7 +4,7 @@ const katex = require('rehype-katex');
 
 module.exports = {
   title: 'AutoGen',
-  tagline: 'A Multi-Agent Conversation Framework',
+  tagline: 'Enable Next-Gen Large Language Model Applications',
   url: 'https://microsoft.github.io/',
   baseUrl: '/AutoGen/',
   onBrokenLinks: 'throw',
