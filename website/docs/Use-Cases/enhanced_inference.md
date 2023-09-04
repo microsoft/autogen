@@ -1,6 +1,6 @@
 # Enhanced Inference
 
-[`autogen.Completion`](/docs/reference/oai/completion) is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` as an enhanced inference API.
+`autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` as an enhanced inference API.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
 ## Tune Inference Parameters
@@ -30,7 +30,7 @@ There are also complex interactions among subsets of the hyperparameters. For ex
 the temperature and top_p are not recommended to be altered from their default values together because they both control the randomness of the generated text, and changing both at the same time can result in conflicting effects; n and best_of are rarely tuned together because if the application can process multiple outputs, filtering on the server side causes unnecessary information loss; both n and max_tokens will affect the total number of tokens generated, which in turn will affect the cost of the request.
 These interactions and trade-offs make it difficult to manually determine the optimal hyperparameter settings for a given text generation task.
 
-*Do the choices matter? Check this [blogpost](/blog/2023/04/21/LLM-tuning-math) to find example tuning results about gpt-3.5-turbo and gpt-4.*
+*Do the choices matter? Check this [blogpost](https://microsoft.github.io/FLAML/blog/2023/04/21/LLM-tuning-math) to find example tuning results about gpt-3.5-turbo and gpt-4.*
 
 
 With AutoGen, the tuning can be performed with the following information:
@@ -56,7 +56,7 @@ def eval_math_responses(responses: List[str], solution: str, **args) -> Dict:
     return {"success": is_equivalent(answer, solution)}
 ```
 
-[`autogen.code_utils`](/docs/reference/code_utils) and [`autogen.math_utils`](/docs/reference/math_utils) offer some example evaluation functions for code generation and math problem solving.
+`autogen.code_utils` and `autogen.math_utils` offer some example evaluation functions for code generation and math problem solving.
 
 ### Metric to optimize
 
@@ -85,7 +85,7 @@ The optimization budget refers to the total budget allowed in the tuning process
 
 ### Perform tuning
 
-Now, you can use [`autogen.Completion.tune`](/docs/reference/oai/completion#tune) for tuning. For example,
+Now, you can use `autogen.Completion.tune` for tuning. For example,
 
 ```python
 import autogen
@@ -102,7 +102,7 @@ config, analysis = autogen.Completion.tune(
 ```
 
 `num_samples` is the number of configurations to sample. -1 means unlimited (until optimization budget is exhausted).
-The returned `config` contains the optimized configuration and `analysis` contains an [ExperimentAnalysis](/docs/reference/tune/analysis#experimentanalysis-objects) object for all the tried configurations and results.
+The returned `config` contains the optimized configuration and `analysis` contains an ExperimentAnalysis object for all the tried configurations and results.
 
 The tuend config can be used to perform inference.
 
@@ -117,7 +117,7 @@ When only working with the chat-based models, `autogen.ChatCompletion` can be us
 
 ## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using [`set_cache`](/docs/reference/oai/completion#set_cache) or specifying in `create()`.
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using `set_cache` or specifying in `create()`.
 
 ## Error handling
 
@@ -158,7 +158,7 @@ response = autogen.Completion.create(
 It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
-For convenience, we provide a number of utility functions to load config lists, such as [`config_list_from_json`](/docs/references/oai/openai_utils#config_list_from_json).
+For convenience, we provide a number of utility functions to load config lists, such as `config_list_from_json`.
 
 ### Logic error
 
@@ -183,7 +183,7 @@ response = autogen.Completion.create(
 
 The example above will try to use text-ada-001, gpt-3.5-turbo, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times to try one model multiple times for increasing the robustness of the final response.
 
-*Advanced use case: Check this [blogpost](/blog/2023/05/18/GPT-adaptive-humaneval) to find how to improve GPT-4's coding performance from 68% to 90% while reducing the inference cost.*
+*Advanced use case: Check this [blogpost](https://microsoft.github.io/FLAML/blog/2023/05/18/GPT-adaptive-humaneval) to find how to improve GPT-4's coding performance from 68% to 90% while reducing the inference cost.*
 
 ## Templating
 
@@ -365,8 +365,3 @@ Set `compact=False` in `start_logging()` to switch.
 It can be seen that the individual API call history contains redundant information of the conversation. For a long conversation the degree of redundancy is high.
 The compact history is more efficient and the individual API call history contains more details.
 
-## Other Utilities
-
-- a [`cost`](/docs/reference/oai/completion#cost) function to calculate the cost of an API call.
-- a [`test`](/docs/reference/oai/completion#test) function to conveniently evaluate the configuration over test data.
-- an [`extract_text_or_function_call`](/docs/reference/oai/completion#extract_text_or_function_call) function to extract the text or function call from a completion or chat response.
