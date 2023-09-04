@@ -36,6 +36,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 #     #         "model": {
 #     #             "gpt-3.5-turbo",
 #     #             "gpt-3.5-turbo-16k",
+#     #             "gpt-3.5-turbo-16k-0613",
 #     #             "gpt-3.5-turbo-0301",
 #     #             "chatgpt-35-turbo-0301",
 #     #             "gpt-35-turbo-v0301",
