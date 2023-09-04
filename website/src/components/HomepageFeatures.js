@@ -6,7 +6,7 @@ import styles from './HomepageFeatures.module.css';
 const FeatureList = [
   {
     title: 'Multi-Agent Conversations',
-    Svg: require('../../static/img/conv.svg').default,
+    Svg: require('../../static/img/conv_2.svg').default,
     docLink: './docs/Use-Cases/agent_chat',
     description: (
       <>
@@ -20,7 +20,7 @@ const FeatureList = [
     docLink: './docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen',
     description: (
       <>
-        AutoGen offers a collection of working systems spanning span a wide range of applications from various domains and complexities.
+        AutoGen offers a collection of working systems spanning a wide range of applications from various domains and complexities.
       </>
     ),
   },
