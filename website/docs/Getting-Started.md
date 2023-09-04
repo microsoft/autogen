@@ -6,13 +6,15 @@
 
 AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools. 
 
+![AutoGen Overview](/img/autogen_agentchat.png)
+
 ### Main Features
 
-* AutoGen enables building next-gen LLM applications based on multi-agent conversations with minimal effort. It simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and augments their weakness.
-* It supports diverse conversation patterns for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
+* AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and augments their weakness.
+* It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
 the number of agents, and agent conversation topology.
-* It provides a collection of working systems with different complexities. These systems span a wide range of applications from various domains and complexities. They demonstrate how AutoGen can easily support different conversation patterns.
-* AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an enhanced inference API. It allows easy performance tuning, utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
+* It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. They demonstrate how AutoGen can easily support different conversation patterns.
+* AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an **enhanced inference API**. It allows easy performance tuning, utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
 
 AutoGen is powered by collaborative [research studies](/docs/Research) from Microsoft, Penn State University, and University of Washington.
 
@@ -28,10 +30,12 @@ By automating chat among multiple capable agents, one can easily make them colle
 from flaml.autogen import AssistantAgent, UserProxyAgent
 assistant = AssistantAgent("assistant")
 user_proxy = UserProxyAgent("user_proxy")
-user_proxy.initiate_chat(assistant, message="Show me the YTD gain of 10 largest technology companies as of today.")
+user_proxy.initiate_chat(assistant, message="PLot a chart of META and TESLA stock price change YTD.")
 # This initiates an automated chat between the two agents to solve the task
 ```
 
+The figure below shows an example conversation flow with AutoGen.
+![Agent Chat Example](/img/chat_example.png)
 
 #### Enhanced LLM Inferences
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.

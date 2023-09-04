@@ -5,8 +5,8 @@ import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
   {
-    title: 'Build Workflows with Multi-Agent Conversations',
-    Svg: require('../../static/img/auto.svg').default,
+    title: 'Multi-Agent Conversations',
+    Svg: require('../../static/img/conv.svg').default,
     docLink: './docs/Use-Cases/agent_chat',
     description: (
       <>
@@ -15,8 +15,8 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Support Diverse Applications At Ease',
-    Svg: require('../../static/img/fast.svg').default,
+    title: 'Easily Build Diverse Applications',
+    Svg: require('../../static/img/autogen_app.svg').default,
     docLink: './docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen',
     description: (
       <>
@@ -25,7 +25,7 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Optimize Performance of LLM Inferences',
+    title: 'Enhanced LLM Inference & Optimization',
     Svg: require('../../static/img/extend.svg').default,
     docLink: './docs/Use-Cases/enhanced_inference',
     description: (
