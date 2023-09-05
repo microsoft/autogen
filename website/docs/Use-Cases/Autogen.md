@@ -42,7 +42,7 @@ user_proxy = UserProxyAgent(
 )
 
 # the assistant receives a message from the user, which contains the task description
-user.initiate_chat(
+user_proxy.initiate_chat(
     assistant,
     message="""What date is today? Which big tech stock has the largest year-to-date gain this year? How much is the gain?""",
 )
