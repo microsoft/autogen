@@ -59,6 +59,7 @@ response = autogen.Completion.create(context=test_instance, **config)
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat).
 * Understand the use cases for [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
 * Find code examples from [Examples](/docs/Examples/AutoGen-AgentChat).
+* Read [SDK](https://microsoft.github.io/FLAML/docs/reference/autogen/agentchat/responsive_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
 * Chat on [Discord](https://discord.gg/Cppx2vSPVP).
 
