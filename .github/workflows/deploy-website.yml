@@ -1,0 +1,77 @@
+name: docs
+
+on:
+  pull_request:
+    branches: [main]
+    path:
+      - 'website/*'
+      - '.github/workflows/deploy-website.yml'
+  push:
+    branches: [main]
+    path:
+      - 'website/*'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
+
+jobs:
+  checks:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Test Build
+        run: |
+          if [ -e yarn.lock ]; then
+          yarn install --frozen-lockfile --ignore-engines
+          yarn build
+          elif [ -e package-lock.json ]; then
+          npm ci
+          npm run build
+          else
+          npm i --legacy-peer-deps
+          npm run build
+          fi
+  gh-release:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - name: Build website
+        run: |
+          if [ -e yarn.lock ]; then
+          yarn install --frozen-lockfile --ignore-engines
+          yarn build
+          elif [ -e package-lock.json ]; then
+          npm ci
+          npm run build
+          else
+          npm i --legacy-peer-deps
+          npm run build
+          fi
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./website/build
