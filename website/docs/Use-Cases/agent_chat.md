@@ -38,7 +38,7 @@ user_proxy = UserProxyAgent(name="user_proxy")
 
 ## Multi-agent Conversations
 
-### A Basci Two-Agent Conversation Example
+### A Basic Two-Agent Conversation Example
 
 Once the participating agents are constructed properly, one can start a multi-agent conversation session by an initialization step as shown in following code:
 ```python
