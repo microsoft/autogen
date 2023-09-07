@@ -12,6 +12,7 @@ class GroupChat:
     agents: List[Agent]
     messages: List[Dict]
     max_round: int = 10
+    admin_name: str = "Admin"  # the name of the admin agent
 
     @property
     def agent_names(self) -> List[str]:
@@ -97,21 +98,36 @@ class GroupChatManager(ResponsiveAgent):
             messages = self._oai_messages[sender]
         message = messages[-1]
         speaker = sender
-        for i in range(config.max_round):
+        groupchat = config
+        for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
                 message["name"] = speaker.name
-            config.messages.append(message)
+            groupchat.messages.append(message)
             # broadcast the message to all agents except the speaker
-            for agent in config.agents:
+            for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
-            if i != config.max_round - 1:
-                # speaker selection msg from an agent
-                speaker = config.select_speaker(speaker, self)
+            if i == groupchat.max_round - 1:
+                # the last round
+                break
+            try:
+                # select the next speaker
+                speaker = groupchat.select_speaker(speaker, self)
+                # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
-                if reply is None:
-                    break
-                speaker.send(reply, self, request_reply=False)
-                message = self.last_message(speaker)
+            except KeyboardInterrupt:
+                # let the admin agent speak if interrupted
+                if groupchat.admin_name in groupchat.agent_names:
+                    # admin agent is one of the participants
+                    speaker = groupchat.agent_by_name(groupchat.admin_name)
+                    reply = speaker.generate_reply(sender=self)
+                else:
+                    # admin agent is not found in the participants
+                    raise
+            if reply is None:
+                break
+            # The speaker sends the message without requesting a reply
+            speaker.send(reply, self, request_reply=False)
+            message = self.last_message(speaker)
         return True, None
