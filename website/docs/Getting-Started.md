@@ -20,7 +20,7 @@ Install FLAML from pip: `pip install flaml`. Find more options in [Installation]
 
 There are several ways of using flaml:
 
-#### (New) [Autogen](/docs/Use-Cases/Autogen)
+#### (New) [Autogen](https://microsoft.github.io/autogen/)
 
 Autogen enables the next-gen GPT-X applications with a generic multi-agent conversation framework.
 It offers customizable and conversable agents which integrate LLMs, tools and human.
@@ -118,7 +118,7 @@ Then, you can use it just like you use the original `LGMBClassifier`. Your other
 
 ### Where to Go Next?
 
-* Understand the use cases for [Autogen](/docs/Use-Cases/Autogen), [Task-oriented AutoML](/docs/Use-Cases/Task-Oriented-Automl), [Tune user-defined function](/docs/Use-Cases/Tune-User-Defined-Function) and [Zero-shot AutoML](/docs/Use-Cases/Zero-Shot-AutoML).
+* Understand the use cases for [Autogen](https://microsoft.github.io/autogen/), [Task-oriented AutoML](/docs/Use-Cases/Task-Oriented-Automl), [Tune user-defined function](/docs/Use-Cases/Tune-User-Defined-Function) and [Zero-shot AutoML](/docs/Use-Cases/Zero-Shot-AutoML).
 * Find code examples under "Examples": from [AutoGen - AgentChat](/docs/Examples/AutoGen-AgentChat) to [Tune - PyTorch](/docs/Examples/Tune-PyTorch).
 * Learn about [research](/docs/Research) around FLAML and check [blogposts](/blog).
 * Chat on [Discord](https://discord.gg/Cppx2vSPVP).
