@@ -14,11 +14,11 @@
     <br>
 </p>
 
-:fire: The automated multi-agent chat framework in [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) is in preview from v2.0.0.
+:fire: The automated multi-agent chat framework in [autogen](https://microsoft.github.io/autogen/) is in preview from v2.0.0.
 
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
-:fire: [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
+:fire: [autogen](https://microsoft.github.io/autogen/) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
 
 :fire: FLAML supports Code-First AutoML & Tuning – Private Preview in [Microsoft Fabric Data Science](https://learn.microsoft.com/en-us/fabric/data-science/).
 
@@ -44,7 +44,7 @@ FLAML requires **Python version >= 3.8**. It can be installed from pip:
 pip install flaml
 ```
 
-Minimal dependencies are installed without extra options. You can install extra options based on the feature you need. For example, use the following to install the dependencies needed by the [`autogen`](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) package.
+Minimal dependencies are installed without extra options. You can install extra options based on the feature you need. For example, use the following to install the dependencies needed by the [`autogen`](https://microsoft.github.io/autogen/) package.
 ```bash
 pip install "flaml[autogen]"
 ```
@@ -54,7 +54,7 @@ Each of the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/n
 
 ## Quickstart
 
-* (New) The [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) package enables the next-gen GPT-X applications with a generic multi-agent conversation framework.
+* (New) The [autogen](https://microsoft.github.io/autogen/) package enables the next-gen GPT-X applications with a generic multi-agent conversation framework.
 It offers customizable and conversable agents which integrate LLMs, tools and human.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
