@@ -14,7 +14,9 @@
     <br>
 </p>
 
-:fire: The automated multi-agent chat framework in [autogen](https://microsoft.github.io/autogen/) is in preview from v2.0.0.
+:fire: Heads-up: We're preparing to migrate [AutoGen](https://microsoft.github.io/autogen/) into a dedicated github repository. Alongside this move, we'll also launch a dedicated Discord server and a website for comprehensive documentation.
+
+:fire: The automated multi-agent chat framework in [AutoGen](https://microsoft.github.io/autogen/) is in preview from v2.0.0.
 
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
