@@ -83,8 +83,9 @@ The figure below shows six examples of applications built using AutoGen.
 * [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_planning.ipynb)
 * [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_two_users.ipynb)
 * [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_chess.ipynb)
-* [Automated Task Solving by Group Chat](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
-* [Automated Research Task Solving by Group Chat](https://github.com/microsoft/FLAML/blob/febf3cda3665d9a198d915b4979c9b367c301c44/notebook/autogen_agentchat_groupchat_research.ipynb)
+* [Automated Task Solving by Group Chat (with 3 group member agents and 1 manager agent)](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
+* [Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent)](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat_vis.ipynb)
+* [Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent)](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat_research.ipynb)
 * [Automated Continual Learning from New Data](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_stream.ipynb)
 
 
