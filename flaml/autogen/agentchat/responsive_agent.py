@@ -610,7 +610,7 @@ class ResponsiveAgent(Agent):
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
-        last_n_messages = code_execution_config.pop("last_n_messages", 1)
+        last_n_messages = min(len(messages), code_execution_config.pop("last_n_messages", 1))
         for i in range(last_n_messages):
             message = messages[-(i + 1)]
             code_blocks = extract_code(message["content"])
