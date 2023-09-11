@@ -18,11 +18,15 @@ and receive messages to and from the other agents to start or continue a convers
 The figure below shows the built-in agents in AutoGen.
 ![Agent Chat Example](images/autogen_agents.png)
 
-The `ResponsiveAgent`  by default can use LLMs, humans, and tools. The `AssistantAgent` and `UserProxyAgent` are two pre-configured versions of `ResponsiveAgent`, each representing a common usage mode. 
+We have designed a generic `ConversableAgent` class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are `AssistantAgent` and `UserProxyAgent`.
+
 
 - The `AssistantAgent` is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest code with bug fix. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
 
 - The `UserProxyAgent` is conceptually a proxy agent for humans, soliciting human input as the agent's reply at each interaction turn by default and also having the capability to execute code and call functions. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting `code_execution_config` to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](/docs/Use-Cases/enhanced_inference) configuration. When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed. When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
+
+The auto-reply capability of `ConversableAgent` allows for more autonomous multi-agent communication while retaining the possibility of human intervention.
+One can also easily extend it by registering auto_reply functions with the `register_reply()` method.
 
 In the following code, we create an `AssistantAgent` named "assistant" to serve as the assistant and a `UserProxyAgent` named "user_proxy" to serve as a proxy for the human user. We will later employ these two agents to solve a task.
 
