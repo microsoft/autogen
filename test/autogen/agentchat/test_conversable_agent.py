@@ -1,48 +1,48 @@
 import pytest
-from flaml.autogen.agentchat import ResponsiveAgent
+from flaml.autogen.agentchat import ConversableAgent
 
 
 def test_trigger():
-    agent = ResponsiveAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-    agent1 = ResponsiveAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
-    agent.register_auto_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent.register_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello"
-    agent.register_auto_reply("a1", lambda recipient, messages, sender, config: (True, "hello a1"))
+    agent.register_reply("a1", lambda recipient, messages, sender, config: (True, "hello a1"))
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello a1"
-    agent.register_auto_reply(
-        ResponsiveAgent, lambda recipient, messages, sender, config: (True, "hello responsive agent")
+    agent.register_reply(
+        ConversableAgent, lambda recipient, messages, sender, config: (True, "hello conversable agent")
     )
     agent1.initiate_chat(agent, message="hi")
-    assert agent1.last_message(agent)["content"] == "hello responsive agent"
-    agent.register_auto_reply(
+    assert agent1.last_message(agent)["content"] == "hello conversable agent"
+    agent.register_reply(
         lambda sender: sender.name.startswith("a"), lambda recipient, messages, sender, config: (True, "hello a")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello a"
-    agent.register_auto_reply(
+    agent.register_reply(
         lambda sender: sender.name.startswith("b"), lambda recipient, messages, sender, config: (True, "hello b")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello a"
-    agent.register_auto_reply(
+    agent.register_reply(
         ["agent2", agent1], lambda recipient, messages, sender, config: (True, "hello agent2 or agent1")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
-    agent.register_auto_reply(
+    agent.register_reply(
         ["agent2", "agent3"], lambda recipient, messages, sender, config: (True, "hello agent2 or agent3")
     )
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
-    pytest.raises(ValueError, agent.register_auto_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
+    pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
 
 
 def test_context():
-    agent = ResponsiveAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-    agent1 = ResponsiveAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
     agent1.send(
         {
             "content": "hello {name}",
@@ -77,8 +77,8 @@ def test_context():
 
 
 def test_max_consecutive_auto_reply():
-    agent = ResponsiveAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
-    agent1 = ResponsiveAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 2
     agent.update_max_consecutive_auto_reply(1)
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
@@ -105,9 +105,9 @@ def test_max_consecutive_auto_reply():
     assert agent1.reply_at_receive[agent] is False and agent.reply_at_receive[agent1] is True
 
 
-def test_responsive_agent():
-    dummy_agent_1 = ResponsiveAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
-    dummy_agent_2 = ResponsiveAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
+def test_conversable_agent():
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
 
     # monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.receive("hello", dummy_agent_2)  # receive a str
@@ -159,7 +159,7 @@ def test_generate_reply():
         given_num = 10
         return num_to_be_added + given_num
 
-    dummy_agent_2 = ResponsiveAgent(name="user_proxy", human_input_mode="TERMINATE", function_map={"add_num": add_num})
+    dummy_agent_2 = ConversableAgent(name="user_proxy", human_input_mode="TERMINATE", function_map={"add_num": add_num})
     messsages = [{"function_call": {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}, "role": "assistant"}]
 
     # when sender is None, messages is provided
@@ -168,7 +168,7 @@ def test_generate_reply():
     ), "generate_reply not working when sender is None"
 
     # when sender is provided, messages is None
-    dummy_agent_1 = ResponsiveAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
     dummy_agent_2._oai_messages[dummy_agent_1] = messsages
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
@@ -179,4 +179,4 @@ if __name__ == "__main__":
     test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
-    # test_responsive_agent(pytest.monkeypatch)
+    # test_conversable_agent(pytest.monkeypatch)

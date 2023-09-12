@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import sys
 from typing import Dict, List, Optional, Union
 from .agent import Agent
-from .responsive_agent import ResponsiveAgent
+from .conversable_agent import ConversableAgent
 
 
 @dataclass
@@ -39,7 +39,7 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {self.agent_names} to play. Only return the role."""
 
-    def select_speaker(self, last_speaker: Agent, selector: ResponsiveAgent):
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
         selector.update_system_message(self.select_speaker_msg())
         final, name = selector.generate_oai_reply(
@@ -63,7 +63,7 @@ Then select the next role from {self.agent_names} to play. Only return the role.
         return "\n".join([f"{agent.name}: {agent.system_message}" for agent in self.agents])
 
 
-class GroupChatManager(ResponsiveAgent):
+class GroupChatManager(ConversableAgent):
     """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
 
     def __init__(
@@ -84,7 +84,7 @@ class GroupChatManager(ResponsiveAgent):
             system_message=system_message,
             **kwargs,
         )
-        self.register_auto_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
+        self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # self._random = random.Random(seed)
 
     def run_chat(

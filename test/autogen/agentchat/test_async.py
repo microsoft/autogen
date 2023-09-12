@@ -98,7 +98,7 @@ async def test_stream():
                 )
             return False, None
 
-    user_proxy.register_auto_reply(autogen.AssistantAgent, add_data_reply, 1, config={"news_stream": data})
+    user_proxy.register_reply(autogen.AssistantAgent, add_data_reply, 1, config={"news_stream": data})
 
     await user_proxy.a_initiate_chat(
         assistant,
