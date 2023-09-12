@@ -1,11 +1,11 @@
-from .responsive_agent import ResponsiveAgent
+from .conversable_agent import ConversableAgent
 from typing import Callable, Dict, Optional, Union
 
 
-class AssistantAgent(ResponsiveAgent):
+class AssistantAgent(ConversableAgent):
     """(In preview) Assistant agent, designed to solve a task with LLM.
 
-    AssistantAgent is a subclass of ResponsiveAgent configured with a default system message.
+    AssistantAgent is a subclass of ConversableAgent configured with a default system message.
     The default system message is designed to solve a task with LLM,
     including suggesting python code blocks and debugging.
     `human_input_mode` is default to "NEVER"
@@ -52,7 +52,7 @@ Reply "TERMINATE" in the end when everything is done.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             **kwargs (dict): Please refer to other kwargs in
-                [ResponsiveAgent](responsive_agent#__init__).
+                [ConversableAgent](conversable_agent#__init__).
         """
         super().__init__(
             name,

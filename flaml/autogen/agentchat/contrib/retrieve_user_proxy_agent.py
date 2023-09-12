@@ -148,7 +148,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
-        self.register_auto_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply)
+        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply)
 
     @staticmethod
     def get_max_tokens(model="gpt-3.5-turbo"):

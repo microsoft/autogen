@@ -1,3 +1,3 @@
-# AutoGen: Enabling Next-Gen GPT-X Applications
+# AutoGen for Large Language Models
 
 Please refer to https://microsoft.github.io/autogen/.

@@ -21,11 +21,11 @@ except ImportError:
         return x
 
 
-class ResponsiveAgent(Agent):
-    """(Experimental) A class for generic responsive agents which can be configured as assistant or user proxy.
+class ConversableAgent(Agent):
+    """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
     After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
-    For example, AssistantAgent and UserProxyAgent are subclasses of ResponsiveAgent,
+    For example, AssistantAgent and UserProxyAgent are subclasses of this class,
     configured with different default settings.
 
     To modify auto reply, override `generate_reply` method.
@@ -119,12 +119,12 @@ class ResponsiveAgent(Agent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
-        self.register_auto_reply([Agent, None], ResponsiveAgent.generate_oai_reply)
-        self.register_auto_reply([Agent, None], ResponsiveAgent.generate_code_execution_reply)
-        self.register_auto_reply([Agent, None], ResponsiveAgent.generate_function_call_reply)
-        self.register_auto_reply([Agent, None], ResponsiveAgent.check_termination_and_human_reply)
+        self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
+        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
+        self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
-    def register_auto_reply(
+    def register_reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         reply_func: Callable,
@@ -151,7 +151,7 @@ class ResponsiveAgent(Agent):
                 The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
         ```python
         def reply_func(
-            recipient: ResponsiveAgent,
+            recipient: ConversableAgent,
             messages: Optional[List[Dict]] = None,
             sender: Optional[Agent] = None,
             config: Optional[Any] = None,
@@ -499,7 +499,7 @@ class ResponsiveAgent(Agent):
 
     def initiate_chat(
         self,
-        recipient: "ResponsiveAgent",
+        recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         **context,
@@ -522,7 +522,7 @@ class ResponsiveAgent(Agent):
 
     async def a_initiate_chat(
         self,
-        recipient: "ResponsiveAgent",
+        recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         **context,
@@ -610,8 +610,8 @@ class ResponsiveAgent(Agent):
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
-        last_n_messages = min(len(messages), code_execution_config.pop("last_n_messages", 1))
-        for i in range(last_n_messages):
+        last_n_messages = code_execution_config.pop("last_n_messages", 1)
+        for i in range(min(len(messages), last_n_messages)):
             message = messages[-(i + 1)]
             code_blocks = extract_code(message["content"])
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:

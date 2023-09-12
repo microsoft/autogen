@@ -16,7 +16,7 @@ class RetrieveAssistantAgent(AssistantAgent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.register_auto_reply(Agent, RetrieveAssistantAgent._generate_retrieve_assistant_reply)
+        self.register_reply(Agent, RetrieveAssistantAgent._generate_retrieve_assistant_reply)
 
     def _generate_retrieve_assistant_reply(
         self,
