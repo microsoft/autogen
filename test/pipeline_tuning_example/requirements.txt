@@ -1,0 +1,5 @@
+azureml-core==1.39.0
+azure-ml-component[notebooks]==0.9.10.post1
+azureml-dataset-runtime==1.39.0
+hydra-core==1.1.1
+flaml[blendsearch,ray]==1.0.9

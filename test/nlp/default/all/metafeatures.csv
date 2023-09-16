@@ -1,0 +1,6 @@
+Dataset,NumberOfInstances
+glue-rte-,2500
+glue-mrpc-,3700
+glue-cola-,8500
+glue-qnli-,105000
+glue-sst2-,67000

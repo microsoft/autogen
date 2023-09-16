@@ -30,7 +30,7 @@ By automating chat among multiple capable agents, one can easily make them colle
 from flaml.autogen import AssistantAgent, UserProxyAgent
 assistant = AssistantAgent("assistant")
 user_proxy = UserProxyAgent("user_proxy")
-user_proxy.initiate_chat(assistant, message="PLot a chart of META and TESLA stock price change YTD.")
+user_proxy.initiate_chat(assistant, message="Plot a chart of META and TESLA stock price change YTD.")
 # This initiates an automated chat between the two agents to solve the task
 ```
 
@@ -65,4 +65,4 @@ response = autogen.Completion.create(context=test_instance, **config)
 
 If you like our project, please give it a [star](https://github.com/microsoft/FLAML/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
 
-<iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=FLAML&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+<!-- <iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=FLAML&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe> -->

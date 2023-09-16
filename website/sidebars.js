@@ -18,4 +18,6 @@
     'Contribute',
     'Research',
   ],
+  // pydoc-markdown auto-generated markdowns from docstrings
+  referenceSideBar: [require("./docs/reference/sidebar.json")]
 };

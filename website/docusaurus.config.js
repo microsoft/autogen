@@ -26,15 +26,21 @@ module.exports = {
           position: 'left',
           label: 'Docs',
         },
-        // {to: 'blog', label: 'Blog', position: 'left'},
-        // {
-        //   type: 'doc',
-        //   docId: 'FAQ',
-        //   position: 'left',
-        //   label: 'FAQ',
-        // },
         {
-          href: 'https://github.com/microsoft/FLAML',
+            type: 'doc',
+            docId: 'reference/agentchat/conversable_agent',
+            position: 'left',
+            label: 'SDK',
+        },
+        {to: 'blog', label: 'Blog', position: 'left'},
+        {
+          type: 'doc',
+          docId: 'FAQ',
+          position: 'left',
+          label: 'FAQ',
+        },
+        {
+          href: 'https://github.com/microsoft/autogen',
           label: 'GitHub',
           position: 'right',
         },
@@ -66,7 +72,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors.`,
     },
   },
   presets: [

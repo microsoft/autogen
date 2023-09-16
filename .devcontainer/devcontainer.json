@@ -1,0 +1,13 @@
+{
+    "extensions": ["ms-python.python", "visualstudioexptteam.vscodeintellicode"],
+    "dockerFile": "Dockerfile",
+    "settings": {
+        "terminal.integrated.profiles.linux": {
+            "bash": {
+                "path": "/bin/bash"
+            }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "updateContentCommand": "pip install -e .[notebook,openai] pre-commit && pre-commit install"
+}

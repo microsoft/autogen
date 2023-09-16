@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/component-detection-manifest.json",
+  "Registrations": [
+    {
+      "Component": {
+        "Type": "pip",
+        "pip": { "Name": "ray[tune]", "Version": "1.5.1" }
+      },
+      "DevelopmentDependency": false
+    }
+  ]
+}

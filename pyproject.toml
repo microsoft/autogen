@@ -1,0 +1,51 @@
+[metadata]
+license_file = "LICENSE"
+description-file = "README.md"
+
+
+[tool.pytest.ini_options]
+addopts = '-m "not conda"'
+markers = [
+    "conda: test related to conda forge distribution"
+]
+
+[tool.black]
+# https://github.com/psf/black
+line-length = 120
+exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
+
+
+[tool.ruff]
+line-length = 120
+# Enable Pyflakes `E` and `F` codes by default.
+select = [
+    "E", "W",  # see: https://pypi.org/project/pycodestyle
+    "F",  # see: https://pypi.org/project/pyflakes
+#    "D",  # see: https://pypi.org/project/pydocstyle
+#    "N",  # see: https://pypi.org/project/pep8-naming
+#    "S",  # see: https://pypi.org/project/flake8-bandit
+]
+ignore = [
+    "E501",
+    "F401",
+    "F403",
+    "C901",
+]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "docs"
+]
+ignore-init-module-imports = true
+unfixable = ["F401"]
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10

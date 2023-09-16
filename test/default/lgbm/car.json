@@ -1,0 +1,1 @@
+{"class": "lgbm", "hyperparameters": {"n_estimators": 311, "num_leaves": 4, "min_child_samples": 5, "learning_rate": 0.5547292134798673, "log_max_bin": 3, "colsample_bytree": 0.9917614238487915, "reg_alpha": 0.0009765625, "reg_lambda": 0.0019177370889840813}}

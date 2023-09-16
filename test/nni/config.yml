@@ -1,0 +1,19 @@
+# usage: nnictl create --config ./config.yml
+authorName: default
+experimentName: example_mnist
+trialConcurrency: 1
+maxExecDuration: 1h
+maxTrialNum: 10
+trainingServicePlatform: local
+# The path to Search Space
+searchSpacePath: search_space.json
+useAnnotation: false
+tuner:
+  codeDir: ./
+  classFileName: flaml_nni_wrap.py
+  className: BlendSearchTuner
+# The path and the running command of trial
+trial:
+  command: python3 mnist.py
+  codeDir: .
+  gpuNum: 0
