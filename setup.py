@@ -25,7 +25,7 @@ setuptools.setup(
     name="AutoGen",
     version=__version__,
     author="AutoGen",
-    author_email="autogen@gmail.com",
+    author_email="auto-gen@outlook.com",
     description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework",
     long_description=long_description,
     long_description_content_type="text/markdown",
