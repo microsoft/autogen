@@ -14,6 +14,7 @@ npm install --global yarn
 ## Installation
 
 ```console
+pip install pydoc-markdown
 cd website
 yarn install
 ```
@@ -23,6 +24,7 @@ yarn install
 Navigate to the website folder and run:
 
 ```console
+pydoc-markdown
 yarn start
 ```
 

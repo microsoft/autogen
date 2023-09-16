@@ -1,0 +1,14 @@
+FROM mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+
+RUN pip install azureml-core
+RUN pip install flaml[blendsearch,ray]
+RUN pip install ray-on-aml
+
+EXPOSE 8265
+EXPOSE 6379
+
+USER root
+
+RUN apt-get update
+RUN apt-get install -y jq
+RUN apt-get install -y rsync

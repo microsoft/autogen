@@ -1,0 +1,1 @@
+{"class": "xgb_limitdepth", "hyperparameters": {"n_estimators": 2704, "max_depth": 2, "min_child_weight": 0.23751738294732322, "learning_rate": 0.019828117294812268, "subsample": 0.8798706041292946, "colsample_bylevel": 0.978891799553329, "colsample_bytree": 1.0, "reg_alpha": 0.3023181744217667, "reg_lambda": 101.10719177747677}}

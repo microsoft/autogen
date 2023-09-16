@@ -1,0 +1,357 @@
+{
+    "version": "1.0.2",
+    "meta_feature_names": [
+        "NumberOfInstances","NumberOfFeatures","NumberOfClasses","PercentageOfNumericFeatures"
+    ],
+    "portfolio": [
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 1191,
+                "max_depth": 13,
+                "min_child_weight": 6.4007885677724605,
+                "learning_rate": 0.037622775650237326,
+                "subsample": 1.0,
+                "colsample_bylevel": 0.3697773165627811,
+                "colsample_bytree": 0.813871237069598,
+                "reg_alpha": 0.0009765625,
+                "reg_lambda": 1.075702708240612
+            }
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 1499,
+                "max_depth": 11,
+                "min_child_weight": 0.07563529776156448,
+                "learning_rate": 0.039042609221240955,
+                "subsample": 0.7832981935783824,
+                "colsample_bylevel": 1.0,
+                "colsample_bytree": 1.0,
+                "reg_alpha": 0.0009765625,
+                "reg_lambda": 23.513066752844153
+            }
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 313,
+                "max_depth": 7,
+                "min_child_weight": 30.424259012001368,
+                "learning_rate": 0.08466828646360688,
+                "subsample": 0.9897083979469301,
+                "colsample_bylevel": 0.6769490906308069,
+                "colsample_bytree": 1.0,
+                "reg_alpha": 0.0014544085935366477,
+                "reg_lambda": 34.09911172306857
+            }
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 566,
+                "max_depth": 13,
+                "min_child_weight": 0.013176186839973599,
+                "learning_rate": 0.09285619488896565,
+                "subsample": 0.5897287493640815,
+                "colsample_bylevel": 0.923664288991597,
+                "colsample_bytree": 0.8244714790646485,
+                "reg_alpha": 0.023484974838756726,
+                "reg_lambda": 0.5690298249126402,
+                "FLAML_sample_size": 470620
+            }
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {}
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 971,
+                "max_depth": 8,
+                "min_child_weight": 0.0044052948947322645,
+                "learning_rate": 0.15171239415469703,
+                "subsample": 0.8340342805529243,
+                "colsample_bylevel": 0.9489310919814007,
+                "colsample_bytree": 0.022724724669028674,
+                "reg_alpha": 0.0009765625,
+                "reg_lambda": 0.0025897714798936954
+            }
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 464,
+                "max_depth": 2,
+                "min_child_weight": 0.0068282719220722,
+                "learning_rate": 0.07962498837600937,
+                "subsample": 0.47139986510869014,
+                "colsample_bylevel": 0.4814471959023239,
+                "colsample_bytree": 0.6050207253592859,
+                "reg_alpha": 0.0010290828959872173,
+                "reg_lambda": 0.0103104214002687
+            }
+        },
+        {
+            "class": "xgb_limitdepth",
+            "hyperparameters": {
+                "n_estimators": 1799,
+                "max_depth": 3,
+                "min_child_weight": 0.0010034151843327725,
+                "learning_rate": 0.03453775119035777,
+                "subsample": 0.31322065037892344,
+                "colsample_bylevel": 1.0,
+                "colsample_bytree": 0.2219038021462818,
+                "reg_alpha": 0.03885163786709896,
+                "reg_lambda": 1.1077175359756786
+            }
+        }
+    ],
+    "preprocessing": {
+        "center": [
+            24668.5,
+            54.0,
+            7.0,
+            1.0
+        ],
+        "scale": [
+            57198.0,
+            770.5,
+            6.0,
+            1.0
+        ]
+    },
+    "neighbors": [
+        {
+            "features": [
+                8.710820308402392,
+                0.0,
+                0.0,
+                -0.8148148148148149
+            ],
+            "choice": [
+                0,
+                3,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.6701545508584216,
+                0.9474367293964958,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                0,
+                2,
+                7,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.5945575020105598,
+                -0.03504218040233614,
+                15.5,
+                0.0
+            ],
+            "choice": [
+                0,
+                2,
+                7,
+                6,
+                3,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.8862285394594217,
+                0.0,
+                -0.5,
+                0.0
+            ],
+            "choice": [
+                2,
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.2739344033008147,
+                9.2744970798183,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                0,
+                2,
+                7,
+                6,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.48133676002657433,
+                -0.058403634003893576,
+                0.0,
+                0.0
+            ],
+            "choice": [
+                1,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.4862145529563971,
+                0.16353017521090202,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                0,
+                1,
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.40409629707332423,
+                -0.06229720960415315,
+                -0.5,
+                -1.0
+            ],
+            "choice": [
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.41428896115248787,
+                1.0408825438027256,
+                0.3333333333333333,
+                0.0
+            ],
+            "choice": [
+                5,
+                3,
+                1,
+                7,
+                6,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.6317091506696039,
+                -0.015574302401038288,
+                -0.6666666666666666,
+                -1.0
+            ],
+            "choice": [
+                1,
+                0,
+                3,
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.2739344033008147,
+                2.5256327060350423,
+                -0.3333333333333333,
+                0.0
+            ],
+            "choice": [
+                0,
+                5,
+                3,
+                7,
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.30168012867582783,
+                0.9682024659312135,
+                0.0,
+                0.0
+            ],
+            "choice": [
+                1,
+                3,
+                4
+            ]
+        },
+        {
+            "features": [
+                0.2739344033008147,
+                -0.06229720960415315,
+                -0.6666666666666666,
+                0.0
+            ],
+            "choice": [
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.39981293052204625,
+                0.21025308241401688,
+                0.5,
+                0.0
+            ],
+            "choice": [
+                7,
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.3949351375922235,
+                -0.04931862426995458,
+                0.0,
+                0.0
+            ],
+            "choice": [
+                6,
+                0,
+                7,
+                1,
+                3,
+                4
+            ]
+        },
+        {
+            "features": [
+                -0.41797790132522117,
+                -0.04672290720311486,
+                -0.5,
+                0.0
+            ],
+            "choice": [
+                6,
+                1,
+                7,
+                2,
+                0,
+                3,
+                4
+            ]
+        }
+    ],
+    "configsource": [
+        "guillermo",
+        "connect-4",
+        "Helena",
+        "Covertype",
+        "default",
+        "cnae-9",
+        "vehicle",
+        "mfeat-factors"
+    ]
+}

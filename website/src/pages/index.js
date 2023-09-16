@@ -17,7 +17,7 @@ function HomepageHeader() {
           <Link
             className="button button--secondary button--lg"
             to="/docs/getting-started">
-            AutoGen Getting Started - 5min ⏱️
+            Getting Started - 5min ⏱️
           </Link>
         </div>
       </div>

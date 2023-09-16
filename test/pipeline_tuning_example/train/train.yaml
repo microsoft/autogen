@@ -1,0 +1,28 @@
+$schema: https://componentsdk.azureedge.net/jsonschema/CommandComponent.json
+# TODO: update name
+name: classifier
+version: 0.0.1
+display_name: Train lgbm classifier
+inputs:
+  train_data:
+    type: path
+  test_data:
+    type: path
+  learning_rate:
+    type: float
+  n_estimators:
+    type: int
+outputs:
+  model:
+    type: path
+environment:
+ conda:
+  conda_dependencies_file: env.yaml
+ os: Linux
+command: >-
+  python train.py
+  --train_data {inputs.train_data}
+  --test_data {inputs.test_data}
+  --learning_rate {inputs.learning_rate}
+  --n_estimators {inputs.n_estimators}
+  --model {outputs.model}

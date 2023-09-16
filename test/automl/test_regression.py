@@ -1,0 +1,233 @@
+import unittest
+import numpy as np
+import scipy.sparse
+from sklearn.datasets import (
+    fetch_california_housing,
+)
+
+from flaml import AutoML
+from flaml.automl.data import get_output_from_log
+from flaml.automl.model import XGBoostEstimator
+
+
+def logregobj(preds, dtrain):
+    labels = dtrain.get_label()
+    preds = 1.0 / (1.0 + np.exp(-preds))  # transform raw leaf weight
+    grad = preds - labels
+    hess = preds * (1.0 - preds)
+    return grad, hess
+
+
+class MyXGB1(XGBoostEstimator):
+    """XGBoostEstimator with logregobj as the objective function"""
+
+    def __init__(self, **config):
+        super().__init__(objective=logregobj, **config)
+
+
+class MyXGB2(XGBoostEstimator):
+    """XGBoostEstimator with 'reg:squarederror' as the objective function"""
+
+    def __init__(self, **config):
+        super().__init__(objective="reg:squarederror", **config)
+
+
+class TestRegression(unittest.TestCase):
+    def test_regression(self):
+        automl = AutoML()
+        automl_settings = {
+            "time_budget": 2,
+            "task": "regression",
+            "log_file_name": "test/california.log",
+            "log_training_metric": True,
+            "n_jobs": 1,
+            "model_history": True,
+        }
+        X_train, y_train = fetch_california_housing(return_X_y=True)
+        n = int(len(y_train) * 9 // 10)
+        automl.fit(X_train=X_train[:n], y_train=y_train[:n], X_val=X_train[n:], y_val=y_train[n:], **automl_settings)
+        assert automl._state.eval_method == "holdout"
+        y_pred = automl.predict(X_train)
+        print(y_pred)
+        print(automl.model.estimator)
+        n_iter = automl.model.estimator.get_params("n_estimators")
+        print(automl.config_history)
+        print(automl.best_model_for_estimator("xgboost"))
+        print(automl.best_iteration)
+        print(automl.best_estimator)
+        print(get_output_from_log(automl_settings["log_file_name"], 1))
+        automl.retrain_from_log(
+            task="regression",
+            log_file_name=automl_settings["log_file_name"],
+            X_train=X_train,
+            y_train=y_train,
+            train_full=True,
+            time_budget=1,
+        )
+        automl.retrain_from_log(
+            task="regression",
+            log_file_name=automl_settings["log_file_name"],
+            X_train=X_train,
+            y_train=y_train,
+            time_budget=0,
+        )
+        automl = AutoML()
+        automl.retrain_from_log(
+            task="regression",
+            log_file_name=automl_settings["log_file_name"],
+            X_train=X_train[:n],
+            y_train=y_train[:n],
+            train_full=True,
+        )
+        print(automl.model.estimator)
+        y_pred2 = automl.predict(X_train)
+        # In some rare case, the last config is early stopped and it's the best config. But the logged config's n_estimator is not reduced.
+        assert n_iter != automl.model.estimator.get_params("n_estimator") or (y_pred == y_pred2).all()
+
+    def test_sparse_matrix_regression(self):
+        X_train = scipy.sparse.random(300, 900, density=0.0001)
+        y_train = np.random.uniform(size=300)
+        X_val = scipy.sparse.random(100, 900, density=0.0001)
+        y_val = np.random.uniform(size=100)
+        automl = AutoML()
+        settings = {
+            "time_budget": 2,
+            "metric": "mae",
+            "task": "regression",
+            "log_file_name": "test/sparse_regression.log",
+            "n_jobs": 1,
+            "model_history": True,
+            "keep_search_state": True,
+            "verbose": 0,
+            "early_stop": True,
+        }
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **settings)
+        assert automl._state.X_val.shape == X_val.shape
+        print(automl.predict(X_train))
+        print(automl.model)
+        print(automl.config_history)
+        print(automl.best_model_for_estimator("rf"))
+        print(automl.best_iteration)
+        print(automl.best_estimator)
+        print(automl.best_config)
+        print(automl.best_loss)
+        print(automl.best_config_train_time)
+
+        settings.update(
+            {
+                "estimator_list": ["catboost"],
+                "keep_search_state": False,
+                "model_history": False,
+                "use_best_model": False,
+                "time_budget": None,
+                "max_iter": 2,
+                "custom_hp": {"catboost": {"n_estimators": {"domain": 100}}},
+            }
+        )
+        automl.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **settings)
+
+    def test_parallel(self, hpo_method=None):
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 10,
+            "task": "regression",
+            "log_file_name": "test/california.log",
+            "log_type": "all",
+            "n_jobs": 1,
+            "n_concurrent_trials": 10,
+            "hpo_method": hpo_method,
+        }
+        X_train, y_train = fetch_california_housing(return_X_y=True)
+        try:
+            automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+            print(automl_experiment.predict(X_train))
+            print(automl_experiment.model)
+            print(automl_experiment.config_history)
+            print(automl_experiment.best_model_for_estimator("xgboost"))
+            print(automl_experiment.best_iteration)
+            print(automl_experiment.best_estimator)
+        except ImportError:
+            return
+
+    def test_sparse_matrix_regression_holdout(self):
+        X_train = scipy.sparse.random(8, 100)
+        y_train = np.random.uniform(size=8)
+        automl_experiment = AutoML()
+        automl_settings = {
+            "time_budget": 1,
+            "eval_method": "holdout",
+            "task": "regression",
+            "log_file_name": "test/sparse_regression.log",
+            "n_jobs": 1,
+            "model_history": True,
+            "metric": "mse",
+            "sample_weight": np.ones(len(y_train)),
+            "early_stop": True,
+        }
+        automl_experiment.fit(X_train=X_train, y_train=y_train, **automl_settings)
+        print(automl_experiment.predict(X_train))
+        print(automl_experiment.model)
+        print(automl_experiment.config_history)
+        print(automl_experiment.best_model_for_estimator("rf"))
+        print(automl_experiment.best_iteration)
+        print(automl_experiment.best_estimator)
+
+    def test_regression_xgboost(self):
+        X_train = scipy.sparse.random(300, 900, density=0.0001)
+        y_train = np.random.uniform(size=300)
+        X_val = scipy.sparse.random(100, 900, density=0.0001)
+        y_val = np.random.uniform(size=100)
+        automl_experiment = AutoML()
+        automl_experiment.add_learner(learner_name="my_xgb1", learner_class=MyXGB1)
+        automl_experiment.add_learner(learner_name="my_xgb2", learner_class=MyXGB2)
+        automl_settings = {
+            "time_budget": 2,
+            "estimator_list": ["my_xgb1", "my_xgb2"],
+            "task": "regression",
+            "log_file_name": "test/regression_xgboost.log",
+            "n_jobs": 1,
+            "model_history": True,
+            "keep_search_state": True,
+            "early_stop": True,
+        }
+        automl_experiment.fit(X_train=X_train, y_train=y_train, X_val=X_val, y_val=y_val, **automl_settings)
+        assert automl_experiment._state.X_val.shape == X_val.shape
+        print(automl_experiment.predict(X_train))
+        print(automl_experiment.model)
+        print(automl_experiment.config_history)
+        print(automl_experiment.best_model_for_estimator("my_xgb2"))
+        print(automl_experiment.best_iteration)
+        print(automl_experiment.best_estimator)
+        print(automl_experiment.best_config)
+        print(automl_experiment.best_loss)
+        print(automl_experiment.best_config_train_time)
+
+
+def test_multioutput():
+    from sklearn.datasets import make_regression
+    from sklearn.model_selection import train_test_split
+    from sklearn.multioutput import MultiOutputRegressor, RegressorChain
+
+    # create regression data
+    X, y = make_regression(n_targets=3)
+
+    # split into train and test data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
+
+    # train the model
+    model = MultiOutputRegressor(AutoML(task="regression", time_budget=1))
+    model.fit(X_train, y_train)
+
+    # predict
+    print(model.predict(X_test))
+
+    # train the model
+    model = RegressorChain(AutoML(task="regression", time_budget=1))
+    model.fit(X_train, y_train)
+
+    # predict
+    print(model.predict(X_test))
+
+
+if __name__ == "__main__":
+    unittest.main()

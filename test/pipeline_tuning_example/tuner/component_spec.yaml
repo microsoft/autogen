@@ -1,0 +1,12 @@
+$schema: https://componentsdk.azureedge.net/jsonschema/CommandComponent.json
+# TODO: update name
+name: tuner
+version: 0.0.1
+display_name: tuner
+code: ../
+environment:
+ conda:
+  conda_dependencies_file: env.yaml
+ os: Linux
+command: >-
+  python tuner/tuner_func.py
