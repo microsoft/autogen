@@ -7,7 +7,7 @@ on:
   push:
     branches: ['main']
     paths:
-      - 'flaml/**'
+      - 'autogen/**'
       - 'test/**'
       - 'notebook/**'
       - '.github/workflows/python-package.yml'

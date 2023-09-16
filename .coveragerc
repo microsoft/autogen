@@ -1,5 +1,5 @@
 [run]
 branch = True
-source = flaml
+source = autogen
 omit =
   *test*

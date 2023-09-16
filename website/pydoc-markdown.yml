@@ -1,6 +1,6 @@
 loaders:
    - type: python
-     search_path: [../flaml/]
+     search_path: [../autogen/]
 processors:
   - type: filter
     skip_empty_modules: true
