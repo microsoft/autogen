@@ -7,8 +7,11 @@ on:
   pull_request:
     branches: ['main']
     paths:
-      - 'flaml/autogen/**'
-      - 'test/autogen/**'
+      - 'autogen/**'
+      - 'test/**'
+      - 'notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb'
+      - 'notebook/autogen_agentchat_function_call.ipynb'
+      - 'notebook/autogen_agentchat_MathChat.ipynb'
       - 'notebook/autogen_openai_completion.ipynb'
       - 'notebook/autogen_chatgpt_gpt4.ipynb'
       - '.github/workflows/openai.yml'
@@ -31,8 +34,8 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[autogen,blendsearch]
-          python -c "import flaml"
+          pip install -e .[tune]
+          python -c "import autogen"
           pip install coverage pytest datasets
       - name: Install packages for test when needed
         if: matrix.python-version == '3.9'
@@ -54,7 +57,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/autogen
+          coverage run -a -m pytest test
           coverage xml
       - name: Coverage and check notebook outputs
         if: matrix.python-version != '3.9'
@@ -66,9 +69,9 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/autogen/test_notebook.py
+          coverage run -a -m pytest test/test_notebook.py
           coverage xml
-          cat "$(pwd)/test/autogen/executed_openai_notebook_output.txt"
+          cat "$(pwd)/test/executed_openai_notebook_output.txt"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

@@ -8,7 +8,7 @@ import re
 import time
 from hashlib import md5
 import logging
-from flaml.autogen import oai
+from autogen import oai
 
 try:
     import docker
@@ -205,7 +205,7 @@ def execute_code(
         work_dir (Optional, str): The working directory for the code execution.
             If None, a default working directory will be used.
             The default working directory is the "extensions" directory under
-            "path_to_flaml/autogen".
+            "path_to_autogen".
         use_docker (Optional, list, str or bool): The docker image to use for code execution.
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
             with the first image successfully pulled.

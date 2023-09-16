@@ -5,25 +5,24 @@ This project welcomes contributions and suggestions.  Most contributions require
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
 the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 [![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
-<!-- ![Conda version](https://img.shields.io/conda/vn/conda-forge/flaml) -->
+<!-- ![Conda version](https://img.shields.io/conda/vn/conda-forge/pyautogen) -->
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10-blue)
-<!-- [![Downloads](https://pepy.tech/badge/flaml)](https://pepy.tech/project/flaml) -->
+<!-- [![Downloads](https://pepy.tech/badge/pyautogen)](https://pepy.tech/project/pyautogen) -->
 [![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/Cppx2vSPVP)
-<!-- [![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) -->
 
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 # AutoGen
 
 <!-- <p align="center">
-    <img src="https://github.com/microsoft/FLAML/blob/main/website/static/img/flaml.svg"  width=200>
+    <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
 
-<!-- :fire: Heads-up: We're preparing to migrate [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) into a dedicated github repository. Alongside this move, we'll also launch a dedicated Discord server and a website for comprehensive documentation.
+:fire: autogen has graduated from [FLAML](https://github.com/microsoft/FLAML) into a new project.
 
-:fire: The automated multi-agent chat framework in [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) is in preview from v2.0.0.
+<!-- :fire: Heads-up: We're preparing to migrate [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) into a dedicated github repository. Alongside this move, we'll also launch a dedicated Discord server and a website for comprehensive documentation.
 
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
@@ -54,14 +53,14 @@ AutoGen requires **Python version >= 3.8**. It can be installed from pip:
 pip install pyautogen
 ```
 
-<!-- Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
-For example, use the following to install the dependencies needed by the [`autogen`](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) package.
+Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
+For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
-pip install "flaml[autogen]"
+pip install "pyautogen[blendsearch]"
 ```
 
 Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation).
-Each of the [`notebook examples`](https://github.com/microsoft/FLAML/tree/main/notebook) may require a specific option to be installed. -->
+<!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
 ## Quickstart
 

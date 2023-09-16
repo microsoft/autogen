@@ -1,8 +1,8 @@
 import chromadb
-from flaml.autogen.agentchat.agent import Agent
-from flaml.autogen.agentchat import UserProxyAgent
-from flaml.autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
-from flaml.autogen.code_utils import extract_code
+from autogen.agentchat.agent import Agent
+from autogen.agentchat import UserProxyAgent
+from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
+from autogen.code_utils import extract_code
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 from IPython import get_ipython
@@ -106,7 +106,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
                     or the url to a single file. If key not provided, a default path `./docs` will be used.
                 - collection_name (Optional, str): the name of the collection.
-                    If key not provided, a default name `flaml-docs` will be used.
+                    If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
                     If key not provided, a default model `gpt-4` will be used.
                 - chunk_token_size (Optional, int): the chunk token size for the retrieve chat.
@@ -135,7 +135,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", "./docs")
-        self._collection_name = self._retrieve_config.get("collection_name", "flaml-docs")
+        self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         self._model = self._retrieve_config.get("model", "gpt-4")
         self._max_tokens = self.get_max_tokens(self._model)
         self._chunk_token_size = int(self._retrieve_config.get("chunk_token_size", self._max_tokens * 0.4))

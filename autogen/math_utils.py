@@ -1,5 +1,5 @@
 from typing import Optional
-from flaml.autogen import oai, DEFAULT_MODEL
+from autogen import oai, DEFAULT_MODEL
 
 _MATH_PROMPT = "{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
 _MATH_CONFIG = {
