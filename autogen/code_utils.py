@@ -444,7 +444,7 @@ def eval_function_completions(
         # assertion generator
         assertions, gen_cost = assertions(definition)
     else:
-        gen_cost = 0
+        assertions, gen_cost = None, 0
     if n > 1 or test is None:
         for i in range(n):
             response = responses[i] = _remove_check(responses[i])
