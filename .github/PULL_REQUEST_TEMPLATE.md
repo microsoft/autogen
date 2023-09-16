@@ -1,4 +1,4 @@
-<!-- Thank you for your contribution! Please review https://microsoft.github.io/FLAML/docs/Contribute before opening a pull request. -->
+<!-- Thank you for your contribution! Please review https://microsoft.github.io/autogen/docs/Contribute before opening a pull request. -->
 
 <!-- Please add a reviewer to the assignee section when you create a PR. If you don't have the access to it, we will shortly find a reviewer and assign them to your PR. -->
 
@@ -12,7 +12,6 @@
 
 ## Checks
 
-<!-- - I've used [pre-commit](https://microsoft.github.io/FLAML/docs/Contribute#pre-commit) to lint the changes in this PR (note the same in integrated in our CI checks). -->
-- [ ] I've included any doc changes needed for https://microsoft.github.io/FLAML/. See https://microsoft.github.io/FLAML/docs/Contribute#documentation to build and test documentation locally.
+- [ ] I've included any doc changes needed for https://microsoft.github.io/autogen/. See https://microsoft.github.io/autogen/docs/Contribute#documentation to build and test documentation locally.
 - [ ] I've added tests (if relevant) corresponding to the changes introduced in this PR.
 - [ ] I've made sure all auto checks have passed.

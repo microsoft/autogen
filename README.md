@@ -12,6 +12,7 @@ the rights to use your contribution. For details, visit https://cla.opensource.m
 [![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/Cppx2vSPVP)
 <!-- [![Join the chat at https://gitter.im/FLAMLer/community](https://badges.gitter.im/FLAMLer/community.svg)](https://gitter.im/FLAMLer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) -->
 
+This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 # AutoGen
 
