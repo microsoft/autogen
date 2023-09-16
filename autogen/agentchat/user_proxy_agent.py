@@ -8,7 +8,7 @@ class UserProxyAgent(ConversableAgent):
     UserProxyAgent is a subclass of ConversableAgent configured with `human_input_mode` to ALWAYS
     and `llm_config` to False. By default, the agent will prompt for human input every time a message is received.
     Code execution is enabled by default. LLM-based auto reply is disabled by default.
-    To modify auto reply, register a method with (`register_reply`)[conversable_agent#register_reply].
+    To modify auto reply, register a method with [`register_reply`](conversable_agent#register_reply).
     To modify the way to get human input, override `get_human_input` method.
     To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
     `run_code`, and `execute_function` methods respectively.
