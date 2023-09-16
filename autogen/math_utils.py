@@ -29,7 +29,7 @@ def remove_boxed(string: str) -> Optional[str]:
     Extract the text within a \\boxed{...} environment.
     Example:
 
-    >> remove_boxed("\\boxed{\\frac{2}{3}}")
+    > remove_boxed("\\boxed{\\frac{2}{3}}")
 
     \\frac{2}{3}
     """
