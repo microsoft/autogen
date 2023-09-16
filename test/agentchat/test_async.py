@@ -1,5 +1,5 @@
 import asyncio
-from flaml import autogen
+import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 

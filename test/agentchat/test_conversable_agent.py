@@ -1,5 +1,5 @@
 import pytest
-from flaml.autogen.agentchat import ConversableAgent
+from autogen.agentchat import ConversableAgent
 
 
 def test_trigger():

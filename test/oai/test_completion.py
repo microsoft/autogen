@@ -5,14 +5,14 @@ import pytest
 from functools import partial
 import os
 import json
-from flaml import autogen
-from flaml.autogen.code_utils import (
+import autogen
+from autogen.code_utils import (
     eval_function_completions,
     generate_assertions,
     implement,
     generate_code,
 )
-from flaml.autogen.math_utils import eval_math_responses, solve_problem
+from autogen.math_utils import eval_math_responses, solve_problem
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"

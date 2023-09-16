@@ -31,7 +31,7 @@ One can also easily extend it by registering reply functions with the `register_
 In the following code, we create an `AssistantAgent` named "assistant" to serve as the assistant and a `UserProxyAgent` named "user_proxy" to serve as a proxy for the human user. We will later employ these two agents to solve a task.
 
 ```python
-from flaml.autogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent
 
 # create an AssistantAgent instance named "assistant"
 assistant = AssistantAgent(name="assistant")
@@ -69,10 +69,10 @@ On the one hand, one can achieve fully autonomous conversations after an initial
 
 By adopting the conversation-driven control with both programming language and natural language, AutoGen inherently allows dynamic conversation. Dynamic conversation allows the agent topology to change depending on the actual flow of conversation under different input problem instances, while the flow of a static conversation always follows a pre-defined topology. The dynamic conversation pattern is useful in complex applications where the patterns of interaction cannot be predetermined in advance. AutoGen provides two general approaches to achieving dynamic conversation:
 
-- Registered auto-reply. With the pluggable auto-reply function, one can choose to invoke conversations with other agents depending on the content of the current message and context. A working system demonstrating this type of dynamic conversation can be found in this code example, demonstrating a [dynamic group chat](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_groupchat.ipynb). In the system, we register an auto-reply function in the group chat manager, which lets LLM decide who will the next speaker be in a group chat setting. 
+- Registered auto-reply. With the pluggable auto-reply function, one can choose to invoke conversations with other agents depending on the content of the current message and context. A working system demonstrating this type of dynamic conversation can be found in this code example, demonstrating a [dynamic group chat](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_groupchat.ipynb). In the system, we register an auto-reply function in the group chat manager, which lets LLM decide who will the next speaker be in a group chat setting. 
 
 - LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call. 
-By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls. 
+By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls. 
 
 ### Diverse Applications Implemented with AutoGen 
 
@@ -80,17 +80,17 @@ By messaging additional agents in the called functions, the LLM can drive dynami
 The figure below shows six examples of applications built using AutoGen.
 ![Applications](images/app.png)
 
-* [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
-* [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
-* [Solve Tasks Requiring Web Info](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_web_info.ipynb)
-* [Use Provided Tools as Functions](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_function_call.ipynb)
-* [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_planning.ipynb)
-* [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_two_users.ipynb)
-* [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_chess.ipynb)
-* [Automated Task Solving by Group Chat (with 3 group member agents and 1 manager agent)](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
-* [Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent)](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat_vis.ipynb)
-* [Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent)](https://github.com/microsoft/FLAML/blob/main/notebook/autogen_agentchat_groupchat_research.ipynb)
-* [Automated Continual Learning from New Data](https://github.com/microsoft/flaml/blob/main/notebook/autogen_agentchat_stream.ipynb)
+* [Automated Task Solving with Code Generation, Execution & Debugging](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb)
+* [Auto Code Generation, Execution, Debugging and Human Feedback](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_human_feedback.ipynb)
+* [Solve Tasks Requiring Web Info](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_web_info.ipynb)
+* [Use Provided Tools as Functions](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_function_call.ipynb)
+* [Automated Task Solving with Coding & Planning Agents](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_planning.ipynb)
+* [Automated Task Solving with GPT-4 + Multiple Human Users](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_two_users.ipynb)
+* [Automated Chess Game Playing & Chitchatting by GPT-4 Agents](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_chess.ipynb)
+* [Automated Task Solving by Group Chat (with 3 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_groupchat.ipynb)
+* [Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_groupchat_vis.ipynb)
+* [Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_groupchat_research.ipynb)
+* [Automated Continual Learning from New Data](https://github.com/microsoft/autogen/blob/main/notebook/autogen_agentchat_stream.ipynb)
 
 
 

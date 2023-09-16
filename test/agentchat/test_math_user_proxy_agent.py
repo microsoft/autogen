@@ -1,7 +1,7 @@
 import pytest
 import sys
-from flaml import autogen
-from flaml.autogen.agentchat.contrib.math_user_proxy_agent import (
+import autogen
+from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
     _remove_print,
     _add_print_to_last_line,
@@ -19,7 +19,7 @@ def test_math_user_proxy_agent():
     except ImportError:
         return
 
-    from flaml.autogen.agentchat.assistant_agent import AssistantAgent
+    from autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}
     autogen.ChatCompletion.start_logging(conversations)

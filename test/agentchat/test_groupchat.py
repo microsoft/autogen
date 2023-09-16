@@ -1,4 +1,4 @@
-from flaml import autogen
+import autogen
 
 
 def test_chat_manager():

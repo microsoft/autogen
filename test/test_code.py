@@ -1,8 +1,8 @@
 import sys
 import os
 import pytest
-from flaml import autogen
-from flaml.autogen.code_utils import (
+import autogen
+from autogen.code_utils import (
     UNKNOWN,
     extract_code,
     execute_code,
@@ -149,7 +149,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 def test_infer_lang():
     assert infer_lang("print('hello world')") == "python"
-    assert infer_lang("pip install flaml") == "sh"
+    assert infer_lang("pip install autogen") == "sh"
 
 
 def test_extract_code():
@@ -238,7 +238,7 @@ def test_improve():
         return
     config_list = autogen.config_list_openai_aoai(KEY_LOC)
     improved, _ = improve_function(
-        "flaml/autogen/math_utils.py",
+        "autogen/math_utils.py",
         "solve_problem",
         "Solve math problems accurately, by avoiding calculation errors and reduce reasoning errors.",
         config_list=config_list,
@@ -246,13 +246,13 @@ def test_improve():
     with open(f"{here}/math_utils.py.improved", "w") as f:
         f.write(improved)
     suggestion, _ = improve_code(
-        ["flaml/autogen/code_utils.py", "flaml/autogen/math_utils.py"],
+        ["autogen/code_utils.py", "autogen/math_utils.py"],
         "leverage generative AI smartly and cost-effectively",
         config_list=config_list,
     )
     print(suggestion)
     improvement, cost = improve_code(
-        ["flaml/autogen/code_utils.py", "flaml/autogen/math_utils.py"],
+        ["autogen/code_utils.py", "autogen/math_utils.py"],
         "leverage generative AI smartly and cost-effectively",
         suggest_only=False,
         config_list=config_list,
