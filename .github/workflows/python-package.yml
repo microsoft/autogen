@@ -2,7 +2,7 @@
 # Conda-forge bot will pick up new PyPI version and automatically create new version
 # For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
-name: CD
+name: python-package
 
 on:
   release:
