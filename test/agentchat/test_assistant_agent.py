@@ -1,8 +1,8 @@
 import os
 import sys
 import pytest
-from flaml import autogen
-from flaml.autogen.agentchat import AssistantAgent, UserProxyAgent
+import autogen
+from autogen.agentchat import AssistantAgent, UserProxyAgent
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"

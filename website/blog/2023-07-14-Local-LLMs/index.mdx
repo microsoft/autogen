@@ -1,10 +1,10 @@
 ---
-title: Use flaml.autogen for Local LLMs
+title: Use AutoGen for Local LLMs
 authors: jialeliu
-tags: [LLM, FLAMLv2]
+tags: [LLM]
 ---
 **TL;DR:**
-We demonstrate how to use flaml.autogen for local LLM application. As an example, we will initiate an endpoint using [FastChat](https://github.com/lm-sys/FastChat) and perform inference on [ChatGLMv2-6b](https://github.com/THUDM/ChatGLM2-6B).
+We demonstrate how to use autogen for local LLM application. As an example, we will initiate an endpoint using [FastChat](https://github.com/lm-sys/FastChat) and perform inference on [ChatGLMv2-6b](https://github.com/THUDM/ChatGLM2-6B).
 
 ## Preparations
 
@@ -66,11 +66,11 @@ class CompletionResponseStreamChoice(BaseModel):
 
 ## Interact with model using `oai.Completion`
 
-Now the models can be directly accessed through openai-python library as well as `flaml.oai.Completion` and `flaml.oai.ChatCompletion`.
+Now the models can be directly accessed through openai-python library as well as `autogen.oai.Completion` and `autogen.oai.ChatCompletion`.
 
 
 ```python
-from flaml import oai
+from autogen import oai
 
 # create a text completion request
 response = oai.Completion.create(
@@ -118,7 +118,7 @@ python -m fastchat.serve.multi_model_worker \
 The inference code would be:
 
 ```python
-from flaml import oai
+from autogen import oai
 
 # create a chat completion request
 response = oai.ChatCompletion.create(
@@ -143,5 +143,5 @@ print(response)
 
 ## For Further Reading
 
-* [Documentation](https://microsoft.github.io/autogen/) about `flaml.autogen`
+* [Documentation](https://microsoft.github.io/autogen/) about `autogen`
 * [Documentation](https://github.com/lm-sys/FastChat) about FastChat.

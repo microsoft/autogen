@@ -56,7 +56,7 @@ Combining these observations, we can design a solution with two intuitive ideas:
 
 This solution works adaptively without knowing or predicting which task fits which configuration. It simply tries multiple configurations one by one, starting from the cheapest configuration. Note that one configuration can generate multiple responses (by setting the inference parameter n larger than 1). And different configurations can use the same model and different inference parameters such as n and temperature. Only one response is returned and evaluated per task.
 
-An implementation of this solution is provided in [flaml.autogen](/docs/reference/autogen/code_utils#implement). It uses the following sequence of configurations:
+An implementation of this solution is provided in [autogen](/docs/reference/code_utils#implement). It uses the following sequence of configurations:
 
 1. GPT-3.5-Turbo, n=1, temperature=0
 1. GPT-3.5-Turbo, n=7, temperature=1, stop=["\nclass", "\ndef", "\nif", "\nprint"]
@@ -140,11 +140,11 @@ The last problem is an example with wrong example test cases in the original def
 
 It is worth noting that the reduced inference cost is the amortized cost over all the tasks. For each individual task, the cost can be either larger or smaller than directly using GPT-4. This is the nature of the adaptive solution: The cost is in general larger for difficult tasks than that for easy tasks.
 
-An example notebook to run this experiment can be found at: https://github.com/microsoft/FLAML/blob/v1.2.1/notebook/research/autogen_code.ipynb
+An example notebook to run this experiment can be found at: https://github.com/microsoft/FLAML/blob/v1.2.1/notebook/research/autogen_code.ipynb. The experiment was run when AutoGen was a subpackage in FLAML.
 
 ## Discussion
 
-Our solution is quite simple to implement using a generic interface offered in [`flaml.autogen`](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#logic-error), yet the result is quite encouraging.
+Our solution is quite simple to implement using a generic interface offered in [`autogen`](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#logic-error), yet the result is quite encouraging.
 
 While the specific way of generating assertions is application-specific, the main ideas are general in LLM operations:
 * Generate multiple responses to select - especially useful when selecting a good response is relatively easier than generating a good response at one shot.
@@ -153,7 +153,7 @@ While the specific way of generating assertions is application-specific, the mai
   - Different configurations have complementary effect.
 
 A [previous blog post](/blog/2023/04/21/LLM-tuning-math) provides evidence that these ideas are relevant in solving math problems too.
-`flaml.autogen` uses a technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) to support inference parameter tuning and model selection.
+`autogen` uses a technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) to support inference parameter tuning and model selection.
 
 There are many directions of extensions in research and development:
 * Generalize the way to provide feedback.
@@ -164,5 +164,5 @@ There are many directions of extensions in research and development:
 
 ## For Further Reading
 
-* [Documentation](https://microsoft.github.io/autogen/) about `flaml.autogen` and [Research paper](https://arxiv.org/abs/2303.04673).
+* [Documentation](https://microsoft.github.io/autogen/) about `autogen` and [Research paper](https://arxiv.org/abs/2303.04673).
 * [Blog post](/blog/2023/04/21/LLM-tuning-math) about a related study for math.

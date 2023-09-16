@@ -20,14 +20,14 @@ AutoGen is powered by collaborative [research studies](/docs/Research) from Micr
 
 ### Quickstart
 
-Install AutoGen from pip: `pip install "flaml[autogen]"`. Find more options in [Installation](/docs/Installation).
+Install from pip: `pip install pyautogen`. Find more options in [Installation](/docs/Installation).
 
 
 #### Multi-Agent Conversation Framework
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
 ```python
-from flaml.autogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent
 assistant = AssistantAgent("assistant")
 user_proxy = UserProxyAgent("user_proxy")
 user_proxy.initiate_chat(assistant, message="Plot a chart of META and TESLA stock price change YTD.")
@@ -59,10 +59,10 @@ response = autogen.Completion.create(context=test_instance, **config)
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat).
 * Understand the use cases for [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
 * Find code examples from [Examples](/docs/Examples/AutoGen-AgentChat).
-* Read [SDK](https://microsoft.github.io/FLAML/docs/reference/autogen/agentchat/responsive_agent/).
+* Read [SDK](/docs/reference/autogen/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
 * Chat on [Discord](https://discord.gg/Cppx2vSPVP).
 
-If you like our project, please give it a [star](https://github.com/microsoft/FLAML/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
+If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
 
-<!-- <iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=FLAML&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe> -->
+<!-- <iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=autogen&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe> -->

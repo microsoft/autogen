@@ -4,8 +4,8 @@ except ImportError:
     openai = None
 import pytest
 import json
-from flaml import autogen
-from flaml.autogen.math_utils import eval_math_responses
+import autogen
+from autogen.math_utils import eval_math_responses
 from test_code import KEY_LOC
 
 
@@ -61,7 +61,7 @@ def test_eval_math_responses():
 
 
 def test_json_extraction():
-    from flaml.autogen.agentchat import UserProxyAgent
+    from autogen.agentchat import UserProxyAgent
 
     user = UserProxyAgent(name="test", code_execution_config={"use_docker": False})
 
@@ -76,7 +76,7 @@ def test_json_extraction():
 
 
 def test_execute_function():
-    from flaml.autogen.agentchat import UserProxyAgent
+    from autogen.agentchat import UserProxyAgent
 
     # 1. test calling a simple function
     def add_num(num_to_be_added):

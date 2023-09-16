@@ -1,16 +1,16 @@
 import pytest
 import sys
-from flaml import autogen
+import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
-    from flaml.autogen.agentchat.contrib.retrieve_assistant_agent import (
+    from autogen.agentchat.contrib.retrieve_assistant_agent import (
         RetrieveAssistantAgent,
     )
-    from flaml.autogen.agentchat.contrib.retrieve_user_proxy_agent import (
+    from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
-    from flaml.autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
+    from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
     import chromadb
 
     skip_test = False
@@ -70,15 +70,15 @@ def test_retrievechat():
 )
 def test_retrieve_utils():
     client = chromadb.PersistentClient(path="/tmp/chromadb")
-    create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="flaml-docs")
+    create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs")
     results = query_vector_db(
         query_texts=[
-            "How can I use FLAML UserProxyAgent and AssistantAgent to do code generation?",
+            "How can I use AutoGen UserProxyAgent and AssistantAgent to do code generation?",
         ],
         n_results=4,
         client=client,
-        collection_name="flaml-docs",
-        search_string="FLAML",
+        collection_name="autogen-docs",
+        search_string="AutoGen",
     )
     print(results["ids"][0])
     assert len(results["ids"][0]) == 4
