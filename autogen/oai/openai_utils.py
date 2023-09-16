@@ -75,7 +75,6 @@ def config_list_openai_aoai(
     """
     if "OPENAI_API_KEY" not in os.environ and exclude != "openai":
         try:
-            print(f"{key_file_path}/{openai_api_key_file}")
             with open(f"{key_file_path}/{openai_api_key_file}") as key_file:
                 os.environ["OPENAI_API_KEY"] = key_file.read().strip()
         except FileNotFoundError:

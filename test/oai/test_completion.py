@@ -41,9 +41,12 @@ def test_filter():
     except ImportError as exc:
         print(exc)
         return
+    config_list = autogen.config_list_from_models(
+        KEY_LOC, exclude="aoai", model_list=["text-ada-001", "gpt-3.5-turbo", "text-davinci-003"]
+    )
     response = autogen.Completion.create(
         context={"yes_or_no_choice": True},
-        config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+        config_list=config_list,
         prompt="Is 37 a prime number? Please answer 'Yes.' or 'No.'",
         filter_func=yes_or_no_filter,
     )
@@ -54,13 +57,13 @@ def test_filter():
     )
     response = autogen.Completion.create(
         context={"yes_or_no_choice": False},
-        config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+        config_list=config_list,
         prompt="Is 37 a prime number?",
         filter_func=yes_or_no_filter,
     )
     assert response["model"] == "text-ada-001"
     response = autogen.Completion.create(
-        config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo"}, {"model": "text-davinci-003"}],
+        config_list=config_list,
         prompt="How to construct a json request to Bing API to search for 'latest AI news'? Return the JSON request.",
         filter_func=valid_json_filter,
     )
@@ -123,7 +126,12 @@ def test_nocontext():
         print(exc)
         return
     response = autogen.Completion.create(
-        model="text-ada-001", prompt="1+1=", max_tokens=1, use_cache=False, request_timeout=10
+        model="text-ada-001",
+        prompt="1+1=",
+        max_tokens=1,
+        use_cache=False,
+        request_timeout=10,
+        config_list=autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai"),
     )
     print(response)
     code, _ = generate_code(
@@ -165,7 +173,7 @@ def test_nocontext():
 )
 def test_humaneval(num_samples=1):
     gpt35_config_list = autogen.config_list_from_json(
-        env_or_file="OAI_CONFIG_LIST",
+        env_or_file=OAI_CONFIG_LIST,
         filter_dict={
             "model": {
                 "gpt-3.5-turbo",
@@ -177,6 +185,7 @@ def test_humaneval(num_samples=1):
                 "gpt",
             },
         },
+        file_location=KEY_LOC,
     )
     assertions = partial(generate_assertions, config_list=gpt35_config_list)
     eval_with_generated_assertions = partial(
@@ -215,13 +224,14 @@ def test_humaneval(num_samples=1):
     # no error should be raised
     response = autogen.Completion.create(
         context=test_data[0],
-        config_list=[{"model": "gpt-3.5-turbo"}],
+        config_list=autogen.config_list_from_models(KEY_LOC, model_list=["gpt-3.5-turbo"]),
         prompt="",
         max_tokens=1,
         retry_timeout=0,
         raise_on_ratelimit_or_timeout=False,
     )
     # assert response == -1
+    config_list = autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai")
     # a minimal tuning example
     config, _ = autogen.Completion.tune(
         data=tune_data,
@@ -231,8 +241,9 @@ def test_humaneval(num_samples=1):
         n=1,
         prompt="{definition}",
         allow_format_str_template=True,
+        config_list=config_list,
     )
-    response = autogen.Completion.create(context=test_data[0], **config)
+    response = autogen.Completion.create(context=test_data[0], config_list=config_list, **config)
     # a minimal tuning example for tuning chat completion models using the Completion class
     config, _ = autogen.Completion.tune(
         data=tune_data,
@@ -243,8 +254,9 @@ def test_humaneval(num_samples=1):
         model="text-davinci-003",
         prompt="{definition}",
         allow_format_str_template=True,
+        config_list=config_list,
     )
-    response = autogen.Completion.create(context=test_data[0], **config)
+    response = autogen.Completion.create(context=test_data[0], config_list=config_list, **config)
     # a minimal tuning example for tuning chat completion models using the ChatCompletion class
     config_list = autogen.config_list_openai_aoai(KEY_LOC)
     config, _ = autogen.ChatCompletion.tune(
@@ -297,12 +309,12 @@ def test_humaneval(num_samples=1):
     print(config2)
     print(analysis.best_result)
     print(test_data[0])
-    response = autogen.Completion.create(context=test_data[0], **config2)
+    response = autogen.Completion.create(context=test_data[0], config_list=config_list, **config2)
     print(response)
     autogen.Completion.data = test_data[:num_samples]
     result = autogen.Completion._eval(analysis.best_config, prune=False, eval_only=True)
     print("result without pruning", result)
-    result = autogen.Completion.test(test_data[:num_samples], **config2)
+    result = autogen.Completion.test(test_data[:num_samples], config_list=config_list, **config2)
     print(result)
     try:
         code, cost, selected = implement(
@@ -364,6 +376,7 @@ def test_math(num_samples=-1):
     ]
 
     autogen.Completion.set_cache(seed)
+    config_list = autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai")
     vanilla_config = {
         "model": "text-davinci-003",
         "temperature": 1,
@@ -373,11 +386,12 @@ def test_math(num_samples=-1):
         "stop": "###",
     }
     test_data_sample = test_data[0:3]
-    result = autogen.Completion.test(test_data_sample, eval_math_responses, **vanilla_config)
+    result = autogen.Completion.test(test_data_sample, eval_math_responses, config_list=config_list, **vanilla_config)
     result = autogen.Completion.test(
         test_data_sample,
         eval_math_responses,
         agg_method="median",
+        config_list=config_list,
         **vanilla_config,
     )
 
@@ -418,9 +432,10 @@ def test_math(num_samples=-1):
         num_samples=num_samples,
         prompt=prompts,  # the prompt templates to choose from
         stop="###",  # the stop sequence
+        config_list=config_list,
     )
     print("tuned config", config)
-    result = autogen.Completion.test(test_data_sample, config_list=autogen.config_list_openai_aoai(KEY_LOC), **config)
+    result = autogen.Completion.test(test_data_sample, config_list=config_list, **config)
     print("result from tuned config:", result)
     print("empty responses", eval_math_responses([], None))
 
@@ -432,9 +447,9 @@ if __name__ == "__main__":
     assert len(config_list) >= 3, config_list
     openai.api_key = os.environ["OPENAI_API_KEY"]
 
-    test_filter()
-    test_chatcompletion()
-    test_multi_model()
-    test_nocontext()
+    # test_filter()
+    # test_chatcompletion()
+    # test_multi_model()
+    # test_nocontext()
     test_humaneval(1)
-    test_math(1)
+    # test_math(1)
