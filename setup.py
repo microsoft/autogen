@@ -17,6 +17,7 @@ install_requires = [
     "openai",
     "diskcache",
     "termcolor",
+    "flaml",
 ]
 
 
@@ -44,11 +45,11 @@ setuptools.setup(
             "nbconvert",
             "nbformat",
             "ipykernel",
-            "packaging",
             "pydantic==1.10.9",
             "sympy",
             "wolframalpha",
         ],
+        "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": [
             "chromadb",
