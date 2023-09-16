@@ -1,6 +1,6 @@
 from agentchat.agent import Agent
 from agentchat.assistant_agent import AssistantAgent
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from typing import Dict, Optional, Union, List, Tuple, Any
 
 
 class RetrieveAssistantAgent(AssistantAgent):
