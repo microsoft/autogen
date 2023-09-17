@@ -4,7 +4,7 @@
 
 <!-- ### Welcome to AutoGen, a library for enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework! -->
 
-AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools. 
+AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
 ![AutoGen Overview](/img/autogen_agentchat.png)
 
@@ -61,7 +61,7 @@ response = autogen.Completion.create(context=test_instance, **config)
 * Find code examples from [Examples](/docs/Examples/AutoGen-AgentChat).
 * Read [SDK](/docs/reference/autogen/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
-* Chat on [Discord](https://discord.gg/Cppx2vSPVP).
+* Chat on [Discord](https://discord.gg/be44TCXGpe).
 
 If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
 

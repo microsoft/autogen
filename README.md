@@ -9,7 +9,7 @@ the rights to use your contribution. For details, visit https://cla.opensource.m
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10-blue)
 <!-- [![Downloads](https://pepy.tech/badge/pyautogen)](https://pepy.tech/project/pyautogen) -->
-[![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/Cppx2vSPVP)
+[![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/be44TCXGpe)
 
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
@@ -33,7 +33,7 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 ## What is AutoGen
 
-AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools. 
+AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
 ![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
@@ -101,7 +101,7 @@ In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research) and [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen.
 
-- [Discord](https://discord.gg/Cppx2vSPVP).
+- [Discord](https://discord.gg/be44TCXGpe).
 
 - [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute).
 
