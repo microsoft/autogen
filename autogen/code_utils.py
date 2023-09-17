@@ -256,6 +256,7 @@ def execute_code(
                     cmd,
                     cwd=work_dir,
                     capture_output=True,
+                    text=True,
                 )
                 signal.alarm(0)
             except TimeoutError:
@@ -268,10 +269,10 @@ def execute_code(
         else:
             abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
         if result.returncode:
-            logs = result.stderr.decode("utf-8")
+            logs = result.stderr
             logs = logs.replace(str(abs_path), "")
         else:
-            logs = result.stdout.decode("utf-8")
+            logs = result.stdout
         return result.returncode, logs, None
 
     # create a docker client
@@ -299,9 +300,6 @@ def execute_code(
     # get a randomized str based on current time to wrap the exit code
     exit_code_str = f"exitcode{time.time()}"
     abs_path = pathlib.Path(work_dir).absolute()
-    # if sys.platform == "win32":
-    #     abs_path = str(abs_path).replace("\\", "/")
-    #     abs_path = f"/{abs_path[0].lower()}{abs_path[2:]}"
     cmd = [
         "sh",
         "-c",
@@ -326,14 +324,6 @@ def execute_code(
         if original_filename is None:
             os.remove(filepath)
         return 1, TIMEOUT_MSG, image
-    # try:
-    #     container.wait(timeout=timeout)
-    # except (ReadTimeout, ConnectionError):
-    #     container.stop()
-    #     container.remove()
-    #     if original_filename is None:
-    #         os.remove(filepath)
-    #     return 1, "Timeout"
     # get the container logs
     logs = container.logs().decode("utf-8").rstrip()
     # commit the image
