@@ -265,13 +265,14 @@ def execute_code(
                 return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
-            abs_path = str(pathlib.Path(filepath).absolute())
-        else:
-            abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
         if result.returncode:
             logs = result.stderr
-            print(str(abs_path), logs)
-            logs = logs.replace(str(abs_path), "")
+            if original_filename is None:
+                abs_path = str(pathlib.Path(filepath).absolute())
+                logs = logs.replace(str(abs_path), "").replace(filepath, "")
+            else:
+                abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
+                logs = logs.replace(str(abs_path), "")
         else:
             logs = result.stdout
         return result.returncode, logs, None
