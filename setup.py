@@ -22,7 +22,7 @@ install_requires = [
 
 
 setuptools.setup(
-    name="AutoGen",
+    name="pyautogen",
     version=__version__,
     author="AutoGen",
     author_email="auto-gen@outlook.com",
