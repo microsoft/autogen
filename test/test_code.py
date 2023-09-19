@@ -161,9 +161,22 @@ Example:
 ```
 print("hello extract code")
 ```
-"""
+""",
+        detect_single_line_code=False,
     )
     print(codeblocks)
+
+    codeblocks2 = extract_code(
+        """
+Example:
+```
+print("hello extract code")
+```
+""",
+        detect_single_line_code=True,
+    )
+    assert codeblocks2 == codeblocks
+    # import pdb; pdb.set_trace()
 
     codeblocks = extract_code(
         """
@@ -189,6 +202,15 @@ print(f"Text: {text}")
     print(codeblocks)
     codeblocks = extract_code("no code block")
     assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, "no code block")
+
+    # Disable single line code detection
+    line = "Run `source setup.sh` from terminal"
+    codeblocks = extract_code(line, detect_single_line_code=False)
+    assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, line)
+
+    # Enable single line code detection
+    codeblocks = extract_code("Run `source setup.sh` from terminal", detect_single_line_code=True)
+    assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
 @pytest.mark.skipif(
