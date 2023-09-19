@@ -6,7 +6,7 @@ For technical details, please check our technical report and research publicatio
 
 ```bibtex
 @inproceedings{wu2023autogen,
-      title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework}, 
+      title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
       author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
       year={2023},
       eprint={2308.08155},
