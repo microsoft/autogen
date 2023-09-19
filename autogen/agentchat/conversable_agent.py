@@ -89,7 +89,7 @@ class ConversableAgent(Agent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [autogen.Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [Completion.create](/docs/reference/oai/completion#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
@@ -296,7 +296,7 @@ class ConversableAgent(Agent):
                 - role (str): the role of the message, any role that is not "function"
                     will be modified to "assistant".
                 - context (dict): the context of the message, which will be passed to
-                    [autogen.Completion.create](../oai/Completion#create).
+                    [Completion.create](../oai/Completion#create).
                     For example, one agent can send a message A as:
         ```python
         {
@@ -345,7 +345,7 @@ class ConversableAgent(Agent):
                 - role (str): the role of the message, any role that is not "function"
                     will be modified to "assistant".
                 - context (dict): the context of the message, which will be passed to
-                    [autogen.Completion.create](../oai/Completion#create).
+                    [Completion.create](../oai/Completion#create).
                     For example, one agent can send a message A as:
         ```python
         {
@@ -437,7 +437,7 @@ class ConversableAgent(Agent):
                     This field is only needed to distinguish between "function" or "assistant"/"user".
                 4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                 5. "context" (dict): the context of the message, which will be passed to
-                    [autogen.Completion.create](../oai/Completion#create).
+                    [Completion.create](../oai/Completion#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
@@ -473,7 +473,7 @@ class ConversableAgent(Agent):
                     This field is only needed to distinguish between "function" or "assistant"/"user".
                 4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                 5. "context" (dict): the context of the message, which will be passed to
-                    [autogen.Completion.create](../oai/Completion#create).
+                    [Completion.create](../oai/Completion#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
