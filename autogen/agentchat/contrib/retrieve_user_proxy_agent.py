@@ -122,7 +122,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     can be found at `https://www.sbert.net/docs/pretrained_models.html`. The default model is a
                     fast model. If you want to use a high performance model, `all-mpnet-base-v2` is recommended.
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
-            **kwargs (dict): other kwargs in [UserProxyAgent](user_proxy_agent#__init__).
+            **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
             name=name,

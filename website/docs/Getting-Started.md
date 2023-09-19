@@ -59,7 +59,7 @@ response = autogen.Completion.create(context=test_instance, **config)
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat).
 * Understand the use cases for [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
 * Find code examples from [Examples](/docs/Examples/AutoGen-AgentChat).
-* Read [SDK](/docs/reference/autogen/agentchat/conversable_agent/).
+* Read [SDK](/docs/reference/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
 * Chat on [Discord](https://discord.gg/be44TCXGpe).
 
