@@ -53,6 +53,10 @@ def extract_code(
         match = re.findall(pattern, text, flags=re.DOTALL)
         return match if match else [(UNKNOWN, text)]
 
+    # Extract both multi-line and single-line code block, separated by the | operator
+    # `{3}(\w+)?\s*([\s\S]*?)`{3}: Matches multi-line code blocks.
+    #    The (\w+)? matches the language, where the ? indicates it is optional.
+    # `([^`]+)`: Matches inline code.
     code_pattern = re.compile(r"`{3}(\w+)?\s*([\s\S]*?)`{3}|`([^`]+)`")
     code_blocks = code_pattern.findall(text)
 
