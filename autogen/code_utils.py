@@ -270,6 +270,7 @@ def execute_code(
             abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
         if result.returncode:
             logs = result.stderr
+            print(str(abs_path), logs)
             logs = logs.replace(str(abs_path), "")
         else:
             logs = result.stdout
