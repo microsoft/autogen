@@ -89,7 +89,7 @@ class ConversableAgent(Agent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [autogen.Completion.create](/docs/reference/autogen/oai/completion#create)
+                Please refer to [autogen.Completion.create](/docs/reference/oai/completion#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
