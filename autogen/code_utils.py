@@ -269,7 +269,7 @@ def execute_code(
             logs = result.stderr
             if original_filename is None:
                 abs_path = str(pathlib.Path(filepath).absolute())
-                logs = logs.replace(str(abs_path), "").replace(filepath, "")
+                logs = logs.replace(str(abs_path), "").replace(filename, "")
             else:
                 abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
                 logs = logs.replace(str(abs_path), "")
