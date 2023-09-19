@@ -9,11 +9,11 @@ on:
     paths:
       - 'autogen/**'
       - 'test/**'
-      - 'notebook/autogen_agentchat_auto_feedback_from_code_execution.ipynb'
-      - 'notebook/autogen_agentchat_function_call.ipynb'
-      - 'notebook/autogen_agentchat_MathChat.ipynb'
-      - 'notebook/autogen_openai_completion.ipynb'
-      - 'notebook/autogen_chatgpt_gpt4.ipynb'
+      - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
+      - 'notebook/agentchat_function_call.ipynb'
+      - 'notebook/agentchat_MathChat.ipynb'
+      - 'notebook/oai_completion.ipynb'
+      - 'notebook/oai_chatgpt_gpt4.ipynb'
       - '.github/workflows/openai.yml'
 
 jobs:

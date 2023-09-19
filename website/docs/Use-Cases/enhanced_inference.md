@@ -6,8 +6,8 @@ There are a number of benefits of using `autogen` to perform inference: performa
 ## Tune Inference Parameters
 
 *Links to notebook examples:*
-* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/autogen_openai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/autogen_chatgpt_gpt4.ipynb)
+* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
 
 ### Choices to optimize
 
@@ -158,7 +158,7 @@ response = autogen.Completion.create(
 It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
-For convenience, we provide a number of utility functions to load config lists, such as `config_list_from_json`.
+For convenience, we provide a number of utility functions to load config lists, such as [`config_list_from_json`](/docs/reference/oai/openai_utils#config_list_from_json).
 
 ### Logic error
 
@@ -364,4 +364,3 @@ Set `compact=False` in `start_logging()` to switch.
 ```
 It can be seen that the individual API call history contains redundant information of the conversation. For a long conversation the degree of redundancy is high.
 The compact history is more efficient and the individual API call history contains more details.
-
