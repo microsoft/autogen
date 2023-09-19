@@ -1,9 +1,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
-<!-- ![Conda version](https://img.shields.io/conda/vn/conda-forge/pyautogen) -->
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10-blue)
-<!-- [![Downloads](https://pepy.tech/badge/pyautogen)](https://pepy.tech/project/pyautogen) -->
 [![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/be44TCXGpe)
 
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
