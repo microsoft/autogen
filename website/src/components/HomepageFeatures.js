@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
 import styles from './HomepageFeatures.module.css';
 
 const FeatureList = [
@@ -33,7 +33,7 @@ const FeatureList = [
       AutoGen supports enhanced LLM inference APIs, which can be used to improve inference performance and reduce cost.
       </>
     ),
-  }, 
+  },
 ];
 
 function Feature({Svg, title, description, docLink}) {
