@@ -13,32 +13,32 @@ jobs:
     strategy:
       matrix:
         os: ['ubuntu-latest']
-        python-version: [3.8]
+        python-version: [3.10]
     runs-on: ${{ matrix.os }}
     environment: package
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Cache conda
-        uses: actions/cache@v3
-        with:
-          path: ~/conda_pkgs_dir
-          key: conda-${{ matrix.os }}-python-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          auto-activate-base: false
-          activate-environment: hcrystalball
-          python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true
+      # - name: Cache conda
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/conda_pkgs_dir
+      #     key: conda-${{ matrix.os }}-python-${{ matrix.python-version }}-${{ hashFiles('environment.yml') }}
+      # - name: Setup Miniconda
+      #   uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     auto-update-conda: true
+      #     auto-activate-base: false
+      #     activate-environment: hcrystalball
+      #     python-version: ${{ matrix.python-version }}
+      #     use-only-tar-bz2: true
       - name: Install from source
         # This is required for the pre-commit tests
         shell: pwsh
         run: pip install .
-      - name: Conda list
-        shell: pwsh
-        run: conda list
+      # - name: Conda list
+      #   shell: pwsh
+      #   run: conda list
       - name: Build
         shell: pwsh
         run: |
