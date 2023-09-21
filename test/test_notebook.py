@@ -57,7 +57,7 @@ def test_agentchat_auto_feedback_from_code(save=False):
     reason="do not run if openai is not installed or py!=3.10",
 )
 def test_openai_completion(save=False):
-    run_notebook("openai_completion.ipynb", save=save)
+    run_notebook("oai_completion.ipynb", save=save)
 
 
 @pytest.mark.skipif(
@@ -81,7 +81,7 @@ def test_agentchat_MathChat(save=False):
     reason="do not run if openai is not installed or py!=3.11",
 )
 def test_chatgpt_gpt4(save=False):
-    run_notebook("chatgpt_gpt4.ipynb", save=save)
+    run_notebook("oai_chatgpt_gpt4.ipynb", save=save)
 
 
 if __name__ == "__main__":
