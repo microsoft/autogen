@@ -29,7 +29,7 @@ internal class KernelSettings
     [JsonPropertyName("orgId")]
     public string OrgId { get; set; } = string.Empty;
 
-    [JsonPropertyName("qdrantEndoint")]
+    [JsonPropertyName("qdrantEndpoint")]
     public string QdrantEndpoint { get; set; } = string.Empty;
 
     [JsonPropertyName("logLevel")]

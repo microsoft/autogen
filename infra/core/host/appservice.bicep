@@ -44,7 +44,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   properties: {
     serverFarmId: appServicePlanId
     siteConfig: {
-      linuxFxVersion: linuxFxVersion
+      
       alwaysOn: alwaysOn
       ftpsState: ftpsState
       minTlsVersion: '1.2'

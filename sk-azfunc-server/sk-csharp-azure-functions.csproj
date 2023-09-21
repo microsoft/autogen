@@ -26,12 +26,12 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.14.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.19.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.21.0" />
-    <PackageReference Include="Octokit.Webhooks.AzureFunctions" Version="2.0.1" />
+    <PackageReference Include="Octokit.Webhooks.AzureFunctions" Version="2.0.3" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="0.18.230725.3-preview" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="0.18.230725.3-preview" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage" Version="5.0.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Tables" Version="1.2.0" />
-    <PackageReference Include="Octokit" Version="6.0.0" />
+    <PackageReference Include="Octokit" Version="7.1.0" />
     <PackageReference Include="GitHubJwt" Version="0.0.6" />
     <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0-beta.1" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.16.0-beta.1" />

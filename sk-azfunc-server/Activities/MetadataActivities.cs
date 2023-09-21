@@ -1,7 +1,11 @@
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Azure.Data.Tables;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
 
 namespace SK.DevTeam
 {
@@ -9,15 +13,21 @@ namespace SK.DevTeam
     public static class MetadataActivities
     {
         [Function(nameof(GetMetadata))]
-        public static async Task<IActionResult> GetMetadata(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "metadata/{key}")] HttpRequest req,
+        public static async Task<IssueMetadata> GetMetadata(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "metadata/{key}")] HttpRequestData req, string key,
             [TableInput("Metadata", Connection = "AzureWebJobsStorage")] TableClient client,
             FunctionContext executionContext)
         {
-            var key = req.RouteValues["key"].ToString();
+            var logger = executionContext.GetLogger<SKWebHookEventProcessor>();
+
+            logger.LogInformation($"Getting metadata for {key}");
+
             var metadataResponse = await client.GetEntityAsync<IssueMetadata>(key, key);
             var metadata = metadataResponse.Value;
-            return new OkObjectResult(metadata);
+
+            logger.LogInformation($"Metadata result {JsonSerializer.Serialize(metadata)}");
+
+            return metadata;
         }
 
         [Function(nameof(SaveMetadata))]

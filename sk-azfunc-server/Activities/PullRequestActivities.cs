@@ -10,6 +10,7 @@ using Azure.ResourceManager.Resources;
 using Azure.Storage.Files.Shares;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -196,12 +197,11 @@ namespace SK.DevTeam
 
         [Function(nameof(Terminated))]
         public async Task<ContainerInstanceMetadata> Terminated(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "container/{name}/terminate")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "container/{name}/terminate")] HttpRequestData req, string name,
             [TableInput("ContainersMetadata", Connection = "AzureWebJobsStorage")] TableClient tableClient,
             [DurableClient] DurableTaskClient client)
         {
-            var containerGroupName = req.RouteValues["name"].ToString();
-            var metadataResponse = await tableClient.GetEntityAsync<ContainerInstanceMetadata>(containerGroupName, containerGroupName);
+            var metadataResponse = await tableClient.GetEntityAsync<ContainerInstanceMetadata>(name, name);
             var metadata = metadataResponse.Value;
             if (!metadata.Processed)
             {

@@ -39,7 +39,7 @@ namespace SK.DevTeam
 
         [Function("CloseSubOrchestration")]
         public async Task Close(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "close")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "close")] HttpRequestData req,
             [DurableClient] DurableTaskClient client)
         {
             var request = await req.ReadFromJsonAsync<CloseIssueRequest>();

@@ -14,7 +14,7 @@ namespace SK.DevTeam
     {
         [Function("IssueOrchestrationStart")]
         public static async Task<string> HttpStart(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "doit")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "doit")] HttpRequestData req,
             [DurableClient] DurableTaskClient client,
             FunctionContext executionContext)
         {

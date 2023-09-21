@@ -115,9 +115,12 @@ module appServicePlan './core/host/appserviceplan.bicep' = {
     location: location
     tags: tags
     sku: {
-      name: 'Y1'
-      tier: 'Dynamic'
+      name: 'EP1'
+      tier: 'ElasticPremium'
+      family: 'EP'
     }
+    kind: 'elastic'
+    reserved: false
   }
 }
 
