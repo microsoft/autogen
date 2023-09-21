@@ -1,5 +1,5 @@
-from agentchat.agent import Agent
-from agentchat.assistant_agent import AssistantAgent
+from autogen.agentchat.agent import Agent
+from autogen.agentchat.assistant_agent import AssistantAgent
 from typing import Dict, Optional, Union, List, Tuple, Any
 
 
