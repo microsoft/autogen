@@ -158,7 +158,7 @@ response = autogen.Completion.create(
 It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama-7B one by one, ignoring AuthenticationError, RateLimitError and Timeout,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
-For convenience, we provide a number of utility functions to load config lists, such as [`config_list_from_json`](/docs/reference/oai/openai_utils#config_list_from_json).
+For convenience, we provide a number of utility functions to load config lists, such as [`config_list_from_json`](/docs/reference/oai/openai_utils#config_list_from_json): The config list like the list of dicts above can be saved in an environment variable or a file in json format and loaded with this function.
 
 ### Logic error
 
