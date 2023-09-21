@@ -606,6 +606,8 @@ class ConversableAgent(Agent):
     ):
         """Generate a reply using code execution."""
         code_execution_config = config if config is not None else self._code_execution_config
+        exitcode = None
+        exitcode2str = None
         if code_execution_config is False:
             return False, None
         if messages is None:
