@@ -34,7 +34,7 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[tune]
+          pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio datasets
       - name: Install packages for test when needed
@@ -46,7 +46,7 @@ jobs:
         run: |
           pip install -e .[mathchat]
       - name: Install packages for RetrieveChat when needed
-        if: matrix.python-version != '3.11'
+        if: matrix.python-version == '3.9'
         run: |
           pip install -e .[retrievechat]
       - name: Coverage
@@ -68,7 +68,7 @@ jobs:
           WOLFRAM_ALPHA_APPID: ${{ secrets.WOLFRAM_ALPHA_APPID }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          pip install nbconvert nbformat ipykernel
+          pip install -e.[blendsearch] nbconvert nbformat ipykernel
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
