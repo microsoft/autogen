@@ -31,7 +31,7 @@ def infer_lang(code):
     """
     if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
         return "sh"
-    
+
     # check if code is a valid python code
     try:
         compile(code, "test", "exec")
