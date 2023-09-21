@@ -48,8 +48,8 @@ def extract_code(
 
     Returns:
         list: A list of tuples, each containing the language and the code.
-          If there is no code in the input text, the language would be "unknown".
-          If there is code but the language is not specified, the language would be "".
+          If there is no code block in the input text, the language would be "unknown".
+          If there is code block but the language is not specified, the language would be "".
     """
     if not detect_single_line_code:
         match = re.findall(pattern, text, flags=re.DOTALL)
