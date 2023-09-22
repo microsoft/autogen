@@ -227,6 +227,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
         if not self._collection:
+            print("Trying to create collection.")
             create_vector_db_from_dir(
                 dir_path=self._docs_path,
                 max_tokens=self._chunk_token_size,
