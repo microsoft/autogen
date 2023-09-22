@@ -625,7 +625,7 @@ class ConversableAgent(Agent):
             exitcode, logs = self.execute_code_blocks(code_blocks)
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
             return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
-        
+
         # no code blocks are found, continue
         return False, None
 
