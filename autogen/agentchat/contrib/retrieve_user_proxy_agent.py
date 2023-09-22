@@ -122,6 +122,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     can be found at `https://www.sbert.net/docs/pretrained_models.html`. The default model is a
                     fast model. If you want to use a high performance model, `all-mpnet-base-v2` is recommended.
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
+                - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
+                    If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
@@ -143,11 +145,15 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._must_break_at_empty_line = self._retrieve_config.get("must_break_at_empty_line", True)
         self._embedding_model = self._retrieve_config.get("embedding_model", "all-MiniLM-L6-v2")
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
+        self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = False  # the collection is not created
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
+        self._intermidiate_answers = []  # the intermidiate answers
+        self._doc_contents = []  # the contents of the current used doc
+        self._doc_ids = []  # the ids of the current used doc
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply)
 
     @staticmethod
@@ -161,16 +167,23 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         else:
             return 4000
 
-    def _reset(self):
+    def _reset(self, intermidiate=False):
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
+        if not intermidiate:
+            self._intermidiate_answers = []  # the intermidiate answers
+            self._doc_contents = []  # the contents of the current used doc
+            self._doc_ids = []  # the ids of the current used doc
 
     def _get_context(self, results):
         doc_contents = ""
         current_tokens = 0
         _doc_idx = self._doc_idx
+        _tmp_retrieve_count = 0
         for idx, doc in enumerate(results["documents"][0]):
             if idx <= _doc_idx:
+                continue
+            if results["ids"][0][idx] in self._doc_ids:
                 continue
             _doc_tokens = num_tokens_from_text(doc)
             if _doc_tokens > self._context_max_tokens:
@@ -185,6 +198,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             current_tokens += _doc_tokens
             doc_contents += doc + "\n"
             self._doc_idx = idx
+            self._doc_ids.append(results["ids"][0][idx])
+            self._doc_contents.append(doc)
+            _tmp_retrieve_count += 1
+            if _tmp_retrieve_count >= self.n_results:
+                break
         return doc_contents
 
     def _generate_message(self, doc_contents, task="default"):
@@ -192,7 +210,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             print(colored("No more context, will terminate.", "green"), flush=True)
             return "TERMINATE"
         if self.customized_prompt:
-            message = self.customized_prompt + "\nUser's question is: " + self.problem + "\nContext is: " + doc_contents
+            message = self.customized_prompt.format(input_question=self.problem, input_context=doc_contents)
         elif task.upper() == "CODE":
             message = PROMPT_CODE.format(input_question=self.problem, input_context=doc_contents)
         elif task.upper() == "QA":
@@ -214,16 +232,48 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
-        if (
+        update_context_case1 = (
             "UPDATE CONTEXT" in message.get("content", "")[-20:].upper()
             or "UPDATE CONTEXT" in message.get("content", "")[:20].upper()
-        ):
+        )
+        update_context_case2 = (
+            self.customized_answer_prefix and self.customized_answer_prefix not in message.get("content", "").upper()
+        )
+        if update_context_case1 or update_context_case2:
             print(colored("Updating context and resetting conversation.", "green"), flush=True)
+            _message = message.get("content", "").split("\n")[0].strip()
+            _intermidiate_info = _message
+
+            if update_context_case1:
+                # try to get more context from the current retrieved doc results because the results may be too long to fit
+                # in the LLM context.
+                doc_contents = self._get_context(self._results)
+
+                # Always use self.problem as the query text to retrieve docs, but each time we replace the context with the
+                # next similar docs in the retrieved doc results.
+                if not doc_contents:
+                    for _tmp_retrieve_count in range(1, 5):
+                        self._reset(intermidiate=True)
+                        self.retrieve_docs(self.problem, self.n_results * (2 * _tmp_retrieve_count + 1))
+                        doc_contents = self._get_context(self._results)
+                        if doc_contents:
+                            break
+            elif update_context_case2:
+                # Use the current intermidiate info as the query text to retrieve docs, and each time we append the top similar
+                # docs in the retrieved doc results to the context.
+                for _tmp_retrieve_count in range(5):
+                    self._reset(intermidiate=True)
+                    self.retrieve_docs(_intermidiate_info, self.n_results * (2 * _tmp_retrieve_count + 1))
+                    self._get_context(self._results)
+                    doc_contents = "\n".join(self._doc_contents)
+                    if doc_contents:
+                        break
+
             self.clear_history()
             sender.clear_history()
-            doc_contents = self._get_context(self._results)
             return True, self._generate_message(doc_contents, task=self._task)
-        return False, None
+        else:
+            return False, None
 
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
         if not self._collection:
@@ -264,6 +314,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._reset()
         self.retrieve_docs(problem, n_results, search_string)
         self.problem = problem
+        self.n_results = n_results
         doc_contents = self._get_context(self._results)
         message = self._generate_message(doc_contents, self._task)
         return message
