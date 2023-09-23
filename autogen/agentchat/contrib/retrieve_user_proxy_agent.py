@@ -154,7 +154,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
-        self._intermediate_answers = []  # the intermediate answers
+        self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply)
@@ -174,7 +174,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
         if not intermediate:
-            self._intermediate_answers = []  # the intermediate answers
+            self._intermediate_answers = set()  # the intermediate answers
             self._doc_contents = []  # the contents of the current used doc
             self._doc_ids = []  # the ids of the current used doc
 
@@ -247,7 +247,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             # extract the first sentence in the response as the intermediate answer
             _message = message.get("content", "").split("\n")[0].strip()
             _intermediate_info = re.split(r"(?<=[.!?])\s+", _message)
-            self._intermediate_answers.append(_intermediate_info[0])
+            self._intermediate_answers.add(_intermediate_info[0])
 
             if update_context_case1:
                 # try to get more context from the current retrieved doc results because the results may be too long to fit
