@@ -270,7 +270,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     self._reset(intermediate=True)
                     self.retrieve_docs(_intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1))
                     self._get_context(self._results)
-                    doc_contents = "\n".join(self._doc_contents) + "\n" + "\n".join(self._intermediate_answers)
+                    doc_contents = "\n".join(self._doc_contents)  # + "\n" + "\n".join(self._intermediate_answers)
                     if doc_contents:
                         break
 
