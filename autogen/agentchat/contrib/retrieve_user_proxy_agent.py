@@ -1,3 +1,4 @@
+import re
 import chromadb
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
@@ -124,6 +125,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
+                - no_update_context (Optional, bool): if True, will not apply `Update Context` for interactive retrieval. Default is False.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
@@ -146,12 +148,13 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._embedding_model = self._retrieve_config.get("embedding_model", "all-MiniLM-L6-v2")
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
+        self.no_update_context = self._retrieve_config.get("no_update_context", False)
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = False  # the collection is not created
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
-        self._intermidiate_answers = []  # the intermidiate answers
+        self._intermediate_answers = []  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply)
@@ -167,11 +170,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         else:
             return 4000
 
-    def _reset(self, intermidiate=False):
+    def _reset(self, intermediate=False):
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
-        if not intermidiate:
-            self._intermidiate_answers = []  # the intermidiate answers
+        if not intermediate:
+            self._intermediate_answers = []  # the intermediate answers
             self._doc_contents = []  # the contents of the current used doc
             self._doc_ids = []  # the ids of the current used doc
 
@@ -239,10 +242,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         update_context_case2 = (
             self.customized_answer_prefix and self.customized_answer_prefix not in message.get("content", "").upper()
         )
-        if update_context_case1 or update_context_case2:
+        if (update_context_case1 or update_context_case2) and not self.no_update_context:
             print(colored("Updating context and resetting conversation.", "green"), flush=True)
+            # extract the first sentence in the response as the intermediate answer
             _message = message.get("content", "").split("\n")[0].strip()
-            _intermidiate_info = _message
+            _intermediate_info = re.split(r"(?<=[.!?])\s+", _message)
+            self._intermediate_answers.append(_intermediate_info[0])
 
             if update_context_case1:
                 # try to get more context from the current retrieved doc results because the results may be too long to fit
@@ -253,19 +258,19 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 # next similar docs in the retrieved doc results.
                 if not doc_contents:
                     for _tmp_retrieve_count in range(1, 5):
-                        self._reset(intermidiate=True)
+                        self._reset(intermediate=True)
                         self.retrieve_docs(self.problem, self.n_results * (2 * _tmp_retrieve_count + 1))
                         doc_contents = self._get_context(self._results)
                         if doc_contents:
                             break
             elif update_context_case2:
-                # Use the current intermidiate info as the query text to retrieve docs, and each time we append the top similar
+                # Use the current intermediate info as the query text to retrieve docs, and each time we append the top similar
                 # docs in the retrieved doc results to the context.
                 for _tmp_retrieve_count in range(5):
-                    self._reset(intermidiate=True)
-                    self.retrieve_docs(_intermidiate_info, self.n_results * (2 * _tmp_retrieve_count + 1))
+                    self._reset(intermediate=True)
+                    self.retrieve_docs(_intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1))
                     self._get_context(self._results)
-                    doc_contents = "\n".join(self._doc_contents)
+                    doc_contents = "\n".join(self._doc_contents) + "\n" + "\n".join(self._intermediate_answers)
                     if doc_contents:
                         break
 
