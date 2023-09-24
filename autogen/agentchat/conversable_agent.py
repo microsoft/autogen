@@ -629,7 +629,7 @@ class ConversableAgent(Agent):
 
         # no code blocks are found, push last_n_messages back and return.
         code_execution_config["last_n_messages"] = last_n_messages
-        
+
         return False, None
 
     def generate_function_call_reply(
