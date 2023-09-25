@@ -230,6 +230,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
+        """In this function, we will update the context and reset the conversation based on different conditions.
+        We'll update the context and reset the conversation if no_update_context is False and either of the following:
+        (1) the last message contains "UPDATE CONTEXT",
+        (2) the last message doesn't contain "UPDATE CONTEXT" and the customized_answer_prefix is not in the message.
+        """
         if config is None:
             config = self
         if messages is None:
@@ -335,21 +340,6 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         if self._ipython is None or lang != "python":
             return super().run_code(code, **kwargs)
         else:
-            # # capture may not work as expected
-            # result = self._ipython.run_cell("%%capture --no-display cap\n" + code)
-            # log = self._ipython.ev("cap.stdout")
-            # log += self._ipython.ev("cap.stderr")
-            # if result.result is not None:
-            #     log += str(result.result)
-            # exitcode = 0 if result.success else 1
-            # if result.error_before_exec is not None:
-            #     log += f"\n{result.error_before_exec}"
-            #     exitcode = 1
-            # if result.error_in_exec is not None:
-            #     log += f"\n{result.error_in_exec}"
-            #     exitcode = 1
-            # return exitcode, log, None
-
             result = self._ipython.run_cell(code)
             log = str(result.result)
             exitcode = 0 if result.success else 1
