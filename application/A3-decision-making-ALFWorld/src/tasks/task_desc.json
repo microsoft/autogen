@@ -1,0 +1,8 @@
+{
+    "pick_and_place": " Hint: You must find and **take** the object before you can examine it. You can put the target object on any shelf/drawer/cabinet/desk. Do not take what is in it into consideration.",
+    "pick_clean_then_place": " Hint: You must find and **take** the object before you can place it elsewhere. You can use a sinkbasin to wash an object",
+    "pick_heat_then_place": " Hint: You must find and **take** the object before you can place it elsewhere. You should use a microwave to heat an object. You can heat the object regardless of what is in the microwave.",
+    "pick_cool_then_place": " Hint: You must find and **take** the object before you can place it elsewhere. You can use a fridge to cool an object. You can cool the object regardless of what is in the fridge.",
+    "look_at_obj": " Hint: You must find and **take** the object before you can examine it. You must go to where the target object is before you can use it.",
+    "pick_two_obj": " Hint: You must find and **take** the object before you can place it elsewhere. "
+}
