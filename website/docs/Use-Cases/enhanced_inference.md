@@ -135,7 +135,7 @@ response = autogen.Completion.create(
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_type": "azure",
             "api_base": os.environ.get("AZURE_OPENAI_API_BASE"),
-            "api_version": "2023-06-01-preview",
+            "api_version": "2023-07-01-preview",
         },
         {
             "model": "gpt-3.5-turbo",
