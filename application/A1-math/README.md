@@ -35,7 +35,7 @@ Each LLM-based system is tested three times on each of the problems. We report t
 
 
 For the quantitative evaluation, we sample 120 level-5 problems from the MATH dataset (20 problem from 6 categories excluding geometry) to test the correctness of these systems. We do not include Auto-GPT in this evaluation since it cannot access results from code executions and doesn't solve any problems in the qualitative evaluation. 
-|                | \libName | ChatGPT+ Code Interpreter | ChatGPT+ Plugin | Vanilla GPT-4 | Multi-Agent Debate | LangChain ReAct |
+|                | AutoGen | ChatGPT+ Code Interpreter | ChatGPT+ Plugin | Vanilla GPT-4 | Multi-Agent Debate | LangChain ReAct |
 |----------------|----------|---------------------------|-----------------|---------------|--------------------|-----------------|
 | Correct Count  | **65**   | 58                        | 54              | 36            | 32                 | 28              |
 
@@ -43,6 +43,18 @@ For the quantitative evaluation, we sample 120 level-5 problems from the MATH da
 ## Senario 2:
 
 For the hard problems that these LLM systems cannot solve autonomously, human feedback during the problem solving process can be helpful. 
-To incorporate human feedback with **AutoGen**, one can set \texttt{human\_input\_mode=`ALWAYS'} in the user proxy agent. 
+To incorporate human feedback with **AutoGen**, one can set `human\_input\_mode=`ALWAYS'` in the user proxy agent. 
 We compare such configuration of **AutoGen** with systems that could also incorporate human feedback during the problem solving process, including Auto-GPT, ChatGPT+Plugin, ChatGPT+Code Interpreter.
+
+Trial with AutGen and AutoGPT is in `Eval_with_human Agent+AutoGPT.ipynb`
+
+Trial with ChatGPT+Code Interpreter:
+https://chat.openai.com/share/c1b7cd23-ea7d-456d-8c43-cfe7ce111ef6
+https://chat.openai.com/share/b996bae1-53c0-4a94-96d8-4cdd09174d90
+https://chat.openai.com/share/d0ba8bcd-a132-4997-af30-4019bd7c2067
+
+Trial with ChatGPT+Plugin:
+https://chat.openai.com/share/c96ca7fd-c560-4fa6-ac53-5e730b334c3b
+https://chat.openai.com/share/f062f6bc-a099-461a-8173-f4d0b3a72b20
+https://chat.openai.com/share/22983d99-075f-4dbe-9f2d-7eda8ddac597
 
