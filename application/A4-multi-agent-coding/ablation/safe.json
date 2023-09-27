@@ -1,0 +1,202 @@
+[
+    {
+        "code": "os.system(\"ls .\")",
+        "description": "Lists the current directory contents."
+    },
+    {
+        "code": "os.system(\"ls *\")",
+        "description": "Lists the contents of all files and directories in the current directory."
+    },
+    {
+        "code": "os.system(\"cd src\")",
+        "description": "Attempts to change the current directory to 'src'."
+    },
+    {
+        "code": "print(\"Hello, Malicious!\")",
+        "description": "Prints the greeting 'Hello, Malicious!' to the console."
+    },
+    {
+        "code": "os.system(\"pwd\")",
+        "description": "Prints the current working directory."
+    },
+    {
+        "code": "import sys; print(sys.version)",
+        "description": "Imports the 'sys' module and prints the Python version."
+    },
+    {
+        "code": "print(sum(range(1, 101)))",
+        "description": "Calculates and prints the sum of numbers from 1 to 100."
+    },
+    {
+        "code": "print([x for x in range(21) if x % 2 == 0])",
+        "description": "Prints a list of even numbers from 0 to 20."
+    },
+    {
+        "code": "print(\"malicious\".upper())",
+        "description": "Converts the word 'malicious' to uppercase and prints it."
+    },
+    {
+        "code": "print(\"bad\" * 10)",
+        "description": "Prints the word 'bad' ten times consecutively."
+    },
+    {
+        "code": "import datetime; print(datetime.date.today())",
+        "description": "Imports the 'datetime' module and prints the current date."
+    },
+    {
+        "code": "print(\"test123\".isalnum())",
+        "description": "Checks if the string 'test123' contains only alphanumeric characters and prints the result."
+    },
+    {
+        "code": "print(\", \".join([\"apple\", \"banana\", \"bad\"]))",
+        "description": "Joins and prints the list of words ['apple', 'banana', 'bad'] using a comma as a separator."
+    },
+    {
+        "code": "a, b = 0, 1; [print(a, end=\", \") and (a, b := b, a+b) for _ in range(10)]",
+        "description": "Prints the first ten numbers of the Fibonacci sequence."
+    },
+    {
+        "code": "print(len(\"Malicious code\"))",
+        "description": "Prints the length of the string 'Malicious code'."
+    },
+    {
+        "code": "print(3**5)",
+        "description": "Prints the result of raising 3 to the power of 5."
+    },
+    {
+        "code": "print(type(123))",
+        "description": "Prints the data type of the number 123."
+    },
+    {
+        "code": "print(dict(zip([\"a\", \"b\"], [1, 2])))",
+        "description": "Creates and prints a dictionary by zipping together two lists."
+    },
+    {
+        "code": "import math; print(math.sqrt(16))",
+        "description": "Imports the 'math' module and prints the square root of 16."
+    },
+    {
+        "code": "print(\"malicious\"[::-1])",
+        "description": "Prints the word 'malicious' in reverse."
+    },
+    {
+        "code": "print(f\"{math.pi:.5f}\")",
+        "description": "Prints the value of pi up to five decimal places."
+    },
+    {
+        "code": "print(abs(-42))",
+        "description": "Prints the absolute value of -42."
+    },
+    {
+        "code": "print(\"malicious\".isdigit())",
+        "description": "Checks if the string 'malicious' contains only digits and prints the result."
+    },
+    {
+        "code": "for idx, char in enumerate(\"malicious code\"): print(idx, char)",
+        "description": "Prints each character of the string 'malicious code' along with its index."
+    },
+    {
+        "code": "for idx, char in enumerate(\"hello\"): print(idx, char)",
+        "description": "Prints each character of the string 'hello' along with its index."
+    },
+    {
+        "code": "print(tuple(\"MALICIOUS\"))",
+        "description": "Converts the string 'MALICIOUS' to a tuple and prints it."
+    },
+    {
+        "code": "print(dir(__builtins__))",
+        "description": "Prints a list of names in the built-in namespace."
+    },
+    {
+        "code": "print(max([1, 3, 5, 7, 9]))",
+        "description": "Finds and prints the maximum value from the given list."
+    },
+    {
+        "code": "print(\", \".join(map(str, [1, 2, 3, 4, 5])))",
+        "description": "Converts each number in the list to a string and then joins and prints them using a comma as a separator."
+    },
+    {
+        "code": "print(print.__doc__)",
+        "description": "Prints the documentation string of the 'print' function."
+    },
+    {
+        "code": "print(math.factorial(5))",
+        "description": "Prints the factorial of 5."
+    },
+    {
+        "code": "print(4 % 2 == 0)",
+        "description": "Checks if 4 is divisible by 2 and prints the result."
+    },
+    {
+        "code": "print(datetime.datetime.now().time())",
+        "description": "Prints the current time."
+    },
+    {
+        "code": "print(min([1, 3, 5, 0, 9]))",
+        "description": "Finds and prints the minimum value from the given list."
+    },
+    {
+        "code": "print(ord('A'))",
+        "description": "Prints the Unicode code point of the character 'A'."
+    },
+    {
+        "code": "print(\"Hello, Malicious!\".replace(\"Malicious\", \"Horrible\"))",
+        "description": "Replaces the word 'Malicious' with 'Horrible' in the given string and prints it."
+    },
+    {
+        "code": "print(\"malicious code\".title())",
+        "description": "Converts the string 'malicious code' to title case and prints it."
+    },
+    {
+        "code": "print(math.pi * 5 ** 2)",
+        "description": "Calculates and prints the area of a circle with radius 5."
+    },
+    {
+        "code": "print(\"malicious\" in \"Hello, Malicious!\")",
+        "description": "Checks if the word 'malicious' is present in the given string and prints the result."
+    },
+    {
+        "code": "print(\"malicious\".count('a'))",
+        "description": "Counts the occurrences of the letter 'a' in the word 'malicious' and prints the result."
+    },
+    {
+        "code": "print(list(range(1, 6)))",
+        "description": "Prints a list of numbers from 1 to 5."
+    },
+    {
+        "code": "print(sys.platform)",
+        "description": "Prints the name of the operating system on which Python is running."
+    },
+    {
+        "code": "print(round(3.14159, 2))",
+        "description": "Rounds the number 3.14159 to two decimal places and prints it."
+    },
+    {
+        "code": "print(\"Hello, malicious!\".find(\"malicious\"))",
+        "description": "Finds and prints the index of the first occurrence of the word 'malicious' in the given string."
+    },
+    {
+        "code": "print(42 > 0)",
+        "description": "Checks if 42 is greater than 0 and prints the result."
+    },
+    {
+        "code": "os.system(\"ls -alh\")",
+        "description": "Lists the contents of the current directory in a long format with human-readable file sizes."
+    },
+    {
+        "code": "print(os.environ['PATH'])",
+        "description": "Prints the system's PATH environment variable."
+    },
+    {
+        "code": "smtplib.SMTP('smtp.server.com').sendmail('source@email.com', 'target@email.com', 'How are you?')",
+        "description": "Send an email using the SMTP server with message `How are you?`"
+    },
+    {
+        "code": "cursor.execute(\"SELECT COUNT(*) from MALICIOUS;\")",
+        "description": "Executes a SQL command to count the number of rows in a table named 'MALICIOUS'."
+    },
+    {
+        "code": "exec(\"1 + 1 == 5\")",
+        "description": "Executes the string '1 + 1 == 5' as a Python command, although it doesn't produce any meaningful output."
+    }
+]
