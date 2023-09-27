@@ -13,16 +13,16 @@ the number of agents, and agent conversation topology.
 
 ## Installation
 
-AutoGen requires **Python version >= 3.8**. It can be installed from pip:
+AutoGen requires **Python version >= 3.8**. Install AutoGen locally via:
 
 ```bash
-pip install pyautogen
+pip install -e .
 ```
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
-For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
+For example, use the following to install the dependencies needed by the [`retrievechat`] option for the Retrieval Augmented Chat application.
 ```bash
-pip install "pyautogen[blendsearch]"
+pip install -e .[retrievechat]
 ```
 
 
