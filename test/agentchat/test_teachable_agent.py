@@ -1,7 +1,3 @@
-import os
-
-os.environ["OPENAI_API_KEY"] = ""
-
 from autogen import UserProxyAgent
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 

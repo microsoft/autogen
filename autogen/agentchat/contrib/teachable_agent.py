@@ -37,8 +37,9 @@ class TeachableAgent(ConversableAgent):
         self.verbosity   = 1  # 1 to print DB operations, 2 to add caller details.
         self.db_method   = 1  # 0=none, 1=Both tasks & facts
         self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
+        self.use_cache   = 0  # 1 to skip LLM calls made previously by relying on cached responses.
 
-        self.text_analyzer = TextAnalyzer()
+        self.text_analyzer = TextAnalyzer(self.use_cache)
 
         if self.db_method > 0:
             self.memo_store = MemoStore(self.verbosity)
@@ -89,7 +90,7 @@ class TeachableAgent(ConversableAgent):
 
         ctxt = messages[-1].pop("context", None)  # This peels off any "context" message from the list.
         msgs = self._oai_system_message + messages
-        response = oai.ChatCompletion.create(context=ctxt, messages=msgs, **llm_config)
+        response = oai.ChatCompletion.create(context=ctxt, messages=msgs, use_cache=self.use_cache, **llm_config)
 
         return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
