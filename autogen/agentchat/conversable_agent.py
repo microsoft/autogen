@@ -605,6 +605,8 @@ class ConversableAgent(Agent):
         config: Optional[Any] = None,
     ):
         """Generate a reply using code execution."""
+        exitcode = None
+        exitcode2str = None
         code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None
@@ -629,6 +631,8 @@ class ConversableAgent(Agent):
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
             break
         code_execution_config["last_n_messages"] = last_n_messages
+        if exitcode is None or exitcode2str is None:
+            return True, 'no code block is found'
         return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
 
     def generate_function_call_reply(
@@ -844,7 +848,10 @@ class ConversableAgent(Agent):
         Returns:
             str: human input.
         """
-        reply = input(prompt)
+        try:
+            reply = input(prompt)
+        except EOFError:
+            reply = "exit"
         return reply
 
     def run_code(self, code, **kwargs):
