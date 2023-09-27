@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 import sys
 from typing import Dict, List, Optional, Union
+
+from .. import oai
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-
+import time
 
 @dataclass
 class GroupChat:
@@ -17,7 +19,7 @@ class GroupChat:
     @property
     def agent_names(self) -> List[str]:
         """Return the names of the agents in the group chat."""
-        return [agent.name for agent in self.agents]
+        return [agent.name.lower() for agent in self.agents]
 
     def reset(self):
         """Reset the group chat."""
@@ -25,41 +27,116 @@ class GroupChat:
 
     def agent_by_name(self, name: str) -> Agent:
         """Find the next speaker based on the message."""
-        return self.agents[self.agent_names.index(name)]
+        return self.agents[self.agent_names.index(name.lower())]
 
     def next_agent(self, agent: Agent) -> Agent:
         """Return the next agent in the list."""
         return self.agents[(self.agent_names.index(agent.name) + 1) % len(self.agents)]
 
-    def select_speaker_msg(self):
+    def select_speaker_msgs_original(self) -> List[Dict]:
         """Return the message for selecting the next speaker."""
+
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles()}.
 
 Read the following conversation.
 Then select the next role from {self.agent_names} to play. Only return the role."""
+    
+    def select_speaker_msgs(self) -> List[Dict]:
+        """Return the message for selecting the next speaker."""
+        msgs = [
+            {
+                "role": "system",
+                "content": f"You are in a role play game. Each conversation must start with 'From {{name}}:', e.g: From admin: //your message//.",
+            }
+        ]
 
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+        role_msgs = [{
+            "role": "user",
+            "content": f'''From {self.admin_name}:
+
+            @{agent.name}, {agent.system_message}''',
+        } for agent in self.agents]
+
+        # msgs.extend(role_msgs)
+        return msgs
+    
+    def select_speaker_msg_naive(self, chat_history: List[Dict] = None) -> List[Dict]:
+        """Return the message for selecting the next speaker."""
+        chat_history_prompts = [f"{chat['name']}: {chat['content']}\n" for chat in chat_history]
+        msg = f"""###Available speaker###
+{self._participant_roles()}.
+### End of available speaker ###
+
+### Chat history ###
+{''.join(chat_history_prompts)}
+### End of chat history ###
+
+Read the chat history above and return the next speaker to carry on the chat history. Only return the speaker name."""
+        
+        return [{
+            "role": "system",
+            "content": msg,
+        }]
+
+    def process_role_play_msgs(self, messages: List[Dict]) -> List[Dict]:
+        return [{
+            "role": "user",
+            "content": f'''From {message["name"]}:
+
+{message["content"]}''',
+        } for message in messages]
+    
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent, mode: Optional[str] = "roleplay"):
         """Select the next speaker."""
-        selector.update_system_message(self.select_speaker_msg())
-        final, name = selector.generate_oai_reply(
-            self.messages
-            + [
+        if mode == "next":
+            return self.next_agent(last_speaker)
+        if mode == "naive":
+            final, name = selector.generate_oai_reply(
+                self.select_speaker_msg_naive(self.messages)
+            )
+        elif mode == "roleplay":
+            system_messages = self.select_speaker_msgs()
+            chat_messages = self.process_role_play_msgs(self.messages)
+            old_system_message = selector.system_message
+            selector.update_system_message('')
+            llm_config = selector.llm_config.copy()
+            llm_config["stop"] = [':']
+            msgs = system_messages + chat_messages
+
+            reply = oai.ChatCompletion.create(
+                messages=msgs, **llm_config
+            )
+            final = True
+            msg = reply['choices'][0]['message']['content']
+            selector.update_system_message(old_system_message)
+            # msg will be in the form of "From {name}:\n{content}"
+            # we need to extract the name using regex
+        elif mode == "role_play_original":
+            system_messages = self.select_speaker_msgs_original()
+            old_system_message = selector.system_message
+            selector.update_system_message('')
+            final, msg = selector.generate_oai_reply(self.messages + [
                 {
                     "role": "system",
                     "content": f"Read the above conversation. Then select the next role from {self.agent_names} to play. Only return the role.",
                 }
-            ]
-        )
+            ])
+            selector.update_system_message(old_system_message)
+
         if not final:
             # i = self._random.randint(0, len(self._agent_names) - 1)  # randomly pick an id
             return self.next_agent(last_speaker)
         try:
+            if mode == "roleplay":
+                name = msg.split(":")[0].split("From ")[1]
+            else:
+                name = msg
             return self.agent_by_name(name)
-        except ValueError:
+        except Exception:
             return self.next_agent(last_speaker)
 
-    def _participant_roles(self):
+    def _participant_roles(self) -> str:
         return "\n".join([f"{agent.name}: {agent.system_message}" for agent in self.agents])
 
 
@@ -75,6 +152,7 @@ class GroupChatManager(ConversableAgent):
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[str] = "Group chat manager.",
         # seed: Optional[int] = 4,
+        mode: Optional[str] = "roleplay", # "roleplay", "naive" or "next"
         **kwargs,
     ):
         super().__init__(
@@ -84,6 +162,7 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        self.mode = mode
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # self._random = random.Random(seed)
 
@@ -112,9 +191,16 @@ class GroupChatManager(ConversableAgent):
                 # the last round
                 break
             try:
+                # sleep for 10 seconds
+                time.sleep(5)
                 # select the next speaker
-                speaker = groupchat.select_speaker(speaker, self)
+                speaker = groupchat.select_speaker(speaker, self, self.mode)
+                if speaker is None:
+                    # no speaker is selected
+                    reply = None
+                    break
                 # let the speaker speak
+                time.sleep(5)
                 reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
                 # let the admin agent speak if interrupted
@@ -125,7 +211,9 @@ class GroupChatManager(ConversableAgent):
                 else:
                     # admin agent is not found in the participants
                     raise
-            if reply is None:
+            
+            # if reply is None or [TERMINATE] return
+            if reply is None or "[TERMINATE]" in reply:
                 break
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)

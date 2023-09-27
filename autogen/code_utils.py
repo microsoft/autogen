@@ -285,15 +285,15 @@ def execute_code(
         if original_filename is None:
             os.remove(filepath)
         if result.returncode:
-            logs = result.stderr
+            logs = result.stderr.decode("utf-8")
             if original_filename is None:
                 abs_path = str(pathlib.Path(filepath).absolute())
-                logs = logs.replace(str(abs_path), "").replace(filename, "")
+                logs = logs.replace(abs_path, "").replace(filename, "")
             else:
                 abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
-                logs = logs.replace(str(abs_path), "")
+                logs = logs.replace(abs_path, "")
         else:
-            logs = result.stdout
+            logs = result.stdout.decode("utf-8")
         return result.returncode, logs, None
 
     # create a docker client

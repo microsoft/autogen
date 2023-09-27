@@ -1,0 +1,12 @@
+4:Write a script to create 10 empty txt files in a directory.
+0:Develop a script to extract all links from arxiv using Beautiful Soup and save result to arxiv.txt.
+1:Write a script to download AutoGen paper from arxiv as pdf, extract its abstract and save the abstract into autogen_abstract.txt. The link to pdf is https://arxiv.org/pdf/2308.08155.pdf
+2:Find the most recent 10 issues from ML.Net repo and save them into mlnet_issue.md. The url to ml.net repo is https://github.com/dotnet/machinelearning
+3:Use http request to extract the latest PR from flaml repo and save the results into flaml_latest_pr.txt. The url of flaml repo is https://github.com/microsoft/FLAML
+5:Develop a program to convert a decimal number to binary and use that program to convert 100 to binary and save the result to decimal_to_binary.txt.
+6:What's the average price of $AAPL stock in the last 30 days? Save the results apple_average.txt.
+7:Retrieve the stock price of $AAPL in the last 30 days from Yahoo Finance and plot the price in a line chart, save the chart as apple.png.
+8:Write a script to download all the pdfs from arxiv in last three days and save them under /arxiv folder.
+9:Who's the most active contributor of flaml repo in the last month? Save the result to flaml_active_contrbutor.txt.
+10:How much money would I earn if I bought 200 $AAPL stocks at the lowest price in the last 30 days and sold them at the highest price? Save the result to apple_profit.txt.
+11:draw the graph of y = sin(x) in the range of [0, 2pi] and save it as sinx.png file.
