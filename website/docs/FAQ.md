@@ -4,7 +4,7 @@
 
 There are multiple ways to construct a list of configurations for LLM inference.
 
-### Load a list of endpoints from json
+### Option 1: Load a list of endpoints from json
 
 The [`config_list_from_json`](/docs/reference/oai/openai_utils#config_list_from_json) function loads a list of configurations from an environment variable or a json file.
 
@@ -50,9 +50,9 @@ The `OAI_CONFIG_LIST` var or file content looks like the following:
 ]
 ```
 
-### Construct a list of endpoints for OpenAI or Azure OpenAI
+### Option 2: Construct a list of endpoints for OpenAI or Azure OpenAI
 
-he [`config_list_from_models`](/docs/reference/oai/openai_utils#config_list_from_models) function tries to create a list of configurations using Azure OpenAI endpoints and OpenAI endpoints for the provided list of models. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files:
+The [`config_list_from_models`](/docs/reference/oai/openai_utils#config_list_from_models) function tries to create a list of configurations using Azure OpenAI endpoints and OpenAI endpoints for the provided list of models. It assumes the api keys and api bases are stored in the corresponding environment variables or local txt files:
 
 - OpenAI API key: os.environ["OPENAI_API_KEY"] or `openai_api_key_file="key_openai.txt"`.
 - Azure OpenAI API key: os.environ["AZURE_OPENAI_API_KEY"] or `aoai_api_key_file="key_aoai.txt"`. Multiple keys can be stored, one per line.
@@ -81,4 +81,21 @@ config_list = [
         'api_key': '<your OpenAI API key here>',
     },  # OpenAI API endpoint for gpt-3.5-turbo-16k
 ]
+```
+
+### Use the constructed configuration list in agents
+
+Make sure the "config_list" is included in the `llm_config` in the constructor of the LLM-based agent. For example,
+```python
+assistant = autogen.AssistantAgent(
+    name="assistant",
+    llm_config={"config_list": config_list}
+)
+```
+
+The `llm_config` is used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
+When `llm_config` is not provided, the agent will rely on other openai settings such as `openai.api_key` or the environment variable `OPENAI_API_KEY`, which can also work when you'd like to use a single endpoint.
+You can also explicitly specify that by:
+```python
+assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
