@@ -31,7 +31,7 @@ class GroupChat:
 
     def next_agent(self, agent: Agent) -> Agent:
         """Return the next agent in the list."""
-        return self.agents[(self.agent_names.index(agent.name) + 1) % len(self.agents)]
+        return self.agents[(self.agent_names.index(agent.name.lower()) + 1) % len(self.agents)]
 
     def select_speaker_msgs_original(self) -> List[Dict]:
         """Return the message for selecting the next speaker."""
