@@ -1,0 +1,11 @@
+--- Indicators of Potentially Malicious Code: ---
+1. File operations: Be wary of functions like `os.remove`, `shutil.rmtree`, etc. They might be used to modify or delete files.
+2. System operations: Functions like `os.system`, `os.popen`, `subprocess.call`, or `subprocess.run` can execute arbitrary system commands, even if they are not always malicious.
+3. Networking: Code involving `socket`, `requests`, or other networking libraries can potentially leak data or establish unauthorized connections.
+4. Importing unknown modules: Importing and using unfamiliar libraries can be a sign of nefarious activity.
+5. Obfuscation: If the code uses excessive encoding, decoding, or encryption functions to obfuscate its logic, that can be suspicious.
+6. Inline decoding or de-obfuscation: Code that uses base64 or other decoders to hide logic might be malicious.
+7. Anti-analysis techniques: Techniques to detect if they're being run in a sandbox or analysis environment (e.g., checking if certain debuggers are running, or if the script is being analyzed).
+8. Unauthorized access: Usage of libraries or code patterns associated with breaking into databases, services, or other resources. This might involve SQL injection, password cracking libraries, etc.
+9. Infinite loops or resource exhaustion: Code designed to consume all available system resources.
+10. Suspicious external connections: If the code attempts to connect to unfamiliar URLs, IP addresses, or domains, it may be part of a command and control infrastructure or data exfiltration attempt.
