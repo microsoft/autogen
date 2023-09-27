@@ -46,7 +46,7 @@ The `OAI_CONFIG_LIST` var or file content looks like the following:
         "api_base": "<your Azure OpenAI API base here>",
         "api_type": "azure",
         "api_version": "2023-07-01-preview"
-    },
+    }
 ]
 ```
 
