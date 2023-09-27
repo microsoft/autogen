@@ -22,11 +22,6 @@ def test_group_chat(model, mode, llm_config, work_dir, tasks):
         group_chat(model, mode, i, task, llm_config, work_dir)
 
 def group_chat(model, mode, problem_id, problem, llm_config, work_dir):
-    # clear work_dir
-    if os.path.exists(work_dir):
-        shutil.rmtree(work_dir)
-    os.mkdir(work_dir)
-
     user_proxy = autogen.UserProxyAgent(
        name="Admin",
        system_message="you are Admin, a human user. You will reply [TERMINATE] if task get resolved.",
