@@ -14,7 +14,7 @@ Each LLM-based system is tested three times on each of the problems. We report t
 **Evaluation on the first problem that asks to simplify a square root fraction.**
 |                       | Correctness | Failure Reason                                                                                                        |
 |-----------------------|-------------|-----------------------------------------------------------------------------------------------------------------------|
-| \libName              | 3/3         | N/A.                                                                                                                  |
+| AutoGen           | 3/3         | N/A.                                                                                                                  |
 | Auto-GPT              | 0/3         | The LLM gives code without the print function so the result is not printed.                                           |
 | ChatGPT+Plugin        | 1/3         | The return from Wolfram Alpha contains 2 simplified results, including the correct answer, but GPT-4 always chooses the wrong answer. |
 | ChatGPT+Code Interpreter | 2/3      | Returns a wrong decimal result.                                                                                       |
@@ -25,7 +25,7 @@ Each LLM-based system is tested three times on each of the problems. We report t
 **Evaluation on the second problem.**
 |                       | Correctness | Failure Reason                                                                                                        |
 |-----------------------|-------------|-----------------------------------------------------------------------------------------------------------------------|
-| \libName              | 2/3         | The final answer from code execution is wrong.                                                                       |
+| AutoGen              | 2/3         | The final answer from code execution is wrong.                                                                       |
 | Auto-GPT              | 0/3         | The LLM gives code without the print function so the result is not printed.                                           |
 | ChatGPT+Plugin        | 1/3         | For one trial, GPT-4 got stuck because it keeps giving wrong queries and has to be stopped. Another trial simply gives a wrong answer. |
 | ChatGPT+Code Interpreter | 0/3      | It gives 3 different wrong answers.                                                                                   |
