@@ -1,0 +1,16 @@
+{
+    "source": "",
+    "reference": "",
+    "base_translation": "",
+    "src_lng": "",
+    "tgt_lng": "",
+    "base_prompt": "Translate the following text from ##src_lng## to ##tgt_lng##: ##source##",
+    "player_meta_prompt": "You are a debater. Hello and welcome to the translation competition, which will be conducted in a debate format. It's not necessary to fully agree with each other's perspectives, as our objective is to find the correct translation.\nThe debate topic is stated as follows:\nWhat is the correct ##tgt_lng## translation of the following ##src_lng## text: \"##source##\"",
+    "moderator_meta_prompt": "You are a moderator. There will be two debaters involved in a translation debate competition. They will present their translations and discuss their perspectives on the correct ##tgt_lng## translation of the given ##src_lng## text: \"##source##\". At the end of each round, you will evaluate the translation candidates based on the following criteria:\n1. Accuracy: The degree to which the translation captures the original meaning of the source text.\n2. Fluency: The readability and naturalness of the translation in ##tgt_lng##.",
+    "affirmative_prompt": "You think the correct translation is: ##base_translation## Restate the translation and provide your reasons.",
+    "negative_prompt": "##aff_ans##\n\nYou disagree with my translation. Provide your translation and reasons.",
+    "moderator_prompt": "Now the ##round## round of debate for both sides has ended.\n\nAffirmative side arguing:\n##aff_ans##\n\nNegative side arguing: ##neg_ans##\n\nYou, as the moderator, will evaluate both sides' translations and determine if there is a clear preference for a translation candidate. If so, please summarize your reasons for supporting affirmative/negative side and give the final translation that you think is correct, and the debate will conclude. If not, the debate will continue to the next round. Now please output your answer in json format, with the format as follows: {\"Whether there is a preference\": \"Yes or No\", \"Supported Side\": \"Affirmative or Negative\", \"Reason\": \"\", \"debate_translation\": \"\"}. Please strictly output in JSON format, do not output irrelevant content.",
+    "judge_prompt_last1": "Affirmative side arguing: ##aff_ans##\n\nNegative side arguing: ##neg_ans##\n\nNow, what translation candidates do we have? Present them without reasons.",
+    "judge_prompt_last2": "Therefore, what is the correct ##tgt_lng## translation of the following ##src_lng## text: \"##source##\". Please summarize your reasons and give the final translation that you think is correct. Now please output your answer in json format, with the format as follows: {\"Reason\": \"\", \"debate_translation\": \"\"}. Please strictly output in JSON format, do not output irrelevant content.",
+    "debate_prompt": "##oppo_ans##\n\nDo you agree with my perspective? Please provide your reasons and translation."
+}
