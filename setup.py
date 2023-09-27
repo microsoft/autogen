@@ -25,11 +25,9 @@ setuptools.setup(
     name="pyautogen",
     version=__version__,
     author="AutoGen",
-    author_email="auto-gen@outlook.com",
-    description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework",
+    description="Enabling Next-Gen LLM Applications via Multi-Agent Conversation",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/microsoft/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
     # package_data={
     #     "autogen.default": ["*/*.json"],
