@@ -49,12 +49,12 @@ We compare such configuration of **AutoGen** with systems that could also incorp
 Trial with AutGen and AutoGPT is in `Eval_with_human Agent+AutoGPT.ipynb`
 
 Trial with ChatGPT+Code Interpreter:
-https://chat.openai.com/share/c1b7cd23-ea7d-456d-8c43-cfe7ce111ef6
-https://chat.openai.com/share/b996bae1-53c0-4a94-96d8-4cdd09174d90
-https://chat.openai.com/share/d0ba8bcd-a132-4997-af30-4019bd7c2067
+- https://chat.openai.com/share/c1b7cd23-ea7d-456d-8c43-cfe7ce111ef6
+- https://chat.openai.com/share/b996bae1-53c0-4a94-96d8-4cdd09174d90
+- https://chat.openai.com/share/d0ba8bcd-a132-4997-af30-4019bd7c2067
 
 Trial with ChatGPT+Plugin:
-https://chat.openai.com/share/c96ca7fd-c560-4fa6-ac53-5e730b334c3b
-https://chat.openai.com/share/f062f6bc-a099-461a-8173-f4d0b3a72b20
-https://chat.openai.com/share/22983d99-075f-4dbe-9f2d-7eda8ddac597
+- https://chat.openai.com/share/c96ca7fd-c560-4fa6-ac53-5e730b334c3b
+- https://chat.openai.com/share/f062f6bc-a099-461a-8173-f4d0b3a72b20
+- https://chat.openai.com/share/22983d99-075f-4dbe-9f2d-7eda8ddac597
 
