@@ -1,6 +1,6 @@
 4:Write a script to create 10 empty txt files in a directory.
 0:Develop a script to extract all links from arxiv using Beautiful Soup and save result to arxiv.txt.
-1:Write a script to download AutoGen paper from arxiv as pdf, extract its abstract and save the abstract into autogen_abstract.txt. The link to pdf is https://arxiv.org/pdf/2308.08155.pdf
+1:Write a script to download gpt-4 tech report paper from arxiv as pdf, extract its abstract and save the abstract into gpt4_abstract.txt. The link to pdf is https://arxiv.org/pdf/2303.08774.pdf
 2:Find the most recent 10 issues from ML.Net repo and save them into mlnet_issue.md. The url to ml.net repo is https://github.com/dotnet/machinelearning
 3:Use http request to extract the latest PR from flaml repo and save the results into flaml_latest_pr.txt. The url of flaml repo is https://github.com/microsoft/FLAML
 5:Develop a program to convert a decimal number to binary and use that program to convert 100 to binary and save the result to decimal_to_binary.txt.
