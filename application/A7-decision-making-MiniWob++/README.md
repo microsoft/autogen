@@ -1,4 +1,4 @@
-# Browser interactions application
+# A7: Online Decision Making for Browser interactions
 
 ## Miniwob++ benchmark
 
@@ -20,7 +20,7 @@ finally:
 ```
 
 ## Miniwob++ integration with Autogen
-We evaluate Autogen’s capabilities for making online decisions on the benchmark minibwob++. We used two agents for our implementation. One is the origin AssistantAgent of Autogen without any modification. This agent is responsible for proposing/modifying the plan to complete the given task and make decisions at each step based on the interaction environment. The other is Executor Agent, which is responsible for interacting with the minibwob++ benchmark, executing the actions sent by the AssistantAgent, and returning the results to the AssistantAgent. 
+We evaluate Autogen’s capabilities for making online decisions on the benchmark minibwob++. We used two agents for our implementation. One is the origin AssistantAgent of Autogen without any modification. This agent is responsible for proposing/modifying the plan to complete the given task and make decisions at each step based on the interaction environment. The other is Executor Agent, which is responsible for interacting with the minibwob++ benchmark, executing the actions sent by the AssistantAgent, and returning the results to the AssistantAgent.
 
 <img src="artifacts/app_miniwob.png" alt="image-20230530212605407" style="zoom: 30%;" />
 
@@ -28,17 +28,17 @@ We evaluate Autogen’s capabilities for making online decisions on the benchmar
 
 1. Install packages
 ```sh
-conda install --yes --file requirements.txt 
+conda install --yes --file requirements.txt
 cd computergym
 pip install -e .
 ```
 
-2. Set up openai key in *main.py* and *config.json*.  
+2. Set up openai key in *main.py* and *config.json*.
 
 
 ## Step-by-step demo
 
-#### 1. Run command 
+#### 1. Run command
 
 ```sh
 python main.py --problem click-button-sequence
@@ -67,7 +67,7 @@ python main.py --problem click-button-sequence
 
 ## Evaluation on multiple tasks
 
-We make a comparison with the state of the art method RCI[1].  
+We make a comparison with the state of the art method RCI[1].
 
 <img src="artifacts/result.png" alt="image-20230530212605407" style="zoom: 45%;" />
 
@@ -78,4 +78,3 @@ This implementation is partially based on [rci-agent](https://github.com/posgnu/
 ## Reference
 
 [1] Kim, G., Baldi, P., & McAleer, S. (2023). Language models can solve computer tasks. arXiv preprint arXiv:2303.17491.
-
