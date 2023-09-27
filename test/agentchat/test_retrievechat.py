@@ -23,6 +23,11 @@ except ImportError:
     reason="do not run on MacOS or windows",
 )
 def test_retrievechat():
+    try:
+        import openai
+    except ImportError:
+        return
+
     conversations = {}
     autogen.ChatCompletion.start_logging(conversations)
 
