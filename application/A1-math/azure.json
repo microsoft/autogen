@@ -1,0 +1,7 @@
+{
+    "model": "gpt-4",
+    "api_key": "<replace>",
+    "api_type": "azure",
+    "api_base": "<replace>",
+    "api_version": "<replace>"
+}
