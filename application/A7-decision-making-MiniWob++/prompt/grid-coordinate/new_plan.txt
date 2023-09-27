@@ -1,0 +1,1 @@
+You failed with the above plans to solve a task on the below webpage. Based on your answer, what is your new plan to solve the task on this webpage? Note that the new plan should be able to start from the current webpage state. You should not assume that the autonomous agent is in the initial state of the webpage. 

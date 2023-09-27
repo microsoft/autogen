@@ -1,0 +1,6 @@
+Example plans)
+The task is to select all the shades of red and press the Submit button.
+Here is a plan to solve a task on the webpage with the autonomous agent. The first instruction will click all the shades of red.
+
+1. Clickxpath //span[@data-color="red"]
+2. Clickxpath //*[@id="submit"]

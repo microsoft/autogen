@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Checkboxes Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+
+<style>
+input { width: 20px; }
+</style>
+
+<script>
+var SYNONYMS = [
+  ['big', 'large', 'huge', 'enormous', 'gigantic'],
+  ['small', 'tiny', 'little', 'mini', 'petite'],
+  ['red', 'scarlet', 'crimson', 'vermillion'],
+  ['happy', 'cheerful', 'joyful', 'gleeful', 'delighted'],
+  ['sad', 'unhappy', 'sorrowful', 'miserable', 'tragic'],
+  ['angry', 'mad', 'furious', 'irritated'],
+  ['evil', 'wicked', 'immoral', 'sinful', 'corrupt', 'depraved'],
+  ['wrong', 'incorrect', 'mistaken', 'erroneous'],
+  ['real', 'genuine', 'actual'],
+  ['strange', 'odd', 'peculiar', 'unusual', 'weird'],
+  ['stop', 'cease', 'halt', 'end', 'finish'],
+  ['scared', 'terrified', 'panicked', 'fearful', 'frightened', 'afraid'],
+  ['quiet', 'calm', 'peaceful', 'serene', 'mild'],
+  ['old', 'aged', 'archaic'],
+  ['love', 'like', 'adore', 'favor'],
+  ['kill', 'murder', 'assassinate'],
+  ['keep', 'retain', 'preserve', 'sustain', 'maintain'],
+  ['hide', 'conceal', 'camouflage'],
+  ['hate', 'despise', 'loathe', 'detest', 'dislike'],
+  ['funny', 'humorous', 'amusing', 'comical', 'laughable'],
+  ['fat', 'fleshy', 'plump', 'chubby'],
+  ['stupid', 'dumb', 'dull', 'unwise'],
+  ['delicious', 'savory', 'delectable', 'appetizing'],
+  ['cut', 'slice', 'carve', 'chop'],
+  ['brave', 'courageous', 'fearless'],
+  ['begin', 'start', 'initiate', 'launch'],
+  ['answer', 'reply', 'response'],
+  ['television', 'televisions', 'TV', 'TVs'],
+  ['house', 'home', 'houses', 'homes'],
+  ['fire', 'flame', 'fires', 'flames'],
+  ['pig', 'pork', 'swine', 'pig'],
+  ['rabbit', 'rabbits', 'bunny', 'bunnies'],
+  ['car', 'cars', 'automobile', 'automobiles', 'vehicle', 'vehicles'],
+  ['water'],
+];
+
+var createCheckboxes = function(div){
+  var checkboxData = { toclick: {}, clickNames: [] };
+
+  checkboxData.elems = core.randi(2, 7);
+  var wordList = SYNONYMS.slice();
+  core.shuffle(wordList);
+  checkboxData.numToClick = core.randi(1, 6);
+  checkboxData.elems = core.randi(Math.max(3, checkboxData.numToClick + 1), 7);
+  checkboxData.names = [];
+  for(var i=0;i<checkboxData.elems;i++) {
+    var chname = core.sample(wordList[i]);
+    var label = div.append('label')
+    label.append('input').attr('type', 'checkbox').attr('id', 'ch'+i);
+    label[0][0].innerHTML += core.sample(wordList[i]);
+    div.append('br');
+    checkboxData.names.push([i, chname]);
+  }
+  core.shuffle(checkboxData.names);
+  for(var j=0;j<checkboxData.elems;j++) {
+    if (j < checkboxData.numToClick) {
+      checkboxData.toclick[checkboxData.names[j][0]] = true;
+      checkboxData.clickNames.push(checkboxData.names[j][1]);
+    } else {
+      checkboxData.toclick[checkboxData.names[j][0]] = false;
+    }
+  }  
+
+  return checkboxData;
+}
+
+var genProblem = function() {
+  var div = d3.select('#boxes');
+  div.html('');
+
+  var checkboxData = createCheckboxes(div);
+
+  var qstr = checkboxData.clickNames.join(', ');
+  if(qstr.length === 0) { qstr = 'nothing'; }
+  d3.select('#query').html('Select words similar to ' + qstr + ' and click Submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var r = 0;
+    for(var i=0;i<checkboxData.elems;i++) {
+      var is_checked = d3.select('#ch'+i)[0][0].checked;
+      r += is_checked === checkboxData.toclick[i] ? 1.0 : -1.0;
+    }
+    core.endEpisode(r == checkboxData.elems ? 1.0 : -1.0, true);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="boxes"></div>
+    <br>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

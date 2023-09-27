@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Test Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#subbtn { width: 40px; height: 40px; }
+</style>
+
+<script>
+var genProblem = function() {
+  var w = core.randi(35, 100);
+  var L = core.randi(0, 160 - w - 2);
+  var U = core.randi(0, 160 - w - 2);
+
+  var btn = d3.select('#subbtn');
+  btn.attr('style', 'margin-left:'+L+'px; margin-top:'+U+'px; width:'+w+'px; height:'+w+'px;');
+  btn.on('click', function(){ core.endEpisode(1.0, true); });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click the button.</div>
+  <div id="area">
+    <button id="subbtn">Click Me!</button>
+  </div>
+</div>
+</body>
+</html>

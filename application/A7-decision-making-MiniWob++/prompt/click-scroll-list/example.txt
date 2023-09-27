@@ -1,0 +1,8 @@
+Example plans)
+The task is to select Canada, Bosnia and Herzegovina from the scroll list and click Submit.
+Here is a plan to solve this example task on the same webpage with the autonomous agent. 
+
+1. clickoption //option[text() = 'Canada']
+2. clickoption //option[text() = 'Bosnia']
+3. clickoption //option[text() = 'Herzegovina']
+4. Clickxpath //*[@class="secondary-action"]

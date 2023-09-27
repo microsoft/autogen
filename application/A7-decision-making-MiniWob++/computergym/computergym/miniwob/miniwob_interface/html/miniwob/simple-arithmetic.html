@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Simple Math Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { text-align: center; }
+#math-problem { height: 30px; font-size: 30px; display: inline-block; }
+#area #math-answer { display: inline-block; height: 30px; width: 25%; margin-left: 4px;
+  vertical-align: top; font-size: 30px; }
+.math-container { margin-top: 10px; margin-bottom: 20px; }
+</style>
+
+<script>
+var DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+var MATH_ACTION = ['-', '+', 'x'];
+var genProblem = function(){
+  d3.select('#math-problem').html('');
+  d3.select('#math-answer')[0][0].value = '';
+
+  var digitOne = core.sample(DIGITS);
+  var digitTwo = core.sample(DIGITS);
+  var action = core.sample(MATH_ACTION);
+
+
+  // division can be too difficult since there's a good chance
+  // it'll almost always result in a non-integer, so let's
+  // avoid those kinds of problems.
+  if(action === '+'){
+    var expectedAnswer = digitOne + digitTwo;
+  } else if(action === '-'){
+    var expectedAnswer = digitOne - digitTwo;
+  } else if(action === 'x'){
+    var expectedAnswer = digitOne * digitTwo;
+  }
+
+  d3.select('#math-problem').html(digitOne + ' ' + action + ' ' + digitTwo + ' = ');
+
+  d3.select('#subbtn').on('click', function(){
+    var userAnswer = d3.select('#math-answer')[0][0].value;
+    var r = userAnswer === expectedAnswer.toString() ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function(){
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Solve the math problem and type your answer into the textbox. Press submit when done.</div>
+  <div id="area">
+    <div class="math-container">
+      <div id="math-problem"></div>
+      <input type="text" id="math-answer">
+    </div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

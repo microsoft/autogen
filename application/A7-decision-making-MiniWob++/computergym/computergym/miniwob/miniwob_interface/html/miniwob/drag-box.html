@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Box Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#draggable { width: 154px; height: 100px; position: relative; }
+#subbtn { display: block; margin-top: 5px; }
+#draggableSmall { position: absolute; width: 20px; height: 20px; padding: 3px; border: 1px solid black; background-color: red; z-index: 20;}
+#draggableLarge { position: absolute; width: 50px; height: 50px; padding: 3px; border: 1px solid black; background-color: blue; z-index: 2;}
+</style>
+
+<script>
+var SMALL_BOX_SIDE = 20;
+var LARGE_BOX_SIDE = 50;
+var SIDE_DIFF = LARGE_BOX_SIDE - SMALL_BOX_SIDE;
+var DRAGGABLE_HEIGHT = 100;
+var DRAGGABLE_WIDTH = 154;
+
+function randomizeSquareLocs(){
+  $('#draggableSmall').css('top', Math.floor((Math.random() * (DRAGGABLE_HEIGHT - SMALL_BOX_SIDE - 5))) + 'px');
+  $('#draggableSmall').css('left', Math.floor((Math.random() * (DRAGGABLE_WIDTH - SMALL_BOX_SIDE - 5))) + 'px');
+
+  $('#draggableLarge').css('top', Math.floor((Math.random() * (DRAGGABLE_HEIGHT - LARGE_BOX_SIDE - 5))) + 'px');
+  $('#draggableLarge').css('left', Math.floor((Math.random() * (DRAGGABLE_WIDTH - LARGE_BOX_SIDE - 5))) + 'px');
+};
+
+function pxToInt(elementId, pos){
+  return parseInt($(elementId).css(pos),10);
+}
+
+function smallBoxContained(){
+  var diffHeight = pxToInt('#draggableSmall', 'top') - pxToInt('#draggableLarge', 'top');
+  var diffWidth = pxToInt('#draggableSmall', 'left') - pxToInt('#draggableLarge', 'left');
+  return (diffHeight > 0 && diffHeight < SIDE_DIFF) && (diffWidth > 0 && diffWidth < SIDE_DIFF);
+}
+
+var genProblem = function() {
+  $('#draggable').empty();
+  $('#draggable').append('<div id="draggableSmall">s</div>');
+  $('#draggable').append('<div id="draggableLarge">L</div>');
+
+  $('#draggableSmall').draggable();
+  $('#draggableLarge').draggable();
+
+  randomizeSquareLocs();
+
+  d3.select('#query').html('Drag the smaller box so that it is completely inside the larger box.')
+  d3.select('#subbtn').on('click', function(event, ui) { // end dragging
+    var r = smallBoxContained() ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  })
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="draggable"></div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

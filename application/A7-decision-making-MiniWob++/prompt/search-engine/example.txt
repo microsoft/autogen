@@ -1,0 +1,169 @@
+Example plans)
+task: use the textbox to enter "Tiger" and press "Search", then find and click the 5th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Tiger
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 5th result is located
+5. clickxpath //*[@id="page-content"]/div[2]/a // Each page contains three results and 5-3=2 Click the second result to select 5th result by clicking the first a tag.
+
+task: use the textbox to enter "Thaddeus" and press "Search", then find and click the 5th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Thaddeus
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 5th result is located
+5. clickxpath //*[@id="page-content"]/div[2]/a // Each page contains three results and 5-3=2. Click the second result to select 5th result by clicking the first a tag.
+
+task: use the textbox to enter "Maple" and press "Search", then find and click the 6th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Maple
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 6th result is located
+5. clickxpath //*[@id="page-content"]/div[3]/a // Each page contains three results and 6-3=3. Click the thrid result to select 6th result by clicking the first a tag.
+
+task: use the textbox to enter "Thaddeus" and press "Search", then find and click the 7th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Thaddeus
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 7th result is located
+5. clickxpath //*[@id="page-content"]/div[1]/a // Each page contains three results and 7-6=1. Click the first result to select 7th result by clicking the first a tag.
+
+task: use the textbox to enter "Grill" and press "Search", then find and click the 8th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Grill
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 8th result is located
+5. clickxpath //*[@id="page-content"]/div[2]/a // Each page contains three results and 8-6=2. Click the second result to select 8th result by clicking the first a tag.
+
+task: use the textbox to enter "Home" and press "Search", then find and click the 9th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Home
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 9th result is located
+5. clickxpath //*[@id="page-content"]/div[3]/a // Each page contains three results and 9-6=3. Click the third result to select 9th result by clicking the first a tag.
+
+task: use the textbox to enter "apple" and press "Search", then find and click the 4th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type apple
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 4th result is located
+5. clickxpath //*[@id="page-content"]/div[1]/a // Each page contains three results and 4-3=1. Click the first result to select 4th result by clicking the first a tag.
+
+task: use the textbox to enter "dog" and press "Search", then find and click the 3rd search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type dog
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[3]/a // The result appears on the first page. Click the third result
+
+task: use the textbox to enter "Mad" and press "Search", then find and click the 2nd search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Mad
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[2]/a // The result appears on the first page. Click the second result
+
+task: use the textbox to enter "Power" and press "Search", then find and click the 1st search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Power
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[1]/a // The result appears on the first page. Click the first result
+
+task: use the textbox to enter "Port" and press "Search", then find and click the 8th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Port
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 8th result is located
+5. clickxpath //*[@id="page-content"]/div[2]/a // Each page contains three results and 8-6=2. Click the second result to select 8th result by clicking the first a tag.
+
+task: use the textbox to enter "Language" and press "Search", then find and click the 3rd search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Language
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[3]/a // The result appears on the first page. Click the third result
+
+task: use the textbox to enter "Cat" and press "Search", then find and click the 2nd search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Cat
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[2]/a // The result appears on the first page. Click the second result
+
+task: use the textbox to enter "Samsung" and press "Search", then find and click the 7th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Samsung
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 7th result is located
+5. clickxpath //*[@id="page-content"]/div[1]/a // Each page contains three results and 7-6=1. Click the first result to select 7th result by clicking the first a tag.
+
+task: use the textbox to enter "Naver" and press "Search", then find and click the 4th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Naver
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 4th result is located
+5. clickxpath //*[@id="page-content"]/div[1]/a // Each page contains three results and 4-3=1. Click the first result to select 4th result by clicking the first a tag.
+
+task: use the textbox to enter "Glass" and press "Search", then find and click the 7th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Glass
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 7th result is located
+5. clickxpath //*[@id="page-content"]/div[1]/a // Each page contains three results and 7-6=1. Click the first result to select 7th result by clicking the first a tag.
+
+task: use the textbox to enter "Baby" and press "Search", then find and click the 6th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Baby
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 6th result is located
+5. clickxpath //*[@id="page-content"]/div[3]/a // Each page contains three results and 6-3=3. Click the thrid result to select 6th result by clicking the first a tag.
+
+task: use the textbox to enter "Grill" and press "Search", then find and click the 8th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Grill
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[5]/a // First, move to the corresponding result page. You need to move to the third page where the 8th result is located
+5. clickxpath //*[@id="page-content"]/div[2]/a // Each page contains three results and 8-6=2. Click the second result to select 8th result by clicking the first a tag.
+
+task: use the textbox to enter "Atlas" and press "Search", then find and click the 5th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Atlas
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 5th result is located
+5. clickxpath //*[@id="page-content"]/div[2]/a // Each page contains three results and 5-3=2. Click the second result to select 5th result by clicking the first a tag.
+
+task: use the textbox to enter "Monday" and press "Search", then find and click the 2nd search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Monday
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[2]/a // The result appears on the first page. Click the second result
+
+task: use the textbox to enter "Cat" and press "Search", then find and click the 3rd search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Cat
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="page-content"]/div[3]/a // The result appears on the first page. Click the third result
+
+task: use the textbox to enter "Bear" and press "Search", then find and click the 4th search result.
+plan:
+1. clickxpath //*[@id="search-text"] // click the input box
+2. type Bear
+3. clickxpath //*[@id="search"]
+4. clickxpath //*[@id="pagination"]/li[4]/a // First, move to the corresponding result page. You need to move to the second page where the 4th result is located
+5. clickxpath //*[@id="page-content"]/div[1]/a // Each page contains three results and 4-3=1. Click the first result to select 4th result by clicking the first a tag.

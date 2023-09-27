@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Dialog Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" type="text/css" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { height: 100px; display: block; }
+#dialog { height: auto !important; }
+.ui-dialog { font-size: 10px; }
+.ui-dialog .ui-dialog-titlebar { padding: 2px 3px; height: 15px; }
+.ui-button { outline: 0; }
+</style>
+
+<script>
+var BUTTONS = ['Cancel', 'OK', 'x'];
+
+var resetUI = function(div){
+  if(div.html().length > 0) $('#dialog').dialog('destroy');
+  div.empty(); // clear previous problem, if any
+}
+
+// generate the dialog box, the contents inside it, and some
+// randomized margins to move it around the div.
+var generateDialog = function(div){
+  var html = '<p>' + ui_utils.generateWords(4,8) + '</p>';
+  div.append(html);
+  var expectedButton = core.sample(BUTTONS);
+
+  $('#dialog').dialog({
+    height: 0,
+    width: 0,
+    position: {my: 'center', at: 'center', of: document.getElementById('area')},
+    buttons: [
+      { text: 'Cancel', click: function(e) {
+        var r = e.target.innerHTML === expectedButton ? 1.0 : -1.0;
+        core.endEpisode(r, r > 0);
+      } },
+      { text: 'OK', click: function(e) {
+        var r = e.target.innerHTML === expectedButton ? 1.0 : -1.0;
+        core.endEpisode(r, r > 0);
+      } }
+    ]
+  });
+
+  $('.ui-dialog')[0].style.margin = core.randi(15,25) + 'px ' + core.randi(5,10) + 'px';
+  $('.ui-dialog')[0].style.width = core.randi(115,140) + 'px';
+
+  return expectedButton;
+}
+
+var genProblem = function() {
+  // generate the task
+  var div = $('#dialog');
+  resetUI(div);
+  var expectedButton = generateDialog(div);
+
+  $('#query').html('Click the button in the dialog box labeled "' + expectedButton + '".');
+
+  $('.ui-dialog-titlebar button.ui-button').on('click', function(e){
+    var r = expectedButton === 'x' ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"><div id='dialog'></div></div>
+</div>
+</body>
+</html>

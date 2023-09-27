@@ -1,0 +1,93 @@
+# packages in environment at /Users/shaokunzhang/anaconda3/envs/py3.9:
+#
+# Name                    Version                   Build  Channel
+aiohttp                   3.8.4                    pypi_0    pypi
+aiosignal                 1.3.1                    pypi_0    pypi
+annotated-types           0.5.0                    pypi_0    pypi
+async-timeout             4.0.2                    pypi_0    pypi
+attrs                     23.1.0                   pypi_0    pypi
+blas                      1.0                         mkl  
+ca-certificates           2023.05.30           hecd8cb5_0  
+certifi                   2023.5.7                 pypi_0    pypi
+charset-normalizer        3.2.0                    pypi_0    pypi
+cloudpickle               2.2.1                    pypi_0    pypi
+computergym               1.0.0                     dev_0    <develop>
+contourpy                 1.1.0                    pypi_0    pypi
+cycler                    0.11.0                   pypi_0    pypi
+diskcache                 5.6.1                    pypi_0    pypi
+docker                    6.1.3                    pypi_0    pypi
+exceptiongroup            1.1.2                    pypi_0    pypi
+farama-notifications      0.0.4                    pypi_0    pypi
+flaml                     1.2.4                    pypi_0    pypi
+fonttools                 4.41.0                   pypi_0    pypi
+frozenlist                1.4.0                    pypi_0    pypi
+goto-statement            1.2                      pypi_0    pypi
+gym                       0.26.2                   pypi_0    pypi
+gym-notices               0.0.8                    pypi_0    pypi
+gymnasium                 0.28.1                   pypi_0    pypi
+h11                       0.14.0                   pypi_0    pypi
+idna                      3.4                      pypi_0    pypi
+importlib-metadata        6.8.0                    pypi_0    pypi
+importlib-resources       6.0.0                    pypi_0    pypi
+intel-openmp              2023.1.0         ha357a0b_43547  
+jax-jumpy                 1.0.0                    pypi_0    pypi
+joblib                    1.3.1                    pypi_0    pypi
+kiwisolver                1.4.4                    pypi_0    pypi
+libcxx                    14.0.6               h9765a3e_0  
+libffi                    3.4.4                hecd8cb5_0  
+libgfortran               5.0.0           11_3_0_hecd8cb5_28  
+libgfortran5              11.3.0              h9dfd629_28  
+lightgbm                  4.0.0                    pypi_0    pypi
+llvm-openmp               14.0.6               h0dcd299_0  
+matplotlib                3.7.2                    pypi_0    pypi
+miniwob                   0.0.1                    pypi_0    pypi
+mkl                       2023.1.0         h59209a4_43558  
+mkl-service               2.4.0            py39h6c40b1e_1  
+mkl_fft                   1.3.6            py39h07fba90_1  
+mkl_random                1.2.2            py39h07fba90_1  
+multidict                 6.0.4                    pypi_0    pypi
+ncurses                   6.4                  hcec6c5f_0  
+numpy                     1.25.1                   pypi_0    pypi
+numpy-base                1.25.0           py39ha186be2_0  
+openai                    0.27.8                   pypi_0    pypi
+openssl                   3.0.9                hca72f7f_0  
+outcome                   1.2.0                    pypi_0    pypi
+packaging                 23.1                     pypi_0    pypi
+pandas                    2.0.3                    pypi_0    pypi
+pillow                    10.0.0                   pypi_0    pypi
+pip                       23.1.2           py39hecd8cb5_0  
+pydantic                  2.0.3                    pypi_0    pypi
+pydantic-core             2.3.0                    pypi_0    pypi
+pyparsing                 3.0.9                    pypi_0    pypi
+pysocks                   1.7.1                    pypi_0    pypi
+python                    3.9.17               h5ee71fb_0  
+python-dateutil           2.8.2                    pypi_0    pypi
+pytz                      2023.3                   pypi_0    pypi
+readline                  8.2                  hca72f7f_0  
+regex                     2023.6.3                 pypi_0    pypi
+requests                  2.31.0                   pypi_0    pypi
+scikit-learn              1.3.0                    pypi_0    pypi
+scipy                     1.11.1                   pypi_0    pypi
+selenium                  4.9.0                    pypi_0    pypi
+setuptools                67.8.0           py39hecd8cb5_0  
+six                       1.16.0                   pypi_0    pypi
+sniffio                   1.3.0                    pypi_0    pypi
+sortedcontainers          2.4.0                    pypi_0    pypi
+sqlite                    3.41.2               h6c40b1e_0  
+tbb                       2021.8.0             ha357a0b_0  
+threadpoolctl             3.2.0                    pypi_0    pypi
+tk                        8.6.12               h5d9f67b_0  
+tqdm                      4.65.0                   pypi_0    pypi
+trio                      0.22.2                   pypi_0    pypi
+trio-websocket            0.10.3                   pypi_0    pypi
+typing-extensions         4.7.1                    pypi_0    pypi
+tzdata                    2023.3                   pypi_0    pypi
+urllib3                   1.26.16                  pypi_0    pypi
+websocket-client          1.6.1                    pypi_0    pypi
+wheel                     0.38.4           py39hecd8cb5_0  
+wsproto                   1.2.0                    pypi_0    pypi
+xgboost                   1.7.6                    pypi_0    pypi
+xz                        5.4.2                h6c40b1e_0  
+yarl                      1.9.2                    pypi_0    pypi
+zipp                      3.16.2                   pypi_0    pypi
+zlib                      1.2.13               h4dc903c_0  

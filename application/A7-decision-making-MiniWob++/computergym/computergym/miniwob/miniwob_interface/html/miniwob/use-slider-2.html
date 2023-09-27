@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Use Slider Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { padding: 10px; }
+#subbtn { display: block; margin-top: 5px; }
+#val { margin-top: 5px; margin-left: 5px; display: inline-block; }
+#slider { display: inline-block; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 20000; // set episode interval to 20 seconds
+var SLIDERS = 3;
+var LOWER_BOUND = 0;
+var UPPER_BOUND = 20;
+
+var resetSliders = function(){
+  for(var i=1;i<=SLIDERS;i++){
+    var sliderId = '#slider-' + i.toString();
+    var slider = $(sliderId).slider({
+      change: function(event, ui) {
+        var output = this.getAttribute('data-output');
+        document.getElementById(output).innerHTML = ui.value;
+      },
+      min: LOWER_BOUND,
+      max: UPPER_BOUND,
+      step: 1,
+      value: core.randi(LOWER_BOUND, UPPER_BOUND+1),
+      orientation: 'horizontal',
+      // function below updates the text value as the slider slides,
+      // as opposed to only updating the value once the slider is released.
+      slide: function(event,ui){
+        var output = this.getAttribute('data-output');
+        document.getElementById(output).innerHTML = ui.value;
+      },
+    });
+    document.getElementById('val-' + i.toString()).innerHTML = slider.slider('value');
+  }
+}
+
+var genProblem = function() {
+  resetSliders();
+
+  var sliderCombo = [];
+  for(var i=0;i<SLIDERS;i++){
+    var expectedNumber = core.randi(LOWER_BOUND, UPPER_BOUND+1);
+    sliderCombo.push(expectedNumber);
+  }
+  d3.select('#query').html('Set the sliders to the combination ' + JSON.stringify(sliderCombo) + ' and submit.');
+  d3.select('#subbtn').on('click', function(){
+    var userCombo = []
+    for(var i=1;i<=SLIDERS;i++){
+      var userNumber = parseInt(document.getElementById('val-'+i.toString()).innerHTML,10);
+      userCombo.push(userNumber);
+    }
+    var r = JSON.stringify(userCombo) === JSON.stringify(sliderCombo) ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="slider-1" data-output="val-1"></div>
+    <div id="val-1">0</div>
+    <div id="slider-2" data-output="val-2"></div>
+    <div id="val-2">0</div>
+    <div id="slider-3" data-output="val-3"></div>
+    <div id="val-3">0</div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

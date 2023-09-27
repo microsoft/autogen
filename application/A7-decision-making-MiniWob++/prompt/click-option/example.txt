@@ -1,0 +1,5 @@
+Example plans)
+The task is to select the radio button labeled "Rf" and click the "Submit" button.
+Here is a plan to solve this example task on the same webpage with the autonomous agent. 
+1. clickxpath //label[input[@id='ch4']]
+2. clickxpath //button[@id='subbtn']

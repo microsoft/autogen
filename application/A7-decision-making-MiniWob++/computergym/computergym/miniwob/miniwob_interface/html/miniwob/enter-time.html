@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Enter Time Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#area { margin: 5px; }
+input { margin: 5px 0; width: 100px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script>
+core.EPISODE_MAX_TIME = 2000000; // set episode interval to 20 seconds
+// only need the time from the date, but generate a random one anyways.
+var START_DATE = new Date(2016, 0, 1); // January 1, 2015
+var END_DATE = new Date(2016, 11, 31); // December 31, 2016
+
+var genProblem = function() {
+  var d = ui_utils.randomDate(START_DATE, END_DATE);
+  d3.select('#tt')[0][0].value = '';
+
+  var readableTime = d.toLocaleTimeString().replace(/([\d]+:[\d]{2})(:[\d]{2})(.*)/, '$1$3');
+  // perform some string concatenation to give hours/minutes a leading zero if needed.
+  var expectedOutput = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+
+  d3.select('#query').html('Enter ' + readableTime + ' as the time and press submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var t = d3.select('#tt')[0][0].value;
+    var r = t === expectedOutput ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  })
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="form">
+      <input type="time" id="tt">
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

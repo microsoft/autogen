@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Simon Says Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#area { height: 160px; margin: 20px;}
+#area button { width: 50px; height: 50px; margin: 3px 1px;}
+#area button:focus { outline: 0; }
+
+#button-1 { background-color: #4286f4; }
+#button-1:active, #button-1.push { background-color: #93deff; }
+
+#button-2 { background-color: #f44242; }
+#button-2:active, #button-2.push { background-color: #ffa0a0; }
+
+#button-3 { background-color: #42f47d; }
+#button-3:active, #button-3.push { background-color: #bcffa0; }
+
+#button-4 { background-color: #e7f215; }
+#button-4:active, #button-4.push { background-color: #faffaa; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script>
+core.EPISODE_MAX_TIME = 15000; // set episode interval to 15 seconds
+var BLINK_START = 600; // in ms
+var BLINK_END = 250;
+var BUTTONS = 4;
+
+var animateButtons = function(sequence){
+  for(var i=0; i<sequence.length; i++){
+    var $button = $('#button-' + sequence[i].toString());
+    animateButton($button, (i+1)*BLINK_START);
+  }
+}
+
+var animateButton = function($button, timeout){
+  setTimeout(function(){
+   $button.toggleClass('push');
+   setTimeout(function(){
+      $button.toggleClass('push');
+    }, BLINK_END);
+  }, timeout);
+}
+
+var genProblem = function() {
+  // clear everything
+  var pushedButtons = [];
+  var sequence = [];
+
+  var sequenceLength = Math.floor(Math.random()*3)+3; // Choose a number between 3-5.
+  for(var i=0;i<sequenceLength;i++){
+    var randNumb = Math.floor(Math.random()*BUTTONS)+1;
+    sequence.push(randNumb);
+  }
+  animateButtons(sequence);
+  d3.select('#query').html('Push the buttons in the order displayed.');
+
+  // track pushed buttons
+  $('#area button').on('click', function(){
+    var id = parseInt($(this).attr('data-button'),10);
+    pushedButtons.push(id);
+    if(sequence.length == pushedButtons.length){
+      var r = pushedButtons.every(function(v,i){return v == sequence[i]})  ? 1.0 : -1.0;
+      core.endEpisode(r);
+    }
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <button id="button-1" data-button="1"></button>
+    <button id="button-2" data-button="2"></button>
+    <br><button id="button-3" data-button="3"></button>
+    <button id="button-4" data-button="4"></button>
+  </div>
+</div>
+</body>
+</html>

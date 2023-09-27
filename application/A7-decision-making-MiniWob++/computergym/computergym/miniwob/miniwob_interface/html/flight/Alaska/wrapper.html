@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Alaska</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../../core/core.css">
+<link rel="stylesheet" type="text/css" href="../flight-common/wrapper.css">
+<!-- JS -->
+<script src="../../core/core.js"></script>
+<script src="../flight-common/wrapper.js"></script>
+<script src="dataset-Alaska.js"></script>
+
+<script>
+core.EPISODE_MAX_TIME = 60000;  // 1 minute
+core.requiredFields = [
+  "SearchFields.DepartureCity",
+  "SearchFields.ArrivalCity",
+  "SearchFields.DepartureDate",
+  "SearchFields.ReturnDate",
+];
+
+window.onload = function() {
+  core.startEpisode();
+  document.body.removeEventListener('click', core.canvasDrawClick);
+}
+</script>
+</head>
+
+<body>
+<div id="query-wrap">
+  <div id="query-pretty">(Instruction)</div>
+  <div id="query">(Raw query)</div>
+  <div id="reward-reason">(Reward reason)</div>
+</div>
+<iframe id="wrap" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+</body>
+</html>

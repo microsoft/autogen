@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Cube Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" type="text/css" href="../common/special/drag-cube/cube.css">
+<style>
+body { user-select: none; }
+#subbtn { -webkit-user-select: none; margin: 7px 30px; }
+.bold { font-weight: bold; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/special/drag-cube/cube.js"></script>
+<script>
+// thank you to Jordan Leigh via http://jordizle.com and http://codepen.io/jordizle/pen/haIdo/
+// for the inspiration for this problem!
+</script>
+<script>
+core.EPISODE_MAX_TIME = 15000; // set episode interval to 15 seconds
+
+var genProblem = function() {
+  //reset the cube
+  cubePuzzle.reset();
+  var q = core.randi(1,7).toString();
+  d3.select('#query').html('Move the cube around so that "<span class="bold">' + q + '</span>" is the active side facing the user.');
+
+  // reward awarder
+  d3.select('#subbtn').on('click', function(){
+    var t = document.body.getElementsByClassName('active')[0].innerHTML;
+    var r = t === q ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function(){
+  cubePuzzle.setup();
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="wrapper">
+      <div class="viewport">
+        <div class="cube">
+          <div class="side">
+            <div class="cube-image">1</div>
+          </div>
+          <div class="side">
+            <div class="cube-image">2</div>
+          </div>
+          <div class="side">
+            <div class="cube-image">3</div>
+          </div>
+          <div class="side">
+            <div class="cube-image">4</div>
+          </div>
+          <div class="side">
+            <div class="cube-image">5</div>
+          </div>
+          <div class="side">
+            <div class="cube-image active">6</div>
+          </div>
+        </div>
+      </div>
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

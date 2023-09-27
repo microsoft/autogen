@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en-US" class="no-js">
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta charset="utf-8"/>
+<meta name="theme-color" content="#01426a">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0"/>
+<link href="/mobileweb-v3-28-6227-21813.css?v=XHyha557bsSUJfTEr3sGI5HpMN4Y3mWWGHRlc2q4XQw1" rel="stylesheet"/>
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" href="/images/apple-touch-icon-precomposed2.png" />
+<link rel="apple-touch-icon" sizes="114x114" href="/images/apple-touch-icon2.png" />
+<script type="text/javascript">
+    window.Modernizr = function (a, b, c) { function u(a) { j.cssText = a } function v(a, b) { return u(prefixes.join(a + ";") + (b || "")) } function w(a, b) { return typeof a === b } function x(a, b) { return !!~("" + a).indexOf(b) } function y(a, b, d) { var e, f; for (e in a) { f = b[a[e]]; if (f !== c) return d === !1 ? a[e] : w(f, "function") ? f.bind(d || b) : f } return !1 } var d = "2.5.3", e = {}, f = !0, g = b.documentElement, h = "modernizr", i = b.createElement(h), j = i.style, k, l = {}.toString, m = {}, n = {}, o = {}, p = [], q = p.slice, r, s = {}.hasOwnProperty, t, z; t = !w(s, "undefined") && !w(s.call, "undefined") ? function (a, b) { return s.call(a, b) } : function (a, b) { return b in a && w(a.constructor.prototype[b], "undefined") }, Function.prototype.bind || (Function.prototype.bind = function (b) { var c = this, d, e; if (typeof c != "function") throw new TypeError; return d = q.call(arguments, 1), e = function () { var a, f, g; return this instanceof e ? (a = function () { }, a.prototype = c.prototype, f = new a, g = c.apply(f, d.concat(q.call(arguments))), Object(g) === g ? g : f) : c.apply(b, d.concat(q.call(arguments))) }, e }), m.geolocation = function () { return !!navigator.geolocation }, m.localstorage = function () { try { return localStorage.setItem(h, h), localStorage.removeItem(h), !0 } catch (a) { return !1 } }, m.applicationcache = function () { return !!a.applicationCache }; for (z in m) t(m, z) && (r = z.toLowerCase(), e[r] = m[z](), p.push((e[r] ? "" : "no-") + r)); return u(""), i = k = null, e._version = d, g.className = g.className.replace(/(^|\s)no-js(\s|$)/, "$1$2") + (f ? " js " + p.join(" ") : ""), e }(this, this.document)
+</script>
+    <script>
+        // DO NOT MODIFY BELOW THIS LINE *****************************************
+        ;(function (g) {
+            var d = document, i, am = d.createElement('script'), h = d.head || d.getElementsByTagName("head")[0],
+                    aex = {
+                        "src": "//gateway.answerscloud.com/" + "alaskaair" + "/" + "production" + "/gateway.min.js",
+                        "type": "text/javascript",
+                        "async": "true",
+                        "data-vendor": "acs",
+                        "data-role": "gateway"
+                    };
+            for (var attr in aex) { am.setAttribute(attr,aex[attr]); }
+            h.appendChild(am);
+            g['acsReady'] = function () {var aT = '__acsReady__', args = Array.prototype.slice.call(arguments, 0),k = setInterval(function () {if (typeof g[aT] === 'function') {clearInterval(k);for (i = 0; i < args.length; i++) {g[aT].call(g, function(fn) { return function() { setTimeout(fn, 1) };}(args[i]));}}}, 50);};
+        })(window);
+        // DO NOT MODIFY ABOVE THIS LINE *****************************************
+    </script>
+	<meta name="format-detection" content="telephone=no">
+	<title>Book a flight | Alaska Airlines Mobile</title>
+	<meta name="description" content="Book your next flight or find the cheapest fare on the go from your mobile device." />
+	<meta name="keywords" content="mobile, mobile booking, book, book flights, alaskan airlines, alaskaair, alaskaair com, alaskaairline" />
+	<link rel="canonical" href="http://www.alaskaair.com/planbook" />
+</head>
+<body>
+   	<a href="/" role="navigation" class="banner" title="Home"><img src="/images/logo2.png" class="alaska_logo" alt="Alaska Airlines" /></a>
+<div id="client-msg-div"></div>
+    <div role="main" id="main">
+		<div id="starth1" class="header">
+			<h1 class="h1">Book a flight</h1>
+		</div>
+<form action="/shopping/flights" id="searchForm" method="post" onsubmit="Alaska.spinner.show(); createSearchCookie();">	<input id="server-date" type="hidden" value="2/12/2017" />
+    <input id="cacheId" name="CacheId" type="hidden"/>
+    <input id="searchType" type="hidden" value="RoundTrip" />
+    <input id="depShldrSel" name="SaveFields.DepShldrSel" type="hidden" value="False"/>
+    <input id="retShldrSel" name="SaveFields.RetShldrSel" type="hidden" value="False"/>
+    <input id="SelDepOptId" name="SaveFields.SelDepOptId" type="hidden" value="-1"/>
+    <input id="SelDepFareCode" name="SaveFields.SelDepFareCode" type="hidden" value=""/>
+    <input id="SelRetOptId" name="SaveFields.SelRetOptId" type="hidden" value="-1"/>
+    <input id="SelRetFareCode" name="SaveFields.SelRetFareCode" type="hidden" value=""/>
+	<div class="form-row group">
+		<div class="left">
+			<input id="srh-isow" class="css-chkbox" type="checkbox" onchange="Alaska.toggleSearch(this);"  />
+			<label for="srh-isow" class="css-lbl" onclick="">One-way</label> 
+		</div>
+		<div class="right" id="use-miles-div">
+			<input id="srh-is-miles" class="css-chkbox" type="checkbox" onchange="Alaska.toggleMiles(this);" name="SearchFields.IsAwardBooking" value="true" >
+			<label for="srh-is-miles" class="css-lbl" onclick="">Use miles</label> 
+			<input type="hidden" name="SearchFields.IsAwardBooking" value="false" />
+		</div>
+	</div>
+<input data-val="true" data-val-required="The SearchType field is required." id="srh-type" name="SearchFields.SearchType" type="hidden" value="RoundTrip" />	<div class="form-row geo-wrap" id="geo-from-wrap">
+		<label for="geo-from" class="text-label">
+			From <input autocomplete="off" autocorrect="off" class="text-input-pad" id="geo-from" name="SearchFields.DepartureCity" type="text" value="" /></label>
+		<div class="cleartxt" onclick="Alaska.clearTxt(this)"></div>
+		<div class="geo-button" id="geo-from-button"><span class="geo-img">Geolocation</span></div>
+	</div>
+    <div class="form-row geo-wrap" id="geo-to-wrap">
+		<label for="geo-to" class="text-label">
+			To <input autocomplete="off" autocorrect="off" class="text-input-pad" id="geo-to" name="SearchFields.ArrivalCity" type="text" value="" /></label>
+		<div class="cleartxt" onclick="Alaska.clearTxt(this)"></div>
+		<div class="geo-button" id="geo-to-button"><span class="geo-img">Geolocation</span></div>
+	</div>
+	<div class="form-row group">
+		<div class="datecnt left">
+			<label id="lbldep-date" for="departure-date" class="text-label">Depart</label>
+			<input autocomplete="off" autocorrect="off" class="text-input calbg" id="departure-date" maxlength="10" name="SearchFields.DepartureDate" type="text" value="" />
+		</div>
+		<div id="rt-container" class="datecnt right" style="">
+			<label id="lblret-date" for="return-date" class="text-label">Return</label>
+			<input autocomplete="off" autocorrect="off" class="text-input calbg" id="return-date" maxlength="10" name="SearchFields.ReturnDate" type="text" value="" />
+		</div>
+		<div class="clear"></div>
+	</div>
+    <div class="form-row">
+		<label for="num-travelers" class="text-label">Number of passengers</label>
+		<div id="num-travelers-cnt" class="left group">
+			<div class="tnum-button" onclick="Alaska.numTravelers(0);">-</div>
+			<div id="tnum-display">1</div>
+			<div class="tnum-button" onclick="Alaska.numTravelers(1);">+</div>
+		</div>
+		<input data-val="true" data-val-number="The field NumberOfTravelers must be a number." data-val-required="The NumberOfTravelers field is required." id="num-travelers" name="SearchFields.NumberOfTravelers" type="hidden" value="1" />
+			<a id="umnrlink" class="right" href="javascript:Alaska.UMNRMsg(0)">Child traveling alone?</a>
+		<div class="clear"></div>
+	</div>
+    <div id="moreoptionsdiv" class="drop">
+        <h2 class="closed drop-head">More search options</h2>
+        <div class="drop-content">
+            <div style="margin-bottom:1.5em;">
+                <div id="cabin-container" class="form-row">
+                    <div class="row-label-head" style="margin-bottom:5px;">Cabin</div>
+                    <div class="form-row radio-controller two group">
+                        <label for="cabin-coach" class="left-link current" onclick="Alaska.toggleRadio(this);Alaska.toggleUpgs();"><input checked="checked" data-val="true" data-val-required="The CabinType field is required." id="cabin-coach" name="SearchFields.CabinType" type="radio" value="Coach" />Coach</label>
+                        <label for="cabin-first" class="right-link " onclick="Alaska.toggleRadio(this);Alaska.toggleUpgs();"><input id="cabin-first" name="SearchFields.CabinType" type="radio" value="First" /><span id="cabin-ftext">First</span></label>
+                    </div>
+                </div>
+                <div id="upg-container" class="form-row">
+                    <div class="row-label-head" style="margin-bottom:5px;">Upgrade options</div>
+                    <div class="form-row radio-controller five group upg-options-container">
+                        <label for="upg-none" class="left-link current" onclick="Alaska.toggleRadio(this);"><input checked="checked" data-val="true" data-val-required="The UpgradeOption field is required." id="upg-none" name="SearchFields.UpgradeOption" type="radio" value="none" />None</label>
+                        <label for="upg-mvp" class="center-link " onclick="Alaska.toggleRadio(this);"><input id="upg-mvp" name="SearchFields.UpgradeOption" type="radio" value="mvpupg" />MVP&reg;</label>
+                        <label for="upg-gold" class="center-link " onclick="Alaska.toggleRadio(this);"><input id="upg-gold" name="SearchFields.UpgradeOption" type="radio" value="goldupg" />Gold</label>
+                        <label for="upg-gold75k" class="center-link " onclick="Alaska.toggleRadio(this);"><input id="upg-gold75k" name="SearchFields.UpgradeOption" type="radio" value="gold75kupg" />Gold 75k</label>
+                        <label for="upg-miles" class="right-link " onclick="Alaska.toggleRadio(this);"><input id="upg-miles" name="SearchFields.UpgradeOption" type="radio" value="mileageupg" />Miles</label>
+                    </div>
+                </div>
+                <div class="form-row discount-code-wrap" id="discount-code-container">
+                    <label for="discount-code" class="text-label">
+                        Discount code
+                        <input class="text-input clear" id="discount-code" maxlength="30" name="SearchFields.DiscountCode" type="text" value="" />
+                        <input id="DiscountCode" name="DiscountCode" type="hidden" value="" />
+                        <input id="SourcePage" name="SourcePage" type="hidden" value="Search" />
+                    </label>
+                    <div class="cleartxt" onclick="Alaska.clearTxt(this)"></div>
+                    <div class="info-button"><span class="info-img" onclick="Alaska.verifyDiscountCode();"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="is-cal-div" style="padding-top:25px;padding-bottom:13px">
+        <input id="deals-link" name="deals-link" type="hidden" value="" />
+        <input type="checkbox" id="is-cal" name="SearchFields.IsCalendar" class="css-chkbox" value="true" onclick="Alaska.toggleCal(this);"  />
+        <label for="is-cal" class="css-lbl">
+            View results on low-fare calendar
+        </label>
+        <input type="hidden" name="SearchFields.IsCalendar" value="false" />
+    </div>
+	<div class="form-row last" style="padding-top:15px">
+		<input type="submit" class="button" value ="Find Flights" />
+	</div>
+    <script type="text/javascript">
+        var enableCookiesMsg = "Cookies must be enabled to use this feature.";
+    </script>
+</form>
+		<div id="spinner-cnt" class="disable-ui" style="display: none;">
+    <div id="aSpinner" class="container" style="position: absolute;">
+        <div class="spinner">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+            <div class="bar4"></div>
+            <div class="bar5"></div>
+            <div class="bar6"></div>
+            <div class="bar7"></div>
+            <div class="bar8"></div>
+            <div class="bar9"></div>
+            <div class="bar10"></div>
+            <div class="bar11"></div>
+            <div class="bar12"></div>
+        </div>
+    </div>
+</div>
+	</div>
+	<div id="footer-wrapper">
+<ul id="footer-nav" class="group">
+	<li id="help-link"><a href="/faq">FAQ</a></li>
+	<li id="full-link"><a href="http://www.alaskaair.com/?SITE_PREF=full&amp;cid=mobsite-home" onclick="trackFullSiteLink();">Full site</a></li>
+    <li id="legal-link"><a href="http://www.alaskaair.com/content/legal/consumer-notices.aspx?cid=mobsite-legal">Legal</a></li>
+	<li id="privacy-link"><a href="http://www.alaskaair.com/content/legal/privacy-policy.aspx?cid=mobsite-privacypolicy">Privacy</a></li>
+	<li id="contact-link"><a href="/contact">Contact us</a></li>
+</ul>
+    <div id="more-links"></div>  
+<div id="copyright">&copy; 2017 Alaska Airlines, Inc.</div>
+<div id="debug">v3-28-6227-21813  </div>
+</div>
+<script type="text/javascript" src="/scripts/main.js?v3-28-6227-21813"></script>
+<script type="text/javascript" src="/scripts/shopbook.js?v3-28-6227-21813"></script>
+<script type="text/javascript">var s_account = "alaskamobilesite";</script><script src="/scripts/omniture.js?v3-28-6227-21813" type="text/javascript"></script>
+<img alt="" class="t-pixel" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/1054000976/?value=0&label=Pf7ICLiz5wMQ0I7L9gM&guid=ON&script=0" />
+<script>(function(w,d,t,r,u){var f,n,i;w[u]=w[u]||[],f=function(){var o={ti:"4028467"};o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")},n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function(){var s=this.readyState;s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)},i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)})(window,document,"script","//bat.bing.com/bat.js","uetq");</script> 
+	<script type="text/javascript" src="/scripts/datepickr.js?v3-28-6227-21813"></script>
+	<script type="text/javascript">clearShopAllCookie(); InitSearch();</script>
+	<script type="text/javascript">s.pageName = "Shopping: Flight Search";s.channel = "Shopping";s.server = "SEAV1";var runOmni=true;</script>
+</body>
+</html>

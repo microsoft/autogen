@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Focus Text Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+input { width: 100px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script>
+var randomizeInput = function(textbox){
+  // move the text field around
+
+  var marginLeft = 'margin-left:'+core.randi(0,20)+'px;';
+  var marginTop = 'margin-top:'+core.randi(0,140)+'px;';
+
+  textbox.setAttribute('style', marginLeft + marginTop);
+}
+
+var genProblem = function() {
+  var textbox = d3.select('#tt')[0][0];
+  textbox.value = '';
+  randomizeInput(textbox);
+
+  d3.select('#query').html('Focus into the textbox.');
+
+  // reward awarder
+  d3.select('#tt').on('focus', function(){
+    this.blur();
+    var r = 1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <input type="text" id="tt">
+  </div>
+</div>
+</body>
+</html>

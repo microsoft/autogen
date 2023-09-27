@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Number Checkboxes Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#area { position: relative; }
+#subbtn { bottom: 0px; margin: 2px 12px; }
+#checkboxes { height: 115px; padding: 5px 0 0 10px; width: 75px; }
+#area p { margin: 1px; height: 15px; }
+#area p input { margin: 1px 2px; }
+#area aside { float: right; height: 125px; width: 72px; overflow: hidden; }
+#area aside div { padding: 5px 0;}
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script>
+// thank you to Jake Albaugh via http://jakealbaugh.com/ and https://codepen.io/jakealbaugh/details/yOQEOo
+// for the inspiration for this problem!
+</script>
+<script>
+core.EPISODE_MAX_TIME = 30000; // set episode interval to 30 seconds
+
+var CHECKBOXES = `<p><input type="checkbox"><input type="checkbox"><input type="checkbox"><input type="checkbox"><label></label></p>`
+var BOX_ACTIVE = `<input type="checkbox" checked disabled>`
+var BOX_INACTIVE = `<input type="checkbox" disabled>`
+var PATTERNS =  [
+  [
+    // 0
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+  ],
+  [
+    // 1
+    [0, 0, 1, 0],
+    [0, 1, 1, 0],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+  ],
+  [
+    // 2
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 0, 1, 0],
+    [0, 1, 0, 0],
+    [1, 0, 0, 0],
+    [1, 1, 1, 1],
+  ],
+  [
+    // 3
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [0, 0, 0, 1],
+    [0, 1, 1, 0],
+    [0, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+  ],
+  [
+    // 4
+    [1, 0, 0, 0],
+    [1, 0, 1, 0],
+    [1, 0, 1, 0],
+    [1, 1, 1, 1],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+  ],
+  [
+    // 5
+    [1, 1, 1, 1],
+    [1, 0, 0, 0],
+    [1, 0, 0, 0],
+    [1, 1, 1, 0],
+    [0, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+  ],
+  [
+    // 6
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 0],
+    [1, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+  ],
+  [
+    // 7
+    [1, 1, 1, 1],
+    [1, 0, 0, 1],
+    [0, 0, 0, 1],
+    [0, 0, 1, 0],
+    [0, 0, 1, 0],
+    [0, 1, 0, 0],
+    [0, 1, 0, 0],
+  ],
+  [
+    // 8
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+  ],
+  [
+    // 9
+    [0, 1, 1, 0],
+    [1, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 1],
+    [0, 0, 0, 1],
+    [1, 0, 0, 1],
+    [0, 1, 1, 0],
+  ]
+];
+
+var resetUI = function(){
+  d3.select('#checkboxes')[0][0].innerHTML = '';
+
+  var cb = d3.select('#checkboxes')[0][0];
+  for(var i=0;i<7;i++){
+    cb.innerHTML += CHECKBOXES;
+  }
+}
+
+var setupProblem = function(){
+  var expectedNumber = core.randi(0,10);
+  d3.select('#query').html('Draw the number "' + expectedNumber + '" in the checkboxes using the example on the right and press Submit when finished.');
+  d3.selectAll('aside div').style('display', 'none');
+  d3.select('#o' + expectedNumber).style('display', 'block');
+
+  return expectedNumber;
+}
+
+var genProblem = function() {
+  resetUI();
+  var expectedNumber = setupProblem();
+
+  d3.select('#subbtn').on('click', function(){
+    var r = verifyPattern(expectedNumber) ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+var verifyPattern = function(expectedNumber){
+  var pattern = PATTERNS[expectedNumber];
+  for(var i=0;i<7;i++){
+    for(var j=0;j<4;j++){
+      var cbChecked = d3.selectAll('#area input[type=checkbox]')[0][i*4+j].checked;
+      var correctValue = (pattern[i][j] === 1 && cbChecked) || (pattern[i][j] === 0 && !cbChecked);
+      if(!correctValue) return false;
+    }
+  }
+  return true;
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <aside>
+      <div id="o0"><img src="../common/special/checkbox-numbers/ch_0.png"></div>
+      <div id="o1"><img src="../common/special/checkbox-numbers/ch_1.png"></div>
+      <div id="o2"><img src="../common/special/checkbox-numbers/ch_2.png"></div>
+      <div id="o3"><img src="../common/special/checkbox-numbers/ch_3.png"></div>
+      <div id="o4"><img src="../common/special/checkbox-numbers/ch_4.png"></div>
+      <div id="o5"><img src="../common/special/checkbox-numbers/ch_5.png"></div>
+      <div id="o6"><img src="../common/special/checkbox-numbers/ch_6.png"></div>
+      <div id="o7"><img src="../common/special/checkbox-numbers/ch_7.png"></div>
+      <div id="o8"><img src="../common/special/checkbox-numbers/ch_8.png"></div>
+      <div id="o9"><img src="../common/special/checkbox-numbers/ch_9.png"></div>
+    </aside>
+    <div id="checkboxes"></div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

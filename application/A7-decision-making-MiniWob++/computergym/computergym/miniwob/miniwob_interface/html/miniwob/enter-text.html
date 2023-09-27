@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Enter Text Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+input { width: 100px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var randomizeInputs = function(){
+  // move the text field around
+  var s = '';
+  s += 'margin-left:'+core.randi(0,20)+'px;';
+  s += 'margin-top:'+core.randi(0,20)+'px;';
+  d3.select('#form').attr('style', s);
+
+  // and submit button a bit too
+  d3.select('#subbtn').attr('style', 'margin-top:'+core.randi(0,20)+'px;');
+}
+
+var genProblem = function() {
+  d3.select('#tt')[0][0].value ='';
+  randomizeInputs();
+
+  var q = core.sample(ui_utils.FIFTY_NAMES);
+  d3.select('#query').html('Enter "<span class="bold">' + q + '</span>" into the text field and press Submit.');
+
+  // reward awarder
+  d3.select('#subbtn').on('click', function(){
+    var t = d3.select('#tt')[0][0].value;
+    var r = t === q ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="form">
+      <input type="text" id="tt">
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

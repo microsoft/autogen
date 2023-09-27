@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Visual Addition Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { text-align: center; position: relative; height: 140px; }
+#math-problem { height: 30px; font-size: 30px; display: inline-block; margin-top: 20px; }
+#math-container { position: absolute; bottom: 5px; left: 10px; }
+#area #math-answer { display: inline-block; height: 19px; width: 35px; margin-left: 4px; font-size: 16px;
+  vertical-align: top; }
+#visual-1, #visual-2 { max-width: 50px; display: inline-block; }
+.math-container { display: block; margin-top: 10px; margin-bottom: 20px;  font-size: 30px; }
+.addition-block { height: 10px; width: 10px; margin: 1px; display: inline-block; border: 1px solid black;
+  float: left; background-color: #7fb0ff; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 15000; // set episode interval to 15 seconds
+var PROBLEM_TEMPLATE =
+`
+<span id="visual-1"></span>
+<span id="visual-plus">+</span>
+<span id="visual-2">+</span>
+`
+
+var VISUAL_TEMPLATE = `<span class="addition-block"></span>`
+
+var DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+var genProblem = function(){
+  d3.select('#math-problem').html(PROBLEM_TEMPLATE);
+  d3.select('#math-answer')[0][0].value = '';
+
+  var digitOne = core.sample(DIGITS);
+  var digitTwo = core.sample(DIGITS);
+
+  var expectedAnswer = (digitOne + digitTwo).toString();
+
+  var visualOne = '';
+  for(var i=0;i<digitOne;i++) visualOne += VISUAL_TEMPLATE;
+  d3.select('#visual-1').html(visualOne);
+
+  var visualTwo = '';
+  for(var i=0;i<digitTwo;i++) visualTwo += VISUAL_TEMPLATE;
+  d3.select('#visual-2').html(visualTwo);
+
+  d3.select('#subbtn').on('click', function(){
+    var userAnswer = d3.select('#math-answer')[0][0].value;
+    var r = userAnswer === expectedAnswer.toString() ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function(){
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Type the total number of blocks into the textbox and press Submit.</div>
+  <div id="area">
+    <div id="math-problem">
+      <span id="visual-1"></span>
+      <span id="visual-plus">+</span>
+      <span id="visual-2">+</span>
+    </div>
+    <div id="math-container">
+      <input type="text" id="math-answer">
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

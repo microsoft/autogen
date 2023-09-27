@@ -1,0 +1,10 @@
+Example plans)
+task: switch between the tabs to find and click on the link "amet".
+plan:
+1. Clickxpath //a[text()="1"] // first, open the proper tab where the link with a text "amet" is in
+2. Clickxpath //*[@id="tabs-1"]/p/span[text()="amet] 
+
+task: switch between the tabs to find and click on the link "gur".
+plan:
+1. Clickxpath //a[text()="4"] // first, open the proper tab where the link with a text "gur" is in
+2. Clickxpath //*[@id="tabs-4"]/p/span[text()="gur"]

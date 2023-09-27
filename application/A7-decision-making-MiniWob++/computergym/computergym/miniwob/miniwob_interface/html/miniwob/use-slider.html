@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Use Slider Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { padding: 10px; }
+#subbtn { display: block; margin-top: 5px; }
+#val { margin-top: 5px; margin-left: 5px; display: inline-block; }
+#slider { display: inline-block; }
+</style>
+
+<script>
+var genProblem = function() {
+  var vmin = core.sample([-100, 0, 10, 100]);
+  var vmax = vmin + core.sample([5, 10, 50, 100]);
+  var ori = core.sample(['horizontal', 'vertical']);
+
+  var slider = $('#slider').slider({
+    change: function(event, ui) { document.getElementById('val').innerHTML = ui.value; },
+    min: vmin,
+    max: vmax,
+    step: 1,
+    value: core.randi(vmin, vmax+1),
+    orientation: ori,
+    // function below updates the text value as the slider slides,
+    // as opposed to only updating the value once the slider is released.
+    slide: function(event,ui){ $('#val').text(ui.value); },
+  });
+
+  if(ori === 'horizontal') {
+    d3.select('#slider').attr('style', 'width:' + core.randi(50, 115) + 'px;');
+  } else {
+    d3.select('#slider').attr('style', 'height:' + core.randi(50, 115) + 'px;');
+  }
+
+  document.getElementById('val').innerHTML = slider.slider('value');
+  var n = core.randi(vmin,vmax+1);
+  d3.select('#query').html('Select ' + n + ' with the slider and hit Submit.');
+  d3.select('#subbtn').on('click', function(){
+    var nsel = slider.slider('value');
+    var r = nsel === n ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="slider"></div>
+    <div id="val">0</div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

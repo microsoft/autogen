@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Social Media All Task</title>
+<!-- credit to flaticon.com for the icons used in this task. -->
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { height: 150px; position: relative; overflow-y: scroll; overflow-x: hidden; }
+
+.media { height: 60px; border: 1px solid #E1E8ED; position: relative; margin: 0; }
+.media:hover { background-color: #F5F8FA !important; }
+.details { margin: 2px 4px; }
+.body { margin: 3px 4px; }
+.name { font-weight: bold; }
+
+.username, .spacer, .time { color: #555; font-size: 9px; }
+
+.reply { content:url(../common/special/social-media/reply.png); }
+.reply:hover, .reply.active { content:url(../common/special/social-media/reply-hover.png); }
+
+.retweet { content:url(../common/special/social-media/retweet.png); height: 16px !important; }
+.retweet:hover, .retweet.active { content:url(../common/special/social-media/retweet-hover.png); height: 16px !important; }
+
+.like { content:url(../common/special/social-media/like.png); }
+.like:hover, .like.active {content:url(../common/special/social-media/like-hover.png); }
+
+.share { content:url(../common/special/social-media/share.png); }
+.share:hover, .share.active { content:url(../common/special/social-media/share-hover.png); }
+
+.controls { position: absolute; bottom: 0px; }
+.reply, .retweet, .like, .share { height: 14px; margin-left: 15px; }
+
+.controls span:hover, .controls ul:hover { opacity: 1.0; cursor: pointer; }
+
+.controls ul { list-style-type: none; position: absolute; margin: 0; padding: 0; background-color: #FFF; border: 1px solid #A9A9A9; z-index: 99; right: -10px;}
+.controls ul:before { content:""; position: absolute; right: 11px; top: -7px; width: 0; height: 0;
+  border-style: solid; border-width: 0 6px 6px 6px; border-color: transparent transparent #A9A9A9 transparent;
+  z-index:9999; }
+
+#submitRow { margin: 3px 0; text-align: center; }
+/* Preload images */
+body::after {
+  position:absolute; width:0; height:0; overflow:hidden; z-index:-1;
+  content:
+    url(../common/special/social-media/reply.png)
+    url(../common/special/social-media/reply-hover.png)
+    url(../common/special/social-media/retweet.png)
+    url(../common/special/social-media/retweet-hover.png)
+    url(../common/special/social-media/like.png)
+    url(../common/special/social-media/like-hover.png)
+    url(../common/special/social-media/share.png)
+    url(../common/special/social-media/share-hover.png);
+}
+
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 2000000; // 20 seconds
+
+var MEDIA_TEMPLATE = `
+  <div class="details">
+    <span class="name"></span>
+    <span class="username"></span>
+  </div>
+  <div class="body"></div>
+  <div class="controls">
+    <span class="reply"></span>
+    <span class="retweet"></span>
+    <span class="like"></span>
+    <span class="share"></span>
+  </div>
+`
+var ACTIONS = {
+  'reply': 'Reply',
+  'retweet': 'Retweet',
+  'like': 'Like',
+  'share': 'Share',
+}
+
+var totalResults = 0;
+
+var generateMedia = function(){
+  var results = [];
+  while (results.length < totalResults) {
+    var result = {};
+    if (!results.length || Math.random() < 0.3) {
+      // Generate a new name
+      var normalName = core.sample(ui_utils.FIFTY_NAMES);
+      var loremName = core.sample(ui_utils.lorem_words).replace(',', '');
+      result.name = core.sample([core.sample(ui_utils.PEOPLE_NAMES), core.sample(ui_utils.LAST_NAMES)]);
+      result.username = '@' + core.sample([normalName, loremName]).toLowerCase();
+    } else {
+      // Use the previous name
+      result.name = results[results.length - 1].name;
+      result.username = results[results.length - 1].username;
+    }
+    result.body = ui_utils.generateWords(core.randi(2,6));
+    results.push(result);
+  }
+  core.shuffle(results);
+  return results;
+}
+
+var createMediaElem = function(result, index){
+  var div = document.createElement('div');
+  div.setAttribute('class', 'media');
+  div.setAttribute('data-result', index);
+  div.innerHTML = MEDIA_TEMPLATE;
+  div.getElementsByClassName('name')[0].innerHTML = result.name;
+  div.getElementsByClassName('username')[0].innerHTML = result.username;
+  div.getElementsByClassName('body')[0].innerHTML = result.body;
+  $('#area').append(div);
+}
+
+var generateTweet = function() {
+  $('#area').append(TWEET_TEMPLATE);
+}
+
+var genProblem = function() {
+  $('#area').empty();
+  $('#area').scrollTop();
+  totalResults = core.randi(3,6);
+  var results = generateMedia();
+
+  for(var i =0;i<results.length;i++){
+    createMediaElem(results[i], i);
+  }
+
+  var expectedAction = core.sample(Object.keys(ACTIONS));
+  var expectedIndex = core.randi(0,totalResults);
+  var expectedUser = results[expectedIndex].username;
+  var numPostsByUser = results.reduce(function (count, result) {
+    return count + (result.username == expectedUser);
+  }, 0);
+  var expectedAmount = core.randi(1,numPostsByUser+1);
+  $('#query').html('Click the "<span class=bold>' + ACTIONS[expectedAction] +
+      '</span>" button on <span class=bold>' + expectedAmount +
+      '</span> post' + (expectedAmount == 1 ? '' : 's') +
+      ' by <span class=bold>' + expectedUser + '</span> and then click Submit.');
+
+  $('.reply, .retweet, .like, .share').on('click', function(){
+    $(this).toggleClass('active');
+  });
+
+  $('<p id=submitRow>').appendTo('#area');
+  $('<button type=button>').text('Submit').appendTo('#submitRow').click(function () {
+    var ok = true, count = 0;
+    $('.reply, .retweet, .like, .share').each(function () {
+      var user = $(this).parents('.media').find('.username').text();
+      var active = $(this).hasClass('active');
+      if (user === expectedUser && $(this).hasClass(expectedAction)) {
+        if (active) count++;
+      } else {
+        if (active) ok = false;
+      }
+    });
+    var r = (ok && count == expectedAmount) ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

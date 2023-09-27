@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Color Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { text-align: center; margin: 20px 0; }
+#query-color { height: 10px; width: 10px; border: 1px solid black; display: inline-block; margin: 2px 0; vertical-align: middle; }
+.color { height: 50px; width: 50px; border: 1px solid black; display: inline-block; margin: 5px; }
+</style>
+
+<script>
+var COLORS = ['red', 'blue', 'olive', 'lime', 'black', 'white', 'grey', 'purple', 'orange', 'yellow', 'cyan', 'pink', 'magenta'];
+var QUERY_COLOR = `<div id="query-color"></div>`
+var MAX_COLORS = 4;
+
+// helper function used to generate the div displaying a color.
+var generateColorBox = function(color){
+  var div = document.createElement('div');
+  div.setAttribute('class', 'color');
+  div.setAttribute('data-color', color);
+  div.setAttribute('style', 'background-color: ' + color + ';');
+  return div;
+}
+
+// generate the colors used in an episode.
+var generateColors = function(){
+  var problemSet = core.shuffle(COLORS.slice()); // make a copy of the colors.
+
+  var currentColors = [];
+  for(var c=0;c<MAX_COLORS;c++){
+    var currentColor = problemSet.pop();
+    var colorDiv = generateColorBox(currentColor);
+    d3.select('#area')[0][0].appendChild(colorDiv);
+    currentColors.push(currentColor);
+  }
+
+  return currentColors;
+}
+
+// display the episode problem
+var displayProblem = function(expectedColor){
+  if(core.randi(0,100) < 40) d3.select('#query').html('Click on the <span class="bold">' + expectedColor + '</span> colored box.');
+  else {
+    d3.select('#query').html('Click on the ' + QUERY_COLOR + ' colored box.');
+    d3.select('#query-color')[0][0].setAttribute('class', 'color');
+    d3.select('#query-color')[0][0].setAttribute('style', 'background-color: ' + expectedColor + ';');
+  }
+}
+
+var genProblem = function() {
+  // reset UI.
+  d3.selectAll('#query, #area').html('');
+
+  var currentColors = generateColors();
+  var expectedColor = core.sample(currentColors);
+  displayProblem(expectedColor);
+
+  d3.selectAll('.color').on('click', function(){
+    var color = this.getAttribute('data-color');
+    var r = expectedColor.indexOf(color) !== -1 ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+// Override: translate the box into the correct string
+// Technically not cheating since the model has access to DOM. This is just a shortcut.
+core.getUtterance = function () {
+  var query = document.getElementById('query');
+  var child = query.children[0];
+  var color = (child.tagName == 'DIV') ? /background-color: (.*);/.exec(child.getAttribute('style'))[1] : child.innerHTML;
+  return 'Click on the ' + color + ' colored box.';
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+  </div>
+</div>
+</body>
+</html>

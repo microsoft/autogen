@@ -1,0 +1,6 @@
+task: Solve for x and type your answer into the textbox. Press Submit when done.
+plan:
+1. Locate the input box by clicking on it with a click instruction using its ID "math-answer".
+2. Type the answer using a type instruction.
+3. Press the "Enter" key using a press instruction.
+4. Click the "Submit" button using a clickxpath instruction with the xpath "//button[@id='subbtn']".

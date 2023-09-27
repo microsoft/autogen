@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scroll Text Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#area #text-area { margin-top: 2px; width: 150px; height: 95px; font-size: 10px; }
+#answer-input { width: 150px; margin: 3px 0 3px 0; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<script>
+var genProblem = function() {
+  // reset the UI
+  document.getElementById('text-area').scrollTop = 0; // scroll up the text area
+  document.getElementById('answer-input').value = '';
+
+  var txt = ui_utils.generateWords(20,150);
+  var words = txt.split(/[\s]/g);
+  var expectedWord = words[words.length-1].replace('.', '');
+  d3.select('#text-area').html(txt);
+
+  // create the query
+  d3.select('#query').html('Find the last word in the text area, enter it into the text field and hit Submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var ans = document.getElementById('answer-input').value;
+    adjustedAnswer = ans.replace(/[^a-zA-Z0-9]/g, '');
+
+    // don't penalize for whitespace or punctuation.
+    var r = adjustedAnswer === expectedWord ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <textarea id="text-area"></textarea>
+    <input id="answer-input" type="text">
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

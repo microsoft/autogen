@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AA</title>
+<link rel="stylesheet" type="text/css" href="content/common/css/v3/jquery-ui-1.10-aa.css" media="all" />
+<link rel="stylesheet" type="text/css" href="content/common/css/v3/core.css" media="all" />
+<link rel="stylesheet" type="text/css" href="content/common/css/v3/responsive.css" media="all" />
+<link rel="stylesheet" type="text/css" href="content/common/css/v3/reservation/findFlights/mobile/findFlights.css" media="all" />
+<script tyoe="text/javascript" src="../flight-common/inject.js"></script>
+<script tyoe="text/javascript" src="surrogate/airportLookup.js"></script>
+<script type="text/javascript" src="js/libs/jquery/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="js/libs/jquery/jquery-migrate-1.2.1.min.js"></script>
+<script type="text/javascript" src="js/libs/modernizr-2.8.1.js"></script>
+<script type="text/javascript" src="apps/common/js/aacomDevice.js"></script>
+<script type="text/javascript">
+	$device.tablet = false;
+	$device.mobile = true;
+	$device.responsive = true;
+	$device.init();
+	$j = jQuery.noConflict();
+  var deleteVPNRModal = function () {};
+</script>
+<script type='text/javascript' src='apps/common/js/jquery/aacom/utilities/aaUtilities-2.1.js'></script>
+</head>
+
+<body id="aa-lang-en" class="aa-tier-level-REG aa-cntry-US">
+<header >
+  <div class="container">
+    <div class="row">
+      <div class="span12">
+        <ul id="utilityNav" class="menu-utility">
+          <li id="aa-meta-skip-nav" class="menu-item-utility skip-link"><a href="#main-navigation">Skip to global navigation</a></li>
+          <li id="aa-meta-skip-content" class="menu-item-utility skip-link"><a href="#aa-content-frame">Skip to content</a></li>
+          <li id="aa-meta-skip-footer" class="menu-item-utility skip-link"><a href="#aa-footer">Skip to footer</a></li>
+          <li id="utilityMobile" class="menu-item-utility is-hidden-mobile">
+            <a href="/homePage.do;jsessionid=1D41CFD5756DD148710395C4E3F1EBFD?site_preference=mobile" id="utilityMobileLink">Mobile</a></li>
+          <li id="utilityHome" class="menu-item-utility is-hidden-mobile">
+            <a href="/homePage.do;jsessionid=1D41CFD5756DD148710395C4E3F1EBFD" id="utilityHomeLink" onclick="deleteVirtualPNR()">Home</a>
+          </li>
+          <li id="aa-meta-login" class="menu-item-utility">
+            <a href="javascript:deleteVPNRModal();" id="loginLogoutLink" class="call-to-action ">Log in</a>
+          </li>
+          <li id="countrySelector" class="menu-item-utility is-hidden-mobile  " data-behavior="dropdown">
+            <div id="language-selector" data-behavior="dropdown-wrapper">
+              <a href="#" data-behavior="dropdown-trigger">
+                <span class="aa-language-select-indicator">
+                  <img alt="United States" src="content/images/chrome/rebrand/aa-icons-flags-sprite.png">
+                </span>
+                English
+                <img alt="Click to change language and/or country" src="content/images/chrome/rebrand/down-arrow.png" class="dropdown-indicator"/>
+              </a>
+            </div>
+            <div data-behavior="dropdown-panel" style="display:none;">	
+              <form id="splashForm" method="post" action="/international/mclaSplashSubmit.do;jsessionid=1D41CFD5756DD148710395C4E3F1EBFD">
+                <label for="aa-country-selector">      
+                  Select Country
+                  <select name="countryselector" size="1" id="aa-country-selector">   
+                    <option value="en_AI"  > 
+                    Anguilla
+                    </option>
+                    <option value="en_AG"  > 
+                    Antigua And Barbuda
+                    </option>
+                    <option value="es_AR"  > 
+                    Argentina
+                    </option>
+                    <option value="en_AW"  > 
+                    Aruba
+                    </option>
+                    <option value="en_AU"  > 
+                    Australia
+                    </option>
+                    <option value="en_BS"  > 
+                    Bahamas
+                    </option>
+                    <option value="en_BB"  > 
+                    Barbados
+                    </option>
+                    <option value="en_BE"  > 
+                    Belgium
+                    </option>
+                    <option value="en_BZ"  > 
+                    Belize
+                    </option>
+                    <option value="en_BM"  > 
+                    Bermuda
+                    </option>
+                    <option value="es_BO"  > 
+                    Bolivia
+                    </option>
+                    <option value="en_BQ"  > 
+                    Bonaire
+                    </option>
+                    <option value="pt_BR"  > 
+                    Brazil
+                    </option>
+                    <option value="en_VG"  > 
+                    British Virgin Islands
+                    </option>
+                    <option value="en_CA"  > 
+                    Canada
+                    </option>
+                    <option value="en_KY"  > 
+                    Cayman Islands
+                    </option>
+                    <option value="es_CL"  > 
+                    Chile
+                    </option>
+                    <option value="zh_CN"  > 
+                    China
+                    </option>
+                    <option value="es_CO"  > 
+                    Colombia
+                    </option>
+                    <option value="es_CR"  > 
+                    Costa Rica
+                    </option>
+                    <option value="en_CW"  > 
+                    Curacao
+                    </option>
+                    <option value="en_DK"  > 
+                    Denmark
+                    </option>
+                    <option value="en_DM"  > 
+                    Dominica
+                    </option>
+                    <option value="es_DO"  > 
+                    Dominican Republic
+                    </option>
+                    <option value="es_EC"  > 
+                    Ecuador
+                    </option>
+                    <option value="es_SV"  > 
+                    El Salvador
+                    </option>
+                    <option value="fi_FI"  > 
+                    Finland
+                    </option>
+                    <option value="fr_FR"  > 
+                    France
+                    </option>
+                    <option value="de_DE"  > 
+                    Germany
+                    </option>
+                    <option value="en_GR"  > 
+                    Greece
+                    </option>
+                    <option value="en_GD"  > 
+                    Grenada
+                    </option>
+                    <option value="fr_FR"  > 
+                    Guadalupe
+                    </option>
+                    <option value="es_GT"  > 
+                    Guatemala
+                    </option>
+                    <option value="en_HT"  > 
+                    Haiti
+                    </option>
+                    <option value="es_HN"  > 
+                    Honduras
+                    </option>
+                    <option value="zh_HK"  > 
+                    Hong Kong
+                    </option>
+                    <option value="en_IN"  > 
+                    India
+                    </option>
+                    <option value="en_IE"  > 
+                    Ireland
+                    </option>
+                    <option value="en_IL"  > 
+                    Israel
+                    </option>
+                    <option value="it_IT"  > 
+                    Italy
+                    </option>
+                    <option value="en_JM"  > 
+                    Jamaica
+                    </option>
+                    <option value="ja_JP"  > 
+                    Japan
+                    </option>
+                    <option value="ko_KR"  > 
+                    Korea
+                    </option>
+                    <option value="fr_FR"  > 
+                    Martinique
+                    </option>
+                    <option value="es_MX"  > 
+                    Mexico
+                    </option>
+                    <option value="nl_NL"  > 
+                    Netherlands
+                    </option>
+                    <option value="en_NZ"  > 
+                    New Zealand
+                    </option>
+                    <option value="es_NI"  > 
+                    Nicaragua
+                    </option>
+                    <option value="en_NO"  > 
+                    Norway
+                    </option>
+                    <option value="es_PA"  > 
+                    Panama
+                    </option>
+                    <option value="es_PY"  > 
+                    Paraguay
+                    </option>
+                    <option value="es_PE"  > 
+                    Peru
+                    </option>
+                    <option value="pt_PT"  > 
+                    Portugal
+                    </option>
+                    <option value="es_PR"  > 
+                    Puerto Rico
+                    </option>
+                    <option value="ru_RU"  > 
+                    Russia
+                    </option>
+                    <option value="es_ES"  > 
+                    Spain
+                    </option>
+                    <option value="en_KN"  > 
+                    St. Kitts and Nevis
+                    </option>
+                    <option value="en_LC"  > 
+                    St. Lucia
+                    </option>
+                    <option value="en_SX"  > 
+                    St. Maarten
+                    </option>
+                    <option value="en_VC"  > 
+                    St. Vincent
+                    </option>
+                    <option value="en_SE"  > 
+                    Sweden
+                    </option>
+                    <option value="de_CH"  > 
+                    Switzerland
+                    </option>
+                    <option value="en_TT"  > 
+                    Trinidad and Tobago
+                    </option>
+                    <option value="en_TC"  > 
+                    Turks &amp; Caicos Islands
+                    </option>
+                    <option value="en_GB"  > 
+                    United Kingdom
+                    </option>
+                    <option value="en_US" selected="selected" > 
+                    United States
+                    </option>
+                    <option value="es_UY"  > 
+                    Uruguay
+                    </option>
+                  </select>					 
+                </label>                                          
+                <label for="aa-language-selector">
+                  Select Language
+                  <select name="languageselector" size="1" id="aa-language-selector">
+                    <option selected="selected" >English</option>
+                    <option >Español</option>
+                  </select>				
+                </label>
+                <div class="customComponent">
+                  <input type="checkbox" name="localePreferenceSaved" value="on" id="aa-country-language-save" />
+                  <label for="aa-country-language-save">
+                    <span class="control"></span>
+                    Remember this selection?
+                  </label>
+                </div>
+                <div id="locale-change-alert" class="alert alert-small alert-success" style="display: none">
+                  <p><span class="aa-icon-alert-sm" aria-hidden="true"></span>
+                  By making this selection, you will be redirected to the homepage of the chosen country.</p>
+                </div> 
+                <input type="submit" class="btn btn-fullWidth" data-behavior="deleteVPNR" id="aa-choose-locale" value="Select" />
+                <input type="hidden" name="selectedCountry" value="" id="splashSelectedCountry" />
+                <input type="hidden" name="anchorLocation" value="WorldWide_Sites" id="splashAnchorLocation" />
+                <input type="hidden" name="url" value="" id="splashUrl" />
+                <input type="hidden" name="_locale" value="en_US" id="currentLocale" />
+                <input type="hidden" name="georedirect_param" value="" id="splashGeoRedirect" />    
+                <input type="hidden" id="cancel" name="cancel"  value="yes"/>
+              </form>    
+            </div>
+          </li>
+          <li id="aa-site-search" class="menu-item-utility  hidden-phone">
+            <form id="utilitySearchForm" action="/search/" method="get">
+              <label for="aa-search-field">
+                <span class="hidden-accessible">Search aa.com</span>
+                <input id="aa-search-field" type="search" name="q" maxlength="1000" placeholder="Search aa.com" />
+              </label>
+              <button type="submit" id="aa-search-button" class="btn-search widget" value="Go" >
+                <span class="icon icon-18 icon-search" aria-hidden="true"></span>
+                <span class="hidden-accessible">Submit search</span>
+              </button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="main-navigation" class="row-noBreak pageslide-row" tabindex="-1">
+      <a class="aa-logo span4 span-phone9" href="/homePage.do" onclick="deleteVirtualPNR()">
+        <img src="content/images/chrome/rebrand/aa-logo.png" alt="American Airlines - homepage">
+      </a>
+      <div class="is-hidden visible-phone">
+        <a href="#navigation" class="pageslide-button" data-position="right">
+          <span class="icon-menu icon-large" aria-hidden="true"></span>
+          <span class="hidden-accessible">Menu link</span>
+        </a>
+      </div>
+      <!--googleoff: all-->
+      <nav id="navigation" class="span12 hidden-phone" role="navigation">
+        <ul id="menu">
+          <li id="nav-common-links" class="row">
+            <ul class="span3 common-links-ul">
+              <li><a href="/travelInformation/flights/status?anchorEvent=false&amp;from=Nav" onclick="deleteVirtualPNR()" rel="nofollow">Flight status</a></li>
+              <li><a href="/reservation/flightCheckInViewReservationsAccess.do?anchorEvent=false&amp;from=Nav" onclick="deleteVirtualPNR()" rel="nofollow">Online check-in</a></li>
+              <li><a href="/reservation/viewReservationsAccess.do?anchorEvent=false&amp;from=Nav" onclick="deleteVirtualPNR()">My Trips</a></li>
+              <li><a href="/loyalty/profile/summary" onclick="deleteVirtualPNR()">My Account</a></li>
+              <li>
+                <a href="/AAdvantage/quickEnroll.do?from=Nav&amp;anchorEvent=false&amp;referer=/apps/&anchorLocation=Navigation+Menu&url=%2FAAdvantage%2FquickEnroll.do&_locale=en_US&reportedTitle=AAdvantage+Enroll+Now">Join AAdvantage Loyalty Program</a>
+            </ul>
+              </li>
+              <li> <a href="#plan" id="plan-travel-expander" data-behavior="toggle-nav" tabindex="0">Plan Travel <i class="icon-expand icon-large is-hidden visible-phone" aria-hidden="true"></i></a>
+                <div id="plan" class="row sub-nav-links"> <span class="span3"><strong>Taking a trip?</strong> We have your<br />
+                    travel plans covered.</span>
+                  <ul class="span3">
+                    <li><a onclick="deleteVirtualPNR()" href="/reservation/roundTripSearchAccess.do">Flights</a></li>
+                    <li>
+                      <a target="_blank" onclick="deleteVirtualPNR()" href="badurl" >Hotels
+                        <span class="hidden-accessible">, Opens another site in a new window that may not meet accessibility guidelines.</span>
+                        <span aria-hidden="true" class="icon-newpage"></span>
+                      </a>
+                    </li>
+                    <li><a onclick="deleteVirtualPNR()" href="/car?src=AANAVCAR" target="_blank">Cars <span class="hidden-accessible">Opens in a new window</span><span aria-hidden="true" class="icon-newpage"></span></a></li>
+                    <li>
+                      <a target="_blank" onclick="deleteVirtualPNR()" href="badurl" >Activities
+                        <span class="hidden-accessible">, Opens another site in a new window that may not meet accessibility guidelines.</span>
+                        <span aria-hidden="true" class="icon-newpage"></span>
+                      </a>
+                    </li>
+                    <li>
+                      <a target="_blank" onclick="deleteVirtualPNR()" href="badurl" >Vacations
+                        <span class="hidden-accessible">, Opens another site in a new window that may not meet accessibility guidelines.</span>
+                        <span aria-hidden="true" class="icon-newpage"></span>
+                      </a>
+                    </li>
+                    <li>
+                      <a target="_blank" onclick="deleteVirtualPNR()" href="badurl" >Cruise
+                        <span class="hidden-accessible">, Opens another site in a new window that may not meet accessibility guidelines.</span>
+                        <span aria-hidden="true" class="icon-newpage"></span>
+                      </a>
+                    </li>
+                  </ul>
+                  <ul class="span3">
+                    <li class="is-hidden-mobile"><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/miles/redeem/redeem-miles.jsp?anchorEvent=false&from=Nav">Book with miles</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/plan-travel/earn-extra-miles.jsp?anchorEvent=false&from=Nav">Travel deals &amp; offers</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/travelInformation/flights/schedule?anchorEvent=false&from=Nav">Flight schedules &amp; notifications</a></li>
+                    <li>
+                      <a target="_blank" onclick="deleteVirtualPNR()" href="badurl" >Where we fly
+                        <span class="hidden-accessible">, Opens another site in a new window that may not meet accessibility guidelines.</span>
+                        <span aria-hidden="true" class="icon-newpage"></span>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+              <li> <a href ="#manage" id="travel-information-expander" data-behavior="toggle-nav" tabindex="0">Travel Information <i class="icon-expand icon-large is-hidden visible-phone" aria-hidden="true"></i></a>
+                <div id="manage" class="row sub-nav-links"> <span class="span3"><strong>Taking a vacation?</strong> Allow us to<br />
+                    simplify your travels.</span>
+                  <ul class="span3">
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/at-the-airport.jsp?anchorEvent=false&from=Nav">At the airport</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/experience/during-your-flight.jsp?anchorEvent=false&from=Nav">During your flight</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/travel-tools/mobile-and-app.jsp?anchorEvent=false&from=Nav">Mobile and app</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/experience/planes/planes.jsp?anchorEvent=false&from=Nav">Planes</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/clubs/clubs-and-lounges.jsp?anchorEvent=false&from=Nav">Clubs and lounges</a></li>
+                  </ul>
+                  <ul class="span3">
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/baggage/baggage.jsp?anchorEvent=false&from=Nav">Baggage</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/international-travel/international-travel.jsp?anchorEvent=false&from=Nav">International travel</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/special-assistance/special-assistance.jsp?anchorEvent=false&from=Nav">Special assistance</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/travel-info/partner-airlines/oneworld-airline-partners.jsp?anchorEvent=false&from=Nav"><strong>one</strong>world alliance</a></li>
+                  </ul>
+                </div>
+              </li>
+              <li> <a href="#advantage" id="aadvantage-expander" data-behavior="toggle-nav" tabindex="0">AAdvantage <i class="icon-expand icon-large is-hidden visible-phone" aria-hidden="true"></i></a>
+                <div id="advantage" class="row sub-nav-links"> <span class="span3"><strong>Traveling the world?</strong> Our loyalty program<br />
+                    can get you there.</span>
+                  <ul class="span3">
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/aadvantage-program.jsp?anchorEvent=false&from=Nav">AAdvantage</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/elite-status/aadvantage-elite-status.jsp?anchorEvent=false&from=Nav">Elite status</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/miles/earn/earn-miles.jsp?anchorEvent=false&from=Nav">Earn miles</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/miles/redeem/redeem-miles.jsp?anchorEvent=false&from=Nav">Redeem miles</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/miles/redeem/award-travel/award-travel.jsp?anchorEvent=false&from=Nav">Award travel</a></li>
+                  </ul>
+                  <ul class="span3">
+                    <li><a onclick="deleteVirtualPNR()" href="/AAdvantage/purchaseUpgradesAccess.do?anchorEvent=false&from=Nav">Buy upgrades</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/plan-travel/earn-extra-miles.jsp?anchorEvent=false&from=Nav">Bonus offers</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/miles/buy-gift-share.jsp?anchorEvent=false&from=Nav">Buy & Share Miles</a></li>
+                    <li><a onclick="deleteVirtualPNR()" href="/i18n/aadvantage-program/miles/partners/credit-card/aadvantage-credit-cards.jsp?cint=DSP||20150923|ADV|PUB|LNK||EARN_MILES_HEADER_NAV&anchorEvent=false&from=Nav">AAdvantage credit cards</a></li>
+                  </ul>
+                </div>
+              </li>
+        </ul>
+        <a id="close" href="#" title="Close menu"><span> </span></a> </nav>
+      <a id="header-one-world-logo" href="/i18n/travel-info/partner-airlines/oneworld-airline-partners.jsp" class="right hidden-phone aa-pop-win-new" target="_blank">
+        <img style="vertical-align: middle" alt="oneworld link opens in a new window" src="content/images/chrome/rebrand/oneworld.png" />
+      </a>
+    </div>
+  </div>
+</header>
+<!--googleon: all-->
+<section id="main" class="container">
+  <div id="aa-content-frame" tabindex="-1">
+    <h1>
+      Find flights
+    </h1>
+    <form id="flightSearchView" novalidate="novalidate" action="/booking/find-flights" method="post" class="miniwob-main-form">
+      <input type="hidden" name="mobile" value="true" />
+      <div id="flight-tabs" class="ui-tabs-small ui-tabs ui-widget ui-widget-content ui-corner-all">
+        <div class="row-form margin-top">
+          <div class="span6">
+            <ul class="row-noBreak ui-tabs-nav" role="tablist">
+              <li class="span3 span-phone6 pushLeft" role="tab" aria-controls="roundtrip">
+                <a href="#roundtrip" class="ui-tabs-anchor" role="presentation">Round trip</a>
+              </li>
+              <li class="span3 span-phone6 pushLeft" role="tab" aria-controls="oneway">
+                <a href="#oneway" class="ui-tabs-anchor" role="presentation">One way</a>
+              </li>
+            </ul>
+            <input id="tripType" name="tripType" type="hidden" value="roundTrip"/>
+          </div>
+        </div>
+        <p>
+        ( <span class="icon-required" aria-hidden="true"></span> Required<span class="hidden-accessible">dot indicates required</span>)
+        </p>
+        <div class="row-noBreak">
+          <div class="span3 span-phone6">
+            <label for="segments0.origin">
+              From <span class="icon-required" aria-hidden="true"></span><span class="hidden-accessible">, required.</span>
+              <input id="segments0.origin" name="segments[0].origin" placeholder="City or airport" class="aaAutoComplete" type="text" value=""/>
+            </label>
+          </div>
+          <div class="span3 span-phone6">
+            <label for="segments0.destination">
+              To <span class="icon-required" aria-hidden="true"></span><span class="hidden-accessible">, required.</span>
+              <input id="segments0.destination" name="segments[0].destination" placeholder="City or airport" class="aaAutoComplete" type="text" value=""/>
+            </label>
+          </div>
+        </div>
+        <div class="row-noBreak">
+          <div id="departDateSection" class="span3 span-phone6">
+            <label for="segments0.travelDate">
+              Depart <span class="icon-required" aria-hidden="true"></span><span class="hidden-accessible">, required.</span>
+              <input id="segments0.travelDate" name="segments[0].travelDate" placeholder="mm/dd/yyyy" class="aaMobileDatePicker active" data-title="Depart" type="text" value=""/>                    
+            </label>
+          </div>
+          <div id="roundtrip" class="span3 span-phone6">
+            <label for="segments1.travelDate">
+              Return <span class="icon-required" aria-hidden="true"></span><span class="hidden-accessible">, required.</span>
+              <input id="segments1.travelDate" name="segments[1].travelDate" placeholder="mm/dd/yyyy" class="aaMobileDatePicker active" data-title="Return" type="text" value=""/>                    
+            </label>
+          </div>
+        </div>
+        <div class="row-noBreak">
+          <div class="span3 span-phone6">
+            <label for="passengerCount">
+              Passengers
+              <select id="passengerCount" name="passengerCount"><option value="1" selected="selected">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select>
+            </label>
+          </div>
+          <div class="span3 span-phone6">
+            <label for="cabin">
+              Class
+              <select id="cabin" name="cabin"><option value="SHOW_ALL" selected="selected">Show all</option><option value="BUSINESS_FIRST"> Business / First</option></select>
+            </label>
+          </div>
+        </div>
+        <div class="row-noBreak">
+          <div id="refundableSection" class="span3 span-phone12 margin-top -small ">
+            <div class="customComponent">
+              <input id="refundable1" name="refundable" type="checkbox" value="true"/><input type="hidden" name="_refundable" value="on"/>
+              <label for="refundable1"><span class="control"></span> Show refundable only</label>
+            </div>
+          </div>            
+        </div>
+        <div class="row-buttons margin-top -large">
+          <button type="submit" class="btn"><span>Search</span></button>
+        </div>
+        <div id="oneway" class="is-hidden"></div>
+      </div>
+    </form>
+  </div>
+</section>
+<footer id="aa-footer" tabindex="-1">
+  <div class="container">
+    <div class="row-noBreak">
+      <div class="span11 footer-nav">
+        <a href="/i18n/customer-service/contact-american/american-customer-service.jsp?anchorEvent=false&from=footer" title="Contact American" class="aa-popup-contactaa" id="aa-TollbarContactAA" onclick="deleteVirtualPNR()" rel="contactAA">Contact</a>
+        <a href="/homePage.do?fullHTMLVersion=true&site_preference=normal">Full site</a>
+        <a href="/i18n/customer-service/support/legal-privacy-copyright.jsp">Legal, privacy, copyright</a>
+      </div>
+      <div class="span1">
+        <a title="oneworld" href="/i18n/travel-info/partner-airlines/oneworld-airline-partners.jsp" target="_blank" class="aa-pop-win-new"><img alt="oneworld" src="content/images/chrome/rebrand/oneworld.png"></a>
+      </div>
+    </div>
+  </div>
+</footer>
+<script type="text/javascript" src="js/libs/jquery/ui/1.10/jquery-ui.min.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/plugins/aaTextBoxMessage.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/plugins/aaCookie.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/utilities/aaUtilities-2.1.js?rel=11012016"></script>
+<script type="text/javascript" src="apps/common/js/aacom.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/utilities/aaUtils.js"></script>
+<script type="text/javascript" src="apps/common/js/airportcode.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/plugins/aaAirportAutoComplete.js?rel=09162016"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/plugins/aaFooterAds.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/plugins/aaCountryLanSelect.js"></script>
+<script type="text/javascript" src="apps/common/js/jquery/aacom/plugins/aaDropdownPanel.js"></script>
+<script type="text/javascript" src="js/aa/common/aacom-ui-1.0.0.js"></script><!-- Main Sandbox code -->
+<script type="text/javascript">
+//<![CDATA[
+/* Add any internationalized messages to the Sandbox prototype so they
+ * can be used by our instance of the Sandbox
+ * Dependency - aacom-ui-x.x.x.js must be loaded previously
+ * key/value pairs must be sent as object literals
+ * single message format {'key':'value'}
+ * multiple message format {'key1':'value1', 'key2':'value2'};
+ * sharedWeb
+ */
+ AAcom.prototype.setProperty({
+	    'user.locale' : 'en_US',
+	    'label.siteSearch.textboxmessage' : 'Search aa.com',
+	    'dialog.closeText' : 'Close window',
+	    'account.isSecure' : 'false',
+	    'autoComplete.noResult':'No search results.',
+	    'autoComplete.oneResult':'1 result is available, use up and down arrow keys to navigate.',
+	    'autoComplete.manyResult':'{0} results are available, use up and down arrow keys to navigate.',
+	    'calendar.hiddenText':'Open Calendar: to navigate the calendar, use the control key with the arrow keys',
+	    'global.error':'This feature is temporarily unavailable. We apologize for this inconvenience. Please try again later.',
+	    'loadingTxt' : 'Loading...',
+	    'updatingTxt' : 'Updating...',
+	    'processingTxt' : 'Processing...',
+	    'savingTxt' : 'Saving...',
+	    'tooltip.closeText' : 'Close pop-up',
+	    'session.expired.title' : 'Your session expired',
+	    'session.expired.message' : "Any confirmed transactions are saved, but you'll need to restart any searches or unfinished transactions.",
+	    'session.expired.button' : 'Back to home',
+	    'session.warning.button' : 'Continue session',
+	    'dialog.close.button' : 'Close',
+	    'flexslider.previousText' : 'Previous',
+	    'flexslider.nextText' : 'Next',
+	    'tabs.currentlySelectedText' : 'currently selected tab',
+	    });
+//]]>
+</script>
+<script type="text/javascript" src="js/aa/modules/browserdetect.js"></script>
+<script type="text/javascript" src="js/aa/modules/ajax.js"></script>
+<script type="text/javascript" src="js/aa/modules/utilities.js"></script>
+<script type="text/javascript" src="js/aa/modules/commonsetup.js"></script>
+<script type="text/javascript" src="js/aa/common/core-2.0.0.js"></script>
+<div id="datePickerDialog" class="is-hidden">
+    <div class="is-hidden" id="datePickerTitle">
+        Depart
+    </div>
+    <section id="calendar">
+        <div id="inlineCalendar"></div>
+    </section>
+</div>
+<script type="text/javascript" src="js/aa/modules/mobileDatePicker.js"></script>
+<script>
+AAcom.prototype.setProperty({
+    'HomeTownAirport' : "PDX",
+    'LoadingText' : 'Loading...'
+});
+</script>
+<script src="js/aa/plugins/noBounce.js"></script>
+<script src="js/aa/modules/widgets.js"></script>
+<script src="js/aa/modules/airportLookup.js"></script>
+<script src="js/libs/jquery/ui/1.10/i18n/jquery.ui.datepicker-en-aa.js"></script>
+<script src="apps/common/js/jquery/aacom/plugins/aaCache.js"></script>
+<script src="js/aa/shopping/mobileSearchFlights.js"></script>
+</body>
+</html>

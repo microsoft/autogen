@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scroll Text Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#area #text-area { margin-top: 5px; width: 150px; height: 100px; font-size: 10px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<script>
+var SCROLL_DIR = ['bottom', 'top'];
+
+var generateText = function(){
+  // generate text into textarea
+  var firstWord = true;
+  var txt = ui_utils.generateWords(50, 150)
+  d3.select('#text-area').html(txt);
+}
+
+var genProblem = function() {
+  // reset the UI
+  document.getElementById('text-area').scrollTop = 0; // scroll up the text area
+
+  generateText();
+
+  // true for scroll down, false for scroll up.
+  var scrollDirection = core.randi(0,2);
+  var textAreaHeight = document.getElementById('text-area').scrollHeight;
+  var expectedHeight = (scrollDirection === 0) ? (textAreaHeight + document.getElementById('text-area').offsetHeight) : 0;
+  // attempt to position the scroll posiiton near the middle of the text area.
+  document.getElementById('text-area').scrollTop = parseInt(textAreaHeight/2) - 25;
+
+  // create the query
+  d3.select('#query').html('Scroll the textarea to the ' + SCROLL_DIR[scrollDirection] + ' of the text hit submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var textArea = document.getElementById('text-area');
+    var expectedHeight = (scrollDirection === 0) ? textArea.scrollHeight : textArea.offsetHeight;
+    var currentHeight = textArea.offsetHeight + textArea.scrollTop;
+    var heightDiff = Math.abs(currentHeight - expectedHeight);
+
+    // be a little generous and allow 10pixel difference so they don't have to be exactly precise.
+    var r = (heightDiff < 10) ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <textarea id="text-area"></textarea>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

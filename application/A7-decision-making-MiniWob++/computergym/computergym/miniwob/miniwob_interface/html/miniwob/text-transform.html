@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Text Transform Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+/* use serif fonts for text, to make it easier to ensure you're reading the correct characters. */
+#captcha, #tt { font-family: serif; }
+#captcha { font-size: 25px; margin: 10px auto; text-align: center; }
+#captcha span { display: inline-block; -webkit-user-select: none; cursor: default;}
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+core.EPISODE_MAX_TIME = 1500000; // set episode interval to 15 seconds
+
+var genTransform = function(text){
+  var xDeg = core.randi(-15,15);
+  var yDeg = core.sample([core.randi(-40, -10), core.randi(10,40)]);
+  var skewX = ' skewX(' + xDeg + 'deg)';
+  var skewY = ' skewY(' + yDeg + 'deg)';
+
+  var span = document.createElement('span');
+  span.innerHTML = text;
+  span.setAttribute('style', 'transform:' + skewX + skewY + ';');
+  document.getElementById('captcha').appendChild(span);
+}
+
+var genProblem = function() {
+  // reset the UI and clear the
+  d3.select('#tt')[0][0].value ='';
+  d3.select('#captcha').html('');
+
+  // move the text field around
+  var s = '';
+  s += 'margin-left:'+core.randi(10,20)+'px;';
+  s += 'margin-top:'+core.randi(10,20)+'px;';
+  d3.select('#form').attr('style', s);
+
+  // and submit button a bit too
+  d3.select('#subbtn').attr('style', 'margin-top:'+core.randi(0,20)+'px;');
+
+  // generate a query
+  var q = ui_utils.generateString(3,5);
+  q = q.toLowerCase();
+  d3.select("#sol").attr("class", q)
+
+  for(var i=0;i<q.length;i++) genTransform(q[i]);
+
+  // reward awarder
+  d3.select('#subbtn').on('click', function(){
+    var t = d3.select('#tt')[0][0].value;
+    var r = t === q ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="sol"></div>
+  <div id="query">Type the text below into the text field and press Submit.</div>
+  <div id="area">
+    <div id="captcha"></div>
+    <div id="form">
+      <input type="text" id="tt">
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

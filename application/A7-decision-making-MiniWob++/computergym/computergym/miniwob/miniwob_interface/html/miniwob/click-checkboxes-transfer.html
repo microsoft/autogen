@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Checkboxes Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+
+<style>
+input { width: 20px; }
+</style>
+
+<script>
+var createCheckboxes = function(div){
+  var checkboxData = { toclick: {}, clickNames: [] };
+
+  if (WOB_DATA_MODE == 'test')
+    checkboxData.numToClick = core.randi(4, 7);
+  else
+    checkboxData.numToClick = core.randi(0, 4);
+  checkboxData.elems = core.randi(Math.max(3, checkboxData.numToClick), 7);
+  checkboxData.names = [];
+  for(var i=0;i<checkboxData.elems;i++) {
+    var chname = ui_utils.generateString(2,8);
+    var label = div.append('label')
+    label.append('input').attr('type', 'checkbox').attr('id', 'ch'+i);
+    label[0][0].innerHTML += chname;
+    div.append('br');
+    checkboxData.names.push([i, chname]);
+  }
+  core.shuffle(checkboxData.names);
+  for(var j=0;j<checkboxData.elems;j++) {
+    if (j < checkboxData.numToClick) {
+      checkboxData.toclick[checkboxData.names[j][0]] = true;
+      checkboxData.clickNames.push(checkboxData.names[j][1]);
+    } else {
+      checkboxData.toclick[checkboxData.names[j][0]] = false;
+    }
+  }  
+
+  return checkboxData;
+}
+
+var genProblem = function() {
+  var div = d3.select('#boxes');
+  div.html('');
+
+  var checkboxData = createCheckboxes(div);
+
+  var qstr = checkboxData.clickNames.join(', ');
+  if(qstr.length === 0) { qstr = 'nothing'; }
+  d3.select('#query').html('Select ' + qstr + ' and click Submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var r = 0;
+    for(var i=0;i<checkboxData.elems;i++) {
+      var is_checked = d3.select('#ch'+i)[0][0].checked;
+      r += is_checked === checkboxData.toclick[i] ? 1.0 : -1.0;
+    }
+    core.endEpisode(r == checkboxData.elems ? 1.0 : -1.0, true);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="boxes"></div>
+    <br>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

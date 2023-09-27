@@ -1,0 +1,4 @@
+Example plans)
+The task is to click "Ok" button.
+Here is a plan to solve this example task on the same webpage with the autonomous agent. 
+1. clickxpath //button[text()="Ok"]

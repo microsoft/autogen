@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Dialog Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" type="text/css" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { height: 100px; display: block; }
+#dialog { height: auto !important; }
+.ui-dialog { font-size: 10px; }
+.ui-dialog .ui-dialog-titlebar { padding: 2px 3px; height: 15px; }
+.ui-button { outline: 0; }
+.ui-dialog .ui-dialog-content { padding: 0px; margin: 0 5px; }
+</style>
+
+<script>
+var resetUI = function(div){
+  if(div.html().length > 0) $('#dialog').dialog('destroy');
+  div.empty(); // clear previous problem, if any
+}
+
+var createDialog = function(div){
+  var html = '<p>' + ui_utils.generateWords(4,8) + '</p>';
+  div.append(html);
+
+  $('#dialog').dialog({ height: 70, position: {my: 'center', at: 'center', of: document.getElementById('area')} });
+
+  $('.ui-dialog')[0].style.margin = core.randi(-10,20) + 'px ' + core.randi(5,25) + 'px';
+  $('.ui-dialog')[0].style.width = core.randi(90,120) + 'px';
+  $('.ui-dialog')[0].style.height = core.randi(70,100) + 'px';
+}
+
+var genProblem = function() {
+  var div = $('#dialog');
+  resetUI(div);
+  createDialog(div);
+
+  $('#query').html('Close the dialog box by clicking the "x".');
+  $('button.ui-button').on('click', function(){ core.endEpisode(1.0, true); })
+
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"><div id='dialog'></div></div>
+</div>
+</body>
+</html>

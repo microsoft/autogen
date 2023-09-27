@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Menu Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<style>
+#area { height: 150px; padding: 5px; position: relative; width: 150px; }
+#open-menu { cursor: pointer; position: absolute; bottom: 25px; left: 5px; }
+#menu { display: none; cursor: pointer; }
+.ui-menu { background-color: #F0F0F0; width: 72px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var PROBLEM_SET = {
+  'Save': 'ui-icon-disk',
+  'Prev': 'ui-icon-seek-start',
+  'Stop': 'ui-icon-stop',
+  'Play': 'ui-icon-play',
+  'Next': 'ui-icon-seek-end',
+  'Zoom In': 'ui-icon-zoomin',
+  'Zoom Out': 'ui-icon-zoomout'
+};
+
+var displayProblem = function(expectedLabel){
+  if(core.sample([true, false])){
+    $('#query').html('Click the "Menu" button, and then find and click on the item labeled "' + expectedLabel + '".');
+  } else {
+    var iconHtml =  '<span class="ui-icon ' + PROBLEM_SET[expectedLabel] + '"></span>';
+    $('#query').html('Click the "Menu" button, and then find and click on the item with the ' + iconHtml + ' icon.');
+  }
+}
+
+var bindClickEvents = function(expectedLabel){
+  $('.ui-menu-item').unbind();
+  $('.ui-menu-item').on('click', function(){
+    // ignore the event that gets triggered from nested menus.
+    if($(this).find('.ui-menu').length > 0) return;
+
+    var text = $(this).text();
+    var r = text === expectedLabel ? 1.0 : -1.0
+    core.endEpisode(r, r>0);
+  });
+}
+
+var setupUI = function(){
+  $('#menu').menu();
+  $('#open-menu').on('click', function(){
+    $('#menu').toggle();
+  });
+}
+
+var genProblem = function() {
+  $('#menu').hide();
+  var keys = Object.keys(PROBLEM_SET);
+  var expectedLabel = core.sample(keys);
+
+  displayProblem(expectedLabel);
+  bindClickEvents(expectedLabel);
+}
+
+window.onload = function() {
+  setupUI();
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+  <button id="open-menu">Menu</button>
+  <ul id="menu">
+    <li><div><span class="ui-icon ui-icon-disk"></span>Save</div></li>
+    <li>
+      <div>Playback</div>
+      <ul>
+        <li><div><span class="ui-icon ui-icon-seek-start"></span>Prev</div></li>
+        <li><div><span class="ui-icon ui-icon-stop"></span>Stop</div></li>
+        <li><div><span class="ui-icon ui-icon-play"></span>Play</div></li>
+        <li><div><span class="ui-icon ui-icon-seek-end"></span>Next</div></li>
+      </ul>
+    </li>
+    <li class="ui-state-disabled"><div><span class="ui-icon ui-icon-print"></span>Print...</div></li>
+    <li><div><span class="ui-icon ui-icon-zoomin"></span>Zoom In</div></li>
+    <li><div><span class="ui-icon ui-icon-zoomout"></span>Zoom Out</div></li>
+  </ul>
+  </div>
+</div>
+</body>
+</html>

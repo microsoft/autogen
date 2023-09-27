@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chase Circle Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area_svg { width: 160px; height: 160px; }
+.item:hover { cursor: pointer; }
+</style>
+<script>
+MAX_CIRCLES = 10;
+CIRCLE_RADIUS = 18;
+
+// generate circles that either start on the left, or the right of the svg
+var generateCircles = function(){
+  var circles = [];
+  var leftCircles = core.randi(3,7); // circles to be generated on the left side
+  var count = 0;
+  for(var i=0; i<leftCircles;i++){
+    circles.push({ cx: -1*CIRCLE_RADIUS, cy: core.randi(CIRCLE_RADIUS-5,145+CIRCLE_RADIUS),
+      fill: 'black', class: 'item', r: CIRCLE_RADIUS });
+    count++;
+  }
+
+  for(var i=0; i<(MAX_CIRCLES-leftCircles);i++){
+    circles.push({ cx: 160+CIRCLE_RADIUS, cy: core.randi(CIRCLE_RADIUS-5,145+CIRCLE_RADIUS),
+      fill: 'black', class: 'item', r: CIRCLE_RADIUS });
+    count++;
+  }
+
+  var shuffledCircles = core.shuffle(circles);
+  for(var i=0;i<shuffledCircles.length;i++){
+    shuffledCircles[i].id = 'item-' + i;
+  }
+  return core.shuffle(circles);
+}
+
+var generateTimers = function(){
+  var timers = [];
+  for(var i=0;i<MAX_CIRCLES;i++){
+    // time in ms. pad with 800ms instead of 1000ms so that the latest
+    // the final circle can appear will be around 8.65seconds
+    var padding = i === 0 ? core.randi(0,25) : core.randi(-15, 15);
+    var newTimer = padding*10 + i*800;
+    timers.push(newTimer);
+  }
+
+  return timers;
+}
+
+var translateCircles = function(timers){
+  for(var i=0;i<MAX_CIRCLES;i++){ translateCircle(i, timers[i]); }
+}
+
+var translateCircle = function(index, timer) {
+  var circle = d3.select('#item-' + index);
+  var coords = shapes.gridCoords(circle[0][0]);
+
+  setTimeout(function(){
+    var xSlide = coords.x < 80 ? (160+CIRCLE_RADIUS) : (-1*CIRCLE_RADIUS);
+    circle
+      .transition().duration(3500)
+      .attr('cx', xSlide)
+      .attr('cy', core.randi(CIRCLE_RADIUS-5,145+CIRCLE_RADIUS));
+  }, timer);
+}
+
+var awardPoints = function(circle){
+  d3.select(circle).remove();
+  return 0.10;
+}
+
+// logic to determine whether or not a circle was clicked.
+var backupAwarder = function(event){
+  var circles = d3.selectAll('.item')[0];
+
+  for(var i=0;i<circles.length;i++){
+    var currentCircle = circles[i];
+    var coords = shapes.gridCoords(currentCircle);
+    var xDiff = Math.abs(coords.x + CIRCLE_RADIUS - event.offsetX);
+    var yDiff = Math.abs(coords.y + CIRCLE_RADIUS - event.offsetY);
+
+    // be generous and use a 1.3x multiplier on the circle radius to
+    // account for slightly clicking a few pixels just ouside of where
+    // the (moving) circle is currently located.
+    if(xDiff < CIRCLE_RADIUS*1.3 && yDiff < CIRCLE_RADIUS*1.3){
+      d3.select(currentCircle).remove();
+      return 0.20;
+    }
+  }
+  return -0.05;
+}
+
+var drawCircles = function(svg){
+  var circles = generateCircles();
+  var transitionTimers = generateTimers();
+  shapes.drawCircles(circles, svg);
+  translateCircles(transitionTimers);
+}
+
+// create a problem instance
+var genProblem = function() {
+  d3.selectAll('svg > *').remove();
+  var svg =  d3.select('svg');
+  drawCircles(svg);
+
+  // create a click function to add points whenever the svg is
+  // clicked. seems like binding a click function to the circles
+  // themselves can be a bit unreliable.
+  var score = -1.0;
+  svg.on('click', function(){ score += backupAwarder(event); });
+
+  setTimeout(function(){
+    // cap negative scores to -1.0, don't reward based on time.
+    var r = score > -1.0 ? score : -1.0;
+    core.endEpisode(r);
+  }, 9900);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click as many moving circles as possible.</div>
+  <div id="area">
+    <svg id="area_svg"></svg>
+  </div>
+</div>
+</body>
+</html>

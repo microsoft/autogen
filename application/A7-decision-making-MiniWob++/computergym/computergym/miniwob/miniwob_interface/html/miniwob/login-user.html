@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login User Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+.bold { font-weight: bold; }
+input { margin: 5px; width: 100px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var genProblem = function() {
+  d3.select('#username')[0][0].value ='';
+  d3.select('#password')[0][0].value ='';
+
+  var user = core.sample(ui_utils.FIFTY_NAMES).toLowerCase();
+  var password = ui_utils.generateString(2,6)
+  d3.select('#query').html('Enter the <span class="bold">username</span> "' + user + '" and the <span class="bold">password</span> "' + password + '" into the text fields and press login.');
+
+  // reward awarder
+  d3.select('#subbtn').on('click', function(){
+    var u = d3.select('#username')[0][0].value;
+    var p = d3.select('#password')[0][0].value;
+    var r = (u === user && p === password) ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="form">
+      <p><label class="bold">Username</label><input type="text" id="username"></p>
+      <p><label class="bold">Password</label><input type="password" id="password"></p>
+      <button id="subbtn" class="secondary-action">Login</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

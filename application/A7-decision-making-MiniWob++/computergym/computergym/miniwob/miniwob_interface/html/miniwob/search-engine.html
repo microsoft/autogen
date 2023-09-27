@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Search Engine Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../common/special/search-engine/jquery.twbsPagination.min.js"></script>
+
+<style>
+#area { height: 156px; position: relative; }
+#area input { width: 80px !important; }
+#search-bar { margin: 2px; }
+#page-content { margin: 2px; }
+#page-content a { color: #0000EE; font-size: 10px; font-weight: bold; text-decoration: underline; }
+#page-content a:visited { color: #0000EE; }
+.search-url { color: #006621; }
+#pagination { font-size: 15px; margin: 0; position: absolute; bottom: 2px; }
+
+/* styling for the pagination widget */
+.pagination > li { display: inline; margin: 0 2px; }
+.pagination a:visited { color: #0000EE !important; }
+.disabled { display: none !important; }
+.page-item.active a { color: #000000; text-decoration: none; }
+.page-item.first, .page-item.last { display: none !important; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 2000000;
+var DIV_TEMPLATE =
+  `<a href='#' class='search-title'></a>
+  <div class='search-url'></div>
+  <div class='search-desc'></div>`
+var TOTAL_RESULTS = 9;
+var POSITION = ['', 'st', 'nd', 'rd'];
+var DOMAINS = ['com', 'net', 'org', 'ca', 'us', 'gov', 'pizza', 'gg', 'tv', 'co.uk', 'it', 'eu', 'hk', 'mx', 'se', 'jp', 'io', 'rocks'];
+
+var createSearchElem = function(result, index){
+  var div = document.createElement('div');
+  div.innerHTML = DIV_TEMPLATE;
+  div.getElementsByClassName('search-title')[0].innerHTML = result.title;
+  div.getElementsByClassName('search-title')[0].setAttribute('data-result', index);
+  div.getElementsByClassName('search-url')[0].innerHTML = result.url;
+  div.getElementsByClassName('search-desc')[0].innerHTML = result.desc;
+  $('#page-content').append(div);
+}
+
+var generateSearch = function(){
+  var results = [];
+  var names = core.shuffle(ui_utils.FIFTY_NAMES.slice());
+  for(var i=0;i<TOTAL_RESULTS;i++){
+    var result = {}
+    var subdomain = core.sample(ui_utils.lorem_words).replace(',', '');
+    var domain = core.sample(ui_utils.lorem_words).replace(',', '');
+    result.title = core.sample(names);
+    result.url = 'https://' + core.sample(['www.', '']) + core.sample(['', subdomain]) + domain +  '.' + core.sample(DOMAINS);
+    result.desc = ui_utils.generateWords(core.randi(2,4));
+    results.push(result);
+  }
+  return results;
+}
+
+var resetUI = function(){
+  $('#search-text').val('');
+  $('#search').unbind();
+  $('#page-content').empty();
+  $('#pagination').empty();
+}
+
+var searchEngine = function(){
+  var results = generateSearch();
+  var expectedSearch = core.sample(core.shuffle(ui_utils.FIFTY_NAMES.slice()));
+  var expectedIndex = core.randi(0,9);
+  results[expectedIndex].title = expectedSearch;
+
+  var pos = (expectedIndex+1) + 'th';
+  if(expectedIndex < 3) pos = (expectedIndex+1) + POSITION[expectedIndex+1];
+  return { results: results, expectedSearch: expectedSearch, expectedIndex: expectedIndex, pos: pos };
+}
+
+var bindClickEvents = function(problemSet){
+  $('#search').on('click', function(){
+    // clear the existing pagination modal, and rebuild it on click
+    $('#pagination').twbsPagination('destroy');
+
+    $('#pagination').twbsPagination({
+      totalPages: 3,
+      visiblePages: 3,
+
+      onPageClick: function (event, page) {
+        $('#page-content').empty();
+        var userSearch = $('#search-text').val();
+
+        // generate fake results when the user's search doesn't match.
+        if(userSearch.toLowerCase() !== problemSet.expectedSearch.toLowerCase()){
+          var fakeResults = generateSearch().slice(0, 3);
+          for(var p=0;p<3;p++) createSearchElem(fakeResults[p], -1);
+        } else {
+          $('#page-content').empty();
+          var startIndex = (page-1)*3;
+          var currentResults = problemSet.results.slice(startIndex, startIndex+3);
+          for(var p=0;p<3;p++) createSearchElem(currentResults[p], startIndex+p);
+        }
+
+        $('#page-content a').unbind();
+        $('#page-content a').on('click', function(){
+          if(userSearch.toLowerCase() !== problemSet.expectedSearch.toLowerCase()) core.endEpisode(-1.0);
+          else {
+            var linkIndex = this.getAttribute('data-result');
+            var r = linkIndex === problemSet.expectedIndex.toString() ? 1.0 : -1.0;
+            core.endEpisode(r, r > 0);
+          }
+        });
+
+      },
+      prev: '<',
+      next: '>'
+    });
+  });
+}
+
+var genProblem = function() {
+  resetUI();
+  var problemSet = searchEngine();
+
+  $('#query').html('Use the textbox to enter "<span class="bold">' + problemSet.expectedSearch + '</span>" and press "Search", then find and click the <span class="bold">' + problemSet.pos + '</span> search result.');
+
+  bindClickEvents(problemSet);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="search-bar">
+      <input type="text" id="search-text">
+      <button id="search">Search</button>
+    </div>
+    <div id="page-content"></div>
+    <ul id="pagination"></ul>
+  </div>
+</div>
+</body>
+</html>

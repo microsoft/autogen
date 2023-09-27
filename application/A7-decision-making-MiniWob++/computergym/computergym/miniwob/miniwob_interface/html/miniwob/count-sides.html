@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Count Sides Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+
+<style>
+area { text-align: center; }
+canvas { display: block; }
+#form { display: block; text-align: center; margin: 15px; }
+#form button { display: inline-block; padding: 5px; text-align: center; width: 20px; }
+input { width: 60px; padding: 2px; text-align: center; }
+</style>
+
+<script>
+var resetCanvas = function(){
+  var c = document.getElementById('c');
+  c.width = 150;
+  c.height = 100;
+  var ctx = c.getContext('2d');
+
+  // reset the canvas and randomly rotate it, so that the shape will
+  // also be rotated.
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.translate(75,50);
+  ctx.rotate(core.randi(0,181)*Math.PI/180);
+
+  return ctx;
+}
+
+// this draws a random shape (triangle, square, pentagon, hexagon, heptagon) on the canvas
+var drawShape = function(ctx){
+  var numberOfSides = core.randi(3,8),
+    size = 35,
+    Xcenter = 0,
+    Ycenter = 0;
+
+  ctx.beginPath();
+  ctx.moveTo (Xcenter +  size * Math.cos(0), Ycenter +  size *  Math.sin(0));
+
+  for(var i=1; i<=numberOfSides;i+=1) {
+    ctx.lineTo (Xcenter + size * Math.cos(i * 2 * Math.PI / numberOfSides), Ycenter + size * Math.sin(i * 2 * Math.PI / numberOfSides));
+  }
+
+  // outline the color in black. (can change this to randomize color for variety)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  return numberOfSides;
+}
+
+var bindClickEvents = function(numberOfSides){
+  d3.selectAll('#form button').on('click', function(event, ui) { // end dragging
+    var userCount = this.getAttribute('data-sides');
+    var r = userCount === numberOfSides.toString() ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+var genProblem = function() {
+  var ctx = resetCanvas();
+  var numberOfSides = drawShape(ctx);
+  bindClickEvents(numberOfSides);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Press the button that correctly denotes how many sides the shape has.</div>
+  <div id="area">
+    <canvas id="c"></canvas>
+    <div id="form">
+      <button data-sides="3">3</button>
+      <button data-sides="4">4</button>
+      <button data-sides="5">5</button>
+      <button data-sides="6">6</button>
+      <button data-sides="7">7</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

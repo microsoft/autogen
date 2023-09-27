@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Shades Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area span { display:inline-block; margin:12px; width:12px; height:12px; border-radius:2px; }
+#area span.selected { border: 2px solid black; margin: 10px; }
+#submit { float: right; margin: 5px 20px;}
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 1500000;  // set episode interval to 15 seconds
+var COLORS = ['red', 'green', 'blue'];
+var COLOR_HUES = [0, 120, 240];
+var NUM_OF_SHADES = 12;
+
+function createSpan( hsl, color ){
+  var span = document.createElement('span');
+  span.setAttribute('data-color', color);
+  var colorsDIV = document.getElementById('area');
+  span.style.backgroundColor = hsl;
+  colorsDIV.appendChild(span);
+}
+
+function createSubmit(){
+  var button = document.createElement('button');
+  button.setAttribute('id', 'submit');
+  button.setAttribute('class', 'secondary-action');
+  button.innerHTML = 'Submit';
+  document.getElementById('area').appendChild(button);
+}
+
+function generateShade(color, hue){
+  var colorsDIV = document.getElementById('area');
+  var hsl = 'hsl(' + hue + ', ' + core.randi(30,90) + '%, ' + core.randi(30, 90) + '%)';
+  createSpan(hsl, color);
+}
+
+var generateShades = function(){
+  var randIndex = core.randi(0, COLORS.length);
+  var expectedColor = COLORS[randIndex];
+  var expectedClicks = 0;
+
+  // determine how many of each color should be generated.
+  var shades = [];
+  var shuffled_colors = core.shuffle([0,1,2]);
+  for(var c=0;c<COLORS.length;c++){
+    var currIndex = shuffled_colors[c];
+    var newShades = (c+1) !== COLORS.length ? core.randi(3,6) : (NUM_OF_SHADES - shades.length);
+    while(newShades>0){
+      shades.push(currIndex);
+      newShades -= 1;
+      if(currIndex === randIndex) expectedClicks += 1;
+    }
+  }
+
+  // randomize the order of colors
+  var shuffledShades = core.shuffle(shades);
+  for(var s=0;s<NUM_OF_SHADES;s++) {
+    var currColor = shuffledShades[s];
+    generateShade(COLORS[currColor], COLOR_HUES[currColor]);
+  }
+
+  return { expectedColor: expectedColor, expectedClicks: expectedClicks }
+}
+
+var bindClickEvents = function(problemSet){
+  d3.selectAll('#area span').on('click', function(){
+    var elemClass = this.getAttribute('class');
+    (elemClass == 'selected') ? this.removeAttribute('class') : this.setAttribute('class', 'selected');
+  });
+
+  // only reward a positive score if *all* shades are correctly identified.
+  d3.select('#area button').on('click', function(){
+    var correctColors = d3.selectAll('span.selected')[0]
+      .every(function(v,i){return v.getAttribute('data-color') == problemSet.expectedColor;});
+    var correctAmount = d3.selectAll('span.selected')[0].length === problemSet.expectedClicks;
+    var r = correctColors && correctAmount ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+var genProblem = function() {
+  // reset the  UI
+  d3.select('#query').html('');
+  document.getElementById('area').innerHTML = '';
+
+  var problemSet = generateShades();
+  createSubmit();
+
+  d3.select('#query').html('Select all the shades of ' + problemSet.expectedColor + ' and press Submit.')
+  bindClickEvents(problemSet);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+  </div>
+</div>
+</body>
+</html>

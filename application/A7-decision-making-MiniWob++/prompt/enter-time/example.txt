@@ -1,0 +1,12 @@
+Example plans)
+The task is to enter 9:01 AM as the time in the input box and press the submit button.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@id="tt"] 
+2. type 0901AM 
+3. clickxpath //*[@id="subbtn"]
+
+The task is to enter 10:07 PM as the time in the input box and press the submit button.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@id="tt"] 
+2. type 1007PM 
+3. clickxpath //*[@id="subbtn"]

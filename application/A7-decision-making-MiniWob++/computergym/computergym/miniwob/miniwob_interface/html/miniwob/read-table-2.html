@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Read Table Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#form div { display: block; height: 15px; }
+#form label { vertical-align:  -webkit-baseline-middle; float: left; }
+#form input { float: right; font-size: 8px; height: 8px;  width: 80px !important; }
+input { width: 80px; }
+table { font-family: arial, sans-serif; border-collapse: collapse; width: 153px; margin: 2px 1px; }
+td, th { border: 1px solid #bbb; text-align: left; padding: 2px; }
+tr:nth-child(even) { background-color: #dddddd; }
+#form { margin-left: 3px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+core.EPISODE_MAX_TIME = 20000; // set episode interval to 20 seconds
+
+var genYear = function() {
+  return core.randi(1940, 2016).toString();
+}
+
+var resetUI = function(){
+  d3.select('#ll1')[0][0].innerText ='';
+  d3.select('#tt1')[0][0].value ='';
+  d3.select('#ll2')[0][0].innerText ='';
+  d3.select('#tt2')[0][0].value ='';
+}
+
+var generateList = function(){
+  var lists = [
+    ['Color', ui_utils.COLORS],
+    ['First name', ui_utils.PEOPLE_NAMES],
+    ['Last name', ui_utils.LAST_NAMES],
+    ['Country', ui_utils.COUNTRIES],
+    ['Gender', ui_utils.GENDERS],
+    ['Language', ui_utils.LANGUAGES],
+    ['Year of Birth', genYear],
+    ['Religion', ui_utils.RELIGIONS],
+  ];
+
+  core.shuffle(lists);
+  return lists;
+}
+
+var createTable = function(lists, div){
+  var indices = [];
+  // guarantee that the 2 indices are not duplicates
+  while(indices.length < 2){
+    newNumb = core.randi(0,5);
+    if(indices.indexOf(newNumb) === -1) indices.push(newNumb);
+  }
+
+  var expectedVals = {};
+  var table = div.append('table');
+  for(var r=0;r<5;r++) {
+    var tr = table.append('tr');
+    var key = lists[r][0];
+    var val_candidates = lists[r][1];
+    if(Object.prototype.toString.call(val_candidates) === '[object Array]') {
+      var val = core.sample(val_candidates);
+    } else {
+      var val = val_candidates(); // a generator
+    }
+
+    tr.append('td').html(key);
+    tr.append('td').html(val);
+
+    if(indices.indexOf(r) !== -1) {
+      expectedVals[key] = val;
+    }
+  }
+
+  return expectedVals;
+}
+
+// determine whether or not to reverse the order of the labels, so that the order
+// will sometimes be different from the form.
+var randomizeTable = function(expectedVals){
+  var pseudoRandomize = Math.floor(Math.random()*2) == 1
+  var labelOrder = ['#ll1', '#ll2'];
+  if(pseudoRandomize) labelOrder = ['#ll2', '#ll1'];
+  for(var k=0;k<2;k++){
+    var key = Object.keys(expectedVals)[k];
+    var elem = d3.select(labelOrder[k])[0][0]
+    elem.innerText = key + ':';
+    elem.setAttribute('data-key', key);
+  }
+}
+
+var bindClickEvents = function(expectedVals){
+  d3.select('#subbtn').on('click', function(){
+    var t1 = d3.select('#tt1')[0][0].value;
+    var t2 = d3.select('#tt2')[0][0].value;
+
+    var k1 = d3.select('#ll1')[0][0].getAttribute('data-key');
+    var k2 = d3.select('#ll2')[0][0].getAttribute('data-key');
+    var r = (expectedVals[k1] === t1 && expectedVals[k2] == t2) ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+var genProblem = function() {
+  resetUI();
+  var div = d3.select('#tab');
+  div.html('');
+
+  var lists = generateList();
+  var expectedVals = createTable(lists, div);
+  randomizeTable(expectedVals);
+
+  d3.select('#query').html('Enter the value that corresponds with each label into the form and submit when done.');
+
+  bindClickEvents(expectedVals);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="tab"></div>
+    <div id="form">
+      <div>
+        <label id="ll1"></label>
+        <input type="text" id="tt1">
+      </div>
+      <div>
+        <label id="ll2"></label>
+        <input type="text" id="tt2">
+      </div>
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

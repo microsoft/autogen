@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Find Word Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#query .bold { font-weight: bold; }
+#answer-input { width: 150px; margin: 3px 0 3px 0; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<script>
+var regex_NONLETTERS = /[^a-zA-Z]+/g;
+var POSITIONS = ['1st', '2nd', '3rd'];
+
+var determinePosition = function(pos){
+  if(pos < POSITIONS.length) return POSITIONS[pos];
+  return (pos+1) + 'th';
+}
+
+var randomText = function(){
+  // generate paragraph of text
+  var firstWord = true;
+  var txt = '';
+  var n = core.randi(6, 15);
+  var expectedIndex = core.randi(0,n);
+
+  for(var i=0;i<n;i++) {
+    var ri = core.randi(0, ui_utils.lorem_words.length);
+    var w = ui_utils.lorem_words[ri];
+    if(firstWord) { w = ui_utils.txtCapitalize(w); firstWord = false;}
+    if(Math.random() < 0.2) { txt += w.replace(regex_NONLETTERS, '') + '. '; firstWord = true; }
+    else { txt += w + ' '; }
+    if(expectedIndex == i) var expectedWord = w.replace(regex_NONLETTERS, ''); // get rid of any punctuation
+  }
+
+  return {expectedIndex: expectedIndex, text: txt, expectedWord: expectedWord};
+}
+
+var displayProblem = function(problemSet){
+  d3.select('#area p').html(problemSet.text);
+  d3.select('#query').html('Find the <span class="bold">' + determinePosition(problemSet.expectedIndex) + ' word</span> in the paragraph, type that into the textbox and press "Submit".');
+}
+
+var bindClickEvent = function(problemSet){
+  d3.select('#subbtn').on('click', function(){
+    var ans = document.getElementById('answer-input').value;
+    adjustedAnswer = ans.replace(/[^a-zA-Z0-9]/g, '');
+
+    // don't penalize for whitespace or punctuation.
+    var r = adjustedAnswer === problemSet.expectedWord ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+var genProblem = function() {
+  // reset the UI
+  document.getElementById('answer-input').value = '';
+
+  var problemSet = randomText();
+  displayProblem(problemSet);
+  bindClickEvent(problemSet);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <p></p>
+    <input id="answer-input" type="text">
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

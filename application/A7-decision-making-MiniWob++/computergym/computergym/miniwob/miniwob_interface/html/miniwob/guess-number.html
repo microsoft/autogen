@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Resize Textarea Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+
+<style>
+#feedback div { margin-top: 20px; height: 20px; font-weight: bold; text-align: center; }
+form { margin: 10px auto; width: 100%; text-align: center; }
+#tt { width: 30px; }
+.hide { display: none; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 1500000;
+var resetUI = function(){
+  $('#feedback div').addClass('hide');
+  $('#waiting').removeClass('hide');
+  $('#feedback span').text('');
+  $('#tt').val('');
+}
+
+var bindClickEvent = function(correctNumber){
+  $('#subbtn').unbind('click');
+
+  $('#subbtn').on('click', function(){
+    var ans = parseInt($('#tt').val(),10);
+    $('#feedback div').addClass('hide');
+
+    if(ans === correctNumber) {
+      $('#correct').removeClass('hide');
+      core.endEpisode(1, true);
+    } else if (ans < correctNumber) {
+      $('#higher').removeClass('hide');
+      $('#higher span').text(ans);
+    } else if (ans > correctNumber) {
+      $('#lower').removeClass('hide');
+      $('#lower span').text(ans);
+    }
+
+   return false;
+  });
+}
+
+var genProblem = function() {
+  resetUI();
+  var correctNumber = core.randi(0,10);
+  bindClickEvent(correctNumber);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Guess the number between 0-9 and press Submit. Use the feedback below to find the right number.</div>
+  <div id="area">
+    <div id="feedback">
+      <div id="waiting">Waiting for your guess...</div>
+      <div id="correct" class="hide">Correct!</div>
+      <div id="lower" class="hide">The number is lower than <span></span>.</div>
+      <div id="higher" class="hide">The number is higher than <span></span>.</div>
+    </div>
+    <form>
+      <input type="number" id="tt">
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

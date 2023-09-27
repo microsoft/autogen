@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Read Table Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#form { margin-left: 5px; }
+.bold { font-weight: bold }
+input { width: 100px; }
+table { font-family: arial, sans-serif; border-collapse: collapse; width: 148px; margin: 5px; }
+td, th { border: 1px solid #bbb; text-align: left; padding: 1px; }
+tr:nth-child(even) { background-color: #dddddd; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var genYear = function() {
+  return core.randi(1940, 2016).toString();
+}
+
+var generateList = function(){
+  var lists = [
+    ['Color', ui_utils.COLORS],
+    ['First name', ui_utils.PEOPLE_NAMES],
+    ['Last name', ui_utils.LAST_NAMES],
+    ['Country', ui_utils.COUNTRIES],
+    ['Gender', ui_utils.GENDERS],
+    ['Language', ui_utils.LANGUAGES],
+    ['Year of Birth', genYear],
+    ['Religion', ui_utils.RELIGIONS],
+  ];
+
+  core.shuffle(lists);
+  return lists;
+}
+
+var createTable = function(lists, div){
+  var ix = core.randi(0,5);
+  var table = div.append('table');
+  for(var r=0;r<5;r++) {
+    var tr = table.append('tr');
+    var key = lists[r][0];
+    var val_candidates = lists[r][1];
+    if(Object.prototype.toString.call(val_candidates) === '[object Array]') {
+      var val = core.sample(val_candidates);
+    } else {
+      var val = val_candidates(); // a generator
+    }
+
+    tr.append('td').html(key);
+    tr.append('td').html(val);
+
+    if(r === ix) { var keygt = key; var valgt = val; }
+  }
+
+  return { keygt: keygt, valgt: valgt };
+}
+
+var genProblem = function() {
+  d3.select('#tt')[0][0].value ='';
+
+  var div = d3.select('#tab');
+  div.html('');
+
+  var lists = generateList();
+  var expectedVals = createTable(lists, div);
+
+
+  d3.select('#query').html('Enter the value of <span class="bold">' + expectedVals.keygt + '</span> into the text field and press Submit.');
+
+  // reward awarder
+  d3.select('#subbtn').on('click', function(){
+    var t = d3.select('#tt')[0][0].value;
+    var r = t === expectedVals.valgt ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="tab"></div>
+    <div id="form">
+      <input type="text" id="tt">
+      <button id="subbtn" class="secondary-action">Submit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Book Flight Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../common/special/book-flight/domestic.js"></script>
+
+<style>
+#area { height: 156px; position: relative; overflow-y: scroll;
+  background-image: -webkit-linear-gradient(top, rgb(207, 223, 238) 0px, rgb(235, 240, 246) 100%); }
+#header-book { font-size: 10px; font-weight: bold; font-family: Helvetica,Arial,sans-serif; margin-left: 2px; }
+#search { margin: 2px; width: 126px; border: 1px solid #B3B3B3; border-radius: 3px; cursor: pointer;
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0,#fdd774),color-stop(1,#edb82e)); }
+
+.input-container { padding: 2px; }
+.flight-input { border: 1px solid #666; padding: 2px; border-radius: 3px; cursor: pointer; }
+.ui-menu { font-size: 10px; width: 126px !important; }
+.ui-autocomplete { max-height: 80px; overflow-y: auto; overflow-x: hidden; }
+
+.departure-container { margin-top: 15px; }
+.departure-header{ background: #039; color: #FFF; font-weight: bold; padding: 2px; width: 124px;
+  border-right-width: 1px; border-left-width: 1px; border-top-left-radius: 3px; border-top-right-radius: 3px; }
+.departure-container .input-container { padding: 0 2px; background-color: #FFF; width: 124px;
+  border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; }
+.departure-container input { width: 100px !important; margin: 2px 8px; height: 10px; }
+.search-container { margin-top: 3px; }
+
+div.ui-datepicker { font-size: 7px; }
+p { margin: 0; padding: 0; }
+input { width: 100px; display: inline-block; }
+.hide { display: none; }
+
+.flight-header { margin: 2px; }
+.flight-header button { height: 15px; width: 25px; font-size: 8px;
+  border-radius: 3px; padding: 0; margin-left: -1px;
+  linear-gradient(to bottom,#fff 0,#fefefe 10%,#d0e0ed 65%,#d0e0ed 90%,#d2dfef 94%,#d0e0ed 97%,#c2cfd8 100%); }
+.flight-summary { margin: 2px 0; text-align: center; color: #FFF; width: 138px;
+  background-color: #333; padding: 2px; }
+.flight { box-shadow: 0 1px 4px rgba(0,0,0,.3); background-color: #FFF;
+  width: 140px; padding: 2px; border-radius: 3px; margin: 3px 1px; }
+.label-container { display: inline-block; width: 29%; vertical-align: top; }
+.label-container label { margin-left: 2px; color: #666; }
+.details-container { display: inline-block; width: 69%; margin: 1px 0; }
+.details-container div { margin-left: 2px; }
+
+.book { text-align: center; }
+.book button { margin: 2px; width: 126px; border: 1px solid #B3B3B3;
+  border-radius: 3px; cursor: pointer;
+  background-image: -webkit-gradient(linear,left top,left bottom,color-stop(0,#fdd774),color-stop(1,#edb82e)); }
+.error { border: 1px solid red !important; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 30000;
+
+var START_DATE = new Date(2016, 09, 1); // October 1, 2015
+var END_DATE = new Date(2016, 11, 31); // December 31, 2016
+var DAY_MILLISECONDS = 86400000;
+var MAX_FLIGHTS = 5;
+var DESIRED_FLIGHT = ['cheapest', 'shortest'];
+var MAX_PRICE = 1200; // in USD.
+
+var FLIGHT_NAV = `
+<span><button id="menu-back">Back</button></span>
+<div class="flight-summary">
+  <span class="flight-codes"></span>
+  <span> | </span>
+  <span class="flight-date"></span>
+</div>
+`
+
+var FLIGHT_TEMPLATE = `
+<div class="flight-depart">
+  <div class="label-container"><label>Depart:</label></div>
+  <div class="details-container">
+    <div class="depart-time"></div>
+    <div class="depart-day"></div>
+    <div class="depart-city"></div>
+  </div>
+</div>
+<div class="flight-arrive">
+  <div class="label-container"><label>Arrives:</label></div>
+  <div class="details-container">
+    <div class="arrive-time"></div>
+    <div class="arrive-day"></div>
+    <div class="arrive-city"></div>
+  </div>
+</div>
+<div class="flight-duration">
+  <div class="label-container"><label>Duration:</label></div>
+  <div class="details-container">
+    <div class="time-duration"></div>
+  </div>
+</div>
+<div class="book">
+  <button class="flight-price">Book flight for </button>
+</div>
+`
+
+var createFlightHeader = function(departCity, arriveCity, departDate){
+  var departCode = departCity.replace(/(\s\()|(\))/g, '_').split('_')[1];
+  var arriveCode = arriveCity.replace(/(\s\()|(\))/g, '_').split('_')[1];
+  var div = document.createElement('div');
+  div.setAttribute('class', 'flight-header');
+  div.innerHTML = FLIGHT_NAV;
+
+  div.getElementsByClassName('flight-codes')[0].innerHTML = departCode + " to " + arriveCode;
+  div.getElementsByClassName('flight-date')[0].innerHTML = departDate;
+
+  $('#results').append(div);
+}
+
+var createFlightElem = function(result, index){
+  var div = document.createElement('div');
+  div.setAttribute('class', 'flight');
+  div.setAttribute('data-result', index);
+  div.innerHTML = FLIGHT_TEMPLATE;
+
+  div.getElementsByClassName('depart-time')[0].innerHTML = result.depart.time;
+  div.getElementsByClassName('depart-day')[0].innerHTML = result.depart.day;
+  div.getElementsByClassName('depart-city')[0].innerHTML = result.depart.city;
+
+  div.getElementsByClassName('arrive-time')[0].innerHTML = result.arrive.time;
+  div.getElementsByClassName('arrive-day')[0].innerHTML = result.arrive.day;
+  div.getElementsByClassName('arrive-city')[0].innerHTML = result.arrive.city;
+
+  div.getElementsByClassName('time-duration')[0].innerHTML = result.userDuration;
+  div.getElementsByClassName('time-duration')[0].setAttribute('data-duration', result.duration);
+  div.getElementsByClassName('flight-price')[0].innerHTML += '$' + result.price;
+  div.getElementsByClassName('flight-price')[0].setAttribute('data-price', result.price);
+
+  $('#results').append(div);
+}
+
+var generateFlights = function(departCity, arriveCity, day){
+  var results = [];
+  var totalFlights = core.randi(3, MAX_FLIGHTS);
+  var flightStart = new Date(Date.parse(day));
+  var flightStartMax = new Date(Date.parse(day) + DAY_MILLISECONDS);
+  var flightEnd = new Date(Date.parse(day) + DAY_MILLISECONDS*1.5);
+  for(var i=0;i<totalFlights;i++){
+    var result = {}
+    result.depart = {};
+    result.arrive = {};
+
+    var departDate = ui_utils.randomDate(flightStart, flightStartMax);
+    var arriveDate = ui_utils.randomDate(departDate, flightEnd);
+
+    result.depart.city = departCity;
+    result.depart.dateObj = departDate;
+    result.depart.day = departDate.toDateString();
+    result.depart.time = departDate.toLocaleTimeString().replace(/([\d]+:[\d]{2})(:[\d]{2})(.*)/, "$1$3");
+
+    result.arrive.city = arriveCity;
+    result.arrive.dateObj = arriveDate;
+    result.arrive.day = arriveDate.toDateString();
+    result.arrive.time = arriveDate.toLocaleTimeString().replace(/([\d]+:[\d]{2})(:[\d]{2})(.*)/, "$1$3");
+
+    var duration = (arriveDate - departDate)
+    result.userDuration = parseInt((duration / (1000*60*60)) % 60) + 'h ' + parseInt((duration / (1000*60)) % 60) + 'm';
+    result.duration = duration;
+    result.price = core.randi(50, MAX_PRICE);
+
+    results.push(result);
+  }
+  return results;
+}
+
+var genProblem = function(){
+  // clear the UI.
+  if($('body').find('ui-autocomplete-input').length > 0) $('#flight-from, #flight-to').autocomplete('destroy');
+  if($('body').find('hasDatepicker').length > 0) $('#datepicker').datepicker('destroy');
+  $('#search').unbind('click');
+  $('#area input').val('');
+  $('#menu').removeClass('hide');
+  $('#results').addClass('hide').empty();
+  $('.error').removeClass('.error');
+
+  var origin = core.sample(DOMESTIC_FLIGHTS);
+  var splitOrigin = origin.replace(/(\s\()|(\))/g, '_').split('_');
+  var cityOrigin = splitOrigin[0];
+  var airportOrigin = splitOrigin[1];
+  var userOrigin = core.sample([cityOrigin, airportOrigin]);
+
+  var destination = core.sample(DOMESTIC_FLIGHTS);
+  var splitDesination = destination.replace(/(\s\()|(\))/g, '_').split('_');
+  var cityDesination = splitDesination[0];
+  var airportDesination = splitDesination[1];
+  var userDestination = core.sample([cityDesination, airportDesination]);
+
+  var expectedDate = ui_utils.randomDate(START_DATE, END_DATE);
+  var userDate = ui_utils.toDateString(expectedDate);
+
+  var bookAction = core.sample(DESIRED_FLIGHT);
+
+  $('#query').html('Book the <span class="bold">' + bookAction + '</span> one-way flight from: <span class="bold">' + userOrigin + '</span> to: <span class="bold">' +  userDestination + '</span> on <span class="bold">' + userDate + '</span>.');
+
+  $('#flight-from, #flight-to').autocomplete({
+    source: DOMESTIC_FLIGHTS,
+    delay: 0
+  });
+
+  $("#datepicker").datepicker({
+    beforeShow: function (textbox, instance) {
+      var txtBoxOffset = $(this).offset();
+      var top = txtBoxOffset.top;
+      var left = txtBoxOffset.left;
+      var textBoxWidth = $(this).outerWidth();
+      setTimeout(function () {
+        instance.dpDiv.css({top: top-107, left: left});
+      }, 0);
+    },
+    minDate: START_DATE,
+    maxDate: END_DATE,
+    showAnim: ''
+  });
+
+  var flightResults = generateFlights(origin, userDestination, userDate);
+
+  $('#search').on('click', function(){
+    $('#results').empty();
+    $('.error').removeClass('error');
+    var inputOrigin = $('#flight-from').val();
+    var inputDestination = $('#flight-to').val();
+    var inputDate = $('#datepicker').val();
+
+    // input validation. if the text inputs are invalid, or blank, outline them in red.
+    if(inputOrigin === '' || DOMESTIC_FLIGHTS.indexOf(inputOrigin) === -1)
+      $('#flight-from').addClass('error');
+    if(inputDestination === '' || DOMESTIC_FLIGHTS.indexOf(inputDestination) === -1)
+      $('#flight-to').addClass('error');
+    if(inputDate === '')
+      $('#datepicker').addClass('error');
+    if($('.error').length > 0) return;
+
+    $('#results').removeClass('hide');
+    $('#menu').addClass('hide');
+
+    var cheapestPrice = MAX_PRICE;
+    var shortest = DAY_MILLISECONDS*2;
+
+    // create the header at the top of the flight results,
+    // and allow the user to return back to search if needed.
+    createFlightHeader(inputOrigin, inputDestination, inputDate);
+    $('#menu-back').unbind('click');
+    $('#menu-back').on('click', function(){
+      $('#results').addClass('hide');
+      $('#menu').removeClass('hide');
+    });
+
+    // all the shenanigans used to determine whether or not the user
+    // has picked the correct flight: the origin city, the desination city,
+    // the date, and whether or not it's the cheapest/shorest flight.
+    var correctOrigin = inputOrigin.indexOf(userOrigin) !== -1;
+    var correctDestination = inputDestination.indexOf(userDestination) !== -1;
+    var correctDate = inputDate === userDate;
+    if(correctOrigin && correctDestination && correctDate){
+      for(var i=0;i<flightResults.length; i++){
+        createFlightElem(flightResults[i]);
+        if(bookAction === 'shortest' &&  flightResults[i].duration < shortest)
+          shortest = flightResults[i].duration;
+        if(bookAction === 'cheapest' && flightResults[i].price < cheapestPrice)
+          cheapestPrice = flightResults[i].price;
+      }
+    } else {
+      // if any of the data is incorrect, generate dynamic/fake results for the user.
+      var fakeFlights = generateFlights(inputOrigin, inputDestination, inputDate);
+      for(var i=0;i<fakeFlights.length; i++){
+        createFlightElem(fakeFlights[i]);
+      }
+    }
+
+    $('.flight-price').on('click', function(){
+      var $parent = $(this).parents('.flight');
+      var price = parseInt($parent.find('.flight-price').attr('data-price'));
+      var duration = parseInt($parent.find('.time-duration').attr('data-duration'));
+      var r = (bookAction === 'shortest' && duration === shortest) || (bookAction === 'cheapest' && price === cheapestPrice) ? 1.0 : -1.0;
+      core.endEpisode(r, r > 0);
+    });
+
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="menu">
+      <h2 id="header-book">Book Your One-Way Flight</h2>
+      <div class="input-container"><input id="flight-from" class="flight-input" type="text" placeholder="From:"></div>
+      <div class="input-container"><input id="flight-to" class="flight-input" type="text" placeholder="To:"></div>
+      <div class="departure-container">
+        <div class="departure-header">Departure Date</div>
+        <div class="input-container"><input id="datepicker" class="flight-input" type="text" readonly></div>
+      </div>
+      <div class="search-container">
+        <button id="search">Search</button>
+      </div>
+    </div>
+  <div id="results" class="hide"></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Identify Shape Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area { text-align: center; }
+#area_svg { width: 50px; height: 50px; margin: 10px; }
+#area-buttons button { margin: 2px; }
+</style>
+<script>
+var generateShape = function(){
+  var grid = {};
+  grid.shapes = [];
+
+  var taken_positions = [];
+
+  // generate properties of a shape
+  while(true) {
+    var x = core.randi(0, shapes.SZ_X);
+    var y = core.randi(0, shapes.SZ_Y);
+    var xystr = x + ',' + y;
+    if(!taken_positions.hasOwnProperty(xystr)) { // make sure it's not taken yet
+      taken_positions[xystr] = 1;
+      break;
+    }
+  }
+  var color = shapes.COLORS[core.randi(0, shapes.COLORS.length)];
+
+  // a letter, digit or a shape. `r` values modified specifically for this problem.
+  var r = core.randf(0,1);
+  if(r < 0.35) {
+    var type = 'letter';
+    var text = shapes.LETTERS[core.randi(0, shapes.LETTERS.length)];
+  } else if(r < 0.7) {
+    var type = 'digit';
+    var text = shapes.DIGITS[core.randi(0, shapes.DIGITS.length)];
+  } else {
+    var type = 'shape';
+    var text = shapes.SHAPES[core.randi(0, shapes.SHAPES.length)];
+  }
+
+  var shape = {x:0.6, y:0.6, color:color, size:2.0, type:type, text:text}
+  grid.shapes.push(shape)
+
+  return grid;
+}
+
+var drawShapes = function(grid){
+  // generate a new grid containing a single shape.
+  var grid = generateShape();
+
+  var svg_elt = d3.select('#area_svg');
+  shapes.renderGrid(svg_elt, grid); // instantiate the actual SVG shapes
+  var expectedType = grid.shapes[0].type !== 'shape' ? grid.shapes[0].type : grid.shapes[0].text;
+  return expectedType;
+}
+
+// create a problem instance
+var genProblem = function() {
+  var chosenShape = drawShapes();
+
+  d3.selectAll('#area-buttons button').on('click', function(){
+    var clickedType = this.getAttribute('data-type');
+    var r = clickedType === chosenShape ? 1.0 : -1.0
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click the button that best describes the figure below.</div>
+  <div id="area">
+    <svg id="area_svg"></svg>
+    <div id="area-buttons">
+      <button data-type="rectangle">Rectangle</button>
+      <button data-type="circle">Circle</button>
+      <button data-type="triangle">Triangle</button>
+      <button data-type="letter">Letter</button>
+      <button data-type="digit">Number</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

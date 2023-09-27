@@ -1,0 +1,25 @@
+Example plans)
+task: navigate to the message from Emmalynn and send it to Rosmunda.
+plan:
+1. clickxpath //*[@class="email-sender" and text()="Emmalynn"]
+2. clickxpath //span[@class="email-forward"]
+3. clickxpath //input[@class="forward-sender"]
+4. type Rosmunda // type the name of receiver before sending the email
+5. clickxpath //span[@id="send-forward"]
+
+task: navigate to the message from Emmalynn and send it to Rosmunda.
+plan:
+1. clickxpath //*[@class="email-sender" and text()="Eydie"]
+2. clickxpath //span[@class="email-forward"]
+3. clickxpath //input[@class="forward-sender"]
+4. type Peggi // type the name of receiver before sending the email
+5. clickxpath //span[@id="send-forward"]
+
+
+task: Send Jade the email from Katy.
+plan:
+1. clickxpath //*[@class="email-sender" and text()="Katy"]
+2. clickxpath //span[@class="email-forward"]
+3. clickxpath //input[@class="forward-sender"]
+4. type Jade // type the name of receiver before sending the email
+5. clickxpath //span[@id="send-forward"]

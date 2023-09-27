@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Login User Popup Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+.bold { font-weight: bold; }
+input { margin: 5px; width: 100px; }
+#popup {
+  position: absolute;
+  top: 62px; left: 8px;
+  width: 120px; height: 120px;
+  border: 2px solid #888;
+  background-color: #EEE;
+  padding: 5px 10px; font-size: 12px;
+  display: flex; flex-direction: column; justify-content: space-around;
+}
+#popup p {
+  margin: 0; text-align: center;
+}
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+core.EPISODE_MAX_TIME = 1500000; // 15 seconds
+
+var genProblem = function() {
+  d3.select('#username')[0][0].value ='';
+  d3.select('#password')[0][0].value ='';
+
+  var user = core.sample(ui_utils.FIFTY_NAMES).toLowerCase();
+  var password = ui_utils.generateString(2,6)
+  d3.select('#query').html('Enter the <span class="bold">username</span> "' + user + '" and the <span class="bold">password</span> "' + password + '" into the text fields and press login.');
+
+  // reward awarder
+  d3.select('#subbtn').on('click', function(){
+    var u = d3.select('#username')[0][0].value;
+    var p = d3.select('#password')[0][0].value;
+    var r = (u === user && p === password) ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+
+  // Clean the previous states
+  d3.selectAll('#username, #password, #subbtn').attr('disabled', null);
+  d3.select('#popup').remove();
+  var popupShown = false;
+
+  // Random Popup 
+  function showPopup () {
+    if (popupShown) return;
+    d3.selectAll('#username, #password, #subbtn').attr('disabled', 'disabled');
+    var message
+    if (Math.random() < 0.85) {
+      message = 'Your session is ' + core.sample([
+          'about to expire.',
+          'about to time out.',
+          'expiring soon.',
+          'soon to expire.',
+          'timing out soon.',
+          'going to expire soon.',
+          'going to time out soon.',
+          ]);
+    } else {
+      message = core.sample([
+        'You are running out of time, aren\'t you?',
+        'You have 10 new messages.',
+        'Your mother is calling you for dinner.',
+        'Please do not panic.',
+        'This is an annoying popup message.',
+        'It looks like you are trying to log in.',
+        'You look good today.',
+        'Sorry for this annoying message.',
+        ]);
+    }
+    d3.select('#area').append('div').attr('id', 'popup').html(`
+        <p>` + message + `</p>
+        <p>Exit to home page?</p>
+        <p><button id=popup-ok>OK</button> <button id=popup-cancel>Cancel</button>`);
+    d3.select('#popup-ok').on('click', function () {
+      core.endEpisode(-1);
+    });
+    d3.select('#popup-cancel').on('click', function () {
+      d3.selectAll('#username, #password, #subbtn').attr('disabled', null);
+      d3.select('#popup').remove();
+    });
+    popupShown = true;
+  }
+  var popupMode = core.sample([
+      'username', 'password', null, null,
+      ]);
+  d3.select('#username').on('focus', popupMode != 'username' ? null : showPopup);
+  d3.select('#password').on('focus', popupMode != 'password' ? null : showPopup);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="form">
+      <p><label class="bold">Username</label><input type="text" id="username"></p>
+      <p><label class="bold">Password</label><input type="password" id="password"></p>
+      <button id="subbtn" class="secondary-action">OK</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

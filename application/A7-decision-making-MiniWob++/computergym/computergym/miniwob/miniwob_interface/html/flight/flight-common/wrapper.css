@@ -1,0 +1,49 @@
+/* ################ SIZING ################ */
+
+#wrap, #sync-task-cover {
+  height: 667px;
+  width: 375px;
+}
+
+#wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 0;
+}
+
+#click-canvas, #reward-display {
+  left: 380px;
+}
+
+#query-wrap {
+  position: absolute;
+  top: 215px;
+  left: 380px;
+  width: 160px;
+  height: auto;
+}
+#query {
+  height: auto;
+}
+#query-pretty {
+  background-color: #EFF;
+  font-size: 12px;
+  padding: 3px;
+}
+#query-pretty .mode {
+  font-weight: bold;
+}
+#query-pretty table {
+  border-collapse: collapse;
+}
+#query-pretty th, #query-pretty td {
+  border: 1px solid gray;
+  padding: 2px 5px;
+  width: 50%;
+  text-align: left;
+}
+#reward-reason {
+  background-color: #FEF;
+  font-size: 10px;
+  padding: 3px;
+}

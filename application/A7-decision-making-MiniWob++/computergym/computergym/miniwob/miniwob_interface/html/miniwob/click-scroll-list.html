@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Choose List Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+select { margin-top: 5px; height: 90px; }
+button { margin-top: 5px; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 1500000; // set episode interval to 15 seconds
+var MAX_CHOSEN = 2;
+var countries = [];
+
+var correctOptions = function(htmlCollection, expectedColection){
+  for(var i=0;i<htmlCollection.length;i++){
+    var option = htmlCollection[i].value;
+    if(expectedColection.indexOf(option) === -1) return false;
+  }
+  return true;
+}
+
+var createScrollList = function(div){
+  var ITEMS = core.randf(0,1) < 0.5 ? ui_utils.PEOPLE_NAMES : ui_utils.COUNTRIES;
+  core.shuffle(ITEMS);
+
+  var sel = div.append('select').attr('id', 'options').attr('style', 'width:150px;').attr('multiple', '');
+  var n = core.randi(8, 12);
+  for(var i=0;i<n;i++) {
+    sel.append('option').html(ITEMS[i]);
+  }
+
+  var expected = [];
+  var gt_txt = '';
+  while(expected.length < MAX_CHOSEN){
+    var ix = core.randi(0, n); // ground truth index
+    if(expected.indexOf(ITEMS[ix]) !== -1) continue;
+    expected.push(ITEMS[ix]);
+    if (expected.length > 1)  gt_txt += ', '
+    gt_txt += ITEMS[ix];
+    if(core.sample([true, false]) === true) break;
+  }
+
+  return {gt_txt: gt_txt, expected: expected};
+}
+
+var bindSubmit = function(div, scrollList){
+  var btn = div.append('button').html('Submit');
+  btn.attr('class', 'secondary-action');
+  btn.on('click', function(){
+    var sel = document.getElementById('options').selectedOptions;
+    var expectedLength = sel.length === scrollList.expected.length;
+    var expectedOptions = correctOptions(sel, scrollList.expected);
+
+    var r = expectedLength && expectedOptions ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+var genProblem = function() {
+  var div = d3.select('#area');
+  div.html('');
+
+  var scrollList = createScrollList(div);
+
+  d3.select('#query').html('Select ' + scrollList.gt_txt + ' from the scroll list and click Submit.');
+  bindSubmit(div, scrollList);
+}
+
+window.onload = function() {
+  d3.selectAll('option').each(function(d){
+    countries.push(this.innerHTML);
+  });
+
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+  </div>
+</div>
+</body>
+</html>

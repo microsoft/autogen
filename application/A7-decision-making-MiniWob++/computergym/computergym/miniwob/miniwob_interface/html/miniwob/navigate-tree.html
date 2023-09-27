@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Navigate Tree Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" type="text/css" href="../common/special/navigate-tree/jquery.treeview.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../common/special/navigate-tree/jquery.treeview.min.js"></script>
+
+<style>
+#subbtn { width: 40px; height: 40px; }
+#tree li { cursor: pointer; }
+</style>
+
+<script>
+var FOLDER_TEMPLATE = `<li><span class="folder"></span><ul></ul></li>`
+var FILE_TEMPLATE = `<li><span class="file"></span></li>`
+var MAX_FILES = 8;
+
+var generateTree = function(neededFiles, currentCount, level, $elem){
+  var files = [];
+  while(files.length < neededFiles && currentCount < MAX_FILES && level < 2){
+    var fileType = core.sample(['file', 'folder']);
+    if(fileType === 'file' || level === 2){
+      files.push('file');
+      $elem.append(FILE_TEMPLATE);
+      currentCount += 1;
+    } else {
+      $elem.append(FOLDER_TEMPLATE);
+      var $targetElem = $elem.find('li ul').last();
+      var newFiles = core.randi(0, MAX_FILES - files.length -1);
+      var nestedFiles = generateTree(newFiles, currentCount+1, level+1, $targetElem);
+      currentCount += 1 + newFiles;
+      files.push(nestedFiles);
+    }
+  }
+  return files;
+}
+
+var drawTree = function($tree){
+  var spanElems = $tree.find('span');
+  var chosenFile = core.randi(0, spanElems.length-1);
+  for(var i=0;i<spanElems.length;i++){
+    var name = core.sample(ui_utils.FIFTY_NAMES);
+    spanElems[i].innerHTML = name;
+    if(i === chosenFile) var expectedName = name;
+  }
+
+  $('#tree').treeview({ collapsed: true });
+  return expectedName;
+}
+
+var createTree = function($tree){
+  generateTree(MAX_FILES, 0, 0, $tree);
+  var expectedName = drawTree($tree);
+  return expectedName;
+}
+
+var bindClickEvents = function(expectedName){
+  $('#tree li').unbind();
+  $('#tree li').on('click', function(){
+    var fileText = $(this).children('span').text();
+    var isFolder = $(this).children('.folder').length === 1;
+    // get filename, and end episode if the name matches, or if the item clicked
+    // is a file. do not end if it is a folder.
+    if(fileText === expectedName) {
+      core.endEpisode(1, true);
+      return false;
+    } else if(!isFolder) {
+      core.endEpisode(-1);
+      return false;
+    }
+  });
+}
+
+var genProblem = function() {
+  var $tree = $('#tree')
+  $tree.empty();
+
+  var expectedName = createTree($tree);
+
+  $('#query').html('Navigate through the file tree. Find and click on the folder or file named "' + expectedName + '".')
+  bindClickEvents(expectedName);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click the folder labeled "Secrets".</div>
+  <div id="area">
+    <div>
+    <ul id="tree" class="filetree"></ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>

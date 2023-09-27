@@ -1,0 +1,6 @@
+task: for the agent to play as 'X' and win a game of tic-tac-toe.
+plan:
+1. Check the board and click the proper position which is empty to newly put X mark on the board to win the game (e.g., clickxpath clickxpath //*[@id="ttt-i"])
+2. Start in the middle, play defensively, play offensively, and block your opponent to improve your chances of winning
+3. You should select the position if you can directly win by doing that
+3. Repeat these until win

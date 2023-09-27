@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Copy Paste Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#answer-input { width: 150px; margin: 3px 0 3px 0; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<script>
+var TEXT_AREA = '<textarea id="to-copy"></textarea>';
+var ANSWER_INPUT = '<input id="answer-input" type="text">';
+
+// reset the UI, randomly place the textarea and input fields, randomize textarea height
+var setupTextArea = function(){
+  var problemType = core.randi(0,2);
+  if (problemType===0) document.getElementById('container').innerHTML = TEXT_AREA + ANSWER_INPUT;
+  else document.getElementById('container').innerHTML = ANSWER_INPUT + TEXT_AREA;
+  var textAreaHeight = core.randi(6,15)*5;
+  var textAreaWidth = core.randi(11,30)*5;
+  document.getElementById('to-copy').setAttribute('style', 'height: ' + textAreaHeight + 'px; width: ' + textAreaWidth + 'px;');
+}
+
+// generate paragraph of text in text area
+var randomizeTextArea = function(){
+  var firstWord = true;
+  var txt = '';
+  var n = core.randi(6, 10);
+  var expectedIndex = core.randi(0,n);
+
+  for(var i=0;i<n;i++) {
+    var ri = core.randi(0, ui_utils.lorem_words.length);
+    var w = ui_utils.lorem_words[ri];
+    if(firstWord) { w = ui_utils.txtCapitalize(w); firstWord = false;}
+    if(Math.random() < 0.2) { txt += w + '. '; firstWord = true; }
+    else { txt += w + ' '; }
+  }
+
+  var expectedText = txt;
+
+  d3.select('#area textarea')[0][0].value = expectedText;
+  return expectedText;
+}
+
+var genProblem = function() {
+  setupTextArea();
+  var expectedText = randomizeTextArea();
+
+  // create the query
+  d3.select('#query').html('Copy the text in the textarea below, paste it into the textbox and press Submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var ans = document.getElementById('answer-input').value;
+    var r = ans === expectedText ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id='container'>
+    </div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

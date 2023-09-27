@@ -1,0 +1,29 @@
+Example plans)
+The task is to navigate to the message from Emmalynn and send it to Rosmunda.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@class="email-sender" and text()="Emmalynn"]
+2. clickxpath //span[@class="email-forward"]
+3. clickxpath //input[@class="forward-sender"]
+4. type Rosmunda // type the name of receiver before sending the email
+5. clickxpath //span[@id="send-forward"]
+
+The task is to reply "Odio eu massa." to the most recent email from Harriette.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@class="email-sender" and text()="Harriette"]
+2. clickxpath //span[@class="email-reply"]
+3. clickxpath //*[@id="reply-text"]
+4. type Odio eu massa.
+5. clickxpath //span[@id="send-reply"]
+
+The task is to email the text "Volutpat vitae. Lectus." to Idalina.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@class="email-sender" and text()="Idalina"]
+2. clickxpath //span[@class="email-reply"]
+3. clickxpath //*[@id="reply-text"]
+4. type Volutpat vitae. Lectus.
+5. clickxpath //span[@id="send-reply"]
+
+The task is to search for the last email Janeczka sent and delete it.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@class="email-sender" and text()="Janeczka"]
+2. clickxpath //span[@class="trash"]

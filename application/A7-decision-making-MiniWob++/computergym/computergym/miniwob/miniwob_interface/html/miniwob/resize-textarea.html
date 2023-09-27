@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Resize Textarea Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+
+<style>
+#area { position: relative; height: 156px; width: 156px; }
+#tt { display: block; position: absolute; }
+#submit { display: block; position: absolute; bottom: 10px; right: 10px; }
+.ui-wrapper { padding-right: 0px !important; padding-bottom: 0px !important; }
+</style>
+
+<script>
+// use jQuery instead of D3 since chrome has an issue
+// where the textarea cannot be resized smaller than its
+// initial state. jQuery resizable lets us work around this.
+var TEXTAREA = `<textarea id="tt"></textarea>`
+var SUBMIT = `<button id="submit" class="secondary-action">Submit</button>`
+var directions = ['smaller', 'larger'];
+var dimensions = ['width', 'height'];
+
+var randomizeTextArea = function(){
+  var textAreaHeight = core.randi(10, 15)*5;
+  var textAreaWidth = core.randi(10, 20)*5;
+  var leftPadding = core.randi(1,8)*5;
+  var topPadding = core.randi(1,8)*5;
+  document.getElementById('tt').setAttribute('style', 'height: ' + textAreaHeight + 'px; width: ' + textAreaWidth + 'px; top:' + topPadding + 'px; left: ' + leftPadding + 'px;');
+
+  // resize after setting attributes, otherwise resize cursor
+  // will be misaligned with textarea
+  $('#tt').resizable();
+
+  return { height: textAreaHeight, width: textAreaWidth };
+}
+
+var bindClickEvent = function(resizeDim, resizeDir, textAreaDims){
+  $('#submit').on('click', function(){
+    if(resizeDim === 'height'){
+      var newHeight = $('#tt').height();
+      var r = (resizeDir === 'larger' && newHeight > textAreaDims.height)
+        || (resizeDir === 'smaller' && newHeight < textAreaDims.height) ? 1.0 : -1.0;
+    } else if (resizeDim === 'width') {
+      var newWidth = $('#tt').width();
+      var r = (resizeDir === 'larger' && newWidth > textAreaDims.width)
+        || (resizeDir === 'smaller' && newWidth < textAreaDims.width) ? 1.0 : -1.0;
+    }
+
+    core.endEpisode(r, r > 0);
+  });
+}
+
+var genProblem = function() {
+  $('#area').html('');
+  $('#area').append(TEXTAREA + SUBMIT);
+
+  var textAreaDims = randomizeTextArea();
+
+  var resizeDim = core.sample(dimensions);
+  var resizeDir = core.sample(directions);
+
+  $('#query').html('Resize the textarea so that the <span class="bold">' + resizeDim + '</span> is <span class="bold">' + resizeDir + '</span> than its initial size then press Submit.');
+
+  bindClickEvent(resizeDim, resizeDir, textAreaDims);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

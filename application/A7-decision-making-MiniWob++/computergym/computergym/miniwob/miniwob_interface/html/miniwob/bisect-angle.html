@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Bisect Angle Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area { position: relative; height: 160px; width: 160px; }
+#area svg { width: 150px; height: 130px; }
+#subbtn { left: 30px; bottom: 5px; position: absolute; }
+</style>
+
+<script>
+var RADIUS_PADDING = 3; // 3px for circle radius
+var QUERY_PADDING = 50; // 50px for #query height
+
+function graphClicked(event) {
+  var x = event.pageX;
+  var y = event.pageY;
+  var divWidth = document.getElementById('svg-grid').clientWidth;
+  var divHeight = document.getElementById('svg-grid').clientHeight;
+
+  var svg = d3.select('svg');
+
+  d3.selectAll('.blue').remove();
+
+  shapes.drawCircles([{ class: 'blue', id: 'blue-circle', cx: x, cy: (y-QUERY_PADDING),
+    r: 3.5, fill: 'blue' }], svg);
+
+  var blueCircle = d3.select('#blue-circle')[0][0].getBBox();
+  var initCircle = d3.selectAll('.init-blue')[0][0].getBBox();
+
+  shapes.drawLines([{ stroke: 'blue', class: 'blue', x1: (blueCircle.x + RADIUS_PADDING),
+    x2: (initCircle.x + RADIUS_PADDING), y1: (blueCircle.y + RADIUS_PADDING),
+    y2: (initCircle.y + RADIUS_PADDING) }], svg);
+}
+
+
+var pointsSpacedOut = function(point, existingPoints){
+  for(var i=0;i<existingPoints.length;i++){
+    var xDiff = Math.abs(point.cx - existingPoints[i].cx);
+    var yDiff = Math.abs(point.cy - existingPoints[i].cy);
+    if(xDiff < 40 && yDiff < 40) return false;
+  }
+  return true;
+}
+
+var connectPoints = function(){
+  var svg = d3.select('svg');
+  var blueCircle = svg.select('.init-blue')[0][0].getBBox();
+
+  var blackCircles = svg.selectAll('.init-black')[0];
+  var lines = [];
+  for(var i=0;i<blackCircles.length;i++){
+    var currentCircle = blackCircles[i].getBBox();
+    lines.push({ x1: (blueCircle.x + RADIUS_PADDING), x2: (currentCircle.x + RADIUS_PADDING),
+      y1: (blueCircle.y + RADIUS_PADDING), y2: (currentCircle.y + RADIUS_PADDING) });
+  }
+  shapes.drawLines(lines, svg);
+}
+
+// given pointA, pointB and the vertex that is joined to both of these points,
+// return the angle made by all three points.
+var findAngle = function(pointA,pointB, pointVertex) {
+  var pAV = Math.sqrt(Math.pow(pointVertex.x-pointA.x,2) + Math.pow(pointVertex.y-pointA.y,2));
+  var pBV = Math.sqrt(Math.pow(pointVertex.x-pointB.x,2) + Math.pow(pointVertex.y-pointB.y,2));
+  var pApB = Math.sqrt(Math.pow(pointB.x-pointA.x,2) + Math.pow(pointB.y-pointA.y,2));
+  var radAngle = Math.acos((pBV*pBV+pAV*pAV-pApB*pApB)/(2*pBV*pAV));
+  return (radAngle*180)/ Math.PI; // return in degrees
+}
+
+var computeDistances = function(){
+  var pointA = d3.selectAll('.init-black')[0][0].getBBox();
+  var pointB = d3.selectAll('.init-black')[0][1].getBBox();
+  var pointVertex = d3.select('.init-blue')[0][0].getBBox();
+
+  var totalAngle = findAngle(pointA, pointB, pointVertex);
+  var correctPoint = findMidpoint(pointA, pointB, pointVertex);
+
+  // error handle for submitting without any shapes
+  if(d3.select('#blue-circle')[0][0] === null) {
+    core.endEpisode(-1, false);
+    return;
+  }
+  var pointC = d3.select('#blue-circle')[0][0].getBBox();
+  var userAngleA = findAngle(pointA, pointC, pointVertex);
+  var userAngleB = findAngle(pointB, pointC, pointVertex);
+  var largerAngle = userAngleA > userAngleB ? userAngleA : userAngleB;
+
+  var score = (totalAngle - largerAngle) / (totalAngle/2);
+
+  if(userAngleA > totalAngle || userAngleB > totalAngle) core.endEpisode(-1.0, false);
+  else core.endEpisode(score, true);
+}
+
+var findMidpoint = function(pointA, pointB, pointVertex){
+  var midpoint = {};
+  midpoint.x = (pointA.x + pointB.x)/2;
+  midpoint.y = (pointA.y + pointB.y)/2;
+
+  var svg = d3.select('svg');
+
+  shapes.drawCircles([{ class: 'green', cx: midpoint.x, cy: midpoint.y, r: 3.5, fill: 'green' }], svg);
+  shapes.drawLines([{ stroke: 'green', x1: (midpoint.x), x2: (pointVertex.x + RADIUS_PADDING),
+    y1: (midpoint.y), y2: (pointVertex.y + RADIUS_PADDING) }], svg);
+}
+
+
+// generate two random, initial reference points. first point is black,
+// second point is blue and acts as the vertex between the first point
+// and the user-clicked third point.
+var startingPoints = function(){
+  var jsonCircles = [{ cx: core.randi(5, 135), cy: core.randi(10, 120), fill: 'blue', class: 'init-blue', r: 3.5 }];
+  while(jsonCircles.length < 3){
+    var newCircle = { cx: core.randi(5,135), cy: core.randi(10, 120), fill : 'black', class: 'init-black', r: 3.5 };
+    var usablePoint = pointsSpacedOut(newCircle, jsonCircles)
+    console.log
+    if(!usablePoint) continue;
+    else jsonCircles.push(newCircle);
+  }
+
+  return jsonCircles;
+}
+
+var genProblem = function() {
+  var svg = d3.select('svg');
+  svg.selectAll('*').remove();
+
+  var jsonCircles = startingPoints();
+  shapes.drawCircles(jsonCircles, svg);
+  connectPoints();
+
+  svg.on('click', function(){ graphClicked(event); });
+
+  d3.select('#subbtn').on('click', function(){
+    computeDistances();
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Create a line that bisects the angle evenly in two, then press submit.</div>
+  <div id="area">
+    <svg id="svg-grid"></svg>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

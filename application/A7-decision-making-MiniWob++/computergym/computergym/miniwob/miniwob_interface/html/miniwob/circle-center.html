@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Circle Center Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area { position: relative; height: 160px; width: 160px; }
+#area svg { width: 150px; height: 130px; }
+#subbtn { left: 30px; bottom: 5px; position: absolute; }
+</style>
+
+<script>
+var RADIUS_PADDING = 3; // 3px for circle radius
+var QUERY_PADDING = 50; // 50px padding from #query
+
+function graphClicked(event) {
+  var x = event.pageX;
+  var y = event.pageY;
+
+  var divWidth = document.getElementById('svg-grid').clientWidth;
+  var divHeight = document.getElementById('svg-grid').clientHeight;
+  var svg = d3.select('svg');
+
+  d3.selectAll('.blue').remove();
+  shapes.drawCircles([{ class: 'blue', id: 'blue-circle', cx: x, cy: (y-QUERY_PADDING),
+    r: 3.5, fill: 'blue' }], svg);
+}
+
+var drawAnswer = function(answer){
+  var svg = d3.select('svg');
+
+  shapes.drawCircles([{ class: 'green', id: 'green-circle', cx: answer.cx,
+    cy: answer.cy, r: 3.5, fill: 'green' }], svg);
+}
+
+var computeDistances = function(generatedCircle){
+  drawAnswer(generatedCircle);
+  // error handle for submitting without any shapes
+  if(d3.select('#blue-circle')[0][0] === null) {
+    core.endEpisode(-1, false);
+    return;
+  }
+
+  var distance = computeShortestPath(generatedCircle);
+  var maxDistance = generatedCircle.r; // max acceptable distance of 30px.
+  var score = (maxDistance - distance)/maxDistance;
+
+  // create a scalar if score is within max distance.
+  // otherwise reward a negative score.
+  if(distance < maxDistance) core.endEpisode(score, true);
+  else core.endEpisode(-1, false);
+}
+
+var computeShortestPath = function(generatedCircle){
+  var userCircle = d3.select('#blue-circle')[0][0].getBBox();
+
+  var xDiff = Math.pow(userCircle.x - (generatedCircle.cx - RADIUS_PADDING), 2);
+  var yDiff = Math.pow(userCircle.y - (generatedCircle.cy - RADIUS_PADDING), 2);
+
+  var path = Math.sqrt(xDiff + yDiff);
+  return path;
+}
+
+var genProblem = function() {
+  var svg = d3.select('svg');
+  svg.selectAll('*').remove();
+
+  var circleRadius = core.randi(25,40);
+  var generatedCircle = { cx: core.randi(5+circleRadius,130-circleRadius), cy: core.randi(5+circleRadius,130 - circleRadius),
+    r: circleRadius, stroke: 'black', fill: 'white', class: 'black-circle' };
+  shapes.drawCircles([ generatedCircle ], svg);
+
+  svg.on('click', function(){ graphClicked(event); });
+
+  d3.select('#subbtn').on('click', function(){
+    computeDistances(generatedCircle);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Find and click on the center of the circle, then press submit.</div>
+  <div id="area">
+    <svg id="svg-grid"></svg>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

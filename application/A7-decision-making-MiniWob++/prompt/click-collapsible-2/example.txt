@@ -1,0 +1,10 @@
+Example plans)
+task: find a proper section that include the text "adipiscing" and click on the link "adipiscing" on the webpage.
+plan:
+1. clickxpath //*[@id="ui-id-3"] // click the tab that includes the link with a text "adipiscing"
+2. clickxpath //*[@class="alink" and text()="adipiscing"]
+
+task: find a proper section that include the text "lectus" and click on the link "lectus" on the webpage.
+plan:
+1. clickxpath //*[@id="ui-id-19"] // click the tab that includes the link with a text "lectus" 
+2. clickxpath //span[@class='alink' and contains(text(), 'lectus')]

@@ -1,0 +1,5 @@
+Example plans)
+The task is to expand the section below and click the submit button.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. Click the expanded section by typing the xpath: "//*[@id="ui-id-1"]".
+2. Click the submit button by typing the xpath: "//button[@id='subbtn']".

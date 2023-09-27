@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Multi Layouts Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<script>
+core.EPISODE_MAX_TIME = 2000000; // 20 seconds
+var GENRES = ['Action', 'Adventure', 'Comedy', 'Crime', 'Drama', 'Fantasy', 'Historical', 'Horror', 'Mystery', 'Paranoid', 'Political', 'Romance', 'Saga', 'Satire', 'Surreal', 'Thriller', 'Urban', 'Western'];
+
+var layout1 = function (checker) {
+  var genreBox = $('<input type=text>');
+  var nameBox = $('<input type=text>');
+  var yearBox = $('<input type=text>');
+  var rows = [
+    $('<p>').append('<span>Genre:</span>').append(genreBox),
+    $('<p>').append('<span>Director:</span>').append(nameBox),
+    $('<p>').append('<span>Year:</span>').append(yearBox),
+    ];
+  core.shuffle(rows);
+  rows.forEach(function (row) { row.appendTo('#area'); });
+  var submit = $('<button type=button>').text('Submit').appendTo('#area')
+    .click(function () {
+      checker(genreBox.val(), nameBox.val(), yearBox.val());
+    });
+  $('#area').append(layout1Style);
+}
+
+var layout1Style = `<style>
+#area span { width: 50px; display: inline-block; margin-left: 10px;}
+#area input[type=text] { width: 80px; }
+</style>`;
+
+var layout2 = function (checker) {
+  var genreBox = $('<input type=text>');
+  var nameBox = $('<input type=text>');
+  var yearBox = $('<input type=text>');
+  var rows = [
+    $('<div class=row>').append('<div>Genre</div>').append(genreBox),
+    $('<div class=row>').append('<div>Director Name</div>').append(nameBox),
+    $('<div class=row>').append('<div>Year</div>').append(yearBox),
+    ];
+  core.shuffle(rows);
+  rows.forEach(function (row) { row.appendTo('#area'); });
+  var submit = $('<button type=button>').text('Search')
+    .appendTo($('<div class=submit-row>').appendTo('#area'))
+    .click(function () {
+      checker(genreBox.val(), nameBox.val(), yearBox.val());
+    });
+  $('#area').append(layout2Style);
+}
+
+var layout2Style = `<style>
+#area div.row { margin: 5px; }
+#area div.row div { font-weight: bold; }
+#area div.row input[type=text] { width: 140px; }
+#area div.submit-row { text-align: center; }
+</style>`;
+
+var layout3 = function (checker) {
+  var genreBox = $('<input type=text>');
+  var nameBox = $('<input type=text>');
+  var yearBox = $('<input type=text>');
+  var rows = [
+    $('<tr>').append('<th>Genre</th>').append($('<td>').append(genreBox)),
+    $('<tr>').append('<th>Director</th>').append($('<td>').append(nameBox)),
+    $('<tr>').append('<th>Year</th>').append($('<td>').append(yearBox)),
+    ];
+  core.shuffle(rows);
+  $('<div class=title-div>Movie Search</div>').appendTo('#area');
+  var table = $('<table>').appendTo('#area');
+  rows.forEach(function (row) { row.appendTo(table); });
+  var submit = $('<div class=final>').text('Submit').appendTo('#area')
+    .click(function () {
+      checker(genreBox.val(), nameBox.val(), yearBox.val());
+    });
+  $('#area').append(layout3Style);
+}
+
+var layout3Style = `<style>
+#area div.title-div { text-align: center; font-weight: bold; margin-top: 10px; font-size: 120%; }
+#area table { margin: 5px auto; }
+#area th { text-align: right; }
+#area input[type=text] { width: 90px; }
+#area .final { padding: 2px; border: 1px solid gray; margin: 2px auto; width: 50px; text-align: center; background: #fed; cursor: pointer; }
+#area .final:hover { background: #fcc; }
+</style>`;
+
+var layout4 = function (checker) {
+  var genreBox = $('<input type=text>');
+  var nameBox = $('<input type=text>');
+  var yearBox = $('<input type=text>');
+  var rows = [
+    $('<div class=field>').append('<div class=label>Movie Genre</div>').append($('<div class=input>').append(genreBox)),
+    $('<div class=field>').append('<div class=label>Director Name</div>').append($('<div class=input>').append(nameBox)),
+    $('<div class=field>').append('<div class=label>Released Date</div>').append($('<div class=input>').append(yearBox)),
+    ];
+  core.shuffle(rows);
+  rows.forEach(function (row) { row.appendTo('#area'); });
+  var submit = $('<button type=button>').text('Go!')
+    .appendTo($('<div class=submit-row>').appendTo('#area'))
+    .click(function () {
+      checker(genreBox.val(), nameBox.val(), yearBox.val());
+    });
+  $('#area').append(layout4Style);
+}
+
+var layout4Style = `<style>
+#area div.field { background-color: #DDD; margin: 2px; padding: 3px 8px; border-radius: 3px;}
+#area input[type=text] { width: 98%; }
+#area .submit-row { text-align: center; }
+</style>`;
+
+var layout5 = function (checker) {
+  var genreBox = $('<input type=text>');
+  var nameBox = $('<input type=text>');
+  var yearBox = $('<input type=text>');
+  var rows = [
+    $('<div class=ui-entry>').append(genreBox).append('<div class=ui-label>Genre</div>'),
+    $('<div class=ui-entry>').append(nameBox).append('<div class=ui-label>Director</div>'),
+    $('<div class=ui-entry>').append(yearBox).append('<div class=ui-label>Year</div>'),
+    ];
+  core.shuffle(rows);
+  var wrapper = $('<div class=ui-entry-wrap>').appendTo('#area');
+  rows.forEach(function (row) { row.appendTo(wrapper); });
+  var submitRow = $('<div class=ui-footer>').appendTo('#area');
+  var submit = $('<div class=ui-submit>').text('Search').appendTo(submitRow)
+    .click(function () {
+      checker(genreBox.val(), nameBox.val(), yearBox.val());
+    });
+  $('#area').append(layout5Style);
+}
+
+var layout5Style = `<style>
+#area .ui-entry-wrap { width: 140px; margin: 3px auto; padding: 2px 5px; background-color: #333; border-radius: 5px;}
+#area .ui-entry { margin: 8px auto; }
+#area .ui-entry input[type=text] { padding: 0; margin: 0; width: 95%; }
+#area .ui-label { font-weight: bold; color: white; }
+#area .ui-footer { margin: 0 auto; text-align: center; }
+#area .ui-submit { display: inline-block; border: 1px solid gray; background-color: #BBB; border-radius: 3px; padding: 3px; width: 50px; text-align: center; box-shadow: inset 0px 1px 0px 0px #EEE; cursor: pointer; }
+#area .ui-submit:active { box-shadow: inset 0px 1px 0px 0px #999; }
+</style>`;
+
+var layouts = [layout1, layout2, layout3, layout4, layout5];
+
+var genProblem = function(){
+  var eGenre = core.sample(GENRES).toLowerCase();
+  var eName = core.sample(ui_utils.LAST_NAMES);
+  var eYear = core.randi(1970, 2018);
+  $('#query').html('Search for <b>' + eGenre + '</b> movies directed by <b>' + eName + '</b> from year <b>' + eYear + '</b>.');
+  var checker = function (cGenre, cName, cYear) {
+    if (cGenre.toLowerCase().trim() == eGenre &&
+        cName.toLowerCase().trim() == eName.toLowerCase() &&
+        ('' + cYear) == ('' + eYear)) {
+      core.endEpisode(1.0, true);
+    } else {
+      core.endEpisode(-1.0);
+    }
+  };
+  
+  $('#area').empty();
+  var layout = core.sample(layouts);
+  layout(checker);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

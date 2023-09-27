@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Button Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var buttons = ['ÖK', 'Cancél', '♥♥♥', '确定', '取消', 'ヘルプ'];
+
+var genProblem = function() {
+  // generate the task
+  var div = d3.select('#area');
+  div.html(''); // clear previous problem, if any
+
+  var num = 6;
+  var elements = [];
+  for(var i=0;i<num;i++) {
+    var u = core.randf(0,1);
+    var must_make_button = (i === num-1) && elements.length === 0;
+
+    if(u < 0.33 && !must_make_button) {
+      var txt = ''; for(var q=0;q<3;q++) { txt += ' ' + core.sample(ui_utils.lorem_words); }
+      div.append('div').html(txt);
+    } else if(u < 0.66 && !must_make_button) {
+
+      if(core.randf(0,1) < 0.5) {
+        var txt = ''; for(var q=0;q<3;q++) { txt += ' ' + core.sample(ui_utils.lorem_words); }
+        txt += ': ';
+        div.append('span').html(txt);
+      }
+
+      var w = core.randi(40, 150);
+      div.append('input').attr('type', 'text').attr('style', 'width:' + w + 'px;');
+      div.append('br');
+    } else {
+      var btn_text = core.sample(buttons);
+      if(core.randf(0,1) < 0.5) btn_text = ui_utils.txtCapitalize(btn_text);
+      var btn = div.append('button').html(btn_text);
+      if(core.randf(0,1) < 0.5) div.append('br');
+      elements.push(btn);
+    }
+
+  }
+
+  var correct_text = core.sample(elements).html();
+  for(var i = 0, len = elements.length; i < len; i++) {
+    var e = elements[i];
+    if(e.html() === correct_text) {
+      e.on('click', function(){ core.endEpisode(1.0, true, 'Cool!'); })
+    } else {
+      e.on('click', function(){ core.endEpisode(-1.0, false, 'Well you clicked on ' + this.innerHTML + 'when you should have clicked on ' + correct_text + ', stupid agent!'); })
+    }
+  }
+
+  // generate query text in the UI
+  d3.select('#query').html('Click on the "' + correct_text + '" button.');
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,45 @@
+Example plans)
+task: find the email by Adriana and click the trash icon to delete it.
+plan:
+1. clickxpath //div[@class='email-sender' and text()='Adriana']
+2. clickxpath //span[@class='trash']
+
+task: navigate to the message from Emmalynn and send it to Rosmunda.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //*[@class="email-sender" and text()="Emmalynn"]
+2. clickxpath //span[@class="email-forward"]
+3. clickxpath //input[@class="forward-sender"]
+4. type Rosmunda
+5. clickxpath //*[@id="send-forward"]
+
+task: email the text "Volutpat vitae. Lectus." to Idalina.
+plan:
+1. clickxpath //*[@class="email-sender" and text()="Idalina"]
+2. clickxpath //span[@class="email-reply"]
+3. clickxpath //*[@id="reply-text"]
+4. type Volutpat vitae. Lectus.
+5. clickxpath //*[@id="send-reply"]
+
+task: Find the email by Blanca and forward that email to Agathe.
+plan:
+1. clickxpath //div[@class='email-sender' and text()='Blanca']
+2. clickxpath //span[@class='email-forward']
+3. clickxpath //input[@class='forward-sender']
+4. type Agathe
+5. clickxpath //*[@id='send-forward']
+
+task: Find the email by Brittani and reply to them with the text "Aliquet. Sollicitudin nam lectus.".
+plan:
+1. clickxpath //div[@class='email-sender' and text()='Brittani']
+2. clickxpath //span[@class='email-reply']
+3. clickxpath //textarea[@id='reply-text']
+4. type Aliquet. Sollicitudin nam lectus.
+5. clickxpath //*[@id='send-reply']
+
+task: email the text "Hello" to Idalina.
+plan:
+1. clickxpath //*[@class="email-sender" and text()="Idalina"]
+2. clickxpath //span[@class="email-reply"]
+3. clickxpath //*[@id="reply-text"]
+4. type Hello
+5. clickxpath //*[@id="send-reply"]

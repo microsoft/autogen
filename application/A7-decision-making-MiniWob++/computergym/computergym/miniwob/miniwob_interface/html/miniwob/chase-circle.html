@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chase Circle Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area_svg { width: 160px; height: 160px; }
+</style>
+<script>
+var exitTime = null;
+var missedFrames = 0;
+var MAX_TRANSLATES = 4;
+
+// function that moves the circle around and
+// eventually ends the episode.
+var translateCircle = function(translates) {
+  if(translates !== 0){
+    d3.select('#circ').transition().duration(2000)
+      .attr('cx', Math.random() * 120 + 20) // change this to random 2px
+      .attr('cy', Math.random() * 120 + 20) // change this to random 2px
+      .each('end', function(){
+        translateCircle(translates-1);
+    });
+  } else {
+    // end this episode slightly earlier, otherwise if set to 2000ms
+    // the episode will automatically end and give a -1.0 score.
+    d3.select('#circ').transition().duration(1900)
+      .attr('cx', Math.random() * 120 + 20)
+      .attr('cy', Math.random() * 120 + 20)
+      .each('end', function(){
+        if(exitTime !== null) {
+          missedFrames += new Date().getTime() - exitTime;
+          exitTime = null;
+        }
+        var score = (10000 - missedFrames)/10000;
+        missedFrames = 0;
+        core.endEpisode(score);
+      });
+  }
+}
+
+// create a problem instance
+var genProblem = function() {
+  d3.selectAll('svg > *').remove();
+  var svg =  d3.select('svg');
+
+  // generate a new random grid of shapes
+  var circle = svg
+    .append('circle')
+    .attr('id', 'circ')
+    .attr('cx', Math.random() * 120 + 20)
+    .attr('cy', Math.random() * 120 + 20)
+    .attr('r', 22 + 'px');
+
+  missedFrames = 0;
+  exitTime = new Date().getTime();
+
+  var translates = MAX_TRANSLATES;
+  translateCircle(translates);
+
+  d3.select('circle').on('mouseleave', function(){
+    exitTime = new Date().getTime();
+  });
+  d3.select('circle').on('mouseenter', function(){
+    missedFrames += new Date().getTime() - exitTime;
+    exitTime = null;
+  });
+
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Keep your mouse inside the circle as it moves around.</div>
+  <div id="area">
+    <svg id="area_svg"></svg>
+  </div>
+</div>
+</body>
+</html>

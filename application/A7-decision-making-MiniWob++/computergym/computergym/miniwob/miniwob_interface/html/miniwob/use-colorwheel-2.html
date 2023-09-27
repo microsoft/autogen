@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Use Color Wheel Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jscolor.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { padding: 10px; }
+input { border: 1px solid black; width: 120px; }
+#subbtn { margin-top: 20px; }
+.cc { width:10px; height:10px; display: inline-block; border: 1px solid black; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 7000; // set episode interval to 7 seconds
+
+var genColor = function() {
+  var c = '#';
+  var m = [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f'];
+  for(var i=0;i<6;i++) {
+    c += m[core.randi(0,m.length)];
+  }
+  return c;
+}
+
+var genProblem = function() {
+  var col_desired = genColor();
+  var q = d3.select('#query');
+  q.html('');
+  q.append('span').html('Select the following color ');
+  q.append('div').attr('class', 'cc').attr('style', 'background-color:'+col_desired);
+  q.append('span').html(' with the color picker and hit Submit.');
+
+  d3.select('#subbtn').on('click', function() {
+    var col_selected = '#' + document.getElementById('col').value.toLowerCase();
+    var sel = ui_utils.hexToRgb(col_selected);
+    var des = ui_utils.hexToRgb(col_desired);
+
+    var r = 1.0 - (Math.abs(sel.r - des.r)/255.0 + Math.abs(sel.g - des.g)/255.0 + Math.abs(sel.b - des.b)/255.0)/3;
+    core.endEpisode(r, false);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    Color:<br><input id="col" class="jscolor" data-jscolor="{width:101, height:71, shadow:0, borderWidth:0, backgroundColor:'transparent', insetColor:'#000'}" value="ab2567">
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

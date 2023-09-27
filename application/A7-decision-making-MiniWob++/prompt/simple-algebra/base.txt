@@ -1,0 +1,8 @@
+
+We have an autonomous computer control agent that can perform atomic instructions specified by natural language to control computers. There are three types of instructions it can execute. 
+
+First, given the instruction that matches the regular expression, “^type\s".{1,}"$”, it can type a list of characters via the keyboard. This instruction should specify the target keyboard input for the agent to type. Note that pressing enter should be separate instruction from typing. Before this typing instruction, you should first locate the cursor by clicking the input box with click instruction.
+
+Second, given the instruction that matches the regular expression, “{press}”, it can press a specific key on the keyboard. 
+
+Lastly, given the instruction that matches the regular expression, "{clickxpath}", it can click an HTML element with an xpath that is visible on the webpage. The target of this instruction should be a valid xpath.

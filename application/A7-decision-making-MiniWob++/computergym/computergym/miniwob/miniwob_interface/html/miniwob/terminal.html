@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Terminal Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#terminal { height: 150px; width: 150px; background-color: #000; border-radius: 3px; position: relative;
+  font-family: 'Menlo', 'Arial', Serif; font-size: 8px; margin: 2px; }
+#terminal-header { height: 10px; width: 150px; background-color: #C9C9C9; text-align: center;
+  border-top-left-radius: 3px; border-top-right-radius: 3px; }
+#terminal-contents { margin: 3px; height: 135px; overflow-y: scroll; }
+#terminal-target { vertical-align: bottom; opacity: 0; color: transparent; height: 1px; width: 1px; }
+#active-input { min-width: 0px; display: inline-block; }
+#input-flicker { margin-left: -3px; }
+.terminal-line { display: block; color: #49F468; }
+.terminal-output { display: block; color: #49F468; margin-left: 4px; }
+.hide { display: none; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 20000000; // set episode interval to 20s
+var TYPABLE_KEYS = '`1234567890-=~!@#$%^&*()_+qwertyuiop[]\\QWERTYUIOP{}|asdfghjkl;\'ASDFGHJKL:"zxcvbnm,./ZXCVBNM<>? ';
+var TERMINAL_TEMPLATE =
+`
+<div id="terminal">
+  <div id="terminal-header">terminal</div>
+  <div id="terminal-contents">
+    <div class="terminal-line">
+      <span class="user">user$</span>
+      <span id="active-input" class="command"></span>
+      <span id="input-flicker">&block;</span>
+    </div>
+  </div>
+</div>
+<input type="text" id="terminal-target">
+`
+var TERMINAL_LINE_TEMPLATE =
+`
+  <span class="user">user$</span>
+  <span class="command"></span>
+`
+var TERMINAL_OUTPUT_TEMPLATE =
+`
+  <span class="output"></span>
+`
+var FILE_NAMES = ['flowers', 'code', 'script', 'bash', 'index', 'image', 'converter', 'file', 'shark', 'memes', 'cats', 'puppy', 'twitter', 'media', 'search', 'page', 'buzzer', 'sys32', 'hack_script', 'delete', 'trace', 'bin', 'emacs', 'vim', 'nano', 'sudo', 'apache', 'mountains', 'steam', 'window', 'nintendo', 'atari', 'sega', 'photos', 'directory', 'container', 'compression', 'cyber', 'digital', 'inspector', 'navigator', 'mozilla', 'netscape', 'thunderbird', 'chrome', 'alloy', 'opera', 'secret', 'secrets', 'password', 'encrypted', 't-1000', 'skynet', 'mario', 'sonic', 'pizza'];
+var FILE_EXTENSIONS = ['png', 'jpg', 'gif', 'sh', 'json', 'txt', 'py', 'rb' , 'html', 'zip', 'tar.gz', 'gpg', ""];
+
+var currentFiles = [];
+var currentExtensions = [];
+var MAX_FILES = 6;
+var pressedKeys = {};
+var flicker;
+
+// this takes the current active command line and turns it into an output above
+// the command line.
+var generateTerminalLine = function(commandInput){
+  var div = document.createElement('div');
+  div.innerHTML = TERMINAL_LINE_TEMPLATE;
+  div.setAttribute('class', 'terminal-line');
+  div.getElementsByClassName('command')[0].innerHTML = commandInput;
+  $('#active-input').parents('.terminal-line').before(div);
+}
+
+// this generates an output line in the terminal
+var generateTerminalOutput = function(output){
+  var div = document.createElement('div');
+  div.innerHTML = TERMINAL_OUTPUT_TEMPLATE;
+  div.setAttribute('class', 'terminal-output');
+  div.getElementsByClassName('output')[0].innerHTML = output;
+  $('#active-input').parents('.terminal-line').before(div);
+}
+
+var parseCommand = function(input, expectedDel){
+  if(input === 'help'){
+    outputHelp();
+  } else if(input === ''){
+    generateTerminalOutput('');
+  } else if(input.indexOf('ls') === 0){
+    showFileContents(input);
+  } else if(input.indexOf('rm') === 0){
+    removeContents(input, expectedDel);
+  } else if(input === 'exit'){
+    core.endEpisode(-1);
+  } else {
+    generateTerminalOutput('Command not found.')
+  }
+}
+
+var outputHelp = function(){
+  generateTerminalOutput('ls: list contents');
+  generateTerminalOutput('Usage: ls');
+  generateTerminalOutput('rm: remove entries');
+  generateTerminalOutput('Usage: rm file');
+}
+
+var showFileContents = function(input){
+  generateTerminalOutput(currentFiles.join(' '));
+}
+
+var removeContents = function(input, expectedDel){
+  if(input.replace(/\s/g, '') ==='rm'){
+    generateTerminalOutput('error: file argument not found.')
+  } else if(input.indexOf('*') !== -1){
+    generateTerminalOutput('error: rm argument \'*\' not supported. please enter the exact file name.')
+  } else {
+    var commandArgs = input.split(/\s/g);
+    var arrayLength = commandArgs.length;
+    for (var i = 1; i < arrayLength; i++) {
+      if (!commandArgs[i].startsWith("-")) {
+        var fileInput = commandArgs[i];
+        break;
+      }
+    //Do something
+    }
+    
+    var fileIndex = currentFiles.indexOf(fileInput);
+    if(fileIndex === -1){
+      generateTerminalOutput('error: file \''+ fileInput +'\' not found.');
+    } else {
+      currentFiles.splice(fileIndex,1);
+      generateTerminalOutput('');
+
+      // remove the file and reward agent based on whether or not their
+      // input matches the expected extension.
+      if ((fileInput.indexOf(expectedDel) + expectedDel.length) === fileInput.length)
+        // reward for deleting a file that has an extension
+        core.endEpisode(1, true)
+      else if(expectedDel === '' && fileInput.indexOf('.') === -1){
+        // reward for deleting a file that has no extension
+        core.endEpisode(1, true)
+      } else {
+        core.endEpisode(-1);
+      }
+    }
+  }
+}
+
+var generateFiles = function(){
+  var n = core.randi(3,MAX_FILES);
+  while(currentFiles.length < n){
+    var name = core.sample(FILE_NAMES);
+    var ext = core.sample(FILE_EXTENSIONS);
+    var filename = name;
+    if(ext !== '') filename += '.' + ext;
+    // only push file if it doesn't exist, to ensure uniqueness.
+    if(currentFiles.indexOf(filename) === -1){
+      currentFiles.push(filename);
+      currentExtensions.push(ext);
+    }
+  }
+  currentFiles.sort();
+}
+
+// ignore key pressed while ctrl/alt/cmd are pressed.
+// do *NOT* ignore shift since that's needed for capital letters.
+var modifierKeyPressed = function(){
+  return pressedKeys[17] ||
+    pressedKeys[18] || pressedKeys[91];
+}
+
+var onlyExtensionlessFiles = function(){
+  var j = 0;
+  for(var i=0; i<currentExtensions.length;i++){
+    if(currentExtensions[i]!=='') return false;
+  }
+  return true;
+}
+
+var genProblem = function(){
+  $('#area').empty();
+  var newTerminal = document.createElement('div');
+  newTerminal.innerHTML = TERMINAL_TEMPLATE;
+  $('#area').append(newTerminal);
+
+  $('#terminal').on('click', function(){
+    $('#terminal-target').focus();
+  });
+
+  // cause the input caret to flicker.
+  clearInterval(flicker);
+  flicker = setInterval(function(){
+    $('#input-flicker').toggleClass('hide');
+  }, 800);
+
+  var currentTime = new Date();
+  generateTerminalOutput('Welcome! Type help for a list of available commands.');
+  generateTerminalOutput('Last login: ' + currentTime.toDateString());
+
+  currentFiles = [];
+  currentExtensions = [];
+  generateFiles();
+
+  var expectedExtension = core.sample(currentExtensions);
+  if(expectedExtension !== ''){
+    $('#query').html('Use the terminal below to delete a file ending with the extension <span class="bold">.' + expectedExtension + '</span>');
+  } else {
+     $('#query').html('Use the terminal below to delete a file that has <span class="bold">no file extension</span>.');
+  }
+
+  $('#terminal-target').on('keyup', function(e){
+    pressedKeys[e.keyCode] = null;
+  });
+
+  $('#terminal-target').on('keydown', function(e){
+    var currentChar = e.key;
+    var currentText = $('#active-input').text();
+
+    pressedKeys[e.keyCode] = true;
+    if(modifierKeyPressed()) return;
+
+    if(TYPABLE_KEYS.indexOf(currentChar) !== -1){
+      // handle typing regular keys
+      $('#active-input').append(e.key);
+    } else if(e.keyCode === 8){
+      // handle delete key
+      $('#active-input').text(currentText.substring(0, currentText.length-1));
+    } else if (e.keyCode ===13){
+      // handle newline/returns
+      generateTerminalLine(currentText);
+      parseCommand(currentText, expectedExtension);
+      $('#active-input').text('');
+    }
+
+    $('#terminal-target').val('');
+    // scroll down if needed
+    $('#terminal-contents').scrollTop($('#terminal-contents').height());
+  });
+
+  // autofocus into terminal for convenience.
+  setTimeout(function(){$('#terminal-target').select()}, 200);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

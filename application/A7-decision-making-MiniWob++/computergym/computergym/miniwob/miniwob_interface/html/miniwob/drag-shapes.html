@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Shapes Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area { position: relative; }
+#area_svg { width: 160px; height: 160px;}
+#shape_box { width: 50px; height: 50px; border: 1px solid black;  position: absolute; top: 80px; z-index: 10;}
+#resetBtn { position: absolute; top: 135px; right: 70px;}
+#subbtn { position: absolute; top: 135px; right: 10px;}
+rect, polygon, circle { z-index: 100; }
+</style>
+<script>
+core.EPISODE_MAX_TIME = 15000;
+shapes.SZ_X = 7;
+shapes.SZ_Y = 4;
+var TOTAL_SHAPES = 4;
+
+var containerX;
+var containerY;
+var containerWidth = 80;
+var containerHeight = 45;
+
+// user-friendly names.
+var SHAPE_TYPES = ['rectangles', 'circles', 'triangles'];
+// d3 selector names.
+var HTML_TAGS = ['rect:not(#shape-container)', 'circle', 'polygon'];
+
+var genPolygons = function(){
+  var grid = {};
+  grid.shapes = [];
+  var taken_positions = [];
+  for(var i=0;i<TOTAL_SHAPES;i++) {
+
+    // generate properties of a shape
+    while(true) {
+      var x = core.randi(0, shapes.SZ_X);
+      var y = core.randi(0, shapes.SZ_Y);
+      var xystr = x + ',' + y;
+
+      if(containerCoords(x,y)) continue;
+      else if(!taken_positions.hasOwnProperty(xystr)) { // make sure it's not taken yet
+        taken_positions[xystr] = 1;
+        break;
+      }
+    }
+    var color = shapes.COLORS[core.randi(0, shapes.COLORS.length)];
+    var size = 0.7;
+
+    var type = 'shape';
+    var text = shapes.SHAPES[core.randi(0, shapes.SHAPES.length)];
+
+    var shape = {x:x, y:y, color:color, size:size, type:type, text:text}
+    grid.shapes.push(shape)
+  }
+  return grid;
+}
+
+// make sure that the given coords will not generate a shape INSIDE
+// the container/end goal. While we give the user some leniency
+// on shapes that might not fully dragged into the container, we want
+// to be certain that there aren't any shapes that they have to drag
+// out of the container in order to complete the task.
+var containerCoords = function(x,y){
+  var xCoord = x*20;
+  var yCoord = y*20;
+  if (containerX < (xCoord+20) && (containerX+containerWidth) > xCoord
+  && containerY < (yCoord+20) && (containerY + containerHeight) > yCoord) {
+    return true;
+  }
+
+  return false;
+}
+
+var genContainer = function(){
+  d3.select('#area_svg')
+    .append('rect')
+    .attr('x', containerX)
+    .attr('y', containerY)
+    .attr('stroke', 'black')
+    .attr('fill', 'none')
+    .attr('stroke-width', '2')
+    .attr('width', containerWidth)
+    .attr('height', containerHeight)
+    .attr('id', 'shape-container')
+}
+
+var insideContainer = function(shape){
+  var coords =  shapes.gridCoords(shape);
+  // do some minor padding around the border, so that shapes that are mostly inside the container will
+  // still be counted as being fully inside it.
+  var xContained = coords.x > containerX  && coords.x < (containerX + containerWidth);
+  var yContained = coords.y > containerY && coords.y < (containerY + containerHeight);
+  return xContained && yContained
+}
+
+// create a problem instance
+var genProblem = function() {
+  // generate a new random grid of shapes
+  containerX = core.randi(4, 150-containerWidth);
+  containerY = core.randi(4, 130-containerHeight)
+  var grid = genPolygons();
+  var svg_elt = d3.select('#area_svg');
+  shapes.renderGrid(svg_elt, grid); // instantiate the actual SVG shapes
+  genContainer();
+
+  var shapeIndex = core.randi(0,SHAPE_TYPES.length);
+  // generate a problem instance
+  var gtix = core.randi(0, grid.shapes.length);
+  var gtdesc = shapes.generalDesc(grid.shapes[gtix]);
+  d3.select('#query').html('Drag all ' + SHAPE_TYPES[shapeIndex] + ' into the black box.'); // render query
+
+  d3.selectAll('rect:not(#shape-container), circle, polygon').call(shapes.drag);
+
+  d3.select('#subbtn').on('click', function(){
+    var expectedShape = HTML_TAGS[shapeIndex];
+    var otherShapes = HTML_TAGS.slice();
+    otherShapes.splice(shapeIndex, 1);
+
+    var expectedShapesContained = d3.selectAll(expectedShape)[0].every(function(v){return v===null || insideContainer(v);});
+    var otherShapesOutside = d3.selectAll(otherShapes.join(','))[0].every(function(v){return v===null || !insideContainer(v);});
+    var r = expectedShapesContained && otherShapesOutside ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <svg id="area_svg">
+    </svg>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

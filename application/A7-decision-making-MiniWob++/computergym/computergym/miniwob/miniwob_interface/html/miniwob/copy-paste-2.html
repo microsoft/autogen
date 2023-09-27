@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Copy Paste Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<style>
+#answer-input { width: 150px; margin: 3px 0 3px 0; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<script>
+var TEXTAREAS = 3; // # of text areas to work with
+var POSITIONS = ['', '1st', '2nd', '3rd'];
+
+var genWords = function(){
+  // generate paragraph of text
+  var firstWord = true;
+  var txt = '';
+  var n = core.randi(6, 10);
+  var expectedIndex = core.randi(0,n);
+
+  for(var i=0;i<n;i++) {
+    var ri = core.randi(0, ui_utils.lorem_words.length);
+    var w = ui_utils.lorem_words[ri];
+    if(firstWord) { w = ui_utils.txtCapitalize(w); firstWord = false;}
+    if(Math.random() < 0.2) { txt += w + '. '; firstWord = true; }
+    else { txt += w + ' '; }
+  }
+  return txt;
+}
+
+var setupTextAreas = function(){
+  // reset the UI, randomly place the textarea and input fields, randomize textarea height
+  for(i=1;i<=TEXTAREAS;i++){
+    var textAreaID = 'text-' + i;
+    document.getElementById(textAreaID).value = '';
+    var textAreaWidth = core.randi(11,30)*5;
+    document.getElementById(textAreaID).setAttribute('style', 'width: ' + textAreaWidth + 'px;');
+  }
+  document.getElementById('answer-input').value = '';
+  var expectedText = '';
+  var expectedArea = core.randi(1,4);
+
+}
+
+var chooseText = function(){
+  var expectedText = '';
+  var expectedArea = core.randi(1,4);
+
+  for(i=1;i<=TEXTAREAS;i++){
+    var txt = genWords();
+    if(i === expectedArea) expectedText = txt;
+    document.getElementById('text-'+i).value = txt;
+  }
+
+  return { expectedText: expectedText, expectedArea: expectedArea };
+}
+
+var bindClickEvents = function(chosenText){
+  d3.select('#subbtn').on('click', function(){
+    var ans = document.getElementById('answer-input').value;
+    var r = ans === chosenText.expectedText ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+var genProblem = function() {
+  setupTextAreas();
+  var chosenText = chooseText();
+
+  // create the query
+  d3.select('#query').html('Copy the text from the <span class="bold">' + POSITIONS[chosenText.expectedArea] + '</span> text area below and paste it into the text input, then press Submit.');
+
+  bindClickEvents(chosenText);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <textarea id="text-1"></textarea>
+    <br><textarea id="text-2"></textarea>
+    <br><textarea id="text-3"></textarea>
+    <input id="answer-input" type="text">
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

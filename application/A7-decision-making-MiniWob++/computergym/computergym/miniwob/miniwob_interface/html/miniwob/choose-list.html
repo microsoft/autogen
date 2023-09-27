@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Choose List Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+select { margin-top: 5px; }
+button { margin-top: 5px; }
+</style>
+
+<script>
+var genProblem = function() {
+  var div = d3.select('#area');
+  div.html('');
+
+  var ITEMS = core.randf(0,1) < 0.5 ? ui_utils.PEOPLE_NAMES : ui_utils.COUNTRIES;
+  core.shuffle(ITEMS);
+
+  var n = core.randi(3, 10);
+  var sel = div.append('select').attr('id', 'options').attr('style', 'width:150px;');
+  var option_list = []
+  for(var i=0;i<n;i++) {
+    sel.append('option').html(ITEMS[i]);
+    option_list.push(ITEMS[i]);
+  }
+  sel.attr("class", option_list.join(","))
+
+  var ix = core.randi(0, n); // ground truth index
+  var gt_txt = ITEMS[ix];
+  d3.select('#query').html('Select ' + gt_txt + ' from the list and click Submit.');
+
+  var btn = div.append('button').html('Submit');
+  btn.attr('class', 'secondary-action');
+  btn.on('click', function(){
+    var sel = document.getElementById('options');
+    var sel_txt = sel.options[sel.selectedIndex].innerHTML;
+    var r = gt_txt === sel_txt ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+var countries = [];
+
+window.onload = function() {
+  d3.selectAll('option').each(function(d){
+    countries.push(this.innerHTML);
+  });
+
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+  </div>
+</div>
+</body>
+</html>

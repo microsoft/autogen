@@ -1,0 +1,8 @@
+Example plans)
+task: select the words similar to bunnies, tiny, scared, swine and click the Submit button.
+plan: we need to select synonyms of the given words and the words themselves.
+1. clickxpath //label[text() = 'rabbit']/input // rabbit is a synonym of bunnies
+2. clickxpath //label[text() = 'pig']/input // pig is a synonym of swine
+3. clickxpath //label[text() = 'panicked']/input panicked is a synonym of scared
+4. clickxpath //label[text() = 'tiny']/input 
+5. clickxpath //button[@id='subbtn']

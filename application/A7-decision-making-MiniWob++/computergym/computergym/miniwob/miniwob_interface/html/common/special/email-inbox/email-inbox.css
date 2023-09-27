@@ -1,0 +1,78 @@
+#main { height: 150px; width: 155px; overflow-y: scroll; overflow-x: hidden; }
+
+#main-header { height: 20px; line-height: 20px; background-color: #F92525;  color: #FFF; padding: 0 5px 0 0; border-bottom: 1px solid #C9C9C9; }
+#main-header h2 { display: inline-block; font-size: 12px; font-weight: 100; margin: 0 5px; }
+#open-search { float: right; content:url(search.png); height: 12px; margin: 3px;
+  cursor: pointer; }
+
+#search { height: 150px; width: 155px; overflow-y: scroll; overflow-x: hidden; }
+#search-header { height: 20px; line-height: 20px; }
+#search-cancel { content:url(left-arrow.png); height: 12px; margin: 3px;
+  cursor: pointer; vertical-align: middle; }
+#search-header #search-input { border: none; }
+#search-header input:focus { outline: none; }
+#results-header { background-color: #E5E6E8; color: #555; padding: 3px 5px;
+  margin: 0px; height: 10px; }
+#results-header h4 { margin: 0 5px; padding: 0; font-weight: 100; line-height: 10px; font-size: 9px; }
+
+.email-thread { padding: 2px 10px 2px 5px; border-bottom: 1px solid #C9C9C9; cursor: pointer; clear: both; }
+.email-thread:hover { background-color: rgba(188, 214, 255, 0.4); }
+.email-left { width: 70%; display: inline-block; }
+.email-sender { font-weight: bold; font-size: 11px; }
+.email-subject { font-weight: bold; }
+.email-right { width: 28%; float: right; display: inline-block;  text-align: right; }
+.email-time { font-weight: bold; }
+
+.email-actions { display: inline-block; float: right; margin: 2px; }
+.email-actions .star { content:url(star.png); height: 12px; float: right;
+  margin: 3px 1px; opacity: 0.4; user-select: none; cursor: pointer; }
+.email-actions .star.clicked { content:url(star-clicked.png); height: 12px; float: right; margin: 3px 1px; opacity: 1.0; }
+.email-actions .trash { content:url(delete.png); height: 12px; float: right; margin: 3px 1px; opacity: 0.6; user-select: none; cursor: pointer; }
+.email-actions span:hover { opacity: 1.0; }
+
+#email { height: 150px; width: 155px; overflow-y: scroll; overflow-x: hidden; }
+#email-bar { height: 20px; line-height: 20px; background-color: #F92525; }
+#close-email { content:url(left-arrow-white.png); height: 12px;
+  vertical-align: middle;  cursor: pointer; }
+#email .email-left { display: inline-block; float: left; width: 70%; height: 20px; padding-left: 4px;
+  font-size: 8px; padding-top: 2px; }
+#email .email-right { display: inline-block; width: 20%; float: right; height: 20px; padding-right: 4px;
+  font-size: 8px; padding-top: 2px; }
+#email div, #email span { font-weight: 100; }
+#email .email-header { height: 40px; }
+#email .email-body { padding: 4px; min-height: 40px; }
+#email .email-subject { font-weight: 100; font-size: 12px; padding: 2px 5px; border-bottom: 1px solid #C9C9C9; }
+#email .email-sender { font-weight: 100; font-size: 9px; }
+#email .email-send { text-align: center; cursor: pointer; border-top: 1px solid #C9C9C9; padding: 3px; }
+#email .email-send span { width: 40px; text-align: center; display: inline-block; font-size: 8px; }
+.email-reply .icon { content:url(reply.png); height: 18px; margin: 0 auto; }
+.email-reply { margin-right: 7px; }
+.email-forward .icon { content:url(forward.png); height: 18px; margin: 0 auto; }
+.email-forward { margin-left: 7px; }
+
+#reply label { font-weight: bold; }
+#reply #reply-bar { height: 20px; line-height: 20px; border-bottom: 1px solid #C9C9C9; }
+#close-reply { content:url(left-arrow.png); height: 12px; margin: 3px;
+  cursor: pointer; vertical-align: middle; }
+#send-reply { content:url(send.png); height: 14px; margin: 3px;
+  cursor: pointer; vertical-align: middle; float: right;}
+#reply .reply-info { padding: 2px; border-bottom: 1px solid #C9C9C9; }
+#reply .reply-subject { padding: 2px; border-bottom: 1px solid #C9C9C9; font-size: 10px; }
+#reply textarea { border: none; height: 95px; width: 150px; }
+#reply textarea:focus { outline: none; }
+
+#forward label { font-weight: bold; }
+#forward #forward-bar { height: 20px; line-height: 20px; border-bottom: 1px solid #C9C9C9; }
+#close-forward { content:url(left-arrow.png); height: 12px; margin: 3px;
+  cursor: pointer; vertical-align: middle; }
+#send-forward { content:url(send.png); height: 14px; margin: 3px;
+  cursor: pointer; vertical-align: middle; float: right;}
+#forward .forward-sender { border: none; width: 150px; }
+#forward .forward-sender:focus { outline: none; }
+#forward .forward-info { padding: 2px; border-bottom: 1px solid #C9C9C9; }
+#forward .forward-subject { padding: 2px; border-bottom: 1px solid #C9C9C9; font-size: 10px; }
+#forward textarea { border: none; height: 95px; width: 150px; }
+#forward textarea:focus { outline: none; }
+
+.highlight { background-color: #F4F142; }
+.hide { display: none; }

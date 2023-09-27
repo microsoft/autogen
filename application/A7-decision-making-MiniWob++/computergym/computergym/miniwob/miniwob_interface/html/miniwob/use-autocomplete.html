@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Use Autocomplete Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { padding: 10px; }
+#area input { display: block; }
+#subbtn { display: block; margin-top: 5px; }
+#area input, .ui-menu { width: 120px; }
+.bold { font-weight: bold; }
+</style>
+
+<script>
+var genProblem = function() {
+  ITEMS = ui_utils.COUNTRIES;
+  d3.select('#tags')[0][0].value ='';
+
+  var gtix = core.randi(0, ITEMS.length);
+  // the below is complicated because we only want to match beginning of items in list
+  $('#tags').autocomplete({
+    source: function(request, response) {
+      var matcher = new RegExp('^' + $.ui.autocomplete.escapeRegex(request.term), 'i');
+      response($.grep(ITEMS, function(item){
+          return matcher.test(item);
+      }))
+    }
+  });
+
+  var gtitem = ITEMS[gtix];
+
+  var nf = core.randi(2, 5);
+  var f = gtitem.slice(0,nf);
+
+  var ne = core.randi(2, 5);
+  var e = gtitem.slice(gtitem.length - ne);
+
+  var match_end = core.randf(0,1) < 0.75;
+  if(match_end) {
+    d3.select('#query').html('Enter an item that starts with "<span class="bold">' + f + '</span>" and ends with "<span class="bold">' + e + '</span>".');
+  } else {
+    d3.select('#query').html('Enter an item that starts with "<span class="bold">' + f + '</span>".');
+  }
+
+  d3.select('#subbtn').on('click', function(){
+    var entered = d3.select('#tags')[0][0].value;
+    var ff = entered.startsWith(f);
+    var ee = entered.endsWith(e);
+    var correct = ff & (ee || !match_end);
+    var r = correct ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <label for="tags">Tags: </label>
+    <input id="tags">
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

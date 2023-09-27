@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Social Media Task</title>
+<!-- credit to flaticon.com for the icons used in this task. -->
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { height: 150px; position: relative; overflow-y: scroll; overflow-x: hidden; }
+
+.media { height: 60px; width: 140px; border: 1px solid #E1E8ED; position: relative; margin: 0 0 0 2px; }
+.media:hover { background-color: #F5F8FA !important; }
+.details { margin: 2px 4px; }
+.body { margin: 3px 4px; }
+.name { font-weight: bold; }
+
+.username, .spacer, .time { color: #555; font-size: 9px; }
+.spacer:before { content: "\00b7"; }
+.time:hover { color: #0084B4; text-decoration: underline; cursor: pointer; }
+
+.reply { content:url(../common/special/social-media/reply.png); }
+.reply:hover { content:url(../common/special/social-media/reply-hover.png); }
+
+.retweet { content:url(../common/special/social-media/retweet.png); height: 16px !important; }
+.retweet:hover { content:url(../common/special/social-media/retweet-hover.png); height: 16px !important; }
+
+.like { content:url(../common/special/social-media/like.png); }
+.like:hover {content:url(../common/special/social-media/like-hover.png); }
+
+.more { content:url(../common/special/social-media/more.png); }
+.more:hover { content:url(../common/special/social-media/more-hover.png); }
+
+.controls { position: absolute; bottom: 0px; }
+.reply, .retweet, .like, .more { height: 14px; margin-left: 15px; }
+
+.controls span:hover, .controls ul:hover { opacity: 1.0; cursor: pointer; }
+
+.controls ul { list-style-type: none; position: absolute; margin: 0; padding: 0; background-color: #FFF; border: 1px solid #A9A9A9; z-index: 99; right: -10px;}
+.controls ul:before { content:""; position: absolute; right: 11px; top: -7px; width: 0; height: 0;
+  border-style: solid; border-width: 0 6px 6px 6px; border-color: transparent transparent #A9A9A9 transparent;
+  z-index:9999;
+}
+
+.controls ul li { padding: 3px; }
+.controls ul li:hover { background-color: #3B88C3; color: #FFF; }
+.hide { display: none !important; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 1500000; // set episode interval to 15s
+
+var MEDIA_TEMPLATE = `
+  <div class="details">
+    <span class="name"></span>
+    <span class="username"></span>
+    <span class="spacer"></span>
+    <span class="time"></span>
+  </div>
+  <div class="body"></div>
+  <div class="controls">
+    <span class="reply"></span>
+    <span class="retweet"></span>
+    <span class="like"></span>
+    <span>
+      <span class="more"></span>
+      <ul class="hide"></ul>
+    </span>
+  </div>
+`
+var MORE_MENU_TEMPLATE = `
+<li class='share'>Share via DM</li>
+<li class='copy'>Copy link to Tweet</li>
+<li class='embed'>Embed Tweet</li>
+<li class='menu-user'>Mute</li>
+<li class='block-user'>Block</li>
+<li class='report'>Report</li>
+`
+var ACTIONS = {
+  'share': 'Share via DM',
+  'copy': 'Copy link to Tweet',
+  'embed': 'Embed Tweet',
+  'menu-user': 'Mute',
+  'block-user': 'Block',
+  'report': 'Report',
+  'reply': 'Reply',
+  'retweet': 'Retweet',
+  'like': 'Like'
+}
+
+var totalResults = 0;
+
+var generateMedia = function(){
+  var results = [];
+  var names = core.shuffle(ui_utils.FIFTY_NAMES.slice());
+  for(var i=0;i<totalResults;i++){
+    var result = {}
+    var normalName = core.sample(ui_utils.FIFTY_NAMES);
+    var loremName = core.sample(ui_utils.lorem_words).replace(',', '');
+    result.name = core.sample([core.sample(ui_utils.PEOPLE_NAMES), core.sample(ui_utils.LAST_NAMES)]);
+    result.username = '@' + core.sample([normalName, loremName]).toLowerCase();
+    result.time = core.randi(1,20) + 'h ago';
+    result.body = ui_utils.generateWords(core.randi(2,6));
+    results.push(result);
+  }
+  return results;
+}
+
+var createMediaElem = function(result, index){
+  var div = document.createElement('div');
+  div.setAttribute('class', 'media');
+  div.setAttribute('data-result', index);
+  div.innerHTML = MEDIA_TEMPLATE;
+  div.getElementsByClassName('name')[0].innerHTML = result.name;
+  div.getElementsByClassName('username')[0].innerHTML = result.username;
+  div.getElementsByClassName('body')[0].innerHTML = result.body;
+  div.getElementsByClassName('time')[0].innerHTML = result.time;
+  div.getElementsByTagName('ul')[0].innerHTML = MORE_MENU_TEMPLATE;
+  div.getElementsByClassName('menu-user')[0].innerHTML += ' ' + result.username;
+  div.getElementsByClassName('block-user')[0].innerHTML += ' ' + result.username;
+  $('#area').append(div);
+}
+
+var generateTweet = function() {
+  $('#area').append(TWEET_TEMPLATE);
+}
+
+var genProblem = function() {
+  $('#area').empty();
+  $('#area').scrollTop();
+  totalResults = core.randi(3,4);
+  var results = generateMedia();
+
+  for(var i =0;i<results.length;i++){
+    createMediaElem(results[i], i);
+  }
+
+  $('#area .more').on('click', function(){
+    var $ul = $($(this).siblings('ul'));
+    if($ul.hasClass('hide')) {
+      $('#area ul').addClass('hide');
+      $ul.removeClass('hide');
+    } else $ul.addClass('hide');
+  });
+
+  var expectedAction = core.sample(Object.keys(ACTIONS));
+  var expectedIndex = core.randi(0,totalResults);
+  var expectedUser = results[expectedIndex].username;
+  $('#query').html('For the user <span class="bold">' + expectedUser + '</span>, click on the "<span class="bold">' + ACTIONS[expectedAction] + '</span>" button.')
+
+  $('.reply, .retweet, .like, ul li').on('click', function(){
+    var user = $(this).parents('.media').find('.username').text();
+    var clickedElem = $(this).attr('class');
+    var r = user === expectedUser && clickedElem === expectedAction ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">TODO: Write code to generate actual problems.</div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

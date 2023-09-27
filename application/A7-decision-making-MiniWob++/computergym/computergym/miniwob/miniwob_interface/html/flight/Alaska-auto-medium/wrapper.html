@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Alaska</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../../core/core.css">
+<link rel="stylesheet" type="text/css" href="../flight-common/wrapper.css">
+<!-- JS -->
+<script src="../../core/core.js"></script>
+<script src="../flight-common/wrapper.js"></script>
+
+<script>
+core.EPISODE_MAX_TIME = 60000;  // 1 minute
+
+var CITIES = [
+// Original ones
+['Portland', 'Portland, OR (PDX-Portland Intl.)'],
+['Dallas', 'Dallas, TX (DAL-Love Field)'],
+['San Francisco', 'San Francisco, CA (SFO-San Francisco Intl.)'],
+['Boston', 'Boston, MA (BOS-Logan Intl.)'],
+['Los Angeles', 'Los Angeles, CA (LAX-Los Angeles Intl.)'],
+['San Diego', 'San Diego, CA (SAN-Lindbergh Field)'],
+['Las Vegas', 'Las Vegas, NV (LAS-McCarran Intl.)'],
+['Austin', 'Austin, TX (AUS-Austin/Bergstrom Intl.)'],
+['Denver', 'Denver, CO (DEN-Denver Intl.)'],
+// Added ones
+["Atlanta", "Atlanta, GA (ATL-Hartsfield Intl.)"],
+["Atlantic City", "Atlantic City, NJ (ACY-Atlantic City Intl.)"],
+["Buffalo", "Buffalo, NY (BUF-Buffalo Niagara Intl.)"],
+["New York", "New York, NY (All Airports)"],
+["Seattle", "Seattle, WA (SEA-Seattle/Tacoma Intl.)"],
+["Charlotte", "Charlotte, NC (CLT-Douglas Intl.)"],
+["Charlottesville", "Charlottesville, VA (CHO-Charlottesville)"],
+["Phoenix", "Phoenix, AZ (PHX-Sky Harbor Intl.)"],
+["Miami", "Miami, FL (MIA-Miami Intl.)"],
+["Orlando", "Orlando, FL (MCO-Orlando Intl.)"],
+["Philadelphia", "Philadelphia, PA (PHL-Philadelphia Intl.)"],
+["Baltimore", "Baltimore, MD (BWI-Baltimore Washington)"],
+["Salt Lake City", "Salt Lake City, UT (SLC-Salt Lake City Intl.)"],
+["Honolulu", "Honolulu, HI (HNL-Honolulu Intl.)"],
+["Tampa", "Tampa, FL (TPA-Tampa Intl.)"],
+["Pittsburgh", "Pittsburgh, PA (PIT-Greater Pittsburgh Intl.)"],
+["Redmond", "Redmond, OR (RDM-Bend/Redmond/Roberts Field)"],
+]
+
+core.sampleQuestion = function () {
+  var instruction = {}, request = {};
+  // Sample departure city and arrival city
+  var shuffledCities = CITIES.slice();
+  core.shuffle(shuffledCities);
+  instruction['Departure City'] = shuffledCities[0][0];
+  request['SearchFields.DepartureCity'] = shuffledCities[0][1];
+  instruction['Destination City'] = shuffledCities[1][0];
+  request['SearchFields.ArrivalCity'] = shuffledCities[1][1];
+  // Sample dates
+  var date1 = core.randi(1, 32), date2 = core.randi(1, 32);
+  if (Math.random() < 0.5) {
+    instruction['Ticket Type'] = 'One-way';
+    request['SearchFields.SearchType'] = 'OneWay';
+    instruction['Departure Day'] = date1;
+    request['SearchFields.DepartureDate'] = '3/' + date1 + '/2017';
+  } else {
+    if (date1 > date2) {
+      var swap = date1; date1 = date2; date2 = swap;
+    }
+    instruction['Ticket Type'] = 'Return flight';
+    request['SearchFields.SearchType'] = 'RoundTrip';
+    instruction['Departure Day'] = date1;
+    request['SearchFields.DepartureDate'] = '3/' + date1 + '/2017';
+    instruction['Returning Day'] = date2;
+    request['SearchFields.ReturnDate'] = '3/' + date2 + '/2017';
+  }
+  // Sample number of passengers
+  var numPassengers = core.randi(1, 4);
+  instruction['Passengers'] = numPassengers;
+  request['SearchFields.NumberOfTravelers'] = '' + numPassengers;
+  return {"instruction": instruction, "request": request};
+}
+
+// Overrides the check
+core.validateRequiredFields = function(dataDict) {
+  var requiredFields = [
+    "SearchFields.DepartureCity",
+    "SearchFields.ArrivalCity",
+    "SearchFields.DepartureDate",
+  ];
+  for (var i = 0; i < requiredFields.length; i++) {
+    var key = requiredFields[i];
+    if (!(dataDict[key] || '').length) {
+      console.log(['missing required field', key]);
+      document.getElementById('reward-reason').innerHTML = (
+        '<b>BAD:</b> Missing required field ' + key);
+      return false;
+    }
+  }
+  if (dataDict['SearchFields.SearchType'] != 'OneWay') {
+    key = "SearchFields.ReturnDate";
+    if (!(dataDict[key] || '').length) {
+      console.log(['(round trip) missing required field', key]);
+      document.getElementById('reward-reason').innerHTML = (
+        '<b>BAD:</b> Chose "Round Trip" but missed required field ' + key);
+      return false;
+    }
+  }
+  return true;
+}
+
+
+window.onload = function() {
+  core.startEpisode();
+  document.body.removeEventListener('click', core.canvasDrawClick);
+}
+</script>
+</head>
+
+<body>
+<div id="query-wrap">
+  <div id="query-pretty">(Instruction)</div>
+  <div id="query">(Raw query)</div>
+  <div id="reward-reason">(Reward reason)</div>
+</div>
+<iframe id="wrap" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+</body>
+</html>

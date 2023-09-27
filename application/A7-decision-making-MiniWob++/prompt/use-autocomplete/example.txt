@@ -1,0 +1,14 @@
+Example plan)
+task: enter an item that starts with "Unit" and ends with "es" into the input box with the id "tags".
+plan:
+1. click the input field (e.g., clickxpath //*[@id="tags"])
+2. type the starting word (e.g., type Units) 
+3. search the word that ends with es from the autocomplete list in the webpage and type the remaining characters only.
+6. click the submit button (e.g., clickxpath //*[@id="subbtn"])
+
+task: Enter an item that starts with "Aust" and ends with "lia".
+plan:
+1. click the input field (e.g., clickxpath //*[@id="tags"])
+2. type the starting word (e.g., type Aust)
+3. search the word that ends with lia from the autocomplete list in the webpage and type the remaining characters only.
+4. click the submit button (e.g., clickxpath //*[@id="subbtn"])

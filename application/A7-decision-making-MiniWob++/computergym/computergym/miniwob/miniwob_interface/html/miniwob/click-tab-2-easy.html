@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Tab Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" type="text/css" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area h3 { background: #007fff; border: 1px solid #003eff; border-radius: 3px; color: #ffffff; cursor: pointer; font-weight: normal; margin: 2px; padding: 1px; }
+#area div { margin: 2px; }
+#area li { width: 40px; }
+.ui-tabs .ui-tabs-nav .ui-tabs-anchor { padding: 5px; }
+#area .alink { color: #0000EE; cursor: pointer; text-decoration: underline; }
+</style>
+
+<script>
+var TABS = `
+<ul>
+  <li><a href="#tabs-1">Tab #1</a></li>
+</ul>`
+
+var generateLinks = function(div){
+  // since we randomly generate links, run this in a while loop
+  // until we produce text that know for sure contains a link,
+  // otherwise the script will error out and fail.
+  var linkCreated = false;
+  while(!linkCreated){
+    div.empty(); // clear previous problem, if any
+    div.append(TABS);
+    for(var i=0;i<1;i++){
+      var txt =  ui_utils.generateWords(20).split(/\s/g);
+      for(var j=0;j<txt.length; j++){
+        if(Math.random() < 0.2){
+          txt[j] = '<span class="alink">' + txt[j] + '</span>';
+          linkCreated = true;
+        }
+      }
+      var html = '<div id="tabs-' + (i+1) +  '"><p>' + txt.join(' ') + '</p></div>';
+      div.append(html);
+    }
+  }
+
+  // turn the HTML into jQuery tabs!
+  $('#area').tabs();
+}
+
+var bindClickEvents = function(){
+  var elements = document.getElementsByClassName('alink');
+  var correctIndex = core.randi(0, elements.length);
+  var correctText = elements[correctIndex].innerHTML;
+  for(var i = 0, len = elements.length; i < len; i++) {
+    var e = elements[i];
+    if(e.innerHTML === correctText) {
+      d3.select(e).on('click', function(){ core.endEpisode(1.0, true); })
+    } else {
+      d3.select(e).on('click', function(){ core.endEpisode(-1.0); })
+    }
+  }
+
+  return correctText;
+}
+
+var genProblem = function() {
+  // generate the task
+  var div = $('#area');
+  if(div.html().length > 0){ $('#area').tabs('destroy'); }
+
+  generateLinks(div);
+
+  var any = core.getOpt(core.QueryString, 'any', false); // click Any link?
+  var correctText = bindClickEvents();
+
+  // generate query text in the UI
+  d3.select('#query').html('Switch between the tabs to find and click on the link "' + correctText + '".');
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

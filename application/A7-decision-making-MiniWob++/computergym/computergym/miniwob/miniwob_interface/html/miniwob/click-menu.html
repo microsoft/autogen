@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Menu Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<style>
+#area { padding: 5px; }
+.ui-menu { background-color: #F0F0F0; width: 50px; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var ITEMS;
+var P = 0;
+var CANDIDATES = [];
+
+var enterUL = function(div, depth, prefix) {
+  if(depth >= 3) return;
+
+  var ul = div.append('ul');
+  if(depth === 0) ul.attr('id', 'menu');
+
+  var n = core.randi(2, 5);
+  for(var i=0;i<n;i++) {
+    var li = ul.append('li');
+    var item = ITEMS[P];
+    li.append('div').html(item);
+    new_prefix = prefix + (depth === 0 ? item : '>' + item);
+    P++;
+
+    if(core.randf(0,1) < 0.5) {
+      enterUL(li, depth + 1, new_prefix);
+    } else {
+      // this <li> element is a root node, add it as candidate
+      CANDIDATES.push({full: new_prefix, leaf: item});
+    }
+  }
+}
+
+var genProblem = function() {
+  var div = d3.select('#area');
+  div.html('');
+
+  P = 0;
+  CANDIDATES = [];
+  ITEMS = ui_utils.PEOPLE_NAMES;
+  core.shuffle(ITEMS);
+
+  enterUL(div, 0, '');
+
+  var ix = core.randi(0, CANDIDATES.length);
+  var gtitem = CANDIDATES[ix];
+  d3.select('#query').html('Select ' + gtitem.full);
+
+  $('#menu').menu({
+    select: function(event, ui) {
+      var clicked_text = ui.item.find('div').html();
+      var r = clicked_text === gtitem.leaf ? 1.0 : -1.0;
+      core.endEpisode(r, r>0);
+    }
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Pie Menu Task</title>
+
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<style>
+#piemenu > svg { width: 100%; height: 100%; }
+#piemenu { height: 150px; width: 150px; margin:auto; }
+@media (max-width: 150px) { #piemenu { height: 100px; width: 100px; } }
+
+[class|=wheelnav-piemenu-slice-basic] { fill: #497F4C; stroke: none; }
+[class|=wheelnav-piemenu-slice-selected] { fill: #497F4C; stroke: none; }
+[class|=wheelnav-piemenu-slice-hover] { fill: #497F4C;  stroke: none; fill-opacity: 0.77; cursor: pointer; }
+
+[class|=wheelnav-piemenu-title-basic] { fill: #333; stroke: none; }
+[class|=wheelnav-piemenu-title-selected] { fill: #fff; stroke: none; }
+[class|=wheelnav-piemenu-title-hover] { fill: #222; stroke: none; cursor: pointer; }
+
+.wheelnav-piemenu-spreader-in,
+.wheelnav-piemenu-spreader-out { fill: #444; stroke: #444; stroke-width: 2; cursor: pointer; }
+.wheelnav-piemenu-spreadertitle-in,
+.wheelnav-piemenu-spreadertitle-out { fill: #eee; stroke: #444; cursor: pointer; }
+</style>
+
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/special/click-pie/raphael.min.js"></script>
+<script src="../common/special/click-pie/raphael.icons.min.js"></script>
+<script src="../common/special/click-pie/wheelnav.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script>
+var createItems = function(){
+  var alphanumericList = core.shuffle(ui_utils.alphanumericList.slice());
+  var setLength = core.randi(4,9)*-1;
+  var problemSet = alphanumericList.splice(setLength);
+  var wheel = new wheelnav('divWheel');
+  wheel.spreaderEnable = true;
+  wheel.currentPercent = 0;
+  wheel.animatetime = 0;
+  wheel.animateeffect = 'linear';
+  wheel.createWheel(problemSet);
+
+  var expectedItem = core.sample(problemSet);
+
+  return {items: wheel, expectedItem: expectedItem, problemSet: problemSet};
+}
+
+var genProblem = function() {
+  var wheel = createItems();
+
+  d3.select('#query').html('Expand the pie menu below and click on the item labeled "<span class="bold">' + wheel.expectedItem + '</span>".');
+
+  var clickEvent = function(){
+    var r = wheel.problemSet[this.itemIndex] === wheel.expectedItem ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+    // add some slight delay to removing the nav wheel, otherwise
+    // it looks like it disappears a bit too suddenly.
+    setTimeout(function(){wheel.items.removeWheel();}, 50);
+  }
+
+  // binding click events normally causes some weird delay and events sometimes not
+  // properly triggering, so do this instead.
+  var wheelElems = wheel.items;
+  for(var i=0;i<wheelElems.navItems.length;i++){
+    wheelElems.navItems[i].navigateFunction = clickEvent;
+  }
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <div id="divWheel" data-wheelnav
+      data-wheelnav-markerpath="DropMarker"
+      data-wheelnav-wheelradius="80"
+      data-wheelnav-navangle="90"
+      data-wheelnav-slicepath="DonutSlice"
+      data-wheelnav-colors="#E34C26,#F06529"
+      data-wheelnav-rotateoff>
+      </div>
+  </div>
+</div>
+</body>
+</html>

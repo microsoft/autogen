@@ -1,0 +1,11 @@
+Example plans)
+The task is to select the checkboxes with the values 5h, KbtHKF, jg2aSq, and chVBED, and then click the Submit button.Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //label[text() = '5h']/input 
+2. clickxpath //label[text() = 'KbtHKF']/input
+3. clickxpath //label[text() = 'jg2aSq']/input 
+4. clickxpath //label[text() = 'chVBED']/input 
+5. clickxpath //button[@id='subbtn']
+
+The task is to select nothing and click the Submit button on the webpage.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //button[@id='subbtn']

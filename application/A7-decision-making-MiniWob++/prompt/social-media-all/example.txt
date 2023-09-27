@@ -1,0 +1,20 @@
+Example plans)
+task: click the "Reply" button on all posts by @bernardine and then click Submit.
+plan:
+1. clickxpath //div[@class='details']/span[@class='username' and text()='@bernardine']/../../div[@class='controls']/span[@class='reply']
+2. clickxpath //p[@id='submitRow']/button[@type='button']
+
+task: Click the "Like" button on all posts by @volutpat and then click Submit.
+plan:
+1. clickxpath //div[@class='details']/span[@class='username' and text()='@volutpat']/../../div[@class='controls']/span[@class='like']
+2. clickxpath //p[@id='submitRow']/button[@type='button']
+
+task: Click the "Share" button on all posts by @consectetur and then click Submit.
+plan:
+1. clickxpath //div[@class='details']/span[@class='username' and text()='@consectetur']/../../div[@class='controls']/span[@class='share']
+2. clickxpath //p[@id='submitRow']/button[@type='button']
+
+task: Click the "Retweet" button on all posts by @pulvinar and then click Submit.
+plan:
+1. clickxpath //div[@class='details']/span[@class='username' and text()='@pulvinar']/../../div[@class='controls']/span[@class='retweet']
+2. clickxpath //p[@id='submitRow']/button[@type='button']

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Email Inbox Task</title>
+<!-- credit to flaticon.com for the icons used in this task. -->
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../common/ui_utils.js"></script>
+<script src="../common/special/navigate-tree/jquery.treeview.min.js"></script>
+
+<style>
+#main { height: 150px; width: 155px; overflow-y: scroll; overflow-x: hidden; }
+
+#main-header { height: 20px; line-height: 20px; background-color: #F92525;  color: #FFF; padding: 0 5px 0 0; border-bottom: 1px solid #C9C9C9; }
+#main-header h2 { display: inline-block; font-size: 12px; font-weight: 100; margin: 0 5px; }
+#open-search { float: right; content:url(../common/special/email-inbox/search.png); height: 12px; margin: 3px;
+  cursor: pointer; }
+
+#search { height: 150px; width: 155px; overflow-y: scroll; overflow-x: hidden; }
+#search-header { height: 20px; line-height: 20px; }
+#search-cancel { content:url(../common/special/email-inbox/left-arrow.png); height: 12px; margin: 3px;
+  cursor: pointer; vertical-align: middle; }
+#search-header #search-input { border: none; }
+#search-header input:focus { outline: none; }
+#results-header { background-color: #E5E6E8; color: #555; padding: 3px 5px;
+  margin: 0px; height: 10px; }
+#results-header h4 { margin: 0 5px; padding: 0; font-weight: 100; line-height: 10px; font-size: 9px; }
+
+.email-thread { padding: 2px 10px 2px 5px; border-bottom: 1px solid #C9C9C9; cursor: pointer; clear: both; }
+.email-thread:hover { background-color: rgba(188, 214, 255, 0.4); }
+.email-left { width: 70%; display: inline-block; }
+.email-sender { font-weight: bold; font-size: 11px; }
+.email-subject { font-weight: bold; }
+.email-right { width: 28%; float: right; display: inline-block;  text-align: right; }
+.email-time { font-weight: bold; }
+
+.email-actions { display: inline-block; float: right; margin: 2px; }
+.email-actions .star { content:url(../common/special/email-inbox/star.png); height: 12px; float: right;
+  margin: 3px 1px; opacity: 0.4; user-select: none; cursor: pointer; }
+.email-actions .star.clicked { content:url(../common/special/email-inbox/star-clicked.png); height: 12px; float: right; margin: 3px 1px; opacity: 1.0; }
+.email-actions .trash { content:url(../common/special/email-inbox/delete.png); height: 12px; float: right; margin: 3px 1px; opacity: 0.6; user-select: none; cursor: pointer; }
+.email-actions span:hover { opacity: 1.0; }
+
+#email { height: 150px; width: 155px; overflow-y: scroll; overflow-x: hidden; }
+#email-bar { height: 20px; line-height: 20px; background-color: #F92525; }
+#close-email { content:url(../common/special/email-inbox/left-arrow-white.png); height: 12px;
+  vertical-align: middle;  cursor: pointer; }
+#email .email-left { display: inline-block; float: left; width: 70%; height: 20px; padding-left: 4px;
+  font-size: 8px; padding-top: 2px; }
+#email .email-right { display: inline-block; width: 20%; float: right; height: 20px; padding-right: 4px;
+  font-size: 8px; padding-top: 2px; }
+#email div, #email span { font-weight: 100; }
+#email .email-header { height: 40px; }
+#email .email-body { padding: 4px; min-height: 40px; }
+#email .email-subject { font-weight: 100; font-size: 12px; padding: 2px 5px; border-bottom: 1px solid #C9C9C9; }
+#email .email-sender { font-weight: 100; font-size: 9px; }
+#email .email-send { text-align: center; cursor: pointer; border-top: 1px solid #C9C9C9; padding: 3px; }
+#email .email-send span { width: 40px; text-align: center; display: inline-block; font-size: 8px; }
+.email-reply .icon { content:url(../common/special/email-inbox/reply.png); height: 18px; margin: 0 auto; }
+.email-reply { margin-right: 7px; }
+.email-forward .icon { content:url(../common/special/email-inbox/forward.png); height: 18px; margin: 0 auto; }
+.email-forward { margin-left: 7px; }
+
+#reply label { font-weight: bold; }
+#reply #reply-bar { height: 20px; line-height: 20px; border-bottom: 1px solid #C9C9C9; }
+#close-reply { content:url(../common/special/email-inbox/left-arrow.png); height: 12px; margin: 3px;
+  cursor: pointer; vertical-align: middle; }
+#send-reply { content:url(../common/special/email-inbox/send.png); height: 14px; margin: 3px;
+  cursor: pointer; vertical-align: middle; float: right;}
+#reply .reply-info { padding: 2px; border-bottom: 1px solid #C9C9C9; }
+#reply .reply-subject { padding: 2px; border-bottom: 1px solid #C9C9C9; font-size: 10px; }
+#reply textarea { border: none; height: 95px; width: 150px; }
+#reply textarea:focus { outline: none; }
+
+#forward label { font-weight: bold; }
+#forward #forward-bar { height: 20px; line-height: 20px; border-bottom: 1px solid #C9C9C9; }
+#close-forward { content:url(../common/special/email-inbox/left-arrow.png); height: 12px; margin: 3px;
+  cursor: pointer; vertical-align: middle; }
+#send-forward { content:url(../common/special/email-inbox/send.png); height: 14px; margin: 3px;
+  cursor: pointer; vertical-align: middle; float: right;}
+#forward .forward-sender { border: none; width: 150px; }
+#forward .forward-sender:focus { outline: none; }
+#forward .forward-info { padding: 2px; border-bottom: 1px solid #C9C9C9; }
+#forward .forward-subject { padding: 2px; border-bottom: 1px solid #C9C9C9; font-size: 10px; }
+#forward textarea { border: none; height: 95px; width: 150px; }
+#forward textarea:focus { outline: none; }
+
+.highlight { background-color: #F4F142; }
+.hide { display: none; }
+</style>
+
+<script>
+core.EPISODE_MAX_TIME = 30000;
+var MAIN_TEMPLATE =
+`
+<div id="main-header">
+  <h2>Primary</h2>
+  <span id="open-search"></span>
+</div>
+`
+
+var EMAIL_SUMMARY_TEMPLATE =
+`
+<div class="email-left">
+  <div class="email-sender"></div>
+  <div class="email-subject"></div>
+  <div class="email-body"></div>
+</div>
+<div class="email-right">
+  <div class="email-time"></div>
+  <div class="email-actions">
+    <span class="trash"></span>
+    <span class="star"></span>
+  </div>
+</div>
+`
+
+var SEARCH_TEMPLATE =
+`
+<div id="search-bar">
+  <div id="search-header">
+    <span id="search-cancel"></span>
+    <span><input type="text" id="search-input" placeholder="Search"></span>
+  </div>
+</div>
+<div id="results-header">
+  <h4>Results</h4>
+</div>
+<div id="search-results"></div>
+`
+
+var EMAIL_TEMPLATE =
+`
+<div id="email-bar">
+  <span id="close-email"></span>
+  <div class="email-actions">
+    <span class="trash"></span>
+    <span class="star"></span>
+  </div>
+</div>
+<div class="email-header">
+  <div class="email-subject"></div>
+  <span class="email-left">
+    <div class="email-sender">Sender</div>
+    <div>to me</div>
+  </span>
+  <span class="email-right">
+    <div class="email-time"></div>
+  </span>
+</div>
+<div class="email-body"></div>
+<div class="email-send">
+  <span class="email-reply">
+    <div class="icon"></div>
+    <div>Reply</div>
+  </span>
+  <span class="email-forward">
+    <div class="icon"></div>
+    <div>Forward</div>
+  </span>
+</div>
+`
+
+var REPLY_TEMPLATE =
+`
+<div id="reply-bar">
+  <span id="close-reply"></span>
+  <span id="send-reply"></span>
+</div>
+<div class="reply-header">
+  <div class="reply-info">
+    <label class="reply-to">to: </label>
+    <span class="reply-sender"></span>
+  </div>
+
+  <div class="reply-subject"><label class="reply-subj">subject: </label>Re: </div>
+</div>
+<div class="reply-body">
+  <textarea id="reply-text"></textarea>
+</div>
+`
+
+var FORWARD_TEMPLATE =
+`
+<div id="forward-bar">
+  <span id="close-forward"></span>
+  <span id="send-forward"></span>
+</div>
+<div class="forward-header">
+  <div class="forward-info">
+    <label>to: </label><input type="text" class="forward-sender">
+  </div>
+  <div class="forward-subject"><label>subject: </label></div>
+</div>
+<div class="forward-body">
+  <textarea id="forward-text"></textarea>
+</div>
+`
+
+var MAX_EMAILS = 3;
+var EMAIL_ACTIONS = ['forward'];
+
+
+var generateEmails = function(){
+  var emails = [];
+  var n = core.randi(4, MAX_EMAILS);
+  for(var i=0;i<n;i++){
+    var email = {};
+    email.name = core.sample(ui_utils.PEOPLE_NAMES);
+    email.subject = ui_utils.generateWords(1,3);
+    email.body = ui_utils.generateWords(5,15);
+
+    emails.push(email);
+  }
+
+  return emails;
+}
+
+var displayEmailSummaries = function(emails){
+  for(var i=0;i<emails.length;i++){
+    var div = document.createElement('div');
+    div.setAttribute('class', 'email-thread');
+    div.setAttribute('data-index', i);
+    div.innerHTML = EMAIL_SUMMARY_TEMPLATE;
+
+    div.getElementsByClassName('email-sender')[0].innerHTML = emails[i].name;
+    div.getElementsByClassName('email-subject')[0].innerHTML = summarizeEmailContent(emails[i].subject);
+    div.getElementsByClassName('email-body')[0].innerHTML = summarizeEmailContent(emails[i].body);
+
+    $('#main').append(div);
+  }
+};
+
+var displaySearchResults = function(emails, searchString){
+  $('#search-results').empty();
+
+  for(var i=0;i<emails.length;i++){
+    var div = document.createElement('div');
+    div.setAttribute('class', 'email-thread');
+    div.setAttribute('data-index', i);
+    div.innerHTML = EMAIL_SUMMARY_TEMPLATE;
+
+    if(emails[i].name.indexOf(searchString) === -1 && emails[i].subject.indexOf(searchString) === -1
+      && emails[i].body.indexOf(searchString) === -1 ) continue;
+    div.getElementsByClassName('email-sender')[0].innerHTML = emails[i].name.replace(searchString, '<span class="highlight">'+searchString+'</span>');
+    div.getElementsByClassName('email-subject')[0].innerHTML = emails[i].subject.replace(searchString, '<span class="highlight">'+searchString+'</span>');
+    div.getElementsByClassName('email-body')[0].innerHTML = summarizeEmailContent(emails[i].body).replace(searchString, '<span class="highlight">'+searchString+'</span>');
+
+    $('#search-results').append(div);
+  }
+};
+
+var summarizeEmailContent = function(email){
+  var emailLength = email.length;
+  if(emailLength < 15) return email;
+  else return email.substring(0,15) + '..';
+}
+
+var showEmail = function(email, expectedDetails){
+  var emailDiv = document.createElement('div');
+  emailDiv.setAttribute('id', 'email');
+  emailDiv.innerHTML = EMAIL_TEMPLATE;
+
+  emailDiv.getElementsByClassName('email-sender')[0].innerHTML = email.name;
+  emailDiv.getElementsByClassName('email-subject')[0].innerHTML = email.subject;
+  emailDiv.getElementsByClassName('email-body')[0].innerHTML = email.body;
+
+  $('#main').addClass('hide');
+  $('#search').addClass('hide');
+  $('#area').append(emailDiv);
+
+  $('#close-email').on('click', function(){
+    $('#email').remove();
+    $('#main').removeClass('hide');
+  });
+
+
+  // click events start below.
+  $('#email .email-actions span.star').on('click', function(){
+    var name = $('#email .email-sender').text();
+    if($(this).hasClass('clicked')){
+      $(this).removeClass('clicked');
+    } else {
+      $(this).addClass('clicked');
+    }
+
+    // only reward when action is 'important', otherwise show toggle animation.
+    if(expectedDetails.action === 'important' && name == expectedDetails.email.name){
+      core.endEpisode(1, true);
+    } else if (expectedDetails.action === 'important'){
+      core.endEpisode(-1, false);
+    }
+    return false;
+  });
+
+  // click events start below.
+  $('#email .email-actions span.trash').on('click', function(){
+    var name = $('#email .email-sender').text();
+
+    // only reward when action is 'delete', otherwise do nothing.
+    if(expectedDetails.action === 'delete' && name == expectedDetails.email.name){
+      core.endEpisode(1, true);
+    } else if (expectedDetails.action === 'delete'){
+      core.endEpisode(-1, false);
+    }
+
+    return false;
+  });
+
+}
+
+var showReply = function(email){
+  var reply = document.createElement('div');
+  reply.setAttribute('id', 'reply');
+  reply.innerHTML = REPLY_TEMPLATE;
+
+  reply.getElementsByClassName('reply-sender')[0].innerHTML = email.name;
+  reply.getElementsByClassName('reply-subject')[0].innerHTML += email.subject;
+
+  $('#email').addClass('hide');
+  $('#area').append(reply);
+}
+
+var showForward = function(email){
+  var forward = document.createElement('div');
+  forward.setAttribute('id', 'forward');
+  forward.innerHTML = FORWARD_TEMPLATE;
+
+  forward.getElementsByClassName('forward-subject')[0].innerHTML += email.subject;
+  forward.getElementsByTagName('textarea')[0].value = email.body;
+
+  $('#email').addClass('hide');
+  $('#area').append(forward);
+}
+
+var clickEmail = function(e){
+  var emails = e.data.emails;
+  var expectedDetails = e.data.expectedDetails;
+  var emailIndex = $(this).attr('data-index');
+  var email = emails[parseInt(emailIndex,10)];
+  showEmail(email, expectedDetails);
+
+  $('#email .email-reply').on('click', function(){
+    showReply(email);
+    $('#close-reply').on('click', cancelReply);
+    $('#send-reply').on('click', function(){
+      var name = $(this).parents('#reply').find('.reply-sender').text()
+      var text = $('#reply-text').val();
+
+      // reward positive score if they correctly reply when tasked.
+      // if they reply to anything else, reward a negative score.
+      if(expectedDetails.action === 'reply' && name === expectedDetails.email.name && text === expectedDetails.reply){
+        core.endEpisode(1, true);
+      } else {
+        core.endEpisode(-1);
+      }
+    });
+  });
+
+  $('#email .email-forward').on('click', function(){
+    showForward(email);
+    $('#close-forward').on('click', cancelForward);
+    $('#send-forward').on('click', function(){
+      var name = $(this).parents('#forward').find('.forward-sender').val()
+      var text = $('#forward-text').val();
+
+      // reward positive score if they correctly forward when tasked.
+      // if they forward anything else, reward a negative score.
+      if(expectedDetails.action === 'forward' && name === expectedDetails.forward
+        && text === expectedDetails.email.body){
+        core.endEpisode(1, true);
+      } else {
+        core.endEpisode(-1);
+      }
+    });
+  });
+}
+
+var cancelReply = function(){
+  $('#reply').remove();
+  $('#email').removeClass('hide');
+}
+
+var cancelForward = function(){
+  $('#forward').remove();
+  $('#email').removeClass('hide');
+}
+
+var displayQuery = function(expectedDetails){
+  if(expectedDetails.action === 'reply'){
+    expectedDetails.reply = ui_utils.generateWords(1,5);
+    $('#query').html('Find the email by <span class="bold">' + expectedDetails.email.name + '</span> and reply to them with the text "<span class="bold">' + expectedDetails.reply + '</span>".');
+  } else if(expectedDetails.action === 'forward') {
+    expectedDetails.forward = core.sample(ui_utils.PEOPLE_NAMES);
+    $('#query').html('Find the email by <span class="bold">' + expectedDetails.email.name + '</span> and forward that email to <span class="bold">' + expectedDetails.forward + '</span>.');
+  } else if(expectedDetails.action === 'delete') {
+     $('#query').html('Find the email by <span class="bold">' + expectedDetails.email.name + '</span> and click the trash icon to delete it.');
+  } else if (expectedDetails.action === 'important'){
+    $('#query').html('Find the email by <span class="bold">' + expectedDetails.email.name + '</span> and click the star icon to mark it as important.');
+  }
+}
+
+var bindClickEvents = function(expectedDetails, emails){
+  $('#main .email-actions span.star').on('click', function(){
+    var name = $(this).parents('.email-thread').find('.email-sender').text();
+    if($(this).hasClass('clicked')){
+      $(this).removeClass('clicked');
+    } else {
+      $(this).addClass('clicked');
+    }
+
+    // only reward when action is 'important', otherwise show toggle animation.
+    if(expectedDetails.action === 'important' && name == expectedDetails.email.name){
+      core.endEpisode(1, true);
+    } else if (expectedDetails.action === 'important'){
+      core.endEpisode(-1, false);
+    }
+    return false;
+  });
+
+  // click events start below.
+  $('#main .email-actions span.trash').on('click', function(){
+    var name = $(this).parents('.email-thread').find('.email-sender').text();
+
+    // only reward when action is 'delete', otherwise do nothing.
+    if(expectedDetails.action === 'delete' && name == expectedDetails.email.name){
+      core.endEpisode(1, true);
+    } else if (expectedDetails.action === 'delete'){
+      core.endEpisode(-1, false);
+    }
+
+    return false;
+  });
+
+  $('#open-search').on('click', function(){
+    $('#search').removeClass('hide');
+    $('#main').addClass('hide');
+    $('#search-input').focus();
+  });
+
+  $('#search-cancel').on('click', function(){
+    $('#search').addClass('hide');
+    $('#main').removeClass('hide');
+    $('#search-input').val('');
+  });
+
+  $('#search-input').on('keyup', function(){
+    var searchText = $(this).val();
+    if(searchText.replace(/\s/g,'').length > 0) {
+      displaySearchResults(emails, searchText);
+      $('#search .email-thread').on('click', {emails: emails, expectedDetails: expectedDetails}, clickEmail);
+    } else {
+      $('#search-results').empty();
+    }
+  });
+
+  $('.email-thread').on('click', {emails: emails, expectedDetails: expectedDetails}, clickEmail);
+}
+
+// empty the UI at the start of the episode and set it up
+// with the main and search templates.
+var setupInbox = function(){
+  $('#area').empty();
+  var main = document.createElement('div');
+  main.setAttribute('id', 'main');
+  main.innerHTML = MAIN_TEMPLATE;
+  $('#area').append(main);
+
+  var search = document.createElement('div')
+  search.setAttribute('id', 'search');
+  search.setAttribute('class', 'hide');
+  search.innerHTML = SEARCH_TEMPLATE;
+  $('#area').append(search);
+}
+
+var genProblem = function(){
+  setupInbox();
+  var emails = generateEmails();
+  displayEmailSummaries(emails);
+
+  var expectedIndex = core.randi(0,emails.length);
+  var expectedDetails = {};
+  expectedDetails.action = core.sample(EMAIL_ACTIONS);
+  expectedDetails.email = emails[expectedIndex];
+
+  displayQuery(expectedDetails);
+  bindClickEvents(expectedDetails, emails);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

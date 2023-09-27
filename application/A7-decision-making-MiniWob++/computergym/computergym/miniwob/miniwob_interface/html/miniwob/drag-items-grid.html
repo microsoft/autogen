@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Items Grid Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+/* taken from jqueryui docs and adjusted a bit */
+#sortable { list-style-type: none; margin: 0; padding: 0; width: 90%; margin-top:2px; margin-left: 2px;}
+#sortable li { margin: 3px; padding: 2px; width: 34px; height: 34px; float: left; font-size: 8px; }
+#sortable li span { position: absolute; margin-left: -12px; }
+</style>
+
+<script>
+var OLDIX;
+var genProblem = function() {
+  core.shuffle(ui_utils.PEOPLE_NAMES);
+  var ITEMS = ui_utils.PEOPLE_NAMES.slice();
+
+  // build items with d3js
+  var ul = d3.select('#sortable');
+  ul.html('');
+  var n = 9;
+  for(var i=0;i<n;i++) {
+    var li = ul.append('li').attr('class', 'ui-state-default');
+    li.append('div').html(ITEMS[i]);
+  }
+
+  var ix = core.randi(0,n) + 1; // ground truth item index, 1-indexed
+  var poss = [];
+
+  // positional options
+  if (ix !== 1) { poss.push(['to the top left.', 1]); }
+  if (ix !== 2) { poss.push(['to the top center.', 2]); }
+  if (ix !== 3) { poss.push(['to the top right.', 3]); }
+  if (ix !== 4) { poss.push(['to the center left.', 4]); }
+  if (ix !== 5) { poss.push(['to the center.', 5]); }
+  if (ix !== 6) { poss.push(['to the center right.', 6]); }
+  if (ix !== 7) { poss.push(['to the bottom left.', 7]); }
+  if (ix !== 8) { poss.push(['to the bottom center.', 8]); }
+  if (ix !== 9) { poss.push(['to the bottom right.', 9]); }
+  // relative options
+  if (ix > 3) { poss.push(['up by one.', ix-3]); }
+  if (ix < 7) { poss.push(['down by one.', ix+3]); }
+  if (ix%3 !== 1) { poss.push(['left by one.', ix-1]); }
+  if (ix%3 !== 0) { poss.push(['right by one.', ix+1]); }
+
+  // generate a query
+  var s = core.sample(poss);
+  var target_description = s[0];
+  var target_index = s[1];
+  d3.select('#query').html('Drag ' + ITEMS[ix-1] + ' ' + target_description);
+
+  // make sortable with jqueryui and create a rewarder
+  $('#sortable').sortable({
+    start: function(event, ui) { // start dragging
+      OLDIX = ui.item.index() + 1; // have to remember this
+    },
+    stop: function(event, ui) { // end dragging
+      var newix = ui.item.index() + 1;
+      var r = (target_index === newix && OLDIX == ix) ? 1.0 : -1.0;
+      core.endEpisode(r, r>0);
+    }
+  });
+  $('#sortable').disableSelection();
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <ul id="sortable"></ul>
+  </div>
+</div>
+</body>
+</html>

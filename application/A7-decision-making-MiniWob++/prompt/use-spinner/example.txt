@@ -1,0 +1,71 @@
+Example plans)
+task:Select 4 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[1]/span[1] // click the upper arrow button four times
+2. clickxpath //*[@id="area"]/span/a[1]/span[1]
+3. clickxpath //*[@id="area"]/span/a[1]/span[1]
+4. clickxpath //*[@id="area"]/span/a[1]/span[1]
+5. clickxpath //*[@id="subbtn"]
+
+task: select -3 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[2]/span[1] // click the down arrow button three times since the number is minus thress
+2. clickxpath //*[@id="area"]/span/a[2]/span[1]
+3. clickxpath //*[@id="area"]/span/a[2]/span[1]
+4. clickxpath //*[@id="subbtn"]
+
+task: select 2 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[1]/span[1] // click the upper arrow button two times since the number is plus two
+2. clickxpath //*[@id="area"]/span/a[1]/span[1]
+3. clickxpath //*[@id="subbtn"]
+
+task: Select 7 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[1]/span[1] // click the upper arrow button 7 times
+2. clickxpath //*[@id="area"]/span/a[1]/span[1]
+3. clickxpath //*[@id="area"]/span/a[1]/span[1]
+4. clickxpath //*[@id="area"]/span/a[1]/span[1]
+5. clickxpath //*[@id="area"]/span/a[1]/span[1]
+6. clickxpath //*[@id="area"]/span/a[1]/span[1]
+7. clickxpath //*[@id="area"]/span/a[1]/span[1]
+8. clickxpath //*[@id="subbtn"]
+
+task: Select 5 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[1]/span[1] // click the upper arrow button 5 times
+2. clickxpath //*[@id="area"]/span/a[1]/span[1]
+3. clickxpath //*[@id="area"]/span/a[1]/span[1]
+4. clickxpath //*[@id="area"]/span/a[1]/span[1]
+5. clickxpath //*[@id="area"]/span/a[1]/span[1]
+6. clickxpath //*[@id="subbtn"]
+
+task: Select -9 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[2]/span[1] // click the down arrow button 9 times
+2. clickxpath //*[@id="area"]/span/a[2]/span[1]
+3. clickxpath //*[@id="area"]/span/a[2]/span[1]
+4. clickxpath //*[@id="area"]/span/a[2]/span[1]
+5. clickxpath //*[@id="area"]/span/a[2]/span[1]
+6. clickxpath //*[@id="area"]/span/a[2]/span[1]
+7. clickxpath //*[@id="area"]/span/a[2]/span[1]
+8. clickxpath //*[@id="area"]/span/a[2]/span[1]
+9. clickxpath //*[@id="area"]/span/a[2]/span[1]
+10. clickxpath //*[@id="subbtn"]
+
+task: Select -5 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[2]/span[1] // click the down arrow button 5 times
+2. clickxpath //*[@id="area"]/span/a[2]/span[1]
+3. clickxpath //*[@id="area"]/span/a[2]/span[1]
+4. clickxpath //*[@id="area"]/span/a[2]/span[1]
+5. clickxpath //*[@id="area"]/span/a[2]/span[1]
+6. clickxpath //*[@id="subbtn"]
+
+task: Select 3 with the spinner and hit Submit.
+plan:
+1. clickxpath //*[@id="area"]/span/a[1]/span[1] // click the upper arrow button 3 times
+2. clickxpath //*[@id="area"]/span/a[1]/span[1]
+3. clickxpath //*[@id="area"]/span/a[1]/span[1]
+4. clickxpath //*[@id="subbtn"]
+

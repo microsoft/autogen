@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Highlight Text Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+.alink { text-decoration: underline; color: blue; cursor: pointer; }
+#randomText { margin: 10px; }
+#subbtn { margin: 5px; }
+</style>
+
+<script>
+var PARAGRAPHS = 3;
+var TEXT_DIV = '<div id="randomText"></div>';
+var SUB_BTN = '<button id="subbtn" class="secondary-action">Submit</button>';
+var POS = ['1st', '2nd', '3rd'];
+
+var createParagraphs = function(div){
+  var textFirst = core.randi(0,2) === 1;
+  if(textFirst) div.innerHTML += TEXT_DIV + SUB_BTN;
+  else div.innerHTML += SUB_BTN + TEXT_DIV;
+
+  var firstWord = true;
+  var randomizedText = '';
+  var paragraphs = [];
+  for(var p=0;p<3;p++){
+    var textLength = core.randi(5,8);
+    var paragraphText = '';
+    for(var i=0;i<textLength;i++) {
+      var ri = core.randi(0, ui_utils.lorem_words.length);
+      var w = ui_utils.lorem_words[ri];
+      if(firstWord) { w = ui_utils.txtCapitalize(w); firstWord = false;}
+      if(Math.random() < 0.2) { paragraphText += w + '. '; firstWord = true; }
+      else { paragraphText += w + ' '; }
+    }
+    paragraphs.push(paragraphText);
+    randomizedText += '<p>' +  paragraphText + '</p>';
+  }
+
+  d3.select('#randomText').html(randomizedText);
+
+  return paragraphs;
+}
+
+var genProblem = function() {
+  // generate the task
+  var div = d3.select('#area')[0][0];
+  div.innerHTML = ''; // clear previous problem, if any
+
+  var paragraphs = createParagraphs(div);
+
+  var chosenParagraph = core.randi(0,3);
+  var expectedText = paragraphs[chosenParagraph];
+
+  // generate query text in the UI
+  d3.select('#query').html('Highlight the text in the ' + POS[chosenParagraph] + ' paragraph and click submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    // ignore whitespace and only compare if the highlighted letters match.
+    var highlightedText = window.getSelection().toString().replace(/[\n\r\s]/g, '');
+    var r = highlightedText === expectedText.replace(/[\n\r\s]/g, '') ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

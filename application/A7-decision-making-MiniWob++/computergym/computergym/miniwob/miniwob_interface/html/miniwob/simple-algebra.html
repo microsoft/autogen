@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Simple Algebra Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { text-align: center; }
+#math-problem { height: 30px; font-size: 30px; display: inline-block; }
+#area #math-answer { display: inline-block; height: 30px; width: 50px; margin-left: 4px;
+  vertical-align: top; font-size: 30px; }
+.math-container { display: block; margin-top: 10px; margin-bottom: 20px;  font-size: 30px; }
+</style>
+
+<script>
+var DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+var MATH_ACTION = ['-', '+'];
+var genProblem = function(){
+  d3.select('#math-problem').html('');
+  d3.select('#math-answer')[0][0].value = '';
+
+  var digitOne = core.sample(DIGITS);
+  var mathAnswer = core.randi(0,100);
+  var action = core.sample(MATH_ACTION);
+  var xFirst = core.sample([true, false]);
+
+  // division can be too difficult since there's a good chance
+  // it'll almost always result in a non-integer, so let's
+  // avoid those kinds of problems.
+  if(action === '+'){
+    var expectedAnswer =  mathAnswer - digitOne;
+  } else if(action === '-' && xFirst){
+    var expectedAnswer = mathAnswer + digitOne;
+  } else if(action === '-'){
+    var expectedAnswer = digitOne - mathAnswer ;
+  }
+
+  if(xFirst){
+    d3.select('#math-problem').html('x ' + action + ' ' + digitOne + ' = ' + mathAnswer);
+  } else {
+    action = '+'
+    d3.select('#math-problem').html(digitOne + ' ' + '+' + ' x = ' + mathAnswer);
+  }
+
+  d3.select('#subbtn').on('click', function(){
+    var userAnswer = d3.select('#math-answer')[0][0].value;
+    var r = userAnswer === expectedAnswer.toString() ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  });
+}
+
+window.onload = function(){
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Solve for <span class="bold">x</span> and type your answer into the textbox. Press Submit when done.</div>
+  <div id="area">
+    <div id="math-problem"></div>
+    <div class="math-container">
+      <span>x =</span>
+      <input type="text" id="math-answer">
+    </div>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

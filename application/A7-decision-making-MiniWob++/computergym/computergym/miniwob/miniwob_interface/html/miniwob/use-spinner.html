@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Use Spinner Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area { padding: 5px; }
+#subbtn { margin-top: 5px; }
+</style>
+
+<script>
+var genProblem = function() {
+  // reset UI
+  document.getElementById('spinner').value = 0;
+
+  var n = core.randi(-10,10);
+  d3.select('#query').html('Select ' + n + ' with the spinner and hit Submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var nsel = parseInt(document.getElementById('spinner').value);
+    var r = nsel === n ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  var spinner = $('#spinner').spinner();
+  // prevent manual entry via keyboard to this text field
+  $('#spinner').bind('keydown', function (event) { event.preventDefault(); });
+  // prevent it from even receiving focus
+  //$("#spinner").focus(function () { $(this).blur(); });
+  // note: disabling this because when this is turned on somehow holding down on the arrows stops working
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <label for="spinner">Select a value:</label>
+    <input id="spinner" name="value">
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

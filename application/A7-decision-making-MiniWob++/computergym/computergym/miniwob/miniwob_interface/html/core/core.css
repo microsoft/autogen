@@ -1,0 +1,104 @@
+body {
+  background-color: #555;
+  font-family: Arial;
+  font-size: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+#wrap {
+  height:210px;
+  background-color: white;
+  width:160px;
+}
+
+#query {
+  background-color: #FF0;
+  font-size: 10px;
+  height: 44px;
+  padding: 3px;
+}
+
+#area {
+  font-size: 10px;
+  padding: 2px;
+}
+
+#area input[type=text] {
+  width: 120px;
+}
+
+#area textarea {
+  height: 25px;
+  width: 120px;
+}
+
+#query .bold, #area .bold { font-weight: bold; }
+
+/* reward display CSS below */
+#reward-display {
+  font-size: 14px;
+  height: 210px;
+  width: 160px;
+  position: absolute;
+  left: 165px;
+  top: 0px;
+}
+
+#reward-display .info {
+  display: block;
+  margin: 10px 5px;
+}
+
+#reward-last, #reward-avg, #timer-countdown, #episode-id {
+  font-weight: bold;
+}
+
+#reward-avg {
+  display: inline-block;
+}
+
+#area button.secondary-action {
+  padding: 6px 25px;
+}
+
+/* task cover for synchronization */
+#sync-task-cover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 160px;
+  height: 210px;
+  background-color: #111;
+  color: #eee;
+  text-align: center;
+  line-height: 210px;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 9999;
+}
+#sync-task-cover.transparent {
+  background-color: transparent;
+  color: transparent;
+  cursor: not-allowed;
+}
+
+/* canvas for tracking clicks */
+#click-canvas {
+  position: absolute;
+  left: 165px;
+  top: 0px;
+  background-color: white;
+}
+/* canvas for visualizing attention */
+#attention-canvas {
+  position: absolute;
+  left: 330px;
+  top: 0px;
+  background-color: black;
+}
+
+/* Record demonstrations */
+#server-name, #server-reply {
+  font-size: 80%;
+}

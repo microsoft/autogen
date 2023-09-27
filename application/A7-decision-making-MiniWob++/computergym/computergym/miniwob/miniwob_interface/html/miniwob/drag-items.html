@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Items Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+/* taken from jqueryui docs and adjusted a bit */
+#sortable { list-style-type: none; margin: 0; padding: 0; width: 90%; margin-top:5px; margin-left: 5px;}
+#sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.3em; height: 14px; font-size: 12px; }
+#sortable li span { position: absolute; margin-left: -1.3em; }
+</style>
+
+<script>
+var OLDIX;
+var genProblem = function() {
+  core.shuffle(ui_utils.PEOPLE_NAMES);
+  var ITEMS = ui_utils.PEOPLE_NAMES.slice();
+
+  // build items with d3js
+  var ul = d3.select('#sortable');
+  ul.html('');
+  var n = 5;
+  for(var i=0;i<n;i++) {
+    var li = ul.append('li').attr('class', 'ui-state-default');
+    var span = li.append('span').attr('class', 'ui-icon ui-icon-arrowthick-2-n-s')
+    li.append('div').html(ITEMS[i]);
+  }
+
+  var ix = core.randi(0,n) + 1; // ground truth item index, 1-indexed
+  var poss = [];
+
+  if (ix !== 1) { poss.push(['to the top.', 1]); }
+  if (ix !== n) { poss.push(['to the bottom.', n]); }
+  if (ix !== n) { poss.push(['down by one position.', ix+1]); }
+  if (ix !== 1) { poss.push(['up by one position.', ix-1]); }
+  for(var i=1;i<n+1;i++) {
+    var itxt = '';
+    if(i === 1) { itxt = 'st'; }
+    else if(i === 2) { itxt = 'nd'; }
+    else if(i === 3) { itxt = 'rd'; }
+    else { itxt = 'th'; }
+
+    if(i !== ix) {
+      poss.push(['to the ' + i + itxt + ' position.', i]);
+    }
+  }
+
+  // generate a query
+  var s = core.sample(poss);
+  var target_description = s[0];
+  var target_index = s[1];
+  d3.select('#query').html('Drag ' + ITEMS[ix-1] + ' ' + target_description);
+
+  // make sortable with jqueryui and create a rewarder
+  $('#sortable').sortable({
+    start: function(event, ui) { // start dragging
+      OLDIX = ui.item.index() + 1; // have to remember this
+    },
+    stop: function(event, ui) { // end dragging
+      var newix = ui.item.index() + 1;
+      var r = (target_index === newix && OLDIX == ix) ? 1.0 : -1.0;
+      core.endEpisode(r, r>0);
+    }
+  });
+  $('#sortable').disableSelection();
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <ul id="sortable"></ul>
+  </div>
+</div>
+</body>
+</html>

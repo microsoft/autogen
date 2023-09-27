@@ -1,0 +1,10 @@
+Example plan)
+task: search for crime movies directed by Mckenzie from year 1970.
+plan:
+1. click the input box labeled with "genre"
+2. type crime
+3. click the input box labeled with "director name"
+4. type Mckenzie
+5. click the input box labeled with "year"
+6. type 1970
+7. click the search button

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Sort Numbers Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+/* taken from jqueryui docs and adjusted a bit */
+#sortable { list-style-type: none; margin: 0; padding: 0; width: 90%; margin-top:5px; margin-left: 5px;}
+#sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.3em; height: 14px; font-size: 12px; }
+#sortable li span { position: absolute; margin-left: -1.3em; }
+#subbtn { display: block; margin-top: 5px; }
+</style>
+
+<script>
+var isSorted = function(){
+  submission = []
+  $('#sortable li div').each(function(index, val){
+    currentNumber = parseInt($(val).text(),10);
+    submission.push(currentNumber)
+  });
+
+  // make a copy of the array since sorting is in place.
+  sortedSubmission = submission.slice(0);
+  // sort numerically, since default sort() function is alphabetically.
+  sortedSubmission.sort(function sortNumber(a,b) {return a - b;});
+  return sortedSubmission.every(function(v,i) { return v === submission[i]})
+}
+
+// randomly generate four numbers.
+var generateNumbers = function(){
+  var ul = d3.select('#sortable');
+  ul.html('');
+  var n = 4;
+  for(var i=0;i<n;i++) {
+    var li = ul.append('li').attr('class', 'ui-state-default');
+    var span = li.append('span').attr('class', 'ui-icon ui-icon-arrowthick-2-n-s');
+    var randomNumber = Math.floor((Math.random() * 200) - 100);
+    li.append('div').html(randomNumber);
+  }
+  // make sortable with jqueryui and create a rewarder
+  $('#sortable').sortable();
+  $('#sortable').disableSelection();
+}
+
+var genProblem = function() {
+  d3.select('#query').html('Sort the numbers in increasing order, starting with the lowest number at the top of the list.');
+  generateNumbers();
+
+  d3.select('#subbtn').on('click', function(event, ui) { // end dragging
+    var r = isSorted() ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  })
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <ul id="sortable"></ul>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

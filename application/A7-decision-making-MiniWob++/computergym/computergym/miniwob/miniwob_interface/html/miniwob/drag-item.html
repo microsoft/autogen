@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Drag Item Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+<style>
+#area svg { height: 130px; width: 160px; }
+#area svg circle:hover { cursor: pointer; }
+#subbtn { margin-left: 30px; }
+</style>
+
+<script>
+var DIRECTIONS = ['left', 'right', 'up', 'down'];
+
+var createCircle = function(svg){
+  // create the circle
+  var circleRadius = core.randi(13,20);
+  // change circle color for additional variation.
+  var circleColor = core.sample(['blue', 'red', 'black', 'green', 'yellow', 'orange', 'white']);
+  var generatedCircle = { cx: core.randi(20+circleRadius,140-circleRadius), cy: core.randi(20+circleRadius,
+    100-circleRadius), r: circleRadius, stroke: 'black', fill: circleColor, class: 'black-circle' };
+  shapes.drawCircles([ generatedCircle ], svg);
+  d3.selectAll('circle').call(shapes.drag);
+}
+
+var bindClickEvent = function(expectedDirection){
+  // get the current and initial coords of the circle and reward
+  // agent based on directive
+  d3.select('#subbtn').on('click', function(){
+    var currentCircle = d3.select('circle')[0][0];
+    var currentCoords = shapes.gridCoords(currentCircle);
+    var initialCoords = currentCircle.getBBox();
+
+    var dragged = false;
+    if(expectedDirection === 'up' && currentCoords.y < initialCoords.y) dragged = true;
+    else if(expectedDirection === 'down' && currentCoords.y > initialCoords.y) dragged = true;
+    else if(expectedDirection === 'left' && currentCoords.x < initialCoords.x) dragged = true;
+    else if(expectedDirection === 'right' && currentCoords.x > initialCoords.x) dragged = true;
+
+    var r = dragged ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+var genProblem = function() {
+  // clear the UI.
+  var svg = d3.select('svg');
+  svg.selectAll('*').remove();
+
+  var expectedDirection = core.sample(DIRECTIONS);
+  d3.select('#query').html('Drag the circle ' +  expectedDirection + ' then press Submit.');
+
+  createCircle(svg);
+  bindClickEvent(expectedDirection);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click the button.</div>
+  <div id="area">
+    <svg></svg>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>

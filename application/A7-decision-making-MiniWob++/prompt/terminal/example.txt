@@ -1,0 +1,7 @@
+Example plans)
+task: use the terminal below to delete a file ending with the extension .gpg
+plan:
+1. Type "ls" to list all files in the terminal with "type ls" instruction.
+2. Press enter with "press enter" instruction
+3. Identify the filename ending with ".gpg" and type "rm [filename].gpg" to delete the identified file with type instruction.
+4. Press enter everytime after typing a command on terminal.

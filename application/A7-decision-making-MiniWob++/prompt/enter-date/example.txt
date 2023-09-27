@@ -1,0 +1,24 @@
+Example plans)
+task: enter 03/31/2015 as the date in the input box and click the submit button. 
+plan:
+1. clickxpath //*[@id="tt"] //  you must press the left arrow key precisely two times after this instruction
+2. press arrowleft // you must press left arrow key two times not right arrow key
+3. press arrowleft 
+4. type 03/31/2015
+5. clickxpath //*[@id="subbtn"]
+
+task: enter 02/21/2016 as the date in the input box and click the submit button. 
+plan:
+1. clickxpath //*[@id="tt"] //  you must press the left arrow key precisely two times after this instruction
+2. press arrowleft // you must press left arrow key two times not right arrow key
+3. press arrowleft 
+4. type 02/21/2016
+5. clickxpath //*[@id="subbtn"]
+
+task: enter 03/15/2022 as the date in the input box and click the submit button. 
+plan:
+1. clickxpath //*[@id="tt"] //  you must press the left arrow key precisely two times after this instruction
+2. press arrowleft // you must press left arrow key two times not right arrow key
+3. press arrowleft 
+4. type 03/15/2022
+5. clickxpath //*[@id="subbtn"]

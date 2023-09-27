@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Test Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#subbtn { width: 40px; height: 40px; }
+#subbtn2 { width: 40px; height: 40px; }
+</style>
+
+<script>
+var genProblem = function() {
+  var L = core.randi(0, 118); var U = core.randi(0, 118) + 50;
+  var btn = d3.select('#subbtn');
+  btn.attr('style', 'position:absolute; left:'+L+'px; top:'+U+'px');
+  btn.on('click', function(){ core.endEpisode(1.0, true); });
+
+  var L = core.randi(0, 118); var U = core.randi(0, 118) + 50;
+  var btn = d3.select('#subbtn2');
+  btn.attr('style', 'position:absolute; left:'+L+'px; top:'+U+'px');
+  btn.on('click', function(){ core.endEpisode(-1.0, false); });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click button ONE.</div>
+  <div id="area">
+    <button id="subbtn">ONE</button>
+    <button id="subbtn2">TWO</button>
+  </div>
+</div>
+</body>
+</html>

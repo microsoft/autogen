@@ -1,0 +1,4 @@
+Example plans)
+The task is for the agent to focus into the textbox on the webpage.
+Here is a plan to solve the example task.
+1. clickxpath //*[@id="area"]/input[@id="tt"]

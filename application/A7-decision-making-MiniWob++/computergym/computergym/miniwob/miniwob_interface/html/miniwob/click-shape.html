@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Shape Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+
+<style>
+#area_svg { width: 160px; height: 160px; }
+</style>
+<script>
+// generate a new random grid of shapes
+var createShapes = function(){
+  var grid = shapes.genGrid();
+  var svg_elt = d3.select('#area_svg');
+  shapes.renderGrid(svg_elt, grid); // instantiate the actual SVG shapes
+
+  return grid;
+}
+
+var chooseShape = function(grid){
+  var gtix = core.randi(0, grid.shapes.length);
+  var gtdesc = shapes.generalDesc(grid.shapes[gtix]);
+  d3.select('#query').html('Click on a ' + gtdesc.text); // render query
+  return gtdesc;
+}
+
+var bindClickEvents = function(grid, gtdesc){
+  // attach handlers to correct behavior
+  for(var i=0,n=grid.shapes.length;i<n;i++) {
+    var s = grid.shapes[i];
+    var click_reward = shapes.shapeMatchesText(s, gtdesc) ? 1.0 : -1.0;
+    s.svg_shape.on('click', function(x) {
+      return function(){ core.endEpisode(x, x > 0); d3.event.stopPropagation(); }
+    }(click_reward)); // close over click_reward
+  }
+
+  // attach chandler to default click in random spot (penalize)
+  grid.svg.on("click", function(){ core.endEpisode(-1); });
+}
+
+// create a problem instance
+var genProblem = function() {
+  var grid = createShapes()
+  var gtdesc = chooseShape(grid);
+  bindClickEvents(grid, gtdesc);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <svg id="area_svg"></svg>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,4 @@
+Example plans)
+The task is to click the button with the id "subbtn" on the webpage.
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. Clickxpath //*[@id="subbtn"]

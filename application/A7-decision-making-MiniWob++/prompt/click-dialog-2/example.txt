@@ -1,0 +1,12 @@
+Example plans)
+The task is to close the dialog box by clicking the "x".
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. Clickxpath /html/body/div[4]/div[1]/button
+
+The task is to click the button in the dialog box labeled "OK".
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. clickxpath //div[@class='ui-dialog-buttonset']/button[2]
+
+The task is to click the button in the dialog box labeled "Cancel".
+Here is a plan to solve this example task on the webpage with the autonomous agent. 
+1. Clickxpath //div[@class='ui-dialog-buttonpane ui-widget-content ui-helper-clearfix']/div/button[text()='Cancel']

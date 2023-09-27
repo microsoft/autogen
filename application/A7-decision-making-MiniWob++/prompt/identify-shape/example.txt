@@ -1,0 +1,8 @@
+Example plan)
+task: click the button that best describes the figure below, which is a number (1).
+plan: note that number 0 is a number not circle and the number text inside <text> tag is number not a letter.
+1. clickxpath //button[@data-type="digit"] 
+
+task: click the button that best describes the figure below.
+plan: note that a single letter of number 0 is a digit not a circle, and a single number inside <text> tag is a digit not a letter.
+1. clickxpath //button[@data-type="triangle"] 

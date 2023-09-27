@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Grid Coordinate Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../common/shapes.js"></script>
+<style>
+#area { position: relative; }
+#area svg { height: 150px; width: 150px; margin: 2px; }
+#area svg circle:hover { cursor: pointer; }
+#subbtn { margin-left: 30px; }
+
+.labels { font-weight: bold; }
+.labels > div { position: absolute;  font-size: 10px; }
+
+#origin { top: 82px; left: 68px; font-size: 12px; }
+#x-label { top: 77px; right: 5px; font-size: 12px; }
+#y-label { top: 0px; left: 69px;  font-size: 12px; }
+
+#x-labels > div { top: 82px; }
+#x-n2 { left: 12px;}
+#x-n1 { left: 42px;}
+#x-p1 { left: 105px;}
+#x-p2 { left: 135px;}
+
+#y-labels > div { left: 67px; }
+#y-p2 { top: 12px; }
+#y-p1 { top: 42px; }
+#y-n1 { top: 105px; left: 65px !important; }
+#y-n2 { top: 135px; left: 65px !important; }
+</style>
+
+<script>
+var MAX_X = 2; // x on grid will range from -2 to 2.
+var MAX_Y = 2; // y on grid will range from -2 to 2.
+
+var drawCartesianGrid = function(svg){
+  gridLines(svg);
+  gridCircles(svg);
+}
+
+var gridCircles = function(svg){
+  var generatedCircles = [];
+  // start with origin in the center.
+  for(var i=0;i<5;i++){
+    for(var j=0;j<5;j++){
+      var xInit = i*30 + 15;
+      var yInit = j*30 + 15;
+
+      var xGrid = (i < 2) ? (i - MAX_X) : -1*(MAX_X - i);
+      var yGrid = (j < 2) ? -1*(j - MAX_Y) : (MAX_Y - j);
+      var circleId = '(' + xGrid + ',' + yGrid + ')';
+      generatedCircles.push({ cx: xInit, cy: yInit, r: 4, stroke: 'black', fill: 'blue',
+       class: 'plot-point', id: circleId });
+    }
+  }
+  shapes.drawCircles(generatedCircles, svg);
+}
+
+var gridLines = function(svg){
+  var generatedLines = [];
+  generatedLines.push({ stroke: 'black', x1: 0, x2: 150, y1: 75, y2: 75});
+  generatedLines.push({ stroke: 'black', x1: 75, x2: 75, y1: 0, y2: 150});
+  shapes.drawLines(generatedLines, svg);
+}
+
+var chooseCoords = function(){
+  var expectedX = core.randi(-2,3);
+  var expectedY = core.randi(-2,3);
+  var expectedCoords = '(' + expectedX + ',' + expectedY + ')';
+  return expectedCoords;
+}
+
+var genProblem = function() {
+  // clear the UI.
+  var svg = d3.select('svg');
+  svg.selectAll('*').remove();
+
+  expectedCoords = chooseCoords();
+  d3.select('#query').html('Click on the grid coordinate <span class="bold">' + expectedCoords + '</span>.');
+
+  drawCartesianGrid(svg);
+
+  d3.selectAll('circle').on('click', function(){
+    var circleId = this.getAttribute('id');
+    var r = expectedCoords === circleId ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  });
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <svg></svg>
+    <div class="labels">
+      <div id="x-label">x</div>
+      <div id="y-label">y</div>
+      <div id="origin">0</div>
+    </div>
+    <div class="labels" id="x-labels">
+      <div id="x-n2">-2</div>
+      <div id="x-n1">-1</div>
+      <div id="x-p1">1</div>
+      <div id="x-p2">2</div>
+    </div>
+      <div class="labels" id="y-labels">
+      <div id="y-n2">-2</div>
+      <div id="y-n1">-1</div>
+      <div id="y-p1">1</div>
+      <div id="y-p2">2</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

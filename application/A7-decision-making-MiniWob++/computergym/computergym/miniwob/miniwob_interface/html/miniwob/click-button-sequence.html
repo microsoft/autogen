@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Button Sqeuence Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+
+<style>
+#subbtn { width: 40px; height: 40px; }
+#subbtn2 { width: 40px; height: 40px; }
+</style>
+
+<script>
+var EXPECTED_SEQUENCE = ['subbtn', 'subbtn2'];
+var buttonsPushed = [];
+
+var buttonClicked = function(){
+  var id = this.getAttribute('id');
+  buttonsPushed.push(id);
+  if(buttonsPushed.length == 2){
+    var correctPushed = buttonsPushed.every(function(v,i){return v==EXPECTED_SEQUENCE[i];});
+    var r = correctPushed ? 1.0 : -1.0;
+    core.endEpisode(r, r>0);
+  }
+}
+
+var genProblem = function() {
+  buttonsPushed = [];
+  var L = core.randi(0, 118); var U = core.randi(0, 118) + 50;
+  var btn = d3.select('#subbtn');
+  btn.attr('style', 'position:absolute; left:'+L+'px; top:'+U+'px');
+  btn.on('click', buttonClicked);
+
+  var L = core.randi(0, 118); var U = core.randi(0, 118) + 50;
+  var btn = d3.select('#subbtn2');
+  btn.attr('style', 'position:absolute; left:'+L+'px; top:'+U+'px');
+  btn.on('click', buttonClicked);
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query">Click button ONE, then click button TWO.</div>
+  <div id="area">
+    <button id="subbtn">ONE</button>
+    <button id="subbtn2">TWO</button>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Click Tab Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" type="text/css" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+#area h3 { background: #007fff; border: 1px solid #003eff; border-radius: 3px; color: #ffffff; cursor: pointer; font-weight: normal; margin: 2px; padding: 1px; }
+#area div { margin: 2px; }
+#area li { width: 40px; }
+.ui-tabs .ui-tabs-nav .ui-tabs-anchor { padding: 5px; }
+</style>
+
+<script>
+var TABS = `
+<ul>
+  <li><a href="#tabs-1">Tab #1</a></li>
+  <li><a href="#tabs-2">Tab #2</a></li>
+  <li><a href="#tabs-3">Tab #3</a></li>
+</ul>`
+
+var resetUI = function(div){
+  if(div.html().length > 0){ $('#area').tabs('destroy'); }
+  div.empty(); // clear previous problem, if any
+
+}
+
+var createTabs = function(div){
+  div.append(TABS);
+  for(var i=0;i<3;i++){
+    var html = '<div id="tabs-' + (i+1) +  '"><p>' + ui_utils.generateWords(20) + '</p></div>';
+    div.append(html);
+  }
+
+  $('#area').tabs();
+}
+
+var chooseTab = function(){
+  var expectedTab = core.randi(1,4);
+  if(expectedTab === 2) $('#query').html('Click on Tab #2.');
+  else if(expectedTab == 3) {
+    $('#query').html('Click on Tab #3.');
+    $('#area').tabs({active: core.sample([0,1])});
+  } else {
+    $('#query').html('Click on Tab #1.');
+    $('#area').tabs({active: core.sample([1,2])});
+  }
+
+  return expectedTab;
+}
+
+var genProblem = function() {
+  // generate the task
+  var div = $('#area');
+  resetUI(div);
+  createTabs(div);
+  var expectedTab = chooseTab();
+
+  $('#area ul a').on('click', function(){
+    var tabId = this.getAttribute('href');
+    var r = tabId === ('#tabs-' + expectedTab) ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  })
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area"></div>
+</div>
+</body>
+</html>

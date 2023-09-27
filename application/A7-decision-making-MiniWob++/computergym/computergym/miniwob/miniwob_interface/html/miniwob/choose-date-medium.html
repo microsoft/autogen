@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Choose Date Task</title>
+<!-- stylesheets -->
+<link rel="stylesheet" type="text/css" href="../core/core.css">
+<link rel="stylesheet" href="../core/jquery-ui/jquery-ui.min.css">
+<!-- JS -->
+<script src="../core/core.js"></script>
+<script src="../core/d3.v3.min.js"></script>
+<script src="../core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../common/ui_utils.js"></script>
+
+<style>
+div.ui-datepicker { font-size: 7px; }
+.secondary-action { margin-left: 25px; }
+p { margin: 0; padding: 0; }
+input { width: 100px; display: inline-block; }
+</style>
+
+<script>
+var START_DATE = new Date(2016, 10, 1); // November 1, 2015
+var END_DATE = new Date(2016, 11, 31); // December 31, 2016
+core.EPISODE_MAX_TIME = 20000; // set episode interval to 20 seconds
+
+var genProblem = function() {
+  var d = ui_utils.randomDate(START_DATE, END_DATE);
+  d3.select('#datepicker')[0][0].value = '';
+
+  var q = ui_utils.toDateString(d);
+
+  d3.select('#query').html('Select ' + q + ' as the date and hit submit.');
+
+  d3.select('#subbtn').on('click', function(){
+    var t = d3.select('#datepicker')[0][0].value;
+    var r = t === q ? 1.0 : -1.0;
+    core.endEpisode(r, r > 0);
+  })
+}
+
+window.onload = function() {
+  $('#datepicker').datepicker({
+    minDate: START_DATE,
+    maxDate: END_DATE
+  });
+
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+    <p>Date: <input type="text" id="datepicker" readonly></p>
+    <br>
+    <button id="subbtn" class="secondary-action">Submit</button>
+  </div>
+</div>
+</body>
+</html>
