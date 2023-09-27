@@ -1,4 +1,4 @@
-# Case Study of Retrieval-augmented Chat Usages
+# A2: Retrieval Augmented Code Generation and Question Answering with AutoGen
 
 We utilize Retrieval-augmented Chat in two scenarios. The first scenario aids in generating code based on a given codebase. While LLMs possess strong coding abilities, they are unable to use packages or APIs that are not included in their training data, e.g., private codebase, or have trouble using trained ones that are frequently updated after training. Hence, Retrieval Augmented Code Generation is considered to be highly valuable. The second scenario is to do QA on the Natural Questions dataset. This enables us to obtain comparative evaluation metrics for the performance of our system.
 
@@ -26,6 +26,6 @@ To reproduce the results, configure the LLM endpoints and run [this notebook](Na
 
 In this case, the question is *"How can I use FLAML to perform a classification task and use spark to do parallel training. Train 30 seconds and force cancel jobs if time limit is reached."*.
 
-[FLAML](https://github.com/microsoft/FLAML/tree/main) is an open-source Python library for efficient AutoML and tuning. It was open-sourced in December 2020, and is included in the training data of GPT-4. However, the question requires the use of Spark-related APIs, which was added in December 2022 and is not included in the GPT-4 training data. As a result, the original GPT-4 model is unable to generate the correct code, as it lacks knowledge of Spark-related APIs. Instead, it creates a non-existent parameter, $spark$, and sets it to $True$. However, with Retrieval-augmented Chat, we provide the latest reference documents as context. Then, GPT-4 generates the correct code blocks by setting $use\_spark$ and $force\_cancel$ to $True$.
+FLAML is an open-source Python library for efficient AutoML and tuning. It was open-sourced in December 2020, and is included in the training data of GPT-4. However, the question requires the use of Spark-related APIs, which was added in December 2022 and is not included in the GPT-4 training data. As a result, the original GPT-4 model is unable to generate the correct code, as it lacks knowledge of Spark-related APIs. Instead, it creates a non-existent parameter, $spark$, and sets it to $True$. However, with Retrieval-augmented Chat, we provide the latest reference documents as context. Then, GPT-4 generates the correct code blocks by setting $use\_spark$ and $force\_cancel$ to $True$.
 
 To reproduce this case and find more examples, please check out [this notebook](../../notebook/agentchat_RetrieveChat.ipynb).
