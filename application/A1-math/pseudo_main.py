@@ -246,22 +246,12 @@ def multidebate(config_list, problem):
     return result
 
 def pseudo_main(config_list, use_azure):
-    # samples = load_samples("./300problems/", num_samples=20)
-    # cate = samples.keys()
-    # checker = AnswerChecker(config_list=config_list)
-
-    # samples = {
-    #         "algebra" : [samples["algebra"][8]],
-    #         "number_theory": [],
-    #         "counting_and_probability": [samples["counting_and_probability"][13]],
-    #         "prealgebra": [samples["prealgebra"][0], samples["prealgebra"][7], samples["prealgebra"][16]],
-    #         "intermediate_algebra": [samples["intermediate_algebra"][5], samples["intermediate_algebra"][15]],
-    #         "precalculus": [samples["precalculus"][5], samples["precalculus"][14]],
-    # }
-
+    samples = load_samples("./300problems/", num_samples=20)
+    cate = samples.keys()
+    checker = AnswerChecker(config_list=config_list)
 
     # # ---------------------------------------------------------------
-    # # 1. run vanilla solver
+    # run vanilla solver
     # vanilla_solver_function = partial(vanilla_solver, config_list)
     # for i, category in enumerate(cate):
     #     solve_problems(
@@ -271,25 +261,20 @@ def pseudo_main(config_list, use_azure):
     #         checker=checker,
     #     )
 
-    # # ---------------------------------------------------------------
-    # # 2. run agentchat v2.0.2 prompt
-    # import flaml
-    # print(flaml.__version__, flush=True)
-    # # check flaml version
-    # if flaml.__version__ != "2.0.2":
-    #     exit()
-    # # run agentchat
-    # agentchat = AgentChat(config_list=config_list)
-    # for i, category in enumerate(cate):
-    #     solve_problems(
-    #         samples[category],
-    #         f"./asy/agentchat_{flaml.__version__}/" + category,
-    #         solver_function=agentchat.solve_one_problem,
-    #         checker=checker,
-    #     )
+    # ---------------------------------------------------------------
+    # run agentchat v2.0.2 prompt
+    # run agentchat
+    agentchat = AgentChat(config_list=config_list)
+    for i, category in enumerate(cate):
+        solve_problems(
+            samples[category],
+            f".results/agentchat/" + category,
+            solver_function=agentchat.solve_one_problem,
+            checker=checker,
+        )
 
     # # # ---------------------------------------------------------------
-    # # run react
+    # run react
     # react = ReAct(config_list, use_azure)
     # print("Running ReAct on 120 problems with asy removed", flush=True)
     # for i, category in enumerate(cate):
@@ -303,7 +288,7 @@ def pseudo_main(config_list, use_azure):
     # os.system("tar -czf all_problems.tar.gz all_problems full_run.out")
 
     # ---------------------------------------------------------------
-    # 6. run multi-agent debate
+    # run multi-agent debate
     # samples = load_samples("./300problems/", num_samples=20)
     # cate = samples.keys()
     # checker = AnswerChecker(config_list=config_list)
@@ -325,24 +310,23 @@ def pseudo_main(config_list, use_azure):
     # ---------------- whole test set -------------------------------
 
     # agentchat = AgentChat(config_list=config_list)
-    solvers_with_paths = [
-        # (agentchat.solve_one_problem, "./all_problems/agentchat_asy/", "agentchatv2.0.2_asy"),
-        # (partial(vanilla_solver, config_list), "./all_problems/vanilla_gpt4/", "gpt4"),
-        (partial(multidebate, config_list), "./results/debate_all/", "debate"),
-    ]
-    checker = AnswerChecker(config_list=config_list)
+    # solvers_with_paths = [
+    #     # (agentchat.solve_one_problem, "./all_problems/agentchat_asy/", "agentchatv2.0.2_asy"),
+    #     # (partial(vanilla_solver, config_list), "./all_problems/vanilla_gpt4/", "gpt4"),
+    # ]
+    # checker = AnswerChecker(config_list=config_list)
 
-    problems = load_math_test(num_samples=-1)
-    print(f"Start running {len(problems)} on interpreter", flush=True)
+    # problems = load_math_test(num_samples=-1)
+    # print(f"Start running {len(problems)} on interpreter", flush=True)
 
-    for i, problem in enumerate(problems):
-        problem['problem_id'] = str(i)
-        solve_problem_with_multiple_solvers(problem, solvers_with_paths, checker=checker)
+    # for i, problem in enumerate(problems):
+    #     problem['problem_id'] = str(i)
+    #     solve_problem_with_multiple_solvers(problem, solvers_with_paths, checker=checker)
 
-        # tar every 200 problems
-        if i > 0 and i % 200 == 0:
-            print(f"tar {i} problems", flush=True)
-            os.system("tar -czf results.tar.gz results full_run.out")
+    #     # tar every 200 problems
+    #     if i > 0 and i % 200 == 0:
+    #         print(f"tar {i} problems", flush=True)
+    #         os.system("tar -czf results.tar.gz results full_run.out")
     
-    os.system("tar -czf results.tar.gz results full_run.out")
+    # os.system("tar -czf results.tar.gz results full_run.out")
 

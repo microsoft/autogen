@@ -1,0 +1,5 @@
+flaml[mathchat]
+langchain
+loguru
+datasets
+temcolor

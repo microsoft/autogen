@@ -12,21 +12,17 @@ def main():
 if __name__ == "__main__":
     config_list = None
     use_azure = False
-    try:
-        config_list = [{
-            'model': 'gpt-4',
-            'api_key': open("key_openai.txt").read().strip(),
-            }]
-    except Exception:
-        use_azure = True
+    if use_azure:
+        print("Using Azure")
         with open('azure.json', 'r') as json_file:
             config_list = json.load(json_file)
 
         config_list = [config_list]
-    try:
-        os.environ["WOLFRAM_ALPHA_APPID"] = open("wolfram.txt").read().strip()
-    except Exception:
-        print("Warning: Wolfram Alpha API key not found. Ignore this if it is not needed.")
-        pass
+    else:
+        config_list = [{
+            'model': 'gpt-4',
+            'api_key': open("key_openai.txt").read().strip(),
+            }]
+
     oai.retry_timeout = 1200
     main()
