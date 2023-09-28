@@ -3,7 +3,7 @@ from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 from langchain.tools.python.tool import PythonREPLTool
 from langchain.agents.agent_toolkits import create_python_agent
-from flaml.autogen.math_utils import eval_math_responses, get_answer
+from autogen.math_utils import eval_math_responses, get_answer
 from utils import remove_asy_sections
 from langchain.callbacks import FileCallbackHandler
 from langchain.callbacks import get_openai_callback

@@ -1,7 +1,6 @@
-from flaml.autogen import AssistantAgent, UserProxyAgent
-import flaml
-from flaml.autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
-from flaml.autogen.math_utils import eval_math_responses, get_answer
+from autogen import AssistantAgent, UserProxyAgent
+from autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
+from autogen.math_utils import eval_math_responses, get_answer
 from utils import remove_asy_sections
 from openai import InvalidRequestError
 import time
@@ -42,7 +41,6 @@ class AgentChat:
         )
 
         print(f"Seed = {seed}", flush=True)
-        print(f"Version = {flaml.__version__}", flush=True)
         print(self.assistant.system_message, flush=True)
 
         # create the UserProxyAgent instance named "user"

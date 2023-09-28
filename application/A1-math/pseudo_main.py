@@ -1,7 +1,7 @@
 import os
 import json
-from flaml.autogen import oai
-from flaml.autogen.math_utils import eval_math_responses, get_answer
+from autogen import oai
+from autogen.math_utils import eval_math_responses, get_answer
 import time
 from utils import load_samples, write_json, mylogger
 from agentchat import AgentChat

@@ -1,4 +1,4 @@
-flaml[mathchat]
+pyautogen
 langchain
 loguru
 datasets
