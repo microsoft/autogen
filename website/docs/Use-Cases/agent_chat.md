@@ -10,8 +10,8 @@ This framework simplifies the orchestration, automation and optimization of a co
 AutoGen abstracts and implements conversable agents
 designed to solve tasks through inter-agent conversations. Specifically, the agents in AutoGen have the following notable features:
 
-- Conversable: Agent in AutoGen are conversable, which means that any agent can send
-and receive messages to and from the other agents to start or continue a conversation
+- Conversable: Agents in AutoGen are conversable, which means that any agent can send
+and receive messages from other agents to initiate or continue a conversation
 
 - Customizable: Agents in AutoGen can be customized to integrate LLMs, humans, tools, or a combination of them.
 
@@ -21,9 +21,9 @@ The figure below shows the built-in agents in AutoGen.
 We have designed a generic `ConversableAgent` class for Agents that are capable of conversing with each other through the exchange of messages to jointly finish a task. An agent can communicate with other agents and perform actions. Different agents can differ in what actions they perform after receiving messages. Two representative subclasses are `AssistantAgent` and `UserProxyAgent`.
 
 
-- The `AssistantAgent` is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest code with bug fix. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
+- The `AssistantAgent` is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest corrections or bug fixes. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via `llm_config`.
 
-- The `UserProxyAgent` is conceptually a proxy agent for humans, soliciting human input as the agent's reply at each interaction turn by default and also having the capability to execute code and call functions. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting `code_execution_config` to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](/docs/Use-Cases/enhanced_inference) configuration. When `llm_config` is set to a dict, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
+- The `UserProxyAgent` is conceptually a proxy agent for humans, soliciting human input as the agent's reply at each interaction turn by default and also having the capability to execute code and call functions. The `UserProxyAgent` triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting the `code_execution_config` parameter to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](/docs/Use-Cases/enhanced_inference) configuration. When `llm_config` is set as a dictionary, `UserProxyAgent` can generate replies using an LLM when code execution is not performed.
 
 The auto-reply capability of `ConversableAgent` allows for more autonomous multi-agent communication while retaining the possibility of human intervention.
 One can also easily extend it by registering reply functions with the `register_reply()` method.
@@ -44,7 +44,7 @@ user_proxy = UserProxyAgent(name="user_proxy")
 
 ### A Basic Two-Agent Conversation Example
 
-Once the participating agents are constructed properly, one can start a multi-agent conversation session by an initialization step as shown in following code:
+Once the participating agents are constructed properly, one can start a multi-agent conversation session by an initialization step as shown in the following code:
 ```python
 # the assistant receives a message from the user, which contains the task description
 user_proxy.initiate_chat(
@@ -58,11 +58,11 @@ After the initialization step, the conversation could proceed automatically. Fin
 1. The assistant receives a message from the user_proxy, which contains the task description.
 2. The assistant then tries to write Python code to solve the task and sends the response to the user_proxy.
 3. Once the user_proxy receives a response from the assistant, it tries to reply by either soliciting human input or preparing an automatically generated reply. If no human input is provided, the user_proxy executes the code and uses the result as the auto-reply.
-4. The assistant then generates a further response for the user_proxy. The user_proxy can then decide whether to terminate the conversation. If not, steps 3 and 4 are repeated.
+4. The assistant sends another response to the user_proxy, who then decides whether to end the conversation or repeat steps 3 and 4.
 
 ### Supporting Diverse Conversation Patterns
 
-#### Conversations with different autonomisity, and human involvement patterns
+#### Conversations with different levels of autonomy, and human-involvement patterns
 On the one hand, one can achieve fully autonomous conversations after an initialization step. On the other hand, AutoGen can be used to implement human-in-the-loop problem-solving by configuring human involvement levels and patterns (e.g., setting the `human_input_mode` to `ALWAYS`), as human involvement is expected and/or desired in many applications.
 
 #### Static and dynamic conversations
