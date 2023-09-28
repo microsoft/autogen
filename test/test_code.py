@@ -253,7 +253,7 @@ def test_execute_code(use_docker=None):
     # execute code for assertion error
     exit_code, msg, image = execute_code("assert 1==2", use_docker=use_docker)
     assert exit_code, msg
-    assert 'File ""' in msg
+    assert 'File ""' in msg or 'File ".\\"' in msg  # py3.8 + win32
     # execute code which takes a long time
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=use_docker)
     assert exit_code and error == "Timeout" or WIN32
