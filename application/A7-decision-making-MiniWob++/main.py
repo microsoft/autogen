@@ -1,10 +1,9 @@
 import os
 os.environ["OPENAI_API_KEY"] = ""
-from flaml.autogen.agentchat.assistant_agent import AssistantAgent
+from autogen.agentchat.assistant_agent import AssistantAgent
 from miniwob_agent import MiniWobUserProxyAgent
-from flaml.autogen import oai
+from autogen import oai
 import argparse
-import flaml
 
 parser = argparse.ArgumentParser(description="input task")
 parser.add_argument(

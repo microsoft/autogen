@@ -17,11 +17,11 @@ from computergym.miniwob.miniwob_interface.action import (
     MiniWoBMoveXpath,
 )
 import re
-from flaml.autogen.agentchat import ResponsiveAgent
-from flaml.autogen.agentchat.agent import Agent
+from autogen.agentchat import ConversableAgent
+from autogen.agentchat.agent import Agent
 from typing import Any, Callable, Dict, List, Optional, Union
 
-class MiniWobUserProxyAgent(ResponsiveAgent):
+class MiniWobUserProxyAgent(ConversableAgent):
     def __init__(
         self,
         env_name: str,
@@ -55,7 +55,7 @@ class MiniWobUserProxyAgent(ResponsiveAgent):
             **kwargs,
         )
         
-        self.register_auto_reply(trigger="miniwob_assistant", reply_func = MiniWobUserProxyAgent._reply_miniwob, position = 1)        
+        self.register_reply(trigger="miniwob_assistant", reply_func = MiniWobUserProxyAgent._reply_miniwob, position = 1)        
         with open("config.json") as config_file:
             api_key = json.load(config_file)["api_key"]
             openai.api_key = api_key
@@ -241,7 +241,7 @@ class MiniWobUserProxyAgent(ResponsiveAgent):
             
     def initiate_chat(
         self,
-        recipient: "ResponsiveAgent",
+        recipient: "ConversableAgent",
         clear_history: Optional[bool] = False,
         silent: Optional[bool] = False,
         **context,
