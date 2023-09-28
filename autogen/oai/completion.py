@@ -26,7 +26,9 @@ try:
 
     ERROR = None
 except ImportError:
-    ERROR = ImportError("please install openai and diskcache to use the autogen.oai subpackage.")
+    ERROR = ImportError(
+        "please install openai and diskcache to use the autogen.oai subpackage."
+    )
     openai_Completion = object
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -118,7 +120,9 @@ class Completion(openai_Completion):
     _history_dict = _count_create = None
 
     @classmethod
-    def set_cache(cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache"):
+    def set_cache(
+        cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache"
+    ):
         """Set cache path.
 
         Args:
@@ -131,7 +135,9 @@ class Completion(openai_Completion):
         cls.cache_path = f"{cache_path_root}/{seed}"
 
     @classmethod
-    def clear_cache(cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache"):
+    def clear_cache(
+        cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache"
+    ):
         """Clear cache.
 
         Args:
@@ -163,9 +169,14 @@ class Completion(openai_Completion):
                 if len(messages) > 1 and messages[-1]["role"] != "assistant":
                     existing_key = get_key(messages[:-1])
                     value = cls._history_dict.pop(existing_key, value)
-                key = get_key(messages + [choice["message"] for choice in response["choices"]])
+                key = get_key(
+                    messages + [choice["message"] for choice in response["choices"]]
+                )
             else:
-                key = get_key([config["prompt"]] + [choice.get("text") for choice in response["choices"]])
+                key = get_key(
+                    [config["prompt"]]
+                    + [choice.get("text") for choice in response["choices"]]
+                )
             value["created_at"].append(cls._count_create)
             value["cost"].append(response["cost"])
             cls._history_dict[key] = value
@@ -178,7 +189,9 @@ class Completion(openai_Completion):
         cls._count_create += 1
 
     @classmethod
-    def _get_response(cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True):
+    def _get_response(
+        cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True
+    ):
         """Get the response from the openai api call.
 
         Try cache first. If not found, call the openai api. If the api call fails, retry after retry_time.
@@ -188,7 +201,9 @@ class Completion(openai_Completion):
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
-            if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
+            if response is not None and (
+                response != -1 or not raise_on_ratelimit_or_timeout
+            ):
                 # print("using cached response")
                 cls._book_keeping(config, response)
                 return response
@@ -205,7 +220,9 @@ class Completion(openai_Completion):
                 if "request_timeout" in config:
                     response = openai_completion.create(**config)
                 else:
-                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                    response = openai_completion.create(
+                        request_timeout=request_timeout, **config
+                    )
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
@@ -214,7 +231,12 @@ class Completion(openai_Completion):
                 logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
                 sleep(cls.retry_time)
             except APIError as err:
-                error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
+                error_code = (
+                    err
+                    and err.json_body
+                    and isinstance(err.json_body, dict)
+                    and err.json_body.get("error")
+                )
                 error_code = error_code and error_code.get("code")
                 if error_code == "content_filter":
                     raise
@@ -246,9 +268,14 @@ class Completion(openai_Completion):
                     )
                     return response
             except InvalidRequestError:
-                if "azure" in config.get("api_type", openai.api_type) and "model" in config:
+                if (
+                    "azure" in config.get("api_type", openai.api_type)
+                    and "model" in config
+                ):
                     # azure api uses "engine" instead of "model"
-                    config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
+                    config["engine"] = config.pop("model").replace(
+                        "gpt-3.5-turbo", "gpt-35-turbo"
+                    )
                 else:
                     raise
             else:
@@ -262,7 +289,11 @@ class Completion(openai_Completion):
         # find the max value in max_valid_n_per_max_tokens
         # whose key is equal or larger than max_tokens
         return max(
-            (value for k, value in cls._max_valid_n_per_max_tokens.get(key, {}).items() if k >= max_tokens),
+            (
+                value
+                for k, value in cls._max_valid_n_per_max_tokens.get(key, {}).items()
+                if k >= max_tokens
+            ),
             default=1,
         )
 
@@ -271,7 +302,11 @@ class Completion(openai_Completion):
         # find the min value in min_invalid_n_per_max_tokens
         # whose key is equal or smaller than max_tokens
         return min(
-            (value for k, value in cls._min_invalid_n_per_max_tokens.get(key, {}).items() if k <= max_tokens),
+            (
+                value
+                for k, value in cls._min_invalid_n_per_max_tokens.get(key, {}).items()
+                if k <= max_tokens
+            ),
             default=None,
         )
 
@@ -289,10 +324,12 @@ class Completion(openai_Completion):
     def _update_invalid_n(cls, prune, region_key, max_tokens, num_completions):
         if prune:
             # update invalid n and prune this config
-            cls._min_invalid_n_per_max_tokens[region_key] = invalid_n = cls._min_invalid_n_per_max_tokens.get(
-                region_key, {}
+            cls._min_invalid_n_per_max_tokens[
+                region_key
+            ] = invalid_n = cls._min_invalid_n_per_max_tokens.get(region_key, {})
+            invalid_n[max_tokens] = min(
+                num_completions, invalid_n.get(max_tokens, np.inf)
             )
-            invalid_n[max_tokens] = min(num_completions, invalid_n.get(max_tokens, np.inf))
 
     @classmethod
     def _pop_subspace(cls, config, always_copy=True):
@@ -338,13 +375,18 @@ class Completion(openai_Completion):
         model = params["model"]
         data_length = len(data)
         price = cls.price1K.get(model)
-        price_input, price_output = price if isinstance(price, tuple) else (price, price)
+        price_input, price_output = (
+            price if isinstance(price, tuple) else (price, price)
+        )
         inference_budget = getattr(cls, "inference_budget", None)
         prune_hp = getattr(cls, "_prune_hp", "n")
         metric = cls._metric
         config_n = params.get(prune_hp, 1)  # default value in OpenAI is 1
         max_tokens = params.get(
-            "max_tokens", np.inf if model in cls.chat_models or issubclass(cls, ChatCompletion) else 16
+            "max_tokens",
+            np.inf
+            if model in cls.chat_models or issubclass(cls, ChatCompletion)
+            else 16,
         )
         target_output_tokens = None
         if not cls.avg_input_tokens:
@@ -354,7 +396,9 @@ class Completion(openai_Completion):
             region_key = cls._get_region_key(config)
             max_valid_n = cls._get_max_valid_n(region_key, max_tokens)
             if cls.avg_input_tokens:
-                target_output_tokens = (inference_budget * 1000 - cls.avg_input_tokens * price_input) / price_output
+                target_output_tokens = (
+                    inference_budget * 1000 - cls.avg_input_tokens * price_input
+                ) / price_output
                 # max_tokens bounds the maximum tokens
                 # so using it we can calculate a valid n according to the avg # input tokens
                 max_valid_n = max(
@@ -386,11 +430,17 @@ class Completion(openai_Completion):
             while True:  # data_limit <= data_length
                 # limit the number of data points to avoid rate limit
                 for i in range(prev_data_limit, data_limit):
-                    logger.debug(f"num_completions={num_completions}, data instance={i}")
+                    logger.debug(
+                        f"num_completions={num_completions}, data instance={i}"
+                    )
                     data_i = data[i]
-                    response = cls.create(data_i, raise_on_ratelimit_or_timeout=eval_only, **params)
+                    response = cls.create(
+                        data_i, raise_on_ratelimit_or_timeout=eval_only, **params
+                    )
                     if response == -1:  # rate limit/timeout error, treat as invalid
-                        cls._update_invalid_n(prune, region_key, max_tokens, num_completions)
+                        cls._update_invalid_n(
+                            prune, region_key, max_tokens, num_completions
+                        )
                         result[metric] = 0
                         result["cost"] = cost
                         return result
@@ -405,7 +455,11 @@ class Completion(openai_Completion):
                     query_cost = response["cost"]
                     cls._total_cost += query_cost
                     cost += query_cost
-                    if cls.optimization_budget and cls._total_cost >= cls.optimization_budget and not eval_only:
+                    if (
+                        cls.optimization_budget
+                        and cls._total_cost >= cls.optimization_budget
+                        and not eval_only
+                    ):
                         # limit the total tuning cost
                         return {
                             metric: 0,
@@ -428,8 +482,14 @@ class Completion(openai_Completion):
                 )
                 # Hoeffding-Serfling bound
                 ratio = 0.1 * np.sqrt(rho / data_limit)
-                if target_output_tokens and avg_n_tokens > target_output_tokens * (1 + ratio) and not eval_only:
-                    cls._update_invalid_n(prune, region_key, max_tokens, num_completions)
+                if (
+                    target_output_tokens
+                    and avg_n_tokens > target_output_tokens * (1 + ratio)
+                    and not eval_only
+                ):
+                    cls._update_invalid_n(
+                        prune, region_key, max_tokens, num_completions
+                    )
                     result[metric] = 0
                     result["total_cost"] = cls._total_cost
                     result["cost"] = cost
@@ -438,13 +498,19 @@ class Completion(openai_Completion):
                     prune
                     and target_output_tokens
                     and avg_n_tokens <= target_output_tokens * (1 - ratio)
-                    and (num_completions < config_n or num_completions == config_n and data_limit == data_length)
+                    and (
+                        num_completions < config_n
+                        or num_completions == config_n
+                        and data_limit == data_length
+                    )
                 ):
                     # update valid n
-                    cls._max_valid_n_per_max_tokens[region_key] = valid_n = cls._max_valid_n_per_max_tokens.get(
-                        region_key, {}
+                    cls._max_valid_n_per_max_tokens[
+                        region_key
+                    ] = valid_n = cls._max_valid_n_per_max_tokens.get(region_key, {})
+                    valid_n[max_tokens] = max(
+                        num_completions, valid_n.get(max_tokens, 0)
                     )
-                    valid_n[max_tokens] = max(num_completions, valid_n.get(max_tokens, 0))
                     if num_completions < config_n:
                         # valid already, skip the rest of the data
                         data_limit = data_length
@@ -478,7 +544,9 @@ class Completion(openai_Completion):
                         target_output_tokens = (
                             inference_budget * 1000 - cls.avg_input_tokens * price_input
                         ) / price_output
-                result["inference_cost"] = (avg_n_tokens * price_output + cls.avg_input_tokens * price_input) / 1000
+                result["inference_cost"] = (
+                    avg_n_tokens * price_output + cls.avg_input_tokens * price_input
+                ) / 1000
                 break
             else:
                 if data_early_stop:
@@ -573,7 +641,9 @@ class Completion(openai_Completion):
                 space.pop("temperature_or_top_p")
                 space["temperature"] = temperature
                 space["top_p"] = top_p
-                logger.warning("temperature and top_p are not recommended to vary together.")
+                logger.warning(
+                    "temperature and top_p are not recommended to vary together."
+                )
         cls._max_valid_n_per_max_tokens, cls._min_invalid_n_per_max_tokens = {}, {}
         cls.optimization_budget = optimization_budget
         cls.inference_budget = inference_budget
@@ -588,8 +658,12 @@ class Completion(openai_Completion):
                 cls._messages = [cls._messages]
             space["messages"] = tune.choice(list(range(len(cls._messages))))
         else:
-            assert space.get("messages") is None, "messages and prompt cannot be provided at the same time."
-            assert isinstance(cls._prompts, (str, list)), "prompt must be a string or a list of strings."
+            assert (
+                space.get("messages") is None
+            ), "messages and prompt cannot be provided at the same time."
+            assert isinstance(
+                cls._prompts, (str, list)
+            ), "prompt must be a string or a list of strings."
             if isinstance(cls._prompts, str):
                 cls._prompts = [cls._prompts]
             space["prompt"] = tune.choice(list(range(len(cls._prompts))))
@@ -697,7 +771,6 @@ class Completion(openai_Completion):
                 E.g., `prompt="Complete the following sentence: {prefix}, context={"prefix": "Today I feel"}`.
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
-                More examples can be found at [templating](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#templating).
             use_cache (bool, Optional): Whether to use cached responses.
             config_list (List, Optional): List of configurations for the completion to try.
                 The first one that does not raise an error will be used.
@@ -763,14 +836,19 @@ class Completion(openai_Completion):
                 base_config = config.copy()
                 base_config["allow_format_str_template"] = allow_format_str_template
                 base_config.update(each_config)
-                if i < last and filter_func is None and "retry_timeout" not in base_config:
+                if (
+                    i < last
+                    and filter_func is None
+                    and "retry_timeout" not in base_config
+                ):
                     # retry_timeout = 0 to avoid retrying when no filter is given
                     base_config["retry_timeout"] = 0
                 try:
                     response = cls.create(
                         context,
                         use_cache,
-                        raise_on_ratelimit_or_timeout=i < last or raise_on_ratelimit_or_timeout,
+                        raise_on_ratelimit_or_timeout=i < last
+                        or raise_on_ratelimit_or_timeout,
                         **base_config,
                     )
                     if response == -1:
@@ -784,21 +862,32 @@ class Completion(openai_Completion):
                         response["pass_filter"] = pass_filter
                         return response
                     cost += response["cost"]
-                except (AuthenticationError, RateLimitError, Timeout, InvalidRequestError):
+                except (
+                    AuthenticationError,
+                    RateLimitError,
+                    Timeout,
+                    InvalidRequestError,
+                ):
                     logger.debug(f"failed with config {i}", exc_info=1)
                     if i == last:
                         raise
-        params = cls._construct_params(context, config, allow_format_str_template=allow_format_str_template)
+        params = cls._construct_params(
+            context, config, allow_format_str_template=allow_format_str_template
+        )
         if not use_cache:
             return cls._get_response(
-                params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout, use_cache=False
+                params,
+                raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout,
+                use_cache=False,
             )
         seed = cls.seed
         if "seed" in params:
             cls.set_cache(params.pop("seed"))
         with diskcache.Cache(cls.cache_path) as cls._cache:
             cls.set_cache(seed)
-            return cls._get_response(params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout)
+            return cls._get_response(
+                params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout
+            )
 
     @classmethod
     def instantiate(
@@ -814,22 +903,35 @@ class Completion(openai_Completion):
         return template(context)
 
     @classmethod
-    def _construct_params(cls, context, config, prompt=None, messages=None, allow_format_str_template=False):
+    def _construct_params(
+        cls,
+        context,
+        config,
+        prompt=None,
+        messages=None,
+        allow_format_str_template=False,
+    ):
         params = config.copy()
         model = config["model"]
         prompt = config.get("prompt") if prompt is None else prompt
         messages = config.get("messages") if messages is None else messages
         # either "prompt" should be in config (for being compatible with non-chat models)
         # or "messages" should be in config (for tuning chat models only)
-        if prompt is None and (model in cls.chat_models or issubclass(cls, ChatCompletion)):
+        if prompt is None and (
+            model in cls.chat_models or issubclass(cls, ChatCompletion)
+        ):
             if messages is None:
-                raise ValueError("Either prompt or messages should be in config for chat models.")
+                raise ValueError(
+                    "Either prompt or messages should be in config for chat models."
+                )
         if prompt is None:
             params["messages"] = (
                 [
                     {
                         **m,
-                        "content": cls.instantiate(m["content"], context, allow_format_str_template),
+                        "content": cls.instantiate(
+                            m["content"], context, allow_format_str_template
+                        ),
                     }
                     if m.get("content")
                     else m
@@ -843,12 +945,16 @@ class Completion(openai_Completion):
             params["messages"] = [
                 {
                     "role": "user",
-                    "content": cls.instantiate(prompt, context, allow_format_str_template),
+                    "content": cls.instantiate(
+                        prompt, context, allow_format_str_template
+                    ),
                 },
             ]
             params.pop("prompt", None)
         else:
-            params["prompt"] = cls.instantiate(prompt, context, allow_format_str_template)
+            params["prompt"] = cls.instantiate(
+                prompt, context, allow_format_str_template
+            )
         return params
 
     @classmethod
@@ -966,7 +1072,9 @@ class Completion(openai_Completion):
         elif isinstance(agg_method, dict):
             for key in metric_keys:
                 metric_agg_method = agg_method[key]
-                assert callable(metric_agg_method), "please provide a callable for each metric"
+                assert callable(
+                    metric_agg_method
+                ), "please provide a callable for each metric"
                 result_agg[key] = metric_agg_method([r[key] for r in result_list])
         else:
             raise ValueError(
@@ -1035,7 +1143,9 @@ class Completion(openai_Completion):
         if "text" in choices[0]:
             return [choice["text"] for choice in choices]
         return [
-            choice["message"] if "function_call" in choice["message"] else choice["message"].get("content", "")
+            choice["message"]
+            if "function_call" in choice["message"]
+            else choice["message"].get("content", "")
             for choice in choices
         ]
 
@@ -1047,7 +1157,10 @@ class Completion(openai_Completion):
 
     @classmethod
     def start_logging(
-        cls, history_dict: Optional[Dict] = None, compact: Optional[bool] = True, reset_counter: Optional[bool] = True
+        cls,
+        history_dict: Optional[Dict] = None,
+        compact: Optional[bool] = True,
+        reset_counter: Optional[bool] = True,
     ):
         """Start book keeping.
 
@@ -1094,7 +1207,9 @@ class Completion(openai_Completion):
         """
         cls._history_dict = {} if history_dict is None else history_dict
         cls._history_compact = compact
-        cls._count_create = 0 if reset_counter or cls._count_create is None else cls._count_create
+        cls._count_create = (
+            0 if reset_counter or cls._count_create is None else cls._count_create
+        )
 
     @classmethod
     def stop_logging(cls):
