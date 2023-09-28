@@ -1,6 +1,6 @@
 import os
 from pseudo_main import pseudo_main
-from flaml.autogen import oai
+from autogen import oai
 import json
 import openai
 

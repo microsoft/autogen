@@ -5,7 +5,7 @@ import random
 from openai.error import RateLimitError, APIError, ServiceUnavailableError, APIConnectionError
 from .openai_utils import OutOfQuotaException, AccessTerminatedException
 from .openai_utils import num_tokens_from_string, model2max_context
-from flaml.autogen import oai
+from autogen import oai
 
 support_models = ['gpt-3.5-turbo', 'gpt-3.5-turbo-0301', 'gpt-4', 'gpt-4-0314']
 
