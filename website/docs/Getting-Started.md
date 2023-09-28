@@ -25,7 +25,7 @@ Install from pip: `pip install pyautogen`. Find more options in [Installation](/
 
 #### Multi-Agent Conversation Framework
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
-By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
+By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For [example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py),
 ```python
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
