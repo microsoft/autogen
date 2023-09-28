@@ -2,6 +2,19 @@
 
 
 ## Scenario 1:  Autonomous problem-solving
+For the quantitative evaluation, we sample 120 level-5 problems from the MATH dataset (20 problem from 6 categories excluding geometry) to test the correctness of these systems. We do not include Auto-GPT in this evaluation since it cannot access results from code executions and doesn't solve any problems in the qualitative evaluation.
+
+**Running Evaluation on 120 math problems**
+1. Setup the environment.
+```
+pip install requirements.txt
+touch key_openai.txt
+tar -xvf 3000_math_problems.tar.gz
+```
+2.  If you are using OpenAI, create a `key_openai.txt` and put your key there. If you are using azure AI, put your info in `azure.json`. Change `use_azure=True` in `main.py`.
+3. In `pseudo_main.py`, comment out code blocks to run different frameworks. By default it will run AutoGen on 120 problems.
+4. Run with `python main.py`.
+
 
 **Compared Methods**
 - **AutoGen AgentChat**: Out-of-box usage of AssitantAgent+UserProxyAgent from AutoGen.
@@ -10,6 +23,12 @@
 - **ChatGPT+Code Interpreter**: A recent feature in OpenAI web client. Note that these premium features require a paid subscription.
 - **Auto-GPT**: The out-of-box Auto-GPT is used. Initialized with the purpose to "solve math problems", resulting in a "MathSolverGPT" with auto-generated goals.
 
+|                | AutoGen | ChatGPT+ Code Interpreter | ChatGPT+ Plugin | Vanilla GPT-4 | Multi-Agent Debate | LangChain ReAct |
+|----------------|----------|---------------------------|-----------------|---------------|--------------------|-----------------|
+| Correct Count  | **65**   | 58                        | 54              | 36            | 32                 | 28              |
+
+----------
+**Qualitative Evaluation**
 
 Each LLM-based system is tested three times on each of the problems. We report the problem solving correctness and summarize the failure reasons in this table.
 **Evaluation on the first problem that asks to simplify a square root fraction.**
@@ -34,11 +53,6 @@ Each LLM-based system is tested three times on each of the problems. We report t
 | Multi-Agent Debate    | 0/3         | It gives 3 different wrong answers.                                                                                   |
 
 
-
-For the quantitative evaluation, we sample 120 level-5 problems from the MATH dataset (20 problem from 6 categories excluding geometry) to test the correctness of these systems. We do not include Auto-GPT in this evaluation since it cannot access results from code executions and doesn't solve any problems in the qualitative evaluation.
-|                | AutoGen | ChatGPT+ Code Interpreter | ChatGPT+ Plugin | Vanilla GPT-4 | Multi-Agent Debate | LangChain ReAct |
-|----------------|----------|---------------------------|-----------------|---------------|--------------------|-----------------|
-| Correct Count  | **65**   | 58                        | 54              | 36            | 32                 | 28              |
 
 
 ## Scenario 2:  Human-in-the-loop Problem-Solving
