@@ -1,8 +1,7 @@
 import os
 # os.environ["ALFWORLD_DATA"] = "data/alfworld"
 
-from flaml.autogen import oai
-from flaml.autogen.agentchat import AssistantAgent
+from autogen.agentchat import AssistantAgent
 import json
 from src.multichat_utils import ALFAgent, get_all_game_files, set_context, GroundingAgent, add_auto_reply
 

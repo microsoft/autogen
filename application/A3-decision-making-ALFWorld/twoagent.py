@@ -1,8 +1,9 @@
 import os
 # os.environ["ALFWORLD_DATA"] = "/data/alfworld"
 
-from flaml.autogen import oai
-from flaml.autogen.agentchat import AssistantAgent
+import autogen
+# from flaml.autogen.agentchat import AssistantAgent
+from autogen.agentchat import AssistantAgent
 import json
 from src.chat_utils import ALFAgent, get_all_game_files, set_context
 
@@ -43,6 +44,7 @@ for i, file in enumerate(game_files):
                     "top_p": 1
                 }
             )
+            # get in-context examples and inject them into conversation history
             context = user_proxy.get_examples()
             set_context(context, user_proxy, assistant)
             user_proxy.initiate_chat(assistant, clear_history=False)

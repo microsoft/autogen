@@ -4,11 +4,6 @@ This is the code for evaluating ALFChat on ALFWorld.
 ## Setup
 Download `alfworld` data and install environments following instructions [here](https://github.com/alfworld/alfworld).
 
-Current implementation uses 2.0.1 version of FLAML.
-
-```bash
-pip install flaml==2.0.1
-```
 
 ## Evaluation on Benchmark
 
@@ -22,3 +17,6 @@ Fill in your api-key in `multiagent.py`, then run the following command to evalu
 ```bash
 python multiagent.py
 ```
+
+We compare task success rate between ReAct, ALFChat (2 agent), ALFChat (3 agent).
+![](img/results.jpg)

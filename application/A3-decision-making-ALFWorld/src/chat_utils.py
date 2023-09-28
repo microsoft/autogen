@@ -1,9 +1,8 @@
 import json
 from typing import Callable, Dict, Optional, Union, List
-from flaml.autogen.agentchat.responsive_agent import ResponsiveAgent
 import yaml
 import numpy as np
-from flaml.autogen import ResponsiveAgent
+from autogen.agentchat import ConversableAgent
 from alfworld.agents.environment.alfred_tw_env import AlfredTWEnv
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
@@ -66,7 +65,7 @@ def process_action(action, choices, limit=0.01, to_print=False):
 
 class ContextManager(object):
     user_proxy = None
-    assistant: ResponsiveAgent = None
+    assistant: ConversableAgent = None
     
     def __init__(self, user_proxy = None, assistant = None) -> None:
         self.user_proxy = user_proxy
@@ -80,7 +79,7 @@ class ContextManager(object):
         self.assistant._oai_messages[self.user_proxy].append(last_message)
 
 
-class ALFAgent(ResponsiveAgent):
+class ALFAgent(ConversableAgent):
     
     MAX_CONSECUTIVE_AUTO_REPLY = (
         50  # maximum number of consecutive auto replies (subject to future change)
@@ -129,7 +128,7 @@ class ALFAgent(ResponsiveAgent):
         self.last_action = None
         self.task_prompt = load_task_prompt()
         self.task_description = None
-        self.register_auto_reply(ResponsiveAgent, ALFAgent._generate_reply_for_assistant)
+        self.register_auto_reply(ConversableAgent, ALFAgent._generate_reply_for_assistant)
         
     
     def get_prompt(self, filename: str = None):
@@ -190,13 +189,13 @@ class ALFAgent(ResponsiveAgent):
         
         return True, reply
     
-    def initiate_chat(self, recipient: ResponsiveAgent, **kwargs):
+    def initiate_chat(self, recipient: ConversableAgent, **kwargs):
         self.manager = ContextManager(self, recipient)
         super().initiate_chat(recipient,**kwargs)
         
     
 
-def set_context(message, user: ALFAgent, assistant: ResponsiveAgent):
+def set_context(message, user: ALFAgent, assistant: ConversableAgent):
     current_role = "user"
     traverse = {"user": "assistant", "assistant": "user"}
     for his in message:
