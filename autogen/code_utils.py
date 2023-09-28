@@ -193,10 +193,12 @@ def timeout_handler(signum, frame):
 
 
 def _cmd(lang):
-    if lang.startswith("python") or lang in ["bash", "sh"]:
+    if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
         return lang
-    if lang == "shell":
+    if lang in ["shell"]:
         return "sh"
+    if lang in ["ps1"]:
+        return "powershell"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
@@ -242,6 +244,8 @@ def execute_code(
     assert code is not None or filename is not None, "Either code or filename must be provided."
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
+    if sys.platform == "win32" and lang in ["sh", "shell"]:
+        lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
         # create a file with a automatically generated name
@@ -259,12 +263,14 @@ def execute_code(
     if not use_docker or in_docker_container:
         # already running in a docker container
         cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename]
+        print(cmd)
         if sys.platform == "win32":
             logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,
                 capture_output=True,
+                text=True,
             )
         else:
             signal.signal(signal.SIGALRM, timeout_handler)
