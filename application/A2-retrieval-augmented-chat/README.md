@@ -22,7 +22,7 @@ The F1 score and Recall score are significantly higher than the results showed i
 
 To reproduce the results, configure the LLM endpoints and run [this notebook](NaturalQuestionsQA-gpt35turbo.ipynb).
 
-## Scenario 2: Leverage latest APIs in FLAML.
+## Scenario 2: Code generation leveraging latest APIs from the codebase
 
 In this case, the question is *"How can I use FLAML to perform a classification task and use spark to do parallel training. Train 30 seconds and force cancel jobs if time limit is reached."*.
 
