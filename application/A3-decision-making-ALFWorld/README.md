@@ -19,4 +19,4 @@ python multiagent.py
 ```
 
 We compare task success rate between ReAct, ALFChat (2 agent), ALFChat (3 agent).
-![](img/results.jpg)
+![](results.jpg)
