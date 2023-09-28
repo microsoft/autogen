@@ -2,7 +2,7 @@
 [![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
-[![](https://img.shields.io/discord/1025786666260111483?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
+[![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
@@ -55,6 +55,8 @@ pip install "pyautogen[blendsearch]"
 Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation).
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
+For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
+
 ## Quickstart
 
 * Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
@@ -69,6 +71,8 @@ user_proxy.initiate_chat(assistant, message="Plot a chart of META and TESLA stoc
 
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
+
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-AgentChat) for this feature.
 
 * Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
@@ -85,6 +89,8 @@ config, analysis = autogen.Completion.tune(
 # perform inference for a test instance
 response = autogen.Completion.create(context=test_instance, **config)
 ```
+
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-Inference) for this feature.
 
 ## Documentation
 
