@@ -23,6 +23,8 @@ WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensi
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
 DEFAULT_TIMEOUT = 600
+WIN32 = sys.platform == "win32"
+PATH_SEPARATOR = WIN32 and "\\" or "/"
 
 
 def infer_lang(code):
@@ -244,7 +246,7 @@ def execute_code(
     assert code is not None or filename is not None, "Either code or filename must be provided."
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
-    if sys.platform == "win32" and lang in ["sh", "shell"]:
+    if WIN32 and lang in ["sh", "shell"]:
         lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
@@ -262,8 +264,11 @@ def execute_code(
     in_docker_container = os.path.exists("/.dockerenv")
     if not use_docker or in_docker_container:
         # already running in a docker container
-        cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename if sys.platform != "win32" else f".\\{filename}"]
-        if sys.platform == "win32":
+        cmd = [
+            sys.executable if lang.startswith("python") else _cmd(lang),
+            f".\\{filename}" if WIN32 else filename,
+        ]
+        if WIN32:
             logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
@@ -295,7 +300,7 @@ def execute_code(
                 abs_path = str(pathlib.Path(filepath).absolute())
                 logs = logs.replace(str(abs_path), "").replace(filename, "")
             else:
-                abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
+                abs_path = str(pathlib.Path(work_dir).absolute()) + PATH_SEPARATOR
                 logs = logs.replace(str(abs_path), "")
         else:
             logs = result.stdout
