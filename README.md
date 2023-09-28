@@ -49,8 +49,10 @@ The figure below shows an example conversation flow with AutoGen.
 
 - [A3: Decision Making in Text World Environments](/application/A3-decision-making-ALFWorld/README.md)
 
-- [A4: Multi-Agent Coding](/application/A3-decision-making-ALFWorld/README.md)
+- [A4: Multi-Agent Coding](/application/A4-multi-agent-coding/README.md)
 
 - [A5: Dynamic Group Chat](/application/A5-group-chat/README.md)
 
 - [A6: Conversational Chess](/application/A6-conversational-chess/README.md)
+
+- [A7: Decision Making for Browser Interactions](/application/A7-decision-making-MiniWob++/README.md)
