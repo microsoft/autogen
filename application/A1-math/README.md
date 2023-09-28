@@ -12,7 +12,7 @@ touch key_openai.txt
 tar -xvf 300problems.tar.gz
 ```
 2.  If you are using OpenAI, create a `key_openai.txt` and put your key there. If you are using azure AI, put your info in `azure.json`. Change `use_azure=True` in `main.py`.
-3. In `pseudo_main.py`, comment out code blocks to run different frameworks. By default it will run AutoGen on 120 problems.
+3. In [`pseudo_main.py`](pseudo_main.py), comment out code blocks to run different frameworks. By default it will run AutoGen on 120 problems.
 4. Run with `python main.py`.
 
 
@@ -61,7 +61,7 @@ For the hard problems that these LLM systems cannot solve autonomously, human fe
 To incorporate human feedback with **AutoGen**, one can set `human\_input\_mode=`ALWAYS'` in the user proxy agent.
 We compare such configuration of **AutoGen** with systems that could also incorporate human feedback during the problem solving process, including Auto-GPT, ChatGPT+Plugin, ChatGPT+Code Interpreter.
 
-Trial with AutGen and AutoGPT is in `Eval_with_human Agent+AutoGPT.ipynb`
+Trial with AutGen and AutoGPT is in [`Eval_with_human Agent+AutoGPT.ipynb`](Eval_with_human%20AgentChat+Auto-gpt.ipynb)
 
 Trial with ChatGPT+Code Interpreter:
 - https://chat.openai.com/share/c1b7cd23-ea7d-456d-8c43-cfe7ce111ef6
