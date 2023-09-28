@@ -233,10 +233,17 @@ def test_execute_code(use_docker=None):
     print(execute_code("with open('tmp/codetest.py', 'r') as f: a=f.read()", use_docker=use_docker))
     # create a file
     exit_code, msg, image = execute_code(
-        "with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp", filename="tmp2/codetest.py", use_docker=use_docker
+        "with open('tmp/codetest.py', 'w') as f: f.write('b=1')",
+        work_dir=f"{here}/my_tmp",
+        filename="tmp2/codetest.py",
+        use_docker=use_docker,
     )
     assert exit_code and 'File "tmp2/codetest.py"'.replace("/", PATH_SEPARATOR) in msg, msg
-    print(execute_code("with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp", use_docker=use_docker))
+    print(
+        execute_code(
+            "with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp", use_docker=use_docker
+        )
+    )
     # execute code in a file
     print(execute_code(filename="tmp/codetest.py", use_docker=use_docker))
     print(execute_code("python tmp/codetest.py", lang="sh", use_docker=use_docker))
