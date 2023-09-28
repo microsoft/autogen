@@ -262,8 +262,6 @@ def pseudo_main(config_list, use_azure):
     #     )
 
     # ---------------------------------------------------------------
-    # run agentchat v2.0.2 prompt
-    # run agentchat
     agentchat = AgentChat(config_list=config_list)
     for i, category in enumerate(cate):
         solve_problems(
@@ -302,31 +300,5 @@ def pseudo_main(config_list, use_azure):
     #         checker=checker
     #     )
     # print("tar 120 problems", flush=True)
-    # os.system("tar -czf results.tar.gz results full_run.out")
-
-    # ---------------------------------------------------------------
-    # ---------------------------------------------------------------
-    # ---------------------------------------------------------------
-    # ---------------- whole test set -------------------------------
-
-    # agentchat = AgentChat(config_list=config_list)
-    # solvers_with_paths = [
-    #     # (agentchat.solve_one_problem, "./all_problems/agentchat_asy/", "agentchatv2.0.2_asy"),
-    #     # (partial(vanilla_solver, config_list), "./all_problems/vanilla_gpt4/", "gpt4"),
-    # ]
-    # checker = AnswerChecker(config_list=config_list)
-
-    # problems = load_math_test(num_samples=-1)
-    # print(f"Start running {len(problems)} on interpreter", flush=True)
-
-    # for i, problem in enumerate(problems):
-    #     problem['problem_id'] = str(i)
-    #     solve_problem_with_multiple_solvers(problem, solvers_with_paths, checker=checker)
-
-    #     # tar every 200 problems
-    #     if i > 0 and i % 200 == 0:
-    #         print(f"tar {i} problems", flush=True)
-    #         os.system("tar -czf results.tar.gz results full_run.out")
-    
     # os.system("tar -czf results.tar.gz results full_run.out")
 
