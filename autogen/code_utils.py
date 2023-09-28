@@ -262,8 +262,7 @@ def execute_code(
     in_docker_container = os.path.exists("/.dockerenv")
     if not use_docker or in_docker_container:
         # already running in a docker container
-        cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename]
-        print(cmd)
+        cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename if sys.platform != "win32" else f".\\{filename}"]
         if sys.platform == "win32":
             logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
