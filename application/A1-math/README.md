@@ -9,7 +9,7 @@ For the quantitative evaluation, we sample 120 level-5 problems from the MATH da
 ```
 pip install requirements.txt
 touch key_openai.txt
-tar -xvf 3000_math_problems.tar.gz
+tar -xvf 300problems.tar.gz
 ```
 2.  If you are using OpenAI, create a `key_openai.txt` and put your key there. If you are using azure AI, put your info in `azure.json`. Change `use_azure=True` in `main.py`.
 3. In `pseudo_main.py`, comment out code blocks to run different frameworks. By default it will run AutoGen on 120 problems.

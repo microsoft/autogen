@@ -2,4 +2,5 @@ flaml[mathchat]
 langchain
 loguru
 datasets
-temcolor
+backoff
+tiktoken
