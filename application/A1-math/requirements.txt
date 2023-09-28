@@ -1,4 +1,4 @@
-pyautogen
+autogen
 langchain
 loguru
 datasets
