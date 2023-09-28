@@ -1,0 +1,21 @@
+// Please modify the content, remove this comment and rename this file to OAI_CONFIG_LIST to run the sample code.
+[
+    {
+        "model": "gpt-4",
+        "api_key": "<your OpenAI API key here>"
+    },
+    {
+        "model": "gpt-4",
+        "api_key": "<your Azure OpenAI API key here>",
+        "api_base": "<your Azure OpenAI API base here>",
+        "api_type": "azure",
+        "api_version": "2023-07-01-preview"
+    },
+    {
+        "model": "gpt-3.5-turbo",
+        "api_key": "<your Azure OpenAI API key here>",
+        "api_base": "<your Azure OpenAI API base here>",
+        "api_type": "azure",
+        "api_version": "2023-07-01-preview"
+    }
+]
