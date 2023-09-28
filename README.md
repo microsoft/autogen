@@ -2,7 +2,7 @@
 
 AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
-![AutoGen Overview](/img/autogen_agentchat.png)
+![AutoGen Overview](./img/autogen_agentchat.png)
 
 * AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcome their weaknesses.
 * It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
@@ -39,20 +39,20 @@ user_proxy.initiate_chat(assistant, message="Plot a chart of META and TESLA stoc
 ```
 
 The figure below shows an example conversation flow with AutoGen.
-![Agent Chat Example](/img/chat_example.png)
+![Agent Chat Example](./img/chat_example.png)
 
 # Applications
 
-- [A1: Math Problem Solving](/application/A1-math/README.md)
+- [A1: Math Problem Solving](./application/A1-math/README.md)
 
-- [A2: Retrieval Augmented Code Generation and Question Answering](/application/A2-retrieval-augmented-chat/README.md)
+- [A2: Retrieval Augmented Code Generation and Question Answering](./application/A2-retrieval-augmented-chat/README.md)
 
-- [A3: Decision Making in Text World Environments](/application/A3-decision-making-ALFWorld/README.md)
+- [A3: Decision Making in Text World Environments](./application/A3-decision-making-ALFWorld/README.md)
 
-- [A4: Multi-Agent Coding](/application/A4-multi-agent-coding/README.md)
+- [A4: Multi-Agent Coding](./application/A4-multi-agent-coding/README.md)
 
-- [A5: Dynamic Group Chat](/application/A5-group-chat/README.md)
+- [A5: Dynamic Group Chat](./application/A5-group-chat/README.md)
 
-- [A6: Conversational Chess](/application/A6-conversational-chess/README.md)
+- [A6: Conversational Chess](./application/A6-conversational-chess/README.md)
 
-- [A7: Decision Making for Browser Interactions](/application/A7-decision-making-MiniWob++/README.md)
+- [A7: Decision Making for Browser Interactions](./application/A7-decision-making-MiniWob++/README.md)
