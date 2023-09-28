@@ -621,9 +621,9 @@ class ConversableAgent(Agent):
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
                 continue
 
-            # found code blocks, push last_n_messages back and try to execute the code
-            code_execution_config["last_n_messages"] = last_n_messages
+            # found code blocks, execute code and push "last_n_messages" back
             exitcode, logs = self.execute_code_blocks(code_blocks)
+            code_execution_config["last_n_messages"] = last_n_messages
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
             return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
 
