@@ -1,4 +1,4 @@
-from flaml.autogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent
 from openai import InvalidRequestError
 import signal
 
