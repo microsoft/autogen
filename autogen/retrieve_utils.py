@@ -8,9 +8,11 @@ import chromadb
 from chromadb.api import API
 import chromadb.utils.embedding_functions as ef
 import logging
+import PyPDF2
+
 
 logger = logging.getLogger(__name__)
-TEXT_FORMATS = ["txt", "json", "csv", "tsv", "md", "html", "htm", "rtf", "rst", "jsonl", "log", "xml", "yaml", "yml"]
+TEXT_FORMATS = ["txt", "json", "csv", "tsv", "md", "html", "htm", "rtf", "rst", "jsonl", "log", "xml", "yaml", "yml", "pdf"]
 
 
 def num_tokens_from_text(
@@ -118,16 +120,51 @@ def split_text_to_chunks(
     chunks.append(text_to_chunk) if len(text_to_chunk) > 10 else None  # don't add chunks less than 10 characters
     return chunks
 
+def extract_text_from_pdf(file: str) -> str:
+    """Extract text from PDF files"""
+    text = ""
+    with open(file, "rb") as f:  
+        reader = PyPDF2.PdfReader(f)
+        if reader.is_encrypted:  # Check if the PDF is encrypted
+            try:
+                reader.decrypt('')
+            except Exception as e:
+                logger.warning(f"Could not decrypt PDF {file}, {e}")
+                return text  # Return empty text if PDF could not be decrypted
+                
+        for page_num in range(len(reader.pages)):
+            page = reader.pages[page_num]
+            text += page.extract_text()
+            
+    if not text.strip():  # Debugging line to check if text is empty
+        logger.warning(f"Could not decrypt PDF {file}")
+        
+    return text
+
 
 def split_files_to_chunks(
-    files: list, max_tokens: int = 4000, chunk_mode: str = "multi_lines", must_break_at_empty_line: bool = True
-):
+        files: list, max_tokens: int = 4000, chunk_mode: str = "multi_lines", must_break_at_empty_line: bool = True
+    ):
     """Split a list of files into chunks of max_tokens."""
+
     chunks = []
+    
     for file in files:
-        with open(file, "r") as f:
-            text = f.read()
+        _, file_extension = os.path.splitext(file)
+        file_extension = file_extension.lower()
+        
+        if file_extension == ".pdf":
+            text = extract_text_from_pdf(file)
+        else:  # For non-PDF text-based files
+            with open(file, "r", encoding="utf-8", errors="ignore") as f:
+                text = f.read()
+                
+        if not text.strip():  # Debugging line to check if text is empty after reading
+            logger.warning(f"No text available in file: {file}")
+            continue  # Skip to the next file if no text is available
+                
         chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+        
     return chunks
 
 
@@ -149,10 +186,7 @@ def get_files_from_dir(dir_path: str, types: list = TEXT_FORMATS, recursive: boo
     files = []
     if os.path.exists(dir_path):
         for type in types:
-            if recursive:
-                files += glob.glob(os.path.join(dir_path, f"**/*.{type}"), recursive=True)
-            else:
-                files += glob.glob(os.path.join(dir_path, f"*.{type}"), recursive=False)
+            files += glob.glob(os.path.join(dir_path, f"**/*.{type}"), recursive=recursive)
     else:
         logger.error(f"Directory {dir_path} does not exist.")
         raise ValueError(f"Directory {dir_path} does not exist.")
@@ -200,26 +234,18 @@ def create_vector_db_from_dir(
             collection_name,
             get_or_create=get_or_create,
             embedding_function=embedding_function,
-            # https://github.com/nmslib/hnswlib#supported-distances
-            # https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184
-            # https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
             metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
         )
 
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
-        print(f"Found {len(chunks)} chunks.")
-        # upsert in batch of 40000
-        for i in range(0, len(chunks), 40000):
+        
+        # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
+        for i in range(0, len(chunks), min(40000, len(chunks))):
+            end_idx = i + min(40000, len(chunks) - i)
             collection.upsert(
-                documents=chunks[
-                    i : i + 40000
-                ],  # we handle tokenization, embedding, and indexing automatically. You can skip that and add your own embeddings as well
-                ids=[f"doc_{i}" for i in range(i, i + 40000)],  # unique for each doc
+                documents=chunks[i:end_idx],
+                ids=[f"doc_{j}" for j in range(i, end_idx)],  # unique for each doc
             )
-        collection.upsert(
-            documents=chunks[i : len(chunks)],
-            ids=[f"doc_{i}" for i in range(i, len(chunks))],  # unique for each doc
-        )
     except ValueError as e:
         logger.warning(f"{e}")
 
