@@ -186,7 +186,10 @@ def get_files_from_dir(dir_path: str, types: list = TEXT_FORMATS, recursive: boo
     files = []
     if os.path.exists(dir_path):
         for type in types:
-            files += glob.glob(os.path.join(dir_path, f"**/*.{type}"), recursive=recursive)
+            if recursive:
+                files += glob.glob(os.path.join(dir_path, f"**/*.{type}"), recursive=True)
+            else:
+                files += glob.glob(os.path.join(dir_path, f"*.{type}"), recursive=False)
     else:
         logger.error(f"Directory {dir_path} does not exist.")
         raise ValueError(f"Directory {dir_path} does not exist.")
