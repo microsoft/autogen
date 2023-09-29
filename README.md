@@ -145,3 +145,12 @@ Privacy information can be found at https://privacy.microsoft.com/en-us/
 
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
 or trademarks, whether by implication, estoppel or otherwise.
+# Citation
+```
+@inproceedings{"Microsoft Research, Redmond WA USA",
+  author       =  {Wu Qingyun, Bansal Gargan, Zhang Jieyu, Wu Yiran, Zhang Shaokun, Zhu Eric, Li Beibin, Jiang Li, Zhang Xiaoyun, Wang Chi},
+  title        = {AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
+  booktitle    = {ArXiv preprint arXiv:2308.08155},
+  year         = {2023},
+}
+```
