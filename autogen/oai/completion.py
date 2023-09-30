@@ -105,7 +105,7 @@ class Completion(openai_Completion):
     seed = 41
     cache_path = f".cache/{seed}"
     # retry after this many seconds
-    retry_time = 10
+    retry_wait_time = 10
     # fail a request after hitting RateLimitError for this many seconds
     retry_timeout = 120
     # time out for request to openai server
@@ -181,7 +181,7 @@ class Completion(openai_Completion):
     def _get_response(cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True):
         """Get the response from the openai api call.
 
-        Try cache first. If not found, call the openai api. If the api call fails, retry after retry_time.
+        Try cache first. If not found, call the openai api. If the api call fails, retry after retry_wait_time.
         """
         config = config.copy()
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
@@ -200,7 +200,7 @@ class Completion(openai_Completion):
         start_time = time.time()
         request_timeout = cls.request_timeout
         retry_timeout = config.pop("retry_timeout", cls.retry_timeout)
-        retry_time = config.pop("retry_time", cls.retry_time)
+        retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
                 if "request_timeout" in config:
@@ -212,18 +212,18 @@ class Completion(openai_Completion):
                 APIConnectionError,
             ):
                 # transient error
-                logger.info(f"retrying in {retry_time} seconds...", exc_info=1)
-                sleep(retry_time)
+                logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
+                sleep(retry_wait_time)
             except APIError as err:
                 error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
                 error_code = error_code and error_code.get("code")
                 if error_code == "content_filter":
                     raise
                 # transient error
-                logger.info(f"retrying in {retry_time} seconds...", exc_info=1)
-                sleep(retry_time)
+                logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
+                sleep(retry_wait_time)
             except (RateLimitError, Timeout) as err:
-                time_left = retry_timeout - (time.time() - start_time + retry_time)
+                time_left = retry_timeout - (time.time() - start_time + retry_wait_time)
                 if (
                     time_left > 0
                     and isinstance(err, RateLimitError)
@@ -234,8 +234,8 @@ class Completion(openai_Completion):
                     if isinstance(err, Timeout):
                         request_timeout <<= 1
                     request_timeout = min(request_timeout, time_left)
-                    logger.info(f"retrying in {retry_time} seconds...", exc_info=1)
-                    sleep(retry_time)
+                    logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
+                    sleep(retry_wait_time)
                 elif raise_on_ratelimit_or_timeout:
                     raise
                 else:
@@ -747,7 +747,7 @@ class Completion(openai_Completion):
                 The "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
                 Besides the parameters for the openai API call, it can also contain:
                 - `retry_timeout` (int): the timeout (in seconds) for retrying when a request fails.
-                - `retry_time` (int): the time (in seconds) to wait before retrying when a request fails.
+                - `retry_wait_time` (int): the time (in seconds) to wait before retrying when a request fails.
                 - `seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
 
         Returns:
@@ -1106,7 +1106,7 @@ class Completion(openai_Completion):
 
 
 class ChatCompletion(Completion):
-    """A class for OpenAI API ChatCompletion."""
+    """A class for OpenAI API ChatCompletion. Share the same API as Completion."""
 
     default_search_space = Completion.default_search_space.copy()
     default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])
