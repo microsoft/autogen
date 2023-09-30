@@ -123,7 +123,11 @@ API call results are cached locally and reused when the same request is issued. 
 
 ### Runtime error
 
-It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `autogen.Completion.create` deals with the transient errors and retries automatically. Initial request timeout, retry timeout and retry time interval can be configured via `request_timeout`, `retry_timeout` and `autogen.Completion.retry_time`.
+It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `autogen.Completion.create` deals with the transient errors and retries automatically. Request timeout, max retry period and retry wait time can be configured via `request_timeout`, `max_retry_period` and `retry_wait_time`.
+
+- `request_timeout` (int): the timeout (in seconds) sent with a single request.
+- `max_retry_period` (int): the total time (in seconds) allowed for retrying failed requests.
+- `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
 
 Moreover, one can pass a list of configurations of different models/endpoints to mitigate the rate limits. For example,
 
