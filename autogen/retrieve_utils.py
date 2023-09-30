@@ -8,11 +8,27 @@ import chromadb
 from chromadb.api import API
 import chromadb.utils.embedding_functions as ef
 import logging
-import PyPDF2
+import pypdf
 
 
 logger = logging.getLogger(__name__)
-TEXT_FORMATS = ["txt", "json", "csv", "tsv", "md", "html", "htm", "rtf", "rst", "jsonl", "log", "xml", "yaml", "yml", "pdf"]
+TEXT_FORMATS = [
+    "txt",
+    "json",
+    "csv",
+    "tsv",
+    "md",
+    "html",
+    "htm",
+    "rtf",
+    "rst",
+    "jsonl",
+    "log",
+    "xml",
+    "yaml",
+    "yml",
+    "pdf",
+]
 
 
 def num_tokens_from_text(
@@ -120,51 +136,52 @@ def split_text_to_chunks(
     chunks.append(text_to_chunk) if len(text_to_chunk) > 10 else None  # don't add chunks less than 10 characters
     return chunks
 
+
 def extract_text_from_pdf(file: str) -> str:
     """Extract text from PDF files"""
     text = ""
-    with open(file, "rb") as f:  
-        reader = PyPDF2.PdfReader(f)
+    with open(file, "rb") as f:
+        reader = pypdf.PdfReader(f)
         if reader.is_encrypted:  # Check if the PDF is encrypted
             try:
-                reader.decrypt('')
+                reader.decrypt("")
             except Exception as e:
                 logger.warning(f"Could not decrypt PDF {file}, {e}")
                 return text  # Return empty text if PDF could not be decrypted
-                
+
         for page_num in range(len(reader.pages)):
             page = reader.pages[page_num]
             text += page.extract_text()
-            
+
     if not text.strip():  # Debugging line to check if text is empty
         logger.warning(f"Could not decrypt PDF {file}")
-        
+
     return text
 
 
 def split_files_to_chunks(
-        files: list, max_tokens: int = 4000, chunk_mode: str = "multi_lines", must_break_at_empty_line: bool = True
-    ):
+    files: list, max_tokens: int = 4000, chunk_mode: str = "multi_lines", must_break_at_empty_line: bool = True
+):
     """Split a list of files into chunks of max_tokens."""
 
     chunks = []
-    
+
     for file in files:
         _, file_extension = os.path.splitext(file)
         file_extension = file_extension.lower()
-        
+
         if file_extension == ".pdf":
             text = extract_text_from_pdf(file)
         else:  # For non-PDF text-based files
             with open(file, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
-                
+
         if not text.strip():  # Debugging line to check if text is empty after reading
             logger.warning(f"No text available in file: {file}")
             continue  # Skip to the next file if no text is available
-                
+
         chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
-        
+
     return chunks
 
 
@@ -244,7 +261,7 @@ def create_vector_db_from_dir(
         )
 
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
-        
+
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
         for i in range(0, len(chunks), min(40000, len(chunks))):
             end_idx = i + min(40000, len(chunks) - i)
