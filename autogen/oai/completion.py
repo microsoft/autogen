@@ -200,6 +200,7 @@ class Completion(openai_Completion):
         start_time = time.time()
         request_timeout = cls.request_timeout
         retry_timeout = config.pop("retry_timeout", cls.retry_timeout)
+        retry_time = config.pop("retry_time", cls.retry_time)
         while True:
             try:
                 if "request_timeout" in config:
@@ -211,18 +212,18 @@ class Completion(openai_Completion):
                 APIConnectionError,
             ):
                 # transient error
-                logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                sleep(cls.retry_time)
+                logger.info(f"retrying in {retry_time} seconds...", exc_info=1)
+                sleep(retry_time)
             except APIError as err:
                 error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
                 error_code = error_code and error_code.get("code")
                 if error_code == "content_filter":
                     raise
                 # transient error
-                logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                sleep(cls.retry_time)
+                logger.info(f"retrying in {retry_time} seconds...", exc_info=1)
+                sleep(retry_time)
             except (RateLimitError, Timeout) as err:
-                time_left = retry_timeout - (time.time() - start_time + cls.retry_time)
+                time_left = retry_timeout - (time.time() - start_time + retry_time)
                 if (
                     time_left > 0
                     and isinstance(err, RateLimitError)
@@ -233,8 +234,8 @@ class Completion(openai_Completion):
                     if isinstance(err, Timeout):
                         request_timeout <<= 1
                     request_timeout = min(request_timeout, time_left)
-                    logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                    sleep(cls.retry_time)
+                    logger.info(f"retrying in {retry_time} seconds...", exc_info=1)
+                    sleep(retry_time)
                 elif raise_on_ratelimit_or_timeout:
                     raise
                 else:
@@ -743,9 +744,11 @@ class Completion(openai_Completion):
                 When set to False, -1 will be returned when all configs fail.
             allow_format_str_template (bool, Optional): Whether to allow format string template in the config.
             **config: Configuration for the openai API call. This is used as parameters for calling openai API.
-                Besides the parameters for the openai API call, it can also contain a seed (int) for the cache.
-                This is useful when implementing "controlled randomness" for the completion.
-                Also, the "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
+                The "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
+                Besides the parameters for the openai API call, it can also contain:
+                - `retry_timeout` (int): the timeout for retrying when a request fails.
+                - `retry_time` (int): the time to wait before retrying when a request fails.
+                - `seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
 
         Returns:
             Responses from OpenAI API, with additional fields.
