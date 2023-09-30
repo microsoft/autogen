@@ -208,18 +208,13 @@ def create_vector_db_from_dir(
 
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
         print(f"Found {len(chunks)} chunks.")
-        # upsert in batch of 40000
-        for i in range(0, len(chunks), 40000):
+        # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
+        for i in range(0, len(chunks), min(40000, len(chunks))):
+            end_idx = i + min(40000, len(chunks) - i)
             collection.upsert(
-                documents=chunks[
-                    i : i + 40000
-                ],  # we handle tokenization, embedding, and indexing automatically. You can skip that and add your own embeddings as well
-                ids=[f"doc_{i}" for i in range(i, i + 40000)],  # unique for each doc
+                documents=chunks[i:end_idx],
+                ids=[f"doc_{j}" for j in range(i, end_idx)],  # unique for each doc
             )
-        collection.upsert(
-            documents=chunks[i : len(chunks)],
-            ids=[f"doc_{i}" for i in range(i, len(chunks))],  # unique for each doc
-        )
     except ValueError as e:
         logger.warning(f"{e}")
 
