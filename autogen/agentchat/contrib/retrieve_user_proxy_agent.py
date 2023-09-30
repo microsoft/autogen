@@ -301,6 +301,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 get_or_create=self._get_or_create,
             )
             self._collection = True
+            self._get_or_create = False
 
         results = query_vector_db(
             query_texts=[problem],
