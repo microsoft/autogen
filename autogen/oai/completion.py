@@ -746,7 +746,7 @@ class Completion(openai_Completion):
             **config: Configuration for the openai API call. This is used as parameters for calling openai API.
                 The "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
                 Besides the parameters for the openai API call, it can also contain:
-                - `max_retry_period` (int): the total timeout (in seconds) allowed for retrying failed requests.
+                - `max_retry_period` (int): the total time (in seconds) allowed for retrying failed requests.
                 - `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
                 - `seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
 
