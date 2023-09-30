@@ -107,7 +107,7 @@ class Completion(openai_Completion):
     # retry after this many seconds
     retry_wait_time = 10
     # fail a request after hitting RateLimitError for this many seconds
-    retry_timeout = 120
+    max_retry_period = 120
     # time out for request to openai server
     request_timeout = 60
 
@@ -199,7 +199,7 @@ class Completion(openai_Completion):
         )
         start_time = time.time()
         request_timeout = cls.request_timeout
-        retry_timeout = config.pop("retry_timeout", cls.retry_timeout)
+        max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
         retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
@@ -223,7 +223,7 @@ class Completion(openai_Completion):
                 logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
                 sleep(retry_wait_time)
             except (RateLimitError, Timeout) as err:
-                time_left = retry_timeout - (time.time() - start_time + retry_wait_time)
+                time_left = max_retry_period - (time.time() - start_time + retry_wait_time)
                 if (
                     time_left > 0
                     and isinstance(err, RateLimitError)
@@ -243,7 +243,7 @@ class Completion(openai_Completion):
                     if use_cache and isinstance(err, Timeout):
                         cls._cache.set(key, response)
                     logger.warning(
-                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {retry_timeout} seconds."
+                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {max_retry_period} seconds."
                     )
                     return response
             except InvalidRequestError:
@@ -746,8 +746,8 @@ class Completion(openai_Completion):
             **config: Configuration for the openai API call. This is used as parameters for calling openai API.
                 The "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
                 Besides the parameters for the openai API call, it can also contain:
-                - `retry_timeout` (int): the timeout (in seconds) for retrying when a request fails.
-                - `retry_wait_time` (int): the time (in seconds) to wait before retrying when a request fails.
+                - `max_retry_period` (int): the total timeout (in seconds) allowed for retrying failed requests.
+                - `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
                 - `seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
 
         Returns:
@@ -766,9 +766,9 @@ class Completion(openai_Completion):
                 base_config = config.copy()
                 base_config["allow_format_str_template"] = allow_format_str_template
                 base_config.update(each_config)
-                if i < last and filter_func is None and "retry_timeout" not in base_config:
-                    # retry_timeout = 0 to avoid retrying when no filter is given
-                    base_config["retry_timeout"] = 0
+                if i < last and filter_func is None and "max_retry_period" not in base_config:
+                    # max_retry_period = 0 to avoid retrying when no filter is given
+                    base_config["max_retry_period"] = 0
                 try:
                     response = cls.create(
                         context,
