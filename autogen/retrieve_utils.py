@@ -237,6 +237,9 @@ def create_vector_db_from_dir(
             collection_name,
             get_or_create=get_or_create,
             embedding_function=embedding_function,
+            # https://github.com/nmslib/hnswlib#supported-distances
+            # https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184
+            # https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
             metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
         )
 
