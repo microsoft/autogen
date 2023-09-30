@@ -18,7 +18,6 @@ install_requires = [
     "diskcache",
     "termcolor",
     "flaml",
-    "PyPDF2",
 ]
 
 
@@ -56,6 +55,7 @@ setuptools.setup(
             "chromadb",
             "tiktoken",
             "sentence_transformers",
+            "PyPDF2"
         ],
     },
     classifiers=[
