@@ -99,3 +99,13 @@ You can also explicitly specify that by:
 ```python
 assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
+
+## Handle Rate Limit Error and Timeout Error
+
+You can set `retry_wait_time` and `max_retry_period` to handle rate limit error. And you can set `request_timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
+
+- `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
+- `max_retry_period` (int): the total timeout (in seconds) allowed for retrying failed requests.
+- `request_timeout` (int): the timeout (in seconds) sent with a single request.
+
+Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-error) for more info.
