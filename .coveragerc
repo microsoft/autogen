@@ -2,4 +2,4 @@
 branch = True
 source = autogen
 omit =
-  *test*
+  *tess*
