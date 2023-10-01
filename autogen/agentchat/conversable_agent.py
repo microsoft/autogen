@@ -210,8 +210,8 @@ class ConversableAgent(Agent):
         return self._max_consecutive_auto_reply if sender is None else self._max_consecutive_auto_reply_dict[sender]
 
     @property
-    def chat_messages(self) -> Dict[str, List[Dict]]:
-        """A dictionary of conversations from name to list of ChatCompletion messages."""
+    def chat_messages(self) -> Dict[Agent, List[Dict]]:
+        """A dictionary of conversations from agent to list of messages."""
         return self._oai_messages
 
     def last_message(self, agent: Optional[Agent] = None) -> Dict:
