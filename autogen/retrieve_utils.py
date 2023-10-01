@@ -145,9 +145,9 @@ def extract_text_from_pdf(file: str) -> str:
         if reader.is_encrypted:  # Check if the PDF is encrypted
             try:
                 reader.decrypt("")
-            except Exception as e:
+            except pypdf.errors.FileNotDecryptedError as e:
                 logger.warning(f"Could not decrypt PDF {file}, {e}")
-                return text  # Return empty text if PDF could not be decrypted
+            return text  # Return empty text if PDF could not be decrypted
 
         for page_num in range(len(reader.pages)):
             page = reader.pages[page_num]
