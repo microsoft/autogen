@@ -126,7 +126,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
-                - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat. Default is False.
+                - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
+                    This is the same as that used in chromadb. Default is False.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
