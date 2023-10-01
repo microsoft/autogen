@@ -100,6 +100,10 @@ You can also explicitly specify that by:
 assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
 
+### Can I use non-OpenAI models?
+
+Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+
 ## Handle Rate Limit Error and Timeout Error
 
 You can set `retry_wait_time` and `max_retry_period` to handle rate limit error. And you can set `request_timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
