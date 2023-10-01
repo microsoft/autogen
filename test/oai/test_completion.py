@@ -227,7 +227,7 @@ def test_humaneval(num_samples=1):
         config_list=autogen.config_list_from_models(KEY_LOC, model_list=["gpt-3.5-turbo"]),
         prompt="",
         max_tokens=1,
-        retry_timeout=0,
+        max_retry_period=0,
         raise_on_ratelimit_or_timeout=False,
     )
     # assert response == -1
