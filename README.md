@@ -148,3 +148,40 @@ Privacy information can be found at https://privacy.microsoft.com/en-us/
 
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
 or trademarks, whether by implication, estoppel or otherwise.
+
+
+## Citation  
+[AutoGen](https://arxiv.org/abs/2308.08155). 
+``` 
+@inproceedings{wu2023autogen,
+      title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
+      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
+      year={2023},
+      eprint={2308.08155},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI}
+}
+```
+
+[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+```
+@inproceedings{wang2023EcoOptiGen,
+    title={Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference},
+    author={Chi Wang and Susan Xueqing Liu and Ahmed H. Awadallah},
+    year={2023},
+    booktitle={AutoML'23},
+}
+```
+
+ [MathChat](https://arxiv.org/abs/2306.01337). 
+
+```
+@inproceedings{wu2023empirical,
+    title={An Empirical Study on Challenging Math Problem Solving with GPT-4},
+    author={Yiran Wu and Feiran Jia and Shaokun Zhang and Hangyu Li and Erkang Zhu and Yue Wang and Yin Tat Lee and Richard Peng and Qingyun Wu and Chi Wang},
+    year={2023},
+    booktitle={ArXiv preprint arXiv:2306.01337},
+}
+```
+
+
