@@ -55,10 +55,10 @@ def num_tokens_from_text(
         tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
         tokens_per_name = -1  # if there's a name, the role is omitted
     elif "gpt-3.5-turbo" in model or "gpt-35-turbo" in model:
-        print("Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613.")
+        logger.warning("Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613.")
         return num_tokens_from_text(text, model="gpt-3.5-turbo-0613")
     elif "gpt-4" in model:
-        print("Warning: gpt-4 may update over time. Returning num tokens assuming gpt-4-0613.")
+        logger.warning("Warning: gpt-4 may update over time. Returning num tokens assuming gpt-4-0613.")
         return num_tokens_from_text(text, model="gpt-4-0613")
     else:
         raise NotImplementedError(
@@ -261,7 +261,7 @@ def create_vector_db_from_dir(
         )
 
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
-        print(f"Found {len(chunks)} chunks.")
+        logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
         for i in range(0, len(chunks), min(40000, len(chunks))):
             end_idx = i + min(40000, len(chunks) - i)
