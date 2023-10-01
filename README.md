@@ -149,9 +149,7 @@ or trademarks, whether by implication, estoppel or otherwise.
 
 ## Citation  
 [AutoGen](https://arxiv.org/abs/2308.08155). 
-AND  [EcoOptiGen](https://arxiv.org/abs/2303.04673).
 ``` 
-bibtex
 @inproceedings{wu2023autogen,
       title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
       author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
@@ -160,8 +158,10 @@ bibtex
       archivePrefix={arXiv},
       primaryClass={cs.AI}
 }
+```
 
-bibtex
+[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+```
 @inproceedings{wang2023EcoOptiGen,
     title={Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference},
     author={Chi Wang and Susan Xueqing Liu and Ahmed H. Awadallah},
@@ -173,7 +173,6 @@ bibtex
  [MathChat](https://arxiv.org/abs/2306.01337). 
 
 ```
-bibtex
 @inproceedings{wu2023empirical,
     title={An Empirical Study on Challenging Math Problem Solving with GPT-4},
     author={Yiran Wu and Feiran Jia and Shaokun Zhang and Hangyu Li and Erkang Zhu and Yue Wang and Yin Tat Lee and Richard Peng and Qingyun Wu and Chi Wang},
