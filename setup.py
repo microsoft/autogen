@@ -18,6 +18,7 @@ install_requires = [
     "diskcache",
     "termcolor",
     "flaml",
+    "python-dotenv",
 ]
 
 

@@ -1,7 +1,11 @@
 import os
 import json
+import tempfile
+from pathlib import Path
 from typing import List, Optional, Dict, Set, Union
 import logging
+from dotenv import find_dotenv, load_dotenv
+
 
 NON_CACHE_KEY = ["api_key", "api_base", "api_type", "api_version"]
 
@@ -239,3 +243,78 @@ def config_list_from_json(
         except FileNotFoundError:
             return []
     return filter_config(config_list, filter_dict)
+
+
+def config_list_from_dotenv(
+    dotenv_file_path: Optional[str] = None, api_key_env_var: str = "OPENAI_API_KEY", filter_dict: Optional[dict] = None
+) -> List[Dict[str, Union[str, Set[str]]]]:
+    """
+    Loads configuration details from a .env file or from the environment,
+    creates a temporary JSON structure, and sets configurations for autogen.
+
+    Args:
+        dotenv_file_path (str, optional): The path to the .env file. If not provided,
+            it will look for a .env file using the find_dotenv method from the dotenv module.
+        filter_dict (dict, optional): A dictionary containing the models to be loaded.
+            If not provided, it defaults to loading 'gpt-4' and 'gpt-3.5-turbo'.
+        api_key_env_var (str, optional): The name of the environment variable where the API key is stored.
+            Defaults to 'OPENAI_API_KEY'.
+
+    Returns:
+        config_list: A list of configurations loaded from the .env file or the environment.
+        Each configuration is a dictionary containing:
+            - model (str): The model name, e.g., 'gpt-4' or 'gpt-3.5-turbo'.
+            - api_key (str): The API key for OpenAI.
+
+    Raises:
+        ValueError: If no configurations are loaded or if the API key is not found in the environment variables.
+
+    Example:
+        >>> config_list_from_dotenv(dotenv_file_path='path_to_dotenv_file', api_key_env_var='OPENAI_API_KEY')
+        [
+            {'model': 'gpt-4', 'api_key': 'some_api_key'},
+            {'model': 'gpt-3.5-turbo', 'api_key': 'some_api_key'}
+        ]
+    """
+    if dotenv_file_path:
+        dotenv_path = Path(dotenv_file_path)
+        if not dotenv_path.exists():
+            raise FileNotFoundError(f"The specified .env file {dotenv_file_path} does not exist.")
+        load_dotenv(dotenv_path)
+    else:
+        # if the find_dotenv method returns an empty string, it means it didn't find a .env file.
+        dotenv_path = find_dotenv()
+        if not dotenv_path:
+            logging.warning("No .env file found. Loading configurations from environment variables.")
+        else:
+            load_dotenv(dotenv_path)
+
+    openai_api_key = os.getenv(api_key_env_var)
+
+    if openai_api_key is None:
+        logging.error(f"{api_key_env_var} not found. Please ensure path to .env file is correct.")
+        return []
+
+    if not filter_dict:
+        filter_dict = {
+            "model": {
+                "gpt-4",
+                "gpt-3.5-turbo",
+            }
+        }
+
+    env_var = [{"model": model, "api_key": openai_api_key} for model in filter_dict["model"]]
+
+    with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp:
+        env_var = json.dumps(env_var)
+        temp.write(env_var)
+        temp.flush()
+
+        config_list = config_list_from_json(env_or_file=temp.name, filter_dict=filter_dict)
+
+    if len(config_list) == 0:
+        logging.error("No configurations loaded.")
+        return []
+
+    logging.info(f"Models available: {[config['model'] for config in config_list]}")
+    return config_list
