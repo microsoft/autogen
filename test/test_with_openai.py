@@ -36,23 +36,22 @@ def test_function_call_groupchat():
                 "parameters": {
                     "type": "object",
                     "properties": {},
-                    "required": [],
                 },
             },
         ],
     }
     user_proxy = autogen.UserProxyAgent(
         name="User_proxy",
-        system_message="A human admin that will execute code.",
+        system_message="A human admin that will execute function_calls.",
         function_map={"get_random_number": get_random_number},
         human_input_mode="NEVER",
     )
     coder = autogen.AssistantAgent(
         name="Player",
-        system_message="You will can function 'get_random_number' to get a random number. Reply 'TERMINATE' when you get at least 1 even number and 1 odd number.",
+        system_message="You will can function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
         llm_config=llm_config,
     )
-    groupchat = autogen.GroupChat(agents=[user_proxy, coder], messages=[], max_round=10)
+    groupchat = autogen.GroupChat(agents=[user_proxy, coder], messages=[], max_round=7)
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
     user_proxy.initiate_chat(manager, message="Let's start the game!")
