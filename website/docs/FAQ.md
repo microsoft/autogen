@@ -100,6 +100,10 @@ You can also explicitly specify that by:
 assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
 
+### Can I use non-OpenAI models?
+
+Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+
 ## Handle Rate Limit Error and Timeout Error
 
 You can set `retry_wait_time` and `max_retry_period` to handle rate limit error. And you can set `request_timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
@@ -109,3 +113,24 @@ You can set `retry_wait_time` and `max_retry_period` to handle rate limit error.
 - `request_timeout` (int): the timeout (in seconds) sent with a single request.
 
 Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-error) for more info.
+
+## How to continue a finished conversation
+
+When you call `initiate_chat` the conversation restarts by default. You can use `send` or `initiate_chat(clear_history=False)` to continue the conversation.
+
+## How do we decide what LLM is used for each agent? How many agents can be used? How do we decide how many agents in the group?
+
+Each agent can be customized. You can use LLMs, tools or human behind each agent. If you use an LLM for an agent, use the one best suited for its role. There is no limit of the number of agents, but start from a small number like 2, 3. The more capable is the LLM and the fewer roles you need, the fewer agents you need.
+
+The default user proxy agent doesn't use LLM. If you'd like to use an LLM in UserProxyAgent, the use case could be to simulate user's behavior.
+
+The default assistant agent is instructed to use both coding and language skills. It doesn't have to do coding, depending on the tasks. And you can customize the system message. So if you want to use it for coding, use a model that's good at coding.
+
+## Why is code not saved as file?
+
+If you are using a custom system message for the coding agent, please include something like:
+`If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line.`
+in the system message. This line is in the default system message of the `AssistantAgent`.
+
+If the `# filename` doesn't appear in the suggested code still, consider adding explicit instructions such as "save the code to disk" in the initial user message in `initiate_chat`.
+The `AssistantAgent` doesn't save all the code by default, because there are cases in which one would just like to finish a task without saving the code.
