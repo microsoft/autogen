@@ -603,9 +603,7 @@ class Completion(openai_Completion):
             space["prompt"] = tune.choice(list(range(len(cls._prompts))))
         cls._stops = space.get("stop")
         if cls._stops:
-            if not isinstance(
-                cls._stops, (str, list)
-            ):
+            if not isinstance(cls._stops, (str, list)):
                 error_msg = "stop must be a string, a list of strings, or a list of lists of strings."
                 logger.error(error_msg)
                 raise AssertionError(error_msg)
