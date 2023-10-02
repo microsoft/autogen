@@ -611,25 +611,26 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
         last_n_messages = code_execution_config.pop("last_n_messages", 1)
+
+        # iterate through the last n messages reversly
+        # if code blocks are found, execute the code blocks and return the output
+        # if no code blocks are found, continue
         for i in range(min(len(messages), last_n_messages)):
             message = messages[-(i + 1)]
             code_blocks = extract_code(message["content"])
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-                # no code block is found, lang should be `UNKNOWN`
-
-                if i == last_n_messages - 1:
-                    code_execution_config["last_n_messages"] = last_n_messages
-                    return False, None
                 continue
-                # code_blocks, _ = find_code(messages, sys_msg=self._oai_system_message, **self.llm_config)
-                # if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-                #     return code_blocks[0][1]
-            # try to execute the code
+
+            # found code blocks, execute code and push "last_n_messages" back
             exitcode, logs = self.execute_code_blocks(code_blocks)
+            code_execution_config["last_n_messages"] = last_n_messages
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            break
+            return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        # no code blocks are found, push last_n_messages back and return.
         code_execution_config["last_n_messages"] = last_n_messages
-        return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        return False, None
 
     def generate_function_call_reply(
         self,
