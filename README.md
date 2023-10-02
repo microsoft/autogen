@@ -58,7 +58,12 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
 ## Quickstart
+## Features of AutoGen
 
+- **Multi-agent conversations**: AutoGen agents can communicate with each other to solve tasks. This allows for more complex and sophisticated applications than would be possible with a single LLM.
+- **Customization**: AutoGen agents can be customized to meet the specific needs of an application. This includes the ability to choose the LLMs to use, the types of human input to allow, and the tools to employ.
+- **Human participation**: AutoGen seamlessly allows human participation. This means that humans can provide input and feedback to the agents as needed.
+## Multi-Agent Conversation Framework
 * Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools, and humans.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For [example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py),
 ```python
@@ -72,15 +77,6 @@ user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "co
 user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
 # This initiates an automated chat between the two agents to solve the task
 ```
-### Multi-agent conversations
-AutoGen agents can communicate with each other to solve tasks. This allows for more complex and sophisticated applications than would be possible with a single LLM.
-
-### Customization
-AutoGen agents can be customized to meet the specific needs of an application. This includes the ability to choose the LLMs to use, the types of human input to allow, and the tools to employ.
-
-### Human participation
-AutoGen seamlessly allows human participation. This means that humans can provide input and feedback to the agents as needed.
-
 
 This example can be run with
 ```python
@@ -91,7 +87,7 @@ The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
 
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-AgentChat) for this feature.
-
+## Enhanced LLM Inferences
 * Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` adding powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
 # perform tuning
