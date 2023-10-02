@@ -1,6 +1,7 @@
 import autogen
 import pytest
 import sys
+
 try:
     import openai
 
