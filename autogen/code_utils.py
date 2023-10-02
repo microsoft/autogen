@@ -33,7 +33,14 @@ def infer_lang(code):
     """
     if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
         return "sh"
-    return "python"
+
+    # check if code is a valid python code
+    try:
+        compile(code, "test", "exec")
+        return "python"
+    except SyntaxError:
+        # not a valid python code
+        return UNKNOWN
 
 
 def extract_code(
@@ -258,7 +265,7 @@ def execute_code(
     file_dir = os.path.dirname(filepath)
     os.makedirs(file_dir, exist_ok=True)
     if code is not None:
-        with open(filepath, "w") as fout:
+        with open(filepath, "w", encoding="utf-8") as fout:
             fout.write(code)
     # check if already running in a docker container
     in_docker_container = os.path.exists("/.dockerenv")
