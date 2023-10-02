@@ -259,6 +259,7 @@ class ConversableAgent(Agent):
         If the message received is a string, it will be put in the "content" field of the new dictionary.
         If the message received is a dictionary but does not have any of the two fields "content" or "function_call",
             this message is not a valid ChatCompletion message.
+        If only "function_call" is provided, "content" will be set to None if not provided, and the role of the message will be forced "assistant".
 
         Args:
             message (dict or str): message to be appended to the ChatCompletion conversation.
@@ -271,10 +272,15 @@ class ConversableAgent(Agent):
         message = self._message_to_dict(message)
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
         oai_message = {k: message[k] for k in ("content", "function_call", "name", "context") if k in message}
-        if "content" not in oai_message and "function_call" not in oai_message:
-            return False
+        if "content" not in oai_message:
+            if "function_call" in oai_message:
+                oai_message["content"] = None  # if only function_call is provided, content will be set to None.
+            else:
+                return False
 
         oai_message["role"] = "function" if message.get("role") == "function" else role
+        if "function_call" in oai_message:
+            oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
@@ -289,8 +295,8 @@ class ConversableAgent(Agent):
 
         Args:
             message (dict or str): message to be sent.
-                The message could contain the following fields (either content or function_call must be provided):
-                - content (str): the content of the message.
+                The message could contain the following fields:
+                - content (str): Required, the content of the message. (Can be None)
                 - function_call (str): the name of the function to be called.
                 - name (str): the name of the function to be called.
                 - role (str): the role of the message, any role that is not "function"
@@ -338,8 +344,8 @@ class ConversableAgent(Agent):
 
         Args:
             message (dict or str): message to be sent.
-                The message could contain the following fields (either content or function_call must be provided):
-                - content (str): the content of the message.
+                The message could contain the following fields:
+                - content (str): Required, the content of the message. (Can be None)
                 - function_call (str): the name of the function to be called.
                 - name (str): the name of the function to be called.
                 - role (str): the role of the message, any role that is not "function"

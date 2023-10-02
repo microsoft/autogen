@@ -69,6 +69,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
+          coverage run -a -m pytest test/test_with_openai.py
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
