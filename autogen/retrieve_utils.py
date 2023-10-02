@@ -96,7 +96,8 @@ def split_text_to_chunks(
     overlap: int = 10,
 ):
     """Split a long text into chunks of max_tokens."""
-    assert chunk_mode in {"one_line", "multi_lines"}
+    if chunk_mode not in {"one_line", "multi_lines"}:
+        raise AssertionError
     if chunk_mode == "one_line":
         must_break_at_empty_line = False
     chunks = []
