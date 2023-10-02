@@ -29,6 +29,7 @@ TEXT_FORMATS = [
     "yml",
     "pdf",
 ]
+VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
 def num_tokens_from_text(
@@ -96,7 +97,7 @@ def split_text_to_chunks(
     overlap: int = 10,
 ):
     """Split a long text into chunks of max_tokens."""
-    if chunk_mode not in {"one_line", "multi_lines"}:
+    if chunk_mode not in VALID_CHUNK_MODES:
         raise AssertionError
     if chunk_mode == "one_line":
         must_break_at_empty_line = False
