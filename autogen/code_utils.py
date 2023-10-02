@@ -252,7 +252,11 @@ def execute_code(
         str: The error message if the code fails to execute; the stdout otherwise.
         image: The docker image name after container run when docker is used.
     """
-    assert code is not None or filename is not None, "Either code or filename must be provided."
+    if all((code is None, filename is None)):
+        error_msg = f"Either {code=} or {filename=} must be provided."
+        logger.error(error_msg)
+        raise AssertionError(error_msg)
+
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
     if WIN32 and lang in ["sh", "shell"]:
