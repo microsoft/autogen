@@ -26,6 +26,8 @@ DEFAULT_TIMEOUT = 600
 WIN32 = sys.platform == "win32"
 PATH_SEPARATOR = WIN32 and "\\" or "/"
 
+logger = logging.getLogger(__name__)
+
 
 def infer_lang(code):
     """infer the language for the code.
@@ -276,7 +278,7 @@ def execute_code(
             f".\\{filename}" if WIN32 else filename,
         ]
         if WIN32:
-            logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
+            logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,
