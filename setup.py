@@ -39,6 +39,7 @@ setuptools.setup(
     extras_require={
         "test": [
             "pytest>=6.1.1",
+            "pytest-asyncio",
             "coverage>=5.3",
             "pre-commit",
             "datasets",
