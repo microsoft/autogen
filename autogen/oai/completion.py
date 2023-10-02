@@ -590,7 +590,7 @@ class Completion(openai_Completion):
                 cls._messages = [cls._messages]
             space["messages"] = tune.choice(list(range(len(cls._messages))))
         else:
-            if space.get("messages") is None:
+            if space.get("messages") is not None:
                 error_msg = "messages and prompt cannot be provided at the same time."
                 logger.error(error_msg)
                 raise AssertionError(error_msg)
