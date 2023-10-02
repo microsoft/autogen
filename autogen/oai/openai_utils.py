@@ -291,9 +291,9 @@ def config_list_from_dotenv(
 
     openai_api_key = os.getenv(api_key_env_var)
 
-    if openai_api_key is None:
-        logging.error(f"{api_key_env_var} not found. Please ensure path to .env file is correct.")
-        return []
+    # check if openai_api_key is None or contains only whitespace
+    if not openai_api_key or openai_api_key.strip() == "":
+        raise ValueError(f"{api_key_env_var} not found or empty. Please ensure path to .env file is correct.")
 
     if not filter_dict:
         filter_dict = {

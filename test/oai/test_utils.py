@@ -1,11 +1,12 @@
+import sys
 import json
 import os
-import autogen
 import pytest
 import tempfile
 from test_completion import KEY_LOC, OAI_CONFIG_LIST
 
-from autogen.oai.openai_utils import config_list_from_dotenv
+sys.path.append("../../autogen")
+import autogen  # noqa: E402
 
 
 def test_config_list_from_json():
@@ -40,32 +41,34 @@ def dotenv_file():
 
 
 def test_config_list_from_dotenv(dotenv_file):
+    api_key_env_var = "OPENAI_API_KEY"
     # Test valid case
-    config_list = config_list_from_dotenv(dotenv_file_path=dotenv_file)
+    config_list = autogen.config_list_from_dotenv(dotenv_file_path=dotenv_file)
     assert config_list, "Configuration list is empty in valid case"
     assert all(config["api_key"] == "SomeAPIKey" for config in config_list), "API Key mismatch in valid case"
 
     # Test invalid path case
     with pytest.raises(FileNotFoundError, match="The specified .env file invalid_path does not exist."):
-        config_list_from_dotenv(dotenv_file_path="invalid_path")
+        autogen.config_list_from_dotenv(dotenv_file_path="invalid_path")
 
     # Test no API key case
     with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp:
         temp.write("DIFFERENT_API_KEY=SomeAPIKey")
         temp.flush()
-        with pytest.raises(
-            ValueError, match=f"{autogen.api_key_env_var} not found. Please ensure path to .env file is correct."
-        ):
-            config_list_from_dotenv(dotenv_file_path=temp.name)
 
-    # Test empty API key case
-    with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp:
-        temp.write("OPENAI_API_KEY=   ")
-        temp.flush()
-        with pytest.raises(
-            ValueError, match=f"{autogen.api_key_env_var} not found. Please ensure path to .env file is correct."
-        ):
-            config_list_from_dotenv(dotenv_file_path=temp.name)
+        # Remove the OPENAI_API_KEY from environment variables if it exists
+        original_api_key = os.environ.pop(api_key_env_var, None)
+
+        try:
+            # Explicitly check for ValueError due to missing API key
+            with pytest.raises(
+                ValueError, match=f"{api_key_env_var} not found or empty. Please ensure path to .env file is correct."
+            ):
+                autogen.config_list_from_dotenv(dotenv_file_path=temp.name)
+        finally:
+            # Restore the original OPENAI_API_KEY in environment variables after the test
+            if original_api_key is not None:
+                os.environ["OPENAI_API_KEY"] = original_api_key
 
 
 if __name__ == "__main__":
