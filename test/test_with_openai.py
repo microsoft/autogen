@@ -1,6 +1,18 @@
 import autogen
+import pytest
+import sys
+try:
+    import openai
+
+    skip = False
+except ImportError:
+    skip = True
 
 
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
 def test_function_call_groupchat():
     import random
 
