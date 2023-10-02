@@ -1,5 +1,6 @@
 import autogen
 
+
 def test_function_call_groupchat():
     import random
 
@@ -42,6 +43,7 @@ def test_function_call_groupchat():
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
     user_proxy.initiate_chat(manager, message="Let's start the game!")
+
 
 if __name__ == "__main__":
     test_function_call_groupchat()
