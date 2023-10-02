@@ -151,9 +151,9 @@ Microsoft and any contributors reserve all other rights, whether under their res
 or trademarks, whether by implication, estoppel or otherwise.
 
 
-## Citation  
-[AutoGen](https://arxiv.org/abs/2308.08155). 
-``` 
+## Citation
+[AutoGen](https://arxiv.org/abs/2308.08155).
+```
 @inproceedings{wu2023autogen,
       title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
       author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
@@ -174,7 +174,7 @@ or trademarks, whether by implication, estoppel or otherwise.
 }
 ```
 
- [MathChat](https://arxiv.org/abs/2306.01337). 
+[MathChat](https://arxiv.org/abs/2306.01337).
 
 ```
 @inproceedings{wu2023empirical,
@@ -184,5 +184,3 @@ or trademarks, whether by implication, estoppel or otherwise.
     booktitle={ArXiv preprint arXiv:2306.01337},
 }
 ```
-
-
