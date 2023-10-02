@@ -259,6 +259,7 @@ class ConversableAgent(Agent):
         If the message received is a string, it will be put in the "content" field of the new dictionary.
         If the message received is a dictionary but does not have any of the two fields "content" or "function_call",
             this message is not a valid ChatCompletion message.
+        If only "function_call" is provided, "content" will be set to None if not provided, and the role of the message will be forced "assistant".
 
         Args:
             message (dict or str): message to be appended to the ChatCompletion conversation.
@@ -271,10 +272,15 @@ class ConversableAgent(Agent):
         message = self._message_to_dict(message)
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
         oai_message = {k: message[k] for k in ("content", "function_call", "name", "context") if k in message}
-        if "content" not in oai_message and "function_call" not in oai_message:
-            return False
+        if "content" not in oai_message:
+            if "function_call" in oai_message:
+                oai_message["content"] = None  # if only function_call is provided, content will be set to None.
+            else:
+                return False
 
         oai_message["role"] = "function" if message.get("role") == "function" else role
+        if "function_call" in oai_message:
+            oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
@@ -289,8 +295,8 @@ class ConversableAgent(Agent):
 
         Args:
             message (dict or str): message to be sent.
-                The message could contain the following fields (either content or function_call must be provided):
-                - content (str): the content of the message.
+                The message could contain the following fields:
+                - content (str): Required, the content of the message. (Can be None)
                 - function_call (str): the name of the function to be called.
                 - name (str): the name of the function to be called.
                 - role (str): the role of the message, any role that is not "function"
@@ -338,8 +344,8 @@ class ConversableAgent(Agent):
 
         Args:
             message (dict or str): message to be sent.
-                The message could contain the following fields (either content or function_call must be provided):
-                - content (str): the content of the message.
+                The message could contain the following fields:
+                - content (str): Required, the content of the message. (Can be None)
                 - function_call (str): the name of the function to be called.
                 - name (str): the name of the function to be called.
                 - role (str): the role of the message, any role that is not "function"
@@ -611,25 +617,26 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
         last_n_messages = code_execution_config.pop("last_n_messages", 1)
+
+        # iterate through the last n messages reversly
+        # if code blocks are found, execute the code blocks and return the output
+        # if no code blocks are found, continue
         for i in range(min(len(messages), last_n_messages)):
             message = messages[-(i + 1)]
             code_blocks = extract_code(message["content"])
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-                # no code block is found, lang should be `UNKNOWN`
-
-                if i == last_n_messages - 1:
-                    code_execution_config["last_n_messages"] = last_n_messages
-                    return False, None
                 continue
-                # code_blocks, _ = find_code(messages, sys_msg=self._oai_system_message, **self.llm_config)
-                # if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-                #     return code_blocks[0][1]
-            # try to execute the code
+
+            # found code blocks, execute code and push "last_n_messages" back
             exitcode, logs = self.execute_code_blocks(code_blocks)
+            code_execution_config["last_n_messages"] = last_n_messages
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            break
+            return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        # no code blocks are found, push last_n_messages back and return.
         code_execution_config["last_n_messages"] = last_n_messages
-        return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        return False, None
 
     def generate_function_call_reply(
         self,

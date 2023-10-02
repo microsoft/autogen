@@ -153,6 +153,10 @@ def test_infer_lang():
     assert infer_lang("print('hello world')") == "python"
     assert infer_lang("pip install autogen") == "sh"
 
+    # test infer lang for unknown code/invalid code
+    assert infer_lang("dummy text") == UNKNOWN
+    assert infer_lang("print('hello world'))") == UNKNOWN
+
 
 def test_extract_code():
     print(extract_code("```bash\npython temp.py\n```"))
