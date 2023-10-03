@@ -2,6 +2,17 @@ import pytest
 from autogen.agentchat import ConversableAgent
 
 
+@pytest.fixture
+def conversable_agent():
+    return ConversableAgent(
+        "conversable_agent_0",
+        max_consecutive_auto_reply=10,
+        code_execution_config=False,
+        llm_config=False,
+        human_input_mode="NEVER",
+    )
+
+
 def test_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
@@ -74,6 +85,48 @@ def test_context():
         agent,
     )
     # expect hello there to be printed
+
+
+def test_generate_code_execution_reply():
+    agent = ConversableAgent(
+        "a0", max_consecutive_auto_reply=10, code_execution_config=False, llm_config=False, human_input_mode="NEVER"
+    )
+
+    dummy_messages = [
+        {
+            "content": "no code block",
+            "role": "user",
+        },
+        {
+            "content": "no code block",
+            "role": "user",
+        },
+    ]
+
+    code_message = {
+        "content": '```python\nprint("hello world")\n```',
+        "role": "user",
+    }
+
+    # scenario 1: if code_execution_config is not provided, the code execution should return false, none
+    assert agent.generate_code_execution_reply(dummy_messages, config=False) == (False, None)
+
+    # scenario 2: if code_execution_config is provided, but no code block is found, the code execution should return false, none
+    assert agent.generate_code_execution_reply(dummy_messages, config={}) == (False, None)
+
+    # scenario 3: if code_execution_config is provided, and code block is found, but it's not within the range of last_n_messages, the code execution should return false, none
+    assert agent.generate_code_execution_reply([code_message] + dummy_messages, config={"last_n_messages": 1}) == (
+        False,
+        None,
+    )
+
+    # scenario 4: if code_execution_config is provided, and code block is found, and it's within the range of last_n_messages, the code execution should return true, code block
+    agent._code_execution_config = {"last_n_messages": 3, "use_docker": False}
+    assert agent.generate_code_execution_reply([code_message] + dummy_messages) == (
+        True,
+        "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+    )
+    assert agent._code_execution_config["last_n_messages"] == 3
 
 
 def test_max_consecutive_auto_reply():
@@ -173,6 +226,17 @@ def test_generate_reply():
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
     ), "generate_reply not working when messages is None"
+
+
+def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
+    with pytest.raises(AssertionError):
+        conversable_agent.generate_reply(messages=None, sender=None)
+
+
+@pytest.mark.asyncio
+async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
+    with pytest.raises(AssertionError):
+        await conversable_agent.a_generate_reply(messages=None, sender=None)
 
 
 if __name__ == "__main__":

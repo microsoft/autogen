@@ -23,6 +23,10 @@ WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensi
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
 DEFAULT_TIMEOUT = 600
+WIN32 = sys.platform == "win32"
+PATH_SEPARATOR = WIN32 and "\\" or "/"
+
+logger = logging.getLogger(__name__)
 
 
 def infer_lang(code):
@@ -31,27 +35,53 @@ def infer_lang(code):
     """
     if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
         return "sh"
-    return "python"
+
+    # check if code is a valid python code
+    try:
+        compile(code, "test", "exec")
+        return "python"
+    except SyntaxError:
+        # not a valid python code
+        return UNKNOWN
 
 
-def extract_code(text: str, pattern: str = CODE_BLOCK_PATTERN) -> List[Tuple[str, str]]:
+def extract_code(
+    text: str, pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
+) -> List[Tuple[str, str]]:
     """Extract code from a text.
 
     Args:
         text (str): The text to extract code from.
-        pattern (Optional, str): The regular expression pattern for finding the code block.
+        pattern (str, optional): The regular expression pattern for finding the
+            code block. Defaults to CODE_BLOCK_PATTERN.
+        detect_single_line_code (bool, optional): Enable the new feature for
+            extracting single line code. Defaults to False.
 
     Returns:
         list: A list of tuples, each containing the language and the code.
+          If there is no code block in the input text, the language would be "unknown".
+          If there is code block but the language is not specified, the language would be "".
     """
-    # Use a regular expression to find all the code blocks
-    match = re.findall(pattern, text, flags=re.DOTALL)
-    # match = re.search(pattern, text, flags=re.DOTALL)
-    # If a match is found, return the code
-    # if match:
-    #     return match.group(2), match.group(1)
-    # If no code block is found, return the whole text
-    return match if match else [(UNKNOWN, text)]
+    if not detect_single_line_code:
+        match = re.findall(pattern, text, flags=re.DOTALL)
+        return match if match else [(UNKNOWN, text)]
+
+    # Extract both multi-line and single-line code block, separated by the | operator
+    # `{3}(\w+)?\s*([\s\S]*?)`{3}: Matches multi-line code blocks.
+    #    The (\w+)? matches the language, where the ? indicates it is optional.
+    # `([^`]+)`: Matches inline code.
+    code_pattern = re.compile(r"`{3}(\w+)?\s*([\s\S]*?)`{3}|`([^`]+)`")
+    code_blocks = code_pattern.findall(text)
+
+    # Extract the individual code blocks and languages from the matched groups
+    extracted = []
+    for lang, group1, group2 in code_blocks:
+        if group1:
+            extracted.append((lang.strip(), group1.strip()))
+        elif group2:
+            extracted.append(("", group2.strip()))
+
+    return extracted
 
 
 # _FIND_CODE_SYS_MSG = [
@@ -174,10 +204,12 @@ def timeout_handler(signum, frame):
 
 
 def _cmd(lang):
-    if lang.startswith("python") or lang in ["bash", "sh"]:
+    if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
         return lang
-    if lang == "shell":
+    if lang in ["shell"]:
         return "sh"
+    if lang in ["ps1"]:
+        return "powershell"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
@@ -220,9 +252,15 @@ def execute_code(
         str: The error message if the code fails to execute; the stdout otherwise.
         image: The docker image name after container run when docker is used.
     """
-    assert code is not None or filename is not None, "Either code or filename must be provided."
+    if all((code is None, filename is None)):
+        error_msg = f"Either {code=} or {filename=} must be provided."
+        logger.error(error_msg)
+        raise AssertionError(error_msg)
+
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
+    if WIN32 and lang in ["sh", "shell"]:
+        lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
         # create a file with a automatically generated name
@@ -233,19 +271,23 @@ def execute_code(
     file_dir = os.path.dirname(filepath)
     os.makedirs(file_dir, exist_ok=True)
     if code is not None:
-        with open(filepath, "w") as fout:
+        with open(filepath, "w", encoding="utf-8") as fout:
             fout.write(code)
     # check if already running in a docker container
     in_docker_container = os.path.exists("/.dockerenv")
     if not use_docker or in_docker_container:
         # already running in a docker container
-        cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename]
-        if sys.platform == "win32":
-            logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
+        cmd = [
+            sys.executable if lang.startswith("python") else _cmd(lang),
+            f".\\{filename}" if WIN32 else filename,
+        ]
+        if WIN32:
+            logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,
                 capture_output=True,
+                text=True,
             )
         else:
             signal.signal(signal.SIGALRM, timeout_handler)
@@ -271,7 +313,7 @@ def execute_code(
                 abs_path = str(pathlib.Path(filepath).absolute())
                 logs = logs.replace(str(abs_path), "").replace(filename, "")
             else:
-                abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
+                abs_path = str(pathlib.Path(work_dir).absolute()) + PATH_SEPARATOR
                 logs = logs.replace(str(abs_path), "")
         else:
             logs = result.stdout

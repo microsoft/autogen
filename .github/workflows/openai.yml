@@ -4,7 +4,7 @@
 name: OpenAI
 
 on:
-  pull_request:
+  pull_request_target:
     branches: ['main']
     paths:
       - 'autogen/**'
@@ -25,7 +25,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: openai
     steps:
-      - uses: actions/checkout@v3
+      # checkout to pr branch
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -34,7 +38,7 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[tune]
+          pip install -e.[blendsearch]
           python -c "import autogen"
           pip install coverage pytest-asyncio datasets
       - name: Install packages for test when needed
@@ -46,7 +50,7 @@ jobs:
         run: |
           pip install -e .[mathchat]
       - name: Install packages for RetrieveChat when needed
-        if: matrix.python-version != '3.11'
+        if: matrix.python-version == '3.9'
         run: |
           pip install -e .[retrievechat]
       - name: Coverage
@@ -69,6 +73,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
+          coverage run -a -m pytest test/test_with_openai.py
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"

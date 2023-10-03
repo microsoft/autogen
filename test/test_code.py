@@ -9,6 +9,8 @@ from autogen.code_utils import (
     infer_lang,
     improve_code,
     improve_function,
+    PATH_SEPARATOR,
+    WIN32,
 )
 
 KEY_LOC = "notebook"
@@ -151,6 +153,10 @@ def test_infer_lang():
     assert infer_lang("print('hello world')") == "python"
     assert infer_lang("pip install autogen") == "sh"
 
+    # test infer lang for unknown code/invalid code
+    assert infer_lang("dummy text") == UNKNOWN
+    assert infer_lang("print('hello world'))") == UNKNOWN
+
 
 def test_extract_code():
     print(extract_code("```bash\npython temp.py\n```"))
@@ -161,9 +167,22 @@ Example:
 ```
 print("hello extract code")
 ```
-"""
+""",
+        detect_single_line_code=False,
     )
     print(codeblocks)
+
+    codeblocks2 = extract_code(
+        """
+Example:
+```
+print("hello extract code")
+```
+""",
+        detect_single_line_code=True,
+    )
+    assert codeblocks2 == codeblocks
+    # import pdb; pdb.set_trace()
 
     codeblocks = extract_code(
         """
@@ -190,38 +209,72 @@ print(f"Text: {text}")
     codeblocks = extract_code("no code block")
     assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, "no code block")
 
+    # Disable single line code detection
+    line = "Run `source setup.sh` from terminal"
+    codeblocks = extract_code(line, detect_single_line_code=False)
+    assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, line)
+
+    # Enable single line code detection
+    codeblocks = extract_code("Run `source setup.sh` from terminal", detect_single_line_code=True)
+    assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
+
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows",
+    sys.platform in ["darwin"],
+    reason="do not run on MacOS",
 )
-def test_execute_code():
+def test_execute_code(use_docker=None):
     try:
         import docker
     except ImportError as exc:
         print(exc)
         docker = None
-    exit_code, msg, image = execute_code("print('hello world')", filename="tmp/codetest.py")
+    if use_docker is None:
+        use_docker = docker is not None
+    exit_code, msg, image = execute_code("print('hello world')", filename="tmp/codetest.py", use_docker=use_docker)
     assert exit_code == 0 and msg == "hello world\n", msg
     # read a file
-    print(execute_code("with open('tmp/codetest.py', 'r') as f: a=f.read()"))
+    print(execute_code("with open('tmp/codetest.py', 'r') as f: a=f.read()", use_docker=use_docker))
     # create a file
     exit_code, msg, image = execute_code(
-        "with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp", filename="tmp2/codetest.py"
+        "with open('tmp/codetest.py', 'w') as f: f.write('b=1')",
+        work_dir=f"{here}/my_tmp",
+        filename="tmp2/codetest.py",
+        use_docker=use_docker,
     )
-    assert exit_code and 'File "tmp2/codetest.py"' in msg, msg
-    print(execute_code("with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp"))
+    assert exit_code and (
+        'File "tmp2/codetest.py"'.replace("/", PATH_SEPARATOR) in msg
+        or 'File ".\\tmp2/codetest.py' in msg  # py3.8 + win32
+    ), msg
+    print(
+        execute_code(
+            "with open('tmp/codetest.py', 'w') as f: f.write('b=1')", work_dir=f"{here}/my_tmp", use_docker=use_docker
+        )
+    )
     # execute code in a file
-    print(execute_code(filename="tmp/codetest.py"))
-    print(execute_code("python tmp/codetest.py", lang="sh"))
+    print(execute_code(filename="tmp/codetest.py", use_docker=use_docker))
+    print(execute_code("python tmp/codetest.py", lang="sh", use_docker=use_docker))
     # execute code for assertion error
-    exit_code, msg, image = execute_code("assert 1==2")
+    exit_code, msg, image = execute_code("assert 1==2", use_docker=use_docker)
     assert exit_code, msg
-    assert 'File ""' in msg
+    assert 'File ""' in msg or 'File ".\\"' in msg  # py3.8 + win32
     # execute code which takes a long time
-    exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1)
-    assert exit_code and error == "Timeout"
-    assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv")
+    exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=use_docker)
+    assert exit_code and error == "Timeout" or WIN32
+    assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
+
+
+def test_execute_code_raises_when_code_and_filename_are_both_none():
+    with pytest.raises(AssertionError):
+        execute_code(code=None, filename=None)
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin"],
+    reason="do not run on MacOS",
+)
+def test_execute_code_nodocker():
+    test_execute_code(use_docker=False)
 
 
 def test_execute_code_no_docker():

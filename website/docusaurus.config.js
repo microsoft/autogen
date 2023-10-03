@@ -9,7 +9,7 @@ module.exports = {
   baseUrl: '/autogen/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/flaml_logo.ico',
+  favicon: 'img/ag.ico',
   organizationName: 'Microsoft', // Usually your GitHub org/user name.
   projectName: 'AutoGen', // Usually your repo name.
   themeConfig: {
@@ -17,7 +17,7 @@ module.exports = {
       title: 'AutoGen',
       logo: {
         alt: 'AutoGen',
-        src: 'img/flaml_logo_fill.svg',
+        src: 'img/ag.svg',
       },
       items: [
         {
@@ -67,7 +67,7 @@ module.exports = {
         //     // },
             {
               label: 'Discord',
-              href: 'https://discord.gg/be44TCXGpe',
+              href: 'https://discord.gg/pAbnFJrkgZ',
             },
           ],
         },

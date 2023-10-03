@@ -105,9 +105,9 @@ class Completion(openai_Completion):
     seed = 41
     cache_path = f".cache/{seed}"
     # retry after this many seconds
-    retry_time = 10
+    retry_wait_time = 10
     # fail a request after hitting RateLimitError for this many seconds
-    retry_timeout = 120
+    max_retry_period = 120
     # time out for request to openai server
     request_timeout = 60
 
@@ -181,7 +181,7 @@ class Completion(openai_Completion):
     def _get_response(cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True):
         """Get the response from the openai api call.
 
-        Try cache first. If not found, call the openai api. If the api call fails, retry after retry_time.
+        Try cache first. If not found, call the openai api. If the api call fails, retry after retry_wait_time.
         """
         config = config.copy()
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
@@ -199,7 +199,8 @@ class Completion(openai_Completion):
         )
         start_time = time.time()
         request_timeout = cls.request_timeout
-        retry_timeout = config.pop("retry_timeout", cls.retry_timeout)
+        max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
+        retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
                 if "request_timeout" in config:
@@ -211,18 +212,18 @@ class Completion(openai_Completion):
                 APIConnectionError,
             ):
                 # transient error
-                logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                sleep(cls.retry_time)
+                logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
+                sleep(retry_wait_time)
             except APIError as err:
                 error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
                 error_code = error_code and error_code.get("code")
                 if error_code == "content_filter":
                     raise
                 # transient error
-                logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                sleep(cls.retry_time)
+                logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
+                sleep(retry_wait_time)
             except (RateLimitError, Timeout) as err:
-                time_left = retry_timeout - (time.time() - start_time + cls.retry_time)
+                time_left = max_retry_period - (time.time() - start_time + retry_wait_time)
                 if (
                     time_left > 0
                     and isinstance(err, RateLimitError)
@@ -233,8 +234,8 @@ class Completion(openai_Completion):
                     if isinstance(err, Timeout):
                         request_timeout <<= 1
                     request_timeout = min(request_timeout, time_left)
-                    logger.info(f"retrying in {cls.retry_time} seconds...", exc_info=1)
-                    sleep(cls.retry_time)
+                    logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
+                    sleep(retry_wait_time)
                 elif raise_on_ratelimit_or_timeout:
                     raise
                 else:
@@ -242,7 +243,7 @@ class Completion(openai_Completion):
                     if use_cache and isinstance(err, Timeout):
                         cls._cache.set(key, response)
                     logger.warning(
-                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {retry_timeout} seconds."
+                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {max_retry_period} seconds."
                     )
                     return response
             except InvalidRequestError:
@@ -581,23 +582,31 @@ class Completion(openai_Completion):
         cls._prompts = space.get("prompt")
         if cls._prompts is None:
             cls._messages = space.get("messages")
-            assert isinstance(cls._messages, list) and isinstance(
-                cls._messages[0], (dict, list)
-            ), "messages must be a list of dicts or a list of lists."
+            if not all((isinstance(cls._messages, list), isinstance(cls._messages[0], (dict, list)))):
+                error_msg = "messages must be a list of dicts or a list of lists."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if isinstance(cls._messages[0], dict):
                 cls._messages = [cls._messages]
             space["messages"] = tune.choice(list(range(len(cls._messages))))
         else:
-            assert space.get("messages") is None, "messages and prompt cannot be provided at the same time."
-            assert isinstance(cls._prompts, (str, list)), "prompt must be a string or a list of strings."
+            if space.get("messages") is not None:
+                error_msg = "messages and prompt cannot be provided at the same time."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
+            if not isinstance(cls._prompts, (str, list)):
+                error_msg = "prompt must be a string or a list of strings."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if isinstance(cls._prompts, str):
                 cls._prompts = [cls._prompts]
             space["prompt"] = tune.choice(list(range(len(cls._prompts))))
         cls._stops = space.get("stop")
         if cls._stops:
-            assert isinstance(
-                cls._stops, (str, list)
-            ), "stop must be a string, a list of strings, or a list of lists of strings."
+            if not isinstance(cls._stops, (str, list)):
+                error_msg = "stop must be a string, a list of strings, or a list of lists of strings."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if not (isinstance(cls._stops, list) and isinstance(cls._stops[0], list)):
                 cls._stops = [cls._stops]
             space["stop"] = tune.choice(list(range(len(cls._stops))))
@@ -743,9 +752,11 @@ class Completion(openai_Completion):
                 When set to False, -1 will be returned when all configs fail.
             allow_format_str_template (bool, Optional): Whether to allow format string template in the config.
             **config: Configuration for the openai API call. This is used as parameters for calling openai API.
-                Besides the parameters for the openai API call, it can also contain a seed (int) for the cache.
-                This is useful when implementing "controlled randomness" for the completion.
-                Also, the "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
+                The "prompt" or "messages" parameter can contain a template (str or Callable) which will be instantiated with the context.
+                Besides the parameters for the openai API call, it can also contain:
+                - `max_retry_period` (int): the total time (in seconds) allowed for retrying failed requests.
+                - `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
+                - `seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
 
         Returns:
             Responses from OpenAI API, with additional fields.
@@ -763,9 +774,9 @@ class Completion(openai_Completion):
                 base_config = config.copy()
                 base_config["allow_format_str_template"] = allow_format_str_template
                 base_config.update(each_config)
-                if i < last and filter_func is None and "retry_timeout" not in base_config:
-                    # retry_timeout = 0 to avoid retrying when no filter is given
-                    base_config["retry_timeout"] = 0
+                if i < last and filter_func is None and "max_retry_period" not in base_config:
+                    # max_retry_period = 0 to avoid retrying when no filter is given
+                    base_config["max_retry_period"] = 0
                 try:
                     response = cls.create(
                         context,
@@ -966,7 +977,10 @@ class Completion(openai_Completion):
         elif isinstance(agg_method, dict):
             for key in metric_keys:
                 metric_agg_method = agg_method[key]
-                assert callable(metric_agg_method), "please provide a callable for each metric"
+                if not callable(metric_agg_method):
+                    error_msg = "please provide a callable for each metric"
+                    logger.error(error_msg)
+                    raise AssertionError(error_msg)
                 result_agg[key] = metric_agg_method([r[key] for r in result_list])
         else:
             raise ValueError(
@@ -1103,7 +1117,7 @@ class Completion(openai_Completion):
 
 
 class ChatCompletion(Completion):
-    """A class for OpenAI API ChatCompletion."""
+    """A class for OpenAI API ChatCompletion. Share the same API as Completion."""
 
     default_search_space = Completion.default_search_space.copy()
     default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])
