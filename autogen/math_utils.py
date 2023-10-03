@@ -14,6 +14,7 @@ def solve_problem(problem: str, **config) -> str:
     Args:
         problem (str): The problem statement.
         config (Optional, dict): The configuration for the API call.
+        いえ～～～～～～い！まつもと～～～～～～！
 
     Returns:
         str: The solution to the problem.
