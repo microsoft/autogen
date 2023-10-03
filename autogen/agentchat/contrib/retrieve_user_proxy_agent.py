@@ -83,6 +83,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
         is_termination_msg: Optional[Callable[[Dict], bool]] = _is_termination_msg_retrievechat,
         human_input_mode: Optional[str] = "ALWAYS",
+        vector_database: Optional[str] = "chromadb",  # Add vector_database parameter
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
     ):
@@ -138,6 +139,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         )
 
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
+        self._retrieve_config["vector_database"] = vector_database  # Add vector_database to retrieve_config
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", "./docs")
