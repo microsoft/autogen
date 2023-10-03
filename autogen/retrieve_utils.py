@@ -9,7 +9,7 @@ from chromadb.api import API
 import chromadb.utils.embedding_functions as ef
 import logging
 import pypdf
-
+from typing import List, Dict
 
 logger = logging.getLogger(__name__)
 TEXT_FORMATS = [
@@ -232,73 +232,7 @@ def is_url(string: str):
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
-
-
-def create_vector_db_from_dir(
-    dir_path: str,
-    max_tokens: int = 4000,
-    client: API = None,
-    db_path: str = "/tmp/chromadb.db",
-    collection_name: str = "all-my-documents",
-    get_or_create: bool = False,
-    chunk_mode: str = "multi_lines",
-    must_break_at_empty_line: bool = True,
-    embedding_model: str = "all-MiniLM-L6-v2",
-):
-    """Create a vector db from all the files in a given directory."""
-    if client is None:
-        client = chromadb.PersistentClient(path=db_path)
-    try:
-        embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
-        collection = client.create_collection(
-            collection_name,
-            get_or_create=get_or_create,
-            embedding_function=embedding_function,
-            # https://github.com/nmslib/hnswlib#supported-distances
-            # https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184
-            # https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
-            metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
-        )
-
-        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
-        logger.info(f"Found {len(chunks)} chunks.")
-        # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
-        for i in range(0, len(chunks), min(40000, len(chunks))):
-            end_idx = i + min(40000, len(chunks) - i)
-            collection.upsert(
-                documents=chunks[i:end_idx],
-                ids=[f"doc_{j}" for j in range(i, end_idx)],  # unique for each doc
-            )
-    except ValueError as e:
-        logger.warning(f"{e}")
-
-
-def query_vector_db(
-    query_texts: List[str],
-    n_results: int = 10,
-    client: API = None,
-    db_path: str = "/tmp/chromadb.db",
-    collection_name: str = "all-my-documents",
-    search_string: str = "",
-    embedding_model: str = "all-MiniLM-L6-v2",
-) -> Dict[str, List[str]]:
-    """Query a vector db."""
-    if client is None:
-        client = chromadb.PersistentClient(path=db_path)
-    # the collection's embedding function is always the default one, but we want to use the one we used to create the
-    # collection. So we compute the embeddings ourselves and pass it to the query function.
-    collection = client.get_collection(collection_name)
-    embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
-    query_embeddings = embedding_function(query_texts)
-    # Query/search n most similar results. You can also .get by id
-    results = collection.query(
-        query_embeddings=query_embeddings,
-        n_results=n_results,
-        where_document={"$contains": search_string} if search_string else None,  # optional filter
-    )
-    return results
-
-
+        
 # New functions for LanceDB (similar functionality as ChromaDB functions)
 def create_lancedb_from_dir(
     dir_path: str,
@@ -355,6 +289,120 @@ def query_lancedb(
 
     return results
 
+# Define separate functions for each vector database
+def create_chromadb_from_dir(dir_path, max_tokens, client, db_path, collection_name, get_or_create, chunk_mode,
+                             must_break_at_empty_line, embedding_model):
+    """Create a ChromaDB from all the files in a given directory."""
+    if client is None:
+        client = chromadb.PersistentClient(path=db_path)
+    try:
+        embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+        collection = client.create_collection(
+            collection_name,
+            get_or_create=get_or_create,
+            embedding_function=embedding_function,
+            # https://github.com/nmslib/hnswlib#supported-distances
+            # https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184
+            # https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
+            metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
+        )
 
+        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
+        logger.info(f"Found {len(chunks)} chunks.")
+        
+        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
+        logger.info(f"Found {len(chunks)} chunks.")
+        # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
+        for i in range(0, len(chunks), min(40000, len(chunks))):
+            end_idx = i + min(40000, len(chunks) - i)
+            collection.upsert(
+                documents=chunks[i:end_idx],
+                ids=[f"doc_{j}" for j in range(i, end_idx)],  # unique for each doc
+            )
+    except ValueError as e:
+        logger.warning(f"{e}")
 
+def query_chromadb(query_texts, n_results, client, db_path, collection_name, search_string, embedding_model):
+    """Query a ChromaDB."""
+    if client is None:
+        client = chromadb.PersistentClient(path=db_path)
+    # the collection's embedding function is always the default one, but we want to use the one we used to create the
+    # collection. So we compute the embeddings ourselves and pass it to the query function.
+    collection = client.get_collection(collection_name)
+    embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+    query_embeddings = embedding_function(query_texts)
+    # Query/search n most similar results. You can also .get by id
+    results = collection.query(
+        query_embeddings=query_embeddings,
+        n_results=n_results,
+        where_document={"$contains": search_string} if search_string else None,  # optional filter
+    )
+    return results
+
+def create_lancedb_from_dir(dir_path, max_tokens, db_path, table_name, chunk_mode,
+                            must_break_at_empty_line, embedding_model_name):
+    """Create a LanceDB from all the files in a given directory."""
+    db = LanceDB.connect(db_path)
+    try:
+        # Load embedding model
+        embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': 'cpu'})
+
+        # Initialize your embedding function (replace with your actual embedding module)
+        embedding_function = SentenceTransformerEmbeddings(name=embedding_model_name)
+
+        table = db.get_table(table_name)
+
+        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
+        print(f"Found {len(chunks)} chunks.")
+
+        for i, chunk in enumerate(chunks):
+            embeddings = embedding_function.generate_embeddings([chunk])  # Compute embeddings for the chunk
+            document = {
+                "vector": embeddings[0],  # Get the embedding for the single chunk
+                "text": chunk,
+                "id": f"doc_{i}",
+            }
+            table.insert(document)
+    except ValueError as e:
+        logger.warning(f"{e}")
+
+def query_lancedb(query_texts, n_results, db_path, table_name, search_string, embedding_model_name):
+    """Query a LanceDB."""
+    db = LanceDB.connect(db_path)
+    table = db.get_table(table_name)
+
+    # Initialize your embedding function (replace with your actual embedding module)
+    embedding_function = SentenceTransformerEmbeddings(name=embedding_model_name)
+
+    # Compute embeddings for the query texts
+    query_embeddings = embedding_function.generate_embeddings(query_texts)
+
+    # Query/search n most similar results
+    results = table.query(query_embeddings, n_results=n_results)
+
+    return results
+
+# Modify existing APIs to include the vector_database parameter
+def create_vector_db_from_dir(dir_path, max_tokens, client=None, db_path="/tmp/chromadb.db",
+                              collection_name="all-my-documents", get_or_create=False, chunk_mode="multi_lines",
+                              must_break_at_empty_line=True, embedding_model="all-MiniLM-L6-v2",
+                              vector_database="chromadb"):
+    if vector_database == "chromadb":
+        create_chromadb_from_dir(dir_path, max_tokens, client, db_path, collection_name, get_or_create, chunk_mode,
+                                 must_break_at_empty_line, embedding_model)
+    elif vector_database == "lancedb":
+        create_lancedb_from_dir(dir_path, max_tokens, db_path, "pdf_search", chunk_mode, must_break_at_empty_line,
+                                embedding_model)
+    else:
+        raise ValueError("Invalid vector_database. Please choose 'chromadb' or 'lancedb'.")
+
+def query_vector_db(query_texts, n_results, client=None, db_path="/tmp/chromadb.db",
+                    collection_name="all-my-documents", search_string="", embedding_model="all-MiniLM-L6-v2",
+                    vector_database="chromadb"):
+    if vector_database == "chromadb":
+        return query_chromadb(query_texts, n_results, client, db_path, collection_name, search_string, embedding_model)
+    elif vector_database == "lancedb":
+        return query_lancedb(query_texts, n_results, db_path, "pdf_search", search_string, embedding_model)
+    else:
+        raise ValueError("Invalid vector_database. Please choose 'chromadb' or 'lancedb'.")
 
