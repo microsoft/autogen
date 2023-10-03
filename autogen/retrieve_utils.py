@@ -233,61 +233,6 @@ def is_url(string: str):
     except ValueError:
         return False
         
-# New functions for LanceDB (similar functionality as ChromaDB functions)
-def create_lancedb_from_dir(
-    dir_path: str,
-    max_tokens: int = 4000,
-    db_path: str = "/tmp/lancedb",
-    table_name: str = "pdf_search",
-    chunk_mode: str = "multi_lines",
-    must_break_at_empty_line: bool = True,
-    embedding_model_name: str = "all-MiniLM-L6-v2",
-):
-    db = LanceDB.connect(db_path)
-    try:
-        # Load embedding model
-        embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': 'cpu'})
-
-        # Initialize your embedding function (replace with your actual embedding module)
-        embedding_function = SentenceTransformerEmbeddings(name=embedding_model_name)
-
-        table = db.get_table(table_name)
-
-        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
-        print(f"Found {len(chunks)} chunks.")
-
-        for i, chunk in enumerate(chunks):
-            embeddings = embedding_function.generate_embeddings([chunk])  # Compute embeddings for the chunk
-            document = {
-                "vector": embeddings[0],  # Get the embedding for the single chunk
-                "text": chunk,
-                "id": f"doc_{i}",
-            }
-            table.insert(document)
-    except ValueError as e:
-        logger.warning(f"{e}")
-
-def query_lancedb(
-    query_texts: List[str],
-    n_results: int = 10,
-    db_path: str = "/tmp/lancedb",
-    table_name: str = "pdf_search",
-    search_string: str = "",
-    embedding_model_name: str = "all-MiniLM-L6-v2",
-) -> Dict[str, List[str]]:
-    db = LanceDB.connect(db_path)
-    table = db.get_table(table_name)
-
-    # Initialize your embedding function (replace with your actual embedding module)
-    embedding_function = SentenceTransformerEmbeddings(name=embedding_model_name)
-
-    # Compute embeddings for the query texts
-    query_embeddings = embedding_function.generate_embeddings(query_texts)
-
-    # Query/search n most similar results
-    results = table.query(query_embeddings, n_results=n_results)
-
-    return results
 
 # Define separate functions for each vector database
 def create_chromadb_from_dir(dir_path, max_tokens, client, db_path, collection_name, get_or_create, chunk_mode,
@@ -345,11 +290,11 @@ def create_lancedb_from_dir(dir_path, max_tokens, db_path, table_name, chunk_mod
     db = LanceDB.connect(db_path)
     try:
         # Load embedding model
-        embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': 'cpu'})
-
-        # Initialize your embedding function (replace with your actual embedding module)
+        #embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': 'cpu'})
+        embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+        # Initialize your embedding function (replace it with your actual embedding module)
         embedding_function = SentenceTransformerEmbeddings(name=embedding_model_name)
-
+        
         table = db.get_table(table_name)
 
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
