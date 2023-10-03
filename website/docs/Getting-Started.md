@@ -25,12 +25,17 @@ Install from pip: `pip install pyautogen`. Find more options in [Installation](/
 
 #### Multi-Agent Conversation Framework
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
-By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For example,
+By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code. For [example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py),
 ```python
-from autogen import AssistantAgent, UserProxyAgent
-assistant = AssistantAgent("assistant")
-user_proxy = UserProxyAgent("user_proxy")
-user_proxy.initiate_chat(assistant, message="Plot a chart of META and TESLA stock price change YTD.")
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+
+# Load LLM inference endpoints from an env variable or a file
+# See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
+# and OAI_CONFIG_LIST_sample.json
+config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
+user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "coding"})
+user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
 # This initiates an automated chat between the two agents to solve the task
 ```
 

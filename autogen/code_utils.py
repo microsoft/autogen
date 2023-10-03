@@ -23,6 +23,8 @@ WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensi
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
 DEFAULT_TIMEOUT = 600
+WIN32 = sys.platform == "win32"
+PATH_SEPARATOR = WIN32 and "\\" or "/"
 
 
 def infer_lang(code):
@@ -31,7 +33,14 @@ def infer_lang(code):
     """
     if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
         return "sh"
-    return "python"
+
+    # check if code is a valid python code
+    try:
+        compile(code, "test", "exec")
+        return "python"
+    except SyntaxError:
+        # not a valid python code
+        return UNKNOWN
 
 
 def extract_code(
@@ -193,10 +202,12 @@ def timeout_handler(signum, frame):
 
 
 def _cmd(lang):
-    if lang.startswith("python") or lang in ["bash", "sh"]:
+    if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
         return lang
-    if lang == "shell":
+    if lang in ["shell"]:
         return "sh"
+    if lang in ["ps1"]:
+        return "powershell"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
@@ -242,6 +253,8 @@ def execute_code(
     assert code is not None or filename is not None, "Either code or filename must be provided."
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
+    if WIN32 and lang in ["sh", "shell"]:
+        lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
         # create a file with a automatically generated name
@@ -252,19 +265,23 @@ def execute_code(
     file_dir = os.path.dirname(filepath)
     os.makedirs(file_dir, exist_ok=True)
     if code is not None:
-        with open(filepath, "w") as fout:
+        with open(filepath, "w", encoding="utf-8") as fout:
             fout.write(code)
     # check if already running in a docker container
     in_docker_container = os.path.exists("/.dockerenv")
     if not use_docker or in_docker_container:
         # already running in a docker container
-        cmd = [sys.executable if lang.startswith("python") else _cmd(lang), filename]
-        if sys.platform == "win32":
+        cmd = [
+            sys.executable if lang.startswith("python") else _cmd(lang),
+            f".\\{filename}" if WIN32 else filename,
+        ]
+        if WIN32:
             logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,
                 capture_output=True,
+                text=True,
             )
         else:
             signal.signal(signal.SIGALRM, timeout_handler)
@@ -290,7 +307,7 @@ def execute_code(
                 abs_path = str(pathlib.Path(filepath).absolute())
                 logs = logs.replace(str(abs_path), "").replace(filename, "")
             else:
-                abs_path = str(pathlib.Path(work_dir).absolute()) + "/"
+                abs_path = str(pathlib.Path(work_dir).absolute()) + PATH_SEPARATOR
                 logs = logs.replace(str(abs_path), "")
         else:
             logs = result.stdout
