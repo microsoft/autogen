@@ -5,9 +5,12 @@ from .agent import Agent
 from .conversable_agent import ConversableAgent
 from .. import oai
 import random
+
+
 @dataclass
 class GroupChat:
     """A group chat class that contains a list of agents and the maximum number of rounds."""
+
     agents: List[ConversableAgent]
     messages: List[Dict]
     max_round: int = 10
@@ -16,10 +19,10 @@ class GroupChat:
 
     @property
     def admin(self):
-        '''
+        """
         if admin_name is None, then return the first agent in the list
         otherwise, return the agent with the name admin_name
-        '''
+        """
         if self.admin_name is None:
             return self.agents[0]
         else:
@@ -35,12 +38,15 @@ class GroupChat:
         self.messages.clear()
 
     def process_role_play_msgs(self, messages: List[Dict]) -> List[Dict]:
-        return [{
-            "role": "user",
-            "content": f'''From {message["name"]}:
-{message["content"]}''',
-        } for message in messages]
-    
+        return [
+            {
+                "role": "user",
+                "content": f"""From {message["name"]}:
+{message["content"]}""",
+            }
+            for message in messages
+        ]
+
     def agent_by_name(self, name: str) -> Agent:
         """Find the next speaker based on the message."""
         return self.agents[self.agent_names.index(name.lower())]
@@ -54,20 +60,20 @@ class GroupChat:
         msgs = [
             {
                 "role": "system",
-                "content": f"You are in a role play game. Each conversation must start with 'From {{name}}:', e.g: From admin: //your message//.",
+                "content": "You are in a role play game. Each conversation must start with 'From {name}:', e.g: From admin: //your message//.",
             }
         ]
 
-#         # process role information
-#         # each agent introduce the next agent
-#         for i in range(len(self.agents)):
-#             current_agent = self.agents[i]
-#             next_agent = self.next_agent(current_agent)
-#             msgs.append({
-#                 "role": "user",
-#                 "content": f'''From {current_agent.name}:
-# {next_agent.name}, {next_agent.system_message}''',
-#             })
+        #         # process role information
+        #         # each agent introduce the next agent
+        #         for i in range(len(self.agents)):
+        #             current_agent = self.agents[i]
+        #             next_agent = self.next_agent(current_agent)
+        #             msgs.append({
+        #                 "role": "user",
+        #                 "content": f'''From {current_agent.name}:
+        # {next_agent.name}, {next_agent.system_message}''',
+        #             })
 
         return msgs
 
@@ -75,7 +81,7 @@ class GroupChat:
         """Select the next speaker."""
         llm_config = self.llm_config
 
-        # if self.llm_config is None, randomly select 
+        # if self.llm_config is None, randomly select
         if llm_config is None:
             # search through its agents and randomly select a llm_config from one of them if it exists
             # shuffle the agents
@@ -84,19 +90,17 @@ class GroupChat:
                 llm_config = random.choice(llm_configs)
             else:
                 llm_config = None
-        
+
         # if llm_config is still None, then return the next agent
         if llm_config is None:
             return self.next_agent(last_speaker)
-        
+
         system_messages = self.select_speaker_msgs()
         chat_messages = self.process_role_play_msgs(self.messages)
-        llm_config["stop"] = [':']
+        llm_config["stop"] = [":"]
         msgs = system_messages + chat_messages
-        reply = oai.ChatCompletion.create(
-            messages=msgs, **llm_config
-        )
-        msg = reply['choices'][0]['message']['content']
+        reply = oai.ChatCompletion.create(messages=msgs, **llm_config)
+        msg = reply["choices"][0]["message"]["content"]
         name = msg.split(":")[0].split("From ")[1]
         try:
             return self.agent_by_name(name)
@@ -142,9 +146,9 @@ class GroupChatManager(ConversableAgent):
 
         # distribute the message to all agents
         msg_with_name = {
-            'content': f'''From {msg["name"]}<eof_name>:
-{msg["content"]}''',
-            'role': 'user',
+            "content": f"""From {msg["name"]}<eof_name>:
+{msg["content"]}""",
+            "role": "user",
         }
         for agent in self.groupchat.agents:
             if agent != sender:
