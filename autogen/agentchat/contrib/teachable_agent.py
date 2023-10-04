@@ -46,6 +46,9 @@ class TeachableAgent(ConversableAgent):
             self.memo_store.prepopulate()
             self.user_comments = []  # Stores user comments until the end of the chat.
 
+    def delete_db(self):
+        self.memo_store.db_client.reset()
+
     def _generate_teachable_assistant_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -180,7 +183,7 @@ class TeachableAgent(ConversableAgent):
 class MemoStore():
     def __init__(self, verbosity):
         self.verbosity = verbosity
-        self.db_client = chromadb.Client(Settings(anonymized_telemetry=False))  # In-memory by default.
+        self.db_client = chromadb.Client(Settings(anonymized_telemetry=False, allow_reset=True))  # In-memory by default.
         self.vec_db = self.db_client.create_collection("memos")  # The collection is the DB.
         self.next_uid = 0  # Unique ID for each memo. Also serves as a count of total memos added.
         self.num_memos = 0
