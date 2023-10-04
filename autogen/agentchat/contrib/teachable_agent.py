@@ -34,7 +34,7 @@ class TeachableAgent(ConversableAgent):
         # super().__init__(*args, **kwargs)
         self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply)
 
-        self.verbosity   = 1  # 1 to print DB operations, 2 to add caller details.
+        self.verbosity   = 0  # 1 to print DB operations, 2 to add caller details.
         self.db_method   = 1  # 0=none, 1=Both tasks & facts
         self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
         self.use_cache   = 0  # 1 to skip LLM calls made previously by relying on cached responses.
@@ -66,14 +66,8 @@ class TeachableAgent(ConversableAgent):
         # To support quick and dirty tests of memory, clear the chat history if the user says "new chat".
         if user_text == 'new chat':
             self.clear_history()
-            print('\n\033[92m<CHAT HISTORY CLEARED>\033[0m  ')
-            if self.db_method > 0:
-                # Save each user turn to the vector DB.
-                if len(self.user_comments) > 0:
-                    for comment in self.user_comments:
-                        # Consider whether to store something in the DB.
-                        self.consider_memo_storage(comment, llm_config)
-                self.user_comments = []
+            print('\n\033[92m<STARTING A NEW CHAT WITH EMPTY CONTEXT>\033[0m  ')
+            self.learn_from_recent_user_comments()
             return True, 'New chat started.'
 
         if self.db_method > 0:
@@ -93,6 +87,15 @@ class TeachableAgent(ConversableAgent):
         response = oai.ChatCompletion.create(context=ctxt, messages=msgs, use_cache=self.use_cache, **llm_config)
 
         return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
+
+    def learn_from_recent_user_comments(self):
+        if self.db_method > 0:
+            # Look at each user turn.
+            if len(self.user_comments) > 0:
+                for comment in self.user_comments:
+                    # Consider whether to store something from this user turn in the DB.
+                    self.consider_memo_storage(comment, self.llm_config)
+            self.user_comments = []
 
     def consider_memo_storage(self, comment, llm_config):
         # Check for a problem-solution pair.
