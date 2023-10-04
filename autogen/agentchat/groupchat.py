@@ -95,14 +95,15 @@ class GroupChat:
         if llm_config is None:
             return self.next_agent(last_speaker)
 
-        system_messages = self.select_speaker_msgs()
-        chat_messages = self.process_role_play_msgs(self.messages)
-        llm_config["stop"] = [":"]
-        msgs = system_messages + chat_messages
-        reply = oai.ChatCompletion.create(messages=msgs, **llm_config)
-        msg = reply["choices"][0]["message"]["content"]
-        name = msg.split(":")[0].split("From ")[1]
+        
         try:
+            system_messages = self.select_speaker_msgs()
+            chat_messages = self.process_role_play_msgs(self.messages)
+            llm_config["stop"] = [":"]
+            msgs = system_messages + chat_messages
+            reply = oai.ChatCompletion.create(messages=msgs, **llm_config)
+            msg = reply["choices"][0]["message"]["content"]
+            name = msg.split(":")[0].split("From ")[1]
             return self.agent_by_name(name)
         except ValueError:
             return self.admin
@@ -190,6 +191,9 @@ class GroupChatManager(ConversableAgent):
                 if isinstance(speaker, ConversableAgent) and isinstance(speaker.llm_config, dict):
                     if "stop" in speaker.llm_config:
                         speaker.llm_config["stop"].remove("<eof_name>:")
+                
+                if reply is None:
+                    break
                 # if reply is 'From xxx', then set reply to xxx, it's your turn to speak
                 if reply.startswith("From ") and reply.split("From ")[1].lower() in groupchat.agent_names:
                     name = reply.split("From ")[1]
