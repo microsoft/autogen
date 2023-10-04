@@ -315,24 +315,30 @@ def config_list_from_dotenv(
     """
     if dotenv_file_path:
         dotenv_path = Path(dotenv_file_path)
-        if not dotenv_path.exists():
-            raise FileNotFoundError(f"The specified .env file {dotenv_file_path} does not exist.")
-        load_dotenv(dotenv_path)
+        if dotenv_path.exists():
+            load_dotenv(dotenv_path)
+        else:
+            logging.warning(f"The specified .env file {dotenv_path} does not exist.")
     else:
         dotenv_path = find_dotenv()
         if not dotenv_path:
             logging.warning("No .env file found. Loading configurations from environment variables.")
-        else:
-            load_dotenv(dotenv_path)
+        load_dotenv(dotenv_path)
 
-    if not model_api_key_map:
-        # Default key map
-        model_api_key_map = {
-            "gpt-4": "OPENAI_API_KEY",
-            "gpt-3.5-turbo": "OPENAI_API_KEY",
-        }
+    # Ensure the model_api_key_map is not None to prevent TypeErrors during key assignment.
+    model_api_key_map = model_api_key_map or {}
+
+    # Ensure default models are always considered
+    default_models = ["gpt-4", "gpt-3.5-turbo"]
+
+    for model in default_models:
+        # Only assign default API key if the model is not present in the map.
+        # If model is present but set to invalid/empty, do not overwrite.
+        if model not in model_api_key_map:
+            model_api_key_map[model] = "OPENAI_API_KEY"
 
     env_var = []
+    # Loop over the models and create configuration dictionaries
     for model, config in model_api_key_map.items():
         if isinstance(config, str):
             api_key_env_var = config
@@ -342,18 +348,20 @@ def config_list_from_dotenv(
             config_without_key_var = {k: v for k, v in config.items() if k != "api_key_env_var"}
             config_dict = get_config(api_key=api_key, **config_without_key_var)
         else:
-            raise TypeError(f"Unsupported type {type(config)} for model {model} configuration")
+            logging.warning(f"Unsupported type {type(config)} for model {model} configuration")
 
         if not config_dict["api_key"] or config_dict["api_key"].strip() == "":
-            logging.warning("API key not found or empty. Please ensure path to .env file is correct.")
+            logging.warning(
+                f"API key not found or empty for model {model}. Please ensure path to .env file is correct."
+            )
             continue  # Skip this configuration and continue with the next
 
+        # Add model to the configuration and append to the list
         config_dict["model"] = model
         env_var.append(config_dict)
 
     with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp:
         env_var_str = json.dumps(env_var)
-        logging.info(f"JSON String: {env_var_str}")
         temp.write(env_var_str)
         temp.flush()
 

@@ -81,38 +81,78 @@ def test_config_list_from_dotenv(mock_os_environ, caplog):
         temp.write("\n".join([f"{k}={v}" for k, v in ENV_VARS.items()]))
         temp.flush()
 
-        config_list = autogen.config_list_from_dotenv(
-            dotenv_file_path=temp.name, model_api_key_map=MODEL_API_KEY_MAP, filter_dict=FILTER_DICT
-        )
+        # Use the updated config_list_from_dotenv function
+        config_list = autogen.config_list_from_dotenv(dotenv_file_path=temp.name)
 
         # Ensure configurations are loaded and API keys match expected values
-        assert config_list, "Config list is empty"
+        assert config_list, "Config list is empty with default API keys"
+
+        # Check that configurations only include models specified in the filter
         for config in config_list:
-            api_key_info = MODEL_API_KEY_MAP[config["model"]]
-            api_key_var_name = api_key_info if isinstance(api_key_info, str) else api_key_info["api_key_env_var"]
-            assert config["api_key"] == ENV_VARS[api_key_var_name], "API Key mismatch in valid case"
+            assert config["model"] in FILTER_DICT["model"], f"Model {config['model']} not in filter"
+
+        # Check the default API key for gpt-4 and gpt-3.5-turbo when model_api_key_map is None
+        config_list = autogen.config_list_from_dotenv(dotenv_file_path=temp.name, model_api_key_map=None)
+
+        expected_api_key = os.getenv("OPENAI_API_KEY")
+        assert any(
+            config["model"] == "gpt-4" and config["api_key"] == expected_api_key for config in config_list
+        ), "Default gpt-4 configuration not found or incorrect"
+        assert any(
+            config["model"] == "gpt-3.5-turbo" and config["api_key"] == expected_api_key for config in config_list
+        ), "Default gpt-3.5-turbo configuration not found or incorrect"
 
     # Test with missing dotenv file
-    with pytest.raises(FileNotFoundError, match=r"The specified \.env file .* does not exist\."):
-        autogen.config_list_from_dotenv(dotenv_file_path="non_existent_path")
+    with caplog.at_level(logging.WARNING):
+        config_list = autogen.config_list_from_dotenv(dotenv_file_path="non_existent_path")
+        assert "The specified .env file non_existent_path does not exist." in caplog.text
 
     # Test with invalid API key
     ENV_VARS["ANOTHER_API_KEY"] = ""  # Removing ANOTHER_API_KEY value
 
     with caplog.at_level(logging.WARNING):
-        result = autogen.config_list_from_dotenv(model_api_key_map=MODEL_API_KEY_MAP)
+        config_list = autogen.config_list_from_dotenv()
         assert "No .env file found. Loading configurations from environment variables." in caplog.text
         # The function does not return an empty list if at least one configuration is loaded successfully
-        assert result != [], "Config list is empty"
+        assert config_list != [], "Config list is empty"
 
     # Test with no configurations loaded
     invalid_model_api_key_map = {
         "gpt-4": "INVALID_API_KEY",  # Simulate an environment var name that doesn't exist
     }
     with caplog.at_level(logging.ERROR):
+        # Mocking `config_list_from_json` to return an empty list and raise an exception when called
+        with mock.patch("autogen.config_list_from_json", return_value=[], side_effect=Exception("Mock called")):
+            # Call the function with the invalid map
+            config_list = autogen.config_list_from_dotenv(
+                model_api_key_map=invalid_model_api_key_map,
+                filter_dict={
+                    "model": {
+                        "gpt-4",
+                    }
+                },
+            )
+
+            # Assert that the configuration list is empty
+            assert not config_list, "Expected no configurations to be loaded"
+
+    # test for mixed validity in the keymap
+    invalid_model_api_key_map = {
+        "gpt-4": "INVALID_API_KEY",
+        "gpt-3.5-turbo": "ANOTHER_API_KEY",  # valid according to the example configs
+    }
+
+    with caplog.at_level(logging.WARNING):
+        # Call the function with the mixed validity map
         config_list = autogen.config_list_from_dotenv(model_api_key_map=invalid_model_api_key_map)
-    assert "No configurations loaded." in caplog.text
-    assert not config_list
+        assert config_list, "Expected configurations to be loaded"
+        assert any(
+            config["model"] == "gpt-3.5-turbo" for config in config_list
+        ), "gpt-3.5-turbo configuration not found"
+        assert all(
+            config["model"] != "gpt-4" for config in config_list
+        ), "gpt-4 configuration found, but was not expected"
+        assert "API key not found or empty for model gpt-4" in caplog.text
 
 
 if __name__ == "__main__":
