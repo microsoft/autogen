@@ -12,6 +12,7 @@ from .openai_utils import get_key
 
 try:
     import openai
+    import litellm
     from openai.error import (
         ServiceUnavailableError,
         RateLimitError,
@@ -193,9 +194,9 @@ class Completion(openai_Completion):
                 cls._book_keeping(config, response)
                 return response
         openai_completion = (
-            openai.ChatCompletion
+            litellm.completion
             if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
-            else openai.Completion
+            else litellm.completion
         )
         start_time = time.time()
         request_timeout = cls.request_timeout
