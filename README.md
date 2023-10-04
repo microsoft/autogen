@@ -15,7 +15,7 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 :fire: autogen has graduated from [FLAML](https://github.com/microsoft/FLAML) into a new project.
 
-<!-- :fire: Heads-up: We're preparing to migrate [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) into a dedicated github repository. Alongside this move, we'll also launch a dedicated Discord server and a website for comprehensive documentation.
+<!-- :fire: Heads-up: We're preparing to migrate [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) into a dedicated Github repository. Alongside this move, we'll also launch a dedicated Discord server and a website for comprehensive documentation.
 
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
@@ -26,17 +26,17 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 ## What is AutoGen
 
-AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
+AutoGen is a framework that enables the development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
 ![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
-* AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
+* AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
 * It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
 the number of agents, and agent conversation topology.
 * It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
 * AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an **enhanced inference API**. It allows easy performance tuning, utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
 
-AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and University of Washington.
+AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
 ## Installation
 
@@ -61,7 +61,7 @@ For LLM inference configurations, check the [FAQ](https://microsoft.github.io/au
 
 ## Multi-Agent Conversation Framework
 
-Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools, and humans.
+Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
 Features of this use case include:
@@ -94,7 +94,7 @@ The figure below shows an example conversation flow with AutoGen.
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-AgentChat) for this feature.
 ## Enhanced LLM Inferences
 
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` adding powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` adding powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
 ```python
 # perform tuning
 config, analysis = autogen.Completion.tune(
@@ -114,7 +114,7 @@ Please find more [code examples](https://microsoft.github.io/autogen/docs/Exampl
 
 ## Documentation
 
-You can find a detailed documentation about AutoGen [here](https://microsoft.github.io/autogen/).
+You can find detailed documentation about AutoGen [here](https://microsoft.github.io/autogen/).
 
 In addition, you can find:
 
@@ -147,7 +147,7 @@ in this repository under the [Creative Commons Attribution 4.0 International Pub
 see the [LICENSE](LICENSE) file, and grant you a license to any code in the repository under the [MIT License](https://opensource.org/licenses/MIT), see the
 [LICENSE-CODE](LICENSE-CODE) file.
 
-Microsoft, Windows, Microsoft Azure and/or other Microsoft products and services referenced in the documentation
+Microsoft, Windows, Microsoft Azure, and/or other Microsoft products and services referenced in the documentation
 may be either trademarks or registered trademarks of Microsoft in the United States and/or other countries.
 The licenses for this project do not grant you rights to use any Microsoft names, logos, or trademarks.
 Microsoft's general trademark guidelines can be found at http://go.microsoft.com/fwlink/?LinkID=254653.
@@ -155,7 +155,7 @@ Microsoft's general trademark guidelines can be found at http://go.microsoft.com
 Privacy information can be found at https://privacy.microsoft.com/en-us/
 
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
-or trademarks, whether by implication, estoppel or otherwise.
+or trademarks, whether by implication, estoppel, or otherwise.
 
 
 ## Citation

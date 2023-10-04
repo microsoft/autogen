@@ -26,6 +26,8 @@ DEFAULT_TIMEOUT = 600
 WIN32 = sys.platform == "win32"
 PATH_SEPARATOR = WIN32 and "\\" or "/"
 
+logger = logging.getLogger(__name__)
+
 
 def infer_lang(code):
     """infer the language for the code.
@@ -250,7 +252,11 @@ def execute_code(
         str: The error message if the code fails to execute; the stdout otherwise.
         image: The docker image name after container run when docker is used.
     """
-    assert code is not None or filename is not None, "Either code or filename must be provided."
+    if all((code is None, filename is None)):
+        error_msg = f"Either {code=} or {filename=} must be provided."
+        logger.error(error_msg)
+        raise AssertionError(error_msg)
+
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
     if WIN32 and lang in ["sh", "shell"]:
@@ -276,7 +282,7 @@ def execute_code(
             f".\\{filename}" if WIN32 else filename,
         ]
         if WIN32:
-            logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
+            logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,
