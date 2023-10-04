@@ -105,7 +105,7 @@ class GroupChat:
             msg = reply["choices"][0]["message"]["content"]
             name = msg.split(":")[0].split("From ")[1]
             return self.agent_by_name(name)
-        except ValueError:
+        except Exception:
             return self.admin
 
     def _participant_roles(self):
