@@ -248,6 +248,29 @@ def config_list_from_json(
 def get_config(
     api_key: str, api_base: Optional[str] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
 ) -> Dict:
+    """
+    Construct a configuration dictionary with the provided API configurations.
+    Appending the additional configurations to the config only if they're set
+
+    example:
+    >> model_api_key_map={
+        "gpt-4": "OPENAI_API_KEY",
+        "gpt-3.5-turbo": {
+            "api_key_env_var": "ANOTHER_API_KEY",
+            "api_type": "aoai",
+            "api_version": "v2",
+            "api_base": "https://api.someotherapi.com"
+        }
+    }
+    Args:
+        api_key (str): The API key used for authenticating API requests.
+        api_base (str, optional): The base URL of the API. Defaults to None.
+        api_type (str, optional): The type or kind of API. Defaults to None.
+        api_version (str, optional): The API version. Defaults to None.
+
+    Returns:
+        Dict: A dictionary containing the API configurations.
+    """
     config = {"api_key": api_key}
     if api_base:
         config["api_base"] = api_base
@@ -262,14 +285,33 @@ def config_list_from_dotenv(
     dotenv_file_path: Optional[str] = None, model_api_key_map: Optional[dict] = None, filter_dict: Optional[dict] = None
 ) -> List[Dict[str, Union[str, Set[str]]]]:
     """
-    [Rest of the docstring is omitted for brevity]
+    Load API configurations from a specified .env file or environment variables and construct a list of configurations.
+
+    This function will:
+    - Load API keys from a provided .env file or from existing environment variables.
+    - Create a configuration dictionary for each model using the API keys and additional configurations.
+    - Filter and return the configurations based on provided filters.
+
+    model_api_key_map will default to `{"gpt-4": "OPENAI_API_KEY", "gpt-3.5-turbo": "OPENAI_API_KEY"}` if none
 
     Args:
-        dotenv_file_path (str, optional): The path to the .env file.
-        model_api_key_map (dict, optional): A dictionary mapping models to their configuration.
+        dotenv_file_path (str, optional): The path to the .env file. Defaults to None.
+        model_api_key_map (str/dict, optional): A dictionary mapping models to their API key configurations.
+                                           If a string is provided as configuration, it is considered as an environment
+                                           variable name storing the API key.
+                                           If a dict is provided, it should contain at least 'api_key_env_var' key,
+                                           and optionally other API configurations like 'api_base', 'api_type', and 'api_version'.
+                                           Defaults to a basic map with 'gpt-4' and 'gpt-3.5-turbo' mapped to 'OPENAI_API_KEY'.
         filter_dict (dict, optional): A dictionary containing the models to be loaded.
+                                      Containing a 'model' key mapped to a set of model names to be loaded.
+                                      Defaults to None, which loads all found configurations.
 
-    [Rest of the docstring is omitted for brevity]
+    Returns:
+        List[Dict[str, Union[str, Set[str]]]]: A list of configuration dictionaries for each model.
+
+    Raises:
+        FileNotFoundError: If the specified .env file does not exist.
+        TypeError: If an unsupported type of configuration is provided in model_api_key_map.
     """
     if dotenv_file_path:
         dotenv_path = Path(dotenv_file_path)
@@ -297,14 +339,14 @@ def config_list_from_dotenv(
             config_dict = get_config(api_key=os.getenv(api_key_env_var))
         elif isinstance(config, dict):
             api_key = os.getenv(config.get("api_key_env_var", "OPENAI_API_KEY"))
-            # Exclude 'api_key_env_var' from config before passing it to get_config()
             config_without_key_var = {k: v for k, v in config.items() if k != "api_key_env_var"}
             config_dict = get_config(api_key=api_key, **config_without_key_var)
         else:
             raise TypeError(f"Unsupported type {type(config)} for model {model} configuration")
 
         if not config_dict["api_key"] or config_dict["api_key"].strip() == "":
-            raise ValueError("API key not found or empty. Please ensure path to .env file is correct.")
+            logging.warning("API key not found or empty. Please ensure path to .env file is correct.")
+            continue  # Skip this configuration and continue with the next
 
         config_dict["model"] = model
         env_var.append(config_dict)
