@@ -360,13 +360,18 @@ def config_list_from_dotenv(
         config_dict["model"] = model
         env_var.append(config_dict)
 
-    with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp:
-        env_var_str = json.dumps(env_var)
-        temp.write(env_var_str)
-        temp.flush()
+    fd, temp_name = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, "w+") as temp:
+            env_var_str = json.dumps(env_var)
+            temp.write(env_var_str)
+            temp.flush()
 
-        # Assuming config_list_from_json is a valid function from your code
-        config_list = config_list_from_json(env_or_file=temp.name, filter_dict=filter_dict)
+            # Assuming config_list_from_json is a valid function from your code
+            config_list = config_list_from_json(env_or_file=temp_name, filter_dict=filter_dict)
+    finally:
+        # The file is deleted after using its name (to prevent windows build from breaking)
+        os.remove(temp_name)
 
     if len(config_list) == 0:
         logging.error("No configurations loaded.")

@@ -77,30 +77,33 @@ def test_config_list_openai_aoai():
 
 def test_config_list_from_dotenv(mock_os_environ, caplog):
     # Test with valid .env file
-    with tempfile.NamedTemporaryFile(mode="w+", delete=True) as temp:
-        temp.write("\n".join([f"{k}={v}" for k, v in ENV_VARS.items()]))
-        temp.flush()
+    fd, temp_name = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, "w+") as temp:
+            temp.write("\n".join([f"{k}={v}" for k, v in ENV_VARS.items()]))
+            temp.flush()
+            # Use the updated config_list_from_dotenv function
+            config_list = autogen.config_list_from_dotenv(dotenv_file_path=temp_name)
 
-        # Use the updated config_list_from_dotenv function
-        config_list = autogen.config_list_from_dotenv(dotenv_file_path=temp.name)
+            # Ensure configurations are loaded and API keys match expected values
+            assert config_list, "Config list is empty with default API keys"
 
-        # Ensure configurations are loaded and API keys match expected values
-        assert config_list, "Config list is empty with default API keys"
+            # Check that configurations only include models specified in the filter
+            for config in config_list:
+                assert config["model"] in FILTER_DICT["model"], f"Model {config['model']} not in filter"
 
-        # Check that configurations only include models specified in the filter
-        for config in config_list:
-            assert config["model"] in FILTER_DICT["model"], f"Model {config['model']} not in filter"
+            # Check the default API key for gpt-4 and gpt-3.5-turbo when model_api_key_map is None
+            config_list = autogen.config_list_from_dotenv(dotenv_file_path=temp_name, model_api_key_map=None)
 
-        # Check the default API key for gpt-4 and gpt-3.5-turbo when model_api_key_map is None
-        config_list = autogen.config_list_from_dotenv(dotenv_file_path=temp.name, model_api_key_map=None)
-
-        expected_api_key = os.getenv("OPENAI_API_KEY")
-        assert any(
-            config["model"] == "gpt-4" and config["api_key"] == expected_api_key for config in config_list
-        ), "Default gpt-4 configuration not found or incorrect"
-        assert any(
-            config["model"] == "gpt-3.5-turbo" and config["api_key"] == expected_api_key for config in config_list
-        ), "Default gpt-3.5-turbo configuration not found or incorrect"
+            expected_api_key = os.getenv("OPENAI_API_KEY")
+            assert any(
+                config["model"] == "gpt-4" and config["api_key"] == expected_api_key for config in config_list
+            ), "Default gpt-4 configuration not found or incorrect"
+            assert any(
+                config["model"] == "gpt-3.5-turbo" and config["api_key"] == expected_api_key for config in config_list
+            ), "Default gpt-3.5-turbo configuration not found or incorrect"
+    finally:
+        os.remove(temp_name)  # The file is deleted after using its name (to prevent windows build from breaking)
 
     # Test with missing dotenv file
     with caplog.at_level(logging.WARNING):
