@@ -103,6 +103,28 @@ class Completion(openai_Completion):
         "prompt": "{prompt}",
     }
 
+    llm_lite_mapping = {
+        'code-davinci-002': 'davinci-002',
+        'gpt-3.5-turbo': 'gpt-3.5-turbo',
+        'gpt-3.5-turbo-0301': 'gpt-3.5-turbo-0301',
+        'gpt-3.5-turbo-0613': 'gpt-3.5-turbo-0613',
+        'gpt-3.5-turbo-16k': 'gpt-3.5-turbo-16k',
+        'gpt-3.5-turbo-16k-0613': 'gpt-3.5-turbo-16k-0613',
+        'gpt-35-turbo': 'gpt-3.5-turbo-instruct',
+        'gpt-4': 'gpt-4',
+        'gpt-4-0314': 'gpt-4-0314',
+        'gpt-4-0613': 'gpt-4-0613',
+        'gpt-4-32k': 'gpt-4-32k',
+        'gpt-4-32k-0314': 'gpt-4-32k-0314',
+        'gpt-4-32k-0613': 'gpt-4-32k-0613',
+        'text-ada-001': 'text-ada-001',
+        'text-babbage-001': 'text-babbage-001',
+        'text-curie-001': 'text-curie-001',
+        'text-davinci-002': 'davinci-002',
+        'text-davinci-003': 'text-davinci-003'
+    }
+
+
     seed = 41
     cache_path = f".cache/{seed}"
     # retry after this many seconds
@@ -186,6 +208,11 @@ class Completion(openai_Completion):
         """
         config = config.copy()
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
+
+        model_name = config.get("model")
+        mapped_model_name = cls.llm_lite_mapping.get(model_name, model_name)  # Fallback to original if not found
+        config["model"] = mapped_model_name
+
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
@@ -193,11 +220,10 @@ class Completion(openai_Completion):
                 # print("using cached response")
                 cls._book_keeping(config, response)
                 return response
-        openai_completion = (
-            litellm.completion
-            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
-            else litellm.completion
-        )
+            
+        openai_completion = litellm.completion
+
+
         start_time = time.time()
         request_timeout = cls.request_timeout
         max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
