@@ -47,15 +47,17 @@ pip install pyautogen
 ```
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
-For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
+<!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
 pip install "pyautogen[blendsearch]"
-```
+``` -->
 
 Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation).
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
+For [code execution](https://microsoft.github.io/autogen/FAQ#code-execution), we strongly recommend installing the python docker package, and using docker.
 
 For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
+
 
 ## Quickstart
 
