@@ -14,6 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
+    "openai",
     "litellm",
     "diskcache",
     "termcolor",
