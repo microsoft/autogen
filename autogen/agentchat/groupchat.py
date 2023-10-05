@@ -95,7 +95,6 @@ class GroupChat:
         if llm_config is None:
             return self.next_agent(last_speaker)
 
-        
         try:
             system_messages = self.select_speaker_msgs()
             chat_messages = self.process_role_play_msgs(self.messages)
@@ -191,7 +190,7 @@ class GroupChatManager(ConversableAgent):
                 if isinstance(speaker, ConversableAgent) and isinstance(speaker.llm_config, dict):
                     if "stop" in speaker.llm_config:
                         speaker.llm_config["stop"].remove("<eof_name>:")
-                
+
                 if reply is None:
                     break
                 # if reply is 'From xxx', then set reply to xxx, it's your turn to speak
@@ -213,9 +212,6 @@ class GroupChatManager(ConversableAgent):
             if reply is None:
                 break
 
-            # if reply is from admin and contains terminate, then terminate the chat
-            if speaker == groupchat.admin and "terminate" in reply.lower():
-                break
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
