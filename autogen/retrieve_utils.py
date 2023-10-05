@@ -330,7 +330,7 @@ def query_lancedb(query_texts, n_results, db_path, table_name, search_string, em
     return results
 
 # Modify existing APIs to include the vector_database parameter
-def create_vector_db_from_dir(dir_path, max_tokens, client=None, db_path="/tmp/chromadb.db",
+def create_vector_db_from_dir(dir_path, max_tokens = max_tokens: int = 4000, client=None, db_path="/tmp/chromadb.db",
                               collection_name="all-my-documents", get_or_create=False, chunk_mode="multi_lines",
                               must_break_at_empty_line=True, embedding_model="all-MiniLM-L6-v2",
                               vector_database="chromadb"):
