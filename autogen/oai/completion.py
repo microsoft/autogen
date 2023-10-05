@@ -193,11 +193,6 @@ class Completion(openai_Completion):
                 # print("using cached response")
                 cls._book_keeping(config, response)
                 return response
-        openai_completion = (
-            litellm.completion
-            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
-            else litellm.completion
-        )
         start_time = time.time()
         request_timeout = cls.request_timeout
         max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
@@ -205,9 +200,9 @@ class Completion(openai_Completion):
         while True:
             try:
                 if "request_timeout" in config:
-                    response = openai_completion.create(**config)
+                    response = litellm.completion(**config)
                 else:
-                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                    response = litellm.completion(request_timeout=request_timeout, **config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
