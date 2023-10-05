@@ -215,15 +215,14 @@ class Completion(openai_Completion):
 
         key = get_key(config)
         if use_cache:
-            response = cls._cache.get(key, None)
-            if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
-                # print("using cached response")
-                cls._book_keeping(config, response)
-                return response
-            
-        openai_completion = litellm.completion
-
-
+            try:
+                response = cls._cache.get(key, None)
+                if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
+                    # print("using cached response")
+                    cls._book_keeping(config, response)
+                    return response
+            except:
+                pass
         start_time = time.time()
         request_timeout = cls.request_timeout
         max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
