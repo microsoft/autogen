@@ -231,9 +231,9 @@ class Completion(openai_Completion):
         while True:
             try:
                 if "request_timeout" in config:
-                    response = openai_completion.create(**config)
+                    response = litellm.completion(**config)
                 else:
-                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                    response = litellm.completion(request_timeout=request_timeout, **config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
