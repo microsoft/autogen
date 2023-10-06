@@ -37,7 +37,7 @@ class TeachableAgent(ConversableAgent):
         self.verbosity   = 0  # 1 to print DB operations, 2 to add caller details.
         self.db_method   = 1  # 0=none, 1=Both tasks & facts
         self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
-        self.use_cache   = 0  # 1 to skip LLM calls made previously by relying on cached responses.
+        self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
         self.text_analyzer = TextAnalyzer(self.use_cache)
 
@@ -66,7 +66,7 @@ class TeachableAgent(ConversableAgent):
         # Get the last user message.
         user_text = messages[-1]['content']
 
-        # To support quick and dirty tests of memory, clear the chat history if the user says "new chat".
+        # To let an interactive user test memory, clear the chat history if the user says "new chat".
         if user_text == 'new chat':
             self.clear_history()
             print('\n\033[92m<STARTING A NEW CHAT WITH EMPTY CONTEXT>\033[0m  ')
@@ -88,8 +88,9 @@ class TeachableAgent(ConversableAgent):
         ctxt = messages[-1].pop("context", None)  # This peels off any "context" message from the list.
         msgs = self._oai_system_message + messages
         response = oai.ChatCompletion.create(context=ctxt, messages=msgs, use_cache=self.use_cache, **llm_config)
+        response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
-        return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        return True, response_text
 
     def learn_from_recent_user_comments(self):
         if self.db_method > 0:
