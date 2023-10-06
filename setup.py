@@ -18,7 +18,6 @@ install_requires = [
     "diskcache",
     "termcolor",
     "flaml",
-    "python-dotenv",
 ]
 
 
@@ -39,19 +38,17 @@ setuptools.setup(
     install_requires=install_requires,
     extras_require={
         "test": [
-            "chromadb",
+            "pytest>=6.1.1",
             "coverage>=5.3",
+            "pre-commit",
             "datasets",
-            "ipykernel",
             "nbconvert",
             "nbformat",
-            "pre-commit",
+            "ipykernel",
             "pydantic==1.10.9",
-            "pytest-asyncio",
-            "pytest>=6.1.1",
             "sympy",
-            "tiktoken",
             "wolframalpha",
+            "tiktoken",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],

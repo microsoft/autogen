@@ -2,7 +2,6 @@ import asyncio
 from collections import defaultdict
 import copy
 import json
-import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from autogen import oai
 from .agent import Agent
@@ -14,15 +13,14 @@ from autogen.code_utils import (
     infer_lang,
 )
 
+from autogen.token_count_utils import count_token, get_max_token_limit
+
 try:
     from termcolor import colored
 except ImportError:
 
     def colored(x, *args, **kwargs):
         return x
-
-
-logger = logging.getLogger(__name__)
 
 
 class ConversableAgent(Agent):
@@ -56,6 +54,7 @@ class ConversableAgent(Agent):
         code_execution_config: Optional[Union[Dict, bool]] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        compress_config: Optional[Dict] = False,
     ):
         """
         Args:
@@ -87,15 +86,21 @@ class ConversableAgent(Agent):
                     If a list or a str of image name(s) is provided, the code will be executed in a docker container
                     with the first image successfully pulled.
                     If None, False or empty, the code will be executed in the current environment.
-                    Default is True when the docker python package is installed.
-                    When set to True, a default list will be used.
-                    We strongly recommend using docker for code execution.
+                    Default is True, which will be converted into a list.
+                    If the code is executed in the current environment,
+                    the code must be trusted.
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             llm_config (dict or False): llm inference configuration.
                 Please refer to [Completion.create](/docs/reference/oai/completion#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
+            compress_config (dict or False): config for compression before oai_reply. Default to None, meaning no compression will be used and the conversation will terminate when the token count exceeds the limit.
+                You should contain the following keys:
+                    "agent" (Optional, "Agent", default to CompressionAgent): the agent to call before oai_reply. the `generate_reply` method from this Agent will be called.
+                    "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression. If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
+                    "async" (Optional, bool, default to False): whether to compress asynchronously.
+                    "broadcast" (Optional, bool, default to False): whether to update the compressed message history to sender.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
         """
         super().__init__(name)
@@ -123,7 +128,24 @@ class ConversableAgent(Agent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
+
+        self.compress_config = compress_config
+        if self.compress_config:
+            from .contrib.compression_agent import CompressionAgent
+
+            if self.compress_config is True:
+                self.compress_config = {}
+            self.compress_config = {
+                "agent": self.compress_config.get(
+                    "agent", CompressionAgent(llm_config=llm_config)
+                ),  # TODO: llm_config to pass in here?
+                "trigger_count": self.compress_config.get("trigger_count", 0.7),
+                "async": self.compress_config.get("async", False),  # TODO: support async compression
+                "broadcast": self.compress_config.get("broadcast", False),  # TODO: support broadcast
+                "counter": 0,
+            }
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
+        self.register_reply([Agent, None], ConversableAgent.on_oai_token_limit)  # check token limit
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
@@ -608,6 +630,67 @@ class ConversableAgent(Agent):
         )
         return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
+    def on_oai_token_limit(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ) -> Tuple[bool, Union[str, Dict, None]]:
+        # routine
+        llm_config = self.llm_config if config is None else config
+        if llm_config is False:
+            return False, None
+        if messages is None:
+            messages = self._oai_messages[sender]
+
+        # if token limit threshold is not reached, abort
+        token_used = count_token(self._oai_system_message + messages, llm_config["model"])
+        max_token = get_max_token_limit(llm_config["model"])
+
+        # if compress_config is None, no compression will be used and the conversation will terminate when the token count exceeds the limit.
+        if self.compress_config is None:
+            if max_token - token_used <= 0:
+                # Teminate if no token left.
+                print(
+                    colored(
+                        f"Warning: Terminate Agent \"{self.name}\" due to no token left for oai reply. max token for {llm_config['model']}: {max_token}, existed token count: {token_used}",
+                        "yellow",
+                    ),
+                    flush=True,
+                )
+                return True, None
+            return False, None
+
+        if (
+            isinstance(self.compress_config["trigger_count"], float)
+            and token_used / max_token < self.compress_config["trigger_count"]
+            or token_used < self.compress_config["trigger_count"]
+        ):
+            return False, None
+
+        if self.compress_config["async"]:
+            # TODO: async compress
+            pass
+
+        compressed_messages = self.compress_config["agent"].generate_reply(messages, None)
+        if compressed_messages is not None:
+            # TODO:  maintain a list for old oai messages (messages before compression)
+            # TOTHINK: If two assistant are talking, and one assistant is compressing the message, should the compressed message be broadcasted to the other assistant? How?
+            # sender._oai_messages[self] = compressed_messages
+            # TOTHINK: GroupChatManager from groupchat.py should manage the compression of messages and broadcast with multiple agents.
+            print("Init message count:", count_token(self._oai_messages[sender][0], llm_config["model"]))
+            print(
+                "Token-Used(exclude init message): Before compression:",
+                count_token(self._oai_messages[sender][1:], llm_config["model"]),
+                "After:",
+                count_token(compressed_messages[1:], llm_config["model"]),
+            )
+            print("-" * 80)
+            if sender:
+                self._oai_messages[sender] = compressed_messages
+
+        return False, None
+
     def generate_code_execution_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -761,11 +844,7 @@ class ConversableAgent(Agent):
         Returns:
             str or dict or None: reply. None if no reply is generated.
         """
-        if all((messages is None, sender is None)):
-            error_msg = f"Either {messages=} or {sender=} must be provided."
-            logger.error(error_msg)
-            raise AssertionError(error_msg)
-
+        assert messages is not None or sender is not None, "Either messages or sender must be provided."
         if messages is None:
             messages = self._oai_messages[sender]
 
@@ -812,11 +891,7 @@ class ConversableAgent(Agent):
         Returns:
             str or dict or None: reply. None if no reply is generated.
         """
-        if all((messages is None, sender is None)):
-            error_msg = f"Either {messages=} or {sender=} must be provided."
-            logger.error(error_msg)
-            raise AssertionError(error_msg)
-
+        assert messages is not None or sender is not None, "Either messages or sender must be provided."
         if messages is None:
             messages = self._oai_messages[sender]
 
