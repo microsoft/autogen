@@ -14,7 +14,7 @@ from autogen.code_utils import (
     infer_lang,
 )
 
-from autogen.token_count_utils import count_token, get_max_token_limit
+from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
 
 try:
     from termcolor import colored
@@ -134,7 +134,7 @@ class ConversableAgent(Agent):
         self.reply_at_receive = defaultdict(bool)
 
         self.compress_config = compress_config
-        if self.compress_config:
+        if self.compress_config and self.llm_config:
             from .contrib.compression_agent import CompressionAgent
 
             if self.compress_config is True:
@@ -145,8 +145,7 @@ class ConversableAgent(Agent):
                 ),  # TODO: llm_config to pass in here?
                 "trigger_count": self.compress_config.get("trigger_count", 0.7),
                 "async": self.compress_config.get("async", False),  # TODO: support async compression
-                "broadcast": self.compress_config.get("broadcast", False),  # TODO: support broadcast
-                "counter": 0,
+                "broadcast": self.compress_config.get("broadcast", True),
             }
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.on_oai_token_limit)  # check token limit
@@ -634,24 +633,33 @@ class ConversableAgent(Agent):
         )
         return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
+    def compute_init_token_count(self):
+        """Check if the agent is LLM-based and compute the initial token count."""
+        if self.llm_config is False:
+            return 0
+
+        func_count = 0
+        if "functions" in self.llm_config:
+            func_count = num_tokens_from_functions(self.llm_config["functions"], self.llm_config["model"])
+
+        return func_count + count_token(self._oai_system_message, self.llm_config["model"])
+
     def on_oai_token_limit(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
-        # routine
         llm_config = self.llm_config if config is None else config
         if llm_config is False:
+            # Only apply when this is a LLM-based agent (has llm_config)
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # if token limit threshold is not reached, abort
-        token_used = count_token(self._oai_system_message + messages, llm_config["model"])
-        max_token = get_max_token_limit(llm_config["model"])
-
         # if compress_config is None, no compression will be used and the conversation will terminate when the token count exceeds the limit.
+        token_used = self.compute_init_token_count() + count_token(messages, llm_config["model"])
+        max_token = get_max_token_limit(llm_config["model"])
         if self.compress_config is None:
             if max_token - token_used <= 0:
                 # Teminate if no token left.
@@ -665,11 +673,12 @@ class ConversableAgent(Agent):
                 return True, None
             return False, None
 
-        if (
-            isinstance(self.compress_config["trigger_count"], float)
-            and token_used / max_token < self.compress_config["trigger_count"]
-            or token_used < self.compress_config["trigger_count"]
-        ):
+        # on_oai_token_limit requires a sender. Otherwise, the compressed messages cannot be saved
+        if sender is None:
+            return False, None
+
+        # if token_used is less than trigger_count, no compression will be used.
+        if token_used < self.compress_config["trigger_count"]:
             return False, None
 
         if self.compress_config["async"]:
@@ -679,19 +688,19 @@ class ConversableAgent(Agent):
         compressed_messages = self.compress_config["agent"].generate_reply(messages, None)
         if compressed_messages is not None:
             # TODO:  maintain a list for old oai messages (messages before compression)
-            # TOTHINK: If two assistant are talking, and one assistant is compressing the message, should the compressed message be broadcasted to the other assistant? How?
-            # sender._oai_messages[self] = compressed_messages
-            # TOTHINK: GroupChatManager from groupchat.py should manage the compression of messages and broadcast with multiple agents.
-            print("Init message count:", count_token(self._oai_messages[sender][0], llm_config["model"]))
-            print(
-                "Token-Used(exclude init message): Before compression:",
-                count_token(self._oai_messages[sender][1:], llm_config["model"]),
-                "After:",
-                count_token(compressed_messages[1:], llm_config["model"]),
+            to_print = "Token Count(after the first user message): Before compression: " + str(
+                count_token(self._oai_messages[sender][1:], llm_config["model"])
+            ) + " After: " + str(
+                count_token(compressed_messages[1:], llm_config["model"])
+            ) + " | " "Total prompt token count after compression: " + str(
+                count_token(compressed_messages, llm_config["model"]) + self.compute_init_token_count()
             )
+            print(colored(to_print, "magenta"), flush=True)
             print("-" * 80)
-            if sender:
-                self._oai_messages[sender] = compressed_messages
+
+            self._oai_messages[sender] = compressed_messages
+            if self.compress_config["broadcast"]:
+                sender._oai_messages[self] = compressed_messages
 
         return False, None
 

@@ -13,9 +13,9 @@ except ImportError:
 
 
 class CompressionAgent(ConversableAgent):
-    """(Experimental) Assistant agent, designed to solve a task with LLM.
+    """(In preview) Assistant agent, designed to solve a task with LLM.
 
-    AssistantAgent is a subclass of ResponsiveAgent configured with a default system message.
+    AssistantAgent is a subclass of ConversableAgent configured with a default system message.
     The default system message is designed to solve a task with LLM,
     including suggesting python code blocks and debugging.
     `human_input_mode` is default to "NEVER"
@@ -56,7 +56,7 @@ Rules:
             system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
             llm_config (dict): llm inference configuration.
-                Please refer to [autogen.Completion.create](/docs/reference/autogen/oai/completion#create)
+                Please refer to [Completion.create](/docs/reference/oai/completion#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
