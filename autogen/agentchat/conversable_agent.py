@@ -2,6 +2,7 @@ import asyncio
 from collections import defaultdict
 import copy
 import json
+import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from autogen import oai
 from .agent import Agent
@@ -21,6 +22,9 @@ except ImportError:
 
     def colored(x, *args, **kwargs):
         return x
+
+
+logger = logging.getLogger(__name__)
 
 
 class ConversableAgent(Agent):
@@ -86,9 +90,9 @@ class ConversableAgent(Agent):
                     If a list or a str of image name(s) is provided, the code will be executed in a docker container
                     with the first image successfully pulled.
                     If None, False or empty, the code will be executed in the current environment.
-                    Default is True, which will be converted into a list.
-                    If the code is executed in the current environment,
-                    the code must be trusted.
+                    Default is True when the docker python package is installed.
+                    When set to True, a default list will be used.
+                    We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             llm_config (dict or False): llm inference configuration.
@@ -844,7 +848,11 @@ class ConversableAgent(Agent):
         Returns:
             str or dict or None: reply. None if no reply is generated.
         """
-        assert messages is not None or sender is not None, "Either messages or sender must be provided."
+        if all((messages is None, sender is None)):
+            error_msg = f"Either {messages=} or {sender=} must be provided."
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+
         if messages is None:
             messages = self._oai_messages[sender]
 
@@ -891,7 +899,11 @@ class ConversableAgent(Agent):
         Returns:
             str or dict or None: reply. None if no reply is generated.
         """
-        assert messages is not None or sender is not None, "Either messages or sender must be provided."
+        if all((messages is None, sender is None)):
+            error_msg = f"Either {messages=} or {sender=} must be provided."
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+
         if messages is None:
             messages = self._oai_messages[sender]
 
