@@ -2,6 +2,7 @@ from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.text_analyzer import TextAnalyzer
+from autogen.agentchat.contrib.analysis_agent import AnalysisAgent
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
@@ -31,15 +32,18 @@ class TeachableAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
-        # super().__init__(*args, **kwargs)
         self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply)
 
         self.verbosity   = 0  # 1 to print DB operations, 2 to add caller details.
         self.db_method   = 1  # 0=none, 1=Both tasks & facts
         self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
         self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
+        self.use_analyzer_agent = 1  # 1 to use the new analysis agent, 0 to use the old text analyzer.
 
-        self.text_analyzer = TextAnalyzer(self.use_cache)
+        if self.use_analyzer_agent:
+            self.analyzer = AnalysisAgent("analyzer", llm_config=llm_config)
+        else:
+            self.text_analyzer = TextAnalyzer(self.use_cache)
 
         if self.db_method > 0:
             self.memo_store = MemoStore(self.verbosity)
@@ -55,6 +59,10 @@ class TeachableAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
+        if self.use_analyzer_agent and (sender == self.analyzer):
+            # This is a response from the text analyzer. Don't reply to it.
+            return True, None
+
         llm_config = self.llm_config if config is None else config
         if llm_config is False:
             return False, None
@@ -103,18 +111,18 @@ class TeachableAgent(ConversableAgent):
 
     def consider_memo_storage(self, comment, llm_config):
         # Check for a problem-solution pair.
-        response = self.text_analyzer.analyze(llm_config, comment,
+        response = self.analyze(llm_config, comment,
             "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Can we extract advice?
-            advice = self.text_analyzer.analyze(llm_config, comment,
+            advice = self.analyze(llm_config, comment,
                 "Copy any advice from the last user comment that may be useful for a similar but different task in the future. But if no advice is present, just respond with \'none\'.")
             if 'none' not in advice.lower():
                 # Yes. Extract the task.
-                task = self.text_analyzer.analyze(llm_config, comment,
+                task = self.analyze(llm_config, comment,
                     "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
                 # Generalize the task.
-                general_task = self.text_analyzer.analyze(llm_config, task,
+                general_task = self.analyze(llm_config, task,
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Add the task-advice (problem-solution) pair to the vector DB.
                 if self.verbosity >= 1:
@@ -123,21 +131,21 @@ class TeachableAgent(ConversableAgent):
             return
 
         # Check for a simple question.
-        response = self.text_analyzer.analyze(llm_config, comment,
+        response = self.analyze(llm_config, comment,
             "Does the last user comment contain a simple question? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Ignore it.
             return
 
         # Check for information to be learned.
-        response = self.text_analyzer.analyze(llm_config, comment,
+        response = self.analyze(llm_config, comment,
             "Does the last user comment contain information that might be useful later? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Yes. What question would this information answer?
-            question = self.text_analyzer.analyze(llm_config, comment,
+            question = self.analyze(llm_config, comment,
                 "Imagine that the user forgot this information in their last comment. How would they ask you for this information? Include no other text in your response.")
             # Extract the information.
-            answer = self.text_analyzer.analyze(llm_config, comment,
+            answer = self.analyze(llm_config, comment,
                 "Copy the information from the last user comment that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
@@ -146,11 +154,11 @@ class TeachableAgent(ConversableAgent):
 
     def consider_memo_retrieval(self, comment, llm_config):
         # Check for a question or task.
-        response = self.text_analyzer.analyze(llm_config, comment,
+        response = self.analyze(llm_config, comment,
             "Does the last user comment contain a question, task, or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Distinguish between a question and a task.
-            response = self.text_analyzer.analyze(llm_config, comment,
+            response = self.analyze(llm_config, comment,
                 "Would the last user comment be best described as a simple question question, or a complex task? Answer with just one word, question or task.")
             if 'question' in response.lower():
                 # Retrieve the answer.
@@ -163,10 +171,10 @@ class TeachableAgent(ConversableAgent):
                 return user_text
             elif 'task' in response.lower():
                 # Extract the task.
-                task = self.text_analyzer.analyze(llm_config, comment,
+                task = self.analyze(llm_config, comment,
                     "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
                 # Generalize the task.
-                general_task = self.text_analyzer.analyze(llm_config, task,
+                general_task = self.analyze(llm_config, task,
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Retrieve the advice.
                 uid, info = self.memo_store.get_nearest_memo(general_task)
@@ -179,6 +187,15 @@ class TeachableAgent(ConversableAgent):
 
         # For anything else, just return the user comment.
         return comment
+
+    def analyze(self, llm_config, text_to_analyze, analysis_instructions):
+        if self.use_analyzer_agent:
+            message_text = '\n'.join([text_to_analyze, analysis_instructions])
+            self.initiate_chat(recipient=self.analyzer, message=message_text)
+            response_text = self.last_message(self.analyzer)["content"]
+        else:
+            response_text = self.text_analyzer.analyze(llm_config, text_to_analyze, analysis_instructions)
+        return response_text
 
 
 class MemoStore():
