@@ -48,6 +48,10 @@ class TestRetrieveUtils:
         chunks = split_text_to_chunks(long_text, max_tokens=1000)
         assert all(num_tokens_from_text(chunk) <= 1000 for chunk in chunks)
 
+    def test_split_text_to_chunks_raises_on_invalid_chunk_mode(self):
+        with pytest.raises(AssertionError):
+            split_text_to_chunks("A" * 10000, chunk_mode="bogus_chunk_mode")
+
     def test_extract_text_from_pdf(self):
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         assert "".join(expected_text.split()) == "".join(extract_text_from_pdf(pdf_file_path).strip().split())

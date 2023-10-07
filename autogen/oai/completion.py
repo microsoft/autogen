@@ -582,23 +582,31 @@ class Completion(openai_Completion):
         cls._prompts = space.get("prompt")
         if cls._prompts is None:
             cls._messages = space.get("messages")
-            assert isinstance(cls._messages, list) and isinstance(
-                cls._messages[0], (dict, list)
-            ), "messages must be a list of dicts or a list of lists."
+            if not all((isinstance(cls._messages, list), isinstance(cls._messages[0], (dict, list)))):
+                error_msg = "messages must be a list of dicts or a list of lists."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if isinstance(cls._messages[0], dict):
                 cls._messages = [cls._messages]
             space["messages"] = tune.choice(list(range(len(cls._messages))))
         else:
-            assert space.get("messages") is None, "messages and prompt cannot be provided at the same time."
-            assert isinstance(cls._prompts, (str, list)), "prompt must be a string or a list of strings."
+            if space.get("messages") is not None:
+                error_msg = "messages and prompt cannot be provided at the same time."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
+            if not isinstance(cls._prompts, (str, list)):
+                error_msg = "prompt must be a string or a list of strings."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if isinstance(cls._prompts, str):
                 cls._prompts = [cls._prompts]
             space["prompt"] = tune.choice(list(range(len(cls._prompts))))
         cls._stops = space.get("stop")
         if cls._stops:
-            assert isinstance(
-                cls._stops, (str, list)
-            ), "stop must be a string, a list of strings, or a list of lists of strings."
+            if not isinstance(cls._stops, (str, list)):
+                error_msg = "stop must be a string, a list of strings, or a list of lists of strings."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if not (isinstance(cls._stops, list) and isinstance(cls._stops[0], list)):
                 cls._stops = [cls._stops]
             space["stop"] = tune.choice(list(range(len(cls._stops))))
@@ -969,7 +977,10 @@ class Completion(openai_Completion):
         elif isinstance(agg_method, dict):
             for key in metric_keys:
                 metric_agg_method = agg_method[key]
-                assert callable(metric_agg_method), "please provide a callable for each metric"
+                if not callable(metric_agg_method):
+                    error_msg = "please provide a callable for each metric"
+                    logger.error(error_msg)
+                    raise AssertionError(error_msg)
                 result_agg[key] = metric_agg_method([r[key] for r in result_list])
         else:
             raise ValueError(
