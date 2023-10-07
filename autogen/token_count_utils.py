@@ -2,7 +2,6 @@ import tiktoken
 from typing import List, Union, Dict, Tuple
 import logging
 import json
-from openai.openai_object import OpenAIObject
 
 
 logger = logging.getLogger(__name__)
