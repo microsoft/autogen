@@ -97,8 +97,14 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
                 continue
 
             # function calls
-            if type(value) == dict or type(value) == OpenAIObject:
-                value = json.dumps(value)
+            if not isinstance(value, str):
+                try:
+                    value = json.dumps(value)
+                except TypeError:
+                    logger.warning(
+                        f"Warning: value {value} is not a string and cannot be converted to json. It is a type: {type(value)} Skipping."
+                    )
+                    continue
 
             num_tokens += len(encoding.encode(value))
             if key == "name":
