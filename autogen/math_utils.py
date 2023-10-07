@@ -35,8 +35,9 @@ def remove_boxed(string: str) -> Optional[str]:
     """
     left = "\\boxed{"
     try:
-        assert string[: len(left)] == left
-        assert string[-1] == "}"
+        if not all((string[: len(left)] == left, string[-1] == "}")):
+            raise AssertionError
+
         return string[len(left) : -1]
     except Exception:
         return None
@@ -94,7 +95,8 @@ def _fix_fracs(string: str) -> str:
                 new_str += substr
             else:
                 try:
-                    assert len(substr) >= 2
+                    if not len(substr) >= 2:
+                        raise AssertionError
                 except Exception:
                     return string
                 a = substr[0]
@@ -129,7 +131,8 @@ def _fix_a_slash_b(string: str) -> str:
     try:
         a = int(a_str)
         b = int(b_str)
-        assert string == "{}/{}".format(a, b)
+        if not string == "{}/{}".format(a, b):
+            raise AssertionError
         new_string = "\\frac{" + str(a) + "}{" + str(b) + "}"
         return new_string
     except Exception:
@@ -143,7 +146,8 @@ def _remove_right_units(string: str) -> str:
     """
     if "\\text{ " in string:
         splits = string.split("\\text{ ")
-        assert len(splits) == 2
+        if not len(splits) == 2:
+            raise AssertionError
         return splits[0]
     else:
         return string
