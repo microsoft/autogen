@@ -259,7 +259,7 @@ def execute_code(
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
-    if WIN32 and lang in ["sh", "shell"]:
+    if WIN32 and lang in ["sh", "shell"] and (not use_docker):
         lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
