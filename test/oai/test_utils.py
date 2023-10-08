@@ -115,8 +115,9 @@ def test_config_list_from_dotenv(mock_os_environ, caplog):
 
     with caplog.at_level(logging.WARNING):
         config_list = autogen.config_list_from_dotenv()
-        # Check that the expected log message is in the captured logs
         assert "No .env file found. Loading configurations from environment variables." in caplog.text
+        # The function does not return an empty list if at least one configuration is loaded successfully
+        assert config_list != [], "Config list is empty"
 
     # Test with no configurations loaded
     invalid_model_api_key_map = {
