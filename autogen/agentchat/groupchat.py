@@ -144,7 +144,7 @@ class GroupChatManager(ConversableAgent):
         }
         self.groupchat.messages.append(message_with_name)
         return super()._process_received_message(message, sender, silent)
-    
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
