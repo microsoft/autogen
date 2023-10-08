@@ -1,5 +1,6 @@
 from time import sleep
 import logging
+import regex as re
 import time
 from typing import List, Optional, Dict, Callable, Union
 import sys
@@ -229,10 +230,13 @@ class Completion(openai_Completion):
         retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
-                if "request_timeout" in config:
+                if "request_timeout" not in config:
+                    config["request_timeout"] = request_timeout
+                api_type = config.get("api_type", None)
+                if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
                     response = litellm.completion(**config)
                 else:
-                    response = litellm.completion(request_timeout=request_timeout, **config)
+                    response = openai.ChatCompletion.create(**config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
