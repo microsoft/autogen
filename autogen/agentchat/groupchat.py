@@ -137,23 +137,14 @@ class GroupChatManager(ConversableAgent):
         # self._random = random.Random(seed)
 
     def _process_received_message(self, message, sender, silent):
-        super()._process_received_message(message, sender, silent)
-        msg = {
+        message_with_name = {
             "content": message,
-            "name": sender.name if sender is not None else "Unknown",
-        }
-        self.groupchat.messages.append(msg)
-
-        # distribute the message to all agents
-        msg_with_name = {
-            "content": f"""From {msg["name"]}<eof_name>:
-{msg["content"]}""",
             "role": "user",
+            "name": sender.name,
         }
-        for agent in self.groupchat.agents:
-            if agent != sender:
-                self.send(msg_with_name, agent, request_reply=False, silent=True)
-
+        self.groupchat.messages.append(message_with_name)
+        return super()._process_received_message(message, sender, silent)
+    
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
@@ -161,16 +152,37 @@ class GroupChatManager(ConversableAgent):
         config: Optional[GroupChat] = None,
     ) -> Union[str, Dict, None]:
         """Run a group chat."""
+
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
         speaker = sender
-        groupchat = self.groupchat
+        groupchat = config
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
                 message["name"] = speaker.name
-            # self._process_received_message(message, speaker, silent=True)
+
+            # sync the message
+            msg = {
+                "content": message["content"],
+                "name": speaker.name if speaker is not None else "Unknown",
+            }
+
+            if not isinstance(self, GroupChatManager):
+                groupchat.messages.append(msg)
+
+            # distribute the message to all agents
+            msg_with_name = {
+                "content": f"""From {msg["name"]}<eof_name>:
+{msg["content"]}""",
+                "role": "user",
+            }
+            for agent in groupchat.agents:
+                if agent != speaker:
+                    agent.receive(msg_with_name, self, request_reply=False, silent=True)
+                    # self.send(msg_with_name["content"], agent, request_reply=False, silent=True)
+
             if i == groupchat.max_round - 1:
                 # the last round
                 break

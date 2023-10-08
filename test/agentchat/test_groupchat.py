@@ -183,7 +183,7 @@ def test_group_chat_coding_class():
 
     teacher = autogen.AssistantAgent(
         "teacher",
-        system_message="""You are a python teacher, you create 5 easy-level leetcode algorithm questions for student to resolve.
+        system_message="""You are a python teacher, you create 5 mid-level leetcode algorithm questions for student to resolve.
         Create 1 question at a time, then ask student to resolve the question using python.
         If the answer is correct, you create another question, otherwise, you provide hint to help student fix the bug and ask student to resolve the question again.
 
@@ -293,5 +293,6 @@ def test_plugin():
 if __name__ == "__main__":
     # test_broadcast()
     # test_chat_manager()
-    test_group_chat_coding_class()
+    test_group_chat_math_class()
+    # test_group_chat_coding_class()
     # test_plugin()
