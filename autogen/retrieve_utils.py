@@ -73,7 +73,7 @@ def num_tokens_from_messages(
     messages: dict,
     model: str = "gpt-3.5-turbo-0613",
     custom_token_count_function: Callable = None,
-    custom_prime_count=3,
+    custom_prime_count: int = 3,
 ):
     """Return the number of tokens used by a list of messages."""
     num_tokens = 0
@@ -89,7 +89,7 @@ def num_tokens_from_messages(
             if key == "name":
                 num_tokens += tokens_per_name
         num_tokens += tokens_per_message
-    num_tokens += custom_prime_count  # By default every reply is primed with <|start|>assistant<|message|>
+    num_tokens += custom_prime_count  # ChatGPT every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
 
