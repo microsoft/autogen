@@ -195,13 +195,13 @@ class Completion(openai_Completion):
                     # print("using cached response")
                     cls._book_keeping(config, response)
                     return response
-                openai_completion = (
-                    openai.ChatCompletion
-                    if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
-                    else openai.Completion
-                )
             except:
                 pass
+        openai_completion = (
+            openai.ChatCompletion
+            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
+            else openai.Completion
+        )
         start_time = time.time()
         request_timeout = cls.request_timeout
         max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
