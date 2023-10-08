@@ -33,12 +33,15 @@ VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
 def num_tokens_from_text(
-    text: str, model: str = "gpt-3.5-turbo-0613", return_tokens_per_name_and_message: bool = False, custom_token_count_function: Callable = None
+    text: str,
+    model: str = "gpt-3.5-turbo-0613",
+    return_tokens_per_name_and_message: bool = False,
+    custom_token_count_function: Callable = None,
 ) -> Union[int, Tuple[int, int, int]]:
     """Return the number of tokens used by a text."""
     if isinstance(custom_token_count_function, Callable):
         token_count, tokens_per_message, tokens_per_name = custom_token_count_function(text)
-    else:        
+    else:
         # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
         try:
             encoding = tiktoken.encoding_for_model(model)
@@ -46,18 +49,18 @@ def num_tokens_from_text(
             logger.debug("Warning: model not found. Using cl100k_base encoding.")
             encoding = tiktoken.get_encoding("cl100k_base")
         known_models = {
-            "gpt-3.5-turbo":(3,1),
-            "gpt-35-turbo":(3,1),
-            "gpt-3.5-turbo-0613":(3,1),
-            "gpt-3.5-turbo-16k-0613":(3,1),
-            "gpt-3.5-turbo-0301":(4,-1),
-            "gpt-4":(3,1),
-            "gpt-4-0314":(3,1),
-            "gpt-4-32k-0314":(3,1),
-            "gpt-4-0613":(3,1),
-            "gpt-4-32k-0613":(3,1),
+            "gpt-3.5-turbo": (3, 1),
+            "gpt-35-turbo": (3, 1),
+            "gpt-3.5-turbo-0613": (3, 1),
+            "gpt-3.5-turbo-16k-0613": (3, 1),
+            "gpt-3.5-turbo-0301": (4, -1),
+            "gpt-4": (3, 1),
+            "gpt-4-0314": (3, 1),
+            "gpt-4-32k-0314": (3, 1),
+            "gpt-4-0613": (3, 1),
+            "gpt-4-32k-0613": (3, 1),
         }
-        tokens_per_message, tokens_per_name = known_models.get(model, (3,1))
+        tokens_per_message, tokens_per_name = known_models.get(model, (3, 1))
         token_count = len(encoding.encode(text))
 
     if return_tokens_per_name_and_message:
@@ -66,13 +69,21 @@ def num_tokens_from_text(
         return token_count
 
 
-def num_tokens_from_messages(messages: dict, model: str = "gpt-3.5-turbo-0613", custom_token_count_function: Callable = None, custom_prime_count=3):
+def num_tokens_from_messages(
+    messages: dict,
+    model: str = "gpt-3.5-turbo-0613",
+    custom_token_count_function: Callable = None,
+    custom_prime_count=3,
+):
     """Return the number of tokens used by a list of messages."""
     num_tokens = 0
     for message in messages:
         for key, value in message.items():
             _num_tokens, tokens_per_message, tokens_per_name = num_tokens_from_text(
-                value, model=model, return_tokens_per_name_and_message=True, custom_token_count_function=custom_token_count_function
+                value,
+                model=model,
+                return_tokens_per_name_and_message=True,
+                custom_token_count_function=custom_token_count_function,
             )
             num_tokens += _num_tokens
             if key == "name":
