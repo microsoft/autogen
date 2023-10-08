@@ -20,19 +20,23 @@
     },
     {
         "model": "command-nightly",
-        "api_key": "<your Cohere API key here>"
+        "api_key": "<your Cohere API key here>",
+        "api_type": "LiteLLM"
     },
     {
         "model": "palm/chat-bison",
-        "api_key": "<your PaLM API key here>"
-    },
-    {
-        "model": "huggingface/glaiveai/glaive-coder-7b",
-        "api_key": "<your hugging face API key here>"
+        "api_key": "<your PaLM API key here>",
+        "api_type": "LiteLLM"
     },
     {
         "model": "huggingface/glaiveai/glaive-coder-7b",
         "api_key": "<your hugging face API key here>",
-        "api_base": "<your hugging face inference endpoint here>"
+        "api_type": "LiteLLM"
+    },
+    {
+        "model": "huggingface/glaiveai/glaive-coder-7b",
+        "api_key": "<your hugging face API key here>",
+        "api_base": "<your hugging face inference endpoint here>",
+        "api_type": "LiteLLM"
     }
 ]
