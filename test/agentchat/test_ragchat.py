@@ -4,13 +4,13 @@ import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
-    from autogen.agentchat.contrib.retrieve_assistant_agent import (
-        RetrieveAssistantAgent,
+    from autogen.autogen.agentchat.contrib.rag_assistant_agent import (
+        RagAssistantAgent,
     )
-    from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
-        RetrieveUserProxyAgent,
+    from autogen.autogen.agentchat.contrib.rag_user_proxy_agent import (
+        RagUserProxyAgent,
     )
-    from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
+    from autogen.autogen.rag_utils import create_vector_db_from_dir, query_vector_db
     import chromadb
 
     skip_test = False
@@ -22,7 +22,7 @@ except ImportError:
     sys.platform in ["darwin", "win32"] or skip_test,
     reason="do not run on MacOS or windows",
 )
-def test_retrievechat():
+def test_ragchat():
     try:
         import openai
     except ImportError:
@@ -39,7 +39,7 @@ def test_retrievechat():
         },
     )
 
-    assistant = RetrieveAssistantAgent(
+    assistant = RagAssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant.",
         llm_config={
@@ -49,11 +49,11 @@ def test_retrievechat():
         },
     )
 
-    ragproxyagent = RetrieveUserProxyAgent(
+    ragproxyagent = RagUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
         max_consecutive_auto_reply=2,
-        retrieve_config={
+        rag_config={
             "docs_path": "./website/docs",
             "chunk_token_size": 2000,
             "model": config_list[0]["model"],
@@ -73,7 +73,7 @@ def test_retrievechat():
     sys.platform in ["darwin", "win32"] or skip_test,
     reason="do not run on MacOS or windows",
 )
-def test_retrieve_utils():
+def test_rag_utils():
     client = chromadb.PersistentClient(path="/tmp/chromadb")
     create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs")
     results = query_vector_db(
@@ -90,5 +90,5 @@ def test_retrieve_utils():
 
 
 if __name__ == "__main__":
-    test_retrievechat()
-    test_retrieve_utils()
+    test_ragchat()
+    test_rag_utils()

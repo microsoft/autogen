@@ -2,7 +2,7 @@ import re
 import chromadb
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
-from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
+from autogen.autogen.rag_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
 from autogen.code_utils import extract_code
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
@@ -16,7 +16,7 @@ except ImportError:
         return x
 
 
-PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
+PROMPT_DEFAULT = """You're a retrieval augmented chatbot. You answer user's questions based on your own knowledge and the
 context provided by the user. You should follow the following steps to answer a question:
 Step 1, you estimate the user's intent based on the question and context. The intent can be a code generation task or
 a question answering task.
@@ -36,7 +36,7 @@ User's question is: {input_question}
 Context is: {input_context}
 """
 
-PROMPT_CODE = """You're a retrieve augmented coding assistant. You answer user's questions based on your own knowledge and the
+PROMPT_CODE = """You're a retrieval augmented coding assistant. You answer user's questions based on your own knowledge and the
 context provided by the user.
 If you can't answer the question with or without the current context, you should reply exactly `UPDATE CONTEXT`.
 For code generation, you must obey the following rules:
@@ -51,7 +51,7 @@ User's question is: {input_question}
 Context is: {input_context}
 """
 
-PROMPT_QA = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
+PROMPT_QA = """You're a retrieval augmented chatbot. You answer user's questions based on your own knowledge and the
 context provided by the user.
 If you can't answer the question with or without the current context, you should reply exactly `UPDATE CONTEXT`.
 You must give as short an answer as possible.
@@ -62,7 +62,7 @@ Context is: {input_context}
 """
 
 
-def _is_termination_msg_retrievechat(message):
+def _is_termination_msg_ragchat(message):
     """Check if a message is a termination message."""
     if isinstance(message, dict):
         message = message.get("content")
@@ -77,13 +77,13 @@ def _is_termination_msg_retrievechat(message):
     return not contain_code
 
 
-class RetrieveUserProxyAgent(UserProxyAgent):
+class RagUserProxyAgent(UserProxyAgent):
     def __init__(
         self,
-        name="RetrieveChatAgent",  # default set to RetrieveChatAgent
-        is_termination_msg: Optional[Callable[[Dict], bool]] = _is_termination_msg_retrievechat,
+        name="RAGChatAgent",  # default set to RAGChatAgent
+        is_termination_msg: Optional[Callable[[Dict], bool]] = _is_termination_msg_ragchat,
         human_input_mode: Optional[str] = "ALWAYS",
-        retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
+        rag_config: Optional[Dict] = None,  # config for the rag agent
         **kwargs,
     ):
         """
@@ -98,9 +98,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     the number of auto reply reaches the max_consecutive_auto_reply.
                 (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
-            retrieve_config (dict or None): config for the retrieve agent.
+            rag_config (dict or None): config for the rag agent.
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
-                - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
+                - task (Optional, str): the task of the rag chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
                 - client (Optional, chromadb.Client): the chromadb client.
                     If key not provided, a default client `chromadb.Client()` will be used.
@@ -108,25 +108,25 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     or the url to a single file. If key not provided, a default path `./docs` will be used.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
-                - model (Optional, str): the model to use for the retrieve chat.
+                - model (Optional, str): the model to use for the rag chat.
                     If key not provided, a default model `gpt-4` will be used.
-                - chunk_token_size (Optional, int): the chunk token size for the retrieve chat.
+                - chunk_token_size (Optional, int): the chunk token size for the rag chat.
                     If key not provided, a default size `max_tokens * 0.4` will be used.
-                - context_max_tokens (Optional, int): the context max token size for the retrieve chat.
+                - context_max_tokens (Optional, int): the context max token size for the rag chat.
                     If key not provided, a default size `max_tokens * 0.8` will be used.
-                - chunk_mode (Optional, str): the chunk mode for the retrieve chat. Possible values are
+                - chunk_mode (Optional, str): the chunk mode for the rag chat. Possible values are
                     "multi_lines" and "one_line". If key not provided, a default mode `multi_lines` will be used.
                 - must_break_at_empty_line (Optional, bool): chunk will only break at empty line if True. Default is True.
                     If chunk_mode is "one_line", this parameter will be ignored.
-                - embedding_model (Optional, str): the embedding model to use for the retrieve chat.
+                - embedding_model (Optional, str): the embedding model to use for the rag chat.
                     If key not provided, a default model `all-MiniLM-L6-v2` will be used. All available models
                     can be found at `https://www.sbert.net/docs/pretrained_models.html`. The default model is a
                     fast model. If you want to use a high performance model, `all-mpnet-base-v2` is recommended.
-                - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
-                - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
+                - customized_prompt (Optional, str): the customized prompt for the rag chat. Default is None.
+                - customized_answer_prefix (Optional, str): the customized answer prefix for the rag chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
-                - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
+                - get_or_create (Optional, bool): if True, will create/recreate a collection for the rag chat.
                     This is the same as that used in chromadb. Default is False.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
@@ -137,21 +137,21 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             **kwargs,
         )
 
-        self._retrieve_config = {} if retrieve_config is None else retrieve_config
-        self._task = self._retrieve_config.get("task", "default")
-        self._client = self._retrieve_config.get("client", chromadb.Client())
-        self._docs_path = self._retrieve_config.get("docs_path", "./docs")
-        self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
-        self._model = self._retrieve_config.get("model", "gpt-4")
+        self._rag_config = {} if rag_config is None else rag_config
+        self._task = self._rag_config.get("task", "default")
+        self._client = self._rag_config.get("client", chromadb.Client())
+        self._docs_path = self._ragig.get("docs_path", "./docs")
+        self._collection_name = self._rag_config.get("collection_name", "autogen-docs")
+        self._model = self._rag_config.get("model", "gpt-4")
         self._max_tokens = self.get_max_tokens(self._model)
-        self._chunk_token_size = int(self._retrieve_config.get("chunk_token_size", self._max_tokens * 0.4))
-        self._chunk_mode = self._retrieve_config.get("chunk_mode", "multi_lines")
-        self._must_break_at_empty_line = self._retrieve_config.get("must_break_at_empty_line", True)
-        self._embedding_model = self._retrieve_config.get("embedding_model", "all-MiniLM-L6-v2")
-        self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
-        self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
-        self.update_context = self._retrieve_config.get("update_context", True)
-        self._get_or_create = self._retrieve_config.get("get_or_create", False)
+        self._chunk_token_size = int(self._rag_config.get("chunk_token_size", self._max_tokens * 0.4))
+        self._chunk_mode = self._rag_config.get("chunk_mode", "multi_lines")
+        self._must_break_at_empty_line = self._rag_config.get("must_break_at_empty_line", True)
+        self._embedding_model = self._rag_config.get("embedding_model", "all-MiniLM-L6-v2")
+        self.customized_prompt = self._rag_config.get("customized_prompt", None)
+        self.customized_answer_prefix = self._rag_config.get("customized_answer_prefix", "").upper()
+        self.update_context = self._rag_config.get("update_context", True)
+        self._get_or_create = self._rag_config.get("get_or_create", False)
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = False  # the collection is not created
         self._ipython = get_ipython()
@@ -160,7 +160,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
-        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply)
+        self.register_reply(Agent, RagUserProxyAgent._generate_rag_user_reply)
 
     @staticmethod
     def get_max_tokens(model="gpt-3.5-turbo"):
@@ -185,7 +185,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         doc_contents = ""
         current_tokens = 0
         _doc_idx = self._doc_idx
-        _tmp_retrieve_count = 0
+        _tmp_rag_count = 0
         for idx, doc in enumerate(results["documents"][0]):
             if idx <= _doc_idx:
                 continue
@@ -206,8 +206,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             self._doc_idx = idx
             self._doc_ids.append(results["ids"][0][idx])
             self._doc_contents.append(doc)
-            _tmp_retrieve_count += 1
-            if _tmp_retrieve_count >= self.n_results:
+            _tmp_rag_count += 1
+            if _tmp_rag_count >= self.n_results:
                 break
         return doc_contents
 
@@ -227,7 +227,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             raise NotImplementedError(f"task {task} is not implemented.")
         return message
 
-    def _generate_retrieve_user_reply(
+    def _generate_rag_user_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
@@ -265,18 +265,18 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 # Always use self.problem as the query text to retrieve docs, but each time we replace the context with the
                 # next similar docs in the retrieved doc results.
                 if not doc_contents:
-                    for _tmp_retrieve_count in range(1, 5):
+                    for _tmp_rag_count in range(1, 5):
                         self._reset(intermediate=True)
-                        self.retrieve_docs(self.problem, self.n_results * (2 * _tmp_retrieve_count + 1))
+                        self.retrieve_docs(self.problem, self.n_results * (2 * _tmp_rag_count + 1))
                         doc_contents = self._get_context(self._results)
                         if doc_contents:
                             break
             elif update_context_case2:
                 # Use the current intermediate info as the query text to retrieve docs, and each time we append the top similar
                 # docs in the retrieved doc results to the context.
-                for _tmp_retrieve_count in range(5):
+                for _tmp_rag_count in range(5):
                     self._reset(intermediate=True)
-                    self.retrieve_docs(_intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1))
+                    self.retrieve_docs(_intermediate_info[0], self.n_results * (2 * _tmp_rag_count + 1))
                     self._get_context(self._results)
                     doc_contents = "\n".join(self._doc_contents)  # + "\n" + "\n".join(self._intermediate_answers)
                     if doc_contents:

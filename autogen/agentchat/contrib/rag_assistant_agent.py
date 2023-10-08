@@ -3,10 +3,10 @@ from autogen.agentchat.assistant_agent import AssistantAgent
 from typing import Dict, Optional, Union, List, Tuple, Any
 
 
-class RetrieveAssistantAgent(AssistantAgent):
-    """(Experimental) Retrieve Assistant agent, designed to solve a task with LLM.
+class RagAssistantAgent(AssistantAgent):
+    """(Experimental) RAG Assistant agent, designed to solve a task with LLM.
 
-    RetrieveAssistantAgent is a subclass of AssistantAgent configured with a default system message.
+    RagAssistantAgent is a subclass of AssistantAgent configured with a default system message.
     The default system message is designed to solve a task with LLM,
     including suggesting python code blocks and debugging.
     `human_input_mode` is default to "NEVER"
@@ -16,9 +16,9 @@ class RetrieveAssistantAgent(AssistantAgent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.register_reply(Agent, RetrieveAssistantAgent._generate_retrieve_assistant_reply)
+        self.register_reply(Agent, RagAssistantAgent._generate_rag_assistant_reply)
 
-    def _generate_retrieve_assistant_reply(
+    def _generate_rag_assistant_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
@@ -32,7 +32,7 @@ class RetrieveAssistantAgent(AssistantAgent):
         if "exitcode: 0 (execution succeeded)" in message.get("content", ""):
             # Terminate the conversation when the code execution succeeds. Although sometimes even when the
             # code execution succeeds, the task is not solved, but it's hard to tell. If the human_input_mode
-            # of RetrieveUserProxyAgent is "TERMINATE" or "ALWAYS", user can still continue the conversation.
+            # of RagUserProxyAgent is "TERMINATE" or "ALWAYS", user can still continue the conversation.
             return True, "TERMINATE"
         elif (
             "UPDATE CONTEXT" in message.get("content", "")[-20:].upper()

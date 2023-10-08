@@ -1,8 +1,8 @@
 """
-Unit test for retrieve_utils.py
+Unit test for rag_utils.py
 """
 
-from autogen.retrieve_utils import (
+from autogen.autogen.rag_utils import (
     split_text_to_chunks,
     extract_text_from_pdf,
     split_files_to_chunks,
@@ -30,7 +30,7 @@ simplify the process of building applications that leverage the power of LLMs, a
 integration, testing, and deployment."""
 
 
-class TestRetrieveUtils:
+class TestRagUtils:
     def test_num_tokens_from_text(self):
         text = "This is a sample text."
         assert num_tokens_from_text(text) == len(tiktoken.get_encoding("cl100k_base").encode(text))
@@ -71,7 +71,7 @@ class TestRetrieveUtils:
         assert not is_url("not_a_url")
 
     def test_create_vector_db_from_dir(self):
-        db_path = "/tmp/test_retrieve_utils_chromadb.db"
+        db_path = "/tmp/test_rags_chromadb.db"
         if os.path.exists(db_path):
             client = chromadb.PersistentClient(path=db_path)
         else:
@@ -81,7 +81,7 @@ class TestRetrieveUtils:
         assert client.get_collection("all-my-documents")
 
     def test_query_vector_db(self):
-        db_path = "/tmp/test_retrieve_utils_chromadb.db"
+        db_path = "/tmp/test_rag_utils_chromadb.db"
         if os.path.exists(db_path):
             client = chromadb.PersistentClient(path=db_path)
         else:  # If the database does not exist, create it first
@@ -95,6 +95,6 @@ class TestRetrieveUtils:
 if __name__ == "__main__":
     pytest.main()
 
-    db_path = "/tmp/test_retrieve_utils_chromadb.db"
+    db_path = "/tmp/test_rag_utils_chromadb.db"
     if os.path.exists(db_path):
         os.remove(db_path)  # Delete the database file after tests are finished
