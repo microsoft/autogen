@@ -2,7 +2,7 @@ import re
 import chromadb
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
-from autogen.autogen.rag_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
+from autogen.rag_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
 from autogen.code_utils import extract_code
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any

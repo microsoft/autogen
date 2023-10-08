@@ -2,7 +2,7 @@
 Unit test for rag_utils.py
 """
 
-from autogen.autogen.rag_utils import (
+from autogen.rag_utils import (
     split_text_to_chunks,
     extract_text_from_pdf,
     split_files_to_chunks,

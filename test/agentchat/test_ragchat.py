@@ -4,13 +4,13 @@ import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
-    from autogen.autogen.agentchat.contrib.rag_assistant_agent import (
+    from autogen.agentchat.contrib.rag_assistant_agent import (
         RagAssistantAgent,
     )
-    from autogen.autogen.agentchat.contrib.rag_user_proxy_agent import (
+    from autogen.agentchat.contrib.rag_user_proxy_agent import (
         RagUserProxyAgent,
     )
-    from autogen.autogen.rag_utils import create_vector_db_from_dir, query_vector_db
+    from autogen.rag_utils import create_vector_db_from_dir, query_vector_db
     import chromadb
 
     skip_test = False
