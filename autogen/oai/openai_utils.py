@@ -313,7 +313,6 @@ def config_list_from_dotenv(
         FileNotFoundError: If the specified .env file does not exist.
         TypeError: If an unsupported type of configuration is provided in model_api_key_map.
     """
-
     if dotenv_file_path:
         dotenv_path = Path(dotenv_file_path)
         if dotenv_path.exists():
@@ -329,14 +328,14 @@ def config_list_from_dotenv(
     # Ensure the model_api_key_map is not None to prevent TypeErrors during key assignment.
     model_api_key_map = model_api_key_map or {}
 
-    if not model_api_key_map:
-        # Ensure default models are always considered
-        default_models = ["gpt-4", "gpt-3.5-turbo"]
-        for model in default_models:
-            # Only assign default API key if the model is not present in the map.
-            # If model is present but set to invalid/empty, do not overwrite.
-            if model not in model_api_key_map:
-                model_api_key_map[model] = "OPENAI_API_KEY"
+    # Ensure default models are always considered
+    default_models = ["gpt-4", "gpt-3.5-turbo"]
+
+    for model in default_models:
+        # Only assign default API key if the model is not present in the map.
+        # If model is present but set to invalid/empty, do not overwrite.
+        if model not in model_api_key_map:
+            model_api_key_map[model] = "OPENAI_API_KEY"
 
     env_var = []
     # Loop over the models and create configuration dictionaries
@@ -345,9 +344,7 @@ def config_list_from_dotenv(
             api_key_env_var = config
             config_dict = get_config(api_key=os.getenv(api_key_env_var))
         elif isinstance(config, dict):
-            api_key = os.getenv(config.get("api_key_env_var", None))
-            if api_key is None:
-                api_key = config.get("api_key_default", "")  # Use the default API key if not found in environment
+            api_key = os.getenv(config.get("api_key_env_var", "OPENAI_API_KEY"))
             config_without_key_var = {k: v for k, v in config.items() if k != "api_key_env_var"}
             config_dict = get_config(api_key=api_key, **config_without_key_var)
         else:
