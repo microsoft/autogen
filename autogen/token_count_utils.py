@@ -124,7 +124,7 @@ def num_tokens_from_functions(functions, model="gpt-3.5-turbo-0613"):
     for function in functions:
         function_tokens = len(encoding.encode(function["name"]))
         function_tokens += len(encoding.encode(function["description"]))
-
+        function_tokens -= 2
         if "parameters" in function:
             parameters = function["parameters"]
             if "properties" in parameters:
@@ -146,6 +146,8 @@ def num_tokens_from_functions(functions, model="gpt-3.5-turbo-0613"):
                         else:
                             print(f"Warning: not supported field {field}")
                 function_tokens += 11
+                if len(parameters["properties"]) == 0:
+                    function_tokens -= 2
 
         num_tokens += function_tokens
 
