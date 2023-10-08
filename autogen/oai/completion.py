@@ -188,10 +188,6 @@ class Completion(openai_Completion):
         config = config.copy()
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
 
-        model_name = config.get("model")
-        mapped_model_name = cls.llm_lite_mapping.get(model_name, model_name)  # Fallback to original if not found
-        config["model"] = mapped_model_name
-
         key = get_key(config)
         if use_cache:
             try:
