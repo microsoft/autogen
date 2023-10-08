@@ -187,7 +187,6 @@ class Completion(openai_Completion):
         """
         config = config.copy()
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
-
         key = get_key(config)
         if use_cache:
             try:
@@ -196,6 +195,11 @@ class Completion(openai_Completion):
                     # print("using cached response")
                     cls._book_keeping(config, response)
                     return response
+                openai_completion = (
+                    openai.ChatCompletion
+                    if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
+                    else openai.Completion
+                )
             except:
                 pass
         start_time = time.time()
@@ -210,7 +214,7 @@ class Completion(openai_Completion):
                 if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
                     response = litellm.completion(**config)
                 else:
-                    response = openai.ChatCompletion.create(**config)
+                    response = openai_completion.create(**config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
