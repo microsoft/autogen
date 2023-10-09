@@ -30,7 +30,6 @@ class AnalysisAgent(ConversableAgent):
         )
         self.register_reply(Agent, AnalysisAgent._generate_analysis)
 
-        self.verbosity   = 0  # 1 to print DB operations, 2 to add caller details.
         self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
     def _generate_analysis(
@@ -39,6 +38,7 @@ class AnalysisAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
+        # Are the following tests necessary?
         llm_config = self.llm_config if config is None else config
         if llm_config is False:
             return False, None
@@ -49,7 +49,7 @@ class AnalysisAgent(ConversableAgent):
 
         # Get the last user message.
         user_text = messages[-1]['content']
-        text_to_analyze, analysis_instructions = user_text.split('\n')
+        text_to_analyze, analysis_instructions = user_text.split('\n')  # TODO: Use a different separator.
 
         messages = []
         messages.append({"role": "user", "content": text_to_analyze})

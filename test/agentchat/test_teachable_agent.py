@@ -32,6 +32,8 @@ def interact_freely_with_user():
 
 
 def test_question_answer_pair():
+    print(in_color("\n<START TEST OF QUESTION-ANSWER PAIR>", 92))
+
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
@@ -64,6 +66,8 @@ def test_question_answer_pair():
 
 
 def test_task_advice_pair():
+    print(in_color("\n<START TEST OF TASK-ADVICE PAIR>", 92))
+
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
@@ -100,4 +104,4 @@ if __name__ == "__main__":
 
     test_question_answer_pair()
     test_task_advice_pair()
-    print(in_color("\n<TEACHABLE AGENT TESTS COMPLETED SUCCESSFULLY !!>", 92))
+    print(in_color("\n<TEACHABLE AGENT TESTS COMPLETED SUCCESSFULLY>", 92))

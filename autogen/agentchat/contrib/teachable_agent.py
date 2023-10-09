@@ -63,6 +63,7 @@ class TeachableAgent(ConversableAgent):
             # This is a response from the text analyzer. Don't reply to it.
             return True, None
 
+        # Are the following tests necessary?
         llm_config = self.llm_config if config is None else config
         if llm_config is False:
             return False, None
@@ -201,6 +202,7 @@ class TeachableAgent(ConversableAgent):
 class MemoStore():
     def __init__(self, verbosity):
         self.verbosity = verbosity
+        # TODO: Expose an option to persist the DB to a file on disk.
         self.db_client = chromadb.Client(Settings(anonymized_telemetry=False, allow_reset=True))  # In-memory by default.
         self.vec_db = self.db_client.create_collection("memos")  # The collection is the DB.
         self.next_uid = 0  # Unique ID for each memo. Also serves as a count of total memos added.
