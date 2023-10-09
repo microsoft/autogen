@@ -38,7 +38,20 @@ def num_tokens_from_text(
     return_tokens_per_name_and_message: bool = False,
     custom_token_count_function: Callable = None,
 ) -> Union[int, Tuple[int, int, int]]:
-    """Return the number of tokens used by a text."""
+    """Return the number of tokens used by a text.
+
+    Args:
+        text (str): The text to count tokens for.
+        model (Optional, str): The model to use for tokenization. Default is "gpt-3.5-turbo-0613".
+        return_tokens_per_name_and_message (Optional, bool): Whether to return the number of tokens per name and per
+            message. Default is False.
+        custom_token_count_function (Optional, Callable): A custom function to count tokens. Default is None.
+
+    Returns:
+        int: The number of tokens used by the text.
+        int: The number of tokens per message. Only returned if return_tokens_per_name_and_message is True.
+        int: The number of tokens per name. Only returned if return_tokens_per_name_and_message is True.
+    """
     if isinstance(custom_token_count_function, Callable):
         token_count, tokens_per_message, tokens_per_name = custom_token_count_function(text)
     else:
@@ -89,7 +102,7 @@ def num_tokens_from_messages(
             if key == "name":
                 num_tokens += tokens_per_name
         num_tokens += tokens_per_message
-    num_tokens += custom_prime_count  # ChatGPT every reply is primed with <|start|>assistant<|message|>
+    num_tokens += custom_prime_count  # With ChatGPT, every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
 

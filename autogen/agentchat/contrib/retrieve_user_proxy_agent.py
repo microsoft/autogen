@@ -130,7 +130,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     This is the same as that used in chromadb. Default is False.
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
-                    Default is None, tiktoken will be used and works well for OpenAI models, but may not accurate for other models.
+                    Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
