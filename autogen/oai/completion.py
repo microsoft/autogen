@@ -199,7 +199,8 @@ class Completion(openai_Completion):
                 pass
         openai_completion = (
             openai.ChatCompletion
-            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
+            if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
+            or issubclass(cls, ChatCompletion)
             else openai.Completion
         )
         start_time = time.time()
