@@ -69,6 +69,10 @@ module.exports = {
               label: 'Discord',
               href: 'https://discord.gg/pAbnFJrkgZ',
             },
+            {
+              label: 'Twitter',
+              href: 'https://twitter.com/pyautogen',
+            },
           ],
         },
       ],

@@ -1,4 +1,3 @@
-
 [![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
@@ -23,18 +22,17 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 :fire: FLAML supports Code-First AutoML & Tuning – Private Preview in [Microsoft Fabric Data Science](https://learn.microsoft.com/en-us/fabric/data-science/). -->
 
-
 ## What is AutoGen
 
 AutoGen is a framework that enables the development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
 ![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
-* AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
-* It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
-the number of agents, and agent conversation topology.
-* It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
-* AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an **enhanced inference API**. It allows easy performance tuning, utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
+- AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
+- It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
+  the number of agents, and agent conversation topology.
+- It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
+- AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an **enhanced inference API**. It allows easy performance tuning, utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
 
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
@@ -47,17 +45,19 @@ pip install pyautogen
 ```
 
 Minimal dependencies are installed without extra options. You can install extra options based on the feature you need.
+
 <!-- For example, use the following to install the dependencies needed by the [`blendsearch`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function#blendsearch-economical-hyperparameter-optimization-with-blended-search-strategy) option.
 ```bash
 pip install "pyautogen[blendsearch]"
 ``` -->
 
 Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation).
+
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
+
 For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the python docker package, and using docker.
 
 For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
-
 
 ## Quickstart
 
@@ -73,6 +73,7 @@ Features of this use case include:
 - **Human participation**: AutoGen seamlessly allows human participation. This means that humans can provide input and feedback to the agents as needed.
 
 For [example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py),
+
 ```python
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 # Load LLM inference endpoints from an env variable or a file
@@ -86,17 +87,21 @@ user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stoc
 ```
 
 This example can be run with
+
 ```python
 python test/twoagent.py
 ```
+
 After the repo is cloned.
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
 
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-AgentChat) for this feature.
+
 ## Enhanced LLM Inferences
 
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` adding powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
+
 ```python
 # perform tuning
 config, analysis = autogen.Completion.tune(
@@ -125,6 +130,43 @@ In addition, you can find:
 - [Discord](https://discord.gg/pAbnFJrkgZ).
 
 - [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute).
+
+## Citation
+
+[AutoGen](https://arxiv.org/abs/2308.08155).
+
+```
+@inproceedings{wu2023autogen,
+      title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
+      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
+      year={2023},
+      eprint={2308.08155},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI}
+}
+```
+
+[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+
+```
+@inproceedings{wang2023EcoOptiGen,
+    title={Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference},
+    author={Chi Wang and Susan Xueqing Liu and Ahmed H. Awadallah},
+    year={2023},
+    booktitle={AutoML'23},
+}
+```
+
+[MathChat](https://arxiv.org/abs/2306.01337).
+
+```
+@inproceedings{wu2023empirical,
+    title={An Empirical Study on Challenging Math Problem Solving with GPT-4},
+    author={Yiran Wu and Feiran Jia and Shaokun Zhang and Hangyu Li and Erkang Zhu and Yue Wang and Yin Tat Lee and Richard Peng and Qingyun Wu and Chi Wang},
+    year={2023},
+    booktitle={ArXiv preprint arXiv:2306.01337},
+}
+```
 
 ## Contributing
 
@@ -158,38 +200,3 @@ Privacy information can be found at https://privacy.microsoft.com/en-us/
 
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
 or trademarks, whether by implication, estoppel, or otherwise.
-
-
-## Citation
-[AutoGen](https://arxiv.org/abs/2308.08155).
-```
-@inproceedings{wu2023autogen,
-      title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
-      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
-      year={2023},
-      eprint={2308.08155},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI}
-}
-```
-
-[EcoOptiGen](https://arxiv.org/abs/2303.04673).
-```
-@inproceedings{wang2023EcoOptiGen,
-    title={Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference},
-    author={Chi Wang and Susan Xueqing Liu and Ahmed H. Awadallah},
-    year={2023},
-    booktitle={AutoML'23},
-}
-```
-
-[MathChat](https://arxiv.org/abs/2306.01337).
-
-```
-@inproceedings{wu2023empirical,
-    title={An Empirical Study on Challenging Math Problem Solving with GPT-4},
-    author={Yiran Wu and Feiran Jia and Shaokun Zhang and Hangyu Li and Erkang Zhu and Yue Wang and Yin Tat Lee and Richard Peng and Qingyun Wu and Chi Wang},
-    year={2023},
-    booktitle={ArXiv preprint arXiv:2306.01337},
-}
-```

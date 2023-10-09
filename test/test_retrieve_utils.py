@@ -31,6 +31,15 @@ integration, testing, and deployment."""
 
 
 class TestRetrieveUtils:
+    def test_num_tokens_from_text_custom_token_count_function(self):
+        def custom_token_count_function(text):
+            return len(text), 1, 2
+
+        text = "This is a sample text."
+        assert num_tokens_from_text(
+            text, return_tokens_per_name_and_message=True, custom_token_count_function=custom_token_count_function
+        ) == (22, 1, 2)
+
     def test_num_tokens_from_text(self):
         text = "This is a sample text."
         assert num_tokens_from_text(text) == len(tiktoken.get_encoding("cl100k_base").encode(text))
