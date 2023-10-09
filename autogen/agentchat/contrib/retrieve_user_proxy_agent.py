@@ -122,6 +122,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     If key not provided, a default model `all-MiniLM-L6-v2` will be used. All available models
                     can be found at `https://www.sbert.net/docs/pretrained_models.html`. The default model is a
                     fast model. If you want to use a high performance model, `all-mpnet-base-v2` is recommended.
+                - embedding_function (Optional, Callable): the embedding function for creating the vector db. Default is None,
+                    SentenceTransformer with the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or
+                    other embedding functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
@@ -148,6 +151,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._chunk_mode = self._retrieve_config.get("chunk_mode", "multi_lines")
         self._must_break_at_empty_line = self._retrieve_config.get("must_break_at_empty_line", True)
         self._embedding_model = self._retrieve_config.get("embedding_model", "all-MiniLM-L6-v2")
+        self._embedding_function = self._retrieve_config.get("embedding_function", None)
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
@@ -300,6 +304,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 must_break_at_empty_line=self._must_break_at_empty_line,
                 embedding_model=self._embedding_model,
                 get_or_create=self._get_or_create,
+                embedding_function=self._embedding_function,
             )
             self._collection = True
             self._get_or_create = False
@@ -311,6 +316,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             client=self._client,
             collection_name=self._collection_name,
             embedding_model=self._embedding_model,
+            embedding_function=self._embedding_function,
         )
         self._results = results
         print("doc_ids: ", results["ids"])
