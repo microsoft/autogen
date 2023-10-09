@@ -128,6 +128,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
                 - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in chromadb. Default is False.
+                - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
+                    The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
+                    Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
@@ -152,6 +155,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
         self._get_or_create = self._retrieve_config.get("get_or_create", False)
+        self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", None)
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = False  # the collection is not created
         self._ipython = get_ipython()
@@ -191,7 +195,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 continue
             if results["ids"][0][idx] in self._doc_ids:
                 continue
-            _doc_tokens = num_tokens_from_text(doc)
+            _doc_tokens = num_tokens_from_text(doc, custom_token_count_function=self.custom_token_count_function)
             if _doc_tokens > self._context_max_tokens:
                 func_print = f"Skip doc_id {results['ids'][0][idx]} as it is too long to fit in the context."
                 print(colored(func_print, "green"), flush=True)
