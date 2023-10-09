@@ -318,6 +318,33 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             problem (str): the problem to be solved.
             n_results (int): the number of results to be retrieved.
             search_string (str): only docs containing this string will be retrieved.
+
+        Example of overriding this function:
+        If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with
+        below code.
+        ```python
+        class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
+            def query_vector_db(
+                self,
+                query_texts: List[str],
+                n_results: int = 10,
+                search_string: str = "",
+                **kwargs,
+            ) -> Dict[str, Union[List[str], List[List[str]]]]:
+                # define your own query function here
+                pass
+
+            def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = "", **kwargs):
+                results = self.query_vector_db(
+                    query_texts=[problem],
+                    n_results=n_results,
+                    search_string=search_string,
+                    **kwargs,
+                )
+
+                self._results = results
+                print("doc_ids: ", results["ids"])
+        ```
         """
         if not self._collection or self._get_or_create:
             print("Trying to create collection.")
