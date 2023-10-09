@@ -312,7 +312,6 @@ def create_lancedb_from_dir(dir_path, max_tokens, db_path, table_name, chunk_mod
         #embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name, model_kwargs={'device': 'cpu'})
         embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
         # Initialize your embedding function (replace it with your actual embedding module)
-        embedding_function = SentenceTransformerEmbeddings(name=embedding_model_name)
         
         table = db.get_table(table_name)
 
