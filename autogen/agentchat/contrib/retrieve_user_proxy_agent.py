@@ -105,7 +105,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - client (Optional, chromadb.Client): the chromadb client.
                     If key not provided, a default client `chromadb.Client()` will be used.
                 - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
-                    or the url to a single file. If key not provided, a default path `./docs` will be used.
+                    or the url to a single file. Default is None, which works only if the collection is already created.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
@@ -130,7 +130,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
                 - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
-                    This is the same as that used in chromadb. Default is False.
+                    This is the same as that used in chromadb. Default is False. Will be set to False if docs_path is None.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
         """
         super().__init__(
@@ -143,7 +143,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", chromadb.Client())
-        self._docs_path = self._retrieve_config.get("docs_path", "./docs")
+        self._docs_path = self._retrieve_config.get("docs_path", None)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         self._model = self._retrieve_config.get("model", "gpt-4")
         self._max_tokens = self.get_max_tokens(self._model)
@@ -155,9 +155,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
-        self._get_or_create = self._retrieve_config.get("get_or_create", False)
+        self._get_or_create = (
+            self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else False
+        )
         self._context_max_tokens = self._max_tokens * 0.8
-        self._collection = False  # the collection is not created
+        self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
         self._results = {}  # the results of the current query
@@ -185,7 +187,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             self._doc_contents = []  # the contents of the current used doc
             self._doc_ids = []  # the ids of the current used doc
 
-    def _get_context(self, results):
+    def _get_context(self, results: Dict[str, Union[List[str], List[List[str]]]]):
         doc_contents = ""
         current_tokens = 0
         _doc_idx = self._doc_idx
@@ -293,6 +295,22 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             return False, None
 
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
+        """Retrieve docs based on the given problem and assign the results to the class property `_results`.
+        In case you want to customize the retrieval process, such as using a different vector db whose APIs are not
+        compatible with chromadb or filter results with metadata, you can override this function. Just keep the current
+        parameters and add your own parameters with default values, and keep the results in below type.
+
+        Type of the results: Dict[str, List[List[Any]]]
+            ids: List[string]
+            documents: List[List[string]]
+            metadatas: Optional[List[List[string]]]
+            distances: Optional[List[List[float]]]
+
+        Args:
+            problem (str): the problem to be solved.
+            n_results (int): the number of results to be retrieved.
+            search_string (str): only docs containing this string will be retrieved.
+        """
         if not self._collection or self._get_or_create:
             print("Trying to create collection.")
             create_vector_db_from_dir(

@@ -6,6 +6,7 @@ import glob
 import tiktoken
 import chromadb
 from chromadb.api import API
+from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
 import pypdf
@@ -308,7 +309,7 @@ def query_vector_db(
     search_string: str = "",
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
-) -> Dict[str, List[str]]:
+) -> QueryResult:
     """Query a vector db. We support chromadb compatible APIs, it's not required if you prepared your own vector db
         and query function.
 
@@ -324,6 +325,15 @@ def query_vector_db(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+
+    Returns:
+        QueryResult: the query result. The format is:
+            class QueryResult(TypedDict):
+                ids: List[IDs]
+                embeddings: Optional[List[List[Embedding]]]
+                documents: Optional[List[List[Document]]]
+                metadatas: Optional[List[List[Metadata]]]
+                distances: Optional[List[List[float]]]
     """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
