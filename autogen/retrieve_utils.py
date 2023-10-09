@@ -354,7 +354,7 @@ def create_vector_db_from_dir(dir_path, max_tokens = max_tokens: int = 4000, cli
         create_chromadb_from_dir(dir_path, max_tokens, client, db_path, collection_name, get_or_create, chunk_mode,
                                  must_break_at_empty_line, embedding_model)
     elif vector_database == "lancedb":
-        create_lancedb_from_dir(dir_path, max_tokens, db_path, "pdf_search", chunk_mode, must_break_at_empty_line,
+        create_lancedb_from_dir(dir_path, max_tokens, db_path, "all_documents", chunk_mode, must_break_at_empty_line,
                                 embedding_model)
     else:
         raise ValueError("Invalid vector_database. Please choose 'chromadb' or 'lancedb'.")
@@ -365,7 +365,7 @@ def query_vector_db(query_texts, n_results, client=None, db_path="/tmp/chromadb.
     if vector_database == "chromadb":
         return query_chromadb(query_texts, n_results, client, db_path, collection_name, search_string, embedding_model)
     elif vector_database == "lancedb":
-        return query_lancedb(query_texts, n_results, db_path, "pdf_search", search_string, embedding_model)
+        return query_lancedb(query_texts, n_results, db_path, "all_documents", search_string, embedding_model)
     else:
         raise ValueError("Invalid vector_database. Please choose 'chromadb' or 'lancedb'.")
 
