@@ -10,7 +10,7 @@ class AssistantAgent(ConversableAgent):
     including suggesting python code blocks and debugging.
     `human_input_mode` is default to "NEVER"
     and `code_execution_config` is default to False.
-    This agent doesn't execute code by default, and expects the user to execute the code.
+    This agent doesn't execute code by default, and expect the user to execute the code.
     """
 
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant.
