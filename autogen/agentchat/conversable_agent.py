@@ -1,4 +1,6 @@
 import asyncio
+import openai
+import time
 from collections import defaultdict
 import copy
 import json
@@ -602,11 +604,25 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # TODO: #1143 handle token limit exceeded error
-        response = oai.ChatCompletion.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages, **llm_config
-        )
-        return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        # print(messages[0])
+
+        # DEBUG
+        while True:
+            # print(len(messages))
+            try:
+                response = oai.ChatCompletion.create(
+                    context=messages[-1].pop("context", None), messages=self._oai_system_message + messages, **llm_config
+                )
+                return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
+            except openai.error.InvalidRequestError as e:
+                print("\n(Exception Caught) openai.error.InvalidRequestError:", e, "\n")
+                print("Probably too many tokens! Trying again with fewer earlier messages.")
+                if len(messages) < 5:
+                    raise Exception("Messages list is too small to work around token limit.")
+                # Drop the second interaction
+                # print(messages[2], messages[3])
+                del messages[2], messages[3]
+
 
     def generate_code_execution_reply(
         self,
