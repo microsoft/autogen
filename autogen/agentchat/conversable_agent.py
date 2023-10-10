@@ -660,7 +660,7 @@ class ConversableAgent(Agent):
         # if compress_config is None, no compression will be used and the conversation will terminate when the token count exceeds the limit.
         token_used = self.compute_init_token_count() + count_token(messages, llm_config["model"])
         max_token = get_max_token_limit(llm_config["model"])
-        if self.compress_config is None:
+        if not self.compress_config:
             if max_token - token_used <= 0:
                 # Teminate if no token left.
                 print(
