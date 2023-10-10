@@ -87,7 +87,7 @@ def test_task_advice_pair():
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
     print(in_color("<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 92))
-    user.initiate_chat(recipient=agent, message="What's the twist of 8 and 3 and 2?")
+    user.initiate_chat(recipient=agent, message="Please calculate the twist of 8 and 3 and 2.")
     agent_response = user.last_message(agent)
     assert '35' in agent_response["content"]  # GPT-4 usually gets the right answer here, which is 35.
 

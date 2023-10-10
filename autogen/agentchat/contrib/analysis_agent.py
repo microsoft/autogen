@@ -38,22 +38,28 @@ class AnalysisAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
+        """Analyzes the given text as instructed, and returns the analysis."""
         # Are the following tests necessary?
+        assert config is None  # TODO: Remove this line.
         llm_config = self.llm_config if config is None else config
+
+        assert llm_config is not False  # TODO: Remove this line.
         if llm_config is False:
             return False, None
+
+        assert messages is not None  # TODO: Remove this line.
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # messages contains the previous chat history, excluding the system message.
-
-        # Get the last user message.
+        # Extract the text and instructions from the last user message.
         user_text = messages[-1]['content']
         text_to_analyze, analysis_instructions = user_text.split('\n')  # TODO: Use a different separator.
 
-        messages = []
-        messages.append({"role": "user", "content": text_to_analyze})
-        messages.append({"role": "user", "content": analysis_instructions})
+        # Assemble the messages.
+        messages = [
+            {"role": "user", "content": text_to_analyze},
+            {"role": "user", "content": analysis_instructions}
+        ]
 
         msgs = self._oai_system_message + messages
 

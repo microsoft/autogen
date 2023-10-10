@@ -8,6 +8,19 @@ import chromadb
 from chromadb.config import Settings
 
 
+def in_color(text, color):
+    # Available colors:
+    # 90 = grey
+    # 91 = red
+    # 92 = green
+    # 93 = yellow
+    # 94 = blue
+    # 95 = magenta
+    # 96 = cyan
+    # 97 = white
+    return "\033[{}m".format(color) + text + "\033[0m"
+
+
 class TeachableAgent(ConversableAgent):
     """(Ongoing research) Teachable Assistant agent, using a vector database as a memory store.
     """
@@ -34,7 +47,7 @@ class TeachableAgent(ConversableAgent):
         )
         self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply)
 
-        self.verbosity   = 0  # 1 to print DB operations, 2 to add caller details.
+        self.verbosity   = 2  # 1 to print DB operations, 2 to add caller details.
         self.db_method   = 1  # 0=none, 1=Both tasks & facts
         self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
         self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
@@ -59,14 +72,23 @@ class TeachableAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
+        """
+        Generates a reply to the last user message, after querying the memo store for relevant information.
+        Uses self.analyzer to make decisions about memo storage and retrieval.
+        """
         if self.use_analyzer_agent and (sender == self.analyzer):
             # This is a response from the text analyzer. Don't reply to it.
             return True, None
 
-        # Are the following tests necessary?
+        # Are the following checks needed?
+        assert config is None  # TODO: Remove this line.
         llm_config = self.llm_config if config is None else config
+
+        assert llm_config is not False  # TODO: Remove this line.
         if llm_config is False:
             return False, None
+
+        assert messages is not None  # TODO: Remove this line.
         if messages is None:
             messages = self._oai_messages[sender]
 
@@ -111,17 +133,18 @@ class TeachableAgent(ConversableAgent):
             self.user_comments = []
 
     def consider_memo_storage(self, comment, llm_config):
+        """Decides whether to store something from this user turn in the DB."""
         # Check for a problem-solution pair.
         response = self.analyze(llm_config, comment,
             "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Can we extract advice?
             advice = self.analyze(llm_config, comment,
-                "Copy any advice from the last user comment that may be useful for a similar but different task in the future. But if no advice is present, just respond with \'none\'.")
+                "Briefly copy any advice from the last user comment that may be useful for a similar but different task in the future. But if no advice is present, just respond with \'none\'.")
             if 'none' not in advice.lower():
                 # Yes. Extract the task.
                 task = self.analyze(llm_config, comment,
-                    "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
+                    "Briefly copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
                 # Generalize the task.
                 general_task = self.analyze(llm_config, task,
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
@@ -147,27 +170,28 @@ class TeachableAgent(ConversableAgent):
                 "Imagine that the user forgot this information in their last comment. How would they ask you for this information? Include no other text in your response.")
             # Extract the information.
             answer = self.analyze(llm_config, comment,
-                "Copy the information from the last user comment that may be useful later.")
+                "Briefly copy the information from the last user comment that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
                 print("\n\033[92m<FOUND QUESTION-ANSWER PAIR>\033[0m  ")
             self.memo_store.add_input_output_pair(question, answer)
 
     def consider_memo_retrieval(self, comment, llm_config):
+        """Decides whether to retrieve something from the DB."""
         # Check for a question or task.
         response = self.analyze(llm_config, comment,
             "Does the last user comment contain a question, task, or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Distinguish between a question and a task.
             response = self.analyze(llm_config, comment,
-                "Would the last user comment be best described as a simple question question, or a complex task? Answer with just one word, question or task.")
+                "Would the last user comment be best described as a simple question, or some kind of task? Answer with just one word, question or task.")
             if 'question' in response.lower():
-                # Retrieve the answer.
-                uid, info = self.memo_store.get_nearest_memo(comment)
-                answer = self.memo_store.info_dict[uid]
-                info = "(Here is some information that might help answer the question:\n" + answer + ")"
+                # Retrieve the best-matching memo.
+                # TODO: A more sophisticated memo filtering & thresholding process is needed here.
+                input_text, output_text = self.memo_store.get_nearest_memo(comment)
+                info = "(Here is some information that might help answer the question:\n" + output_text + ")"
                 if self.verbosity >= 1:
-                    print('\n' + info)
+                    print(in_color('\nAppended to last user message...\n' + info + '\n', 93))
                 user_text = comment + '\n' + info
                 return user_text
             elif 'task' in response.lower():
@@ -178,11 +202,10 @@ class TeachableAgent(ConversableAgent):
                 general_task = self.analyze(llm_config, task,
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Retrieve the advice.
-                uid, info = self.memo_store.get_nearest_memo(general_task)
-                advice = self.memo_store.info_dict[uid]
-                info = "(Here is some advice that might help:\n" + advice + ")"
+                input_text, output_text = self.memo_store.get_nearest_memo(general_task)
+                info = "(Here is some advice that might help:\n" + output_text + ")"
                 if self.verbosity >= 1:
-                    print('\n' + info)
+                    print(in_color('\nAppended to last user message...\n' + info + '\n', 93))
                 user_text = comment + '\n' + info
                 return user_text
 
@@ -190,6 +213,7 @@ class TeachableAgent(ConversableAgent):
         return comment
 
     def analyze(self, llm_config, text_to_analyze, analysis_instructions):
+        ### Calls either the AnalysisAgent or the older TextAnalyzer. """
         if self.use_analyzer_agent:
             message_text = '\n'.join([text_to_analyze, analysis_instructions])
             self.initiate_chat(recipient=self.analyzer, message=message_text)
@@ -226,10 +250,14 @@ class MemoStore():
 
     def get_nearest_memo(self, query_text):
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
-        return results['ids'][0][0], results['documents'][0][0]
+        uid, input_text = results['ids'][0][0], results['documents'][0][0]
+        output_text = self.info_dict[uid]
+        if self.verbosity >= 1:
+            print("\n\033[92m<INPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\nINPUT\n{}\nOUTPUT\n{}>\033[0m  ".format(input_text, output_text))
+        return input_text, output_text
 
     def prepopulate(self):
-        # Add some random examples to the vector DB, just to make retrieval less trivial.
+        """ Adds arbitrary examples to the vector DB, just to make retrieval less trivial. """
         examples = []
         examples.append({'text': 'When I say papers I mean research papers, which are typically pdfs.', 'label': 'yes'})
         examples.append({'text': 'Please verify that each paper you listed actually uses langchain.', 'label': 'no'})
