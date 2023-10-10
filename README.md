@@ -36,6 +36,10 @@ AutoGen is a framework that enables the development of LLM applications using mu
 
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
+## Quickstart
+The easiest way to start playing is [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Azure/aistudio-copilot-sample?quickstart=1)
+Then head to /notebook folder, and run the examples.
+
 ## Installation
 
 AutoGen requires **Python version >= 3.8**. It can be installed from pip:
@@ -58,8 +62,6 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the python docker package, and using docker.
 
 For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
-
-## Quickstart
 
 ## Multi-Agent Conversation Framework
 
