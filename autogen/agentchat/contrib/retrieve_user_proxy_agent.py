@@ -67,6 +67,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
         human_input_mode: Optional[str] = "ALWAYS",
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
     ):
@@ -82,6 +83,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     the number of auto reply reaches the max_consecutive_auto_reply.
                 (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
+            is_termination_msg (function): a function that takes a message in the form of a dictionary
+                and returns a boolean value indicating if this received message is a termination message.
+                The dict can contain the following keys: "content", "role", "name", "function_call".
             retrieve_config (dict or None): config for the retrieve agent.
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
@@ -179,7 +183,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
-        self._is_termination_msg = self._is_termination_msg_retrievechat  # update the termination message function
+        # update the termination message function
+        self._is_termination_msg = (
+            self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
+        )
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=1)
 
     def _is_termination_msg_retrievechat(self, message):
