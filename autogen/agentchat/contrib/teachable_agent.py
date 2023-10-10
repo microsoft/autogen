@@ -100,8 +100,8 @@ class TeachableAgent(ConversableAgent):
         # To let an interactive user test memory, clear the chat history if the user says "new chat".
         if user_text == 'new chat':
             self.clear_history()
-            print('\n\033[92m<STARTING A NEW CHAT WITH EMPTY CONTEXT>\033[0m  ')
             self.learn_from_recent_user_comments()
+            print(in_color("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 96))
             return True, 'New chat started.'
 
         if self.db_method > 0:
@@ -124,6 +124,7 @@ class TeachableAgent(ConversableAgent):
         return True, response_text
 
     def learn_from_recent_user_comments(self):
+        print(in_color("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 96))
         if self.db_method > 0:
             # Look at each user turn.
             if len(self.user_comments) > 0:
@@ -150,7 +151,7 @@ class TeachableAgent(ConversableAgent):
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Add the task-advice (problem-solution) pair to the vector DB.
                 if self.verbosity >= 1:
-                    print("\n\033[92m<FOUND TASK-ADVICE PAIR>\033[0m  ")
+                    print(in_color("\nFOUND TASK-ADVICE PAIR", 92))
                 self.memo_store.add_input_output_pair(general_task, advice)
             return
 
@@ -173,7 +174,7 @@ class TeachableAgent(ConversableAgent):
                 "Briefly copy the information from the last user comment that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
-                print("\n\033[92m<FOUND QUESTION-ANSWER PAIR>\033[0m  ")
+                print(in_color("\nFOUND QUESTION-ANSWER PAIR", 92))
             self.memo_store.add_input_output_pair(question, answer)
 
     def consider_memo_retrieval(self, comment, llm_config):
@@ -183,34 +184,36 @@ class TeachableAgent(ConversableAgent):
             "Does the last user comment contain a question, task, or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Distinguish between a question and a task.
+            memo_lookup_key = comment
             response = self.analyze(llm_config, comment,
                 "Would the last user comment be best described as a simple question, or some kind of task? Answer with just one word, question or task.")
-            if 'question' in response.lower():
-                # Retrieve the best-matching memo.
-                # TODO: A more sophisticated memo filtering & thresholding process is needed here.
-                input_text, output_text = self.memo_store.get_nearest_memo(comment)
-                info = "(Here is some information that might help answer the question:\n" + output_text + ")"
-                if self.verbosity >= 1:
-                    print(in_color('\nAppended to last user message...\n' + info + '\n', 93))
-                user_text = comment + '\n' + info
-                return user_text
-            elif 'task' in response.lower():
+            if 'task' in response.lower():
                 # Extract the task.
                 task = self.analyze(llm_config, comment,
                     "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
                 # Generalize the task.
                 general_task = self.analyze(llm_config, task,
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
-                # Retrieve the advice.
-                input_text, output_text = self.memo_store.get_nearest_memo(general_task)
-                info = "(Here is some advice that might help:\n" + output_text + ")"
-                if self.verbosity >= 1:
-                    print(in_color('\nAppended to last user message...\n' + info + '\n', 93))
-                user_text = comment + '\n' + info
-                return user_text
+                # Use the generalized task as the lookup key.
+                memo_lookup_key = general_task
+
+            # Append any relevant memos.
+            return comment + self.retrieve_relevant_memos(memo_lookup_key)
 
         # For anything else, just return the user comment.
         return comment
+
+    def retrieve_relevant_memos(self, input_text):
+        if self.verbosity >= 1:
+            print(in_color('\nLOOK FOR RELEVANT MEMOS', 93))
+        memo_texts = ''
+        memos = self.memo_store.get_related_memos(input_text)
+        for memo in memos:
+            info = "(Here is some information that might help:\n" + memo[1] + ")"
+            if self.verbosity >= 1:
+                print(in_color('\nMEMO APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 93))
+            memo_texts = memo_texts + '\n' + info
+        return memo_texts
 
     def analyze(self, llm_config, text_to_analyze, analysis_instructions):
         ### Calls either the AnalysisAgent or the older TextAnalyzer. """
@@ -233,28 +236,40 @@ class MemoStore():
         self.num_memos = 0
         self.info_dict = {}  # Maps a memo uid to information like answers or advice.
 
-    def add_memo(self, text):
-        self.next_uid += 1
-        self.num_memos += 1
-        self.vec_db.add(documents=[text], ids=[str(self.next_uid)])
-        if self.verbosity >= 1:
-            print("\n\033[92m<USER COMMENT ADDED TO VECTOR DATABASE:  {}>\033[0m  ".format(text))
-
     def add_input_output_pair(self, input_text, output_text):
+        """ Adds an input-output pair to the vector DB. """
         self.next_uid += 1
         self.num_memos += 1
         self.vec_db.add(documents=[input_text], ids=[str(self.next_uid)])
         self.info_dict[str(self.next_uid)] = output_text
         if self.verbosity >= 1:
-            print("\n\033[92m<INPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\nINPUT\n{}\nOUTPUT\n{}>\033[0m  ".format(input_text, output_text))
+            print(in_color("\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
+                input_text, output_text), 92))
 
     def get_nearest_memo(self, query_text):
+        """ Retrieves the nearest memo to the given query text. """
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
-        uid, input_text = results['ids'][0][0], results['documents'][0][0]
+        uid, input_text, distance = results['ids'][0][0], results['documents'][0][0], results['distances'][0][0]
         output_text = self.info_dict[uid]
         if self.verbosity >= 1:
-            print("\n\033[92m<INPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\nINPUT\n{}\nOUTPUT\n{}>\033[0m  ".format(input_text, output_text))
-        return input_text, output_text
+            print(in_color("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                input_text, output_text, distance), 92))
+        return input_text, output_text, distance
+
+    def get_related_memos(self, query_text, threshold=1.0):
+        """ Retrieves memos that are related to the given query text with the threshold. """
+        results = self.vec_db.query(query_texts=[query_text], n_results=4)
+        memos = []
+        for i in range(len(results['ids'])):
+            uid, input_text, distance = results['ids'][i][0], results['documents'][i][0], results['distances'][i][0]
+            if distance < threshold:
+                output_text = self.info_dict[uid]
+                if self.verbosity >= 1:
+                    print(in_color(
+                        "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                            input_text, output_text, distance), 92))
+                memos.append((input_text, output_text, distance))
+        return memos
 
     def prepopulate(self):
         """ Adds arbitrary examples to the vector DB, just to make retrieval less trivial. """

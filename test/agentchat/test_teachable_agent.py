@@ -27,12 +27,12 @@ def interact_freely_with_user():
     user_proxy = UserProxyAgent("user_proxy", human_input_mode="ALWAYS")
 
     # Start the chat.
-    print(in_color("\nTo clear the context and start a new chat, type 'new chat'.", 93))
+    print(in_color("\nTo clear the context and start a new chat, type 'new chat'.", 96))
     user_proxy.initiate_chat(assistant, message="Hi")
 
 
 def test_question_answer_pair():
-    print(in_color("\n<START TEST OF QUESTION-ANSWER PAIR>", 92))
+    print(in_color("\n<START MEMORY TEST OF QUESTION-ANSWER PAIRS>", 96))
 
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
@@ -55,18 +55,18 @@ def test_question_answer_pair():
     agent.learn_from_recent_user_comments()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
-    print(in_color("<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 92))
+    print(in_color("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 96))
     user.initiate_chat(recipient=agent, message="What's the twist of 8 and 3 and 2?")
     agent_response = user.last_message(agent)
     assert '35' in agent_response["content"]  # GPT-4 usually gets the right answer here, which is 35.
 
     # End of test
     agent.delete_db()
-    print(in_color("<TEST COMPLETED>", 92))
+    print(in_color("<TEST COMPLETED>", 96))
 
 
 def test_task_advice_pair():
-    print(in_color("\n<START TEST OF TASK-ADVICE PAIR>", 92))
+    print(in_color("\n<START MEMORY TEST OF TASK-ADVICE PAIRS>", 96))
 
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
@@ -86,14 +86,14 @@ def test_task_advice_pair():
     agent.learn_from_recent_user_comments()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
-    print(in_color("<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 92))
+    print(in_color("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 96))
     user.initiate_chat(recipient=agent, message="Please calculate the twist of 8 and 3 and 2.")
     agent_response = user.last_message(agent)
     assert '35' in agent_response["content"]  # GPT-4 usually gets the right answer here, which is 35.
 
     # End of test
     agent.delete_db()  # Delete the DB now, instead of waiting for garbage collection to do it.
-    print(in_color("<TEST COMPLETED>", 92))
+    print(in_color("<TEST COMPLETED>", 96))
 
 
 if __name__ == "__main__":
@@ -104,4 +104,4 @@ if __name__ == "__main__":
 
     test_question_answer_pair()
     test_task_advice_pair()
-    print(in_color("\n<TEACHABLE AGENT TESTS COMPLETED SUCCESSFULLY>", 92))
+    print(in_color("\n<TEACHABLE AGENT TESTS COMPLETED SUCCESSFULLY>", 96))
