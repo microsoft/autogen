@@ -6,6 +6,7 @@ import glob
 import tiktoken
 import chromadb
 from chromadb.api import API
+from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
 import pypdf
@@ -263,12 +264,36 @@ def create_vector_db_from_dir(
     chunk_mode: str = "multi_lines",
     must_break_at_empty_line: bool = True,
     embedding_model: str = "all-MiniLM-L6-v2",
+    embedding_function: Callable = None,
 ):
-    """Create a vector db from all the files in a given directory."""
+    """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
+        a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
+        you prepared your own vector db.
+
+    Args:
+        dir_path (str): the path to the directory, file or url.
+        max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
+        client (Optional, API): the chromadb client. Default is None.
+        db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".
+        collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
+        get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
+            will be recreated if it already exists.
+        chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
+        must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
+        embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
+            embedding_function is not None.
+        embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
+            the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
+            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+    """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
     try:
-        embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+        embedding_function = (
+            ef.SentenceTransformerEmbeddingFunction(embedding_model)
+            if embedding_function is None
+            else embedding_function
+        )
         collection = client.create_collection(
             collection_name,
             get_or_create=get_or_create,
@@ -300,14 +325,41 @@ def query_vector_db(
     collection_name: str = "all-my-documents",
     search_string: str = "",
     embedding_model: str = "all-MiniLM-L6-v2",
-) -> Dict[str, List[str]]:
-    """Query a vector db."""
+    embedding_function: Callable = None,
+) -> QueryResult:
+    """Query a vector db. We support chromadb compatible APIs, it's not required if you prepared your own vector db
+        and query function.
+
+    Args:
+        query_texts (List[str]): the query texts.
+        n_results (Optional, int): the number of results to return. Default is 10.
+        client (Optional, API): the chromadb compatible client. Default is None, a chromadb client will be used.
+        db_path (Optional, str): the path to the vector db. Default is "/tmp/chromadb.db".
+        collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
+        search_string (Optional, str): the search string. Default is "".
+        embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
+            embedding_function is not None.
+        embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
+            the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
+            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+
+    Returns:
+        QueryResult: the query result. The format is:
+            class QueryResult(TypedDict):
+                ids: List[IDs]
+                embeddings: Optional[List[List[Embedding]]]
+                documents: Optional[List[List[Document]]]
+                metadatas: Optional[List[List[Metadata]]]
+                distances: Optional[List[List[float]]]
+    """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
     # the collection's embedding function is always the default one, but we want to use the one we used to create the
     # collection. So we compute the embeddings ourselves and pass it to the query function.
     collection = client.get_collection(collection_name)
-    embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+    embedding_function = (
+        ef.SentenceTransformerEmbeddingFunction(embedding_model) if embedding_function is None else embedding_function
+    )
     query_embeddings = embedding_function(query_texts)
     # Query/search n most similar results. You can also .get by id
     results = collection.query(
