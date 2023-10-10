@@ -341,11 +341,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         compatible with chromadb or filter results with metadata, you can override this function. Just keep the current
         parameters and add your own parameters with default values, and keep the results in below type.
 
-        Type of the results: Dict[str, List[List[Any]]]
+        Type of the results: Dict[str, List[List[Any]]], should have keys "ids" and "documents", "ids" for the ids of
+        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional. Refer
+        to `chromadb.api.types.QueryResult` as an example.
             ids: List[string]
             documents: List[List[string]]
-            metadatas: Optional[List[List[string]]]
-            distances: Optional[List[List[float]]]
 
         Args:
             problem (str): the problem to be solved.

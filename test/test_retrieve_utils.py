@@ -101,7 +101,10 @@ class TestRetrieveUtils:
         assert isinstance(results, dict) and any("autogen" in res[0].lower() for res in results.get("documents", []))
 
     def test_custom_vector_db(self):
-        import lancedb
+        try:
+            import lancedb
+        except ImportError:
+            return
         from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
         db_path = "/tmp/lancedb"
