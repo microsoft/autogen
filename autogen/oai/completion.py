@@ -768,6 +768,13 @@ class Completion(openai_Completion):
         """
         if ERROR:
             raise ERROR
+
+        # Warn if a config list was provided but was empty
+        if type(config_list) is list and len(config_list) == 0:
+            logger.warning(
+                "Completion was provided with a config_list, but the list was empty. Adopting default OpenAI behavior, which reads from the 'model' parameter instead."
+            )
+
         if config_list:
             last = len(config_list) - 1
             cost = 0
