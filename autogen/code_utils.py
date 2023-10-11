@@ -257,8 +257,8 @@ def execute_code(
         logger.error(error_msg)
         raise AssertionError(error_msg)
 
-    # Warn if docker was requested but cannot be provided. In this case
-    # the current behavior is to fall back to run natively, but this behavior
+    # Warn if use_docker was unspecified (or None), and cannot be provided (the default).
+    # In this case the current behavior is to fall back to run natively, but this behavior
     # is subject to change.
     if use_docker is None:
         if docker is None:
