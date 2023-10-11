@@ -10,7 +10,6 @@ from chromadb.config import Settings
 try:
     from termcolor import colored
 except ImportError:
-
     def colored(x, *args, **kwargs):
         return x
 
