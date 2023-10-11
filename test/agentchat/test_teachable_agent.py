@@ -20,38 +20,39 @@ config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict={
 # config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict={"model": ["gpt-3.5-turbo-0613"]})
 
 
-def interact_freely_with_user():
-    # Create the agents.
+def create_teachable_agent():
     agent = TeachableAgent(
         name="assistant",
         llm_config={"config_list": config_list},
-        teach_config={"verbosity": verbosity})
-    user_proxy = UserProxyAgent("user_proxy", human_input_mode="ALWAYS")
+        teach_config={"verbosity": verbosity, "recall_threshold": 1.5})
+    return agent
+
+
+def interact_freely_with_user():
+    agent = create_teachable_agent()
+    user = UserProxyAgent("user", human_input_mode="ALWAYS")
 
     # Start the chat.
     print(colored("\nTo clear the context and start a new chat, type 'new chat'.", 'light_cyan'))
-    user_proxy.initiate_chat(agent, message="Hi")
+    user.initiate_chat(agent, message="Hi")
 
 
 def check_agent_response(agent, user, correct_answer):
     agent_response = user.last_message(agent)["content"]
     if correct_answer not in agent_response:
-        print(colored(f"\n<TEST FAILED:  EXPECTED ANSWER {correct_answer} NOT FOUND IN AGENT RESPONSE>", 'light_red'))
+        print(colored(f"\nTEST FAILED:  EXPECTED ANSWER {correct_answer} NOT FOUND IN AGENT RESPONSE", 'light_red'))
         if assert_on_error:
             assert correct_answer in agent_response
         return 1
-    return 0
+    else:
+        print(colored(f"\nTEST PASSED:  EXPECTED ANSWER {correct_answer} FOUND IN AGENT RESPONSE", 'light_cyan'))
+        return 0
 
 
 def test_question_answer_pair():
-    print(colored("\n<TEST QUESTION-ANSWER PAIRS>", 'light_cyan'))
+    print(colored("\nTEST QUESTION-ANSWER PAIRS", 'light_cyan'))
     num_errors = 0
-
-    # Create the agents.
-    agent = TeachableAgent(
-        name="assistant",
-        llm_config={"config_list": config_list},
-        teach_config={"verbosity": verbosity})
+    agent = create_teachable_agent()
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Ask the agent to do something using terminology it doesn't understand.
@@ -65,28 +66,19 @@ def test_question_answer_pair():
     agent.learn_from_recent_user_comments()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
-    print(colored("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 'light_cyan'))
+    print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", 'light_cyan'))
     user.initiate_chat(recipient=agent, message="What's the twist of 8 and 3 and 2?")
     num_errors += check_agent_response(agent, user, "35")
 
     # Wrap up.
-    if num_errors == 0:
-        print(colored("\n<TEST COMPLETED SUCCESSFULLY>", 'light_cyan'))
-    else:
-        print(colored(f"\n<TEST COMPLETED WITH {num_errors} ERRORS>", 'light_red'))
     agent.delete_db()  # Delete the DB now, instead of waiting for garbage collection to do it.
     return num_errors
 
 
 def test_task_advice_pair():
-    print(colored("\n<TEST TASK-ADVICE PAIRS>", 'light_cyan'))
+    print(colored("\nTEST TASK-ADVICE PAIRS", 'light_cyan'))
     num_errors = 0
-
-    # Create the agents.
-    agent = TeachableAgent(
-        name="assistant",
-        llm_config={"config_list": config_list},
-        teach_config={"verbosity": verbosity})
+    agent = create_teachable_agent()
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Ask the agent to do something, and provide some helpful advice.
@@ -97,15 +89,11 @@ def test_task_advice_pair():
     agent.learn_from_recent_user_comments()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
-    print(colored("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 'light_cyan'))
+    print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", 'light_cyan'))
     user.initiate_chat(recipient=agent, message="Please calculate the twist of 8 and 3 and 2.")
     num_errors += check_agent_response(agent, user, "35")
 
     # Wrap up.
-    if num_errors == 0:
-        print(colored("\n<TEST COMPLETED SUCCESSFULLY>", 'light_cyan'))
-    else:
-        print(colored(f"\n<TEST COMPLETED WITH {num_errors} ERRORS>", 'light_red'))
     agent.delete_db()  # Delete the DB now, instead of waiting for garbage collection to do it.
     return num_errors
 
@@ -120,6 +108,6 @@ if __name__ == "__main__":
     total_num_errors += test_question_answer_pair()
     total_num_errors += test_task_advice_pair()
     if total_num_errors == 0:
-        print(colored("\n<TEACHABLE AGENT TESTS COMPLETED SUCCESSFULLY>", 'light_cyan'))
+        print(colored("\nTEACHABLE AGENT TESTS COMPLETED SUCCESSFULLY", 'light_cyan'))
     else:
-        print(colored(f"\n<TEACHABLE AGENT TESTS COMPLETED WITH {total_num_errors} ERRORS>", 'light_red'))
+        print(colored(f"\nTEACHABLE AGENT TESTS COMPLETED WITH {total_num_errors} TOTAL ERRORS", 'light_red'))

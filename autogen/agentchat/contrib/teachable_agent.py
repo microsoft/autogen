@@ -103,7 +103,7 @@ class TeachableAgent(ConversableAgent):
         if user_text == 'new chat':
             self.clear_history()
             self.learn_from_recent_user_comments()
-            print(colored("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 'light_cyan'))
+            print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", 'light_cyan'))
             return True, 'New chat started.'
 
         # This is a normal user turn. Keep track of it for potential storage later.
@@ -151,16 +151,16 @@ class TeachableAgent(ConversableAgent):
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Add the task-advice (problem-solution) pair to the vector DB.
                 if self.verbosity >= 1:
-                    print(colored("\nFOUND TASK-ADVICE PAIR", 'light_green'))
+                    print(colored("\nREMEMBER THIS TASK-ADVICE PAIR", 'light_yellow'))
                 self.memo_store.add_input_output_pair(general_task, advice)
-            return
+            # return
 
-        # Check for a simple question.
-        response = self.analyze(llm_config, comment,
-            "Does the last user comment contain a simple question? Answer with just one word, yes or no.")
-        if 'yes' in response.lower():
-            # Ignore it.
-            return
+        # # Check for a simple question.
+        # response = self.analyze(llm_config, comment,
+        #     "Does the last user comment contain a simple question? Answer with just one word, yes or no.")
+        # if 'yes' in response.lower():
+        #     # Ignore it.
+        #     return
 
         # Check for information to be learned.
         response = self.analyze(llm_config, comment,
@@ -174,34 +174,32 @@ class TeachableAgent(ConversableAgent):
                 "Briefly copy the information from the last user comment that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
-                print(colored("\nFOUND QUESTION-ANSWER PAIR", 'light_green'))
+                print(colored("\nREMEMBER THIS QUESTION-ANSWER PAIR", 'light_yellow'))
             self.memo_store.add_input_output_pair(question, answer)
 
     def consider_memo_retrieval(self, comment, llm_config):
         """Decides whether to retrieve something from the DB."""
-        # Check for a question or task.
+
+        # First, just use the user comment as the lookup key.
+        expanded_comment = comment
+        expanded_comment = expanded_comment + self.retrieve_relevant_memos(comment)
+
+        # Next, if the comment involves a task, extract and generalize the task before using it as the lookup key.
         response = self.analyze(llm_config, comment,
-            "Does the last user comment contain a question, task, or problem to solve? Answer with just one word, yes or no.")
+            "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
-            # Distinguish between a question and a task.
-            memo_lookup_key = comment
-            response = self.analyze(llm_config, comment,
-                "Does the last user comment contain a task to perform, or a simple question? Answer with just one word, task or question.")
-            if 'task' in response.lower():
-                # Extract the task.
-                task = self.analyze(llm_config, comment,
-                    "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
-                # Generalize the task.
-                general_task = self.analyze(llm_config, task,
-                    "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
-                # Use the generalized task as the lookup key.
-                memo_lookup_key = general_task
-
+            # Extract the task.
+            task = self.analyze(llm_config, comment,
+                "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
+            # Generalize the task.
+            general_task = self.analyze(llm_config, task,
+                "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
             # Append any relevant memos.
-            return comment + self.retrieve_relevant_memos(memo_lookup_key)
+            expanded_comment = expanded_comment + self.retrieve_relevant_memos(general_task)
 
-        # For anything else, just return the user comment.
-        return comment
+        # Need to de-duplicate the memos.
+
+        return expanded_comment
 
     def retrieve_relevant_memos(self, input_text):
         if self.verbosity >= 1:
@@ -265,8 +263,9 @@ class MemoStore():
         """ Retrieves memos that are related to the given query text with the threshold. """
         results = self.vec_db.query(query_texts=[query_text], n_results=n_results)
         memos = []
-        for i in range(len(results['ids'])):
-            uid, input_text, distance = results['ids'][i][0], results['documents'][i][0], results['distances'][i][0]
+        num_results = len(results['ids'][0])
+        for i in range(num_results):
+            uid, input_text, distance = results['ids'][0][i], results['documents'][0][i], results['distances'][0][i]
             if distance < threshold:
                 output_text = self.info_dict[uid]
                 if self.verbosity >= 1:
