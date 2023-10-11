@@ -111,7 +111,7 @@ class TeachableAgent(ConversableAgent):
 
         if self.memo_store.num_memos > 0:
             # Consider whether to retrieve something from the DB.
-            new_user_text = self.consider_memo_retrieval(user_text, llm_config)
+            new_user_text = self.consider_memo_retrieval(user_text)
             if new_user_text != user_text:
                 # Make a copy of the message list, and replace the last user message with the new one.
                 messages = messages.copy()
@@ -130,99 +130,99 @@ class TeachableAgent(ConversableAgent):
         if len(self.user_comments) > 0:
             for comment in self.user_comments:
                 # Consider whether to store something from this user turn in the DB.
-                self.consider_memo_storage(comment, self.llm_config)
+                self.consider_memo_storage(comment)
         self.user_comments = []
 
-    def consider_memo_storage(self, comment, llm_config):
+    def consider_memo_storage(self, comment):
         """Decides whether to store something from this user turn in the DB."""
         # Check for a problem-solution pair.
-        response = self.analyze(llm_config, comment,
+        response = self.analyze(comment,
             "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Can we extract advice?
-            advice = self.analyze(llm_config, comment,
+            advice = self.analyze(comment,
                 "Briefly copy any advice from the last user comment that may be useful for a similar but different task in the future. But if no advice is present, just respond with \'none\'.")
             if 'none' not in advice.lower():
                 # Yes. Extract the task.
-                task = self.analyze(llm_config, comment,
+                task = self.analyze(comment,
                     "Briefly copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
                 # Generalize the task.
-                general_task = self.analyze(llm_config, task,
+                general_task = self.analyze(task,
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Add the task-advice (problem-solution) pair to the vector DB.
                 if self.verbosity >= 1:
                     print(colored("\nREMEMBER THIS TASK-ADVICE PAIR", 'light_yellow'))
                 self.memo_store.add_input_output_pair(general_task, advice)
-            # return
-
-        # # Check for a simple question.
-        # response = self.analyze(llm_config, comment,
-        #     "Does the last user comment contain a simple question? Answer with just one word, yes or no.")
-        # if 'yes' in response.lower():
-        #     # Ignore it.
-        #     return
 
         # Check for information to be learned.
-        response = self.analyze(llm_config, comment,
+        response = self.analyze(comment,
             "Does the last user comment contain information that might be useful later? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Yes. What question would this information answer?
-            question = self.analyze(llm_config, comment,
+            question = self.analyze(comment,
                 "Imagine that the user forgot this information in their last comment. How would they ask you for this information? Include no other text in your response.")
             # Extract the information.
-            answer = self.analyze(llm_config, comment,
+            answer = self.analyze(comment,
                 "Briefly copy the information from the last user comment that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
                 print(colored("\nREMEMBER THIS QUESTION-ANSWER PAIR", 'light_yellow'))
             self.memo_store.add_input_output_pair(question, answer)
 
-    def consider_memo_retrieval(self, comment, llm_config):
+    def consider_memo_retrieval(self, comment):
         """Decides whether to retrieve something from the DB."""
 
-        # First, just use the user comment as the lookup key.
-        expanded_comment = comment
-        expanded_comment = expanded_comment + self.retrieve_relevant_memos(comment)
+        # First, use the user comment directly as the lookup key.
+        if self.verbosity >= 1:
+            print(colored('\nLOOK FOR RELEVANT MEMOS, AS QUESTION-ANSWER PAIRS', 'light_yellow'))
+        memo_list = self.retrieve_relevant_memos(comment)
 
-        # Next, if the comment involves a task, extract and generalize the task before using it as the lookup key.
-        response = self.analyze(llm_config, comment,
+        # Next, if the comment involves a task, then extract and generalize the task before using it as the lookup key.
+        response = self.analyze(comment,
             "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Extract the task.
-            task = self.analyze(llm_config, comment,
+            task = self.analyze(comment,
                 "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
             # Generalize the task.
-            general_task = self.analyze(llm_config, task,
+            general_task = self.analyze(task,
                 "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
             # Append any relevant memos.
-            expanded_comment = expanded_comment + self.retrieve_relevant_memos(general_task)
+            if self.verbosity >= 1:
+                print(colored('\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS', 'light_yellow'))
+            memo_list.extend(self.retrieve_relevant_memos(general_task))
 
-        # Need to de-duplicate the memos.
+        # De-duplicate the memo list.
+        memo_list = list(set(memo_list))
 
-        return expanded_comment
+        # Append the memos to the last user message.
+        return comment + self.concatenate_memo_texts(memo_list)
 
     def retrieve_relevant_memos(self, input_text):
-        if self.verbosity >= 1:
-            print(colored('\nLOOK FOR RELEVANT MEMOS', 'light_yellow'))
-        memo_texts = ''
-        memos = self.memo_store.get_related_memos(input_text, threshold=self.recall_threshold)
+        memo_list = self.memo_store.get_related_memos(input_text, threshold=self.recall_threshold)
 
         if self.verbosity >= 1:
             # Was anything retrieved?
-            if len(memos) == 0:
+            if len(memo_list) == 0:
                 # No. Look at the closest memo.
                 print(colored('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD...', 'light_yellow'))
                 memo = self.memo_store.get_nearest_memo(input_text)
                 print(memo)
 
-        for memo in memos:
-            info = "(Here is some information that might help:\n" + memo[1] + ")"
+        # Create a list of just the memo output_text strings.
+        memo_list = [memo[1] for memo in memo_list]
+        return memo_list
+
+    def concatenate_memo_texts(self, memo_list):
+        memo_texts = ''
+        for memo in memo_list:
+            info = "(Here is some information that might help:\n" + memo + ")"
             if self.verbosity >= 1:
                 print(colored('\nMEMO APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 'light_yellow'))
             memo_texts = memo_texts + '\n' + info
         return memo_texts
 
-    def analyze(self, llm_config, text_to_analyze, analysis_instructions):
+    def analyze(self, text_to_analyze, analysis_instructions):
         """Combines the text to analyze with the analysis instructions, and sends them to the analyzer."""
         message_text = '\nAnalysis:  '.join([text_to_analyze, analysis_instructions])
         self.initiate_chat(recipient=self.analyzer, message=message_text)
