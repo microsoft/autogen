@@ -53,7 +53,7 @@ class AnalysisAgent(ConversableAgent):
 
         # Extract the text and instructions from the last user message.
         user_text = messages[-1]['content']
-        text_to_analyze, analysis_instructions = user_text.split('\n')  # TODO: Use a different separator.
+        text_to_analyze, analysis_instructions = user_text.split('\nAnalysis:  ')
 
         # Assemble the messages.
         messages = [

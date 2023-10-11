@@ -97,7 +97,7 @@ class TeachableAgent(ConversableAgent):
         # Get the last user message.
         user_text = messages[-1]['content']
 
-        # To let an interactive user test memory, clear the chat history if the user says "new chat".
+        # To help an interactive user test memory, clear the chat history if the user says "new chat".
         if user_text == 'new chat':
             self.clear_history()
             self.learn_from_recent_user_comments()
@@ -208,6 +208,15 @@ class TeachableAgent(ConversableAgent):
             print(in_color('\nLOOK FOR RELEVANT MEMOS', 93))
         memo_texts = ''
         memos = self.memo_store.get_related_memos(input_text)
+
+        if self.verbosity >= 1:
+            # Was anything retrieved?
+            if len(memos) == 0:
+                # No. Look at the closest memo.
+                print(in_color('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD...', 93))
+                memo = self.memo_store.get_nearest_memo(input_text)
+                print(memo)
+
         for memo in memos:
             info = "(Here is some information that might help:\n" + memo[1] + ")"
             if self.verbosity >= 1:
@@ -218,7 +227,7 @@ class TeachableAgent(ConversableAgent):
     def analyze(self, llm_config, text_to_analyze, analysis_instructions):
         ### Calls either the AnalysisAgent or the older TextAnalyzer. """
         if self.use_analyzer_agent:
-            message_text = '\n'.join([text_to_analyze, analysis_instructions])
+            message_text = '\nAnalysis:  '.join([text_to_analyze, analysis_instructions])
             self.initiate_chat(recipient=self.analyzer, message=message_text)
             response_text = self.last_message(self.analyzer)["content"]
         else:
@@ -256,7 +265,7 @@ class MemoStore():
                 input_text, output_text, distance), 92))
         return input_text, output_text, distance
 
-    def get_related_memos(self, query_text, threshold=1.0):
+    def get_related_memos(self, query_text, threshold=1.4):
         """ Retrieves memos that are related to the given query text with the threshold. """
         results = self.vec_db.query(query_texts=[query_text], n_results=4)
         memos = []
