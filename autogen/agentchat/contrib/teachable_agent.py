@@ -20,15 +20,28 @@ class TeachableAgent(ConversableAgent):
     """
     def __init__(
         self,
-        name: str,
+        name="Assistant",  # default set to Assistant
         system_message: Optional[str] = "You are a helpful AI assistant.",
         llm_config: Optional[Union[Dict, bool]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
         code_execution_config: Optional[Union[Dict, bool]] = False,
+        teach_config: Optional[Dict] = None,  # config for the TeachableAgent
         **kwargs,
     ):
+        """
+        Args:
+            name (str): name of the agent. Default "Assistant".
+            human_input_mode (str): NEVER ask for human input for this agent.
+            teach_config (dict or None): config for the TeachableAgent.
+                To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
+                - verbosity (Optional, int): 1 to print DB operations, 2 to add caller details. Default 0.
+                - prepopulate (Optional, int): 1 to prepopulate the DB with a set of input-output pairs. Default 1.
+                - use_cache (Optional, bool): True to skip LLM calls made previously by relying on cached responses. Default False.
+                - recall_threshold (Optional, float): The distance threshold for retrieving memos from the DB. Default 1.5.
+            **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
+        """
         super().__init__(
             name,
             system_message,
@@ -41,16 +54,17 @@ class TeachableAgent(ConversableAgent):
         )
         self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply)
 
-        self.verbosity   = 2  # 1 to print DB operations, 2 to add caller details.
-        self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
-        self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
-        self.recall_threshold = 1.4  # The distance threshold for retrieving memos from the DB.
+        self._teach_config = {} if teach_config is None else teach_config
+        self.verbosity = self._teach_config.get("verbosity", 0)
+        self.prepopulate = self._teach_config.get("prepopulate", 1)
+        self.use_cache = self._teach_config.get("use_cache", False)
+        self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
 
         self.analyzer = AnalysisAgent("analyzer", llm_config=llm_config)
 
         self.memo_store = MemoStore(self.verbosity)
         self.memo_store.prepopulate()
-        self.user_comments = []  # Stores user comments until the end of the chat.
+        self.user_comments = []  # Stores user comments until the end of each chat.
 
     def delete_db(self):
         self.memo_store.db_client.reset()
@@ -173,7 +187,7 @@ class TeachableAgent(ConversableAgent):
             # Distinguish between a question and a task.
             memo_lookup_key = comment
             response = self.analyze(llm_config, comment,
-                "Would the last user comment be best described as a simple question, or some kind of task? Answer with just one word, question or task.")
+                "Does the last user comment contain a task to perform, or a simple question? Answer with just one word, task or question.")
             if 'task' in response.lower():
                 # Extract the task.
                 task = self.analyze(llm_config, comment,

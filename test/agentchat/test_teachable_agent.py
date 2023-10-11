@@ -11,6 +11,9 @@ except ImportError:
         return x
 
 
+verbosity = 2
+
+
 def interact_freely_with_user():
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
@@ -18,12 +21,15 @@ def interact_freely_with_user():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict={"model": ["gpt-4-0613"]})
 
     # Create the agents.
-    assistant = TeachableAgent("assistant", llm_config={"config_list": config_list})
+    agent = TeachableAgent(
+        name="assistant",
+        llm_config={"config_list": config_list},
+        teach_config={"verbosity": verbosity})
     user_proxy = UserProxyAgent("user_proxy", human_input_mode="ALWAYS")
 
     # Start the chat.
     print(colored("\nTo clear the context and start a new chat, type 'new chat'.", 'light_cyan'))
-    user_proxy.initiate_chat(assistant, message="Hi")
+    user_proxy.initiate_chat(agent, message="Hi")
 
 
 def test_question_answer_pair():
@@ -35,7 +41,10 @@ def test_question_answer_pair():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict={"model": ["gpt-4-0613"]})
 
     # Create the agents.
-    agent = TeachableAgent("agent", llm_config={"config_list": config_list})
+    agent = TeachableAgent(
+        name="assistant",
+        llm_config={"config_list": config_list},
+        teach_config={"verbosity": verbosity})
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Ask the agent to do something using terminology it doesn't understand.
@@ -69,7 +78,10 @@ def test_task_advice_pair():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict={"model": ["gpt-4-0613"]})
 
     # Create the agents.
-    agent = TeachableAgent("agent", llm_config={"config_list": config_list})
+    agent = TeachableAgent(
+        name="assistant",
+        llm_config={"config_list": config_list},
+        teach_config={"verbosity": verbosity})
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Ask the agent to do something, and provide some helpful advice.
