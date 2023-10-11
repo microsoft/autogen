@@ -6,7 +6,7 @@ This project welcomes and encourages all forms of contributions, including but n
 -  Code review of pull requests.
 -  Documentation, examples and test cases.
 -  Readability improvement, e.g., improvement on docstr and comments.
--  Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), and [discord](https://discord.gg/pAbnFJrkgZ).
+-  Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), [discord](https://discord.gg/pAbnFJrkgZ), and [twitter](https://twitter.com/pyautogen).
 -  Tutorials, blog posts, talks that promote the project.
 -  Sharing application scenarios and/or related research.
 

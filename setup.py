@@ -41,6 +41,7 @@ setuptools.setup(
     extras_require={
         "test": [
             "chromadb",
+            "lancedb",
             "coverage>=5.3",
             "datasets",
             "ipykernel",

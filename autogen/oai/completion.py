@@ -194,7 +194,8 @@ class Completion(openai_Completion):
                 return response
         openai_completion = (
             openai.ChatCompletion
-            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
+            if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
+            or issubclass(cls, ChatCompletion)
             else openai.Completion
         )
         start_time = time.time()
@@ -767,6 +768,13 @@ class Completion(openai_Completion):
         """
         if ERROR:
             raise ERROR
+
+        # Warn if a config list was provided but was empty
+        if type(config_list) is list and len(config_list) == 0:
+            logger.warning(
+                "Completion was provided with a config_list, but the list was empty. Adopting default OpenAI behavior, which reads from the 'model' parameter instead."
+            )
+
         if config_list:
             last = len(config_list) - 1
             cost = 0

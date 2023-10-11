@@ -12,6 +12,7 @@ try:
     )
     from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
     import chromadb
+    from chromadb.utils import embedding_functions as ef
 
     skip_test = False
 except ImportError:
@@ -49,6 +50,7 @@ def test_retrievechat():
         },
     )
 
+    sentence_transformer_ef = ef.SentenceTransformerEmbeddingFunction()
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
@@ -58,6 +60,7 @@ def test_retrievechat():
             "chunk_token_size": 2000,
             "model": config_list[0]["model"],
             "client": chromadb.PersistentClient(path="/tmp/chromadb"),
+            "embedding_function": sentence_transformer_ef,
         },
     )
 
