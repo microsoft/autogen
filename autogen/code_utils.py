@@ -218,7 +218,7 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[Union[List[str], str, bool]] = True,
+    use_docker: Optional[Union[List[str], str, bool]] = None,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -242,7 +242,8 @@ def execute_code(
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
             with the first image successfully pulled.
             If None, False or empty, the code will be executed in the current environment.
-            Default is True, which will be converted into a list.
+            Default is None,
+            If True, which will be converted into a list.
             If the code is executed in the current environment,
             the code must be trusted.
         lang (Optional, str): The language of the code. Default is "python".
@@ -260,11 +261,15 @@ def execute_code(
     # Warn if docker was requested but cannot be provided. In this case
     # the current behavior is to fall back to run natively, but this behavior
     # is subject to change.
-    if use_docker and docker is None:
-        use_docker = False
-        logger.warning(
-            "execute_code was called with use_docker evaluating to True, but the python docker package is not available. Falling back to native code execution. Note: this fallback behavior is subject to change"
-        )
+    if use_docker is not None:
+        if not docker:
+            if use_docker is True:
+                raise Exception("Docker is not installed, but use_docker is set to True.")
+            else:
+                logger.warning(
+                    "Docker is not installed. Falling back to native code execution. Note: this fallback behavior is subject to change"
+                )
+                use_docker = False
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
