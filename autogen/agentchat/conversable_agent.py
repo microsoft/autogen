@@ -627,6 +627,8 @@ class ConversableAgent(Agent):
         # if no code blocks are found, continue
         for i in range(min(len(messages), last_n_messages)):
             message = messages[-(i + 1)]
+            if not message["content"]:
+                continue
             code_blocks = extract_code(message["content"])
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
                 continue
