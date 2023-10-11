@@ -13,7 +13,7 @@ except ImportError:
 
 
 class CompressionAgent(ConversableAgent):
-    """(In preview) Assistant agent, designed to solve a task with LLM.
+    """(Experimental) Compression agent, designed to compress a list of messages.
 
     AssistantAgent is a subclass of ConversableAgent configured with a default system message.
     The default system message is designed to solve a task with LLM,
@@ -118,7 +118,11 @@ Rules:
             if m.get("role") == "function":
                 chat_to_compress += f"FUNCTION_RETURN (from \"func_name: {m['name']}\"): \n {m['content']}\n"
             else:
-                chat_to_compress += f"{m['role'].upper()}:\n{m['content']}\n"
+                if "name" in m:
+                    # name = Bob, role = assistant -> Bob(ASSISTANT)
+                    chat_to_compress += f"{m['name']}({m['role'].upper()}):\n{m['content']}\n"
+                else:
+                    chat_to_compress += f"{m['role'].upper()}:\n{m['content']}\n"
                 if "function_call" in m:
                     chat_to_compress += f"FUNCTION_CALL:\"{m['function_call']}\"\n"
 

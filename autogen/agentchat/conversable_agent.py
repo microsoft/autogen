@@ -139,11 +139,18 @@ class ConversableAgent(Agent):
 
             if self.compress_config is True:
                 self.compress_config = {}
+
+            trigger_count = self.compress_config.get("trigger_count", 0.7)
+            if isinstance(trigger_count, float) and 0 < trigger_count < 1:
+                trigger_count = int(trigger_count * get_max_token_limit(self.llm_config["model"]))
+            else:
+                trigger_count = int(trigger_count)
+
             self.compress_config = {
                 "agent": self.compress_config.get(
                     "agent", CompressionAgent(llm_config=llm_config)
                 ),  # TODO: llm_config to pass in here?
-                "trigger_count": self.compress_config.get("trigger_count", 0.7),
+                "trigger_count": trigger_count,
                 "async": self.compress_config.get("async", False),  # TODO: support async compression
                 "broadcast": self.compress_config.get("broadcast", True),
             }
@@ -650,6 +657,7 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
+        """(Experimental) Compress previous messages when a threshold of tokens is reached."""
         llm_config = self.llm_config if config is None else config
         if llm_config is False:
             # Only apply when this is a LLM-based agent (has llm_config)
@@ -688,7 +696,7 @@ class ConversableAgent(Agent):
         compressed_messages = self.compress_config["agent"].generate_reply(messages, None)
         if compressed_messages is not None:
             # TODO:  maintain a list for old oai messages (messages before compression)
-            to_print = "Token Count(after the first user message): Before compression: " + str(
+            to_print = "Token Count (of msgs after first prompt): Before compression: " + str(
                 count_token(self._oai_messages[sender][1:], llm_config["model"])
             ) + " After: " + str(
                 count_token(compressed_messages[1:], llm_config["model"])
