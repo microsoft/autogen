@@ -1,24 +1,18 @@
 from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
-from autogen.agentchat.contrib.text_analyzer import TextAnalyzer
 from autogen.agentchat.contrib.analysis_agent import AnalysisAgent
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
 
 
-def in_color(text, color):
-    # Available colors:
-    # 90 = grey
-    # 91 = red
-    # 92 = green
-    # 93 = yellow
-    # 94 = blue
-    # 95 = magenta
-    # 96 = cyan
-    # 97 = white
-    return "\033[{}m".format(color) + text + "\033[0m"
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
 
 
 class TeachableAgent(ConversableAgent):
@@ -48,20 +42,15 @@ class TeachableAgent(ConversableAgent):
         self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply)
 
         self.verbosity   = 2  # 1 to print DB operations, 2 to add caller details.
-        self.db_method   = 1  # 0=none, 1=Both tasks & facts
         self.prepopulate = 1  # 1 to prepopulate the DB with a set of input-output pairs.
         self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
-        self.use_analyzer_agent = 1  # 1 to use the new analysis agent, 0 to use the old text analyzer.
+        self.recall_threshold = 1.4  # The distance threshold for retrieving memos from the DB.
 
-        if self.use_analyzer_agent:
-            self.analyzer = AnalysisAgent("analyzer", llm_config=llm_config)
-        else:
-            self.text_analyzer = TextAnalyzer(self.use_cache)
+        self.analyzer = AnalysisAgent("analyzer", llm_config=llm_config)
 
-        if self.db_method > 0:
-            self.memo_store = MemoStore(self.verbosity)
-            self.memo_store.prepopulate()
-            self.user_comments = []  # Stores user comments until the end of the chat.
+        self.memo_store = MemoStore(self.verbosity)
+        self.memo_store.prepopulate()
+        self.user_comments = []  # Stores user comments until the end of the chat.
 
     def delete_db(self):
         self.memo_store.db_client.reset()
@@ -76,7 +65,7 @@ class TeachableAgent(ConversableAgent):
         Generates a reply to the last user message, after querying the memo store for relevant information.
         Uses self.analyzer to make decisions about memo storage and retrieval.
         """
-        if self.use_analyzer_agent and (sender == self.analyzer):
+        if sender == self.analyzer:
             # This is a response from the text analyzer. Don't reply to it.
             return True, None
 
@@ -101,20 +90,19 @@ class TeachableAgent(ConversableAgent):
         if user_text == 'new chat':
             self.clear_history()
             self.learn_from_recent_user_comments()
-            print(in_color("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 96))
+            print(colored("\n<STARTING A NEW CHAT WITH EMPTY CONTEXT>", 'light_cyan'))
             return True, 'New chat started.'
 
-        if self.db_method > 0:
-            # This is a normal user turn. Keep track of it for potential storage later.
-            self.user_comments.append(user_text)
+        # This is a normal user turn. Keep track of it for potential storage later.
+        self.user_comments.append(user_text)
 
-            if self.memo_store.num_memos > 0:
-                # Consider whether to retrieve something from the DB.
-                new_user_text = self.consider_memo_retrieval(user_text, llm_config)
-                if new_user_text != user_text:
-                    # Make a copy of the message list, and replace the last user message with the new one.
-                    messages = messages.copy()
-                    messages[-1]['content'] = new_user_text
+        if self.memo_store.num_memos > 0:
+            # Consider whether to retrieve something from the DB.
+            new_user_text = self.consider_memo_retrieval(user_text, llm_config)
+            if new_user_text != user_text:
+                # Make a copy of the message list, and replace the last user message with the new one.
+                messages = messages.copy()
+                messages[-1]['content'] = new_user_text
 
         ctxt = messages[-1].pop("context", None)  # This peels off any "context" message from the list.
         msgs = self._oai_system_message + messages
@@ -124,14 +112,13 @@ class TeachableAgent(ConversableAgent):
         return True, response_text
 
     def learn_from_recent_user_comments(self):
-        print(in_color("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 96))
-        if self.db_method > 0:
-            # Look at each user turn.
-            if len(self.user_comments) > 0:
-                for comment in self.user_comments:
-                    # Consider whether to store something from this user turn in the DB.
-                    self.consider_memo_storage(comment, self.llm_config)
-            self.user_comments = []
+        print(colored("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 'light_cyan'))
+        # Look at each user turn.
+        if len(self.user_comments) > 0:
+            for comment in self.user_comments:
+                # Consider whether to store something from this user turn in the DB.
+                self.consider_memo_storage(comment, self.llm_config)
+        self.user_comments = []
 
     def consider_memo_storage(self, comment, llm_config):
         """Decides whether to store something from this user turn in the DB."""
@@ -151,7 +138,7 @@ class TeachableAgent(ConversableAgent):
                     "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
                 # Add the task-advice (problem-solution) pair to the vector DB.
                 if self.verbosity >= 1:
-                    print(in_color("\nFOUND TASK-ADVICE PAIR", 92))
+                    print(colored("\nFOUND TASK-ADVICE PAIR", 'light_green'))
                 self.memo_store.add_input_output_pair(general_task, advice)
             return
 
@@ -174,7 +161,7 @@ class TeachableAgent(ConversableAgent):
                 "Briefly copy the information from the last user comment that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
-                print(in_color("\nFOUND QUESTION-ANSWER PAIR", 92))
+                print(colored("\nFOUND QUESTION-ANSWER PAIR", 'light_green'))
             self.memo_store.add_input_output_pair(question, answer)
 
     def consider_memo_retrieval(self, comment, llm_config):
@@ -205,34 +192,30 @@ class TeachableAgent(ConversableAgent):
 
     def retrieve_relevant_memos(self, input_text):
         if self.verbosity >= 1:
-            print(in_color('\nLOOK FOR RELEVANT MEMOS', 93))
+            print(colored('\nLOOK FOR RELEVANT MEMOS', 'light_yellow'))
         memo_texts = ''
-        memos = self.memo_store.get_related_memos(input_text)
+        memos = self.memo_store.get_related_memos(input_text, threshold=self.recall_threshold)
 
         if self.verbosity >= 1:
             # Was anything retrieved?
             if len(memos) == 0:
                 # No. Look at the closest memo.
-                print(in_color('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD...', 93))
+                print(colored('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD...', 'light_yellow'))
                 memo = self.memo_store.get_nearest_memo(input_text)
                 print(memo)
 
         for memo in memos:
             info = "(Here is some information that might help:\n" + memo[1] + ")"
             if self.verbosity >= 1:
-                print(in_color('\nMEMO APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 93))
+                print(colored('\nMEMO APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 'light_yellow'))
             memo_texts = memo_texts + '\n' + info
         return memo_texts
 
     def analyze(self, llm_config, text_to_analyze, analysis_instructions):
-        ### Calls either the AnalysisAgent or the older TextAnalyzer. """
-        if self.use_analyzer_agent:
-            message_text = '\nAnalysis:  '.join([text_to_analyze, analysis_instructions])
-            self.initiate_chat(recipient=self.analyzer, message=message_text)
-            response_text = self.last_message(self.analyzer)["content"]
-        else:
-            response_text = self.text_analyzer.analyze(llm_config, text_to_analyze, analysis_instructions)
-        return response_text
+        """Combines the text to analyze with the analysis instructions, and sends them to the analyzer."""
+        message_text = '\nAnalysis:  '.join([text_to_analyze, analysis_instructions])
+        self.initiate_chat(recipient=self.analyzer, message=message_text)
+        return self.last_message(self.analyzer)["content"]
 
 
 class MemoStore():
@@ -252,8 +235,8 @@ class MemoStore():
         self.vec_db.add(documents=[input_text], ids=[str(self.next_uid)])
         self.info_dict[str(self.next_uid)] = output_text
         if self.verbosity >= 1:
-            print(in_color("\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
-                input_text, output_text), 92))
+            print(colored("\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
+                input_text, output_text), 'light_green'))
 
     def get_nearest_memo(self, query_text):
         """ Retrieves the nearest memo to the given query text. """
@@ -261,22 +244,22 @@ class MemoStore():
         uid, input_text, distance = results['ids'][0][0], results['documents'][0][0], results['distances'][0][0]
         output_text = self.info_dict[uid]
         if self.verbosity >= 1:
-            print(in_color("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
-                input_text, output_text, distance), 92))
+            print(colored("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                input_text, output_text, distance), 'light_green'))
         return input_text, output_text, distance
 
-    def get_related_memos(self, query_text, threshold=1.4):
+    def get_related_memos(self, query_text, n_results=4, threshold=1.4):
         """ Retrieves memos that are related to the given query text with the threshold. """
-        results = self.vec_db.query(query_texts=[query_text], n_results=4)
+        results = self.vec_db.query(query_texts=[query_text], n_results=n_results)
         memos = []
         for i in range(len(results['ids'])):
             uid, input_text, distance = results['ids'][i][0], results['documents'][i][0], results['distances'][i][0]
             if distance < threshold:
                 output_text = self.info_dict[uid]
                 if self.verbosity >= 1:
-                    print(in_color(
+                    print(colored(
                         "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
-                            input_text, output_text, distance), 92))
+                            input_text, output_text, distance), 'light_green'))
                 memos.append((input_text, output_text, distance))
         return memos
 
