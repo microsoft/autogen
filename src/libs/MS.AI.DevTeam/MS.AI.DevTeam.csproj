@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.2.1" />
+    <PackageReference Include="Microsoft.Orleans.Runtime" Version="7.2.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="0.24.230918.1-preview" />
+    <PackageReference Include="Octokit" Version="7.1.0" />
+    <PackageReference Include="GitHubJwt" Version="0.0.6" />
+    <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0-beta.1" />
+    <PackageReference Include="Azure.Storage.Files.Shares" Version="12.16.0-beta.1" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.8.1" />
+    <PackageReference Include="Azure.Identity" Version="1.10.0-beta.1" />
+    <PackageReference Include="Microsoft.Orleans.Reminders" Version="7.2.1" />
+  </ItemGroup>
+</Project>

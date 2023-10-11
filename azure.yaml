@@ -3,6 +3,6 @@
 name: sk-dev-team
 services:
   sk-func:
-    project: ./sk-azfunc-server
+    project: ./src/apps/gh-flow-df
     language: dotnet
     host: function
