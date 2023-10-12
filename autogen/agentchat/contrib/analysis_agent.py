@@ -39,31 +39,20 @@ class AnalysisAgent(ConversableAgent):
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Analyzes the given text as instructed, and returns the analysis."""
-        # Are the following tests necessary?
-        assert config is None  # TODO: Remove this line.
-        llm_config = self.llm_config if config is None else config
-
-        assert llm_config is not False  # TODO: Remove this line.
-        if llm_config is False:
-            return False, None
-
-        assert messages is not None  # TODO: Remove this line.
+        if self.llm_config is False:
+            return False, None  # Return if no LLM was provided.
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._oai_messages[sender]  # In case of a direct call.
 
-        # Extract the text and instructions from the last user message.
-        user_text = messages[-1]['content']
-        text_to_analyze, analysis_instructions = user_text.split('\nAnalysis:  ')
+        # Assemble the message.
+        assert len(messages) == 2
+        text_to_analyze = messages[0]['content']
+        analysis_instructions = messages[1]['content']
+        msg_text = 'INSTRUCTIONS:  ' + analysis_instructions + '\n' + 'TEXT:  ' + text_to_analyze + '\n' + 'INSTRUCTIONS:  ' + analysis_instructions
+        messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
 
-        # Assemble the messages.
-        messages = [
-            {"role": "user", "content": text_to_analyze},
-            {"role": "user", "content": analysis_instructions}
-        ]
-
-        msgs = self._oai_system_message + messages
-
-        response = oai.ChatCompletion.create(context=None, messages=msgs, use_cache=self.use_cache, **llm_config)
+        # Generate the analysis.
+        response = oai.ChatCompletion.create(context=None, messages=messages, use_cache=self.use_cache, **self.llm_config)
         response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
         return True, response_text

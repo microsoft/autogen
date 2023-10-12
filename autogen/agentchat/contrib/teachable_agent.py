@@ -72,29 +72,16 @@ class TeachableAgent(ConversableAgent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
+        config: Optional[Any] = None,  # Persistent state.
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """
         Generates a reply to the last user message, after querying the memo store for relevant information.
         Uses self.analyzer to make decisions about memo storage and retrieval.
         """
-        if sender == self.analyzer:
-            # This is a response from the text analyzer. Don't reply to it.
-            return True, None
-
-        # Are the following checks needed?
-        assert config is None  # TODO: Remove this line.
-        llm_config = self.llm_config if config is None else config
-
-        assert llm_config is not False  # TODO: Remove this line.
-        if llm_config is False:
-            return False, None
-
-        assert messages is not None  # TODO: Remove this line.
+        if self.llm_config is False:
+            return False, None  # Return if no LLM was provided.
         if messages is None:
-            messages = self._oai_messages[sender]
-
-        # messages contains the previous chat history, excluding the system message.
+            messages = self._oai_messages[sender]  # In case of a direct call.
 
         # Get the last user message.
         user_text = messages[-1]['content']
@@ -119,7 +106,7 @@ class TeachableAgent(ConversableAgent):
 
         ctxt = messages[-1].pop("context", None)  # This peels off any "context" message from the list.
         msgs = self._oai_system_message + messages
-        response = oai.ChatCompletion.create(context=ctxt, messages=msgs, use_cache=self.use_cache, **llm_config)
+        response = oai.ChatCompletion.create(context=ctxt, messages=msgs, use_cache=self.use_cache, **self.llm_config)
         response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
         return True, response_text
@@ -137,18 +124,18 @@ class TeachableAgent(ConversableAgent):
         """Decides whether to store something from this user turn in the DB."""
         # Check for a problem-solution pair.
         response = self.analyze(comment,
-            "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
+            "Does the TEXT contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Can we extract advice?
             advice = self.analyze(comment,
-                "Briefly copy any advice from the last user comment that may be useful for a similar but different task in the future. But if no advice is present, just respond with \'none\'.")
+                "Briefly copy any advice from the TEXT that may be useful for a similar but different task in the future. But if no advice is present, just respond with \'none\'.")
             if 'none' not in advice.lower():
                 # Yes. Extract the task.
                 task = self.analyze(comment,
-                    "Briefly copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
+                    "Briefly copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.")
                 # Generalize the task.
                 general_task = self.analyze(task,
-                    "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
+                    "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.")
                 # Add the task-advice (problem-solution) pair to the vector DB.
                 if self.verbosity >= 1:
                     print(colored("\nREMEMBER THIS TASK-ADVICE PAIR", 'light_yellow'))
@@ -156,14 +143,14 @@ class TeachableAgent(ConversableAgent):
 
         # Check for information to be learned.
         response = self.analyze(comment,
-            "Does the last user comment contain information that might be useful later? Answer with just one word, yes or no.")
+            "Does the TEXT contain information that might be useful later? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Yes. What question would this information answer?
             question = self.analyze(comment,
-                "Imagine that the user forgot this information in their last comment. How would they ask you for this information? Include no other text in your response.")
+                "Imagine that the user forgot this information in the TEXT. How would they ask you for this information? Include no other text in your response.")
             # Extract the information.
             answer = self.analyze(comment,
-                "Briefly copy the information from the last user comment that may be useful later.")
+                "Briefly copy the information from the TEXT that may be useful later.")
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
                 print(colored("\nREMEMBER THIS QUESTION-ANSWER PAIR", 'light_yellow'))
@@ -179,14 +166,14 @@ class TeachableAgent(ConversableAgent):
 
         # Next, if the comment involves a task, then extract and generalize the task before using it as the lookup key.
         response = self.analyze(comment,
-            "Does the last user comment contain a task or problem to solve? Answer with just one word, yes or no.")
+            "Does the TEXT contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Extract the task.
             task = self.analyze(comment,
-                "Copy just the task from the last user comment, then stop. Don't solve it, and don't include any advice.")
+                "Copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.")
             # Generalize the task.
             general_task = self.analyze(task,
-                "Summarize very briefly, in general terms, the type of task described in the last user comment. Leave out details that might not appear in a similar problem.")
+                "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.")
             # Append any relevant memos.
             if self.verbosity >= 1:
                 print(colored('\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS', 'light_yellow'))
@@ -207,7 +194,7 @@ class TeachableAgent(ConversableAgent):
                 # No. Look at the closest memo.
                 print(colored('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD...', 'light_yellow'))
                 memo = self.memo_store.get_nearest_memo(input_text)
-                print(memo)
+                print()  # Print a blank line. The memo details were printed by get_nearest_memo().
 
         # Create a list of just the memo output_text strings.
         memo_list = [memo[1] for memo in memo_list]
@@ -223,9 +210,10 @@ class TeachableAgent(ConversableAgent):
         return memo_texts
 
     def analyze(self, text_to_analyze, analysis_instructions):
-        """Combines the text to analyze with the analysis instructions, and sends them to the analyzer."""
-        message_text = '\nAnalysis:  '.join([text_to_analyze, analysis_instructions])
-        self.initiate_chat(recipient=self.analyzer, message=message_text)
+        """Sends the text to analyze and the analysis instructions to the analyzer."""
+        self.analyzer.reset()  # Clear the analyzer's list of messages.
+        self.send(recipient=self.analyzer, message=text_to_analyze, request_reply=False)  # Put the message in the analyzer's list.
+        self.send(recipient=self.analyzer, message=analysis_instructions, request_reply=True)  # Request the reply.
         return self.last_message(self.analyzer)["content"]
 
 
