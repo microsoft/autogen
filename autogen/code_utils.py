@@ -218,7 +218,7 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[Union[List[str], str, bool]] = True,
+    use_docker: Optional[Union[List[str], str, bool]] = None,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -257,14 +257,18 @@ def execute_code(
         logger.error(error_msg)
         raise AssertionError(error_msg)
 
-    # Warn if docker was requested but cannot be provided. In this case
-    # the current behavior is to fall back to run natively, but this behavior
+    # Warn if use_docker was unspecified (or None), and cannot be provided (the default).
+    # In this case the current behavior is to fall back to run natively, but this behavior
     # is subject to change.
-    if use_docker and docker is None:
-        use_docker = False
-        logger.warning(
-            "execute_code was called with use_docker evaluating to True, but the python docker package is not available. Falling back to native code execution. Note: this fallback behavior is subject to change"
-        )
+    if use_docker is None:
+        if docker is None:
+            use_docker = False
+            logger.warning(
+                "execute_code was called without specifying a value for use_docker. Since the python docker package is not available, code will be run natively. Note: this fallback behavior is subject to change"
+            )
+        else:
+            # Default to true
+            use_docker = True
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
