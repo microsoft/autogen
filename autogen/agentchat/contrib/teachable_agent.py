@@ -1,7 +1,7 @@
 from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
-from autogen.agentchat.contrib.analysis_agent import AnalysisAgent
+from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
@@ -59,7 +59,7 @@ class TeachableAgent(ConversableAgent):
         self.use_cache = self._teach_config.get("use_cache", False)
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
 
-        self.analyzer = AnalysisAgent("analyzer", llm_config=llm_config)
+        self.analyzer = TextAnalyzerAgent("analyzer", llm_config=llm_config)
 
         self.memo_store = MemoStore(self.verbosity)
         self.memo_store.prepopulate()
@@ -113,7 +113,7 @@ class TeachableAgent(ConversableAgent):
 
     def learn_from_recent_user_comments(self):
         if self.verbosity >= 1:
-            print(colored("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 'light_green'))
+            print(colored("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 'light_yellow'))
         # Look at each user turn.
         if len(self.user_comments) > 0:
             for comment in self.user_comments:

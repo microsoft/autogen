@@ -4,7 +4,7 @@ from autogen.agentchat.assistant_agent import ConversableAgent
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 
 
-class AnalysisAgent(ConversableAgent):
+class TextAnalyzerAgent(ConversableAgent):
     """Text Analysis agent, a subclass of ConversableAgent designed to answer specific questions about text."""
     def __init__(
         self,
@@ -27,7 +27,7 @@ class AnalysisAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
-        self.register_reply(Agent, AnalysisAgent._analyze_in_reply)
+        self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply)
         self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
     def _analyze_in_reply(

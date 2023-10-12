@@ -10,7 +10,7 @@ except ImportError:
         return x
 
 
-verbosity = 2  # 1 to include memory operations, 2 to add analyzer messages.
+verbosity = 1  # 1 to include memory operations, 2 to add analyzer messages.
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 can sometimes fail.
 recall_threshold = 1.5  # Higher numbers allow more memos to be recalled, but can also lead to more false positives.
 
