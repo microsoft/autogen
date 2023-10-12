@@ -9,6 +9,7 @@ from flaml import tune, BlendSearch
 from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
 from .openai_utils import get_key
+from collections import defaultdict
 
 try:
     import openai
@@ -157,6 +158,7 @@ class Completion(openai_Completion):
             value = {
                 "created_at": [],
                 "cost": [],
+                "token_count": [],
             }
             if "messages" in config:
                 messages = config["messages"]
@@ -168,6 +170,14 @@ class Completion(openai_Completion):
                 key = get_key([config["prompt"]] + [choice.get("text") for choice in response["choices"]])
             value["created_at"].append(cls._count_create)
             value["cost"].append(response["cost"])
+            value["token_count"].append(
+                {
+                    "model": response["model"],
+                    "prompt_tokens": response["usage"]["prompt_tokens"],
+                    "completion_tokens": response["usage"].get("completion_tokens", 0),
+                    "total_tokens": response["usage"]["total_tokens"],
+                }
+            )
             cls._history_dict[key] = value
             cls._count_create += 1
             return
@@ -1066,6 +1076,44 @@ class Completion(openai_Completion):
     def logged_history(cls) -> Dict:
         """Return the book keeping dictionary."""
         return cls._history_dict
+
+    @classmethod
+    def print_usage_summary(cls) -> Dict:
+        """Return the usage summary."""
+        if cls._history_dict is None:
+            print("No usage summary available.", flush=True)
+
+        token_count_summary = defaultdict(lambda: {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
+
+        if not cls._history_compact:
+            source = cls._history_dict.values()
+            total_cost = sum(msg_pair["response"]["cost"] for msg_pair in source)
+        else:
+            # source = cls._history_dict["token_count"]
+            # total_cost = sum(cls._history_dict['cost'])
+            total_cost = sum(sum(value_list["cost"]) for value_list in cls._history_dict.values())
+            source = (
+                token_data for value_list in cls._history_dict.values() for token_data in value_list["token_count"]
+            )
+
+        for entry in source:
+            if not cls._history_compact:
+                model = entry["response"]["model"]
+                token_data = entry["response"]["usage"]
+            else:
+                model = entry["model"]
+                token_data = entry
+
+            token_count_summary[model]["prompt_tokens"] += token_data["prompt_tokens"]
+            token_count_summary[model]["completion_tokens"] += token_data["completion_tokens"]
+            token_count_summary[model]["total_tokens"] += token_data["total_tokens"]
+
+        print(f"Total cost: {total_cost}", flush=True)
+        for model, counts in token_count_summary.items():
+            print(
+                f"Token count summary for model {model}: prompt_tokens: {counts['prompt_tokens']}, completion_tokens: {counts['completion_tokens']}, total_tokens: {counts['total_tokens']}",
+                flush=True,
+            )
 
     @classmethod
     def start_logging(
