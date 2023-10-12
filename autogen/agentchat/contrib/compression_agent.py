@@ -93,8 +93,7 @@ Rules:
         The rest of the messages will be compressed into one message, the model is asked to distinuish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
         Check out the DEFAULT_SYSTEM_MESSAGE prompt above.
 
-        TOTHINK: different models have different max_length, right now we will use config passed in, so the model will be the same with the source model.
-        If original model is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
+        TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
         """
         # Uncomment the following line to check the content to compress
         # print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
@@ -131,21 +130,20 @@ Rules:
         # print(chat_to_compress[0]["content"])
 
         # 4. ask LLM to compress
-        response = oai.ChatCompletion.create(
-            context=None, messages=self._oai_system_message + chat_to_compress, **llm_config
-        )
+        try:
+            response = oai.ChatCompletion.create(
+                context=None, messages=self._oai_system_message + chat_to_compress, **llm_config
+            )
+        except Exception as e:
+            print(f"Warning: Failed to compress the content due to {e}.")
+            return False, None
         compressed_message = oai.ChatCompletion.extract_text_or_function_call(response)[0]
         assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
 
         # 5. add compressed message to the first message and return
-        messages = [
+        print(colored("*" * 30 + "Content after compressing:" + "*" * 30, "magenta"), flush=True)
+        print(compressed_message, colored("\n" + "*" * 80, "magenta"))
+        return True, [
             messages[0],
             {"content": "Compressed Content of Previous Chat:\n" + compressed_message, "role": "user"},
         ]
-        print(colored("*" * 30 + "Content after compressing:" + "*" * 30, "magenta"), flush=True)
-        print(messages[1]["content"], colored("\n" + "*" * 80, "magenta"))
-        return True, messages
-
-    def generate_summarized_reply():
-        """For all chat history, direct summarize what has been done instead of distingushing agents like userproxy, assistant and functions."""
-        pass

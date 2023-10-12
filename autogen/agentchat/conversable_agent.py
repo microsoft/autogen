@@ -133,27 +133,32 @@ class ConversableAgent(Agent):
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
 
-        self.compress_config = compress_config
-        if self.compress_config and self.llm_config:
-            from .contrib.compression_agent import CompressionAgent
-
-            if self.compress_config is True:
+        if compress_config and self.llm_config:
+            if compress_config is True:
                 self.compress_config = {}
+            if not isinstance(compress_config, dict):
+                raise ValueError("compress_config must be a dict or False.")
 
-            trigger_count = self.compress_config.get("trigger_count", 0.7)
+            # convert trigger_count to int, default to 0.7
+            trigger_count = compress_config.get("trigger_count", 0.7)
             if isinstance(trigger_count, float) and 0 < trigger_count < 1:
                 trigger_count = int(trigger_count * get_max_token_limit(self.llm_config["model"]))
             else:
                 trigger_count = int(trigger_count)
 
+            from .contrib.compression_agent import CompressionAgent
+
             self.compress_config = {
-                "agent": self.compress_config.get(
+                "agent": compress_config.get(
                     "agent", CompressionAgent(llm_config=llm_config)
                 ),  # TODO: llm_config to pass in here?
                 "trigger_count": trigger_count,
-                "async": self.compress_config.get("async", False),  # TODO: support async compression
-                "broadcast": self.compress_config.get("broadcast", True),
+                "async": compress_config.get("async", False),  # TODO: support async compression
+                "broadcast": compress_config.get("broadcast", True),
             }
+        else:
+            self.compress_config = False
+
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.on_oai_token_limit)  # check token limit
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
