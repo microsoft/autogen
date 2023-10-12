@@ -68,7 +68,7 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the python docker package, and using docker.
 
-For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
+For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
 ## Multi-Agent Conversation Framework
 
