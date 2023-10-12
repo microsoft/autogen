@@ -15,22 +15,12 @@ except ImportError:
 class CompressionAgent(ConversableAgent):
     """(Experimental) Compression agent, designed to compress a list of messages.
 
-    AssistantAgent is a subclass of ConversableAgent configured with a default system message.
-    The default system message is designed to solve a task with LLM,
-    including suggesting python code blocks and debugging.
+    CompressionAgent is a subclass of ConversableAgent configured with a default system message.
+    The default system message is designed to compress chat history.
     `human_input_mode` is default to "NEVER"
     and `code_execution_config` is default to False.
-    This agent doesn't execute code by default, and expects the user to execute the code.
+    This agent doesn't execute code or function call by default.
     """
-
-    #     DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant that will summarize and compress previous messages. The user will input a whole chunk of conversation history. Possible titles include "user", "assistant", "Function Call" and "Function Return".
-    # Please follow the rules:
-    # 1. You should summarize each of the message and reserve the titles mentioned above. You should also reserve important subtitles and structure within each message, for example, "case", "step" or bullet points.
-    # 2. For very short messages, you can choose to not summarize them. For important information like the desription of a problem or task, you should reserve them (if it is not too long).
-    # 3. For code snippets, you have two options: 1. reserve the whole exact code snippet. 2. summerize it use this format:
-    # CODE: <code type, python, etc>
-    # GOAL: <purpose of this code snippet in a short sentence>
-    # IMPLEMENTATION: <overall structure of the code>"""
 
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant that will compress messages.
 Rules:
@@ -99,7 +89,7 @@ Rules:
         # print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
 
         # 1. use passed-in config and messages
-        # in on_oai_limit function function of conversable agent, we will pass in llm_config from "config" parameter.
+        # in function on_oai_limit of conversable agent, we will pass in llm_config from "config" parameter.
         llm_config = self.llm_config if config is None else config
         if llm_config is False:
             return False, None
@@ -118,7 +108,7 @@ Rules:
                 chat_to_compress += f"FUNCTION_RETURN (from \"func_name: {m['name']}\"): \n {m['content']}\n"
             else:
                 if "name" in m:
-                    # name = Bob, role = assistant -> Bob(ASSISTANT)
+                    # {"name" : "Bob", "role" : "assistant"} -> Bob(ASSISTANT)
                     chat_to_compress += f"{m['name']}({m['role'].upper()}):\n{m['content']}\n"
                 else:
                     chat_to_compress += f"{m['role'].upper()}:\n{m['content']}\n"
@@ -145,5 +135,5 @@ Rules:
         print(compressed_message, colored("\n" + "*" * 80, "magenta"))
         return True, [
             messages[0],
-            {"content": "Compressed Content of Previous Chat:\n" + compressed_message, "role": "user"},
+            {"content": "Compressed Content of Previous Chat:\n" + compressed_message, "role": "system"},
         ]
