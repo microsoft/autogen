@@ -15,12 +15,11 @@ except ImportError:
 
 
 class TeachableAgent(ConversableAgent):
-    """(Ongoing research) Teachable Assistant agent, using a vector database as a memory store.
-    """
+    """Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings."""
     def __init__(
         self,
         name="Agent",  # default set to Assistant
-        system_message: Optional[str] = "You are a helpful AI assistant with memory of prior chats.",
+        system_message: Optional[str] = "You are a helpful AI assistant that remembers user teachings from prior chats.",
         llm_config: Optional[Union[Dict, bool]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -66,6 +65,7 @@ class TeachableAgent(ConversableAgent):
         self.user_comments = []  # Stores user comments until the end of each chat.
 
     def delete_db(self):
+        """Forces immediate deletion of the DB."""
         self.memo_store.db_client.reset()
 
     def _generate_teachable_assistant_reply(
@@ -112,8 +112,9 @@ class TeachableAgent(ConversableAgent):
         return True, response_text
 
     def learn_from_recent_user_comments(self):
+        """Reviews the user comments from the last chat, and decides what teachings to store as memos."""
         if self.verbosity >= 1:
-            print(colored("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 'light_yellow'))
+            print(colored("\nREVIEW CHAT FOR USER TEACHINGS TO REMEMBER", 'light_yellow'))
         # Look at each user turn.
         if len(self.user_comments) > 0:
             for comment in self.user_comments:
@@ -122,7 +123,7 @@ class TeachableAgent(ConversableAgent):
         self.user_comments = []
 
     def consider_memo_storage(self, comment):
-        """Decides whether to store something from this user turn in the DB."""
+        """Decides whether to store something from one user comment in the DB."""
         # Check for a problem-solution pair.
         response = self.analyze(comment,
             "Does the TEXT contain a task or problem to solve? Answer with just one word, yes or no.")
@@ -158,7 +159,7 @@ class TeachableAgent(ConversableAgent):
             self.memo_store.add_input_output_pair(question, answer)
 
     def consider_memo_retrieval(self, comment):
-        """Decides whether to retrieve something from the DB."""
+        """Decides whether to retrieve memos from the DB, and add them to the chat context."""
 
         # First, use the user comment directly as the lookup key.
         if self.verbosity >= 1:
@@ -187,6 +188,7 @@ class TeachableAgent(ConversableAgent):
         return comment + self.concatenate_memo_texts(memo_list)
 
     def retrieve_relevant_memos(self, input_text):
+        """Returns semantically related memos from the DB."""
         memo_list = self.memo_store.get_related_memos(input_text, threshold=self.recall_threshold)
 
         if self.verbosity >= 1:
@@ -202,6 +204,7 @@ class TeachableAgent(ConversableAgent):
         return memo_list
 
     def concatenate_memo_texts(self, memo_list):
+        """Concatenates the memo texts into a single string, and formats them for inclusion in the chat context."""
         memo_texts = ''
         for memo in memo_list:
             info = "(A memory that might help:\n" + memo + ")"
@@ -211,7 +214,7 @@ class TeachableAgent(ConversableAgent):
         return memo_texts
 
     def analyze(self, text_to_analyze, analysis_instructions):
-        """Sends the text to analyze and the analysis instructions to the analyzer."""
+        """Asks the analyzer to analyze the given text according to specific instructions."""
         if self.verbosity >= 2:
             # Use the messaging mechanism so that the analyzer's messages are included in the printed chat.
             self.analyzer.reset()  # Clear the analyzer's list of messages.
@@ -224,7 +227,18 @@ class TeachableAgent(ConversableAgent):
 
 
 class MemoStore():
+    """
+    Provides memory storage and retrieval for a TeachableAgent, using a vector database.
+    Each DB entry (called a memo) is a pair of strings: an input text and an output text.
+    The input text may be a question, or a task to perform.
+    The output text may be an answer to the question, or advice for how to perform the task.
+    Vector embeddings are currently provided by chromadb's default sentence encoder.
+    """
     def __init__(self, verbosity):
+        """
+        Args:
+            verbosity: 1 to print memory operations, 0 to omit them.
+        """
         self.verbosity = verbosity
         # TODO: Expose an option to persist the DB to a file on disk.
         self.db_client = chromadb.Client(Settings(anonymized_telemetry=False, allow_reset=True))  # In-memory by default.
@@ -234,7 +248,7 @@ class MemoStore():
         self.info_dict = {}  # Maps a memo uid to information like answers or advice.
 
     def add_input_output_pair(self, input_text, output_text):
-        """ Adds an input-output pair to the vector DB. """
+        """Adds an input-output pair to the vector DB."""
         self.next_uid += 1
         self.num_memos += 1
         self.vec_db.add(documents=[input_text], ids=[str(self.next_uid)])
@@ -244,7 +258,7 @@ class MemoStore():
                 input_text, output_text), 'light_green'))
 
     def get_nearest_memo(self, query_text):
-        """ Retrieves the nearest memo to the given query text. """
+        """Retrieves the nearest memo to the given query text."""
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
         uid, input_text, distance = results['ids'][0][0], results['documents'][0][0], results['distances'][0][0]
         output_text = self.info_dict[uid]
@@ -254,7 +268,7 @@ class MemoStore():
         return input_text, output_text, distance
 
     def get_related_memos(self, query_text, n_results=4, threshold=1.4):
-        """ Retrieves memos that are related to the given query text with the threshold. """
+        """Retrieves memos that are related to the given query text with the specified threshold."""
         results = self.vec_db.query(query_texts=[query_text], n_results=n_results)
         memos = []
         num_results = len(results['ids'][0])
@@ -270,7 +284,7 @@ class MemoStore():
         return memos
 
     def prepopulate(self):
-        """ Adds arbitrary examples to the vector DB, just to make retrieval less trivial. """
+        """Adds a few arbitrary examples to the vector DB, just to make retrieval less trivial."""
         examples = []
         examples.append({'text': 'When I say papers I mean research papers, which are typically pdfs.', 'label': 'yes'})
         examples.append({'text': 'Please verify that each paper you listed actually uses langchain.', 'label': 'no'})
