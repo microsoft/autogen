@@ -260,6 +260,10 @@ The API calls made after this will be automatically logged. They can be retrieve
 ```python
 autogen.ChatCompletion.logged_history
 ```
+There is a function that can be used to print usage summary (total cost, and token count usage from each model):
+```python
+autogen.ChatCompletion.print_usage_summary()
+```
 To stop logging, use
 ```python
 autogen.ChatCompletion.stop_logging()
@@ -366,5 +370,13 @@ Set `compact=False` in `start_logging()` to switch.
     },
 }
 ```
+
+* Example of printing for usage summary
+```
+Total cost: <cost>
+Token count summary for model <model>: prompt_tokens: <count 1>, completion_tokens: <count 2>, total_tokens: <count 3>
+```
+
+
 It can be seen that the individual API call history contains redundant information of the conversation. For a long conversation the degree of redundancy is high.
 The compact history is more efficient and the individual API call history contains more details.
