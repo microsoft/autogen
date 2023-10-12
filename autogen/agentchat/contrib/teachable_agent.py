@@ -168,6 +168,8 @@ class TeachableAgent(ConversableAgent):
         response = self.analyze(comment,
             "Does the TEXT contain a task or problem to solve? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
+            if self.verbosity >= 1:
+                print(colored('\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS', 'light_yellow'))
             # Extract the task.
             task = self.analyze(comment,
                 "Copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.")
@@ -175,8 +177,6 @@ class TeachableAgent(ConversableAgent):
             general_task = self.analyze(task,
                 "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.")
             # Append any relevant memos.
-            if self.verbosity >= 1:
-                print(colored('\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS', 'light_yellow'))
             memo_list.extend(self.retrieve_relevant_memos(general_task))
 
         # De-duplicate the memo list.
