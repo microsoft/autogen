@@ -27,10 +27,10 @@ class AnalysisAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
-        self.register_reply(Agent, AnalysisAgent._analyze_text)
+        self.register_reply(Agent, AnalysisAgent._analyze_in_reply)
         self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
-    def _analyze_text(
+    def _analyze_in_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
@@ -43,15 +43,19 @@ class AnalysisAgent(ConversableAgent):
             return False, None  # Return if no LLM was provided.
         if messages is None:
             messages = self._oai_messages[sender]  # In case of a direct call.
-
-        # Assemble the message.
         assert len(messages) == 2
-        text_to_analyze = 'TEXT:  ' + messages[0]['content']
-        analysis_instructions = 'INSTRUCTIONS:  ' + messages[1]['content']
-        msg_text = '\n'.join([analysis_instructions, text_to_analyze, analysis_instructions])  # Repeat instructions.
+
+        # Delegate to the analysis method.
+        return True, self.analyze_text(messages[0]['content'], messages[1]['content'])
+
+    def analyze_text(self, text_to_analyze, analysis_instructions):
+        """Analyzes the given text as instructed, and returns the analysis."""
+        # Assemble the message.
+        text_to_analyze = 'TEXT:  ' + text_to_analyze
+        analysis_instructions = 'INSTRUCTIONS:  ' + analysis_instructions
+        msg_text = '\n'.join([analysis_instructions, text_to_analyze, analysis_instructions])  # Repeat the instructions.
         messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
 
-        # Generate the analysis.
+        # Generate and return the analysis string.
         response = oai.ChatCompletion.create(context=None, messages=messages, use_cache=self.use_cache, **self.llm_config)
-        response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
-        return True, response_text
+        return oai.ChatCompletion.extract_text_or_function_call(response)[0]

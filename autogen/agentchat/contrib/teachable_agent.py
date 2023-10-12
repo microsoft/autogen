@@ -19,8 +19,8 @@ class TeachableAgent(ConversableAgent):
     """
     def __init__(
         self,
-        name="Assistant",  # default set to Assistant
-        system_message: Optional[str] = "You are a helpful AI assistant.",
+        name="Agent",  # default set to Assistant
+        system_message: Optional[str] = "You are a helpful AI assistant with memory of prior chats.",
         llm_config: Optional[Union[Dict, bool]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -35,7 +35,7 @@ class TeachableAgent(ConversableAgent):
             human_input_mode (str): NEVER ask for human input for this agent.
             teach_config (dict or None): config for the TeachableAgent.
                 To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
-                - verbosity (Optional, int): 1 to print DB operations, 2 to add caller details. Default 0.
+                - verbosity (Optional, int): 1 to include memory operations, 2 to add analyzer messages. Default 0.
                 - prepopulate (Optional, int): 1 to prepopulate the DB with a set of input-output pairs. Default 1.
                 - use_cache (Optional, bool): True to skip LLM calls made previously by relying on cached responses. Default False.
                 - recall_threshold (Optional, float): The distance threshold for retrieving memos from the DB. Default 1.5.
@@ -112,7 +112,8 @@ class TeachableAgent(ConversableAgent):
         return True, response_text
 
     def learn_from_recent_user_comments(self):
-        print(colored("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 'light_cyan'))
+        if self.verbosity >= 1:
+            print(colored("\nREVIEW CHAT FOR ITEMS TO REMEMBER", 'light_green'))
         # Look at each user turn.
         if len(self.user_comments) > 0:
             for comment in self.user_comments:
@@ -203,7 +204,7 @@ class TeachableAgent(ConversableAgent):
     def concatenate_memo_texts(self, memo_list):
         memo_texts = ''
         for memo in memo_list:
-            info = "(Here is some information that might help:\n" + memo + ")"
+            info = "(A memory that might help:\n" + memo + ")"
             if self.verbosity >= 1:
                 print(colored('\nMEMO APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 'light_yellow'))
             memo_texts = memo_texts + '\n' + info
@@ -211,10 +212,15 @@ class TeachableAgent(ConversableAgent):
 
     def analyze(self, text_to_analyze, analysis_instructions):
         """Sends the text to analyze and the analysis instructions to the analyzer."""
-        self.analyzer.reset()  # Clear the analyzer's list of messages.
-        self.send(recipient=self.analyzer, message=text_to_analyze, request_reply=False)  # Put the message in the analyzer's list.
-        self.send(recipient=self.analyzer, message=analysis_instructions, request_reply=True)  # Request the reply.
-        return self.last_message(self.analyzer)["content"]
+        if self.verbosity >= 2:
+            # Use the messaging mechanism so that the analyzer's messages are included in the printed chat.
+            self.analyzer.reset()  # Clear the analyzer's list of messages.
+            self.send(recipient=self.analyzer, message=text_to_analyze, request_reply=False)  # Put the message in the analyzer's list.
+            self.send(recipient=self.analyzer, message=analysis_instructions, request_reply=True)  # Request the reply.
+            return self.last_message(self.analyzer)["content"]
+        else:
+            # Use the analyzer's method directly, to leave analyzer message out of the printed chat.
+            return self.analyzer.analyze_text(text_to_analyze, analysis_instructions)
 
 
 class MemoStore():

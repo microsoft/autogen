@@ -10,7 +10,7 @@ except ImportError:
         return x
 
 
-verbosity = 2  # 0 to print chat messages, 1 to add DB operations, 2 to add caller details.
+verbosity = 2  # 1 to include memory operations, 2 to add analyzer messages.
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 can sometimes fail.
 recall_threshold = 1.5  # Higher numbers allow more memos to be recalled, but can also lead to more false positives.
 
@@ -28,7 +28,7 @@ config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict={
 def create_teachable_agent():
     """Instantiates a TeachableAgent using the settings from the top of this file."""
     agent = TeachableAgent(
-        name="assistant",
+        name="agent",
         llm_config={"config_list": config_list},
         teach_config={"verbosity": verbosity, "recall_threshold": recall_threshold})
     return agent
