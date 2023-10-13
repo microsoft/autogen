@@ -30,7 +30,10 @@ def create_teachable_agent():
     agent = TeachableAgent(
         name="agent",
         llm_config={"config_list": config_list},
-        teach_config={"verbosity": verbosity, "recall_threshold": recall_threshold})
+        teach_config={
+            "verbosity": verbosity,
+            "path_to_db_dir": "./tmp/teachable_agent_db",
+            "recall_threshold": recall_threshold})
     return agent
 
 
@@ -53,8 +56,12 @@ def interact_freely_with_user():
     user = UserProxyAgent("user", human_input_mode="ALWAYS")
 
     # Start the chat.
+    print(colored("\nLoading previous memory (if any) from disk.", 'light_cyan'))
     print(colored("\nTo clear the context and start a new chat, type 'new chat'.", 'light_cyan'))
     user.initiate_chat(agent, message="Hi")
+
+    # Wrap up.
+    agent.close_db()
 
 
 def test_question_answer_pair():
@@ -63,6 +70,9 @@ def test_question_answer_pair():
     num_errors = 0
     agent = create_teachable_agent()
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    # For a clean test, clear the agent's memory.
+    agent.reset_db()
 
     # Ask the agent to do something using terminology it doesn't understand.
     user.initiate_chat(recipient=agent, message="What is the twist of 5 and 7?")
@@ -80,7 +90,7 @@ def test_question_answer_pair():
     num_errors += check_agent_response(agent, user, "35")
 
     # Wrap up.
-    agent.delete_db()  # Delete the DB now, instead of waiting for garbage collection to do it.
+    agent.close_db()
     return num_errors
 
 
@@ -90,6 +100,9 @@ def test_task_advice_pair():
     num_errors = 0
     agent = create_teachable_agent()
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    # For a clean test, clear the agent's memory.
+    agent.reset_db()
 
     # Ask the agent to do something, and provide some helpful advice.
     user.initiate_chat(recipient=agent, message="Compute the twist of 5 and 7. Here's a hint: The twist of two or more numbers is their product minus their sum.")
@@ -104,7 +117,7 @@ def test_task_advice_pair():
     num_errors += check_agent_response(agent, user, "35")
 
     # Wrap up.
-    agent.delete_db()  # Delete the DB now, instead of waiting for garbage collection to do it.
+    agent.close_db()
     return num_errors
 
 

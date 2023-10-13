@@ -1,3 +1,4 @@
+import os
 from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
@@ -5,6 +6,7 @@ from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
+import pickle
 
 
 try:
@@ -35,7 +37,8 @@ class TeachableAgent(ConversableAgent):
             teach_config (dict or None): config for the TeachableAgent.
                 To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
                 - verbosity (Optional, int): 1 to include memory operations, 2 to add analyzer messages. Default 0.
-                - prepopulate (Optional, int): 1 to prepopulate the DB with a set of input-output pairs. Default 1.
+                - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
+                - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
                 - use_cache (Optional, bool): True to skip LLM calls made previously by relying on cached responses. Default False.
                 - recall_threshold (Optional, float): The distance threshold for retrieving memos from the DB. Default 1.5.
             **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
@@ -54,19 +57,23 @@ class TeachableAgent(ConversableAgent):
 
         self._teach_config = {} if teach_config is None else teach_config
         self.verbosity = self._teach_config.get("verbosity", 0)
-        self.prepopulate = self._teach_config.get("prepopulate", 1)
+        self.path_to_db_dir = self._teach_config.get("path_to_db_dir", "./tmp/teachable_agent_db")
+        self.prepopulate = self._teach_config.get("prepopulate", True)
         self.use_cache = self._teach_config.get("use_cache", False)
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
 
         self.analyzer = TextAnalyzerAgent("analyzer", llm_config=llm_config)
 
-        self.memo_store = MemoStore(self.verbosity)
-        self.memo_store.prepopulate()
+        self.memo_store = MemoStore(self.verbosity, self.path_to_db_dir)
         self.user_comments = []  # Stores user comments until the end of each chat.
 
-    def delete_db(self):
-        """Forces immediate deletion of the DB."""
-        self.memo_store.db_client.reset()
+    def close_db(self):
+        """Cleanly closes the memo store."""
+        self.memo_store.close()
+
+    def reset_db(self):
+        """Empties the DB."""
+        self.memo_store.reset_db(self.prepopulate)
 
     def _generate_teachable_assistant_reply(
         self,
@@ -195,7 +202,7 @@ class TeachableAgent(ConversableAgent):
             # Was anything retrieved?
             if len(memo_list) == 0:
                 # No. Look at the closest memo.
-                print(colored('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD...', 'light_yellow'))
+                print(colored('\nTHE CLOSEST MEMO IS BEYOND THE THRESHOLD:', 'light_yellow'))
                 memo = self.memo_store.get_nearest_memo(input_text)
                 print()  # Print a blank line. The memo details were printed by get_nearest_memo().
 
@@ -234,25 +241,56 @@ class MemoStore():
     The output text may be an answer to the question, or advice for how to perform the task.
     Vector embeddings are currently provided by chromadb's default sentence encoder.
     """
-    def __init__(self, verbosity):
+    def __init__(self, verbosity, path_to_db_dir):
         """
         Args:
-            verbosity: 1 to print memory operations, 0 to omit them.
+            - verbosity (Optional, int): 1 to print memory operations, 0 to omit them.
+            - path_to_db_dir (Optional, str): path to the directory where the DB is stored.
         """
         self.verbosity = verbosity
-        # TODO: Expose an option to persist the DB to a file on disk.
-        self.db_client = chromadb.Client(Settings(anonymized_telemetry=False, allow_reset=True))  # In-memory by default.
-        self.vec_db = self.db_client.create_collection("memos")  # The collection is the DB.
+        self.path_to_db_dir = path_to_db_dir
+        # The DB is always persisted on disk.
+        settings = Settings(anonymized_telemetry=False, allow_reset=True, persist_directory=path_to_db_dir, is_persistent=True)
+        self.path_to_dict = os.path.join(path_to_db_dir, 'uid_text_dict.pkl')
+        if os.path.exists(self.path_to_dict):
+            # Load the dict from disk.
+            if self.verbosity >= 1:
+                print(colored("\nLOADING MEMORY FROM DISK", 'light_green'))
+                print(colored("    Location = {}".format(self.path_to_dict), 'light_green'))
+            with open(self.path_to_dict, 'rb') as f:
+                self.uid_text_dict = pickle.load(f)
+        else:
+            # Create an empty dict.
+            self.uid_text_dict = {}
+        self.db_client = chromadb.Client(settings)
+        self.vec_db = self.db_client.create_collection("memos", get_or_create=True)  # The collection is the DB.
         self.next_uid = 0  # Unique ID for each memo. Also serves as a count of total memos added.
         self.num_memos = 0
-        self.info_dict = {}  # Maps a memo uid to information like answers or advice.
+
+    def close(self):
+        """Saves the dict to disk."""
+        if self.verbosity >= 1:
+            print(colored("\nSAVING MEMORY TO DISK", 'light_green'))
+            print(colored("    Location = {}".format(self.path_to_dict), 'light_green'))
+        with open(self.path_to_dict, 'wb') as file:
+            pickle.dump(self.uid_text_dict, file)
+
+    def reset_db(self, prepopulate):
+        """Forces immediate deletion of the DB's contents, in memory and on disk."""
+        if self.verbosity >= 1:
+            print(colored("\nCLEARING MEMORY", 'light_green'))
+        self.db_client.delete_collection("memos")
+        self.vec_db = self.db_client.create_collection("memos")
+        self.uid_text_dict = {}
+        if prepopulate:
+            self.prepopulate()
 
     def add_input_output_pair(self, input_text, output_text):
         """Adds an input-output pair to the vector DB."""
         self.next_uid += 1
         self.num_memos += 1
         self.vec_db.add(documents=[input_text], ids=[str(self.next_uid)])
-        self.info_dict[str(self.next_uid)] = output_text
+        self.uid_text_dict[str(self.next_uid)] = output_text
         if self.verbosity >= 1:
             print(colored("\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
                 input_text, output_text), 'light_green'))
@@ -261,7 +299,7 @@ class MemoStore():
         """Retrieves the nearest memo to the given query text."""
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
         uid, input_text, distance = results['ids'][0][0], results['documents'][0][0], results['distances'][0][0]
-        output_text = self.info_dict[uid]
+        output_text = self.uid_text_dict[uid]
         if self.verbosity >= 1:
             print(colored("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                 input_text, output_text, distance), 'light_green'))
@@ -275,7 +313,7 @@ class MemoStore():
         for i in range(num_results):
             uid, input_text, distance = results['ids'][0][i], results['documents'][0][i], results['distances'][0][i]
             if distance < threshold:
-                output_text = self.info_dict[uid]
+                output_text = self.uid_text_dict[uid]
                 if self.verbosity >= 1:
                     print(colored(
                         "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
@@ -285,6 +323,8 @@ class MemoStore():
 
     def prepopulate(self):
         """Adds a few arbitrary examples to the vector DB, just to make retrieval less trivial."""
+        if self.verbosity >= 1:
+            print(colored("\nPREPOPULATING MEMORY", 'light_green'))
         examples = []
         examples.append({'text': 'When I say papers I mean research papers, which are typically pdfs.', 'label': 'yes'})
         examples.append({'text': 'Please verify that each paper you listed actually uses langchain.', 'label': 'no'})
