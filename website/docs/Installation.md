@@ -15,7 +15,9 @@ conda install pyautogen -c conda-forge
 
 ### Optional Dependencies
 * docker
-We strongly recommend using docker for code execution or running AutoGen in a docker container (e.g., when developing in GitHub codespace, the autogen runs in a docker container). To use docker for code execution, you also need to install the python package `docker`:
+  - We strongly recommend using docker for code execution. OR 
+  - Running AutoGen in a docker container (e.g., when developing in GitHub codespace, the autogen runs in a docker container).
+  - To use docker for code execution, you need to install the python package `docker`.
 ```bash
 pip install docker
 ```
