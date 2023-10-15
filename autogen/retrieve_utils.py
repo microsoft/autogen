@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Dict, Tuple, Callable
 import os
 import requests
 from urllib.parse import urlparse
@@ -6,67 +6,104 @@ import glob
 import tiktoken
 import chromadb
 from chromadb.api import API
+from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
+import pypdf
+
 
 logger = logging.getLogger(__name__)
-TEXT_FORMATS = ["txt", "json", "csv", "tsv", "md", "html", "htm", "rtf", "rst", "jsonl", "log", "xml", "yaml", "yml"]
+TEXT_FORMATS = [
+    "txt",
+    "json",
+    "csv",
+    "tsv",
+    "md",
+    "html",
+    "htm",
+    "rtf",
+    "rst",
+    "jsonl",
+    "log",
+    "xml",
+    "yaml",
+    "yml",
+    "pdf",
+]
+VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
 def num_tokens_from_text(
-    text: str, model: str = "gpt-3.5-turbo-0613", return_tokens_per_name_and_message: bool = False
+    text: str,
+    model: str = "gpt-3.5-turbo-0613",
+    return_tokens_per_name_and_message: bool = False,
+    custom_token_count_function: Callable = None,
 ) -> Union[int, Tuple[int, int, int]]:
-    """Return the number of tokens used by a text."""
-    # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-    except KeyError:
-        logger.debug("Warning: model not found. Using cl100k_base encoding.")
-        encoding = tiktoken.get_encoding("cl100k_base")
-    if model in {
-        "gpt-3.5-turbo-0613",
-        "gpt-3.5-turbo-16k-0613",
-        "gpt-4-0314",
-        "gpt-4-32k-0314",
-        "gpt-4-0613",
-        "gpt-4-32k-0613",
-    }:
-        tokens_per_message = 3
-        tokens_per_name = 1
-    elif model == "gpt-3.5-turbo-0301":
-        tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-        tokens_per_name = -1  # if there's a name, the role is omitted
-    elif "gpt-3.5-turbo" in model or "gpt-35-turbo" in model:
-        print("Warning: gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613.")
-        return num_tokens_from_text(text, model="gpt-3.5-turbo-0613")
-    elif "gpt-4" in model:
-        print("Warning: gpt-4 may update over time. Returning num tokens assuming gpt-4-0613.")
-        return num_tokens_from_text(text, model="gpt-4-0613")
+    """Return the number of tokens used by a text.
+
+    Args:
+        text (str): The text to count tokens for.
+        model (Optional, str): The model to use for tokenization. Default is "gpt-3.5-turbo-0613".
+        return_tokens_per_name_and_message (Optional, bool): Whether to return the number of tokens per name and per
+            message. Default is False.
+        custom_token_count_function (Optional, Callable): A custom function to count tokens. Default is None.
+
+    Returns:
+        int: The number of tokens used by the text.
+        int: The number of tokens per message. Only returned if return_tokens_per_name_and_message is True.
+        int: The number of tokens per name. Only returned if return_tokens_per_name_and_message is True.
+    """
+    if isinstance(custom_token_count_function, Callable):
+        token_count, tokens_per_message, tokens_per_name = custom_token_count_function(text)
     else:
-        raise NotImplementedError(
-            f"""num_tokens_from_text() is not implemented for model {model}. See """
-            f"""https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are """
-            f"""converted to tokens."""
-        )
+        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+        try:
+            encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            logger.debug("Warning: model not found. Using cl100k_base encoding.")
+            encoding = tiktoken.get_encoding("cl100k_base")
+        known_models = {
+            "gpt-3.5-turbo": (3, 1),
+            "gpt-35-turbo": (3, 1),
+            "gpt-3.5-turbo-0613": (3, 1),
+            "gpt-3.5-turbo-16k-0613": (3, 1),
+            "gpt-3.5-turbo-0301": (4, -1),
+            "gpt-4": (3, 1),
+            "gpt-4-0314": (3, 1),
+            "gpt-4-32k-0314": (3, 1),
+            "gpt-4-0613": (3, 1),
+            "gpt-4-32k-0613": (3, 1),
+        }
+        tokens_per_message, tokens_per_name = known_models.get(model, (3, 1))
+        token_count = len(encoding.encode(text))
+
     if return_tokens_per_name_and_message:
-        return len(encoding.encode(text)), tokens_per_message, tokens_per_name
+        return token_count, tokens_per_message, tokens_per_name
     else:
-        return len(encoding.encode(text))
+        return token_count
 
 
-def num_tokens_from_messages(messages: dict, model: str = "gpt-3.5-turbo-0613"):
+def num_tokens_from_messages(
+    messages: dict,
+    model: str = "gpt-3.5-turbo-0613",
+    custom_token_count_function: Callable = None,
+    custom_prime_count: int = 3,
+):
     """Return the number of tokens used by a list of messages."""
     num_tokens = 0
     for message in messages:
         for key, value in message.items():
             _num_tokens, tokens_per_message, tokens_per_name = num_tokens_from_text(
-                value, model=model, return_tokens_per_name_and_message=True
+                value,
+                model=model,
+                return_tokens_per_name_and_message=True,
+                custom_token_count_function=custom_token_count_function,
             )
             num_tokens += _num_tokens
             if key == "name":
                 num_tokens += tokens_per_name
         num_tokens += tokens_per_message
-    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+    num_tokens += custom_prime_count  # With ChatGPT, every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
 
@@ -78,7 +115,8 @@ def split_text_to_chunks(
     overlap: int = 10,
 ):
     """Split a long text into chunks of max_tokens."""
-    assert chunk_mode in {"one_line", "multi_lines"}
+    if chunk_mode not in VALID_CHUNK_MODES:
+        raise AssertionError
     if chunk_mode == "one_line":
         must_break_at_empty_line = False
     chunks = []
@@ -119,15 +157,51 @@ def split_text_to_chunks(
     return chunks
 
 
+def extract_text_from_pdf(file: str) -> str:
+    """Extract text from PDF files"""
+    text = ""
+    with open(file, "rb") as f:
+        reader = pypdf.PdfReader(f)
+        if reader.is_encrypted:  # Check if the PDF is encrypted
+            try:
+                reader.decrypt("")
+            except pypdf.errors.FileNotDecryptedError as e:
+                logger.warning(f"Could not decrypt PDF {file}, {e}")
+                return text  # Return empty text if PDF could not be decrypted
+
+        for page_num in range(len(reader.pages)):
+            page = reader.pages[page_num]
+            text += page.extract_text()
+
+    if not text.strip():  # Debugging line to check if text is empty
+        logger.warning(f"Could not decrypt PDF {file}")
+
+    return text
+
+
 def split_files_to_chunks(
     files: list, max_tokens: int = 4000, chunk_mode: str = "multi_lines", must_break_at_empty_line: bool = True
 ):
     """Split a list of files into chunks of max_tokens."""
+
     chunks = []
+
     for file in files:
-        with open(file, "r") as f:
-            text = f.read()
+        _, file_extension = os.path.splitext(file)
+        file_extension = file_extension.lower()
+
+        if file_extension == ".pdf":
+            text = extract_text_from_pdf(file)
+        else:  # For non-PDF text-based files
+            with open(file, "r", encoding="utf-8", errors="ignore") as f:
+                text = f.read()
+
+        if not text.strip():  # Debugging line to check if text is empty after reading
+            logger.warning(f"No text available in file: {file}")
+            continue  # Skip to the next file if no text is available
+
         chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+
     return chunks
 
 
@@ -190,12 +264,36 @@ def create_vector_db_from_dir(
     chunk_mode: str = "multi_lines",
     must_break_at_empty_line: bool = True,
     embedding_model: str = "all-MiniLM-L6-v2",
+    embedding_function: Callable = None,
 ):
-    """Create a vector db from all the files in a given directory."""
+    """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
+        a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
+        you prepared your own vector db.
+
+    Args:
+        dir_path (str): the path to the directory, file or url.
+        max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
+        client (Optional, API): the chromadb client. Default is None.
+        db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".
+        collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
+        get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
+            will be recreated if it already exists.
+        chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
+        must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
+        embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
+            embedding_function is not None.
+        embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
+            the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
+            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+    """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
     try:
-        embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+        embedding_function = (
+            ef.SentenceTransformerEmbeddingFunction(embedding_model)
+            if embedding_function is None
+            else embedding_function
+        )
         collection = client.create_collection(
             collection_name,
             get_or_create=get_or_create,
@@ -207,7 +305,7 @@ def create_vector_db_from_dir(
         )
 
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
-        print(f"Found {len(chunks)} chunks.")
+        logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
         for i in range(0, len(chunks), min(40000, len(chunks))):
             end_idx = i + min(40000, len(chunks) - i)
@@ -227,14 +325,41 @@ def query_vector_db(
     collection_name: str = "all-my-documents",
     search_string: str = "",
     embedding_model: str = "all-MiniLM-L6-v2",
-) -> Dict[str, List[str]]:
-    """Query a vector db."""
+    embedding_function: Callable = None,
+) -> QueryResult:
+    """Query a vector db. We support chromadb compatible APIs, it's not required if you prepared your own vector db
+        and query function.
+
+    Args:
+        query_texts (List[str]): the query texts.
+        n_results (Optional, int): the number of results to return. Default is 10.
+        client (Optional, API): the chromadb compatible client. Default is None, a chromadb client will be used.
+        db_path (Optional, str): the path to the vector db. Default is "/tmp/chromadb.db".
+        collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
+        search_string (Optional, str): the search string. Default is "".
+        embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
+            embedding_function is not None.
+        embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
+            the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
+            functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+
+    Returns:
+        QueryResult: the query result. The format is:
+            class QueryResult(TypedDict):
+                ids: List[IDs]
+                embeddings: Optional[List[List[Embedding]]]
+                documents: Optional[List[List[Document]]]
+                metadatas: Optional[List[List[Metadata]]]
+                distances: Optional[List[List[float]]]
+    """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
     # the collection's embedding function is always the default one, but we want to use the one we used to create the
     # collection. So we compute the embeddings ourselves and pass it to the query function.
     collection = client.get_collection(collection_name)
-    embedding_function = ef.SentenceTransformerEmbeddingFunction(embedding_model)
+    embedding_function = (
+        ef.SentenceTransformerEmbeddingFunction(embedding_model) if embedding_function is None else embedding_function
+    )
     query_embeddings = embedding_function(query_texts)
     # Query/search n most similar results. You can also .get by id
     results = collection.query(

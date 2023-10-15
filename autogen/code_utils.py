@@ -26,6 +26,8 @@ DEFAULT_TIMEOUT = 600
 WIN32 = sys.platform == "win32"
 PATH_SEPARATOR = WIN32 and "\\" or "/"
 
+logger = logging.getLogger(__name__)
+
 
 def infer_lang(code):
     """infer the language for the code.
@@ -33,7 +35,14 @@ def infer_lang(code):
     """
     if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
         return "sh"
-    return "python"
+
+    # check if code is a valid python code
+    try:
+        compile(code, "test", "exec")
+        return "python"
+    except SyntaxError:
+        # not a valid python code
+        return UNKNOWN
 
 
 def extract_code(
@@ -209,7 +218,7 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[Union[List[str], str, bool]] = docker is not None,
+    use_docker: Optional[Union[List[str], str, bool]] = None,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -243,10 +252,27 @@ def execute_code(
         str: The error message if the code fails to execute; the stdout otherwise.
         image: The docker image name after container run when docker is used.
     """
-    assert code is not None or filename is not None, "Either code or filename must be provided."
+    if all((code is None, filename is None)):
+        error_msg = f"Either {code=} or {filename=} must be provided."
+        logger.error(error_msg)
+        raise AssertionError(error_msg)
+
+    # Warn if use_docker was unspecified (or None), and cannot be provided (the default).
+    # In this case the current behavior is to fall back to run natively, but this behavior
+    # is subject to change.
+    if use_docker is None:
+        if docker is None:
+            use_docker = False
+            logger.warning(
+                "execute_code was called without specifying a value for use_docker. Since the python docker package is not available, code will be run natively. Note: this fallback behavior is subject to change"
+            )
+        else:
+            # Default to true
+            use_docker = True
+
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
-    if WIN32 and lang in ["sh", "shell"]:
+    if WIN32 and lang in ["sh", "shell"] and (not use_docker):
         lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
@@ -258,7 +284,7 @@ def execute_code(
     file_dir = os.path.dirname(filepath)
     os.makedirs(file_dir, exist_ok=True)
     if code is not None:
-        with open(filepath, "w") as fout:
+        with open(filepath, "w", encoding="utf-8") as fout:
             fout.write(code)
     # check if already running in a docker container
     in_docker_container = os.path.exists("/.dockerenv")
@@ -269,7 +295,7 @@ def execute_code(
             f".\\{filename}" if WIN32 else filename,
         ]
         if WIN32:
-            logging.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
+            logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
                 cmd,
                 cwd=work_dir,

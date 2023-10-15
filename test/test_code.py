@@ -153,6 +153,10 @@ def test_infer_lang():
     assert infer_lang("print('hello world')") == "python"
     assert infer_lang("pip install autogen") == "sh"
 
+    # test infer lang for unknown code/invalid code
+    assert infer_lang("dummy text") == UNKNOWN
+    assert infer_lang("print('hello world'))") == UNKNOWN
+
 
 def test_extract_code():
     print(extract_code("```bash\npython temp.py\n```"))
@@ -258,6 +262,11 @@ def test_execute_code(use_docker=None):
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=use_docker)
     assert exit_code and error == "Timeout" or WIN32
     assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
+
+
+def test_execute_code_raises_when_code_and_filename_are_both_none():
+    with pytest.raises(AssertionError):
+        execute_code(code=None, filename=None)
 
 
 @pytest.mark.skipif(

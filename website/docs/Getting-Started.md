@@ -1,10 +1,8 @@
-
-
 # Getting Started
 
 <!-- ### Welcome to AutoGen, a library for enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework! -->
 
-AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve task. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
+AutoGen is a framework that enables development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
 ![AutoGen Overview](/img/autogen_agentchat.png)
 
@@ -21,7 +19,7 @@ AutoGen is powered by collaborative [research studies](/docs/Research) from Micr
 ### Quickstart
 
 Install from pip: `pip install pyautogen`. Find more options in [Installation](/docs/Installation).
-
+For [code execution](https://microsoft.github.io/autogen/FAQ#code-execution), we strongly recommend installing the python docker package, and using docker.
 
 #### Multi-Agent Conversation Framework
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
@@ -72,7 +70,8 @@ response = autogen.Completion.create(context=test_instance, **config)
 * Read [SDK](/docs/reference/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
 * Chat on [Discord](https://discord.gg/pAbnFJrkgZ).
+* Follow on [Twitter](https://twitter.com/pyautogen).
 
 If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
 
-<!-- <iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=autogen&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe> -->
+<iframe src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=autogen&amp;type=star&amp;count=true&amp;size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>

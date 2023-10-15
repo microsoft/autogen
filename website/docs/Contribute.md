@@ -6,7 +6,7 @@ This project welcomes and encourages all forms of contributions, including but n
 -  Code review of pull requests.
 -  Documentation, examples and test cases.
 -  Readability improvement, e.g., improvement on docstr and comments.
--  Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), and [discord](https://discord.gg/pAbnFJrkgZ).
+-  Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), [discord](https://discord.gg/pAbnFJrkgZ), and [twitter](https://twitter.com/pyautogen).
 -  Tutorials, blog posts, talks that promote the project.
 -  Sharing application scenarios and/or related research.
 
@@ -75,7 +75,7 @@ docker run -it autogen-dev
 ### Develop in Remote Container
 
 If you use vscode, you can open the autogen folder in a [Container](https://code.visualstudio.com/docs/remote/containers).
-We have provided the configuration in [devcontainer](https://github.com/microsoft/autogen/blob/main/.devcontainer).
+We have provided the configuration in [devcontainer](https://github.com/microsoft/autogen/blob/main/.devcontainer). They can be used in GitHub codespace too. Developing AutoGen in dev containers is recommended.
 
 ### Pre-commit
 

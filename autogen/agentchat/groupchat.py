@@ -3,6 +3,9 @@ import sys
 from typing import Dict, List, Optional, Union
 from .agent import Agent
 from .conversable_agent import ConversableAgent
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -42,6 +45,14 @@ Then select the next role from {self.agent_names} to play. Only return the role.
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
         selector.update_system_message(self.select_speaker_msg())
+
+        # Warn if GroupChat is underpopulated, without established changing behavior
+        n_agents = len(self.agent_names)
+        if n_agents < 3:
+            logger.warning(
+                f"GroupChat is underpopulated with {n_agents} agents. Direct communication would be more efficient."
+            )
+
         final, name = selector.generate_oai_reply(
             self.messages
             + [

@@ -9,6 +9,7 @@ from flaml import tune, BlendSearch
 from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
 from .openai_utils import get_key
+from collections import defaultdict
 
 try:
     import openai
@@ -157,6 +158,7 @@ class Completion(openai_Completion):
             value = {
                 "created_at": [],
                 "cost": [],
+                "token_count": [],
             }
             if "messages" in config:
                 messages = config["messages"]
@@ -168,6 +170,14 @@ class Completion(openai_Completion):
                 key = get_key([config["prompt"]] + [choice.get("text") for choice in response["choices"]])
             value["created_at"].append(cls._count_create)
             value["cost"].append(response["cost"])
+            value["token_count"].append(
+                {
+                    "model": response["model"],
+                    "prompt_tokens": response["usage"]["prompt_tokens"],
+                    "completion_tokens": response["usage"].get("completion_tokens", 0),
+                    "total_tokens": response["usage"]["total_tokens"],
+                }
+            )
             cls._history_dict[key] = value
             cls._count_create += 1
             return
@@ -194,7 +204,8 @@ class Completion(openai_Completion):
                 return response
         openai_completion = (
             openai.ChatCompletion
-            if config["model"] in cls.chat_models or issubclass(cls, ChatCompletion)
+            if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
+            or issubclass(cls, ChatCompletion)
             else openai.Completion
         )
         start_time = time.time()
@@ -582,23 +593,31 @@ class Completion(openai_Completion):
         cls._prompts = space.get("prompt")
         if cls._prompts is None:
             cls._messages = space.get("messages")
-            assert isinstance(cls._messages, list) and isinstance(
-                cls._messages[0], (dict, list)
-            ), "messages must be a list of dicts or a list of lists."
+            if not all((isinstance(cls._messages, list), isinstance(cls._messages[0], (dict, list)))):
+                error_msg = "messages must be a list of dicts or a list of lists."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if isinstance(cls._messages[0], dict):
                 cls._messages = [cls._messages]
             space["messages"] = tune.choice(list(range(len(cls._messages))))
         else:
-            assert space.get("messages") is None, "messages and prompt cannot be provided at the same time."
-            assert isinstance(cls._prompts, (str, list)), "prompt must be a string or a list of strings."
+            if space.get("messages") is not None:
+                error_msg = "messages and prompt cannot be provided at the same time."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
+            if not isinstance(cls._prompts, (str, list)):
+                error_msg = "prompt must be a string or a list of strings."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if isinstance(cls._prompts, str):
                 cls._prompts = [cls._prompts]
             space["prompt"] = tune.choice(list(range(len(cls._prompts))))
         cls._stops = space.get("stop")
         if cls._stops:
-            assert isinstance(
-                cls._stops, (str, list)
-            ), "stop must be a string, a list of strings, or a list of lists of strings."
+            if not isinstance(cls._stops, (str, list)):
+                error_msg = "stop must be a string, a list of strings, or a list of lists of strings."
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
             if not (isinstance(cls._stops, list) and isinstance(cls._stops[0], list)):
                 cls._stops = [cls._stops]
             space["stop"] = tune.choice(list(range(len(cls._stops))))
@@ -759,6 +778,13 @@ class Completion(openai_Completion):
         """
         if ERROR:
             raise ERROR
+
+        # Warn if a config list was provided but was empty
+        if type(config_list) is list and len(config_list) == 0:
+            logger.warning(
+                "Completion was provided with a config_list, but the list was empty. Adopting default OpenAI behavior, which reads from the 'model' parameter instead."
+            )
+
         if config_list:
             last = len(config_list) - 1
             cost = 0
@@ -969,7 +995,10 @@ class Completion(openai_Completion):
         elif isinstance(agg_method, dict):
             for key in metric_keys:
                 metric_agg_method = agg_method[key]
-                assert callable(metric_agg_method), "please provide a callable for each metric"
+                if not callable(metric_agg_method):
+                    error_msg = "please provide a callable for each metric"
+                    logger.error(error_msg)
+                    raise AssertionError(error_msg)
                 result_agg[key] = metric_agg_method([r[key] for r in result_list])
         else:
             raise ValueError(
@@ -997,7 +1026,7 @@ class Completion(openai_Completion):
         Returns:
             The cost in USD. 0 if the model is not supported.
         """
-        model = response["model"]
+        model = response.get("model")
         if model not in cls.price1K:
             return 0
             # raise ValueError(f"Unknown model: {model}")
@@ -1047,6 +1076,44 @@ class Completion(openai_Completion):
     def logged_history(cls) -> Dict:
         """Return the book keeping dictionary."""
         return cls._history_dict
+
+    @classmethod
+    def print_usage_summary(cls) -> Dict:
+        """Return the usage summary."""
+        if cls._history_dict is None:
+            print("No usage summary available.", flush=True)
+
+        token_count_summary = defaultdict(lambda: {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0})
+
+        if not cls._history_compact:
+            source = cls._history_dict.values()
+            total_cost = sum(msg_pair["response"]["cost"] for msg_pair in source)
+        else:
+            # source = cls._history_dict["token_count"]
+            # total_cost = sum(cls._history_dict['cost'])
+            total_cost = sum(sum(value_list["cost"]) for value_list in cls._history_dict.values())
+            source = (
+                token_data for value_list in cls._history_dict.values() for token_data in value_list["token_count"]
+            )
+
+        for entry in source:
+            if not cls._history_compact:
+                model = entry["response"]["model"]
+                token_data = entry["response"]["usage"]
+            else:
+                model = entry["model"]
+                token_data = entry
+
+            token_count_summary[model]["prompt_tokens"] += token_data["prompt_tokens"]
+            token_count_summary[model]["completion_tokens"] += token_data["completion_tokens"]
+            token_count_summary[model]["total_tokens"] += token_data["total_tokens"]
+
+        print(f"Total cost: {total_cost}", flush=True)
+        for model, counts in token_count_summary.items():
+            print(
+                f"Token count summary for model {model}: prompt_tokens: {counts['prompt_tokens']}, completion_tokens: {counts['completion_tokens']}, total_tokens: {counts['total_tokens']}",
+                flush=True,
+            )
 
     @classmethod
     def start_logging(
