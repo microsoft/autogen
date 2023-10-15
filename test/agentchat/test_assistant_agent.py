@@ -148,9 +148,11 @@ print('Hello world!')
 ```""",
     )
     print(conversations)
+    autogen.ChatCompletion.print_usage_summary()
     autogen.ChatCompletion.start_logging(compact=False)
     user.send("""Execute temp.py""", assistant)
     print(autogen.ChatCompletion.logged_history)
+    autogen.ChatCompletion.print_usage_summary()
     autogen.ChatCompletion.stop_logging()
 
 
