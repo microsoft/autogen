@@ -217,12 +217,14 @@ class TeachableAgent(ConversableAgent):
         return memo_list
 
     def concatenate_memo_texts(self, memo_list):
-        """Concatenates the memo texts into a single string, and formats them for inclusion in the chat context."""
+        """Concatenates the memo texts into a single string for inclusion in the chat context."""
         memo_texts = ''
-        for memo in memo_list:
-            info = "(A memory that might help:\n" + memo + ")"
+        if len(memo_list) > 0:
+            info = "\n# Memories that might help\n"
+            for memo in memo_list:
+                info = info + "- " + memo + "\n"
             if self.verbosity >= 1:
-                print(colored('\nMEMO APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 'light_yellow'))
+                print(colored('\nMEMOS APPENDED TO LAST USER MESSAGE...\n' + info + '\n', 'light_yellow'))
             memo_texts = memo_texts + '\n' + info
         return memo_texts
 

@@ -84,7 +84,7 @@ def test_question_answer_pair():
     user.initiate_chat(recipient=agent, message="What is the twist of 5 and 7?")
 
     # Explain the terminology to the agent.
-    user.send(recipient=agent, message="Actually, the twist of two or more numbers is their product minus their sum.")
+    user.send(recipient=agent, message="Actually, the twist of two or more numbers is their product minus their sum. Try again.")
     num_errors += check_agent_response(agent, user, "23")
     num_tests += 1
 
