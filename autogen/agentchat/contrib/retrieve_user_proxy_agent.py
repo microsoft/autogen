@@ -392,12 +392,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._results = results
         print("doc_ids: ", results["ids"])
 
-    def generate_init_message(self, problem: str, n_results: int = 20, search_string: str = ""):
+    def generate_init_message(self, problem: str, n_results: int = None, search_string: str = ""):
         """Generate an initial message with the given problem and prompt.
 
         Args:
             problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved.
+            n_results (int): the number of results to be retrieved. Default is None, will use the value set in retrieve_config. 
             search_string (str): only docs containing this string will be retrieved.
 
         Returns:
@@ -407,7 +407,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._called_in_group_chat = False
         self.retrieve_docs(problem, n_results, search_string)
         self.problem = problem
-        self.n_results = n_results
+        self.n_results = n_results if n_results is not None else self.n_results
         doc_contents = self._get_context(self._results)
         message = self._generate_message(doc_contents, self._task)
         return message
