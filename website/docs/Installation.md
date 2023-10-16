@@ -27,3 +27,8 @@ pip install docker
 ```bash
 pip install "pyautogen[blendsearch]"
 ```
+
+* retrievechat
+```bash
+pip install "pyautogen[retrievechat]"
+```
