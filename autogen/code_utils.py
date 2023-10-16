@@ -242,7 +242,11 @@ def execute_code(
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
             with the first image successfully pulled.
             If None, False or empty, the code will be executed in the current environment.
-            Default is True, which will be converted into a list.
+            Default is None, which will be converted into an empty list when docker package is available.
+            Expected behaviour:
+                - If `use_docker` is explicitly set to True and the docker package is available, the code will run in a Docker container.
+                - If `use_docker` is explicitly set to True but the Docker package is missing, an error will be raised.
+                - If `use_docker` is not set (i.e., left default to None) and the Docker package is not available, a warning will be displayed, but the code will run natively.
             If the code is executed in the current environment,
             the code must be trusted.
         lang (Optional, str): The language of the code. Default is "python".
