@@ -36,7 +36,7 @@ class TeachableAgent(ConversableAgent):
             human_input_mode (str): NEVER ask for human input for this agent.
             teach_config (dict or None): config for the TeachableAgent.
                 To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
-                - verbosity (Optional, int): # 0 (default) for basic user chat, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+                - verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
                 - reset_db (Optional, bool): True to clear the DB before starting. Default False.
                 - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
                 - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
@@ -126,8 +126,7 @@ class TeachableAgent(ConversableAgent):
 
     def learn_from_recent_user_comments(self):
         """Reviews the user comments from the last chat, and decides what teachings to store as memos."""
-        if self.verbosity >= 1:
-            print(colored("\nREVIEW CHAT FOR USER TEACHINGS TO REMEMBER", 'light_yellow'))
+        print(colored("\nREVIEW CHAT FOR USER TEACHINGS TO REMEMBER", 'light_yellow'))
         # Look at each user turn.
         if len(self.user_comments) > 0:
             for comment in self.user_comments:
@@ -260,7 +259,11 @@ class MemoStore():
         self.path_to_db_dir = path_to_db_dir
 
         # Load or create the vector DB on disk.
-        settings = Settings(anonymized_telemetry=False, allow_reset=True, persist_directory=path_to_db_dir, is_persistent=True)
+        settings = Settings(
+            anonymized_telemetry=False,
+            allow_reset=True,
+            is_persistent=True,
+            persist_directory=path_to_db_dir)
         self.db_client = chromadb.Client(settings)
         self.vec_db = self.db_client.create_collection("memos", get_or_create=True)  # The collection is the DB.
         if reset:
@@ -271,9 +274,8 @@ class MemoStore():
         self.uid_text_dict = {}
         self.last_memo_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            if self.verbosity >= 1:
-                print(colored("\nLOADING MEMORY FROM DISK", 'light_green'))
-                print(colored("    Location = {}".format(self.path_to_dict), 'light_green'))
+            print(colored("\nLOADING MEMORY FROM DISK", 'light_green'))
+            print(colored("    Location = {}".format(self.path_to_dict), 'light_green'))
             with open(self.path_to_dict, 'rb') as f:
                 self.uid_text_dict = pickle.load(f)
                 self.last_memo_id = len(self.uid_text_dict)
@@ -288,9 +290,8 @@ class MemoStore():
 
     def close(self):
         """Saves the dict to disk."""
-        if self.verbosity >= 1:
-            print(colored("\nSAVING MEMORY TO DISK", 'light_green'))
-            print(colored("    Location = {}".format(self.path_to_dict), 'light_green'))
+        print(colored("\nSAVING MEMORY TO DISK", 'light_green'))
+        print(colored("    Location = {}".format(self.path_to_dict), 'light_green'))
         with open(self.path_to_dict, 'wb') as file:
             pickle.dump(self.uid_text_dict, file)
 
@@ -326,6 +327,8 @@ class MemoStore():
 
     def get_related_memos(self, query_text, n_results=4, threshold=1.4):
         """Retrieves memos that are related to the given query text with the specified threshold."""
+        if n_results > len(self.uid_text_dict):
+            n_results = len(self.uid_text_dict)
         results = self.vec_db.query(query_texts=[query_text], n_results=n_results)
         memos = []
         num_results = len(results['ids'][0])

@@ -10,7 +10,7 @@ except ImportError:
         return x
 
 
-verbosity = 0  # 0 for basic user chat, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
 assert_on_error = True  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
 
