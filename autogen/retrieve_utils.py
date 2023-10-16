@@ -180,7 +180,11 @@ def extract_text_from_pdf(file: str) -> str:
 
 
 def split_files_to_chunks(
-    files: list, max_tokens: int = 4000, chunk_mode: str = "multi_lines", must_break_at_empty_line: bool = True
+    files: list,
+    max_tokens: int = 4000,
+    chunk_mode: str = "multi_lines",
+    must_break_at_empty_line: bool = True,
+    custom_text_split_function: Callable = None,
 ):
     """Split a list of files into chunks of max_tokens."""
 
@@ -200,12 +204,15 @@ def split_files_to_chunks(
             logger.warning(f"No text available in file: {file}")
             continue  # Skip to the next file if no text is available
 
-        chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+        if custom_text_split_function is not None:
+            chunks += custom_text_split_function(text)
+        else:
+            chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
 
     return chunks
 
 
-def get_files_from_dir(dir_path: str, types: list = TEXT_FORMATS, recursive: bool = True):
+def get_files_from_dir(dir_path: Union[str, list[str]], types: list = TEXT_FORMATS, recursive: bool = True):
     """Return a list of all the files in a given directory."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
@@ -221,7 +228,16 @@ def get_files_from_dir(dir_path: str, types: list = TEXT_FORMATS, recursive: boo
         return [get_file_from_url(dir_path)]
 
     files = []
-    if os.path.exists(dir_path):
+    # If the path is a list of files or urls, process and return them
+    if isinstance(dir_path, list):
+        for item in dir_path:
+            if os.path.isfile(item):
+                files.append(item)
+            elif is_url(item):
+                files.append(get_file_from_url(item))
+            else:
+                logger.warning(f"File {item} does not exist. Skipping.")
+    elif os.path.exists(dir_path):
         for type in types:
             if recursive:
                 files += glob.glob(os.path.join(dir_path, f"**/*.{type}"), recursive=True)
@@ -265,6 +281,7 @@ def create_vector_db_from_dir(
     must_break_at_empty_line: bool = True,
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
+    custom_text_split_function: Callable = None,
 ):
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
@@ -304,7 +321,14 @@ def create_vector_db_from_dir(
             metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
         )
 
-        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
+        if custom_text_split_function is not None:
+            chunks = split_files_to_chunks(
+                get_files_from_dir(dir_path), custom_text_split_function=custom_text_split_function
+            )
+        else:
+            chunks = split_files_to_chunks(
+                get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line
+            )
         logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
         for i in range(0, len(chunks), min(40000, len(chunks))):
