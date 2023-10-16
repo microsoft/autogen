@@ -123,7 +123,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
                     Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
                 - n_results (Optional, int): the number of results to be retrieved. Useful in group chat. Will be overridden by the same
-                    parameter passed to `generate_init_message`. Default is 20. 
+                    parameter passed to `generate_init_message`. Default is 20.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
@@ -397,7 +397,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         Args:
             problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved. Default is None, will use the value set in retrieve_config. 
+            n_results (int): the number of results to be retrieved. Default is None, will use the value set in retrieve_config.
             search_string (str): only docs containing this string will be retrieved.
 
         Returns:
