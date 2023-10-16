@@ -36,6 +36,17 @@ AutoGen is a framework that enables the development of LLM applications using mu
 
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
+## Quickstart
+The easiest way to start playing is
+1. Click below to use the Github Codespace
+
+    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
+
+ 2. Copy OAI_CONFIG_LIST_sample to /notebook folder, name to OAI_CONFIG_LIST, and set the correct config.
+ 3. Start playing with the notebooks!
+
+
+
 ## Installation
 
 AutoGen requires **Python version >= 3.8**. It can be installed from pip:
@@ -57,9 +68,7 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the python docker package, and using docker.
 
-For LLM inference configurations, check the [FAQ](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
-
-## Quickstart
+For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
 ## Multi-Agent Conversation Framework
 
@@ -80,6 +89,7 @@ from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
 # and OAI_CONFIG_LIST_sample
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+# You can also set config_list directly as a list, for example, config_list = [{'model': 'gpt-4', 'api_key': '<your OpenAI API key here>'},]
 assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
 user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "coding"})
 user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
@@ -125,7 +135,7 @@ You can find detailed documentation about AutoGen [here](https://microsoft.githu
 
 In addition, you can find:
 
-- [Research](https://microsoft.github.io/autogen/docs/Research) and [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen.
+- [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
 - [Discord](https://discord.gg/pAbnFJrkgZ).
 
