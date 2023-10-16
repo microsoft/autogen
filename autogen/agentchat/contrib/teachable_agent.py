@@ -36,7 +36,7 @@ class TeachableAgent(ConversableAgent):
             human_input_mode (str): NEVER ask for human input for this agent.
             teach_config (dict or None): config for the TeachableAgent.
                 To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
-                - verbosity (Optional, int): 1 to include memory operations, 2 to add analyzer messages. Default 0.
+                - verbosity (Optional, int): # 0 (default) for basic user chat, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
                 - reset_db (Optional, bool): True to clear the DB before starting. Default False.
                 - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
                 - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
@@ -277,10 +277,14 @@ class MemoStore():
             with open(self.path_to_dict, 'rb') as f:
                 self.uid_text_dict = pickle.load(f)
                 self.last_memo_id = len(self.uid_text_dict)
-                if self.verbosity >= 1:
-                    print(colored("LIST OF MEMOS LOADED FROM DISK", 'light_green'))
-                    for uid, text in self.uid_text_dict.items():
-                        print(colored("  ID: {}   TEXT: {}".format(uid, text), 'light_green'))
+                if self.verbosity >= 3:
+                    self.list_memos()
+
+    def list_memos(self):
+        print(colored("LIST OF MEMOS", 'light_green'))
+        for uid, text in self.uid_text_dict.items():
+            input_text, output_text = text
+            print(colored("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text), 'light_green'))
 
     def close(self):
         """Saves the dict to disk."""
@@ -302,18 +306,21 @@ class MemoStore():
         """Adds an input-output pair to the vector DB."""
         self.last_memo_id += 1
         self.vec_db.add(documents=[input_text], ids=[str(self.last_memo_id)])
-        self.uid_text_dict[str(self.last_memo_id)] = output_text
+        self.uid_text_dict[str(self.last_memo_id)] = input_text, output_text
         if self.verbosity >= 1:
             print(colored("\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
                 self.last_memo_id, input_text, output_text), 'light_green'))
+        if self.verbosity >= 3:
+            self.list_memos()
 
     def get_nearest_memo(self, query_text):
         """Retrieves the nearest memo to the given query text."""
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
         uid, input_text, distance = results['ids'][0][0], results['documents'][0][0], results['distances'][0][0]
-        output_text = self.uid_text_dict[uid]
+        input_text_2, output_text = self.uid_text_dict[uid]
+        assert input_text == input_text_2
         if self.verbosity >= 1:
-            print(colored("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+            print(colored("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                 input_text, output_text, distance), 'light_green'))
         return input_text, output_text, distance
 
@@ -325,10 +332,11 @@ class MemoStore():
         for i in range(num_results):
             uid, input_text, distance = results['ids'][0][i], results['documents'][0][i], results['distances'][0][i]
             if distance < threshold:
-                output_text = self.uid_text_dict[uid]
+                input_text_2, output_text = self.uid_text_dict[uid]
+                assert input_text == input_text_2
                 if self.verbosity >= 1:
                     print(colored(
-                        "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                        "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                             input_text, output_text, distance), 'light_green'))
                 memos.append((input_text, output_text, distance))
         return memos
