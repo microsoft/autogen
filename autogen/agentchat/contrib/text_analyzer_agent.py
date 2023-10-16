@@ -51,8 +51,8 @@ class TextAnalyzerAgent(ConversableAgent):
     def analyze_text(self, text_to_analyze, analysis_instructions):
         """Analyzes the given text as instructed, and returns the analysis."""
         # Assemble the message.
-        text_to_analyze = 'TEXT:  ' + text_to_analyze
-        analysis_instructions = 'INSTRUCTIONS:  ' + analysis_instructions
+        text_to_analyze = '# TEXT\n' + text_to_analyze + '\n'
+        analysis_instructions = '# Instructions\n' + analysis_instructions + '\n'
         msg_text = '\n'.join([analysis_instructions, text_to_analyze, analysis_instructions])  # Repeat the instructions.
         messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
 
