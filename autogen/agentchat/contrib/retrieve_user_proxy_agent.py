@@ -122,6 +122,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
                     Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
+                - n_results (Optional, int): the number of results to be retrieved. Useful in group chat. Will be overridden by the same
+                    parameter passed to `generate_init_message`. Default is 20. 
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
@@ -175,6 +177,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else False
         )
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", None)
+        self.n_results = self._retrieve_config.get("n_results", 20)
+        self._called_in_group_chat = True  # assume it's called in a group chat by default
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
@@ -297,6 +301,14 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             messages = self._oai_messages[sender]
         message = messages[-1]
         update_context_case1, update_context_case2 = self._check_update_context(message)
+        if self._called_in_group_chat and not hasattr(self, "problem"):
+            # the first time the agent is called in a group chat
+            message = self.generate_init_message(message.get("content", ""), n_results=self.n_results)
+            self._called_in_group_chat = True  # reset to True as the value is changed to False in generate_init_message
+            return True, message
+        elif self._called_in_group_chat and hasattr(self, "problem"):
+            # the agent is called in a group chat and the problem is already set
+            update_context_case1 = True
         if (update_context_case1 or update_context_case2) and self.update_context:
             print(colored("Updating context and resetting conversation.", "green"), flush=True)
             # extract the first sentence in the response as the intermediate answer
@@ -392,6 +404,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             str: the generated prompt ready to be sent to the assistant agent.
         """
         self._reset()
+        self._called_in_group_chat = False
         self.retrieve_docs(problem, n_results, search_string)
         self.problem = problem
         self.n_results = n_results
