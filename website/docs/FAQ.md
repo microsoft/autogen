@@ -144,7 +144,7 @@ We strongly recommend using docker to execute code. There are two ways to use do
 
 ### Enable Python 3 docker image
 
-You might want to override the docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
 ```python
 user_proxy = autogen.UserProxyAgent(
     name="agent",
