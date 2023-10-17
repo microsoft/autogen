@@ -1,7 +1,7 @@
 from typing import Callable, Dict, Optional, Union, Tuple, List, Any
 from autogen import oai
 from autogen import Agent, ConversableAgent
-
+import copy
 from autogen.token_count_utils import count_token
 
 try:
@@ -91,7 +91,11 @@ Rules:
 
         # 1. use passed-in config and messages
         # in function on_oai_limit of conversable agent, we will pass in llm_config from "config" parameter.
-        llm_config = self.llm_config if config is None else config
+        llm_config = copy.deepcopy(self.llm_config) if config is None else copy.deepcopy(config)
+        # remove functions from llm_config
+        if "functions" in llm_config:
+            del llm_config["functions"]
+
         if llm_config is False:
             return False, None
         if messages is None:

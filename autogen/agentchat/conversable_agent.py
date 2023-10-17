@@ -99,12 +99,15 @@ class ConversableAgent(Agent):
                 Please refer to [Completion.create](/docs/reference/oai/completion#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
-            compress_config (dict or False): config for compression before oai_reply. Default to None, meaning no compression will be used and the conversation will terminate when the token count exceeds the limit.
-                You should contain the following keys:
-                    "agent" (Optional, "Agent", default to CompressionAgent): the agent to call before oai_reply. the `generate_reply` method from this Agent will be called.
-                    "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression. If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
-                    "async" (Optional, bool, default to False): whether to compress asynchronously.
-                    "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
+            compress_config (dict or False): config for compression before oai_reply. Default to None, meaning no compression will be used and
+            the conversation will terminate when the token count exceeds the limit. You should contain the following keys:
+                - "mode" (Optional, str, default to "COMPRESS"): Choose from ["COMPRESS", "TERMINATE"]. "COMPRESS": enable the compression agent.
+                    "TERMINATE": terminate the conversation when the token count exceeds the limit.
+                - "agent" (Optional, "Agent", default CompressionAgent): the agent to call before oai_reply. the `generate_reply` method from this Agent will be called.
+                - "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression.
+                    If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
+                - "async" (Optional, bool, default to False): whether to compress asynchronously.
+                - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
         """
         super().__init__(name)
@@ -137,7 +140,7 @@ class ConversableAgent(Agent):
             if compress_config is True:
                 self.compress_config = {}
             if not isinstance(compress_config, dict):
-                raise ValueError("compress_config must be a dict or False.")
+                raise ValueError("compress_config must be a dict or 'False'.")
 
             # convert trigger_count to int, default to 0.7
             trigger_count = compress_config.get("trigger_count", 0.7)
@@ -146,16 +149,24 @@ class ConversableAgent(Agent):
             else:
                 trigger_count = int(trigger_count)
 
-            from .contrib.compression_agent import CompressionAgent
+            assert compress_config.get("mode", "COMPRESS") in [
+                "COMPRESS",
+                "TERMINATE",
+            ], "compress_config['mode'] must be 'COMPRESS' or 'TERMINATE'"
+            if compress_config.get("mode", "COMPRESS") == "TERMINATE":
+                self.compress_config = compress_config
+            else:
+                from .contrib.compression_agent import CompressionAgent
 
-            self.compress_config = {
-                "agent": compress_config.get(
-                    "agent", CompressionAgent(llm_config=llm_config)
-                ),  # TODO: llm_config to pass in here?
-                "trigger_count": trigger_count,
-                "async": compress_config.get("async", False),  # TODO: support async compression
-                "broadcast": compress_config.get("broadcast", True),
-            }
+                self.compress_config = {
+                    "mode": "COMPRESS",
+                    "agent": compress_config.get(
+                        "agent", CompressionAgent(llm_config=llm_config)
+                    ),  # TODO: llm_config to pass in here?
+                    "trigger_count": trigger_count,
+                    "async": compress_config.get("async", False),  # TODO: support async compression
+                    "broadcast": compress_config.get("broadcast", True),
+                }
         else:
             self.compress_config = False
 
@@ -664,16 +675,16 @@ class ConversableAgent(Agent):
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """(Experimental) Compress previous messages when a threshold of tokens is reached."""
         llm_config = self.llm_config if config is None else config
-        if llm_config is False:
-            # Only apply when this is a LLM-based agent (has llm_config)
+        if llm_config is False or self.compress_config is False:
+            # Only apply when this is a LLM-based agent (has llm_config), and compression is enabled.
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # if compress_config is None, no compression will be used and the conversation will terminate when the token count exceeds the limit.
+        # if mode is TERMINATE, terminate the agent if no token left.
         token_used = self.compute_init_token_count() + count_token(messages, llm_config["model"])
-        max_token = get_max_token_limit(llm_config["model"])
-        if not self.compress_config:
+        max_token = max(get_max_token_limit(llm_config["model"]), llm_config.get("max_token", 0))
+        if self.compress_config["mode"] == "TERMINATE":
             if max_token - token_used <= 0:
                 # Teminate if no token left.
                 print(
