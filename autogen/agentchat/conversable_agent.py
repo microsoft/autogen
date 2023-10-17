@@ -104,7 +104,7 @@ class ConversableAgent(Agent):
                     "agent" (Optional, "Agent", default to CompressionAgent): the agent to call before oai_reply. the `generate_reply` method from this Agent will be called.
                     "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression. If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
                     "async" (Optional, bool, default to False): whether to compress asynchronously.
-                    "broadcast" (Optional, bool, default to False): whether to update the compressed message history to sender.
+                    "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
         """
         super().__init__(name)
@@ -713,7 +713,7 @@ class ConversableAgent(Agent):
 
             self._oai_messages[sender] = compressed_messages
             if self.compress_config["broadcast"]:
-                sender._oai_messages[self] = compressed_messages
+                sender._oai_messages[self] = copy.deepcopy(compressed_messages)
 
         return False, None
 
@@ -877,9 +877,6 @@ class ConversableAgent(Agent):
             logger.error(error_msg)
             raise AssertionError(error_msg)
 
-        if messages is None:
-            messages = self._oai_messages[sender]
-
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
@@ -927,9 +924,6 @@ class ConversableAgent(Agent):
             error_msg = f"Either {messages=} or {sender=} must be provided."
             logger.error(error_msg)
             raise AssertionError(error_msg)
-
-        if messages is None:
-            messages = self._oai_messages[sender]
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]

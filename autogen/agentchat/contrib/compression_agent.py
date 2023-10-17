@@ -24,9 +24,10 @@ class CompressionAgent(ConversableAgent):
 
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant that will compress messages.
 Rules:
-1. Please summarize each of the message and reserve the titles: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN
-2. If a message contains code (do not apply when the code is for FUNCTION_CALL), Use indicator "CODE" and summarize what the code is doing with as few words as possible and include details like exact numbers and defined variables.
-3. Keep the exact result from code execution or function call. Summarize the result when it returns error or is too long.
+1. Please summarize each of the message and reserve the titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
+2. Context after ##USER##, ##ASSISTANT## (and ##<Name>(<Title>)##): compress the content and reserve important information. If there is big chunk of code, please use ##CODE## to indicate and summarize what the code is doing with as few words as possible and include details like exact numbers and defined variables.
+3. Context after ##FUNCTION_CALL##: Keep the exact content if it is short. Otherwise, summarize/compress it and reserve names (func_name, argument names).
+4. Context after ##FUNCTION_RETURN## (or code return): Keep the exact content if it is short. Summarize/compress if it is too long, you should note what the function has achieved and what the return value is.
 """
 
     def __init__(
@@ -86,7 +87,7 @@ Rules:
         TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
         """
         # Uncomment the following line to check the content to compress
-        # print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
+        print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
 
         # 1. use passed-in config and messages
         # in function on_oai_limit of conversable agent, we will pass in llm_config from "config" parameter.
@@ -102,22 +103,36 @@ Rules:
             return False, None
 
         # 3. put all history into one, except the first one
+        compressed_prompt = "Below is the compressed content from the previous conversation, evaluate the process and continue if necessary:\n"
         chat_to_compress = "To be compressed:\n"
-        for m in messages[1:]:
+        start_index = 1
+        for m in messages[start_index:]:
             if m.get("role") == "function":
-                chat_to_compress += f"FUNCTION_RETURN (from \"func_name: {m['name']}\"): \n {m['content']}\n"
+                chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"): \n{m['content']}\n"
             else:
                 if "name" in m:
-                    # {"name" : "Bob", "role" : "assistant"} -> Bob(ASSISTANT)
-                    chat_to_compress += f"{m['name']}({m['role'].upper()}):\n{m['content']}\n"
-                else:
-                    chat_to_compress += f"{m['role'].upper()}:\n{m['content']}\n"
+                    # {"name" : "Bob", "role" : "assistant"} -> ##Bob(ASSISTANT)##
+                    chat_to_compress += f"##{m['name']}({m['role'].upper()})## {m['content']}\n"
+                elif m["content"] is not None:
+                    if compressed_prompt in m["content"]:
+                        # remove the compressed_prompt from the content
+                        tmp = m["content"].replace(compressed_prompt, "")
+                        chat_to_compress += f"{tmp}\n"
+                    else:
+                        chat_to_compress += f"##{m['role'].upper()}## {m['content']}\n"
+
                 if "function_call" in m:
-                    chat_to_compress += f"FUNCTION_CALL:\"{m['function_call']}\"\n"
+                    if (
+                        m["function_call"].get("name", None) is None
+                        or m["function_call"].get("arguments", None) is None
+                    ):
+                        chat_to_compress += f"##FUNCTION_CALL## {m['function_call']}\n"
+                    else:
+                        chat_to_compress += f"##FUNCTION_CALL## \nName: {m['function_call']['name']}\nArgs: {m['function_call']['arguments']}\n"
 
         chat_to_compress = [{"role": "user", "content": chat_to_compress}]
         # Uncomment the following line to check the content to compress
-        # print(chat_to_compress[0]["content"])
+        print(chat_to_compress[0]["content"])
 
         # 4. ask LLM to compress
         try:
@@ -128,12 +143,21 @@ Rules:
             print(f"Warning: Failed to compress the content due to {e}.")
             return False, None
         compressed_message = oai.ChatCompletion.extract_text_or_function_call(response)[0]
-        assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
-
-        # 5. add compressed message to the first message and return
-        print(colored("*" * 30 + "Content after compressing:" + "*" * 30, "magenta"), flush=True)
+        print(
+            colored(
+                "*" * 30 + "Content after compressing: (type=" + str(type(compressed_message)) + ")" + "*" * 30,
+                "magenta",
+            ),
+            flush=True,
+        )
         print(compressed_message, colored("\n" + "*" * 80, "magenta"))
+
+        assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
+        # 5. add compressed message to the first message and return
         return True, [
             messages[0],
-            {"content": "Compressed Content of Previous Chat:\n" + compressed_message, "role": "system"},
+            {
+                "content": compressed_prompt + compressed_message,
+                "role": "system",
+            },
         ]
