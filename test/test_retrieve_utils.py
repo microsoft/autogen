@@ -175,7 +175,7 @@ class TestRetrieveUtils:
         db_path = "/tmp/test_retrieve_utils_chromadb.db"
         client = chromadb.PersistentClient(path=db_path)
         create_vector_db_from_dir(
-            "test_files/example.txt",
+            os.path.join(test_dir, "example.txt"),
             client=client,
             collection_name="mytestcollection",
             custom_text_split_function=custom_text_split_function,

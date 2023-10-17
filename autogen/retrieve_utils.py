@@ -219,14 +219,6 @@ def get_files_from_dir(dir_path: Union[str, list[str]], types: list = TEXT_FORMA
     types = [t[1:].lower() if t.startswith(".") else t.lower() for t in set(types)]
     types += [t.upper() for t in types]
 
-    # If the path is a file, return it
-    if os.path.isfile(dir_path):
-        return [dir_path]
-
-    # If the path is a url, download it and return the downloaded file
-    if is_url(dir_path):
-        return [get_file_from_url(dir_path)]
-
     files = []
     # If the path is a list of files or urls, process and return them
     if isinstance(dir_path, list):
@@ -237,7 +229,17 @@ def get_files_from_dir(dir_path: Union[str, list[str]], types: list = TEXT_FORMA
                 files.append(get_file_from_url(item))
             else:
                 logger.warning(f"File {item} does not exist. Skipping.")
-    elif os.path.exists(dir_path):
+        return files
+
+    # If the path is a file, return it
+    if os.path.isfile(dir_path):
+        return [dir_path]
+
+    # If the path is a url, download it and return the downloaded file
+    if is_url(dir_path):
+        return [get_file_from_url(dir_path)]
+
+    if os.path.exists(dir_path):
         for type in types:
             if recursive:
                 files += glob.glob(os.path.join(dir_path, f"**/*.{type}"), recursive=True)
