@@ -74,6 +74,10 @@ class TestRetrieveUtils:
     def test_get_files_from_dir(self):
         files = get_files_from_dir(test_dir)
         assert all(os.path.isfile(file) for file in files)
+        pdf_file_path = os.path.join(test_dir, "example.pdf")
+        txt_file_path = os.path.join(test_dir, "example.txt")
+        files = get_files_from_dir([pdf_file_path, txt_file_path])
+        assert all(os.path.isfile(file) for file in files)
 
     def test_is_url(self):
         assert is_url("https://www.example.com")
@@ -163,6 +167,24 @@ class TestRetrieveUtils:
         create_lancedb()
         ragragproxyagent.retrieve_docs("This is a test document spark", n_results=10, search_string="spark")
         assert ragragproxyagent._results["ids"] == [3, 1, 5]
+
+    def test_custom_text_split_function(self):
+        def custom_text_split_function(text):
+            return [text[: len(text) // 2], text[len(text) // 2 :]]
+
+        db_path = "/tmp/test_retrieve_utils_chromadb.db"
+        client = chromadb.PersistentClient(path=db_path)
+        create_vector_db_from_dir(
+            os.path.join(test_dir, "example.txt"),
+            client=client,
+            collection_name="mytestcollection",
+            custom_text_split_function=custom_text_split_function,
+        )
+        results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
+        assert (
+            results.get("documents")[0][0]
+            == "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities\nof Large Language Models (LLMs) for various applications. The primary purpose o"
+        )
 
 
 if __name__ == "__main__":
