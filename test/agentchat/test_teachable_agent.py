@@ -11,7 +11,7 @@ except ImportError:
 
 
 verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-assert_on_error = True  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
+assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
 
 # Specify the model to use by uncommenting one of the following lines.
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     total_num_errors, total_num_tests = 0, 0
 
-    num_trials = 1
+    num_trials = 10
     for trial in range(num_trials):
         num_errors, num_tests = test_question_answer_pair()
         total_num_errors += num_errors

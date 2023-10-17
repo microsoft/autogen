@@ -42,6 +42,7 @@ class TeachableAgent(ConversableAgent):
                 - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
                 - use_cache (Optional, bool): True to skip LLM calls made previously by relying on cached responses. Default False.
                 - recall_threshold (Optional, float): The distance threshold for retrieving memos from the DB. Default 1.5.
+                - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
             **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
         """
         super().__init__(
@@ -63,6 +64,7 @@ class TeachableAgent(ConversableAgent):
         self.prepopulate = self._teach_config.get("prepopulate", True)
         self.use_cache = self._teach_config.get("use_cache", False)
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
+        self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
 
         self.analyzer = TextAnalyzerAgent("analyzer", llm_config=llm_config)
 
@@ -72,10 +74,6 @@ class TeachableAgent(ConversableAgent):
     def close_db(self):
         """Cleanly closes the memo store."""
         self.memo_store.close()
-
-    def reset_db(self):
-        """Empties the DB."""
-        self.memo_store.reset_db()
 
     def prepopulate_db(self):
         """Initializes the DB with a few arbitrary memos."""
@@ -126,7 +124,7 @@ class TeachableAgent(ConversableAgent):
 
     def learn_from_recent_user_comments(self):
         """Reviews the user comments from the last chat, and decides what teachings to store as memos."""
-        print(colored("\nREVIEW CHAT FOR USER TEACHINGS TO REMEMBER", 'light_yellow'))
+        print(colored("\nREVIEWING CHAT FOR USER TEACHINGS TO REMEMBER", 'light_yellow'))
         # Look at each user turn.
         if len(self.user_comments) > 0:
             for comment in self.user_comments:
@@ -201,7 +199,7 @@ class TeachableAgent(ConversableAgent):
 
     def retrieve_relevant_memos(self, input_text):
         """Returns semantically related memos from the DB."""
-        memo_list = self.memo_store.get_related_memos(input_text, threshold=self.recall_threshold)
+        memo_list = self.memo_store.get_related_memos(input_text, n_results=self.max_num_retrievals, threshold=self.recall_threshold)
 
         if self.verbosity >= 1:
             # Was anything retrieved?
@@ -297,8 +295,7 @@ class MemoStore():
 
     def reset_db(self):
         """Forces immediate deletion of the DB's contents, in memory and on disk."""
-        if self.verbosity >= 1:
-            print(colored("\nCLEARING MEMORY", 'light_green'))
+        print(colored("\nCLEARING MEMORY", 'light_green'))
         self.db_client.delete_collection("memos")
         self.vec_db = self.db_client.create_collection("memos")
         self.uid_text_dict = {}
@@ -325,7 +322,7 @@ class MemoStore():
                 input_text, output_text, distance), 'light_green'))
         return input_text, output_text, distance
 
-    def get_related_memos(self, query_text, n_results=4, threshold=1.4):
+    def get_related_memos(self, query_text, n_results, threshold):
         """Retrieves memos that are related to the given query text with the specified threshold."""
         if n_results > len(self.uid_text_dict):
             n_results = len(self.uid_text_dict)
