@@ -2,7 +2,7 @@
 
 ## Setup Virtual Environment
 
-We recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
+When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
 ```bash
 python3 -m venv autogen
