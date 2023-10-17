@@ -212,7 +212,7 @@ def split_files_to_chunks(
     return chunks
 
 
-def get_files_from_dir(dir_path: Union[str, list[str]], types: list = TEXT_FORMATS, recursive: bool = True):
+def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
     """Return a list of all the files in a given directory."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
