@@ -157,4 +157,4 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 )
 ```
 
-If you have problems with agents running `pip install` or get errors similar to `Error while fetching server API version: ('Connection aborted.', FileNotFoundError(2, 'No such file or directory')`, you can choose **'python:3'** as image and that should solve the problem.
+If you have problems with agents running `pip install` or get errors similar to `Error while fetching server API version: ('Connection aborted.', FileNotFoundError(2, 'No such file or directory')`, you can choose **'python:3'** as image as shown in the code exame above and that should solve the problem.
