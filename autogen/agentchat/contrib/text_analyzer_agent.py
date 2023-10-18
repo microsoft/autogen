@@ -11,6 +11,7 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 class TextAnalyzerAgent(ConversableAgent):
     """Text Analysis agent, a subclass of ConversableAgent designed to answer specific questions about text."""
+
     def __init__(
         self,
         name: str,
@@ -33,7 +34,7 @@ class TextAnalyzerAgent(ConversableAgent):
             **kwargs,
         )
         self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply)
-        self.use_cache   = False  # 1 to skip LLM calls made previously by relying on cached responses.
+        self.use_cache = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
     def _analyze_in_reply(
         self,
@@ -51,17 +52,21 @@ class TextAnalyzerAgent(ConversableAgent):
         assert len(messages) == 2
 
         # Delegate to the analysis method.
-        return True, self.analyze_text(messages[0]['content'], messages[1]['content'])
+        return True, self.analyze_text(messages[0]["content"], messages[1]["content"])
 
     def analyze_text(self, text_to_analyze, analysis_instructions):
         """Analyzes the given text as instructed, and returns the analysis."""
         # Assemble the message.
-        text_to_analyze = '# TEXT\n' + text_to_analyze + '\n'
-        analysis_instructions = '# INSTRUCTIONS\n' + analysis_instructions + '\n'
-        msg_text = '\n'.join([analysis_instructions, text_to_analyze, analysis_instructions])  # Repeat the instructions.
+        text_to_analyze = "# TEXT\n" + text_to_analyze + "\n"
+        analysis_instructions = "# INSTRUCTIONS\n" + analysis_instructions + "\n"
+        msg_text = "\n".join(
+            [analysis_instructions, text_to_analyze, analysis_instructions]
+        )  # Repeat the instructions.
         messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
 
         # Generate and return the analysis string.
-        response = oai.ChatCompletion.create(context=None, messages=messages, use_cache=self.use_cache, **self.llm_config)
+        response = oai.ChatCompletion.create(
+            context=None, messages=messages, use_cache=self.use_cache, **self.llm_config
+        )
         output_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
         return output_text

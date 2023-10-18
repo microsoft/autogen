@@ -5,6 +5,7 @@ from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 try:
     from termcolor import colored
 except ImportError:
+
     def colored(x, *args, **kwargs):
         return x
 
@@ -17,7 +18,7 @@ recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to
 # filter_dict={"model": ["gpt-4-0613"]}
 # filter_dict={"model": ["gpt-3.5-turbo-0613"]}
 # filter_dict={"model": ["gpt-4"]}
-filter_dict={"model": ["gpt-35-turbo-16k"]}
+filter_dict = {"model": ["gpt-35-turbo-16k"]}
 
 
 def create_teachable_agent(reset_db=False):
@@ -28,14 +29,14 @@ def create_teachable_agent(reset_db=False):
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
     agent = TeachableAgent(
         name="agent",
-        llm_config={
-            "config_list": config_list,
-            "request_timeout": 120},
+        llm_config={"config_list": config_list, "request_timeout": 120},
         teach_config={
             "verbosity": verbosity,
             "reset_db": reset_db,
             "path_to_db_dir": "./tmp/teachable_agent_db",
-            "recall_threshold": recall_threshold})
+            "recall_threshold": recall_threshold,
+        },
+    )
     return agent
 
 
@@ -43,18 +44,18 @@ def check_agent_response(agent, user, correct_answer):
     """Checks whether the agent's response contains the correct answer, and returns the number of errors (1 or 0)."""
     agent_response = user.last_message(agent)["content"]
     if correct_answer not in agent_response:
-        print(colored(f"\nTEST FAILED:  EXPECTED ANSWER {correct_answer} NOT FOUND IN AGENT RESPONSE", 'light_red'))
+        print(colored(f"\nTEST FAILED:  EXPECTED ANSWER {correct_answer} NOT FOUND IN AGENT RESPONSE", "light_red"))
         if assert_on_error:
             assert correct_answer in agent_response
         return 1
     else:
-        print(colored(f"\nTEST PASSED:  EXPECTED ANSWER {correct_answer} FOUND IN AGENT RESPONSE", 'light_cyan'))
+        print(colored(f"\nTEST PASSED:  EXPECTED ANSWER {correct_answer} FOUND IN AGENT RESPONSE", "light_cyan"))
         return 0
 
 
 def test_question_answer_pair():
     """Tests whether the agent can answer a question after being taught the answer in a previous chat."""
-    print(colored("\nTEST QUESTION-ANSWER PAIRS", 'light_cyan'))
+    print(colored("\nTEST QUESTION-ANSWER PAIRS", "light_cyan"))
     num_errors, num_tests = 0, 0
     agent = create_teachable_agent(reset_db=True)  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
@@ -66,7 +67,10 @@ def test_question_answer_pair():
     user.initiate_chat(recipient=agent, message="What is the twist of 5 and 7?")
 
     # Explain the terminology to the agent.
-    user.send(recipient=agent, message="Actually, the twist of two or more numbers is their product minus their sum. Try again.")
+    user.send(
+        recipient=agent,
+        message="Actually, the twist of two or more numbers is their product minus their sum. Try again.",
+    )
     num_errors += check_agent_response(agent, user, "23")
     num_tests += 1
 
@@ -74,7 +78,7 @@ def test_question_answer_pair():
     agent.learn_from_recent_user_comments()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
-    print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", 'light_cyan'))
+    print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))
     user.initiate_chat(recipient=agent, message="What's the twist of 8 and 3 and 2?")
     num_errors += check_agent_response(agent, user, "35")
     num_tests += 1
@@ -86,7 +90,7 @@ def test_question_answer_pair():
 
 def test_task_advice_pair():
     """Tests whether the agent can recall and use advice after being taught a task-advice pair in a previous chat."""
-    print(colored("\nTEST TASK-ADVICE PAIRS", 'light_cyan'))
+    print(colored("\nTEST TASK-ADVICE PAIRS", "light_cyan"))
     num_errors, num_tests = 0, 0
     agent = create_teachable_agent(reset_db=True)  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
@@ -95,7 +99,10 @@ def test_task_advice_pair():
     agent.prepopulate_db()
 
     # Ask the agent to do something, and provide some helpful advice.
-    user.initiate_chat(recipient=agent, message="Compute the twist of 5 and 7. Here's a hint: The twist of two or more numbers is their product minus their sum.")
+    user.initiate_chat(
+        recipient=agent,
+        message="Compute the twist of 5 and 7. Here's a hint: The twist of two or more numbers is their product minus their sum.",
+    )
     num_errors += check_agent_response(agent, user, "23")
     num_tests += 1
 
@@ -103,7 +110,7 @@ def test_task_advice_pair():
     agent.learn_from_recent_user_comments()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
-    print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", 'light_cyan'))
+    print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))
     user.initiate_chat(recipient=agent, message="Please calculate the twist of 8 and 3 and 2.")
     num_errors += check_agent_response(agent, user, "35")
     num_tests += 1
@@ -127,9 +134,14 @@ if __name__ == "__main__":
         total_num_errors += num_errors
         total_num_tests += num_tests
 
-        print(colored(f"\nTRIAL {trial + 1} OF {num_trials} FINISHED", 'light_cyan'))
+        print(colored(f"\nTRIAL {trial + 1} OF {num_trials} FINISHED", "light_cyan"))
 
     if total_num_errors == 0:
-        print(colored("\nTEACHABLE AGENT TESTS FINISHED WITH ZERO ERRORS", 'light_cyan'))
+        print(colored("\nTEACHABLE AGENT TESTS FINISHED WITH ZERO ERRORS", "light_cyan"))
     else:
-        print(colored(f"\nTEACHABLE AGENT TESTS FINISHED WITH {total_num_errors} / {total_num_tests} TOTAL ERRORS ({100.0 * total_num_errors / total_num_tests}%)", 'light_red'))
+        print(
+            colored(
+                f"\nTEACHABLE AGENT TESTS FINISHED WITH {total_num_errors} / {total_num_tests} TOTAL ERRORS ({100.0 * total_num_errors / total_num_tests}%)",
+                "light_red",
+            )
+        )

@@ -5,6 +5,7 @@ from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 try:
     from termcolor import colored
 except ImportError:
+
     def colored(x, *args, **kwargs):
         return x
 
@@ -13,7 +14,7 @@ verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer me
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
 
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
-filter_dict={"model": ["gpt-4-0613"]}
+filter_dict = {"model": ["gpt-4-0613"]}
 
 
 def create_teachable_agent(reset_db=False):
@@ -24,14 +25,14 @@ def create_teachable_agent(reset_db=False):
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
     agent = TeachableAgent(
         name="agent",
-        llm_config={
-            "config_list": config_list,
-            "request_timeout": 120},
+        llm_config={"config_list": config_list, "request_timeout": 120},
         teach_config={
             "verbosity": verbosity,
             "reset_db": reset_db,
             "path_to_db_dir": "./tmp/interactive/teachable_agent_db",
-            "recall_threshold": recall_threshold})
+            "recall_threshold": recall_threshold,
+        },
+    )
     return agent
 
 
@@ -39,7 +40,7 @@ def interact_freely_with_user():
     """Starts a free-form chat between the user and TeachableAgent."""
 
     # Create the agents.
-    print(colored("\nLoading previous memory (if any) from disk.", 'light_cyan'))
+    print(colored("\nLoading previous memory (if any) from disk.", "light_cyan"))
     agent = create_teachable_agent(reset_db=False)
     user = UserProxyAgent("user", human_input_mode="ALWAYS")
 
