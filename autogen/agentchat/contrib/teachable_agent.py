@@ -97,13 +97,6 @@ class TeachableAgent(ConversableAgent):
         # Get the last user message.
         user_text = messages[-1]['content']
 
-        # To help an interactive user test memory, clear the chat history if the user says "new chat".
-        if user_text == 'new chat':
-            self.clear_history()
-            self.learn_from_recent_user_comments()
-            print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", 'light_cyan'))
-            return True, 'New chat started.'
-
         # This is a normal user turn. Keep track of it for potential storage later.
         self.user_comments.append(user_text)
 
@@ -136,7 +129,7 @@ class TeachableAgent(ConversableAgent):
         """Decides whether to store something from one user comment in the DB."""
         # Check for a problem-solution pair.
         response = self.analyze(comment,
-            "Does the TEXT contain a task or problem to solve? Answer with just one word, yes or no.")
+            "Does any part of the TEXT ask the agent to perform a task or solve a problem? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             # Can we extract advice?
             advice = self.analyze(comment,
@@ -178,7 +171,7 @@ class TeachableAgent(ConversableAgent):
 
         # Next, if the comment involves a task, then extract and generalize the task before using it as the lookup key.
         response = self.analyze(comment,
-            "Does the TEXT contain a task or problem to solve? Answer with just one word, yes or no.")
+            "Does any part of the TEXT ask the agent to perform a task or solve a problem? Answer with just one word, yes or no.")
         if 'yes' in response.lower():
             if self.verbosity >= 1:
                 print(colored('\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS', 'light_yellow'))

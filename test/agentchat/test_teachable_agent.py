@@ -1,5 +1,4 @@
-import sys
-from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
+from autogen import ConversableAgent, config_list_from_json
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 
 
@@ -51,25 +50,6 @@ def check_agent_response(agent, user, correct_answer):
     else:
         print(colored(f"\nTEST PASSED:  EXPECTED ANSWER {correct_answer} FOUND IN AGENT RESPONSE", 'light_cyan'))
         return 0
-
-
-def interact_freely_with_user():
-    """Starts a free-form chat between the user and a TeachableAgent."""
-
-    # Create the agents.
-    print(colored("\nLoading previous memory (if any) from disk.", 'light_cyan'))
-    agent = create_teachable_agent(reset_db=False)
-    user = UserProxyAgent("user", human_input_mode="ALWAYS")
-
-    # Start the chat.
-    print(colored("\nTo clear the context and start a new chat, type 'new chat'.", 'light_cyan'))
-    user.initiate_chat(agent, message="Hi")
-
-    # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_recent_user_comments()
-
-    # Wrap up.
-    agent.close_db()
 
 
 def test_question_answer_pair():
@@ -134,15 +114,10 @@ def test_task_advice_pair():
 
 
 if __name__ == "__main__":
-    """Runs the unit tests from above, unless the user adds 'interactive' or 'i' as a commandline argument."""
-    if len(sys.argv) > 1:
-        if sys.argv[1].startswith('i'):
-            interact_freely_with_user()
-            exit()
-
+    """Runs this file's unit tests."""
     total_num_errors, total_num_tests = 0, 0
 
-    num_trials = 10
+    num_trials = 1  # Set to a higher number to get a more accurate error rate.
     for trial in range(num_trials):
         num_errors, num_tests = test_question_answer_pair()
         total_num_errors += num_errors

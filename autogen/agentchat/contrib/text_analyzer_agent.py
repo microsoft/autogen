@@ -3,13 +3,18 @@ from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 
+system_message = """You are an expert in text analysis.
+The user will give you TEXT to analyze.
+The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
+You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested."""
+
 
 class TextAnalyzerAgent(ConversableAgent):
     """Text Analysis agent, a subclass of ConversableAgent designed to answer specific questions about text."""
     def __init__(
         self,
         name: str,
-        system_message: Optional[str] = "You are an expert in text analysis.",
+        system_message: Optional[str] = system_message,
         llm_config: Optional[Union[Dict, bool]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -52,10 +57,11 @@ class TextAnalyzerAgent(ConversableAgent):
         """Analyzes the given text as instructed, and returns the analysis."""
         # Assemble the message.
         text_to_analyze = '# TEXT\n' + text_to_analyze + '\n'
-        analysis_instructions = '# Instructions\n' + analysis_instructions + '\n'
+        analysis_instructions = '# INSTRUCTIONS\n' + analysis_instructions + '\n'
         msg_text = '\n'.join([analysis_instructions, text_to_analyze, analysis_instructions])  # Repeat the instructions.
         messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
 
         # Generate and return the analysis string.
         response = oai.ChatCompletion.create(context=None, messages=messages, use_cache=self.use_cache, **self.llm_config)
-        return oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        output_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        return output_text
