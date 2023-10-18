@@ -612,7 +612,8 @@ class ConversableAgent(Agent):
             except openai.error.InvalidRequestError as e:
                 if len(messages) < 5:
                     raise e
-                del messages[2], messages[3]
+                # Drop the first follow up exchange (eg, "oh wait do pip install XYZ") to stay in context window
+                del messages[2:4]
 
     def generate_code_execution_reply(
         self,
