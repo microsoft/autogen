@@ -1,8 +1,51 @@
 ---
-title: RetrieveChat - Retrieval-Augmented Generation with AutoGen
+title: Retrieval-Augmented Generation (RAG) Applications with AutoGen
 authors: thinkall
 tags: [LLM, RAG]
 ---
 
-![RetrieveChat Design](img/retrievechat-arch.png)
+![RAG Architecture](img/retrievechat-arch.png)
+
 **TL;DR:**
+* We introduce **RetrieveUserProxyAgent** and **RetrieveAssistantAgent**, RAG agents of AutoGen that
+allows retrieval-augmented generation.
+* We show some use cases of RAG agents, such as code generation and question answering.
+* We showcase customizations of RAG agents, such as customizing the embedding function, vector database
+and the text split function.
+* We also showcase two advanced usage of RAG agents, integrating with group chat and building an
+application with Gradio.
+
+
+## RAG Agents Architecture
+Retrieval augmentation has emerged as a practical and effective approach for mitigating the intrinsic
+limitations of LLMs by incorporating external documents. In this blog post, we introduce RAG agents of
+AutoGen that allows retrieval-augmented generation. The system consists of two agents: a
+Retrieval-augmented User Proxy agent, called `RetrieveUserProxyAgent`, and a Retrieval-augmented Assistant
+agent, called `RetrieveAssistantAgent`, both of which are extended from built-in agents from AutoGen.
+The overall architecture of the RAG agents is shown in the figure above.
+
+To use Retrieval-augmented Chat, one needs to initialize two agents including Retrieval-augmented
+User Proxy and Retrieval-augmented Assistant. Initializing the Retrieval-Augmented User Proxy
+necessitates specifying a path to the document collection. Subsequently, the Retrieval-Augmented
+User Proxy can download the documents, segment them into chunks of a specific size, compute
+embeddings, and store them in a vector database. Once a chat is initiated, the agents collaboratively
+engage in code generation or question-answering adhering to the procedures outlined below:
+1. The Retrieval-Augmented User Proxy retrieves document chunks based on the embedding similarity,
+and sends them along with the question to the Retrieval-Augmented Assistant.
+2. The Retrieval-Augmented Assistant employs an LLM to generate code or text as answers based
+on the question and context provided. If the LLM is unable to produce a satisfactory response, it
+is instructed to reply with “Update Context” to the Retrieval-Augmented User Proxy.
+3. If a response includes code blocks, the Retrieval-Augmented User Proxy executes the code and
+sends the output as feedback. If there are no code blocks or instructions to update the context, it
+terminates the conversation. Otherwise, it updates the context and forwards the question along
+with the new context to the Retrieval-Augmented Assistant. Note that if human input solicitation
+is enabled, individuals can proactively send any feedback, including Update Context”, to the
+Retrieval-Augmented Assistant.
+4. If the Retrieval-Augmented Assistant receives “Update Context”, it requests the next most similar
+chunks of documents as new context from the Retrieval-Augmented User Proxy. Otherwise, it
+generates new code or text based on the feedback and chat history. If the LLM fails to generate
+an answer, it replies with “Update Context” again. This process can be repeated several times.
+The conversation terminates if no more documents are available for the context.
+
+## Basic Usage of RAG Agents
+
