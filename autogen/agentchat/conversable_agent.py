@@ -613,6 +613,7 @@ class ConversableAgent(Agent):
                 if len(messages) < 5:
                     raise e
                 # Drop the first follow up exchange (eg, "oh wait do pip install XYZ") to stay in context window
+                # This is done to overcome the token limit in case where len(messages) > 5 yet there is a InvalidRequestError
                 del messages[2:4]
 
     def generate_code_execution_reply(
