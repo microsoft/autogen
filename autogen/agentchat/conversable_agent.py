@@ -1017,3 +1017,15 @@ class ConversableAgent(Agent):
             function_map: a dictionary mapping function names to functions.
         """
         self._function_map.update(function_map)
+
+    def define_function(self, signature: Dict):
+        """Define a function in the LLM configuration.
+
+        Args:
+            signature: description of the function to provide to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
+        """
+        if not self.llm_config:
+            error_msg = "To define a function, agent must have an llm_config"
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+        self.llm_config["functions"].append(signature)

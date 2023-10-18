@@ -57,5 +57,50 @@ def test_function_call_groupchat():
     user_proxy.initiate_chat(manager, message="Let's start the game!")
 
 
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_define_function():
+    config_list_gpt4 = autogen.config_list_from_json(
+        "OAI_CONFIG_LIST",
+        filter_dict={
+            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+        },
+    )
+    llm_config = {
+        "config_list": config_list_gpt4,
+        "seed": 42,
+        "functions": [],
+    }
+
+    user_proxy = autogen.UserProxyAgent(name="user_proxy", human_input_mode="NEVER")
+    assistant = autogen.AssistantAgent(name="test", llm_config=llm_config)
+
+    # Define a new function *after* the assistant has been created
+    assistant.define_function(
+        {
+            "name": "greet_user",
+            "description": "Greets the user.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        }
+    )
+
+    user_proxy.initiate_chat(
+        assistant,
+        message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+    )
+    messages = assistant.chat_messages[user_proxy]
+    print(messages)
+
+    # The model should know about the function in the context of the conversation
+    assert "greet_user" in messages[1]["content"]
+
+
 if __name__ == "__main__":
     test_function_call_groupchat()
+    test_define_function()
