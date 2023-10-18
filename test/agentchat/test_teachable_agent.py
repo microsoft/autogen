@@ -55,6 +55,11 @@ def check_agent_response(agent, user, correct_answer):
 
 def test_question_answer_pair():
     """Tests whether the agent can answer a question after being taught the answer in a previous chat."""
+    try:
+        import openai
+    except ImportError:
+        return
+
     print(colored("\nTEST QUESTION-ANSWER PAIRS", "light_cyan"))
     num_errors, num_tests = 0, 0
     agent = create_teachable_agent(reset_db=True)  # For a clean test, clear the agent's memory.
@@ -90,6 +95,11 @@ def test_question_answer_pair():
 
 def test_task_advice_pair():
     """Tests whether the agent can recall and use advice after being taught a task-advice pair in a previous chat."""
+    try:
+        import openai
+    except ImportError:
+        return
+
     print(colored("\nTEST TASK-ADVICE PAIRS", "light_cyan"))
     num_errors, num_tests = 0, 0
     agent = create_teachable_agent(reset_db=True)  # For a clean test, clear the agent's memory.
