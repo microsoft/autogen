@@ -1,5 +1,9 @@
 import re
-import chromadb
+
+try:
+    import chromadb
+except ImportError:
+    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
 from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text

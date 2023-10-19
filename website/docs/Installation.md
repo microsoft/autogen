@@ -4,10 +4,20 @@
 
 When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
+You can create a virtual environment with `venv` as below:
 ```bash
 python3 -m venv autogen
 source autogen/bin/activate
 ```
+
+Another option is with `Conda`, Conda works better at solving dependency conflicts than pip. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
+and then create a virtual environment as below:
+```bash
+conda create -n autogen python=3.10  # python 3.10 is recommended as it's stable and not too old
+conda activate autogen
+```
+
+Now, you're ready to install AutoGen in the virtual environment you've just created.
 
 ## Python
 
@@ -33,11 +43,19 @@ pip install docker
 ```
 
 * blendsearch
+AutoGen offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Please install with the [blendsearch] option to use it.
 ```bash
 pip install "pyautogen[blendsearch]"
 ```
 
 * retrievechat
+AutoGen supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
 ```bash
 pip install "pyautogen[retrievechat]"
+```
+
+* mathchat
+AutoGen offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
+```bash
+pip install "pyautogen[mathchat]"
 ```
