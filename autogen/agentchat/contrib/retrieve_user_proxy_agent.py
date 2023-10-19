@@ -1,5 +1,9 @@
 import re
-import chromadb
+
+try:
+    import chromadb
+except ImportError:
+    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
 from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
@@ -122,6 +126,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
                     Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
+                - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
+                    Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
@@ -175,6 +181,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else False
         )
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", None)
+        self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
@@ -364,6 +371,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 embedding_model=self._embedding_model,
                 get_or_create=self._get_or_create,
                 embedding_function=self._embedding_function,
+                custom_text_split_function=self.custom_text_split_function,
             )
             self._collection = True
             self._get_or_create = False
