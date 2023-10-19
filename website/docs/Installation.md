@@ -4,23 +4,31 @@
 
 When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
+Using Venv
 ```bash
 python3 -m venv autogen
 source autogen/bin/activate
+```
+
+OR using conda
+```bash
+conda create -n autogen python=3.8
+conda activate autogen
 ```
 
 ## Python
 
 AutoGen requires **Python version >= 3.8**. It can be installed from pip:
 
+Using pip
 ```bash
 pip install pyautogen
 ```
-<!--
+
 or conda:
-```
-conda install pyautogen -c conda-forge
-``` -->
+```bash
+conda install -c conda-forge pyautogui
+``` 
 
 ### Optional Dependencies
 * docker
@@ -32,12 +40,19 @@ When running AutoGen out of a docker container, to use docker for code execution
 pip install docker
 ```
 
-* blendsearch
+Or using conda
 ```bash
-pip install "pyautogen[blendsearch]"
+conda install -c conda-forge docker
 ```
 
-* retrievechat
+* blendsearch, retrievechat
 ```bash
+pip install "pyautogen[blendsearch]"
 pip install "pyautogen[retrievechat]"
 ```
+
+Or using conda
+* blendsearch, retrievechat
+```bash
+conda install -c conda-forge -c bioconda "pyautogen[blendsearch,retrievechat]"
+``` 
