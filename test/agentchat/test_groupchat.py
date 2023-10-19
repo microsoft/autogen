@@ -1,3 +1,4 @@
+import pytest
 import autogen
 
 
@@ -45,6 +46,8 @@ def test_func_call_groupchat():
     )
     assert groupchat.messages[-1]["name"] == "carol"
 
+    agent2.initiate_chat(group_chat_manager, message={"function_call": {"name": "func", "arguments": '{"x": 1}'}})
+
 
 def test_chat_manager():
     agent1 = autogen.ConversableAgent(
@@ -74,6 +77,9 @@ def test_chat_manager():
     agent2.reset()
     agent2.initiate_chat(group_chat_manager, message="hello")
     assert len(groupchat.messages) == 2
+
+    with pytest.raises(ValueError):
+        agent2.initiate_chat(group_chat_manager, message={"function_call": {"name": "func", "arguments": '{"x": 1}'}})
 
 
 def test_plugin():
@@ -109,5 +115,5 @@ def test_plugin():
 if __name__ == "__main__":
     test_func_call_groupchat()
     # test_broadcast()
-    # test_chat_manager()
+    test_chat_manager()
     # test_plugin()

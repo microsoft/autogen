@@ -1021,3 +1021,8 @@ class ConversableAgent(Agent):
     def can_execute_function(self, name: str) -> bool:
         """Whether the agent can execute the function."""
         return name in self._function_map
+
+    @property
+    def function_map(self) -> Dict[str, Callable]:
+        """Return the function map."""
+        return self._function_map

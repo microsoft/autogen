@@ -70,10 +70,15 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 # only one agent can execute the function
                 return agents[0]
             elif not agents:
-                raise ValueError(
-                    f"No agent can execute the function {self.messages[-1]['name']}. "
-                    "Please check the function_map of the agents."
-                )
+                # find all the agents with function_map
+                agents = [agent for agent in self.agents if agent.function_map]
+                if len(agents) == 1:
+                    return agents[0]
+                elif not agents:
+                    raise ValueError(
+                        f"No agent can execute the function {self.messages[-1]['name']}. "
+                        "Please check the function_map of the agents."
+                    )
         else:
             agents = self.agents
             # Warn if GroupChat is underpopulated
