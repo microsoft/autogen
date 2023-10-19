@@ -89,6 +89,7 @@ from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
 # and OAI_CONFIG_LIST_sample
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+# You can also set config_list directly as a list, for example, config_list = [{'model': 'gpt-4', 'api_key': '<your OpenAI API key here>'},]
 assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
 user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "coding"})
 user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
@@ -136,13 +137,15 @@ In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
-- [Discord](https://discord.gg/pAbnFJrkgZ).
+- [Discord](https://discord.gg/pAbnFJrkgZ)
 
-- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute).
+- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
+
+- [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
 ## Citation
 
-[AutoGen](https://arxiv.org/abs/2308.08155).
+[AutoGen](https://arxiv.org/abs/2308.08155)
 
 ```
 @inproceedings{wu2023autogen,
@@ -155,7 +158,7 @@ In addition, you can find:
 }
 ```
 
-[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+[EcoOptiGen](https://arxiv.org/abs/2303.04673)
 
 ```
 @inproceedings{wang2023EcoOptiGen,
@@ -166,7 +169,7 @@ In addition, you can find:
 }
 ```
 
-[MathChat](https://arxiv.org/abs/2306.01337).
+[MathChat](https://arxiv.org/abs/2306.01337)
 
 ```
 @inproceedings{wu2023empirical,
