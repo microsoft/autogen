@@ -95,7 +95,9 @@ def use_task_advice_pair_phrasing():
     """Tests whether the agent can demonstrate a new skill after being taught a task-advice pair in a previous chat."""
     print(colored("\nTEST TASK-ADVICE PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
-    agent = create_teachable_agent(reset_db=True, verbosity=skill_verbosity)  # For a clean test, clear the agent's memory.
+    agent = create_teachable_agent(
+        reset_db=True, verbosity=skill_verbosity  # For a clean test, clear the agent's memory.
+    )
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
