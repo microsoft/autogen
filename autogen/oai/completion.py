@@ -1026,7 +1026,7 @@ class Completion(openai_Completion):
         Returns:
             The cost in USD. 0 if the model is not supported.
         """
-        model = response["model"]
+        model = response.get("model")
         if model not in cls.price1K:
             return 0
             # raise ValueError(f"Unknown model: {model}")
