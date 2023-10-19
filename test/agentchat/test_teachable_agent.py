@@ -10,7 +10,10 @@ except ImportError:
         return x
 
 
-verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+# Set verbosity levels to maximize code coverage.
+qa_verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+skill_verbosity = 3  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
 
@@ -21,7 +24,7 @@ recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to
 filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
 
-def create_teachable_agent(reset_db=False):
+def create_teachable_agent(reset_db=False, verbosity=0):
     """Instantiates a TeachableAgent using the settings from the top of this file."""
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
@@ -53,16 +56,11 @@ def check_agent_response(agent, user, correct_answer):
         return 0
 
 
-def test_question_answer_pair():
+def use_question_answer_phrasing():
     """Tests whether the agent can answer a question after being taught the answer in a previous chat."""
-    try:
-        import openai
-    except ImportError:
-        return
-
-    print(colored("\nTEST QUESTION-ANSWER PAIRS", "light_cyan"))
+    print(colored("\nTEST QUESTION-ANSWER PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
-    agent = create_teachable_agent(reset_db=True)  # For a clean test, clear the agent's memory.
+    agent = create_teachable_agent(reset_db=True, verbosity=qa_verbosity)  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
@@ -93,16 +91,11 @@ def test_question_answer_pair():
     return num_errors, num_tests
 
 
-def test_task_advice_pair():
+def use_task_advice_pair_phrasing():
     """Tests whether the agent can demonstrate a new skill after being taught a task-advice pair in a previous chat."""
-    try:
-        import openai
-    except ImportError:
-        return
-
-    print(colored("\nTEST TASK-ADVICE PAIRS", "light_cyan"))
+    print(colored("\nTEST TASK-ADVICE PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
-    agent = create_teachable_agent(reset_db=True)  # For a clean test, clear the agent's memory.
+    agent = create_teachable_agent(reset_db=True, verbosity=skill_verbosity)  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
@@ -130,17 +123,22 @@ def test_task_advice_pair():
     return num_errors, num_tests
 
 
-if __name__ == "__main__":
+def test_all():
     """Runs this file's unit tests."""
+    try:
+        import openai
+    except ImportError:
+        return
+
     total_num_errors, total_num_tests = 0, 0
 
     num_trials = 1  # Set to a higher number to get a more accurate error rate.
     for trial in range(num_trials):
-        num_errors, num_tests = test_question_answer_pair()
+        num_errors, num_tests = use_question_answer_phrasing()
         total_num_errors += num_errors
         total_num_tests += num_tests
 
-        num_errors, num_tests = test_task_advice_pair()
+        num_errors, num_tests = use_task_advice_pair_phrasing()
         total_num_errors += num_errors
         total_num_tests += num_tests
 
@@ -155,3 +153,8 @@ if __name__ == "__main__":
                 "light_red",
             )
         )
+
+
+if __name__ == "__main__":
+    """Runs this file's unit tests from the command line."""
+    test_all()
