@@ -102,7 +102,9 @@ class TeachableAgent(ConversableAgent):
         # Get the last user message.
         user_text = messages[-1]["content"]
         if not isinstance(user_text, str):
-            raise ValueError("TeachableAgent currently assumes that the message content is a simple string. This error serves to flag a test case for relaxing this assumption.")
+            raise ValueError(
+                "TeachableAgent currently assumes that the message content is a simple string. This error serves to flag a test case for relaxing this assumption."
+            )
 
         # This is a normal user turn. Keep track of it for potential storage later.
         self.user_comments.append(user_text)
