@@ -18,7 +18,8 @@ except ImportError:
 
 
 class TeachableAgent(ConversableAgent):
-    """Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings."""
+    """Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
+    In this class, the term 'user' refers to any caller (human or not) sending messages to this agent."""
 
     def __init__(
         self,
@@ -45,7 +46,7 @@ class TeachableAgent(ConversableAgent):
                 - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
                 - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
                 - use_cache (Optional, bool): True to skip LLM calls made previously by relying on cached responses. Default False.
-                - recall_threshold (Optional, float): The distance threshold for retrieving memos from the DB. Default 1.5.
+                - recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
                 - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
             **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
         """
@@ -59,7 +60,7 @@ class TeachableAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
-        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply)
+        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, 1)
 
         self._teach_config = {} if teach_config is None else teach_config
         self.verbosity = self._teach_config.get("verbosity", 0)
@@ -94,12 +95,14 @@ class TeachableAgent(ConversableAgent):
         Uses self.analyzer to make decisions about memo storage and retrieval.
         """
         if self.llm_config is False:
-            return False, None  # Return if no LLM was provided.
+            raise ValueError("TeachableAgent requires self.llm_config to be set in its base class.")
         if messages is None:
             messages = self._oai_messages[sender]  # In case of a direct call.
 
         # Get the last user message.
         user_text = messages[-1]["content"]
+        if not isinstance(user_text, str):
+            raise ValueError("TeachableAgent currently assumes that the message content is a simple string. This error serves to flag a test case for relaxing this assumption.")
 
         # This is a normal user turn. Keep track of it for potential storage later.
         self.user_comments.append(user_text)
@@ -119,7 +122,7 @@ class TeachableAgent(ConversableAgent):
 
         return True, response_text
 
-    def learn_from_recent_user_comments(self):
+    def learn_from_user_feedback(self):
         """Reviews the user comments from the last chat, and decides what teachings to store as memos."""
         print(colored("\nREVIEWING CHAT FOR USER TEACHINGS TO REMEMBER", "light_yellow"))
         # Look at each user turn.
@@ -263,7 +266,7 @@ class MemoStore:
     Each DB entry (called a memo) is a pair of strings: an input text and an output text.
     The input text may be a question, or a task to perform.
     The output text may be an answer to the question, or advice for how to perform the task.
-    Vector embeddings are currently provided by chromadb's default sentence encoder.
+    Vector embeddings are currently provided by Chroma's default Sentence Transformers.
     """
 
     def __init__(self, verbosity, reset, path_to_db_dir):

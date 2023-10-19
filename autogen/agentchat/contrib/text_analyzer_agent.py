@@ -33,7 +33,7 @@ class TextAnalyzerAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
-        self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply)
+        self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply, 1)
         self.use_cache = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
     def _analyze_in_reply(
@@ -46,7 +46,7 @@ class TextAnalyzerAgent(ConversableAgent):
         Assumes exactly two messages containing the text to analyze and the analysis instructions respectively.
         See TeachableAgent.analyze for an example of how to use this method."""
         if self.llm_config is False:
-            return False, None  # Return if no LLM was provided.
+            raise ValueError("TextAnalyzerAgent requires self.llm_config to be set in its base class.")
         if messages is None:
             messages = self._oai_messages[sender]  # In case of a direct call.
         assert len(messages) == 2

@@ -57,7 +57,7 @@ setuptools.setup(
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf"],
-        "teachability": ["chromadb"],
+        "teachable": ["chromadb"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -18,7 +18,7 @@ recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to
 # filter_dict={"model": ["gpt-4-0613"]}
 # filter_dict={"model": ["gpt-3.5-turbo-0613"]}
 # filter_dict={"model": ["gpt-4"]}
-filter_dict = {"model": ["gpt-35-turbo-16k"]}
+filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
 
 def create_teachable_agent(reset_db=False):
@@ -80,7 +80,7 @@ def test_question_answer_pair():
     num_tests += 1
 
     # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_recent_user_comments()
+    agent.learn_from_user_feedback()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
     print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))
@@ -117,7 +117,7 @@ def test_task_advice_pair():
     num_tests += 1
 
     # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_recent_user_comments()
+    agent.learn_from_user_feedback()
 
     # Now start a new chat to clear the context, and require the agent to use its new knowledge.
     print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))

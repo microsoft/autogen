@@ -48,7 +48,7 @@ def interact_freely_with_user():
     agent.initiate_chat(user, message="Greetings, I'm a teachable user assistant! What's on your mind today?")
 
     # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_recent_user_comments()
+    agent.learn_from_user_feedback()
 
     # Wrap up.
     agent.close_db()
