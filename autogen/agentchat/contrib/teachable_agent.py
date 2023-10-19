@@ -99,29 +99,29 @@ class TeachableAgent(ConversableAgent):
         if messages is None:
             messages = self._oai_messages[sender]  # In case of a direct call.
 
-        # Get the last user message.
-        user_text = messages[-1]["content"]
-        if not isinstance(user_text, str):
+        # Get the last user turn.
+        last_message = messages[-1]
+        user_text = last_message["content"]
+        if (not isinstance(user_text, str)) or ("context" in last_message):
             raise ValueError(
                 "TeachableAgent currently assumes that the message content is a simple string. This error serves to flag a test case for relaxing this assumption."
             )
 
-        # This is a normal user turn. Keep track of it for potential storage later.
+        # Keep track of this user turn as a potential source of memos later.
         self.user_comments.append(user_text)
 
+        # Consider whether to retrieve something from the DB.
         if self.memo_store.last_memo_id > 0:
-            # Consider whether to retrieve something from the DB.
             new_user_text = self.consider_memo_retrieval(user_text)
             if new_user_text != user_text:
                 # Make a copy of the message list, and replace the last user message with the new one.
                 messages = messages.copy()
                 messages[-1]["content"] = new_user_text
 
-        ctxt = messages[-1].pop("context", None)  # This peels off any "context" message from the list.
+        # Generate a response.
         msgs = self._oai_system_message + messages
-        response = oai.ChatCompletion.create(context=ctxt, messages=msgs, use_cache=self.use_cache, **self.llm_config)
+        response = oai.ChatCompletion.create(messages=msgs, use_cache=self.use_cache, **self.llm_config)
         response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
-
         return True, response_text
 
     def learn_from_user_feedback(self):
