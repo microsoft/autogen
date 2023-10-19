@@ -137,13 +137,15 @@ In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
-- [Discord](https://discord.gg/pAbnFJrkgZ).
+- [Discord](https://discord.gg/pAbnFJrkgZ)
 
-- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute).
+- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
+
+- [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
 ## Citation
 
-[AutoGen](https://arxiv.org/abs/2308.08155).
+[AutoGen](https://arxiv.org/abs/2308.08155)
 
 ```
 @inproceedings{wu2023autogen,
@@ -156,7 +158,7 @@ In addition, you can find:
 }
 ```
 
-[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+[EcoOptiGen](https://arxiv.org/abs/2303.04673)
 
 ```
 @inproceedings{wang2023EcoOptiGen,
@@ -167,7 +169,7 @@ In addition, you can find:
 }
 ```
 
-[MathChat](https://arxiv.org/abs/2306.01337).
+[MathChat](https://arxiv.org/abs/2306.01337)
 
 ```
 @inproceedings{wu2023empirical,
