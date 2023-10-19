@@ -94,7 +94,7 @@ def test_question_answer_pair():
 
 
 def test_task_advice_pair():
-    """Tests whether the agent can recall and use advice after being taught a task-advice pair in a previous chat."""
+    """Tests whether the agent can demonstrate a new skill after being taught a task-advice pair in a previous chat."""
     try:
         import openai
     except ImportError:
