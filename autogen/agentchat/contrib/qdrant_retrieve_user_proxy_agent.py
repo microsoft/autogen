@@ -147,10 +147,12 @@ def create_qdrant_from_dir(
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
     logger.info(f"Found {len(chunks)} chunks.")
 
-    # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
-    for i in range(0, len(chunks), min(40000, len(chunks))):
-        end_idx = i + min(40000, len(chunks) - i)
-        client.add(collection_name, documents=chunks[i:end_idx], ids=[j for j in range(i, end_idx)])
+    # Upsert in batch of 500 or less if the total number of chunks is less than 500
+    for i in range(0, len(chunks), min(500, len(chunks))):
+        end_idx = i + min(500, len(chunks) - i)
+        client.add(
+            collection_name, documents=chunks[i:end_idx], ids=[j for j in range(i, end_idx)], parallel=0
+        )  # Use all available CPU cores to encode data
 
     # Create a payload index for the document field
     # Enables highly efficient payload filtering. Reference: https://qdrant.tech/documentation/concepts/indexing/#indexing
