@@ -65,6 +65,8 @@ import autogen
 config_list = autogen.config_list_from_models(model_list=["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"])
 ```
 
+> For Azure the model name refers to the OpenAI Studio deployment name.
+
 The config list looks like the following, if only OpenAI API key is available:
 ```python
 config_list = [
