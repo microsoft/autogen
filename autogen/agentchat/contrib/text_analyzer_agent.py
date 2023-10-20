@@ -10,26 +10,39 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 
 class TextAnalyzerAgent(ConversableAgent):
-    """Text Analysis agent, a subclass of ConversableAgent designed to answer specific questions about text."""
+    """Text Analysis agent, a subclass of ConversableAgent designed to analyze text as instructed."""
 
     def __init__(
         self,
-        name: str,
+        name="Analyzer",
         system_message: Optional[str] = system_message,
-        llm_config: Optional[Union[Dict, bool]] = None,
-        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
-        code_execution_config: Optional[Union[Dict, bool]] = False,
+        llm_config: Optional[Union[Dict, bool]] = None,
         **kwargs,
     ):
+        """
+        Args:
+            name (str): name of the agent.
+            system_message (str): system message for the ChatCompletion inference.
+            human_input_mode (str): This agent should NEVER prompt the human for input.
+            llm_config (dict or False): llm inference configuration.
+                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                for available options.
+                To disable llm-based auto reply, set to False.
+            teach_config (dict or None): Additional parameters used by TeachableAgent.
+                To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
+                - verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+                - reset_db (Optional, bool): True to clear the DB before starting. Default False.
+                - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
+                - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
+                - recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
+                - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
+            **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
+        """
         super().__init__(
-            name,
-            system_message,
-            is_termination_msg,
-            max_consecutive_auto_reply,
-            human_input_mode,
-            code_execution_config=code_execution_config,
+            name=name,
+            system_message=system_message,
+            human_input_mode=human_input_mode,
             llm_config=llm_config,
             **kwargs,
         )

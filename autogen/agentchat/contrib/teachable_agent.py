@@ -23,23 +23,25 @@ class TeachableAgent(ConversableAgent):
 
     def __init__(
         self,
-        name="Agent",  # default set to Assistant
+        name="Agent",
         system_message: Optional[
             str
         ] = "You are a helpful AI assistant that remembers user teachings from prior chats.",
-        llm_config: Optional[Union[Dict, bool]] = None,
-        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
-        code_execution_config: Optional[Union[Dict, bool]] = False,
-        teach_config: Optional[Dict] = None,  # config for the TeachableAgent
+        llm_config: Optional[Union[Dict, bool]] = None,
+        teach_config: Optional[Dict] = None,
         **kwargs,
     ):
         """
         Args:
-            name (str): name of the agent. Default "Assistant".
-            human_input_mode (str): NEVER ask for human input for this agent.
-            teach_config (dict or None): config for the TeachableAgent.
+            name (str): name of the agent.
+            system_message (str): system message for the ChatCompletion inference.
+            human_input_mode (str): This agent should NEVER prompt the human for input.
+            llm_config (dict or False): llm inference configuration.
+                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                for available options.
+                To disable llm-based auto reply, set to False.
+            teach_config (dict or None): Additional parameters used by TeachableAgent.
                 To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
                 - verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
                 - reset_db (Optional, bool): True to clear the DB before starting. Default False.
@@ -50,12 +52,9 @@ class TeachableAgent(ConversableAgent):
             **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
         """
         super().__init__(
-            name,
-            system_message,
-            is_termination_msg,
-            max_consecutive_auto_reply,
-            human_input_mode,
-            code_execution_config=code_execution_config,
+            name=name,
+            system_message=system_message,
+            human_input_mode=human_input_mode,
             llm_config=llm_config,
             **kwargs,
         )
@@ -69,7 +68,7 @@ class TeachableAgent(ConversableAgent):
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
         self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
 
-        self.analyzer = TextAnalyzerAgent("analyzer", llm_config=llm_config)
+        self.analyzer = TextAnalyzerAgent(llm_config=llm_config)
 
         self.memo_store = MemoStore(self.verbosity, self.reset_db, self.path_to_db_dir)
         self.user_comments = []  # Stores user comments until the end of each chat.
