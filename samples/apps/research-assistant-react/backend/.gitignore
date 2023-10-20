@@ -1,0 +1,18 @@
+database.sqlite
+.cache/*
+files/*
+OAI_CONFIG_LIST
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
