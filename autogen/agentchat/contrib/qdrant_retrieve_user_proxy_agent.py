@@ -44,7 +44,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
-                - client (Optional, qdrant_client.QdrantClient(":memory:")): A QdrantClient instance. If not provided, an in-memory instance will be assigned.`
+                - client (Optional, qdrant_client.QdrantClient(":memory:")): A QdrantClient instance. If not provided, an in-memory instance will be assigned. Not recommended for production.
                     will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
                 - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
                     or the url to a single file. Default is None, which works only if the collection is already created.
@@ -61,7 +61,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 - must_break_at_empty_line (Optional, bool): chunk will only break at empty line if True. Default is True.
                     If chunk_mode is "one_line", this parameter will be ignored.
                 - embedding_model (Optional, str): the embedding model to use for the retrieve chat.
-                    If key not provided, a default model `BAAI/bge-base-en-v1.5` will be used. All available models
+                    If key not provided, a default model `BAAI/bge-small-en-v1.5` will be used. All available models
                     can be found at `https://qdrant.github.io/fastembed/examples/Supported_Models/`.
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
@@ -82,7 +82,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         """
         super().__init__(name, human_input_mode, is_termination_msg, retrieve_config, **kwargs)
         self._client = self._retrieve_config.get("client", QdrantClient(":memory:"))
-        self._embedding_model = self._retrieve_config.get("embedding_model", "BAAI/bge-base-en-v1.5")
+        self._embedding_model = self._retrieve_config.get("embedding_model", "BAAI/bge-small-en-v1.5")
         # Uses all available CPU cores to encode data when set to 0
         self._parallel = self._retrieve_config.get("parallel", 0)
         self._on_disk = self._retrieve_config.get("on_disk", False)
@@ -135,7 +135,7 @@ def create_qdrant_from_dir(
     collection_name: str = "all-my-documents",
     chunk_mode: str = "multi_lines",
     must_break_at_empty_line: bool = True,
-    embedding_model: str = "BAAI/bge-base-en-v1.5",
+    embedding_model: str = "BAAI/bge-small-en-v1.5",
     custom_text_split_function: Callable = None,
     parallel: int = 0,
     on_disk: bool = False,
@@ -154,11 +154,11 @@ def create_qdrant_from_dir(
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
         must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
-        embedding_model (Optional, str): the embedding model to use. Default is "BAAI/bge-base-en-v1.5". The list of all the available models can be at https://qdrant.github.io/fastembed/examples/Supported_Models/.
+        embedding_model (Optional, str): the embedding model to use. Default is "BAAI/bge-small-en-v1.5". The list of all the available models can be at https://qdrant.github.io/fastembed/examples/Supported_Models/.
         parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores
         on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
-        quantization_config: Quantization configuration. If None, quantization will be disabled.
-        hnsw_config: HNSW configuration. If None, default configuration will be used.
+        quantization_config: Quantization configuration. If None, quantization will be disabled. Ref: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
+        hnsw_config: HNSW configuration. If None, default configuration will be used. Ref: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
         payload_indexing: Whether to create a payload index for the document field. Default is False.
         qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client. Reference: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
     """
@@ -214,7 +214,7 @@ def query_qdrant(
     client: QdrantClient = None,
     collection_name: str = "all-my-documents",
     search_string: str = "",
-    embedding_model: str = "BAAI/bge-base-en-v1.5",
+    embedding_model: str = "BAAI/bge-small-en-v1.5",
     qdrant_client_options: Optional[Dict] = {},
 ) -> List[List[QueryResponse]]:
     """Perform a similarity search with filters on a Qdrant collection
