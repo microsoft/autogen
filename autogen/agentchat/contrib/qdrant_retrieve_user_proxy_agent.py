@@ -72,7 +72,10 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
                 - parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores.
-            **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
+                - on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
+                - quantization_config: Quantization configuration. If None, quantization will be disabled.
+                - hnsw_config: HNSW configuration. If None, default configuration will be used.
+             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         """
         super().__init__(name, human_input_mode, is_termination_msg, retrieve_config, **kwargs)
@@ -80,6 +83,9 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         self._embedding_model = self._retrieve_config.get("embedding_model", "BAAI/bge-base-en-v1.5")
         # Uses all available CPU cores to encode data when set to 0
         self._parallel = self._retrieve_config.get("parallel", 0)
+        self._on_disk = self._retrieve_config.get("on_disk", False)
+        self._quantization_config = self._retrieve_config.get("quantization_config", None)
+        self._hnsw_config = self._retrieve_config.get("hnsw_config", None)
 
     @override
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
@@ -101,6 +107,9 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 embedding_model=self._embedding_model,
                 custom_text_split_function=self.custom_text_split_function,
                 parallel=self._parallel,
+                on_disk=self._on_disk,
+                quantization_config=self._quantization_config,
+                hnsw_config=self._hnsw_config,
             )
             self._collection = True
 
@@ -125,6 +134,9 @@ def create_qdrant_from_dir(
     embedding_model: str = "BAAI/bge-base-en-v1.5",
     custom_text_split_function: Callable = None,
     parallel: int = 0,
+    on_disk: bool = False,
+    quantization_config: Optional[models.QuantizationConfig] = None,
+    hnsw_config: Optional[models.HnswConfigDiff] = None,
     qdrant_client_options: Optional[Dict] = {},
 ):
     """Create a Qdrant collection from all the files in a given directory, the directory can also be a single file or a url to
@@ -139,6 +151,9 @@ def create_qdrant_from_dir(
         must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
         embedding_model (Optional, str): the embedding model to use. Default is "BAAI/bge-base-en-v1.5". The list of all the available models can be at https://qdrant.github.io/fastembed/examples/Supported_Models/.
         parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores
+        on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
+        quantization_config: Quantization configuration. If None, quantization will be disabled.
+        hnsw_config: HNSW configuration. If None, default configuration will be used.
         qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client. Reference: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
     """
     if client is None:
@@ -153,6 +168,18 @@ def create_qdrant_from_dir(
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
     logger.info(f"Found {len(chunks)} chunks.")
 
+    # Check if collection by same name exists, if not, create it with custom options
+    try:
+        client.get_collection(collection_name=collection_name)
+    except Exception:
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=client.get_fastembed_vector_params(
+                on_disk=on_disk, quantization_config=quantization_config, hnsw_config=hnsw_config
+            ),
+        )
+        client.get_collection(collection_name=collection_name)
+
     # Upsert in batch of 100 or less if the total number of chunks is less than 100
     for i in range(0, len(chunks), min(100, len(chunks))):
         end_idx = i + min(100, len(chunks) - i)
@@ -160,18 +187,16 @@ def create_qdrant_from_dir(
 
     # Create a payload index for the document field
     # Enables highly efficient payload filtering. Reference: https://qdrant.tech/documentation/concepts/indexing/#indexing
-    # Creating an index requires additional computational resources and memory.
-    # If filtering performance is critical, we can consider creating an index.
-    # client.create_payload_index(
-    #     collection_name=collection_name,
-    #     field_name="document",
-    #     field_schema=models.TextIndexParams(
-    #         type="text",
-    #         tokenizer=models.TokenizerType.WORD,
-    #         min_token_len=2,
-    #         max_token_len=15,
-    #     )
-    # )
+    client.create_payload_index(
+        collection_name=collection_name,
+        field_name="document",
+        field_schema=models.TextIndexParams(
+            type="text",
+            tokenizer=models.TokenizerType.WORD,
+            min_token_len=2,
+            max_token_len=15,
+        ),
+    )
 
 
 def query_qdrant(
