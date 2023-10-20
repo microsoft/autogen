@@ -71,12 +71,15 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                     Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
                 - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+                - parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         """
         super().__init__(name, human_input_mode, is_termination_msg, retrieve_config, **kwargs)
         self._client = self._retrieve_config.get("client", QdrantClient(":memory:"))
         self._embedding_model = self._retrieve_config.get("embedding_model", "BAAI/bge-base-en-v1.5")
+        # Uses all available CPU cores to encode data when set to 0
+        self._parallel = self._retrieve_config.get("parallel", 0)
 
     @override
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
@@ -97,6 +100,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 must_break_at_empty_line=self._must_break_at_empty_line,
                 embedding_model=self._embedding_model,
                 custom_text_split_function=self.custom_text_split_function,
+                parallel=self._parallel,
             )
             self._collection = True
 
@@ -120,6 +124,7 @@ def create_qdrant_from_dir(
     must_break_at_empty_line: bool = True,
     embedding_model: str = "BAAI/bge-base-en-v1.5",
     custom_text_split_function: Callable = None,
+    parallel: int = 0,
     qdrant_client_options: Optional[Dict] = {},
 ):
     """Create a Qdrant collection from all the files in a given directory, the directory can also be a single file or a url to
@@ -133,6 +138,7 @@ def create_qdrant_from_dir(
         chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
         must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
         embedding_model (Optional, str): the embedding model to use. Default is "BAAI/bge-base-en-v1.5". The list of all the available models can be at https://qdrant.github.io/fastembed/examples/Supported_Models/.
+        parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores
         qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client. Reference: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
     """
     if client is None:
@@ -147,12 +153,10 @@ def create_qdrant_from_dir(
         chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
     logger.info(f"Found {len(chunks)} chunks.")
 
-    # Upsert in batch of 500 or less if the total number of chunks is less than 500
-    for i in range(0, len(chunks), min(500, len(chunks))):
-        end_idx = i + min(500, len(chunks) - i)
-        client.add(
-            collection_name, documents=chunks[i:end_idx], ids=[j for j in range(i, end_idx)], parallel=0
-        )  # Use all available CPU cores to encode data
+    # Upsert in batch of 100 or less if the total number of chunks is less than 100
+    for i in range(0, len(chunks), min(100, len(chunks))):
+        end_idx = i + min(100, len(chunks) - i)
+        client.add(collection_name, documents=chunks[i:end_idx], ids=[j for j in range(i, end_idx)], parallel=parallel)
 
     # Create a payload index for the document field
     # Enables highly efficient payload filtering. Reference: https://qdrant.tech/documentation/concepts/indexing/#indexing
