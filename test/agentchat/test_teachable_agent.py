@@ -1,3 +1,8 @@
+try:
+    import openai
+except ImportError:
+    openai = None
+import pytest
 from autogen import ConversableAgent, config_list_from_json
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 
@@ -126,13 +131,9 @@ def use_task_advice_pair_phrasing():
     return num_errors, num_tests
 
 
+@pytest.mark.skipif(openai is None, reason="openai not installed")
 def test_all():
     """Runs this file's unit tests."""
-    try:
-        import openai
-    except ImportError:
-        return
-
     total_num_errors, total_num_tests = 0, 0
 
     num_trials = 1  # Set to a higher number to get a more accurate error rate.
