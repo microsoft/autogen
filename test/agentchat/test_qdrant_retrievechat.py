@@ -3,17 +3,18 @@ import logging
 import os
 
 import pytest
-from autogen.agentchat.contrib.qdrant_retrieve_user_proxy_agent import (
-    create_qdrant_from_dir,
-    QdrantRetrieveUserProxyAgent,
-    query_qdrant,
-)
+
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import ChatCompletion, config_list_from_json
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
     from qdrant_client import QdrantClient
+    from autogen.agentchat.contrib.qdrant_retrieve_user_proxy_agent import (
+        create_qdrant_from_dir,
+        QdrantRetrieveUserProxyAgent,
+        query_qdrant,
+    )
 
     QDRANT_INSTALLED = True
 except ImportError:
