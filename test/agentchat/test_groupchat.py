@@ -3,6 +3,7 @@ import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import random
 
+
 def test_func_call_groupchat():
     agent1 = autogen.ConversableAgent(
         "alice",
@@ -49,6 +50,7 @@ def test_func_call_groupchat():
 
     agent2.initiate_chat(group_chat_manager, message={"function_call": {"name": "func", "arguments": '{"x": 1}'}})
 
+
 def test_group_chat_math_class():
     """
     This test case is to simulate a math class.
@@ -79,7 +81,7 @@ def test_group_chat_math_class():
 
     llm_config_for_user_proxy = {
         **gpt3_5_config,
-        "functions":[
+        "functions": [
             {
                 "name": "terminate_group_chat",
                 "description": "terminate group chat",
@@ -98,7 +100,7 @@ def test_group_chat_math_class():
     }
 
     def terminate_group_chat(message):
-        return f'[GROUPCHAT_TERMINATE] {message}'
+        return f"[GROUPCHAT_TERMINATE] {message}"
 
     user_proxy = autogen.UserProxyAgent(
         name="Admin",
@@ -106,12 +108,12 @@ def test_group_chat_math_class():
         code_execution_config=False,
         llm_config=llm_config_for_user_proxy,
         human_input_mode="NEVER",
-        function_map={'terminate_group_chat': terminate_group_chat}
+        function_map={"terminate_group_chat": terminate_group_chat},
     )
 
     llm_config_for_teacher = {
         **gpt3_5_config,
-        "functions":[
+        "functions": [
             {
                 "name": "create_math_question",
                 "description": "create pre-school math question for student to resolve",
@@ -122,7 +124,7 @@ def test_group_chat_math_class():
                             "type": "string",
                             "description": "pre-school math question",
                         },
-                        "i":{
+                        "i": {
                             "type": "integer",
                             "description": "question index",
                         },
@@ -134,7 +136,7 @@ def test_group_chat_math_class():
     }
 
     def create_math_question(question, i):
-        return f'[QUESTION] this is question #{i}: {question}'
+        return f"[QUESTION] this is question #{i}: {question}"
 
     teacher = autogen.AssistantAgent(
         "teacher",
@@ -149,12 +151,12 @@ def test_group_chat_math_class():
             ask student to resolve the question again
         """,
         llm_config=llm_config_for_teacher,
-        function_map={'create_math_question': create_math_question}
+        function_map={"create_math_question": create_math_question},
     )
 
     llm_config_for_student = {
         **gpt3_5_config,
-        "functions":[
+        "functions": [
             {
                 "name": "answer_math_question",
                 "description": "answer math question from teacher",
@@ -173,7 +175,8 @@ def test_group_chat_math_class():
     }
 
     def answer_math_question(answer):
-        return f'[ANSWER] {answer}'
+        return f"[ANSWER] {answer}"
+
     student = autogen.AssistantAgent(
         "student",
         system_message="""You are a pre-school student, you resolve the math questions from teacher.
@@ -185,14 +188,14 @@ def test_group_chat_math_class():
             ask teacher to create a question
         """,
         llm_config=llm_config_for_student,
-        function_map={'answer_math_question': answer_math_question}
+        function_map={"answer_math_question": answer_math_question},
     )
     groupchat = autogen.GroupChat(agents=[user_proxy, student, teacher], messages=[], max_round=25)
     manager = autogen.GroupChatManager(
         groupchat=groupchat,
         llm_config=gpt3_5_config,
-        is_termination_msg=lambda message: message.startswith('[GROUPCHAT_TERMINATE]'),
-        )
+        is_termination_msg=lambda message: message.startswith("[GROUPCHAT_TERMINATE]"),
+    )
     user_proxy.send(
         "welcome to the class. I'm admin here. Teacher, you create 3 math questions for student to answer. Let me know when student resolve all questions.",
         manager,
@@ -207,18 +210,21 @@ def test_group_chat_math_class():
     )
 
     assert len(groupchat.messages) < 25
-    
+
     # verify if admin says [GROUPCHAT_TERMINATE]
-    terminate_message = filter(lambda message: message["content"].startswith("[GROUPCHAT_TERMINATE]"), groupchat.messages)
+    terminate_message = filter(
+        lambda message: message["content"].startswith("[GROUPCHAT_TERMINATE]"), groupchat.messages
+    )
     assert len(list(terminate_message)) == 1
 
-    # verify if teacher gives 5 questions
+    # verify if teacher gives 3 questions
     question_message = filter(lambda message: message["content"].startswith("[QUESTION]"), groupchat.messages)
     assert len(list(question_message)) == 3
 
-    # verify if student gives more than 5 answers (student might give more than 5 answers if student's answer is not correct)
+    # verify if student gives more than 3 answers (student might give more than 3 answers if student's answer is not correct)
     answer_message = filter(lambda message: message["content"].startswith("[ANSWER]"), groupchat.messages)
     assert len(list(answer_message)) >= 3
+
 
 def test_chat_manager():
     agent1 = autogen.ConversableAgent(
@@ -282,11 +288,13 @@ def test_plugin():
     assert len(agent1.chat_messages[group_chat_manager]) == 2
     assert len(groupchat.messages) == 2
 
+
 def skip_if_openai_not_available():
     try:
         import openai
     except ImportError:
         pytest.skip("OpenAI package not found.")
+
 
 if __name__ == "__main__":
     test_group_chat_math_class()
