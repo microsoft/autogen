@@ -45,7 +45,6 @@ class TeachableAgent(ConversableAgent):
                 - reset_db (Optional, bool): True to clear the DB before starting. Default False.
                 - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
                 - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
-                - use_cache (Optional, bool): True to skip LLM calls made previously by relying on cached responses. Default False.
                 - recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
                 - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
             **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
@@ -67,7 +66,6 @@ class TeachableAgent(ConversableAgent):
         self.reset_db = self._teach_config.get("reset_db", False)
         self.path_to_db_dir = self._teach_config.get("path_to_db_dir", "./tmp/teachable_agent_db")
         self.prepopulate = self._teach_config.get("prepopulate", True)
-        self.use_cache = self._teach_config.get("use_cache", False)
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
         self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
 
@@ -120,7 +118,7 @@ class TeachableAgent(ConversableAgent):
 
         # Generate a response.
         msgs = self._oai_system_message + messages
-        response = oai.ChatCompletion.create(messages=msgs, use_cache=self.use_cache, **self.llm_config)
+        response = oai.ChatCompletion.create(messages=msgs, **self.llm_config)
         response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
         return True, response_text
 

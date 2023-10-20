@@ -34,7 +34,6 @@ class TextAnalyzerAgent(ConversableAgent):
             **kwargs,
         )
         self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply, 1)
-        self.use_cache = False  # 1 to skip LLM calls made previously by relying on cached responses.
 
     def _analyze_in_reply(
         self,
@@ -66,7 +65,7 @@ class TextAnalyzerAgent(ConversableAgent):
 
         # Generate and return the analysis string.
         response = oai.ChatCompletion.create(
-            context=None, messages=messages, use_cache=self.use_cache, **self.llm_config
+            context=None, messages=messages, **self.llm_config
         )
         output_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
         return output_text

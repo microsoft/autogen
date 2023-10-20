@@ -12,9 +12,10 @@ except ImportError:
 
 verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
+use_cache = False  # If True, cached LLM calls will be skipped and responses pulled from cache. False exposes LLM non-determinism.
 
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
-filter_dict = {"model": ["gpt-4-0613"]}
+filter_dict = {"model": ["gpt-4"]}
 
 
 def create_teachable_agent(reset_db=False):
@@ -25,7 +26,7 @@ def create_teachable_agent(reset_db=False):
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
     agent = TeachableAgent(
         name="agent",
-        llm_config={"config_list": config_list, "request_timeout": 120},
+        llm_config={"config_list": config_list, "request_timeout": 120, "use_cache": use_cache},
         teach_config={
             "verbosity": verbosity,
             "reset_db": reset_db,
