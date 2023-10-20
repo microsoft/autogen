@@ -87,7 +87,7 @@ class TeachableAgent(ConversableAgent):
         self.memo_store.close()
 
     def prepopulate_db(self):
-        """Initializes the DB with a few arbitrary memos."""
+        """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
     def _generate_teachable_assistant_reply(
@@ -98,7 +98,7 @@ class TeachableAgent(ConversableAgent):
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """
         Generates a reply to the last user message, after querying the memo store for relevant information.
-        Uses self.analyzer to make decisions about memo storage and retrieval.
+        Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.
         """
         if self.llm_config is False:
             raise ValueError("TeachableAgent requires self.llm_config to be set in its base class.")
@@ -254,7 +254,7 @@ class TeachableAgent(ConversableAgent):
         return memo_texts
 
     def analyze(self, text_to_analyze, analysis_instructions):
-        """Asks the analyzer to analyze the given text according to specific instructions."""
+        """Asks TextAnalyzerAgent to analyze the given text according to specific instructions."""
         if self.verbosity >= 2:
             # Use the messaging mechanism so that the analyzer's messages are included in the printed chat.
             self.analyzer.reset()  # Clear the analyzer's list of messages.
@@ -272,15 +272,15 @@ class MemoStore:
     """
     Provides memory storage and retrieval for a TeachableAgent, using a vector database.
     Each DB entry (called a memo) is a pair of strings: an input text and an output text.
-    The input text may be a question, or a task to perform.
-    The output text may be an answer to the question, or advice for how to perform the task.
-    Vector embeddings are currently provided by Chroma's default Sentence Transformers.
+    The input text might be a question, or a task to perform.
+    The output text might be an answer to the question, or advice on how to perform the task.
+    Vector embeddings are currently supplied by Chroma's default Sentence Transformers.
     """
 
     def __init__(self, verbosity, reset, path_to_db_dir):
         """
         Args:
-            - verbosity (Optional, int): 1 to print memory operations, 0 to omit them.
+            - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print memo lists.
             - path_to_db_dir (Optional, str): path to the directory where the DB is stored.
         """
         self.verbosity = verbosity
@@ -310,6 +310,7 @@ class MemoStore:
                     self.list_memos()
 
     def list_memos(self):
+        """Prints the contents of MemoStore."""
         print(colored("LIST OF MEMOS", "light_green"))
         for uid, text in self.uid_text_dict.items():
             input_text, output_text = text
@@ -321,7 +322,7 @@ class MemoStore:
             )
 
     def close(self):
-        """Saves the dict to disk."""
+        """Saves self.uid_text_dict to disk."""
         print(colored("\nSAVING MEMORY TO DISK", "light_green"))
         print(colored("    Location = {}".format(self.path_to_dict), "light_green"))
         with open(self.path_to_dict, "wb") as file:
@@ -369,7 +370,7 @@ class MemoStore:
         return input_text, output_text, distance
 
     def get_related_memos(self, query_text, n_results, threshold):
-        """Retrieves memos that are related to the given query text with the specified threshold."""
+        """Retrieves memos that are related to the given query text within the specified distance threshold."""
         if n_results > len(self.uid_text_dict):
             n_results = len(self.uid_text_dict)
         results = self.vec_db.query(query_texts=[query_text], n_results=n_results)

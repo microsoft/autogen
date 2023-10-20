@@ -54,8 +54,8 @@ class TextAnalyzerAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
-        """Analyzes the given text as instructed, and returns the analysis.
-        Assumes exactly two messages containing the text to analyze and the analysis instructions respectively.
+        """Analyzes the given text as instructed, and returns the analysis as a message.
+        Assumes exactly two messages containing the text to analyze and the analysis instructions.
         See TeachableAgent.analyze for an example of how to use this method."""
         if self.llm_config is False:
             raise ValueError("TextAnalyzerAgent requires self.llm_config to be set in its base class.")
