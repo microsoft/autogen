@@ -1,0 +1,16 @@
+Find arxiv papers that show how are people studying trust calibration in AI based systems
+@execute
+analyze the above abstracts to list the application domains studied by these papers
+Generate a markdown table: domain, paper title, url
+Use this data to generate a bar chart of domains and number of papers in that domain and save to a file
+@execute
+@memorize
+
+plot a chart for application domains of GPT models
+@execute
+(if necessary) analyze the abstracts to categorize the application domains
+
+refresh profile
+what conferences should I follow?
+turn on personalization
+what conferences should I follow?
