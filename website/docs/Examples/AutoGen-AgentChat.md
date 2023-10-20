@@ -17,3 +17,4 @@ Links to notebook examples:
 * [Automated Continual Learning from New Data](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_stream.ipynb)
 * [Teach Agents New Skills & Reuse via Automated Chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teaching.ipynb)
 * [Automated Code Generation and Question Answering with Retrieval Augemented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
+* [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
