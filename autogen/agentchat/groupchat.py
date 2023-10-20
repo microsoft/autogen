@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import sys
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 import logging
@@ -121,6 +121,7 @@ class GroupChatManager(ConversableAgent):
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[str] = "Group chat manager.",
         # seed: Optional[int] = 4,
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         **kwargs,
     ):
         super().__init__(
@@ -128,6 +129,7 @@ class GroupChatManager(ConversableAgent):
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
             system_message=system_message,
+            is_termination_msg=is_termination_msg,
             **kwargs,
         )
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
@@ -171,7 +173,7 @@ class GroupChatManager(ConversableAgent):
                 else:
                     # admin agent is not found in the participants
                     raise
-            if reply is None:
+            if reply is None or self._is_termination_msg(reply):
                 break
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
