@@ -173,8 +173,17 @@ class GroupChatManager(ConversableAgent):
                 else:
                     # admin agent is not found in the participants
                     raise
-            if reply is None or self._is_termination_msg(reply):
+            if reply is None:
                 break
+
+            if (
+                reply is dict
+                and self._is_termination_msg(reply)
+                or reply is str
+                and self._is_termination_msg({"content": reply})
+            ):
+                break
+
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
