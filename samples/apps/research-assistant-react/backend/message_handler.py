@@ -18,9 +18,11 @@ from utils import generate_oai_reply, copy_utils
 
 from enum import Enum
 
+
 class AgentWorkFlow(Enum):
     CODER_ONLY = "TwoAgents"
     PLANNER_CODER = "PlannerCoder"
+
 
 ## Sorted listed of available RA types
 AVAILABLE_RAS = [
@@ -35,6 +37,7 @@ AVAILABLE_RAS = [
     #     "description": "A two agent workflow with a planner and a coder",
     # },
 ]
+
 
 def process_user_message(
     message,
@@ -97,6 +100,7 @@ def process_user_message(
         message,
         history,
     )
+
 
 def ipython_handle_message(
     message,

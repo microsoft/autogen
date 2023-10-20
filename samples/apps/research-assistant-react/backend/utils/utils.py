@@ -3,6 +3,7 @@ import autogen  # Assuming you have the autogen module imported or installed
 from autogen import oai
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
+
 def copy_utils(utils_dir, work_dir):
     # check if utils dir is a single or a list of dirs
     # if it is single dir, convert it to a list
@@ -19,8 +20,7 @@ def copy_utils(utils_dir, work_dir):
                 os.system(f"cp {os.path.join(dirpath, file)} {work_dir}")
 
 
-
-def create_llm_config(path_to_config_list:str):
+def create_llm_config(path_to_config_list: str):
     config_list = autogen.config_list_from_json(path_to_config_list)
     llm_config = {
         "request_timeout": 600,
@@ -29,6 +29,7 @@ def create_llm_config(path_to_config_list:str):
         "temperature": 0,
     }
     return llm_config
+
 
 def generate_oai_reply(
     messages: Optional[List[Dict]] = None,
@@ -42,8 +43,8 @@ def generate_oai_reply(
     )
     return oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
-def get_standalone_func(content, llm_config):
 
+def get_standalone_func(content, llm_config):
     messages = [
         {
             "role": "user",
@@ -64,4 +65,3 @@ def get_standalone_func(content, llm_config):
     print("Messages", messages)
     response = generate_oai_reply(messages, llm_config)
     return response
-

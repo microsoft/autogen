@@ -5,6 +5,7 @@ from utils.code_utils import utils_2_prompt, extract_code_result
 from raworkflow.raworkflow_helper import custom_printer, print_messages
 from raworkflow.raworkflow import RAWorkflow
 
+
 class TwoAgentWorkflow(RAWorkflow):
     def define_agents(self):
         trigger_execution = self.ra_config["trigger_execution"]
@@ -34,12 +35,10 @@ class TwoAgentWorkflow(RAWorkflow):
 
         # Only add the personalization to the non-coding tasks
         personalization_suffix = ""
-        if trigger_execution == False and not (
-            personalization_profile is None or personalization_profile == ""
-        ):
+        if trigger_execution is False and not (personalization_profile is None or personalization_profile == ""):
             personalization_suffix = f"""
 
-As you are working to fulfil the user's requests, please quietly and carefully think about their interests and 
+As you are working to fulfil the user's requests, please quietly and carefully think about their interests and
 their preferences, as inferred from their biography below, then craft your responses to align with this information.
 
 <biography>
@@ -51,9 +50,7 @@ their preferences, as inferred from their biography below, then craft your respo
         prompt_suffix = utils_2_prompt(self.utils_dir)
         self.primary_assistant = autogen.AssistantAgent(
             name="primary_assitant",
-            system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-            + prompt_suffix
-            + personalization_suffix,
+            system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE + prompt_suffix + personalization_suffix,
             llm_config=self.llm_config,
         )
 
@@ -100,7 +97,7 @@ their preferences, as inferred from their biography below, then craft your respo
             a tuple of (response, code)
         """
 
-        if self.ra_config["trigger_execution"] == True and len(history_messages) > 0:
+        if self.ra_config["trigger_execution"] is True and len(history_messages) > 0:
             # if the trigger execution is True, then send the last assistant message
             # to the user proxy agent
             assert history_messages[-1]["role"] == "assistant"
@@ -115,9 +112,7 @@ their preferences, as inferred from their biography below, then craft your respo
                 silent=self.silent,
             )
 
-            final_code, result = extract_code_result(
-                self.primary_assistant.chat_messages[self.user_proxy]
-            )
+            final_code, result = extract_code_result(self.primary_assistant.chat_messages[self.user_proxy])
             return result, final_code
         else:
             # Populate the entire history and request a response from

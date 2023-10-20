@@ -12,9 +12,8 @@ from autogen.code_utils import extract_code
 import utils.utils
 from utils import get_standalone_func
 
-import ast
-
 from pydantic import BaseModel
+
 
 def extract_code_result(messages):
     N = len(messages)
@@ -43,9 +42,8 @@ def utils_2_skills(utils_dir):
             os.makedirs(dir, exist_ok=True)
         # list all python files in dir
         python_files = os.listdir(dir)
-        python_files = [
-            os.path.join(dir, file) for file in python_files if file.endswith(".py")
-        ]
+        python_files = [os.path.join(dir, file)
+                        for file in python_files if file.endswith(".py")]
         for f in python_files:
             skills.append(
                 {
@@ -64,7 +62,7 @@ def _loop_dir(dirpath):
             utils_text += python_utils_2_prompt(os.path.join(dirpath, file))
 
     prompt_suffix = f"""
-    
+
 While solving the task you may use functions in the files below.
 To use a function from a file in code, import the file and then use the function.
 If you need to install python packages, write shell code to
@@ -89,6 +87,7 @@ def utils_2_prompt(utils_dir):
     else:
         raise ValueError("utils_dir must be a list of dirs or a single dir")
 
+
 class SkillFunction(BaseModel):
     source_file: str
     name: str
@@ -100,15 +99,17 @@ class SkillFunction(BaseModel):
 
     class Config:
         json_encoders = {
-            datetime: lambda dt: dt.isoformat(),  # Convert datetime objects to ISO 8601 string format
+            # Convert datetime objects to ISO 8601 string format
+            datetime: lambda dt: dt.isoformat(),
         }
 
     def to_json(self):
         return self.json()
-    
+
+
 # Set arbitrary_types_allowed to True in the model's configuration
 SkillFunction.Config.arbitrary_types_allowed = True
-    
+
 
 def text2functions(content, source_file) -> List[SkillFunction]:
     tree = ast.parse(content)
@@ -121,9 +122,9 @@ def text2functions(content, source_file) -> List[SkillFunction]:
             docstring = ast.get_docstring(item) or "No docstring available"
 
             code = (
-                content.splitlines()[item.lineno - 1 : item.end_lineno]
+                content.splitlines()[item.lineno - 1: item.end_lineno]
                 if item.end_lineno
-                else content.splitlines()[item.lineno - 1 :]
+                else content.splitlines()[item.lineno - 1:]
             )
             code = "\n".join(code)
 
@@ -177,6 +178,7 @@ def python_utils_2_prompt(python_file):
         """
     return prompt_suffix
 
+
 def learn_skill(
     history,
     utils_dir,
@@ -209,8 +211,8 @@ def learn_skill(
     if last_code is None:
         return {
             "role": "assistant",
-            "content": f"```\nNo code to learn from\n```",
-            ## Code should be none if there was no execution
+            "content": "```\nNo code to learn from\n```",
+            # Code should be none if there was no execution
             "code": None,
             "metadata": {
                 "skill": None,
@@ -261,7 +263,7 @@ def learn_skill(
     return {
         "role": "assistant",
         "content": f"```\nLearned a new skill called `{skill_function.name}`\n```",
-        ## Code should be none if there was no execution
+        # Code should be none if there was no execution
         "code": None,
         "metadata": {
             "skill": json.loads(skill_function.to_json()),

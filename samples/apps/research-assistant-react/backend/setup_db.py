@@ -10,29 +10,29 @@ def create_db():
 
     # Create the table with the specified columns, appropriate data types, and a UNIQUE constraint on (rootMsgId, msgId)
     cursor.execute(
-        """  
-    CREATE TABLE IF NOT EXISTS messages (  
-        userId INTEGER NOT NULL,  
-        rootMsgId INTEGER NOT NULL,  
-        msgId INTEGER NOT NULL,  
-        role TEXT NOT NULL,  
+        """
+    CREATE TABLE IF NOT EXISTS messages (
+        userId INTEGER NOT NULL,
+        rootMsgId INTEGER NOT NULL,
+        msgId INTEGER NOT NULL,
+        role TEXT NOT NULL,
         content TEXT NOT NULL,
-        metadata TEXT,  
-        timestamp DATETIME NOT NULL,  
-        UNIQUE (userId,rootMsgId, msgId)  
-    )  
+        metadata TEXT,
+        timestamp DATETIME NOT NULL,
+        UNIQUE (userId,rootMsgId, msgId)
+    )
     """
     )
 
     # Create a table for personalization profiles
     cursor.execute(
-        """  
-    CREATE TABLE IF NOT EXISTS personalization_profiles (  
-        userId INTEGER NOT NULL,  
-        profile TEXT,  
-        timestamp DATETIME NOT NULL,  
-        UNIQUE (userId)  
-    )  
+        """
+    CREATE TABLE IF NOT EXISTS personalization_profiles (
+        userId INTEGER NOT NULL,
+        profile TEXT,
+        timestamp DATETIME NOT NULL,
+        UNIQUE (userId)
+    )
     """
     )
 

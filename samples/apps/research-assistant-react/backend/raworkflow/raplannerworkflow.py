@@ -116,9 +116,7 @@ When the coder explictly asks you to execute your plan, suggest code that follow
 
         prompt_suffix = utils_2_prompt(self.utils_dir)
 
-        coding_system_message = (
-            autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE + prompt_suffix
-        )
+        coding_system_message = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE + prompt_suffix
 
         # define a coding
         coder = autogen.AssistantAgent(

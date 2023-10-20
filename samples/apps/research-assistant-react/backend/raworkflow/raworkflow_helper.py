@@ -5,6 +5,7 @@ from rich.markdown import Markdown
 from rich.console import Console, group, Group
 from rich.text import Text
 
+
 def replace_newlines(text):
     # Match any \n not preceded by 2 spaces, |, or another \n, and not followed by another \n
     pattern = re.compile(r"(?<! {2})(?<!\|)(?<!\n)\n(?!\n)")
@@ -13,6 +14,7 @@ def replace_newlines(text):
     modified_text = pattern.sub("  \n", text)
 
     return modified_text
+
 
 def separate_text_code_blocks(s):
     code_block_pattern = r"(```(\w+)?[\s\S]*?```)"
@@ -39,6 +41,7 @@ def separate_text_code_blocks(s):
         content_list.append((False, s[last_end:]))
 
     return content_list
+
 
 def print_mixed_panel(content, title, align, color, enable_complex=True):
     console = Console()
@@ -72,10 +75,12 @@ def print_mixed_panel(content, title, align, color, enable_complex=True):
     console.print(mixed_panel)
     console.print("\n" * 4)
 
+
 def custom_printer(message, sender):
     color = "black on #D1FFBD" if sender.name == "user_proxy" else "white on black"
     align = "right" if sender.name == "user_proxy" else "left"
     print_mixed_panel(message["content"], sender.name, align, color)
+
 
 def print_messages(recipient, messages, sender, config):
     callback = config["callback"]

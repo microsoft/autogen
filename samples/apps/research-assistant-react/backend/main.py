@@ -12,7 +12,7 @@ from rich import print as rprint
 
 from datetime import datetime
 from time import sleep, time
-from fastapi import HTTPException
+
 import sqlite3
 import os
 import json
@@ -82,27 +82,28 @@ def create_message_table_if_not_exist():
     create_db()
 
 
-def create_personalization_profile_table_if_not_exist(): 
+def create_personalization_profile_table_if_not_exist():
     try:
         try:
             lock.acquire(True)
             conn = sqlite3.connect("database.sqlite")
             cursor = conn.cursor()
             cursor.execute(
-                """  
-        CREATE TABLE IF NOT EXISTS personalization_profiles (  
-            userId INTEGER NOT NULL,  
-            profile TEXT,  
-            timestamp DATETIME NOT NULL,  
-            UNIQUE (userId)  
-        )  
-        """)
+                """
+        CREATE TABLE IF NOT EXISTS personalization_profiles (
+            userId INTEGER NOT NULL,
+            profile TEXT,
+            timestamp DATETIME NOT NULL,
+            UNIQUE (userId)
+        )
+        """
+            )
             conn.commit()
             cursor.close()
             conn.close()
         finally:
             lock.release()
-    except Exception as ex_error:
+    except Exception as e:
         print(f"Error creating table: {e}")
 
 
@@ -121,14 +122,15 @@ def query_db(query, args=(), one=False):
             result = cursor.fetchall()
             cursor.close()
             conn.close()
-            json_result = [dict(row) for row in result]  # Convert rows to dictionaries
+            # Convert rows to dictionaries
+            json_result = [dict(row) for row in result]
             return (json_result[0] if json_result else None) if one else json_result
         finally:
             lock.release()
-    except Exception as ex_error:
+    except Exception as e:
         print(f"Error querying table: {e}")
-    
-    
+
+
 def insert_db(query, args=()):
     try:
         try:
@@ -141,9 +143,9 @@ def insert_db(query, args=()):
             conn.close()
         finally:
             lock.release()
-    except Exception as ex_error:
+    except Exception as e:
         print(f"Error inserting into db table: {e}")
-    
+
 
 def get_highest_msg_id_for_user_and_root(user_id, root_msg_id):
     try:
@@ -174,30 +176,30 @@ def get_highest_msg_id_for_user_and_root(user_id, root_msg_id):
             else:
                 return -1
         finally:
-                lock.release()
-    except Exception as ex_error:
+            lock.release()
+    except Exception as e:
         print(f"Error getting highest msg_id from table table: {e}")
 
 
 def get_md5_hash(string):
     import hashlib
+
     return hashlib.md5(string.encode()).hexdigest()
+
 
 # Example usage:
 path_to_config_list = "./OAI_CONFIG_LIST"
 resulting_config = create_llm_config(path_to_config_list)
 
 
-def handle_message(
-    message: Message, ra_type=AgentWorkFlow.CODER_ONLY, enable_personalization=False
-):
+def handle_message(message: Message, ra_type=AgentWorkFlow.CODER_ONLY, enable_personalization=False):
     all_user_messages = get_messages(message.userId)["data"]
     messages = all_user_messages[:-1]
     # Inserting this assert because previous statement assumes that the last message
     # in the database is from the user.
     assert all_user_messages[-1]["role"] == "user"
 
-    ## Setup the work_dir and utils_dir
+    # Setup the work_dir and utils_dir
     usermd5 = get_md5_hash(message.userId)
     global_utils_dir = os.path.join("files", "global_utils_dir")
     user_utils_dir = os.path.join("files", usermd5, "utils_dir")
@@ -307,7 +309,6 @@ async def delete_messages(req: DeleteMessageModel):
         }
 
 
-
 @api.post("/messages")
 async def add_message(message: Message):
     rootMsgId = 0
@@ -339,9 +340,7 @@ async def add_message(message: Message):
         # TODO: We will want a toggle or parameter for personalization
 
         start_time = time()
-        response = handle_message(
-            message, enable_personalization=personalize, ra_type=ra_type
-        )
+        response = handle_message(message, enable_personalization=personalize, ra_type=ra_type)
 
         current_timestamp = datetime.now()
         end_time = time()
@@ -373,9 +372,9 @@ async def add_message(message: Message):
         raise HTTPException(
             status_code=400,
             detail="Message with the same rootMsgId and msgId already exists.",
-        ) 
+        )
     except Exception as ex_error:
-        print("Error processing message",str(ex_error))
+        print("Error processing message", str(ex_error))
         traceback.print_exc()
         return {
             "status": False,
@@ -388,9 +387,7 @@ def get_profile(user_id: str = None):
     if user_id is None:
         profile = ""
     else:
-        profile = query_db(
-            "SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,)
-        )
+        profile = query_db("SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
         if len(profile) == 0:
             profile = ""
         else:
@@ -451,15 +448,11 @@ def refresh_profile(user_id: str = None):
             "message": "No user_id specified.",
         }
     else:
-        conversation_history = query_db(
-            "SELECT * FROM messages WHERE userId = ?", (user_id,)
-        )
+        conversation_history = query_db("SELECT * FROM messages WHERE userId = ?", (user_id,))
 
     # Get the user profile
     # TODO: This should later be refactored, as it is redundant and was verbatim copied from the api get profile route
-    old_profile = query_db(
-        "SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,)
-    )
+    old_profile = query_db("SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
     if len(old_profile) == 0:
         old_profile = ""
     else:
@@ -488,16 +481,11 @@ def refresh_profile(user_id: str = None):
             abridged_message = message["content"].strip()
 
             # Abridge the message
-            if (
-                len(abridged_message)
-                > ASSISTANT_MESSAGE_START_LEN + ASSISTANT_MESSAGE_END_LEN
-            ):
+            if len(abridged_message) > ASSISTANT_MESSAGE_START_LEN + ASSISTANT_MESSAGE_END_LEN:
                 abridged_message = (
                     abridged_message[0:ASSISTANT_MESSAGE_START_LEN]
                     + " (...) "
-                    + abridged_message[
-                        len(abridged_message) - (ASSISTANT_MESSAGE_END_LEN) :
-                    ]
+                    + abridged_message[len(abridged_message) - (ASSISTANT_MESSAGE_END_LEN) :]
                 )
 
             transcript = "ASSISTANT: " + abridged_message + "\n\n" + transcript
@@ -514,29 +502,24 @@ def refresh_profile(user_id: str = None):
     known_info = ""
     prompt_suffix = ""
     if old_profile is None or len(old_profile) == 0:
-        known_info = (
-            "Not much is currently known about USER. They have no BIOGRAPHY on file."
-        )
+        known_info = "Not much is currently known about USER. They have no BIOGRAPHY on file."
         prompt_suffix = "."
     else:
         known_info = (
-            "From prior conversation with USER, we have the following BIOGRAPHY about them on file:\n"
-            + old_profile
+            "From prior conversation with USER, we have the following BIOGRAPHY about them on file:\n" + old_profile
         )
-        prompt_suffix = (
-            ", as well as any prior assumptions about the user that need to be revised."
-        )
+        prompt_suffix = ", as well as any prior assumptions about the user that need to be revised."
 
     # Ok, now for the main prompt
     prompt = (
         """
-An AI ASSISTANT like yourself can learn a lot about a USER by engaging them in conversation. For example, if a USER asks an ASSISTANT to reformat a previous answer in bullet points, then we may infer that the USER prefers concise communication. Likewise if they ask to see programming code, we may infer that the USER is comfortable with that programming language. Finally, if they repeatedly ask an ASSISTANT about information about a particular research topic, we may infer they are interested in that topic. These are only a few examples. 
+An AI ASSISTANT like yourself can learn a lot about a USER by engaging them in conversation. For example, if a USER asks an ASSISTANT to reformat a previous answer in bullet points, then we may infer that the USER prefers concise communication. Likewise if they ask to see programming code, we may infer that the USER is comfortable with that programming language. Finally, if they repeatedly ask an ASSISTANT about information about a particular research topic, we may infer they are interested in that topic. These are only a few examples.
 
 %s
 
 Consider the following transcript of the most recent conversation between an ASSISTANT and USER. Please summarize what new information this transcript reveals about the USER%s
 
-Here is the transcript: 
+Here is the transcript:
 %s
 """
         % (known_info, prompt_suffix, transcript)
@@ -617,7 +600,7 @@ def get_skills(user_id: str):
 def clear_skills(user_id: str):
     # empty the content of files in the user utils dir
     user_utils_dir = get_user_utils_dir(user_id)
-    
+
     user_files = os.listdir(user_utils_dir)
     for f in user_files:
         with open(os.path.join(user_utils_dir, f), "w") as fp:
@@ -644,14 +627,12 @@ async def clear_db(req: ClearDBModel):
 
     # also delete all files in the users work_dir
     user_dir = os.path.join("files", get_md5_hash(userId), "work_dir")
-    # check if the user_dir exists else create if 
+    # check if the user_dir exists else create if
     if not os.path.exists(user_dir):
         os.makedirs(user_dir, exist_ok=True)
     content = os.listdir(user_dir)
     files = [f for f in content if os.path.isfile(os.path.join(user_dir, f))]
-    rprint(
-        f"[italic yellow]INFO: /cleardb Deleting files from work_dir:[/italic yellow] {files}"
-    )
+    rprint(f"[italic yellow]INFO: /cleardb Deleting files from work_dir:[/italic yellow] {files}")
     for f in files:
         os.remove(os.path.join(user_dir, f))
 
@@ -675,10 +656,11 @@ async def clear_db(req: ClearDBModel):
 def get_all_filepaths_in_directory(directory):
     filepaths = []
     for root, dirs, files in os.walk(directory):
-        dirs[:] = [d for d in dirs if d not in ('.cache', '__pycache__')]
+        dirs[:] = [d for d in dirs if d not in (".cache", "__pycache__")]
         for file in files:
             filepaths.append(os.path.join(root, file))
     return filepaths
+
 
 @api.get("/userfiles")
 def get_user_files(user_id: str):
@@ -686,8 +668,8 @@ def get_user_files(user_id: str):
     if not os.path.exists(user_dir):
         os.makedirs(user_dir, exist_ok=True)
     all_filepaths = get_all_filepaths_in_directory(user_dir)
-    print(all_filepaths) 
-     
+    print(all_filepaths)
+
     return {
         "status": True,
         "message": "User files retrieved successfully",

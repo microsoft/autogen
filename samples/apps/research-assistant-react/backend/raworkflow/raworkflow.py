@@ -3,6 +3,7 @@ import os
 
 from utils.utils import copy_utils
 
+
 class RAWorkflow:
     def __init__(
         self,
@@ -106,9 +107,7 @@ class RAWorkflow:
         # get all files that were created or modified after the timestamp
         new_files = []
         for root, dirs, files in os.walk(self.work_dir):
-            dirs[:] = [
-                d for d in dirs if not is_ignored(d)
-            ]  # Ignore specified directories
+            dirs[:] = [d for d in dirs if not is_ignored(d)]  # Ignore specified directories
             for file in files:
                 if is_ignored(file):  # Ignore specified files
                     continue
