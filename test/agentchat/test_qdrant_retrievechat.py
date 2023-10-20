@@ -1,5 +1,3 @@
-import importlib
-import logging
 import os
 
 import pytest
@@ -15,6 +13,7 @@ try:
         QdrantRetrieveUserProxyAgent,
         query_qdrant,
     )
+    import fastembed
 
     QDRANT_INSTALLED = True
 except ImportError:

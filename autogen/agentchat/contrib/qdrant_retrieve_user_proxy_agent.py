@@ -10,8 +10,9 @@ logger = logging.getLogger(__name__)
 try:
     from qdrant_client import QdrantClient, models
     from qdrant_client.fastembed_common import QueryResponse
+    import fastembed
 except ImportError as e:
-    logging.fatal("qdrant_client is not installed. Try running 'pip install qdrant_client[fastembed]'")
+    logging.fatal("Failed to import qdrant_client with fastembed. Try running 'pip install qdrant_client[fastembed]'")
     raise e
 
 
@@ -60,7 +61,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 - must_break_at_empty_line (Optional, bool): chunk will only break at empty line if True. Default is True.
                     If chunk_mode is "one_line", this parameter will be ignored.
                 - embedding_model (Optional, str): the embedding model to use for the retrieve chat.
-                    If key not provided, a default model `bge-small-en-v1.5` will be used. All available models
+                    If key not provided, a default model `BAAI/bge-base-en-v1.5` will be used. All available models
                     can be found at `https://qdrant.github.io/fastembed/examples/Supported_Models/`.
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
@@ -75,6 +76,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 - on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
                 - quantization_config: Quantization configuration. If None, quantization will be disabled.
                 - hnsw_config: HNSW configuration. If None, default configuration will be used.
+                - payload_indexing: Whether to create a payload index for the document field. Default is False.
              **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         """
@@ -86,6 +88,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         self._on_disk = self._retrieve_config.get("on_disk", False)
         self._quantization_config = self._retrieve_config.get("quantization_config", None)
         self._hnsw_config = self._retrieve_config.get("hnsw_config", None)
+        self._payload_indexing = self._retrieve_config.get("payload_indexing", False)
 
     @override
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
@@ -110,6 +113,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 on_disk=self._on_disk,
                 quantization_config=self._quantization_config,
                 hnsw_config=self._hnsw_config,
+                payload_indexing=self._payload_indexing,
             )
             self._collection = True
 
@@ -137,6 +141,7 @@ def create_qdrant_from_dir(
     on_disk: bool = False,
     quantization_config: Optional[models.QuantizationConfig] = None,
     hnsw_config: Optional[models.HnswConfigDiff] = None,
+    payload_indexing: bool = False,
     qdrant_client_options: Optional[Dict] = {},
 ):
     """Create a Qdrant collection from all the files in a given directory, the directory can also be a single file or a url to
@@ -154,6 +159,7 @@ def create_qdrant_from_dir(
         on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
         quantization_config: Quantization configuration. If None, quantization will be disabled.
         hnsw_config: HNSW configuration. If None, default configuration will be used.
+        payload_indexing: Whether to create a payload index for the document field. Default is False.
         qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client. Reference: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
     """
     if client is None:
@@ -187,16 +193,19 @@ def create_qdrant_from_dir(
 
     # Create a payload index for the document field
     # Enables highly efficient payload filtering. Reference: https://qdrant.tech/documentation/concepts/indexing/#indexing
-    client.create_payload_index(
-        collection_name=collection_name,
-        field_name="document",
-        field_schema=models.TextIndexParams(
-            type="text",
-            tokenizer=models.TokenizerType.WORD,
-            min_token_len=2,
-            max_token_len=15,
-        ),
-    )
+    # Creating an index requires additional computational resources and memory.
+    # If filtering performance is critical, we can consider creating an index.
+    if payload_indexing:
+        client.create_payload_index(
+            collection_name=collection_name,
+            field_name="document",
+            field_schema=models.TextIndexParams(
+                type="text",
+                tokenizer=models.TokenizerType.WORD,
+                min_token_len=2,
+                max_token_len=15,
+            ),
+        )
 
 
 def query_qdrant(
