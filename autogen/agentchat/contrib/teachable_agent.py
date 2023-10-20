@@ -29,6 +29,7 @@ class TeachableAgent(ConversableAgent):
         ] = "You are a helpful AI assistant that remembers user teachings from prior chats.",
         human_input_mode: Optional[str] = "NEVER",
         llm_config: Optional[Union[Dict, bool]] = None,
+        analyzer_llm_config: Optional[Union[Dict, bool]] = None,
         teach_config: Optional[Dict] = None,
         **kwargs,
     ):
@@ -41,6 +42,8 @@ class TeachableAgent(ConversableAgent):
                 Please refer to [Completion.create](/docs/reference/oai/completion#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
+            analyzer_llm_config (dict or False): llm inference configuration passed to TextAnalyzerAgent.
+                Given the default setting of None, TeachableAgent passes its own llm_config to TextAnalyzerAgent.
             teach_config (dict or None): Additional parameters used by TeachableAgent.
                 To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
                 - verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
@@ -58,8 +61,10 @@ class TeachableAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
+        # Register a custom reply function.
         self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, 1)
 
+        # Assemble the parameter settings.
         self._teach_config = {} if teach_config is None else teach_config
         self.verbosity = self._teach_config.get("verbosity", 0)
         self.reset_db = self._teach_config.get("reset_db", False)
@@ -68,8 +73,12 @@ class TeachableAgent(ConversableAgent):
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
         self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
 
-        self.analyzer = TextAnalyzerAgent(llm_config=llm_config)
+        # Create the analyzer.
+        if analyzer_llm_config is None:
+            analyzer_llm_config = llm_config
+        self.analyzer = TextAnalyzerAgent(llm_config=analyzer_llm_config)
 
+        # Create the memo store.
         self.memo_store = MemoStore(self.verbosity, self.reset_db, self.path_to_db_dir)
         self.user_comments = []  # Stores user comments until the end of each chat.
 
