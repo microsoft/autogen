@@ -42,8 +42,7 @@ def utils_2_skills(utils_dir):
             os.makedirs(dir, exist_ok=True)
         # list all python files in dir
         python_files = os.listdir(dir)
-        python_files = [os.path.join(dir, file)
-                        for file in python_files if file.endswith(".py")]
+        python_files = [os.path.join(dir, file) for file in python_files if file.endswith(".py")]
         for f in python_files:
             skills.append(
                 {
@@ -122,9 +121,9 @@ def text2functions(content, source_file) -> List[SkillFunction]:
             docstring = ast.get_docstring(item) or "No docstring available"
 
             code = (
-                content.splitlines()[item.lineno - 1: item.end_lineno]
+                content.splitlines()[item.lineno - 1 : item.end_lineno]
                 if item.end_lineno
-                else content.splitlines()[item.lineno - 1:]
+                else content.splitlines()[item.lineno - 1 :]
             )
             code = "\n".join(code)
 
