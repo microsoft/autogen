@@ -77,8 +77,6 @@ class TextAnalyzerAgent(ConversableAgent):
         messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
 
         # Generate and return the analysis string.
-        response = oai.ChatCompletion.create(
-            context=None, messages=messages, **self.llm_config
-        )
+        response = oai.ChatCompletion.create(context=None, messages=messages, **self.llm_config)
         output_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
         return output_text
