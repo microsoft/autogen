@@ -9,7 +9,6 @@ def main(plugins):
         raise ModuleNotFoundError("使用项目内置Gradio获取最优体验! 请运行 `pip install -r requirements.txt` 指令安装内置Gradio及其他依赖, 详情信息见requirements.txt.")
     from void_terminal.request_llm.bridge_all import predict
     from void_terminal.toolbox import format_io, find_free_port, on_file_uploaded, on_report_generated, get_conf, ArgsGeneralWrapper, load_chat_cookies, DummyWith
-    # 建议您复制一个config_private.py放自己的秘密, 如API和代理网址, 避免不小心传github被别人看到
     proxies, WEB_PORT, LLM_MODEL, CONCURRENT_COUNT, AUTHENTICATION = get_conf('proxies', 'WEB_PORT', 'LLM_MODEL', 'CONCURRENT_COUNT', 'AUTHENTICATION')
     CHATBOT_HEIGHT, LAYOUT, AVAIL_LLM_MODELS, AUTO_CLEAR_TXT = get_conf('CHATBOT_HEIGHT', 'LAYOUT', 'AVAIL_LLM_MODELS', 'AUTO_CLEAR_TXT')
     ENABLE_AUDIO, AUTO_CLEAR_TXT, PATH_LOGGING, AVAIL_THEMES, THEME = get_conf('ENABLE_AUDIO', 'AUTO_CLEAR_TXT', 'PATH_LOGGING', 'AVAIL_THEMES', 'THEME')
@@ -21,11 +20,8 @@ def main(plugins):
     from void_terminal.themes.theme import adjust_theme, advanced_css, theme_declaration, load_dynamic_theme
 
     initial_prompt = "Serve me as a writing and programming assistant."
-    title_html = f"<h1 align=\"center\">GPT 学术优化 {get_current_version()}</h1>{theme_declaration}"
-    description =  "Github源代码开源和更新[地址🚀](https://github.com/binary-husky/gpt_academic), "
-    description += "感谢热情的[开发者们❤️](https://github.com/binary-husky/gpt_academic/graphs/contributors)."
-    description += "</br></br>常见问题请查阅[项目Wiki](https://github.com/binary-husky/gpt_academic/wiki), "
-    description += "如遇到Bug请前往[Bug反馈](https://github.com/binary-husky/gpt_academic/issues)."
+    title_html = f"<h1 align=\"center\">AutoGen</h1>{theme_declaration}"
+    description =  ""
     description += "</br></br>普通对话使用说明: 1. 输入问题; 2. 点击提交"
     description += "</br></br>基础功能区使用说明: 1. 输入文本; 2. 点击任意基础功能区按钮"
     description += "</br></br>函数插件区使用说明: 1. 输入路径/问题, 或者上传文件; 2. 点击任意函数插件区按钮"
@@ -388,8 +384,9 @@ def main(plugins):
         def init_cookie(cookies, chatbot):
             # 为每一位访问的用户赋予一个独一无二的uuid编码
             cookies.update({'uuid': uuid.uuid4()})
-            return cookies
-        demo.load(init_cookie, inputs=[cookies, chatbot], outputs=[cookies])
+            chatbot.append(["Usage of GUI:", "(1) Input your query (e.g. plot $y=x^2$ with $x \in (-2,1)$, save the image to res.jpg) \n\n(2) click the small red button `Auto_Gen_Fn_xx`."])
+            return cookies, chatbot
+        demo.load(init_cookie, inputs=[cookies, chatbot], outputs=[cookies, chatbot])
         darkmode_js = """(dark) => {
             dark = dark == "True";
             if (document.querySelectorAll('.dark').length) {
@@ -436,14 +433,6 @@ def main(plugins):
         auth=AUTHENTICATION if len(AUTHENTICATION) != 0 else None,
         blocked_paths=["config.py","config_private.py","docker-compose.yml","Dockerfile"])
 
-    # 如果需要在二级路径下运行
-    # CUSTOM_PATH, = get_conf('CUSTOM_PATH')
-    # if CUSTOM_PATH != "/": 
-    #     from toolbox import run_gradio_in_subpath
-    #     run_gradio_in_subpath(demo, auth=AUTHENTICATION, port=PORT, custom_path=CUSTOM_PATH)
-    # else: 
-    #     demo.launch(server_name="0.0.0.0", server_port=PORT, auth=AUTHENTICATION, favicon_path="docs/logo.png",
-    #                 blocked_paths=["config.py","config_private.py","docker-compose.yml","Dockerfile"])
 
 if __name__ == "__main__":
     main()
