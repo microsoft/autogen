@@ -110,6 +110,7 @@ The figure below shows six examples of applications built using AutoGen.
 
 5. **Agent Teaching and Learning**
    - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teaching.ipynb)
+   - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 ## For Further Reading
 
