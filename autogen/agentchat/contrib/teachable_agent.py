@@ -19,11 +19,12 @@ except ImportError:
 
 class TeachableAgent(ConversableAgent):
     """Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
-    In this class, the term 'user' refers to any caller (human or not) sending messages to this agent."""
+    In this class, the term 'user' refers to any caller (human or not) sending messages to this agent.
+    Not yet tested in the group-chat setting."""
 
     def __init__(
         self,
-        name="teachable agent",
+        name="teachableagent",
         system_message: Optional[
             str
         ] = "You are a helpful AI assistant that remembers user teachings from prior chats.",
