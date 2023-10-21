@@ -1,6 +1,21 @@
 from void_terminal.toolbox import CatchException, update_ui
 from void_terminal.toolbox import get_conf, select_api_key
-from void_terminal.crazy_functions.agent_fns.persistent import GradioMultiuserManagerForPersistentClasses
+from void_terminal.toolbox import Singleton
+@Singleton
+class GradioMultiuserManagerForPersistentClasses():
+    def __init__(self):
+        self.mapping = {}
+
+    def already_alive(self, key):
+        return (key in self.mapping) and (self.mapping[key].is_alive())
+
+    def set(self, key, x):
+        self.mapping[key] = x
+        return self.mapping[key]
+
+    def get(self, key):
+        return self.mapping[key]
+
 
 
 def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port, AutoGenFn, Callback):
