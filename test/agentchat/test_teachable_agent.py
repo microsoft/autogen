@@ -137,8 +137,8 @@ def use_task_advice_pair_phrasing():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.9"),
+    reason="do not run if openai is not installed or py!=3.9",
 )
 def test_all():
     """Runs this file's unit tests."""
