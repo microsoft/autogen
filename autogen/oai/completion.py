@@ -1,5 +1,6 @@
 from time import sleep
 import logging
+import regex as re
 import time
 from typing import List, Optional, Dict, Callable, Union
 import sys
@@ -13,6 +14,7 @@ from collections import defaultdict
 
 try:
     import openai
+    import litellm
     from openai.error import (
         ServiceUnavailableError,
         RateLimitError,
@@ -201,11 +203,14 @@ class Completion(openai_Completion):
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
         key = get_key(config)
         if use_cache:
-            response = cls._cache.get(key, None)
-            if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
-                # print("using cached response")
-                cls._book_keeping(config, response)
-                return response
+            try:
+                response = cls._cache.get(key, None)
+                if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
+                    # print("using cached response")
+                    cls._book_keeping(config, response)
+                    return response
+            except:
+                pass
         openai_completion = (
             openai.ChatCompletion
             if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
@@ -218,10 +223,13 @@ class Completion(openai_Completion):
         retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
-                if "request_timeout" in config:
-                    response = openai_completion.create(**config)
+                if "request_timeout" not in config:
+                    config["request_timeout"] = request_timeout
+                api_type = config.get("api_type", None)
+                if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
+                    response = litellm.completion(**config)
                 else:
-                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                    response = openai_completion.create(**config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,

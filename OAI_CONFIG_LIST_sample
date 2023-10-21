@@ -17,5 +17,26 @@
         "api_base": "<your Azure OpenAI API base here>",
         "api_type": "azure",
         "api_version": "2023-07-01-preview"
+    },
+    {
+        "model": "command-nightly",
+        "api_key": "<your Cohere API key here>",
+        "api_type": "LiteLLM"
+    },
+    {
+        "model": "palm/chat-bison",
+        "api_key": "<your PaLM API key here>",
+        "api_type": "LiteLLM"
+    },
+    {
+        "model": "huggingface/glaiveai/glaive-coder-7b",
+        "api_key": "<your hugging face API key here>",
+        "api_type": "LiteLLM"
+    },
+    {
+        "model": "huggingface/glaiveai/glaive-coder-7b",
+        "api_key": "<your hugging face API key here>",
+        "api_base": "<your hugging face inference endpoint here>",
+        "api_type": "LiteLLM"
     }
 ]
