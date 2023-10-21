@@ -24,8 +24,8 @@ def create_teachable_agent(reset_db=False):
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
-    agent = TeachableAgent(
-        name="agent",
+    teachable_agent = TeachableAgent(
+        name="teachable agent",
         llm_config={"config_list": config_list, "request_timeout": 120, "use_cache": use_cache},
         teach_config={
             "verbosity": verbosity,
@@ -34,7 +34,7 @@ def create_teachable_agent(reset_db=False):
             "recall_threshold": recall_threshold,
         },
     )
-    return agent
+    return teachable_agent
 
 
 def interact_freely_with_user():
@@ -42,17 +42,17 @@ def interact_freely_with_user():
 
     # Create the agents.
     print(colored("\nLoading previous memory (if any) from disk.", "light_cyan"))
-    agent = create_teachable_agent(reset_db=False)
+    teachable_agent = create_teachable_agent(reset_db=False)
     user = UserProxyAgent("user", human_input_mode="ALWAYS")
 
     # Start the chat.
-    agent.initiate_chat(user, message="Greetings, I'm a teachable user assistant! What's on your mind today?")
+    teachable_agent.initiate_chat(user, message="Greetings, I'm a teachable user assistant! What's on your mind today?")
 
-    # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_user_feedback()
+    # Let the teachable agent remember things that should be learned from this chat.
+    teachable_agent.learn_from_user_feedback()
 
     # Wrap up.
-    agent.close_db()
+    teachable_agent.close_db()
 
 
 if __name__ == "__main__":

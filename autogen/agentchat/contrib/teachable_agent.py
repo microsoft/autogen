@@ -23,7 +23,7 @@ class TeachableAgent(ConversableAgent):
 
     def __init__(
         self,
-        name="Agent",
+        name="teachable agent",
         system_message: Optional[
             str
         ] = "You are a helpful AI assistant that remembers user teachings from prior chats.",

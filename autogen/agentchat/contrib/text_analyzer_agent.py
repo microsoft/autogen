@@ -14,7 +14,7 @@ class TextAnalyzerAgent(ConversableAgent):
 
     def __init__(
         self,
-        name="Analyzer",
+        name="analyzer",
         system_message: Optional[str] = system_message,
         human_input_mode: Optional[str] = "NEVER",
         llm_config: Optional[Union[Dict, bool]] = None,

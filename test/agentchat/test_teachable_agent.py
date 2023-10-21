@@ -1,8 +1,11 @@
 try:
     import openai
+
+    skip = False
 except ImportError:
-    openai = None
+    skip = True
 import pytest
+import sys
 from autogen import ConversableAgent, config_list_from_json
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 
@@ -36,8 +39,8 @@ def create_teachable_agent(reset_db=False, verbosity=0):
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
-    agent = TeachableAgent(
-        name="agent",
+    teachable_agent = TeachableAgent(
+        name="teachable agent",
         llm_config={"config_list": config_list, "request_timeout": 120, "use_cache": use_cache},
         teach_config={
             "verbosity": verbosity,
@@ -46,12 +49,12 @@ def create_teachable_agent(reset_db=False, verbosity=0):
             "recall_threshold": recall_threshold,
         },
     )
-    return agent
+    return teachable_agent
 
 
-def check_agent_response(agent, user, correct_answer):
+def check_agent_response(teachable_agent, user, correct_answer):
     """Checks whether the agent's response contains the correct answer, and returns the number of errors (1 or 0)."""
-    agent_response = user.last_message(agent)["content"]
+    agent_response = user.last_message(teachable_agent)["content"]
     if correct_answer not in agent_response:
         print(colored(f"\nTEST FAILED:  EXPECTED ANSWER {correct_answer} NOT FOUND IN AGENT RESPONSE", "light_red"))
         if assert_on_error:
@@ -63,75 +66,80 @@ def check_agent_response(agent, user, correct_answer):
 
 
 def use_question_answer_phrasing():
-    """Tests whether the agent can answer a question after being taught the answer in a previous chat."""
+    """Tests whether the teachable agent can answer a question after being taught the answer in a previous chat."""
     print(colored("\nTEST QUESTION-ANSWER PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
-    agent = create_teachable_agent(reset_db=True, verbosity=qa_verbosity)  # For a clean test, clear the agent's memory.
+    teachable_agent = create_teachable_agent(
+        reset_db=True, verbosity=qa_verbosity
+    )  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
-    agent.prepopulate_db()
+    teachable_agent.prepopulate_db()
 
-    # Ask the agent to do something using terminology it doesn't understand.
-    user.initiate_chat(recipient=agent, message="What is the twist of 5 and 7?")
+    # Ask the teachable agent to do something using terminology it doesn't understand.
+    user.initiate_chat(recipient=teachable_agent, message="What is the twist of 5 and 7?")
 
-    # Explain the terminology to the agent.
+    # Explain the terminology to the teachable agent.
     user.send(
-        recipient=agent,
+        recipient=teachable_agent,
         message="Actually, the twist of two or more numbers is their product minus their sum. Try again.",
     )
-    num_errors += check_agent_response(agent, user, "23")
+    num_errors += check_agent_response(teachable_agent, user, "23")
     num_tests += 1
 
-    # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_user_feedback()
+    # Let the teachable agent remember things that should be learned from this chat.
+    teachable_agent.learn_from_user_feedback()
 
-    # Now start a new chat to clear the context, and require the agent to use its new knowledge.
+    # Now start a new chat to clear the context, and require the teachable agent to use its new knowledge.
     print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))
-    user.initiate_chat(recipient=agent, message="What's the twist of 8 and 3 and 2?")
-    num_errors += check_agent_response(agent, user, "35")
+    user.initiate_chat(recipient=teachable_agent, message="What's the twist of 8 and 3 and 2?")
+    num_errors += check_agent_response(teachable_agent, user, "35")
     num_tests += 1
 
     # Wrap up.
-    agent.close_db()
+    teachable_agent.close_db()
     return num_errors, num_tests
 
 
 def use_task_advice_pair_phrasing():
-    """Tests whether the agent can demonstrate a new skill after being taught a task-advice pair in a previous chat."""
+    """Tests whether the teachable agent can demonstrate a new skill after being taught a task-advice pair in a previous chat."""
     print(colored("\nTEST TASK-ADVICE PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
-    agent = create_teachable_agent(
-        reset_db=True, verbosity=skill_verbosity  # For a clean test, clear the agent's memory.
+    teachable_agent = create_teachable_agent(
+        reset_db=True, verbosity=skill_verbosity  # For a clean test, clear the teachable agent's memory.
     )
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
-    agent.prepopulate_db()
+    teachable_agent.prepopulate_db()
 
-    # Ask the agent to do something, and provide some helpful advice.
+    # Ask the teachable agent to do something, and provide some helpful advice.
     user.initiate_chat(
-        recipient=agent,
+        recipient=teachable_agent,
         message="Compute the twist of 5 and 7. Here's a hint: The twist of two or more numbers is their product minus their sum.",
     )
-    num_errors += check_agent_response(agent, user, "23")
+    num_errors += check_agent_response(teachable_agent, user, "23")
     num_tests += 1
 
-    # Let the agent remember things that should be learned from this chat.
-    agent.learn_from_user_feedback()
+    # Let the teachable agent remember things that should be learned from this chat.
+    teachable_agent.learn_from_user_feedback()
 
-    # Now start a new chat to clear the context, and require the agent to use its new knowledge.
+    # Now start a new chat to clear the context, and require the teachable agent to use its new knowledge.
     print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))
-    user.initiate_chat(recipient=agent, message="Please calculate the twist of 8 and 3 and 2.")
-    num_errors += check_agent_response(agent, user, "35")
+    user.initiate_chat(recipient=teachable_agent, message="Please calculate the twist of 8 and 3 and 2.")
+    num_errors += check_agent_response(teachable_agent, user, "35")
     num_tests += 1
 
     # Wrap up.
-    agent.close_db()
+    teachable_agent.close_db()
     return num_errors, num_tests
 
 
-@pytest.mark.skipif(openai is None, reason="openai not installed")
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
 def test_all():
     """Runs this file's unit tests."""
     total_num_errors, total_num_tests = 0, 0
