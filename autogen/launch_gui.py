@@ -1,12 +1,13 @@
 import void_terminal
 from gradio_gui.gradio_service import main
 from gradio_gui.plugin import autogen_terminal
-from void_terminal.crazy_functions.agent_fns.autogen_general import AutoGenGeneral
+from gradio_gui.utils.autogen_general import AutoGenGeneral
 from void_terminal.crazy_functions.crazy_utils import try_install_deps
 from void_terminal.toolbox import CatchException, HotReload
 from functools import partial
 
-try_install_deps(deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"])
+try_install_deps(deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"]) 
+# this is a special version of gradio, which is not available on pypi.org
 
 class AutoGenAskHuman(AutoGenGeneral):
     def define_agents(self):
