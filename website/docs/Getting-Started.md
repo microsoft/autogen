@@ -19,7 +19,7 @@ AutoGen is powered by collaborative [research studies](/docs/Research) from Micr
 ### Quickstart
 
 Install from pip: `pip install pyautogen`. Find more options in [Installation](/docs/Installation).
-For [code execution](https://microsoft.github.io/autogen/FAQ#code-execution), we strongly recommend installing the python docker package, and using docker.
+For [code execution](/docs/FAQ#code-execution), we strongly recommend installing the python docker package, and using docker.
 
 #### Multi-Agent Conversation Framework
 Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents which integrate LLMs, tools and human.
@@ -63,12 +63,13 @@ response = autogen.Completion.create(context=test_instance, **config)
 * [Code examples](/docs/Examples/AutoGen-Inference).
 * [Documentation](/docs/Use-Cases/enhanced_inference).
 
-### Where to Go Next?
+### Where to Go Next ?
 
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat) and [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
 * Find [code examples](/docs/Examples/AutoGen-AgentChat).
 * Read [SDK](/docs/reference/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
+* [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 * Chat on [Discord](https://discord.gg/pAbnFJrkgZ).
 * Follow on [Twitter](https://twitter.com/pyautogen).
 
