@@ -14,7 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai",
+    "openai<1",
     "diskcache",
     "termcolor",
     "flaml",
@@ -57,6 +57,7 @@ setuptools.setup(
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf"],
+        "teachable": ["chromadb"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
