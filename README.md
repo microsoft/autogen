@@ -4,6 +4,13 @@
 [![Downloads](https://static.pepy.tech/badge/pyautogen/week)](https://pepy.tech/project/pyautogen)
 [![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 
+### Read this in other languages
+
+<div align="center">
+
+<kbd>[<img title="हिंदी" alt="हिंदी" src="https://cdn.statically.io/gh/hjnilsson/country-flags/master/svg/in.svg" width="22">](translation/README.Hindi.md)</kbd> 
+</div>
+
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 # AutoGen
