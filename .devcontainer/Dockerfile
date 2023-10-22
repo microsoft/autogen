@@ -23,5 +23,5 @@ RUN pip install pydoc-markdown
 
 # Install dependencies
 RUN pip install poetry
-COPY pyproject.toml ./
+COPY ../pyproject.toml ./
 RUN poetry install --no-root
