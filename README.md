@@ -1,6 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
+[![Downloads](https://static.pepy.tech/badge/pyautogen/week)](https://pepy.tech/project/pyautogen)
 [![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
@@ -137,13 +138,15 @@ In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
-- [Discord](https://discord.gg/pAbnFJrkgZ).
+- [Discord](https://discord.gg/pAbnFJrkgZ)
 
-- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute).
+- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
+
+- [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
 ## Citation
 
-[AutoGen](https://arxiv.org/abs/2308.08155).
+[AutoGen](https://arxiv.org/abs/2308.08155)
 
 ```
 @inproceedings{wu2023autogen,
@@ -156,7 +159,7 @@ In addition, you can find:
 }
 ```
 
-[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+[EcoOptiGen](https://arxiv.org/abs/2303.04673)
 
 ```
 @inproceedings{wang2023EcoOptiGen,
@@ -167,7 +170,7 @@ In addition, you can find:
 }
 ```
 
-[MathChat](https://arxiv.org/abs/2306.01337).
+[MathChat](https://arxiv.org/abs/2306.01337)
 
 ```
 @inproceedings{wu2023empirical,
@@ -193,6 +196,11 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Contributers Wall
+<a href="https://github.com/microsoft/autogen/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=microsoft/autogen" />
+</a>
 
 # Legal Notices
 
