@@ -22,6 +22,6 @@ RUN npm install --global yarn
 RUN pip install pydoc-markdown
 
 # Install dependencies
-RUN pip install poetry
-COPY ../pyproject.toml ./
-RUN poetry install --no-root
+COPY ../setup.py ./
+RUN pip install -e .[test]
+
