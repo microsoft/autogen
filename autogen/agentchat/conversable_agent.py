@@ -628,6 +628,8 @@ class ConversableAgent(Agent):
         # if no code blocks are found, continue
         for i in range(min(len(messages), last_n_messages)):
             message = messages[-(i + 1)]
+            if not message["content"]:
+                continue
             code_blocks = extract_code(message["content"])
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
                 continue
@@ -1088,3 +1090,12 @@ class ConversableAgent(Agent):
             function_map: a dictionary mapping function names to functions.
         """
         self._function_map.update(function_map)
+
+    def can_execute_function(self, name: str) -> bool:
+        """Whether the agent can execute the function."""
+        return name in self._function_map
+
+    @property
+    def function_map(self) -> Dict[str, Callable]:
+        """Return the function map."""
+        return self._function_map

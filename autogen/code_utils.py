@@ -218,7 +218,7 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[Union[List[str], str, bool]] = docker is not None,
+    use_docker: Optional[Union[List[str], str, bool]] = None,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -242,7 +242,11 @@ def execute_code(
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
             with the first image successfully pulled.
             If None, False or empty, the code will be executed in the current environment.
-            Default is True, which will be converted into a list.
+            Default is None, which will be converted into an empty list when docker package is available.
+            Expected behaviour:
+                - If `use_docker` is explicitly set to True and the docker package is available, the code will run in a Docker container.
+                - If `use_docker` is explicitly set to True but the Docker package is missing, an error will be raised.
+                - If `use_docker` is not set (i.e., left default to None) and the Docker package is not available, a warning will be displayed, but the code will run natively.
             If the code is executed in the current environment,
             the code must be trusted.
         lang (Optional, str): The language of the code. Default is "python".
@@ -256,6 +260,19 @@ def execute_code(
         error_msg = f"Either {code=} or {filename=} must be provided."
         logger.error(error_msg)
         raise AssertionError(error_msg)
+
+    # Warn if use_docker was unspecified (or None), and cannot be provided (the default).
+    # In this case the current behavior is to fall back to run natively, but this behavior
+    # is subject to change.
+    if use_docker is None:
+        if docker is None:
+            use_docker = False
+            logger.warning(
+                "execute_code was called without specifying a value for use_docker. Since the python docker package is not available, code will be run natively. Note: this fallback behavior is subject to change"
+            )
+        else:
+            # Default to true
+            use_docker = True
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
