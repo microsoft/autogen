@@ -20,8 +20,3 @@ ENV DEBIAN_FRONTEND=dialog
 # For docs
 RUN npm install --global yarn
 RUN pip install pydoc-markdown
-
-# Install dependencies
-COPY /workspaces/autogen/setup.py ./
-RUN pip install -e .[test]
-
