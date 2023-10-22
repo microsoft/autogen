@@ -53,6 +53,9 @@ jobs:
         if: matrix.python-version == '3.9'
         run: |
           pip install -e .[retrievechat]
+      - name: Install packages for Teachable when needed
+        run: |
+          pip install -e .[teachable]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
