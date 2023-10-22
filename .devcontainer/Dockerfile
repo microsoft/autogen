@@ -20,3 +20,8 @@ ENV DEBIAN_FRONTEND=dialog
 # For docs
 RUN npm install --global yarn
 RUN pip install pydoc-markdown
+
+# Install dependencies
+RUN pip install poetry
+COPY pyproject.toml ./
+RUN poetry install --no-root
