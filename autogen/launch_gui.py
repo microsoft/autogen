@@ -57,6 +57,9 @@ if __name__ == "__main__":
     void_terminal.set_conf(key="API_KEY",value="sk-yourapikey")
     void_terminal.set_conf(key="LLM_MODEL", value="gpt-3.5-turbo-16k")
     void_terminal.set_conf(key="AUTOGEN_USE_DOCKER", value=False)
+    void_terminal.set_conf(key="PATH_LOGGING", value="gpt_log")
+    void_terminal.set_conf(key="DARK_MODE", value=True)
+    void_terminal.set_conf(key="AUTO_CLEAR_TXT", value=True)
 
     main(
         {
