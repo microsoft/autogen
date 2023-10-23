@@ -92,7 +92,7 @@ def main(plugins):
                     with gr.Row():
                         resetBtn = gr.Button("Reset", elem_id="elem_reset", variant="secondary"); resetBtn.style(size="sm")
                         stopBtn = gr.Button("Stop", elem_id="elem_stop", variant="secondary"); stopBtn.style(size="sm")
-                        clearBtn = gr.Button("Clear", elem_id="elem_clear", variant="secondary", visible=False); clearBtn.style(size="sm")
+                        clearBtn = gr.Button("Clear", elem_id="elem_clear", variant="secondary", visible=True); clearBtn.style(size="sm")
                     if ENABLE_AUDIO: 
                         with gr.Row():
                             audio_mic = gr.Audio(source="microphone", type="numpy", streaming=True, show_label=False).style(container=False)
@@ -184,7 +184,7 @@ def main(plugins):
                         submitBtn2 = gr.Button("Submit", variant="primary"); submitBtn2.style(size="sm")
                         resetBtn2 = gr.Button("Reset", variant="secondary"); resetBtn2.style(size="sm")
                         stopBtn2 = gr.Button("Stop", variant="secondary"); stopBtn2.style(size="sm")
-                        clearBtn2 = gr.Button("Clear", variant="secondary", visible=False); clearBtn2.style(size="sm")
+                        clearBtn2 = gr.Button("Clear", variant="secondary", visible=True); clearBtn2.style(size="sm")
 
         def to_cookie_str(d):
             # Pickle the dictionary and encode it as a string
