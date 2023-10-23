@@ -89,7 +89,7 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 If you have problems with agents running `pip install` or get errors similar to `Error while fetching server API version: ('Connection aborted.', FileNotFoundError(2, 'No such file or directory')`, you can choose **'python:3'** as image as shown in the code example above and that should solve the problem.
 
 
-### Agents keep thanking eachother when using `gpt-3.5-turbo`
+### Agents keep thanking each other when using `gpt-3.5-turbo`
 
 When using `gpt-3.5-turbo` you may often encounter agents going into a "gratitude loop", meaning when they complete a task they will begin congratulating and thanking eachother in a continuous loop. This is a limitation in the performance of `gpt-3.5-turbo`, in contrast to `gpt-4` which has no problem remembering instructions. This can hinder the experimentation experience when trying to test out your own use case with cheaper models.
 
