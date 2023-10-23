@@ -1,6 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/pyautogen.svg)](https://badge.fury.io/py/pyautogen)
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
+[![Downloads](https://static.pepy.tech/badge/pyautogen/week)](https://pepy.tech/project/pyautogen)
 [![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 
 This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
@@ -12,10 +13,9 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
     <br>
 </p> -->
 
-:fire: autogen has graduated from [FLAML](https://github.com/microsoft/FLAML) into a new project.
+:fire: Heads-up: pyautogen v0.2 will switch to using openai v1.
 
-<!-- :fire: Heads-up: We're preparing to migrate [autogen](https://microsoft.github.io/FLAML/docs/Use-Cases/Autogen) into a dedicated Github repository. Alongside this move, we'll also launch a dedicated Discord server and a website for comprehensive documentation.
-
+<!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
 
 :fire: [autogen](https://microsoft.github.io/autogen/) is released with support for ChatGPT and GPT-4, based on [Cost-Effective Hyperparameter Optimization for Large Language Model Generation Inference](https://arxiv.org/abs/2303.04673).
@@ -32,7 +32,7 @@ AutoGen is a framework that enables the development of LLM applications using mu
 - It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
   the number of agents, and agent conversation topology.
 - It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
-- AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an **enhanced inference API**. It allows easy performance tuning, utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
+- AutoGen provides **enhanced LLM inference**. It offers easy performance tuning, plus utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
 
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
@@ -110,7 +110,7 @@ Please find more [code examples](https://microsoft.github.io/autogen/docs/Exampl
 
 ## Enhanced LLM Inferences
 
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` adding powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
 
 ```python
 # perform tuning
@@ -137,13 +137,15 @@ In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
-- [Discord](https://discord.gg/pAbnFJrkgZ).
+- [Discord](https://discord.gg/pAbnFJrkgZ)
 
-- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute).
+- [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
+
+- [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
 ## Citation
 
-[AutoGen](https://arxiv.org/abs/2308.08155).
+[AutoGen](https://arxiv.org/abs/2308.08155)
 
 ```
 @inproceedings{wu2023autogen,
@@ -156,7 +158,7 @@ In addition, you can find:
 }
 ```
 
-[EcoOptiGen](https://arxiv.org/abs/2303.04673).
+[EcoOptiGen](https://arxiv.org/abs/2303.04673)
 
 ```
 @inproceedings{wang2023EcoOptiGen,
@@ -167,7 +169,7 @@ In addition, you can find:
 }
 ```
 
-[MathChat](https://arxiv.org/abs/2306.01337).
+[MathChat](https://arxiv.org/abs/2306.01337)
 
 ```
 @inproceedings{wu2023empirical,
@@ -193,6 +195,11 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Contributers Wall
+<a href="https://github.com/microsoft/autogen/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=microsoft/autogen" />
+</a>
 
 # Legal Notices
 
