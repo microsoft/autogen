@@ -1,6 +1,6 @@
 # Enhanced Inference
 
-`autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` as an enhanced inference API.
+`autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` for enhanced LLM inference.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
 ## Tune Inference Parameters

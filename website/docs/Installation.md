@@ -26,6 +26,9 @@ AutoGen requires **Python version >= 3.8**. It can be installed from pip:
 ```bash
 pip install pyautogen
 ```
+
+`pyautogen<0.2` requires `openai<1`. Starting from pyautogen v0.2, `openai>=1` is required.
+
 <!--
 or conda:
 ```
