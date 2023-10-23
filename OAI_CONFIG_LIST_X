@@ -1,0 +1,7 @@
+[
+    {
+        "model": "palm/chat-bison",
+        "api_key": "AIzaSyASy1MOp1ttLbwTcQ9J1SCWyLkYj_yRxoM",
+        "api_type": "LiteLLM"
+    }
+]

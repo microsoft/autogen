@@ -218,10 +218,17 @@ class Completion(openai_Completion):
         retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
-                if "request_timeout" in config:
-                    response = openai_completion.create(**config)
+                if "request_timeout" not in config:
+                    config["request_timeout"] = request_timeout
+                api_type = config.get("api_type", None)
+                santized_config = config.copy()
+                if api_type:
+                    del santized_config["api_type"]
+                
+                if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
+                    response = litellm.completion(**santized_config)
                 else:
-                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                    response = openai_completion.create(**santized_config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
