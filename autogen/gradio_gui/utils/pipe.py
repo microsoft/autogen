@@ -1,4 +1,5 @@
-from void_terminal.toolbox import get_log_folder, update_ui, gen_time_str, promote_file_to_downloadzone
+from void_terminal.toolbox import get_log_folder, update_ui, gen_time_str, get_conf, promote_file_to_downloadzone
+from void_terminal.crazy_functions.agent_fns.watchdog import WatchDog
 import time, os
 
 class PipeCom():
@@ -19,6 +20,16 @@ class PluginMultiprocessManager():
         self.system_prompt = system_prompt
         self.web_port = web_port
         self.alive = True
+        self.use_docker, = get_conf('AUTOGEN_USE_DOCKER')
+
+        # create a thread to monitor self.heartbeat, terminate the instance if no heartbeat for a long time
+        timeout_seconds = 5*60
+        self.heartbeat_watchdog = WatchDog(timeout=timeout_seconds, bark_fn=self.terminate, interval=5)
+        self.heartbeat_watchdog.begin_watch()
+
+    def feed_heartbeat_watchdog(self):
+        # feed this `dog`, so the dog will not `bark` (bark_fn will terminate the instance)
+        self.heartbeat_watchdog.feed()
 
     def is_alive(self):
         return self.alive
@@ -50,7 +61,7 @@ class PluginMultiprocessManager():
         # get the extension name of file fp
         file_type = fp.split('.')[-1]
         # if jpg or png, show the image in the chatbot
-        if file_type in ['png', 'jpg']:
+        if file_type.lower() in ['png', 'jpg']:
             image_path = os.path.abspath(fp)
             self.chatbot.append(['new image file detected and can be displayed:', 
                                  f'image preview: <br/><div align="center"><img src="file={image_path}"></div>'])

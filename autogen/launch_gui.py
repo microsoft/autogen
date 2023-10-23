@@ -56,6 +56,7 @@ if __name__ == "__main__":
     # void_terminal.set_conf(key="proxies", value='{"http": "http://localhost:10881", "https": "http://localhost:10881"}')
     void_terminal.set_conf(key="API_KEY",value="sk-yourapikey")
     void_terminal.set_conf(key="LLM_MODEL", value="gpt-3.5-turbo-16k")
+    void_terminal.set_conf(key="AUTOGEN_USE_DOCKER", value=False)
 
     main(
         {

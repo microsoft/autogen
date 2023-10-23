@@ -389,9 +389,10 @@ def main(plugins):
             # Assign a unique uuid code to each visiting user.
             cookies.update({'uuid': uuid.uuid4()})
             chatbot.append(["Usage of AutoGen GUI:", 
-                            "(1) Input your query:\n\n" + 
+                            "(1) Input your query, examples:\n\n" + 
                             "- plot $y=x^2$ with $x \in (-2,1)$, save the image to res.jpg\n\n" + 
                             "- find the solution of $sin(x)=cos(x)$ by ploting the culve within $x > 0$, save the image to res.png\n\n" + 
+                            "- plot $z=cos(x^2+y^2)$, save the image to wave.jpg\n\n" + 
                             "(2) click the small red button `AutoGen_Fn_01`."])
             return cookies, chatbot
         demo.load(init_cookie, inputs=[cookies, chatbot], outputs=[cookies, chatbot])
