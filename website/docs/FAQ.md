@@ -106,3 +106,5 @@ termination_notice = (
 
 prompt += termination_notice
 ```
+
+**Note**: This workaround gets the job done around 90% of the time, but there are occurences where the LLM's will still forget to terminate the conversation.
