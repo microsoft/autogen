@@ -36,14 +36,14 @@ The `OAI_CONFIG_LIST` var or file content looks like the following:
     {
         "model": "gpt-4",
         "api_key": "<your Azure OpenAI API key here>",
-        "api_base": "<your Azure OpenAI API base here>",
+        "base_url": "<your Azure OpenAI API base here>",
         "api_type": "azure",
         "api_version": "2023-07-01-preview"
     },
     {
         "model": "gpt-3.5-turbo",
         "api_key": "<your Azure OpenAI API key here>",
-        "api_base": "<your Azure OpenAI API base here>",
+        "base_url": "<your Azure OpenAI API base here>",
         "api_type": "azure",
         "api_version": "2023-07-01-preview"
     }

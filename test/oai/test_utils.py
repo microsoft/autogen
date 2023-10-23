@@ -24,7 +24,7 @@ MODEL_API_KEY_MAP = {
         "api_key_env_var": "ANOTHER_API_KEY",
         "api_type": "aoai",
         "api_version": "v2",
-        "api_base": "https://api.someotherapi.com",
+        "base_url": "https://api.someotherapi.com",
     },
 }
 
