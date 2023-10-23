@@ -17,7 +17,7 @@ try:
         ServiceUnavailableError,
         RateLimitError,
         APIError,
-        InvalidRequestError,
+        BadRequestError,
         APIConnectionError,
         Timeout,
         AuthenticationError,
@@ -261,7 +261,7 @@ class Completion(openai_Completion):
                         f"Failed to get response from openai api due to getting RateLimitError or Timeout for {max_retry_period} seconds."
                     )
                     return response
-            except InvalidRequestError:
+            except BadRequestError:
                 if "azure" in config.get("api_type", openai.api_type) and "model" in config:
                     # azure api uses "engine" instead of "model"
                     config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
@@ -817,7 +817,7 @@ class Completion(openai_Completion):
                         response["pass_filter"] = pass_filter
                         return response
                     cost += response["cost"]
-                except (AuthenticationError, RateLimitError, Timeout, InvalidRequestError):
+                except (AuthenticationError, RateLimitError, Timeout, BadRequestError):
                     logger.debug(f"failed with config {i}", exc_info=1)
                     if i == last:
                         raise
