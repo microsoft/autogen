@@ -51,21 +51,87 @@ class AutoGenAskHuman(AutoGenGeneral):
                 "llm_config": False,            # disables llm-based auto reply.
             },
         ]
-class AutoGenNeverAsk(AutoGenGeneral):
+class AutoGenGroupChat(AutoGenGeneral):
     def define_agents(self):
         from autogen import AssistantAgent, UserProxyAgent
         return [
             {
-                "name": "assistant",            # name of the agent.
+                "name": "Engineer",             # name of the agent.
                 "cls":  AssistantAgent,         # class of the agent.
+                "system_message": '''Engineer. You follow an approved plan. You write python/shell code to solve tasks. Wrap the code in a code block that specifies the script type. The user can't modify your code. So do not suggest incomplete code which requires others to modify. Don't use a code block if it's not intended to be executed by the executor.                    Don't include multiple code blocks in one response. Do not ask others to copy and paste the result. Check the execution result returned by the executor.                     If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.'''
+            },
+            {
+                "name": "Scientist",            # name of the agent.
+                "cls":  AssistantAgent,         # class of the agent.
+                "system_message": '''Scientist. You follow an approved plan. You are able to categorize papers after seeing their abstracts printed. You don't write code.'''
+            },
+            {
+                "name": "Planner",              # name of the agent.
+                "cls":  AssistantAgent,         # class of the agent.
+                "system_message": '''Planner. Suggest a plan. Revise the plan based on feedback from admin and critic, until admin approval. The plan may involve an engineer who can write code and a scientist who doesn't write code. Explain the plan first. Be clear which step is performed by an engineer, and which step is performed by a scientist.'''
+            },
+            {
+                "name": "Executor",             # name of the agent.
+                "cls":  UserProxyAgent,         # class of the agent.
+                "human_input_mode": "NEVER",
+                "system_message": '''Executor. Execute the code written by the engineer and report the result.'''
+            },
+            {
+                "name": "Critic",              # name of the agent.
+                "cls":  AssistantAgent,         # class of the agent.
+                "system_message": '''Critic. Double check plan, claims, code from other agents and provide feedback. Check whether the plan includes adding verifiable info such as source URL.'''
             },
             {
                 "name": "user_proxy",           # name of the agent.
                 "cls":  UserProxyAgent,         # class of the agent.
                 "human_input_mode": "NEVER",    # never ask for human input.
                 "llm_config": False,            # disables llm-based auto reply.
+                "code_execution_config": False,
+                "system_message": "A human admin. Interact with the planner to discuss the plan. Plan execution needs to be approved by this admin.",
             },
         ]
+    
+    def do_audogen(self, input):
+        # ⭐⭐ run in subprocess
+        import autogen
+        from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate
+        from gradio_gui.utils.pipe import PluginMultiprocessManager, PipeCom
+        input = input.content
+        with ProxyNetworkActivate("AutoGen"):
+            config_list = [{
+                'model': self.llm_kwargs['llm_model'], 
+                'api_key': self.llm_kwargs['api_key'],
+            },]
+            code_execution_config={"work_dir": self.autogen_work_dir, "use_docker":self.use_docker}
+            agents = self.define_agents()
+            agents = []
+            for agent_kwargs in agents:
+                agent_cls = agent_kwargs.pop('cls')
+                kwargs = {
+                    'llm_config':{
+                        "config_list": config_list,
+                    },
+                    'code_execution_config':code_execution_config
+                }
+                kwargs.update(agent_kwargs)
+                agent_handle = agent_cls(**kwargs)
+                agent_handle._print_received_message = lambda a,b: self.gpt_academic_print_override(agent_kwargs, a, b)
+                agents.append(agent_handle)
+                if agent_kwargs['name'] == 'user_proxy':
+                    agent_handle.get_human_input = lambda a: self.gpt_academic_get_human_input(user_proxy, a)
+                    user_proxy = agent_handle
+            try:
+                groupchat = autogen.GroupChat(agents=agents, messages=[], max_round=50)
+                manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={
+                    "temperature": 0,
+                    "config_list": config_list,
+                })
+                if user_proxy is None: raise Exception("user_proxy is not defined")
+                user_proxy.initiate_chat(manager, message=input)
+            except Exception as e:
+                tb_str = '```\n' + trimmed_format_exc() + '```'
+                self.child_conn.send(PipeCom("done", "AutoGen exe failed: \n\n" + tb_str))
+
 
 # <-------------------  define autogen buttons  ------------------->
 @CatchException
