@@ -4,11 +4,15 @@
 
 When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
+### Option 1: venv
+
 You can create a virtual environment with `venv` as below:
 ```bash
 python3 -m venv autogen
 source autogen/bin/activate
 ```
+
+### Option 2: conda
 
 Another option is with `Conda`, Conda works better at solving dependency conflicts than pip. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
