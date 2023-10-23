@@ -110,7 +110,7 @@ Please find more [code examples](https://microsoft.github.io/autogen/docs/Exampl
 
 ## Enhanced LLM Inferences
 
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` adding powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
 
 ```python
 # perform tuning
