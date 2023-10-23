@@ -23,7 +23,7 @@ Links to notebook examples:
 
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
    - Automated Continual Learning from New Data - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_stream.ipynb)
-   - [Optiguide](https://github.com/microsoft/optiguide) 
+   - [Optiguide](https://github.com/microsoft/optiguide)
 
 4. **Tool Use**
 
