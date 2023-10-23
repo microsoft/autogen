@@ -12,7 +12,7 @@ AutoGen is a framework that enables development of LLM applications using multip
 * It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
 the number of agents, and agent conversation topology.
 * It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. They demonstrate how AutoGen can easily support different conversation patterns.
-* AutoGen provides a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` as an **enhanced inference API**. It allows easy performance tuning, utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
+* AutoGen provides **enhanced LLM inference**. It offers easy performance tuning, plus utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
 
 AutoGen is powered by collaborative [research studies](/docs/Research) from Microsoft, Penn State University, and University of Washington.
 
@@ -44,7 +44,7 @@ The figure below shows an example conversation flow with AutoGen.
 * [Documentation](/docs/Use-Cases/agent_chat).
 
 #### Enhanced LLM Inferences
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers a drop-in replacement of `openai.Completion` or `openai.ChatCompletion` with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
 # perform tuning
 config, analysis = autogen.Completion.tune(
