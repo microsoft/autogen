@@ -388,7 +388,11 @@ def main(plugins):
         def init_cookie(cookies, chatbot):
             # Assign a unique uuid code to each visiting user.
             cookies.update({'uuid': uuid.uuid4()})
-            chatbot.append(["Usage of GUI:", "(1) Input your query (e.g. plot $y=x^2$ with $x \in (-2,1)$, save the image to res.jpg) \n\n(2) click the small red button `AutoGen_Fn_01`."])
+            chatbot.append(["Usage of AutoGen GUI:", 
+                            "(1) Input your query:\n\n" + 
+                            "- plot $y=x^2$ with $x \in (-2,1)$, save the image to res.jpg\n\n" + 
+                            "- find the solution of $sin(x)=cos(x)$ by ploting the culve within $x > 0$, save the image to res.png\n\n" + 
+                            "(2) click the small red button `AutoGen_Fn_01`."])
             return cookies, chatbot
         demo.load(init_cookie, inputs=[cookies, chatbot], outputs=[cookies, chatbot])
         darkmode_js = """(dark) => {
