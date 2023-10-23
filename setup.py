@@ -47,7 +47,6 @@ setuptools.setup(
             "nbconvert",
             "nbformat",
             "pre-commit",
-            "void-terminal>=0.0.8",
             "pydantic==1.10.9",
             "pytest-asyncio",
             "pytest>=6.1.1",
@@ -59,6 +58,9 @@ setuptools.setup(
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf"],
         "teachable": ["chromadb"],
+        "gui":[
+            "void-terminal>=0.0.8",
+        ]
     },
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -50,7 +50,7 @@ def main(plugins):
     # plugins = get_crazy_functions()
     # for k, v in plugins.items():  plugins[k]['Group'] = "Agent"
     # DEFAULT_FN_GROUPS, = get_conf('DEFAULT_FN_GROUPS')
-    DEFAULT_FN_GROUPS = ["Agent"]
+    DEFAULT_FN_GROUPS = ["Agent", "Conversation"]
     all_plugin_groups = list(set([g for _, plugin in plugins.items() for g in plugin['Group'].split('|')]))
     match_group = lambda tags, groups: any([g in groups for g in tags.split('|')])
 
