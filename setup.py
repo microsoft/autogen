@@ -47,7 +47,7 @@ setuptools.setup(
             "nbconvert",
             "nbformat",
             "pre-commit",
-            "void-terminal==0.0.6",
+            "void-terminal==0.0.7",
             "pydantic==1.10.9",
             "pytest-asyncio",
             "pytest>=6.1.1",
