@@ -198,7 +198,6 @@ class Completion(openai_Completion):
         Try cache first. If not found, call the openai api. If the api call fails, retry after retry_wait_time.
         """
         config = config.copy()
-        openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
