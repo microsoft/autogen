@@ -24,6 +24,11 @@ test_dir = os.path.join(os.path.dirname(__file__), "..", "test_files")
 
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
 def test_retrievechat():
+    try:
+        import openai
+    except ImportError:
+        return
+        
     conversations = {}
     ChatCompletion.start_logging(conversations)
 
