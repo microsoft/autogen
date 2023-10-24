@@ -13,8 +13,7 @@ from collections import defaultdict
 
 try:
     import openai
-    from openai.error import (
-        ServiceUnavailableError,
+    from openai import (
         RateLimitError,
         APIError,
         BadRequestError,
@@ -221,10 +220,7 @@ class Completion(openai_Completion):
                     response = openai_completion.create(**config)
                 else:
                     response = openai_completion.create(request_timeout=request_timeout, **config)
-            except (
-                ServiceUnavailableError,
-                APIConnectionError,
-            ):
+            except APIConnectionError:
                 # transient error
                 logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
                 sleep(retry_wait_time)
