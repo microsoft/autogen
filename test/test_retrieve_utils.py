@@ -140,7 +140,7 @@ class TestRetrieveUtils:
                 db = lancedb.connect(db_path)
                 table = db.open_table("my_table")
                 query = table.search(vector).where(f"documents LIKE '%{search_string}%'").limit(n_results).to_df()
-                return {"ids": query["id"].tolist(), "documents": query["documents"].tolist()}
+                return {"ids": [query["id"].tolist()], "documents": [query["documents"].tolist()]}
 
             def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
                 results = self.query_vector_db(
@@ -166,7 +166,7 @@ class TestRetrieveUtils:
 
         create_lancedb()
         ragragproxyagent.retrieve_docs("This is a test document spark", n_results=10, search_string="spark")
-        assert ragragproxyagent._results["ids"] == [3, 1, 5]
+        assert ragragproxyagent._results["ids"] == [[3, 1, 5]]
 
     def test_custom_text_split_function(self):
         def custom_text_split_function(text):
