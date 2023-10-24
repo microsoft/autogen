@@ -1,7 +1,12 @@
 # basic setup
 FROM python:3.10
-RUN apt-get update && apt-get -y update
-RUN apt-get install -y sudo git npm
+
+# Change the mirror server in the Dockerfile to use one that might be more reliable or closer to your geographical location.
+RUN echo 'deb http://ftp.debian.org/debian/ bookworm main' > /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get -y upgrade && \
+    apt-get install -y sudo git npm && \
+    apt-get clean
 
 # Setup user to not run as root
 RUN adduser --disabled-password --gecos '' autogen-dev
