@@ -272,7 +272,7 @@ def test_humaneval(num_samples=1):
     )
     response = autogen.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
     print(response)
-    from openai.error import RateLimitError
+    from openai import RateLimitError
 
     try:
         code, cost, selected = implement(tune_data[1], [{**config_list[-1], **config}])
