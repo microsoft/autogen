@@ -1,16 +1,16 @@
 # Autogen Testbed Environment
 
-The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, can be ingested by analysis or metrics scripts. By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts. By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
 ## Setup
 
-Before you begin, you must configure your API keys for use with the Testbed. These keys extend beyond those typically found in an OAI_CONFIG_LIST, and can include such things as key for the Bing Search API or other services used by the scenarios. There is an example ENV file in ``includes/ENV.example``. To get started:
+Before you begin, you must configure your API keys for use with the Testbed. These keys extend beyond those typically found in an OAI_CONFIG_LIST, and can include such things as keys for the Bing Search API or other services used by the scenarios. There is an example ENV file in ``includes/ENV.example``. To get started:
 
 ``cp includes/ENV.example includes/ENV``
 
 Then edit ``includes/ENV`` as needed.
 
-The Testbed also required installation of the __python docker__ library:
+The Testbed also requires installation of the __python docker__ library:
 
 ``pip install docker``
 
@@ -49,10 +49,12 @@ For example, consider the following folders:
 
 ``./results/default_two_agents/two_agent_stocks_gpt4/0``
 ``./results/default_two_agents/two_agent_stocks_gpt4/1``
+
 ...
+
 ``./results/default_two_agents/two_agent_stocks_gpt4/9``
 
-This folder holds the results for the ``two_agent_stocks_gpt4`` instance of the ``default_two_agents`` scenario. The ``0`` folder contains the results of the first run. The ``1`` folder contains the results of the second run, and so on.
+This folder holds the results for the ``two_agent_stocks_gpt4`` instance of the ``default_two_agents`` scenario. The ``0`` folder contains the results of the first run. The ``1`` folder contains the results of the second run, and so on. You can think of the _instance_ as mapping to a prompt, or a unique set of parameters, while the _scenario_ defines the template in which those parameters are input.
 
 Within each folder, you will find the following files:
 
