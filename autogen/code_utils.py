@@ -62,10 +62,10 @@ def extract_code(
           If there is no code block in the input text, the language would be "unknown".
           If there is code block but the language is not specified, the language would be "".
     """
-    
+
     # Some Local LLM models/servers output \r\n insteaf or just \n. Let's clean it up before continuing
-    text = re.sub(r'\r\n', '\n', text)
-    
+    text = re.sub(r"\r\n", "\n", text)
+
     if not detect_single_line_code:
         match = re.findall(pattern, text, flags=re.DOTALL)
         return match if match else [(UNKNOWN, text)]
