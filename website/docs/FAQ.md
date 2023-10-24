@@ -160,3 +160,13 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 ```
 
 If you have problems with agents running `pip install` or get errors similar to `Error while fetching server API version: ('Connection aborted.', FileNotFoundError(2, 'No such file or directory')`, you can choose **'python:3'** as image as shown in the code example above and that should solve the problem.
+
+## ChromaDB fails in codespaces because of old version of sqlite3
+
+(from [issue #251](https://github.com/microsoft/autogen/issues/251))
+
+Workaround:
+1. `pip install pysqlite3-binary`
+2. `mkdir ../../home/vscode/.local/lib/python3.10/site-packages/google/colab`
+
+Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a44271061cc8e272f3c300?permalink_comment_id=4711478#gistcomment-4711478), linked from the official [chromadb docs](https://docs.trychroma.com/troubleshooting#sqlite), adding this folder triggers chromadb to use pysqlite3 instead of the default.
