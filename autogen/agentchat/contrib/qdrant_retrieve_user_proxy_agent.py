@@ -1,6 +1,5 @@
 from typing import Callable, Dict, List, Optional
 
-from overrides import override
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 from autogen.retrieve_utils import get_files_from_dir, split_files_to_chunks
 import logging
@@ -94,7 +93,6 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         self._hnsw_config = self._retrieve_config.get("hnsw_config", None)
         self._payload_indexing = self._retrieve_config.get("payload_indexing", False)
 
-    @override
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
         """
         Args:
