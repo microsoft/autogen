@@ -1,6 +1,7 @@
 import sys
 from typing import List, Optional, Dict, Callable
 import logging
+import inspect
 from flaml.automl.logger import logger_formatter
 from openai.types.chat import ChatCompletion
 from openai.types.completion import Completion
@@ -31,11 +32,12 @@ if not logger.handlers:
     logger.addHandler(_ch)
 
 
-class OpenAIWrapper(OpenAI):
+class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    additional_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_type", "api_version"}
+    extra_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_type", "api_version"}
+    openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
         """
@@ -69,31 +71,36 @@ class OpenAIWrapper(OpenAI):
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
         """
-        openai_config, extra_kwargs = self._separate_config(base_config)
-        super().__init__(**openai_config)
+        openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
         if config_list:
             self._clients = [self._client(config, openai_config) for config in config_list]
             self._config_list = [
-                {**extra_kwargs, **{k: v for k, v in config.items() if k in self.additional_kwargs}}
+                {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
             ]
         else:
-            self._clients = [self]
+            self._clients = [OpenAI(**openai_config)]
             self._config_list = [extra_kwargs]
 
-    def _separate_config(self, config):
-        """Separate the config into openai_config and additional_kwargs."""
-        openai_config = {k: v for k, v in config.items() if k not in self.additional_kwargs}
-        additional_kwargs = {k: v for k, v in config.items() if k in self.additional_kwargs}
-        return openai_config, additional_kwargs
+    def _separate_openai_config(self, config):
+        """Separate the config into openai_config and extra_kwargs."""
+        openai_config = {k: v for k, v in config.items() if k in self.openai_kwargs}
+        extra_kwargs = {k: v for k, v in config.items() if k not in self.openai_kwargs}
+        return openai_config, extra_kwargs
+
+    def _separate_create_config(self, config):
+        """Separate the config into create_config and extra_kwargs."""
+        create_config = {k: v for k, v in config.items() if k not in self.extra_kwargs}
+        extra_kwargs = {k: v for k, v in config.items() if k in self.extra_kwargs}
+        return create_config, extra_kwargs
 
     def _client(self, config, openai_config):
         """Create a client with the given config to overrdie openai_config,
-        after removing additional kwargs.
+        after removing extra kwargs.
         """
-        config = {**openai_config, **{k: v for k, v in config.items() if k not in self.additional_kwargs}}
+        config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         client = OpenAI(**config)
         return client
 
@@ -170,13 +177,17 @@ class OpenAIWrapper(OpenAI):
         """
         if ERROR:
             raise ERROR
-        create_config, extra_kwargs = self._separate_config(config)
         last = len(self._clients) - 1
         for i, client in enumerate(self._clients):
-            final_extra_kwargs = {**self._config_list[i], **extra_kwargs}
-            params = self._construct_create_params(create_config, final_extra_kwargs)
-            seed = final_extra_kwargs.get("seed", 41)
-            filter_func = final_extra_kwargs.get("filter_func")
+            # merge the input config with the i-th config in the config list
+            full_config = {**config, **self._config_list[i]}
+            # separate the config into create_config and extra_kwargs
+            create_config, extra_kwargs = self._separate_create_config(full_config)
+            # construct the create params
+            params = self._construct_create_params(create_config, extra_kwargs)
+            # get the seed, filter_func and context
+            seed = extra_kwargs.get("seed", 41)
+            filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
             with diskcache.Cache(f"{self.cache_path_root}/{seed}") as cache:
                 if seed is not None:
