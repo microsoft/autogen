@@ -49,13 +49,14 @@ files_static_root = os.path.join(root_file_path, "files/")
 static_folder_root = os.path.join(root_file_path, "ui")
 
 os.makedirs(files_static_root, exist_ok=True)
+os.makedirs(os.path.join(files_static_root, "user"), exist_ok=True)
 os.makedirs(static_folder_root, exist_ok=True)
 
 
 api = FastAPI(root_path="/api")
-app.mount(
-    "/api", api
-)  # mount an api route such that the main route serves the ui and the /api route serves the api operations.
+# mount an api route such that the main route serves the ui and the /api
+# route serves the api operations.
+app.mount("/api", api)
 
 app.mount("/", StaticFiles(directory=static_folder_root, html=True), name="ui")
 api.mount("/files", StaticFiles(directory=files_static_root, html=True), name="files")
@@ -201,13 +202,13 @@ def handle_message(message: Message, ra_type=AgentWorkFlow.CODER_ONLY, enable_pe
 
     # Setup the work_dir and utils_dir
     usermd5 = get_md5_hash(message.userId)
-    global_utils_dir = os.path.join("files", "global_utils_dir")
-    user_utils_dir = os.path.join("files", usermd5, "utils_dir")
+    global_utils_dir = get_global_utils_dir()
+    user_utils_dir = get_user_utils_dir(message.userId)
     if not os.path.exists(user_utils_dir):
         os.makedirs(user_utils_dir)
     utils_dir = [global_utils_dir, user_utils_dir]
 
-    work_dir = os.path.join("files", usermd5, "work_dir")
+    work_dir = os.path.join("files/user", usermd5, "work_dir")
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
@@ -438,10 +439,12 @@ def refresh_profile(user_id: str = None):
     import autogen
 
     window_size = 15
-    llm_config = create_llm_config()
+    path_to_config_list = "./OAI_CONFIG_LIST"
+    llm_config = create_llm_config(path_to_config_list)
 
     # Get the user messages
-    # TODO: This should later be refactored, as it is redundant and was verbatim copied from the api get messages route
+    # TODO: This should later be refactored, as it is redundant and was
+    # verbatim copied from the api get messages route
     if user_id is None:
         return {
             "status": False,
@@ -451,7 +454,8 @@ def refresh_profile(user_id: str = None):
         conversation_history = query_db("SELECT * FROM messages WHERE userId = ?", (user_id,))
 
     # Get the user profile
-    # TODO: This should later be refactored, as it is redundant and was verbatim copied from the api get profile route
+    # TODO: This should later be refactored, as it is redundant and was
+    # verbatim copied from the api get profile route
     old_profile = query_db("SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
     if len(old_profile) == 0:
         old_profile = ""
@@ -539,7 +543,8 @@ Here is the transcript:
     revised_bio = generate_oai_reply(messages, llm_config)
 
     # Update the database
-    # TODO: This should later be refactored, as it is redundant and was verbatim copied from the api post profile route
+    # TODO: This should later be refactored, as it is redundant and was
+    # verbatim copied from the api post profile route
     current_timestamp = datetime.now()
     try:
         insert_db(
@@ -571,14 +576,14 @@ INSERT INTO personalization_profiles (userId, profile, timestamp)
 
 
 def get_user_utils_dir(user_id) -> str:
-    user_utils_dir = os.path.join("files", get_md5_hash(user_id), "utils_dir")
+    user_utils_dir = os.path.join("files/user", get_md5_hash(user_id), "utils_dir")
     if not os.path.exists(user_utils_dir):
         os.makedirs(user_utils_dir, exist_ok=True)
     return user_utils_dir
 
 
 def get_global_utils_dir() -> str:
-    return os.path.join("files", "global_utils_dir")
+    return os.path.join("files/", "global_utils_dir")
 
 
 @api.get("/skills")
@@ -626,7 +631,7 @@ async def clear_db(req: ClearDBModel):
     userId = req.userId
 
     # also delete all files in the users work_dir
-    user_dir = os.path.join("files", get_md5_hash(userId), "work_dir")
+    user_dir = os.path.join("files/user", get_md5_hash(userId), "work_dir")
     # check if the user_dir exists else create if
     if not os.path.exists(user_dir):
         os.makedirs(user_dir, exist_ok=True)
@@ -664,7 +669,7 @@ def get_all_filepaths_in_directory(directory):
 
 @api.get("/userfiles")
 def get_user_files(user_id: str):
-    user_dir = os.path.join("files", get_md5_hash(user_id))
+    user_dir = os.path.join("files/user", get_md5_hash(user_id))
     if not os.path.exists(user_dir):
         os.makedirs(user_dir, exist_ok=True)
     all_filepaths = get_all_filepaths_in_directory(user_dir)
