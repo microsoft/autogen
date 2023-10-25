@@ -8,17 +8,19 @@ from autogen.agentchat.contrib.math_user_proxy_agent import (
 )
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False
+
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    skip or sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows",
 )
 def test_math_user_proxy_agent():
-    try:
-        import openai
-    except ImportError:
-        return
-
     from autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}

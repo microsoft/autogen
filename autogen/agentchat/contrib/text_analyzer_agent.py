@@ -64,7 +64,7 @@ class TextAnalyzerAgent(ConversableAgent):
         assert len(messages) == 2
 
         # Delegate to the analysis method.
-        return self.analyze_text(messages[0]["content"], messages[1]["content"])
+        return True, self.analyze_text(messages[0]["content"], messages[1]["content"])
 
     def analyze_text(self, text_to_analyze, analysis_instructions):
         """Analyzes the given text as instructed, and returns the analysis."""
@@ -75,4 +75,4 @@ class TextAnalyzerAgent(ConversableAgent):
             [analysis_instructions, text_to_analyze, analysis_instructions]
         )  # Repeat the instructions.
         # Generate and return the analysis string.
-        return self.generate_oai_reply([{"role": "user", "content": msg_text}], None, None)
+        return self.generate_oai_reply([{"role": "user", "content": msg_text}], None, None)[1]
