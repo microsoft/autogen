@@ -43,7 +43,7 @@ class OpenAIWrapper:
         """
         Args:
             config_list: a list of config dicts to override the base_config.
-                They can contain additional kwargs as allowed in the [create](/docs/reference/oai/_client/#create) method. E.g.,
+                They can contain additional kwargs as allowed in the [create](/docs/reference/oai/_client#create) method. E.g.,
 
         ```python
         config_list=[

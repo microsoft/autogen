@@ -5,6 +5,8 @@ try:
     from openai import OpenAI
 except ImportError:
     skip = True
+else:
+    skip = False
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
