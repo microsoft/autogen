@@ -13,9 +13,8 @@ from autogen.code_utils import (
     generate_code,
 )
 from autogen.math_utils import eval_math_responses, solve_problem
+from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
-KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
 

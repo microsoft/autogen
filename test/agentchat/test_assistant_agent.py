@@ -20,7 +20,7 @@ def test_ai_user_proxy_agent():
         return
 
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -122,7 +122,7 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
 
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
     llm_config = {
         "request_timeout": 600,
         "seed": 42,
@@ -151,12 +151,12 @@ print('Hello world!')
 ```""",
     )
     print(conversations)
-    autogen.ChatCompletion.print_usage_summary()
-    autogen.ChatCompletion.start_logging(compact=False)
+    # autogen.ChatCompletion.print_usage_summary()
+    # autogen.ChatCompletion.start_logging(compact=False)
     user.send("""Execute temp.py""", assistant)
-    print(autogen.ChatCompletion.logged_history)
-    autogen.ChatCompletion.print_usage_summary()
-    autogen.ChatCompletion.stop_logging()
+    # print(autogen.ChatCompletion.logged_history)
+    # autogen.ChatCompletion.print_usage_summary()
+    # autogen.ChatCompletion.stop_logging()
 
 
 def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
@@ -187,7 +187,7 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
         def generate_init_message(self, question) -> str:
             return self._prompt.format(question=question)
 
-    autogen.ChatCompletion.start_logging()
+    # autogen.ChatCompletion.start_logging()
     assistant = AssistantAgent("assistant", llm_config={"temperature": 0, "config_list": config_list})
     user = TSPUserProxyAgent(
         "user",
@@ -196,8 +196,8 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
         max_consecutive_auto_reply=max_consecutive_auto_reply,
     )
     user.initiate_chat(assistant, question=hard_questions[2])
-    print(autogen.ChatCompletion.logged_history)
-    autogen.ChatCompletion.stop_logging()
+    # print(autogen.ChatCompletion.logged_history)
+    # autogen.ChatCompletion.stop_logging()
 
 
 if __name__ == "__main__":

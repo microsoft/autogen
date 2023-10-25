@@ -95,7 +95,7 @@ assistant = autogen.AssistantAgent(
 )
 ```
 
-The `llm_config` is used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
+The `llm_config` is used in the [`create`](/docs/reference/oai/client#create) function for LLM inference.
 When `llm_config` is not provided, the agent will rely on other openai settings such as `openai.api_key` or the environment variable `OPENAI_API_KEY`, which can also work when you'd like to use a single endpoint.
 You can also explicitly specify that by:
 ```python
@@ -108,7 +108,7 @@ Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs
 
 ## Handle Rate Limit Error and Timeout Error
 
-You can set `retry_wait_time` and `max_retry_period` to handle rate limit error. And you can set `request_timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
+You can set `retry_wait_time` and `max_retry_period` to handle rate limit error. And you can set `request_timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the [`create`](/docs/reference/oai/client#create) function for LLM inference.
 
 - `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
 - `max_retry_period` (int): the total timeout (in seconds) allowed for retrying failed requests.

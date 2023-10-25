@@ -30,7 +30,7 @@ def test_retrievechat():
         return
 
     conversations = {}
-    ChatCompletion.start_logging(conversations)
+    # ChatCompletion.start_logging(conversations)
 
     config_list = config_list_from_json(
         OAI_CONFIG_LIST,

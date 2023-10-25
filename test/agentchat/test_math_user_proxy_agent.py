@@ -22,7 +22,7 @@ def test_math_user_proxy_agent():
     from autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,

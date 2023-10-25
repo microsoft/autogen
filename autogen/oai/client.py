@@ -219,6 +219,7 @@ class OpenAIWrapper:
                         cache.set(key, response)
                     return response
 
+    @classmethod
     def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
         """Extract the text or function calls from a completion or chat response.
 
@@ -234,3 +235,6 @@ class OpenAIWrapper:
         return [
             choice.message if choice.message.function_call is not None else choice.message.content for choice in choices
         ]
+
+
+# TODO: logging
