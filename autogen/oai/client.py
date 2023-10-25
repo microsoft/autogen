@@ -174,6 +174,8 @@ class OpenAIWrapper:
         ```
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
+            - api_type (str | None): The api type. Default to None. E.g., "azure" or "azure_ad".
+            - api_version (str | None): The api version. Default to None. E.g., "2023-08-01-preview".
         """
         if ERROR:
             raise ERROR
