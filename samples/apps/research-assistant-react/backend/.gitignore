@@ -1,6 +1,6 @@
 database.sqlite
 .cache/*
-files/*
+files/user/*
 OAI_CONFIG_LIST
 
 # Byte-compiled / optimized / DLL files
