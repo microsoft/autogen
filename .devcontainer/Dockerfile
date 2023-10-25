@@ -17,6 +17,3 @@ RUN apt-get update \
    && rm -rf /var/lib/apt/lists/*
 ENV DEBIAN_FRONTEND=dialog
 
-# For docs
-RUN npm install --global yarn
-RUN pip install pydoc-markdown
