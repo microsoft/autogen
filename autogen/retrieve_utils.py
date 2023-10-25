@@ -254,7 +254,10 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
 def get_file_from_url(url: str, save_path: str = None):
     """Download a file from a URL."""
     if save_path is None:
+        os.makedirs("/tmp/chromadb", exist_ok=True)
         save_path = os.path.join("/tmp/chromadb", os.path.basename(url))
+    else:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(save_path, "wb") as f:

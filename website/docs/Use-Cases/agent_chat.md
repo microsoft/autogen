@@ -99,6 +99,7 @@ The figure below shows six examples of applications built using AutoGen.
 
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
    - Automated Continual Learning from New Data - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_stream.ipynb)
+   - [OptiGuide](https://github.com/microsoft/optiguide) - Large Language Models for Supply Chain Optimization.
 
 4. **Tool Use**
 
@@ -110,6 +111,7 @@ The figure below shows six examples of applications built using AutoGen.
 
 5. **Agent Teaching and Learning**
    - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teaching.ipynb)
+   - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 ## For Further Reading
 
