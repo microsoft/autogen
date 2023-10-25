@@ -1,4 +1,3 @@
-import signal
 import subprocess
 import sys
 import os
@@ -9,6 +8,7 @@ import time
 from hashlib import md5
 import logging
 from autogen import oai
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 try:
     import docker
@@ -307,21 +307,20 @@ def execute_code(
                 text=True,
             )
         else:
-            signal.signal(signal.SIGALRM, timeout_handler)
-            try:
-                signal.alarm(timeout)
-                # run the code in a subprocess in the current docker container in the working directory
-                result = subprocess.run(
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    subprocess.run,
                     cmd,
                     cwd=work_dir,
                     capture_output=True,
                     text=True,
                 )
-                signal.alarm(0)
-            except TimeoutError:
-                if original_filename is None:
-                    os.remove(filepath)
-                return 1, TIMEOUT_MSG, None
+                try:
+                    result = future.result(timeout=timeout)
+                except TimeoutError:
+                    if original_filename is None:
+                        os.remove(filepath)
+                    return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
         if result.returncode:
