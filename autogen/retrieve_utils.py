@@ -33,7 +33,6 @@ TEXT_FORMATS = [
 VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
-
 def split_text_to_chunks(
     text: str,
     max_tokens: int = 4000,

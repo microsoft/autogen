@@ -37,7 +37,7 @@ def token_left(input: Union[str, List, Dict], model="gpt-3.5-turbo-0613") -> int
     Args:
         input: (str, list, dict): Input to the model.
         model: (str): Model name.
-    
+
     Returns:
         int: Number of tokens left that the model can use for completion.
     """
@@ -49,7 +49,7 @@ def count_token(input: Union[str, List, Dict], model: str = "gpt-3.5-turbo-0613"
     Args:
         input: (str, list, dict): Input to the model.
         model: (str): Model name.
-    
+
     Returns:
         int: Number of tokens from the input.
     """
@@ -133,11 +133,11 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
 
 def num_tokens_from_functions(functions, model="gpt-3.5-turbo-0613") -> int:
     """Return the number of tokens used by a list of functions.
-    
+
     Args:
         functions: (list): List of function descriptions that will be passed in model.
         model: (str): Model name.
-    
+
     Returns:
         int: Number of tokens from the function descriptions.
     """
