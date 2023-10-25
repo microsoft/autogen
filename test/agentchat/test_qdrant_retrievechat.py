@@ -28,7 +28,7 @@ def test_retrievechat():
         import openai
     except ImportError:
         return
-        
+
     conversations = {}
     ChatCompletion.start_logging(conversations)
 
