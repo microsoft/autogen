@@ -19,8 +19,21 @@ install_requires = [
     "termcolor",
     "flaml",
     "python-dotenv",
+    "chromadb",
+    "lancedb",
+    "coverage>=5.3",
+    "datasets",
+    "ipykernel",
+    "nbconvert",
+    "nbformat",
+    "pre-commit",
+    "pydantic>=1.10.9",
+    "pytest-asyncio",
+    "pytest>=6.1.1",
+    "sympy",
+    "tiktoken",
+    "wolframalpha",
 ]
-
 
 setuptools.setup(
     name="pyautogen",
@@ -32,10 +45,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
-    # package_data={
-    #     "autogen.default": ["*/*.json"],
-    # },
-    # include_package_data=True,
     install_requires=install_requires,
     extras_require={
         "test": [
@@ -65,4 +74,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8",
+    setup_requires=["setuptools>=40.00", "wheel"]
 )
