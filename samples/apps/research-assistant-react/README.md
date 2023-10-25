@@ -40,4 +40,4 @@ To update the web ui, navigate to the frontend directory, make changes and rebui
 ## Acknowledgements
 
 Based on the [AutoGen](https://microsoft.github.io/autogen) project.
-Adapted in October 2023 from an internal research prototype (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury)
+Adapted in October 2023 from an internal research prototype (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi)
