@@ -16,6 +16,6 @@
             }
         }
     },
-    "dockerFile": "Dockerfile",    
+    "dockerFile": "Dockerfile",
     "updateContentCommand": "pip install -e . pre-commit && pre-commit install"
 }
