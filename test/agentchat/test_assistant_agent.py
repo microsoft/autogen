@@ -97,7 +97,10 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
             "timeout": 60,
         },
         llm_config=llm_config,
-        system_message="""Reply TERMINATE to end the conversation.""",
+        system_message="""Is code provided but not enclosed in ``` blocks?
+If so, remind that code blocks need to be enclosed in ``` blocks.
+Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
+If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
     )
     user.initiate_chat(assistant, message="TERMINATE")
     # should terminate without sending any message
