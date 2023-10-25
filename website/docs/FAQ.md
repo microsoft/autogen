@@ -24,7 +24,7 @@ config_list = autogen.config_list_from_json(
 )
 ```
 
-It first looks for environment variable "OAI_CONFIG_LIST" which needs to be a valid json string. If that variable is not found, it then looks for a json file named "OAI_CONFIG_LIST" under the specified `file_location` (defaulted to the root of the repo). It then filters the configs by models (you can filter by other keys as well).
+It first looks for environment variable "OAI_CONFIG_LIST" which needs to be a valid json string. If that variable is not found, it then looks for a json file named "OAI_CONFIG_LIST" under the specified `file_location` (defaulted to the working directory). It then filters the configs by models (you can filter by other keys as well).
 
 The `OAI_CONFIG_LIST` var or file content looks like the following: 
 ```json
