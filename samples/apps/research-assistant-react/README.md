@@ -37,7 +37,18 @@ Navigate to http://localhost:8000/ to view the web ui.
 
 To update the web ui, navigate to the frontend directory, make changes and rebuild the ui.
 
+## Capabilities
+
+This demo focuses on the research assistant use case with some generalizations
+
+- Skills: The agent is provided with a list of skills that it can leverage while attempting to address a user's query. Each skill is a python function that may be in any file in a folder made availabe to the agents. We separate the concept of global skills available to all agents `backend/global_utlis_dir` and user level skills `backend/files/user/<user_hash>/utils_dir`, relevant in a multi user environment. Agents are aware of a skill as they are appended to the system message
+
+- Executable Keywords:
+
+  - `@execute` : This app is designed such that code execution is an explicit request from the end user. For example, the agents are setup to not execute generated code by default. Rather, the user can respond with `@execute` to execute the most recent code block or make modifications.
+  - `@memorize`: The app also supports an `@memorize` key word that runs a workflow where a new python skill is synthesized based on the recent conversation history. This is intended as an example of teachability where an agent can learn reusable skills.
+
 ## Acknowledgements
 
 Based on the [AutoGen](https://microsoft.github.io/autogen) project.
-Adapted in October 2023 from an internal research prototype (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury)
+Adapted in October 2023 from a research prototype (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi)
