@@ -206,11 +206,12 @@ def timeout_handler(signum, frame):
 def _cmd(lang):
     if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
         return lang
-    if lang in ["shell"]:
+    elif lang == "shell":
         return "sh"
-    if lang in ["ps1"]:
+    elif lang == "ps1":
         return "powershell"
-    raise NotImplementedError(f"{lang} not recognized in code execution")
+    else:
+        raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
 def execute_code(
@@ -422,20 +423,19 @@ assertions:""",
 }
 
 
-def generate_assertions(definition: str, **config) -> Tuple[str, float]:
+def generate_assertions(function_definition: str, **config) -> Tuple[str, float]:
     """Generate assertions for a function.
 
     Args:
-        definition (str): The function definition, including the signature and docstr.
+        function_definition (str): The function definition, including the signature and docstring.
         config (Optional, dict): The configuration for the API call.
 
     Returns:
-        str: The generated assertions.
-        float: The cost of the generation.
+        Tuple[str, float]: The generated assertions and the cost of the generation.
     """
     params = {**_GENERATE_ASSERTIONS_CONFIG, **config}
     response = oai.Completion.create(
-        {"definition": definition},
+        {"definition": function_definition},
         **params,
     )
     assertions = oai.Completion.extract_text(response)[0]
@@ -444,11 +444,10 @@ def generate_assertions(definition: str, **config) -> Tuple[str, float]:
 
 def _remove_check(response):
     """Remove the check function from the response."""
-    # find the position of the check function
-    pos = response.find("def check(")
-    if pos == -1:
+    check_func_pos = response.find("def check(")
+    if check_func_pos == -1:
         return response
-    return response[:pos]
+    return response[:check_func_pos]
 
 
 def eval_function_completions(

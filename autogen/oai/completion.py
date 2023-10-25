@@ -1,15 +1,14 @@
-from time import sleep
-import logging
 import time
-from typing import List, Optional, Dict, Callable, Union
+import logging
 import sys
-import shutil
 import numpy as np
-from flaml import tune, BlendSearch
+from collections import defaultdict
+from typing import List, Optional, Dict, Callable, Union
+from flaml import tune
 from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
 from .openai_utils import get_key
-from collections import defaultdict
+from typing import Optional, Dict
 
 try:
     import openai
@@ -24,11 +23,11 @@ try:
     )
     from openai import Completion as openai_Completion
     import diskcache
-
     ERROR = None
 except ImportError:
     ERROR = ImportError("please install openai and diskcache to use the autogen.oai subpackage.")
     openai_Completion = object
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -39,7 +38,6 @@ if not logger.handlers:
 
 class Completion(openai_Completion):
     """A class for OpenAI completion API.
-
     It also supports: ChatCompletion, Azure OpenAI API.
     """
 
@@ -115,144 +113,127 @@ class Completion(openai_Completion):
     max_retry_period = 120
     # time out for request to openai server
     request_timeout = 60
-
     openai_completion_class = not ERROR and openai.Completion
     _total_cost = 0
     optimization_budget = None
-
     _history_dict = _count_create = None
 
+class MyClass:
     @classmethod
-    def set_cache(cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache"):
+    def set_cache(cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache") -> None:
         """Set cache path.
-
+        
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 Results corresponding to different seeds will be cached in different places.
-            cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{seed}.
+            cache_path_root (str, Optional): The root path for the cache.
+                The complete cache path will be {cache_path_root}/{seed}.
         """
         cls.seed = seed
         cls.cache_path = f"{cache_path_root}/{seed}"
-
+    
     @classmethod
-    def clear_cache(cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache"):
+    def clear_cache(cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache") -> None:
         """Clear cache.
-
+        
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 If omitted, all caches under cache_path_root will be cleared.
-            cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{seed}.
+            cache_path_root (str, Optional): The root path for the cache.
+                The complete cache path will be {cache_path_root}/{seed}.
         """
         if seed is None:
             shutil.rmtree(cache_path_root, ignore_errors=True)
             return
-        with diskcache.Cache(f"{cache_path_root}/{seed}") as cache:
+        
+        cache_path = f"{cache_path_root}/{seed}"
+        with diskcache.Cache(cache_path) as cache:
             cache.clear()
-
+    
     @classmethod
-    def _book_keeping(cls, config: Dict, response):
-        """Book keeping for the created completions."""
-        if response != -1 and "cost" not in response:
-            response["cost"] = cls.cost(response)
+    def _book_keeping(cls, configuration: Dict, completion_response) -> None:
+        """Bookkeeping for the created completions."""
+        if "cost" not in completion_response:
+            completion_response["cost"] = cls.cost(completion_response)
+        
         if cls._history_dict is None:
             return
+        
         if cls._history_compact:
             value = {
                 "created_at": [],
                 "cost": [],
                 "token_count": [],
             }
-            if "messages" in config:
-                messages = config["messages"]
+            
+            if "messages" in configuration:
+                messages = configuration["messages"]
+                
                 if len(messages) > 1 and messages[-1]["role"] != "assistant":
                     existing_key = get_key(messages[:-1])
                     value = cls._history_dict.pop(existing_key, value)
-                key = get_key(messages + [choice["message"] for choice in response["choices"]])
+                
+                key = get_key(messages + [choice["message"] for choice in completion_response["choices"]])
             else:
-                key = get_key([config["prompt"]] + [choice.get("text") for choice in response["choices"]])
+                key = get_key([configuration["prompt"]] + [choice.get("text") for choice in completion_response["choices"]])
+            
             value["created_at"].append(cls._count_create)
-            value["cost"].append(response["cost"])
+            value["cost"].append(completion_response["cost"])
             value["token_count"].append(
                 {
-                    "model": response["model"],
-                    "prompt_tokens": response["usage"]["prompt_tokens"],
-                    "completion_tokens": response["usage"].get("completion_tokens", 0),
-                    "total_tokens": response["usage"]["total_tokens"],
+                    "model": completion_response["model"],
+                    "prompt_tokens": completion_response["usage"]["prompt_tokens"],
+                    "completion_tokens": completion_response["usage"].get("completion_tokens", 0),
+                    "total_tokens": completion_response["usage"]["total_tokens"],
                 }
             )
+            
             cls._history_dict[key] = value
             cls._count_create += 1
             return
+        
         cls._history_dict[cls._count_create] = {
-            "request": config,
-            "response": response.to_dict_recursive(),
+            "request": configuration,
+            "response": completion_response,
         }
+        
         cls._count_create += 1
 
     @classmethod
     def _get_response(cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True):
-        """Get the response from the openai api call.
+        """Get the response from the OpenAI API call.
 
-        Try cache first. If not found, call the openai api. If the api call fails, retry after retry_wait_time.
+        Try cache first. If not found, call the OpenAI API. If the API call fails, retry after retry_wait_time.
         """
-        config = config.copy()
         openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
         key = get_key(config)
+
         if use_cache:
             response = cls._cache.get(key, None)
             if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
-                # print("using cached response")
                 cls._book_keeping(config, response)
                 return response
-        openai_completion = (
-            openai.ChatCompletion
-            if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
-            or issubclass(cls, ChatCompletion)
-            else openai.Completion
-        )
+
+        openai_completion = openai.ChatCompletion if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models or issubclass(cls, ChatCompletion) else openai.Completion
+
         start_time = time.time()
         request_timeout = cls.request_timeout
         max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
         retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
+
         while True:
             try:
-                if "request_timeout" not in config:
-                    config["request_timeout"] = request_timeout
-                api_type = config.get("api_type", None)
-                santized_config = config.copy()
-                if api_type:
-                    del santized_config["api_type"]
-                
-                if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
-                    response = litellm.completion(**santized_config)
+                if "request_timeout" in config:
+                    response = openai_completion.create(**config)
                 else:
-                    response = openai_completion.create(**santized_config)
-            except (
-                ServiceUnavailableError,
-                APIConnectionError,
-            ):
-                # transient error
-                logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
-                sleep(retry_wait_time)
-            except APIError as err:
-                error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
-                error_code = error_code and error_code.get("code")
-                if error_code == "content_filter":
-                    raise
-                # transient error
+                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                break
+            except (ServiceUnavailableError, APIConnectionError, APIError):
                 logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
                 sleep(retry_wait_time)
             except (RateLimitError, Timeout) as err:
                 time_left = max_retry_period - (time.time() - start_time + retry_wait_time)
-                if (
-                    time_left > 0
-                    and isinstance(err, RateLimitError)
-                    or time_left > request_timeout
-                    and isinstance(err, Timeout)
-                    and "request_timeout" not in config
-                ):
+                if time_left > 0 and isinstance(err, (RateLimitError, Timeout)) and (time_left > request_timeout or "request_timeout" not in config):
                     if isinstance(err, Timeout):
                         request_timeout <<= 1
                     request_timeout = min(request_timeout, time_left)
@@ -264,21 +245,18 @@ class Completion(openai_Completion):
                     response = -1
                     if use_cache and isinstance(err, Timeout):
                         cls._cache.set(key, response)
-                    logger.warning(
-                        f"Failed to get response from openai api due to getting RateLimitError or Timeout for {max_retry_period} seconds."
-                    )
+                    logger.warning(f"Failed to get response from OpenAI API due to RateLimitError or Timeout for {max_retry_period} seconds.")
                     return response
             except InvalidRequestError:
                 if "azure" in config.get("api_type", openai.api_type) and "model" in config:
-                    # azure api uses "engine" instead of "model"
                     config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
                 else:
                     raise
-            else:
-                if use_cache:
-                    cls._cache.set(key, response)
-                cls._book_keeping(config, response)
-                return response
+
+        if use_cache:
+            cls._cache.set(key, response)
+        cls._book_keeping(config, response)
+        return response
 
     @classmethod
     def _get_max_valid_n(cls, key, max_tokens):
