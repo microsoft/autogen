@@ -1,3 +1,4 @@
+import os
 import sys
 from typing import List, Optional, Dict, Callable
 import logging
@@ -76,10 +77,24 @@ class OpenAIWrapper:
             self._clients = [OpenAI(**openai_config)]
             self._config_list = [extra_kwargs]
 
+    def _process_for_azure(self, config: Dict, extra_kwargs: Dict, segment: str = "default"):
+        # deal with api_version
+        query_segment = f"{segment}_query"
+        headers_segment = f"{segment}_headers"
+        api_version = extra_kwargs.get("api_version")
+        if api_version is not None and query_segment not in config:
+            config[query_segment] = {"api_version": api_version}
+        # deal with api_type
+        api_type = extra_kwargs.get("api_type")
+        if api_type is not None and api_type.startswith("azure") and headers_segment not in config:
+            api_key = config.get("api_key", os.environ.get("AZURE_OPENAI_API_KEY"))
+            config[headers_segment] = {"api_key": api_key}
+
     def _separate_openai_config(self, config):
         """Separate the config into openai_config and extra_kwargs."""
         openai_config = {k: v for k, v in config.items() if k in self.openai_kwargs}
         extra_kwargs = {k: v for k, v in config.items() if k not in self.openai_kwargs}
+        self._process_for_azure(openai_config, extra_kwargs)
         return openai_config, extra_kwargs
 
     def _separate_create_config(self, config):
@@ -92,8 +107,9 @@ class OpenAIWrapper:
         """Create a client with the given config to overrdie openai_config,
         after removing extra kwargs.
         """
-        config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
-        client = OpenAI(**config)
+        openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
+        self._process_for_azure(openai_config, config)
+        client = OpenAI(**openai_config)
         return client
 
     @classmethod
@@ -177,6 +193,8 @@ class OpenAIWrapper:
             full_config = {**config, **self._config_list[i]}
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
+            # process for azure
+            self._process_for_azure(create_config, extra_kwargs, "extra")
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
             # get the seed, filter_func and context
