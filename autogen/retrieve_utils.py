@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import glob
 import tiktoken
 import chromadb
-from chromadb.api import API
+from chromadb.api import BaseAPI
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
@@ -204,7 +204,7 @@ def is_url(string: str):
 def create_vector_db_from_dir(
     dir_path: str,
     max_tokens: int = 4000,
-    client: API = None,
+    client: BaseAPI = None,
     db_path: str = "/tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     get_or_create: bool = False,
@@ -275,7 +275,7 @@ def create_vector_db_from_dir(
 def query_vector_db(
     query_texts: List[str],
     n_results: int = 10,
-    client: API = None,
+    client: BaseAPI = None,
     db_path: str = "/tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     search_string: str = "",
