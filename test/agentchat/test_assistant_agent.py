@@ -30,7 +30,7 @@ def test_ai_user_proxy_agent():
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 42,
             "config_list": config_list,
         },
@@ -124,7 +124,7 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
     conversations = {}
     # autogen.ChatCompletion.start_logging(conversations)
     llm_config = {
-        "request_timeout": 600,
+        "timeout": 600,
         "seed": 42,
         "config_list": config_list,
     }

@@ -256,8 +256,10 @@ class ConversableAgent(Agent):
         """
         if isinstance(message, str):
             return {"content": message}
-        else:
+        elif isinstance(message, dict):
             return message
+        else:
+            return dict(message)
 
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
@@ -287,6 +289,7 @@ class ConversableAgent(Agent):
         oai_message["role"] = "function" if message.get("role") == "function" else role
         if "function_call" in oai_message:
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
+            oai_message["function_call"] = dict(oai_message["function_call"])
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
@@ -407,11 +410,14 @@ class ConversableAgent(Agent):
                     )
                 print(content, flush=True)
             if "function_call" in message:
-                func_print = f"***** Suggested function Call: {message['function_call'].get('name', '(No function name found)')} *****"
+                function_call = dict(message["function_call"])
+                func_print = (
+                    f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
+                )
                 print(colored(func_print, "green"), flush=True)
                 print(
                     "Arguments: \n",
-                    message["function_call"].get("arguments", "(No arguments found)"),
+                    function_call.get("arguments", "(No arguments found)"),
                     flush=True,
                     sep="",
                 )

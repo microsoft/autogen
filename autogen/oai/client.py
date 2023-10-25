@@ -9,15 +9,7 @@ from openai.types.completion import Completion
 from autogen.oai.openai_utils import get_key
 
 try:
-    from openai import (
-        RateLimitError,
-        APIError,
-        BadRequestError,
-        APIConnectionError,
-        Timeout,
-        AuthenticationError,
-    )
-    from openai import OpenAI
+    from openai import OpenAI, APIError
     import diskcache
 
     ERROR = None
@@ -208,8 +200,7 @@ class OpenAIWrapper:
                 completions = client.chat.completions if "messages" in params else client.completions
                 try:
                     response = completions.create(**params)
-                except APIConnectionError:
-                    # This seems to be the only error raised by openai
+                except APIError:
                     logger.debug(f"config {i} failed", exc_info=1)
                     if i == last:
                         raise
