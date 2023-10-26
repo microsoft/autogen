@@ -1,5 +1,5 @@
 ---
-title: Teachable Agents with AutoGen
+title: AutoGen's TeachableAgent
 authors: rickyloynd-microsoft
 tags: [LLM, teach]
 ---
@@ -7,25 +7,28 @@ tags: [LLM, teach]
 ![Teachable Agent Architecture](img/teachable-arch.png)
 
 **TL;DR:**
-* We introduce **TeachableAgent** (backed by **TextAnalyzerAgent**) so that users can teach their LLM-based assistants new facts, preferences, and skills.
-* We showcase examples of `TeachableAgent` learning and later recalling facts, preferences, and skills.
+* We introduce **TeachableAgent** (which uses by **TextAnalyzerAgent**) so that users can teach their LLM-based assistants new facts, preferences, and skills.
+* We showcase examples of `TeachableAgent` learning and then recalling facts, preferences, and skills in later chats.
+
 
 ## Introduction
-Conversational assistants based on LLMs can remember the current chat with the user, and can even demonstrate in-context learning of user teachings during the conversation. But the assistant's memories and learnings are lost once the chat is over, or when a single chat grows too long for the LLM to handle effectively. Then in subsequent chats, the user is forced to repeat any necessary instructions over and over.
+Conversational assistants based on LLMs can remember the current chat with the user, and can also demonstrate in-context learning of user teachings during the conversation. But the assistant's memories and learnings are lost once the chat is over, or when a single chat grows too long for the LLM to handle effectively. Then in subsequent chats the user is forced to repeat any necessary instructions over and over.
 
-`TeachableAgent` addresses these limitations by persisting user teachings across chat boundaries in long-term memory, implemented as a vector database. Memory is automatically saved to disk at the end of each chat, then loaded from disk at the start of the next. Instead of copying all of memory into the context window, which would eat up valuable space, individual memories (called memos) are retrieved into context as needed. This allows the user to teach frequently used facts and skills to the teachable agent just once, and have it remember them in later chats.
+`TeachableAgent` addresses these limitations by persisting user teachings across chat boundaries in long-term memory implemented as a vector database. Memory is automatically saved to disk at the end of each chat, then loaded from disk at the start of the next. Instead of copying all of memory into the context window, which would eat up valuable space, individual memories (called memos) are retrieved into context as needed. This allows the user to teach frequently used facts and skills to the teachable agent just once, and have it recall them in later chats.
 
-In order to make effective decisions about memo storage and retrieval, `TeachableAgent` calls an instance of `TextAnalyzerAgent` to analyze pieces of text in several various ways. This adds extra LLM calls involving a relatively small number of tokens. These calls can add a few seconds to the time a user waits for each response.
+In order to make effective decisions about memo storage and retrieval, `TeachableAgent` calls an instance of `TextAnalyzerAgent` to analyze pieces of text in various ways. This adds extra LLM calls involving a relatively small number of tokens, which can add a few seconds to the time a user waits for each response.
+
 
 ## Run It Yourself
 
-AutoGen contains three code examples for running the `TeachableAgent`.
+AutoGen contains three code examples that use `TeachableAgent`.
 
-1. Run [chat_with_teachable_agent.py](../test/agentchat/chat_with_teachable_agent.py) to chat with `TeachableAgent` yourself.
+1. Run [chat_with_teachable_agent.py](https://github.com/microsoft/autogen/blob/main/test/agentchat/chat_with_teachable_agent.py) to converse with `TeachableAgent`.
 
-2. Use the Jupyter notebook [agentchat_teachability.ipynb](../notebook/agentchat_teachability.ipynb) to step through examples discussed below.
+2. Use the Jupyter notebook [agentchat_teachability.ipynb](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb) to step through examples discussed below.
 
-3. Run [test_teachable_agent.py](../test/agentchat/test_teachable_agent.py) for quick unit testing of `TeachableAgent`.
+3. Run [test_teachable_agent.py](https://github.com/microsoft/autogen/blob/main/test/agentchat/test_teachable_agent.py) for quick unit testing of `TeachableAgent`.
+
 
 ## Basic Usage of TeachableAgent
 1. Install dependencies
@@ -41,7 +44,7 @@ from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 ```
 
-3. Create the usual llm_config
+3. Create llm_config
 ```python
 # Load LLM inference endpoints from an env variable or a file
 # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
@@ -73,15 +76,16 @@ teachable_agent.initiate_chat(user, message="Hi, I'm a teachable user assistant!
 
 6. Update the database on disk
 ```python
-# Let the teachable agent remember things that should be learned from this chat.
+# Before closing the app, let the teachable agent store things that should be learned from this chat.
 teachable_agent.learn_from_user_feedback()
 teachable_agent.close_db()
 ```
 
+
 ## Example 1 - Learning user info
 
-A user can teach the agent facts, or things about themselves.
-(Note that because of their training, LLMs can be reluctant to admit that they know personal information.)
+A user can teach the agent facts about themselves.
+(Note that due to their finetuning, LLMs can be reluctant to admit that they know personal information.)
 ```
 CLEARING MEMORY
 teachableagent (to user):
@@ -108,7 +112,7 @@ SAVING MEMORY TO DISK
     Location = ./tmp/interactive/teachable_agent_db\uid_text_dict.pkl
 ```
 
-In a separate conversation, the user can check if the teachable agent remembers their name. (The user prompts are not repeated below.)
+In a later conversation, the user can check whether the teachable agent remembers their name. (For readability, the user prompts and some logged notices are not repeated below.)
 ```
 --------------------------------------------------------------------------------
 user (to teachableagent):
@@ -122,6 +126,7 @@ Hi Ricky! How can I help you today?
 
 --------------------------------------------------------------------------------
 ```
+
 
 ## Example 2 - Learning new facts
 
@@ -172,7 +177,7 @@ Thank you for the clarification. Orca is a 13-billion-parameter language model d
 Orca's advanced capabilities allow it to excel in tasks such as text completion, translation, summarization, Q&A, and more. Its performance improvement over Vicuna highlights the rapid advancements in natural language processing (NLP) research and the development of increasingly capable AI language models.
 ```
 
-Then in a later chat, the teachable agent can answer questions about the facts it has been taught.
+Then in a later chat the teachable agent can answer questions about the facts it has been taught.
 (Remember to first close the previous chat by typing 'exit'.)
 ```
 --------------------------------------------------------------------------------
@@ -191,7 +196,10 @@ The Vicuna and Orca models are both 13B-parameter language models released by Me
 
 ## Example 3 - Learning user preferences
 
-A user can teach the teachable agent how they prefer to have things done.
+A user can teach the agent how they prefer to have things done.
+
+Be aware that a message like the next one cannot be entered as a single message through a command line because it contains a newline character. 
+Such messages can be entered in a Jupyter notebook, or through some UI layer like that of ChatGPT.
 ```
 --------------------------------------------------------------------------------
 user (to teachableagent):
@@ -224,7 +232,7 @@ teachableagent (to user):
 --------------------------------------------------------------------------------
 ```
 
-Then in later chats, the teacher doesn't need to repeat their detailed preferences.
+Then in later chats the teacher doesn't need to reiterate their detailed preferences.
 ```
 --------------------------------------------------------------------------------
 user (to teachableagent):
@@ -245,11 +253,12 @@ teachableagent (to user):
 --------------------------------------------------------------------------------
 ```
 
+
 ## Example 4 - Learning new skills
 
-Users can extend the teachable agent's capabilities by teaching it a new skill for accomplishing challenging tasks. It usually works best to explain the task, then (in the same turn) provide a hint or advice for approaching the task. 
+Users can extend the teachable agent's capabilities by teaching it new skills for accomplishing challenging tasks. It usually works best to first describe the task, then (in the same turn) provide a hint or advice for approaching the task. 
 
-The [Sparks of AGI](https://arxiv.org/abs/2303.12712) paper evaluated GPT-4 on math problems like the following, which it could only solve 32% of the time. We start with a failure case, then give the teachable agent a strategy to try, which lifts GPT-4's success rate above 95%.
+The [Sparks of AGI](https://arxiv.org/abs/2303.12712) paper evaluated GPT-4 on math problems like the following, which it could only solve 32% of the time. We first show a failure case, then teach the agent a strategy which lifts GPT-4's success rate above 95%.
 ```
 --------------------------------------------------------------------------------
 user (to teachableagent):
@@ -336,7 +345,7 @@ The solution is: 9 * 7 + 6 * 6
 --------------------------------------------------------------------------------
 ```
 
-In a later chat, the user doesn't need to repeat the detailed advice.
+In a later chat the user doesn't need to repeat the detailed advice.
 ```
 --------------------------------------------------------------------------------
 user (to teachableagent):
@@ -366,6 +375,16 @@ The solution is: 8 * 3 + 7 * 5
 --------------------------------------------------------------------------------
 ```
 
+
+## Planned improvements
+- Instructions for making any AutoGen agent user-teachable.
+- Examples of how to include `TeachableAgent` in group chats.
+- Enhanced agent teachability
+  - Understanding user instructions distributed over multiple turns.
+  - Learning from the agent's own experience, to reduce dependence on explicit user instructions.
+  - Learning skills built on top of previously learned skills.
+
+
 ## Conclusion
 
-`TeachableAgent` is under still under research and development. Join our discussions in this repo and on our [Discord channel](https://discord.gg/pAbnFJrkgZ). We look forward to seeing how you use `TeachableAgent` and the other agents in AutoGen!
+`TeachableAgent` is still under active research and development. For any problems you find or improvements you have in mind, please join our discussions in this repo and on our [Discord channel](https://discord.gg/pAbnFJrkgZ). We look forward to seeing how you and the rest of the community can use and improve `TeachableAgent` and the other agents in AutoGen!
