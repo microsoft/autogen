@@ -1,3 +1,4 @@
+import re
 from time import sleep
 import logging
 import time
@@ -10,7 +11,8 @@ from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
 from .openai_utils import get_key
 from collections import defaultdict
-
+import litellm
+litellm.set_verbose=True
 try:
     import openai
     from openai.error import (
@@ -218,10 +220,16 @@ class Completion(openai_Completion):
         retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
         while True:
             try:
-                if "request_timeout" in config:
-                    response = openai_completion.create(**config)
+                if "request_timeout" not in config:
+                    config["request_timeout"] = request_timeout
+                api_type = config.get("api_type", None)
+                sanitized_config = config.copy()
+                if 'api_type' in sanitized_config:
+                    del sanitized_config['api_type']
+                if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
+                    response = litellm.completion(**sanitized_config)
                 else:
-                    response = openai_completion.create(request_timeout=request_timeout, **config)
+                    response = openai_completion.create(**sanitized_config)
             except (
                 ServiceUnavailableError,
                 APIConnectionError,
