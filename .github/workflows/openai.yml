@@ -57,6 +57,7 @@ jobs:
         run: |
           pip install -e .[teachable]
       - name: Install packages for RetrieveChat with QDrant when needed
+        if: matrix.python-version == '3.9'
         run: |
           pip install qdrant_client[fastembed]
       - name: Coverage
