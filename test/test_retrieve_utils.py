@@ -1,21 +1,24 @@
 """
 Unit test for retrieve_utils.py
 """
-
-from autogen.retrieve_utils import (
-    split_text_to_chunks,
-    extract_text_from_pdf,
-    split_files_to_chunks,
-    get_files_from_dir,
-    get_file_from_url,
-    is_url,
-    create_vector_db_from_dir,
-    query_vector_db,
-    num_tokens_from_text,
-    num_tokens_from_messages,
-    TEXT_FORMATS,
-)
-
+try:
+    from autogen.retrieve_utils import (
+        split_text_to_chunks,
+        extract_text_from_pdf,
+        split_files_to_chunks,
+        get_files_from_dir,
+        get_file_from_url,
+        is_url,
+        create_vector_db_from_dir,
+        query_vector_db,
+        num_tokens_from_text,
+        num_tokens_from_messages,
+        TEXT_FORMATS,
+    )
+except ImportError:
+    skip = True
+else:
+    skip = False
 import os
 import sys
 import pytest
@@ -30,6 +33,7 @@ simplify the process of building applications that leverage the power of LLMs, a
 integration, testing, and deployment."""
 
 
+@pytest.mark.skipif(skip, reason="dependency not installed")
 class TestRetrieveUtils:
     def test_num_tokens_from_text_custom_token_count_function(self):
         def custom_token_count_function(text):

@@ -1,5 +1,6 @@
 try:
     from openai import OpenAI
+    from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 except ImportError:
     skip = True
 else:
@@ -8,7 +9,6 @@ else:
 import pytest
 import sys
 from autogen import ConversableAgent, config_list_from_json
-from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC
 
 try:
@@ -140,7 +140,7 @@ def use_task_advice_pair_phrasing():
 
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.11"),
-    reason="do not run if openai is not installed or py!=3.11",
+    reason="do not run if dependency is not installed or py!=3.11",
 )
 def test_all():
     """Runs this file's unit tests."""
