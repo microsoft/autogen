@@ -89,7 +89,7 @@ def extract_code(
     lang_check = ["python", "python3", "bash", "powershell", "sh", "pip", "shell", "ps1"]
     for each_block in sterilized_blocks:
        for prefix in lang_check:
-            if each.startswith("```"+prefix):
+            if each_block.startswith("```"+prefix):
                 code_blocks.append(code_pattern.findall(each_block))
 
     # Extract the individual code blocks and languages from the matched groups
