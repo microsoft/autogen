@@ -29,7 +29,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_type", "api_version"}
+    extra_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
@@ -74,7 +74,7 @@ class OpenAIWrapper:
                 for config in config_list
             ]
         else:
-            self._clients = [OpenAI(**openai_config)]
+            self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
 
     def _process_for_azure(self, config: Dict, extra_kwargs: Dict, segment: str = "default"):
@@ -83,12 +83,29 @@ class OpenAIWrapper:
         headers_segment = f"{segment}_headers"
         api_version = extra_kwargs.get("api_version")
         if api_version is not None and query_segment not in config:
-            config[query_segment] = {"api_version": api_version}
+            config[query_segment] = {"api-version": api_version}
+            if segment == "default":
+                # remove the api_version from extra_kwargs
+                extra_kwargs.pop("api_version")
+        if segment == "extra":
+            return config
         # deal with api_type
         api_type = extra_kwargs.get("api_type")
         if api_type is not None and api_type.startswith("azure") and headers_segment not in config:
             api_key = config.get("api_key", os.environ.get("AZURE_OPENAI_API_KEY"))
-            config[headers_segment] = {"api_key": api_key}
+            config[headers_segment] = {"api-key": api_key}
+            # remove the api_type from extra_kwargs
+            extra_kwargs.pop("api_type")
+            # deal with model
+            model = extra_kwargs.get("model")
+            if model is None:
+                return
+            base_url = config.get("base_url")
+            if base_url is None:
+                raise ValueError("to use azure openai api, base_url must be specified.")
+            suffix = f"openai/deployments/{model}"
+            if not base_url.endswith(suffix):
+                config["base_url"] += suffix
 
     def _separate_openai_config(self, config):
         """Separate the config into openai_config and extra_kwargs."""
@@ -182,7 +199,6 @@ class OpenAIWrapper:
         ```
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
-            - api_type (str | None): The api type. Default to None. E.g., "azure" or "azure_ad".
             - api_version (str | None): The api version. Default to None. E.g., "2023-08-01-preview".
         """
         if ERROR:
