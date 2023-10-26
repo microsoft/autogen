@@ -4,3 +4,4 @@ uvicorn
 arxiv
 pdfminer.six
 rich==13.5.2
+pydantic
