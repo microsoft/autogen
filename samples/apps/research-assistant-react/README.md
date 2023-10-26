@@ -119,4 +119,4 @@ Following this, the user can also type `@memorize` which triggers a workflow tha
 ## Acknowledgements
 
 Based on the [AutoGen](https://microsoft.github.io/autogen) project.
-Adapted in October 2023 from a research prototype (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi)
+Adapted in October 2023 from a research prototype (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang)
