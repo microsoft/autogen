@@ -53,6 +53,7 @@ setuptools.setup(
             "sympy",
             "tiktoken",
             "wolframalpha",
+            "tiktoken",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
