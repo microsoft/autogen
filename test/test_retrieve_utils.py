@@ -2,6 +2,8 @@
 Unit test for retrieve_utils.py
 """
 try:
+    import chromadb
+    import tiktoken
     from autogen.retrieve_utils import (
         split_text_to_chunks,
         extract_text_from_pdf,
@@ -20,10 +22,7 @@ except ImportError:
 else:
     skip = False
 import os
-import sys
 import pytest
-import chromadb
-import tiktoken
 
 
 test_dir = os.path.join(os.path.dirname(__file__), "test_files")
