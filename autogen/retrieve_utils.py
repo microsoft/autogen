@@ -5,7 +5,11 @@ from urllib.parse import urlparse
 import glob
 import tiktoken
 import chromadb
-from chromadb.api import API
+
+if chromadb.__version__ <= "0.4.15":
+    from chromadb.api import API
+else:
+    from chromadb.api import ClientAPI as API
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
