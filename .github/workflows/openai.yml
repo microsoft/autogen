@@ -12,8 +12,6 @@ on:
       - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
       - 'notebook/agentchat_function_call.ipynb'
       - 'notebook/agentchat_MathChat.ipynb'
-      # - 'notebook/oai_completion.ipynb'
-      # - 'notebook/oai_chatgpt_gpt4.ipynb'
       - '.github/workflows/openai.yml'
 
 jobs:
@@ -49,14 +47,6 @@ jobs:
         if: matrix.python-version != '3.11'
         run: |
           pip install -e .[mathchat]
-      # - name: Install packages for RetrieveChat when needed
-      #   if: matrix.python-version == '3.9'
-      #   run: |
-      #     pip install -e .[retrievechat]
-      # - name: Install packages for Teachable when needed
-      #   if: matrix.python-version == '3.11'
-      #   run: |
-      #     pip install -e .[teachable]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
