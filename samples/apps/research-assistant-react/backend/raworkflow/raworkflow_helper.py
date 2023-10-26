@@ -2,8 +2,7 @@ import re
 
 from rich.panel import Panel
 from rich.markdown import Markdown
-from rich.console import Console, group, Group
-from rich.text import Text
+from rich.console import Console
 
 
 def replace_newlines(text):
