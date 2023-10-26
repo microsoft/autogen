@@ -198,7 +198,7 @@ The Vicuna and Orca models are both 13B-parameter language models released by Me
 
 A user can teach the agent how they prefer to have things done.
 
-Be aware that a message like the next one cannot be entered as a single message through a command line because it contains a newline character. 
+Be aware that a message like the next one cannot be entered as a single message through a command line because it contains a newline character.
 Such messages can be entered in a Jupyter notebook, or through some UI layer like that of ChatGPT.
 ```
 --------------------------------------------------------------------------------
@@ -256,14 +256,14 @@ teachableagent (to user):
 
 ## Example 4 - Learning new skills
 
-Users can extend the teachable agent's capabilities by teaching it new skills for accomplishing challenging tasks. It usually works best to first describe the task, then (in the same turn) provide a hint or advice for approaching the task. 
+Users can extend the teachable agent's capabilities by teaching it new skills for accomplishing challenging tasks. It usually works best to first describe the task, then (in the same turn) provide a hint or advice for approaching the task.
 
 The [Sparks of AGI](https://arxiv.org/abs/2303.12712) paper evaluated GPT-4 on math problems like the following, which it could only solve 32% of the time. We first show a failure case, then teach the agent a strategy which lifts GPT-4's success rate above 95%.
 ```
 --------------------------------------------------------------------------------
 user (to teachableagent):
 
-Consider the identity:  
+Consider the identity:
 9 * 4 + 6 * 6 = 72
 Can you modify exactly one integer (and not more than that!) on the left hand side of the equation so the right hand side becomes 99?
 -Let's think step-by-step, write down a plan, and then write down your solution as: "The solution is: A * B + C * D".
@@ -288,7 +288,7 @@ The solution is: 9 * 4 + 6 * 7
 --------------------------------------------------------------------------------
 user (to teachableagent):
 
-Consider the identity:  
+Consider the identity:
 9 * 4 + 6 * 6 = 72
 Can you modify exactly one integer (and not more than that!) on the left hand side of the equation so the right hand side becomes 99?
 -Let's think step-by-step, write down a plan, and then write down your solution as: "The solution is: A * B + C * D".
@@ -350,7 +350,7 @@ In a later chat the user doesn't need to repeat the detailed advice.
 --------------------------------------------------------------------------------
 user (to teachableagent):
 
-Consider the identity:  
+Consider the identity:
 8 * 3 + 7 * 9 = 87
 Can you modify exactly one integer (and not more than that!) on the left hand side of the equation so the right hand side becomes 59?
 -Let's think step-by-step, write down a plan, and then write down your solution as: "The solution is: A * B + C * D".
