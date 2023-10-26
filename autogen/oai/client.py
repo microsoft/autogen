@@ -1,3 +1,4 @@
+import os
 import sys
 from typing import List, Optional, Dict, Callable
 import logging
@@ -9,15 +10,7 @@ from openai.types.completion import Completion
 from autogen.oai.openai_utils import get_key
 
 try:
-    from openai import (
-        RateLimitError,
-        APIError,
-        BadRequestError,
-        APIConnectionError,
-        Timeout,
-        AuthenticationError,
-    )
-    from openai import OpenAI
+    from openai import OpenAI, APIError
     import diskcache
 
     ERROR = None
@@ -36,7 +29,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_type", "api_version"}
+    extra_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
@@ -81,13 +74,44 @@ class OpenAIWrapper:
                 for config in config_list
             ]
         else:
-            self._clients = [OpenAI(**openai_config)]
+            self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
+
+    def _process_for_azure(self, config: Dict, extra_kwargs: Dict, segment: str = "default"):
+        # deal with api_version
+        query_segment = f"{segment}_query"
+        headers_segment = f"{segment}_headers"
+        api_version = extra_kwargs.get("api_version")
+        if api_version is not None and query_segment not in config:
+            config[query_segment] = {"api-version": api_version}
+            if segment == "default":
+                # remove the api_version from extra_kwargs
+                extra_kwargs.pop("api_version")
+        if segment == "extra":
+            return config
+        # deal with api_type
+        api_type = extra_kwargs.get("api_type")
+        if api_type is not None and api_type.startswith("azure") and headers_segment not in config:
+            api_key = config.get("api_key", os.environ.get("AZURE_OPENAI_API_KEY"))
+            config[headers_segment] = {"api-key": api_key}
+            # remove the api_type from extra_kwargs
+            extra_kwargs.pop("api_type")
+            # deal with model
+            model = extra_kwargs.get("model")
+            if model is None:
+                return
+            base_url = config.get("base_url")
+            if base_url is None:
+                raise ValueError("to use azure openai api, base_url must be specified.")
+            suffix = f"openai/deployments/{model}"
+            if not base_url.endswith(suffix):
+                config["base_url"] += suffix
 
     def _separate_openai_config(self, config):
         """Separate the config into openai_config and extra_kwargs."""
         openai_config = {k: v for k, v in config.items() if k in self.openai_kwargs}
         extra_kwargs = {k: v for k, v in config.items() if k not in self.openai_kwargs}
+        self._process_for_azure(openai_config, extra_kwargs)
         return openai_config, extra_kwargs
 
     def _separate_create_config(self, config):
@@ -100,8 +124,9 @@ class OpenAIWrapper:
         """Create a client with the given config to overrdie openai_config,
         after removing extra kwargs.
         """
-        config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
-        client = OpenAI(**config)
+        openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
+        self._process_for_azure(openai_config, config)
+        client = OpenAI(**openai_config)
         return client
 
     @classmethod
@@ -174,7 +199,6 @@ class OpenAIWrapper:
         ```
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
-            - api_type (str | None): The api type. Default to None. E.g., "azure" or "azure_ad".
             - api_version (str | None): The api version. Default to None. E.g., "2023-08-01-preview".
         """
         if ERROR:
@@ -185,6 +209,8 @@ class OpenAIWrapper:
             full_config = {**config, **self._config_list[i]}
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
+            # process for azure
+            self._process_for_azure(create_config, extra_kwargs, "extra")
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
             # get the seed, filter_func and context
@@ -208,8 +234,7 @@ class OpenAIWrapper:
                 completions = client.chat.completions if "messages" in params else client.completions
                 try:
                     response = completions.create(**params)
-                except APIConnectionError:
-                    # This seems to be the only error raised by openai
+                except APIError:
                     logger.debug(f"config {i} failed", exc_info=1)
                     if i == last:
                         raise
@@ -219,6 +244,7 @@ class OpenAIWrapper:
                         cache.set(key, response)
                     return response
 
+    @classmethod
     def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
         """Extract the text or function calls from a completion or chat response.
 
@@ -234,3 +260,6 @@ class OpenAIWrapper:
         return [
             choice.message if choice.message.function_call is not None else choice.message.content for choice in choices
         ]
+
+
+# TODO: logging

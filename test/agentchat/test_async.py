@@ -68,7 +68,7 @@ async def test_stream():
     assistant = autogen.AssistantAgent(
         name="assistant",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 41,
             "config_list": config_list,
             "temperature": 0,

@@ -26,7 +26,7 @@ def create_teachable_agent(reset_db=False):
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
     teachable_agent = TeachableAgent(
         name="teachableagent",
-        llm_config={"config_list": config_list, "request_timeout": 120, "use_cache": use_cache},
+        llm_config={"config_list": config_list, "timeout": 120, "use_cache": use_cache},
         teach_config={
             "verbosity": verbosity,
             "reset_db": reset_db,

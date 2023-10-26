@@ -30,7 +30,7 @@ def test_retrievechat():
         return
 
     conversations = {}
-    ChatCompletion.start_logging(conversations)
+    # ChatCompletion.start_logging(conversations)
 
     config_list = config_list_from_json(
         OAI_CONFIG_LIST,
@@ -44,7 +44,7 @@ def test_retrievechat():
         name="assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 42,
             "config_list": config_list,
         },

@@ -37,7 +37,7 @@ if not logger.handlers:
 
 
 class Completion(openai_Completion):
-    """A class for OpenAI completion API.
+    """(Deprecated) A class for OpenAI completion API.
 
     It also supports: ChatCompletion, Azure OpenAI API.
     """
@@ -1172,7 +1172,7 @@ class Completion(openai_Completion):
 
 
 class ChatCompletion(Completion):
-    """A class for OpenAI API ChatCompletion. Share the same API as Completion."""
+    """(Deprecated) A class for OpenAI API ChatCompletion. Share the same API as Completion."""
 
     default_search_space = Completion.default_search_space.copy()
     default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])

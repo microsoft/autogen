@@ -5,10 +5,12 @@ import pytest
 import logging
 import tempfile
 from unittest import mock
-from test_completion import KEY_LOC, OAI_CONFIG_LIST
+import autogen  # noqa: E402
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 sys.path.append("../../autogen")
-import autogen  # noqa: E402
 
 # Example environment variables
 ENV_VARS = {
