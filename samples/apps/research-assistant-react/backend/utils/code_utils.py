@@ -121,9 +121,9 @@ def text2functions(content, source_file) -> List[SkillFunction]:
             docstring = ast.get_docstring(item) or "No docstring available"
 
             code = (
-                content.splitlines()[item.lineno - 1 : item.end_lineno]
+                content.splitlines()[item.lineno - 1: item.end_lineno]
                 if item.end_lineno
-                else content.splitlines()[item.lineno - 1 :]
+                else content.splitlines()[item.lineno - 1:]
             )
             code = "\n".join(code)
 
@@ -222,7 +222,7 @@ def learn_skill(
         }
 
     standalone_func = get_standalone_func(last_code, llm_config)
-    code_blocks = extract_code_result(standalone_func)
+    code_blocks = extract_code(standalone_func)
     _, new_function = code_blocks[0]
 
     user_utils_dir = utils_dir
