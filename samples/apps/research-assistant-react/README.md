@@ -89,6 +89,8 @@ The user can then ask for formatting updates:
 Generate a markdown table: domain, paper title, url
 ```
 
+![ARA](./docs/images/ara_markdown.png)
+
 ```
 Use this data to generate a bar chart of domains and number of papers in that domain. Save it to a file named barchart.png.
 ```
