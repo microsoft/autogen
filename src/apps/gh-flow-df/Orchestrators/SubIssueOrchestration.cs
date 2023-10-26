@@ -1,6 +1,6 @@
+using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using Microsoft.SKDevTeam;
 
 namespace SK.DevTeam
 {

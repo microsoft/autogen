@@ -1,4 +1,5 @@
-using MS.AI.DevTeam;
+using Microsoft.AI.DevTeam;
+using Microsoft.AI.DevTeam.Skills;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
 using Octokit.Webhooks.Events.IssueComment;
@@ -71,7 +72,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         {
             await HandleClosingDevPlan(issueNumber, suffix, org, repo);
         }
-        else if (skillName == nameof(Dev) && functionName == nameof(Dev.Implement))
+        else if (skillName == nameof(Developer) && functionName == nameof(Developer.Implement))
         {
             await HandleClosingDevImplement(issueNumber, suffix, org, repo);
         }
@@ -206,7 +207,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 Content = plan
             });
         }
-        else if (skillName == nameof(Dev) && functionName == nameof(Dev.Implement))
+        else if (skillName == nameof(Developer) && functionName == nameof(Developer.Implement))
         {
             var dev = _grains.GetGrain<IDevelopCode>(issueNumber, suffix);
             var code = await dev.GenerateCode(input);

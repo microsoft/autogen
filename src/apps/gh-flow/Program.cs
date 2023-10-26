@@ -1,12 +1,13 @@
 using System.Text.Json;
+using Microsoft.AI.DevTeam;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 using Microsoft.SemanticKernel.Memory;
-using MS.AI.DevTeam;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
+using Orleans.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
@@ -49,28 +50,72 @@ builder.Services.AddSingleton<IManageGithub, GithubService>();
 
 builder.Host.UseOrleans(siloBuilder =>
 {
-    var connectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
-    siloBuilder.UseCosmosReminderService( o => 
+    
+    if (builder.Environment.IsDevelopment())
     {
-            o.ConfigureCosmosClient(connectionString);
-            o.ContainerName = "devteam";
-            o.DatabaseName = "reminders";
-            o.IsResourceCreationEnabled = true;
-    });
-    siloBuilder.AddCosmosGrainStorage(
-        name: "messages",
-        configureOptions: o =>
+        var connectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
+        siloBuilder.UseCosmosReminderService( o => 
         {
-            o.ConfigureCosmosClient(connectionString);
-            o.ContainerName = "devteam";
-            o.DatabaseName = "persistence";
-            o.IsResourceCreationEnabled = true;
+                o.ConfigureCosmosClient(connectionString);
+                o.ContainerName = "reminders";
+                o.DatabaseName = "devteam";
+                o.IsResourceCreationEnabled = true;
         });
-    siloBuilder.UseLocalhostClustering();
+        siloBuilder.AddCosmosGrainStorage(
+            name: "messages",
+            configureOptions: o =>
+            {
+                o.ConfigureCosmosClient(connectionString);
+                o.ContainerName = "persistence";
+                o.DatabaseName = "devteam";
+                o.IsResourceCreationEnabled = true;
+            });
+        siloBuilder.UseLocalhostClustering();
+    }
+    else
+    {
+        var cosmosDbconnectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
+        siloBuilder.Configure<ClusterOptions>(options =>
+        {
+            options.ClusterId = "ai-dev-cluster";
+            options.ServiceId = "ai-dev-cluster";
+        });
+        siloBuilder.Configure<SiloMessagingOptions>(options =>
+        {
+            options.ResponseTimeout = TimeSpan.FromMinutes(3);
+            options.SystemResponseTimeout = TimeSpan.FromMinutes(3);
+        });
+         siloBuilder.Configure<ClientMessagingOptions>(options =>
+        {
+            options.ResponseTimeout = TimeSpan.FromMinutes(3);
+        });
+        siloBuilder.UseCosmosClustering( o =>
+            {
+                o.ConfigureCosmosClient(cosmosDbconnectionString);
+                o.ContainerName = "devteam";
+                o.DatabaseName = "clustering";
+                o.IsResourceCreationEnabled = true;
+            });
+        
+        siloBuilder.UseCosmosReminderService( o => 
+        {
+                o.ConfigureCosmosClient(cosmosDbconnectionString);
+                o.ContainerName = "devteam";
+                o.DatabaseName = "reminders";
+                o.IsResourceCreationEnabled = true;
+        });
+        siloBuilder.AddCosmosGrainStorage(
+            name: "messages",
+            configureOptions: o =>
+            {
+                o.ConfigureCosmosClient(cosmosDbconnectionString);
+                o.ContainerName = "devteam";
+                o.DatabaseName = "persistence";
+                o.IsResourceCreationEnabled = true;
+            });
+    }    
+   
 });
-
-
-
 
 builder.Services.Configure<JsonSerializerOptions>(options =>
 {

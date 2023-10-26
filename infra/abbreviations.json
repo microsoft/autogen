@@ -7,5 +7,8 @@
     "resourcesResourceGroups": "rg-",
     "storageStorageAccounts": "st",
     "webServerFarms": "plan-",
-    "webSitesFunctions": "func-"
+    "webSitesFunctions": "func-",
+    "appContainerApps": "ca-",
+    "managedIdentityUserAssignedIdentities": "id-",
+    "documentDBDatabaseAccounts":"cosmos-"
 }

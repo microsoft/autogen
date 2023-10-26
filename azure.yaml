@@ -1,8 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: sk-dev-team
+name: ai-dev-team
 services:
-  sk-func:
-    project: ./src/apps/gh-flow-df
-    language: dotnet
-    host: function
+  gh-flow:
+    project: ./src/apps/gh-flow
+    language: csharp
+    host: containerapp
+    docker:
+      context: ../../../

@@ -23,7 +23,7 @@
         <PackageReference Include="AspNetCore.Authentication.ApiKey" Version="7.0.0" />
         <PackageReference Include="Microsoft.SemanticKernel" Version="0.24.230918.1-preview" />
         <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="0.24.230918.1-preview" />
-        <ProjectReference Include="..\skills\skills.csproj" />
+        <ProjectReference Include="..\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
 
     </ItemGroup>
 

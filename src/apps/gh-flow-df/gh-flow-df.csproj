@@ -37,7 +37,7 @@
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.16.0-beta.1" />
     <PackageReference Include="Azure.Data.Tables" Version="12.8.1" />
     <PackageReference Include="Azure.Identity" Version="1.10.0-beta.1" />
-    <ProjectReference Include="..\..\libs\skills\skills.csproj" />
+    <ProjectReference Include="..\..\libs\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
   </ItemGroup>
 
 
