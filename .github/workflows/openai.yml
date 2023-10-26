@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.os }}
-    environment: openai
+    environment: openai1
     steps:
       # checkout to pr branch
       - name: Checkout
