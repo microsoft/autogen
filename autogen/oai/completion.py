@@ -2,7 +2,7 @@ import re
 from time import sleep
 import logging
 import time
-from typing import List, Optional, Dict, Callable, Union
+from typing import Any, List, Optional, Dict, Callable, Union
 import sys
 import shutil
 import numpy as np
@@ -194,7 +194,7 @@ class Completion(openai_Completion):
         cls._count_create += 1
 
     @classmethod
-    def _get_response(cls, config: Dict, raise_on_ratelimit_or_timeout=False, use_cache=True):
+    def _get_response(cls, config: Dict[str,Any], raise_on_ratelimit_or_timeout:bool=False, use_cache:bool=True) ->Optional[Dict]:
         """Get the response from the openai api call.
 
         Try cache first. If not found, call the openai api. If the api call fails, retry after retry_wait_time.
@@ -207,7 +207,7 @@ class Completion(openai_Completion):
             if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
                 # print("using cached response")
                 cls._book_keeping(config, response)
-                return response
+                return response  # type: ignore
         openai_completion = (
             openai.ChatCompletion
             if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
@@ -262,7 +262,7 @@ class Completion(openai_Completion):
                 elif raise_on_ratelimit_or_timeout:
                     raise
                 else:
-                    response = -1
+                    response = None
                     if use_cache and isinstance(err, Timeout):
                         cls._cache.set(key, response)
                     logger.warning(
@@ -279,7 +279,10 @@ class Completion(openai_Completion):
                 if use_cache:
                     cls._cache.set(key, response)
                 cls._book_keeping(config, response)
-                return response
+                if isinstance(response, dict):
+                    return response
+                else:
+                    return None
 
     @classmethod
     def _get_max_valid_n(cls, key, max_tokens):
