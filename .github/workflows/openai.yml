@@ -56,6 +56,9 @@ jobs:
       - name: Install packages for Teachable when needed
         run: |
           pip install -e .[teachable]
+      - name: Install packages for RetrieveChat with QDrant when needed
+        run: |
+          pip install qdrant_client[fastembed]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
