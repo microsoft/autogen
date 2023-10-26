@@ -6,13 +6,13 @@ from typing import List, Optional, Dict, Callable
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
-from openai.types.chat import ChatCompletion
-from openai.types.completion import Completion
 
 from autogen.oai.openai_utils import get_key
 
 try:
     from openai import OpenAI, APIError
+    from openai.types.chat import ChatCompletion
+    from openai.types.completion import Completion
     import diskcache
 
     ERROR = None
