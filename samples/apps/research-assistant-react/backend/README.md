@@ -1,4 +1,4 @@
-## FastAPI Backend for TinyRA
+## FastAPI Backend for AutoGen Research Assistant
 
 ### Installation
 

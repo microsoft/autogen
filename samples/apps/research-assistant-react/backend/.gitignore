@@ -2,6 +2,7 @@ database.sqlite
 .cache/*
 files/user/*
 OAI_CONFIG_LIST
+scratch/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

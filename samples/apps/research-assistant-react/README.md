@@ -1,7 +1,7 @@
 # ARA - AutoGen Research Assistant
 
 ![ARA](./docs/images/ara.png)
-ARA is an Autogen-powered AI research assistant that can converse with researchers, write and execute code, run saved skills, learn new skills by demonstration, and adapt in response to user interactions.
+ARA is an Autogen-powered AI research assistant that can converse with you to help you conduct research, write and execute code, run saved skills, learn new skills by demonstration, and adapt in response to your interactions.
 
 Project Structure:
 
@@ -49,13 +49,15 @@ This demo focuses on the research assistant use case with some generalizations
 
 ## Example Usage
 
-We recommend the following sample queries to demonstrate the capabilities of the research assistant
+A set of example queries are shown below, with the intent of demonstrating the capabilities of the research assistant.
+
+> Note that this specific workflow will require a model with large context length (gpt-4-32k recommended) as abstracts from multiple papers are retrieved and inserted into the conversation history.
 
 ```
 Find arxiv papers that show how are people studying trust calibration in AI based systems
 ```
 
-The agents responds by writing code to conduct a literature search and utilizes an existing skill `find_relevant_papers` in the global skills dir `backend/files/global_utlis_dir/lit_review_mod.py`
+The agents respond by _writing code_ to conduct a literature search and utilizes an existing skill `find_relevant_papers` in the global skills dir `backend/files/global_utlis_dir/lit_review_mod.py`.
 
 ```python
 # python code
@@ -73,7 +75,7 @@ for i, paper in enumerate(papers):
     print(f"PDF URL: {paper['pdf_url']}")
 ```
 
-In response the user can type `@execute` which causes the code to be executed and the response returned.
+In response, the user can type `@execute` which causes the code to be executed and the response returned.
 
 Next, the user can request modifications to the code:
 
