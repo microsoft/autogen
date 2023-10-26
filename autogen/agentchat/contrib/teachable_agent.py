@@ -18,7 +18,7 @@ except ImportError:
 
 
 class TeachableAgent(ConversableAgent):
-    """Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
+    """(Experimental) Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
     In this class, the term 'user' refers to any caller (human or not) sending messages to this agent.
     Not yet tested in the group-chat setting."""
 
@@ -269,7 +269,7 @@ class TeachableAgent(ConversableAgent):
 
 
 class MemoStore:
-    """
+    """(Experimental)
     Provides memory storage and retrieval for a TeachableAgent, using a vector database.
     Each DB entry (called a memo) is a pair of strings: an input text and an output text.
     The input text might be a question, or a task to perform.

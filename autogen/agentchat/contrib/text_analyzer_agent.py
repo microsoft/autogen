@@ -10,7 +10,7 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 
 class TextAnalyzerAgent(ConversableAgent):
-    """Text Analysis agent, a subclass of ConversableAgent designed to analyze text as instructed."""
+    """(Experimental) Text Analysis agent, a subclass of ConversableAgent designed to analyze text as instructed."""
 
     def __init__(
         self,
