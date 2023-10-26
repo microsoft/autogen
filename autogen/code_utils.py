@@ -84,47 +84,6 @@ def extract_code(
     return extracted
 
 
-# _FIND_CODE_SYS_MSG = [
-#     {
-#         "role": "system",
-#         "content": """In the following conversation, an assistant suggests code and a user is expected to run it.
-# Read the conversation, and then find all the right code blocks for the user to run next in the right order.
-# Only return the code blocks that are expected to run.
-# Don't include code blocks which have been executed unless the user is requested to run the same block again.
-# When the user needs to run multiple blocks in sequence, make sure to output all the blocks to run in a right order.
-# If the line beginning with "# filename" is put before a code block, move it into the code block as the first line.
-# Make sure to add the right "python" or "sh" identifier if the language identifier is missing for a code block.
-# Don't make other changes to the code blocks.
-# Don't reply anything else if at least one code block is expected to run.
-# If no code block is expeted to run, check whether the task has been successfully finished at full satisfaction.
-# If not, reply with the reason why the task is not finished.""",
-#     },
-# ]
-# _FIND_CODE_CONFIG = {
-#     "model": FAST_MODEL,
-# }
-
-
-# def find_code(messages: List[Dict], sys_msg=None, **config) -> Tuple[List[Tuple[str, str]], str]:
-#     """Find code from a list of messages.
-
-#     Args:
-#         messages (str): The list of messages to find code from.
-#         sys_msg (Optional, str): The system message to prepend to the messages.
-#         config (Optional, dict): The configuration for the API call.
-
-#     Returns:
-#         list: A list of tuples, each containing the language and the code.
-#         str: The generated text by llm.
-#     """
-#     params = {**_FIND_CODE_CONFIG, **config}
-#     if sys_msg is None or not sys_msg[0]["content"]:
-#         sys_msg = _FIND_CODE_SYS_MSG
-#     response = oai.ChatCompletion.create(messages=sys_msg + messages, **params)
-#     content = oai.Completion.extract_text(response)[0]
-#     return extract_code(content), content
-
-
 def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, float]:
     """(Deprecated) Generate code.
 
