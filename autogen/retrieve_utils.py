@@ -6,7 +6,7 @@ import glob
 import tiktoken
 import chromadb
 
-if chromadb.__version__ <= "0.4.15":
+if chromadb.__version__ < "0.4.15":
     from chromadb.api import API
 else:
     from chromadb.api import ClientAPI as API
