@@ -46,7 +46,13 @@ const Provider = ({ children }: any) => {
     setLocalStorage("darkmode", darkMode, false);
   };
 
-  const [user, setUser] = useState<IUser | null>(null);
+  // Modify logic here to add your own authentication
+  const initUser = {
+    name: "Guest User",
+    email: "guestuser@gmail.com",
+    username: "guestuser",
+  };
+  const [user, setUser] = useState<IUser | null>(initUser);
 
   return (
     <appContext.Provider
