@@ -46,7 +46,7 @@ def infer_lang(code):
 
 
 def extract_code(
-    text: str, pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
+    text: str, pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = True
 ) -> List[Tuple[str, str]]:
     """Extract code from a text.
 
@@ -63,30 +63,45 @@ def extract_code(
           If there is code block but the language is not specified, the language would be "".
     """
 
-    # Some Local LLM models/servers output \r\n insteaf or just \n. Let's clean it up before continuing
-    text = re.sub(r"\r\n", "\n", text)
-
     if not detect_single_line_code:
+        # Some models output CRLF \r\n insteaf or just \n. Cleaning it up to work with this regex.
+        text = re.sub(r'\r\n', '\n', text)
+        
         match = re.findall(pattern, text, flags=re.DOTALL)
         return match if match else [(UNKNOWN, text)]
+
+    # First extract detected code blocks to be processed.
+    # ```\w[^`]+``` : Matches codeblocks that start with ```language
+
+    sterilization_pattern = re.compile(r"```\w[^`]+```")
+    sterilized_blocks = sterilization_pattern.findall(text)
 
     # Extract both multi-line and single-line code block, separated by the | operator
     # `{3}(\w+)?\s*([\s\S]*?)`{3}: Matches multi-line code blocks.
     #    The (\w+)? matches the language, where the ? indicates it is optional.
     # `([^`]+)`: Matches inline code.
+
     code_pattern = re.compile(r"`{3}(\w+)?\s*([\s\S]*?)`{3}|`([^`]+)`")
-    code_blocks = code_pattern.findall(text)
+    code_blocks = []
+    
+    # Only sterilized blocks with properly appended language prefixes are processed.
+    # TODO: Ensure all supported language inferences are in this list
+    lang_check = ["python", "python3", "bash", "powershell", "sh", "pip", "shell", "ps1"]
+    for each_block in sterilized_blocks:
+       for prefix in lang_check:
+            if each.startswith("```"+prefix):
+                code_blocks.append(code_pattern.findall(each_block))
 
     # Extract the individual code blocks and languages from the matched groups
     extracted = []
-    for lang, group1, group2 in code_blocks:
-        if group1:
-            extracted.append((lang.strip(), group1.strip()))
-        elif group2:
-            extracted.append(("", group2.strip()))
+    for every in code_blocks:
+        for lang, group1, group2 in every:
+            if group1:
+                extracted.append((lang.strip(), group1.strip()))
+            elif group2:
+                extracted.append(("", group2.strip()))
 
     return extracted
-
 
 # _FIND_CODE_SYS_MSG = [
 #     {
