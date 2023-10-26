@@ -99,7 +99,7 @@ A workaround is to add an additional termination notice to the prompt. This acts
 prompt = "Some user query"
 
 termination_notice = (
-    '\n\nDo not say show appreciation in your responses, say only what is necessary. '
+    '\n\nDo not show appreciation in your responses, say only what is necessary. '
     'if "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE '
     'to indicate the conversation is finished and this is your last message.'
 )
