@@ -4,7 +4,7 @@
 `autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` for enhanced LLM inference using `openai<1`.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
-## Tune Inference Parameters
+## Tune Inference Parameters (for openai<1)
 
 *Links to notebook examples:*
 * [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
@@ -120,7 +120,7 @@ For local LLMs, one can spin up an endpoint using a package like [FastChat](http
 
 ## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed", using `set_cache` or specifying in `create()`.
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
 
 ## Error handling
 
@@ -191,7 +191,7 @@ response = client.create(
 )
 ```
 
-The example above will try to use text-ada-001, gpt-3.5-turbo-instruct, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times to try one model multiple times for increasing the robustness of the final response.
+The example above will try to use text-ada-001, gpt-3.5-turbo-instruct, and text-davinci-003 iteratively, until a valid json string is returned or the last config is used. One can also repeat the same model in the list for multiple times (with different seeds) to try one model multiple times for increasing the robustness of the final response.
 
 *Advanced use case: Check this [blogpost](/blog/2023/05/18/GPT-adaptive-humaneval) to find how to improve GPT-4's coding performance from 68% to 90% while reducing the inference cost.*
 
