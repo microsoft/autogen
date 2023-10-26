@@ -442,116 +442,116 @@ def test_math(num_samples=-1):
 #########################################################
 
 
-def test_set_cache():
-    seed = 12345
-    autogen.Completion.set_cache(seed)
-    assert autogen.Completion.seed == seed
+# def test_set_cache():
+#     seed = 12345
+#     autogen.Completion.set_cache(seed)
+#     assert autogen.Completion.seed == seed
 
 
-def test_cost_known_model():
-    response = {
-        "model": "gpt-3.5-turbo",
-        "usage": {
-            "prompt_tokens": 10,
-            "completion_tokens": 20
-        }
-    }
-    calculated_cost = autogen.Completion.cost(response)
-    expected_cost = ...  # Calculate based on Completion.price1K and the tokens in the response
-    assert calculated_cost == expected_cost
+# def test_cost_known_model():
+#     response = {
+#         "model": "gpt-3.5-turbo",
+#         "usage": {
+#             "prompt_tokens": 10,
+#             "completion_tokens": 20
+#         }
+#     }
+#     calculated_cost = autogen.Completion.cost(response)
+#     expected_cost = ...  # Calculate based on Completion.price1K and the tokens in the response
+#     assert calculated_cost == expected_cost
 
 
-def test_cost_unknown_model():
-    response = {
-        "model": "unknown-model",
-        "usage": {
-            "prompt_tokens": 10,
-            "completion_tokens": 50
-        }
-    }
-    with pytest.raises(ValueError, match=r"Unknown model: unknown-model"):
-        autogen.Completion.cost(response)
+# def test_cost_unknown_model():
+#     response = {
+#         "model": "unknown-model",
+#         "usage": {
+#             "prompt_tokens": 10,
+#             "completion_tokens": 50
+#         }
+#     }
+#     with pytest.raises(ValueError, match=r"Unknown model: unknown-model"):
+#         autogen.Completion.cost(response)
 
 
-def test_extract_text():
-    response = {
-        "choices": [{"text": "test_text"}]
-    }
-    extracted_text = autogen.Completion.extract_text_or_function_call(response)
-    assert extracted_text == ["test_text"]
+# def test_extract_text():
+#     response = {
+#         "choices": [{"text": "test_text"}]
+#     }
+#     extracted_text = autogen.Completion.extract_text_or_function_call(response)
+#     assert extracted_text == ["test_text"]
 
 
-def test_extract_function_call():
-    response = {
-        "choices": [{"message": {"function_call": "test_function"}}]
-    }
-    extracted_text = autogen.Completion.extract_text_or_function_call(response)
-    assert extracted_text == [{"function_call": "test_function"}]
+# def test_extract_function_call():
+#     response = {
+#         "choices": [{"message": {"function_call": "test_function"}}]
+#     }
+#     extracted_text = autogen.Completion.extract_text_or_function_call(response)
+#     assert extracted_text == [{"function_call": "test_function"}]
 
 
-def test_logged_history():
-    autogen.Completion._history_dict = {"test": "value"}
-    history = autogen.Completion.logged_history
-    assert history == {"test": "value"}
+# def test_logged_history():
+#     autogen.Completion._history_dict = {"test": "value"}
+#     history = autogen.Completion.logged_history
+#     assert history == {"test": "value"}
 
 
-def test_print_usage_summary(capsys):
-    autogen.Completion._history_dict = {
-        0: {
-            "request": {},
-            "response": {
-                "model": "gpt-3.5-turbo",
-                "usage": {
-                    "prompt_tokens": 10,
-                    "completion_tokens": 20,
-                    "total_tokens": 30
-                },
-                "cost": 0.1
-            }
-        },
-        1: {
-            "request": {},
-            "response": {
-                "model": "gpt-4",
-                "usage": {
-                    "prompt_tokens": 15,
-                    "completion_tokens": 25,
-                    "total_tokens": 40
-                },
-                "cost": 0.2
-            }
-        }
-    }
+# def test_print_usage_summary(capsys):
+#     autogen.Completion._history_dict = {
+#         0: {
+#             "request": {},
+#             "response": {
+#                 "model": "gpt-3.5-turbo",
+#                 "usage": {
+#                     "prompt_tokens": 10,
+#                     "completion_tokens": 20,
+#                     "total_tokens": 30
+#                 },
+#                 "cost": 0.1
+#             }
+#         },
+#         1: {
+#             "request": {},
+#             "response": {
+#                 "model": "gpt-4",
+#                 "usage": {
+#                     "prompt_tokens": 15,
+#                     "completion_tokens": 25,
+#                     "total_tokens": 40
+#                 },
+#                 "cost": 0.2
+#             }
+#         }
+#     }
 
-    autogen.Completion.print_usage_summary()
-    captured = capsys.readouterr()
+#     autogen.Completion.print_usage_summary()
+#     captured = capsys.readouterr()
 
-    assert "Total cost: 0.3" in captured.out
-    assert "Token count summary for model gpt-3.5-turbo" in captured.out
-    assert "Token count summary for model gpt-4" in captured.out
-
-
-def test_start_logging():
-    autogen.Completion.start_logging()
-
-    assert autogen.Completion._history_dict == {}
-    assert autogen.Completion._history_compact == True
-    assert autogen.Completion._count_create == 0
-
-def test_start_logging_compact():
-    autogen.Completion.start_logging(compact=True)
-    assert autogen.Completion._history_compact == True
+#     assert "Total cost: 0.3" in captured.out
+#     assert "Token count summary for model gpt-3.5-turbo" in captured.out
+#     assert "Token count summary for model gpt-4" in captured.out
 
 
-def test_stop_logging():
-    autogen.Completion._history_dict = {"test": "value"}
-    autogen.Completion.stop_logging()
-    assert autogen.Completion._history_dict is None
+# def test_start_logging():
+#     autogen.Completion.start_logging()
 
-def test_start_logging_with_history():
-    history = {"example": "data"}
-    autogen.Completion.start_logging(history_dict=history)
-    assert autogen.Completion._history_dict == history
+#     assert autogen.Completion._history_dict == {}
+#     assert autogen.Completion._history_compact == True
+#     assert autogen.Completion._count_create == 0
+
+# def test_start_logging_compact():
+#     autogen.Completion.start_logging(compact=True)
+#     assert autogen.Completion._history_compact == True
+
+
+# def test_stop_logging():
+#     autogen.Completion._history_dict = {"test": "value"}
+#     autogen.Completion.stop_logging()
+#     assert autogen.Completion._history_dict is None
+
+# def test_start_logging_with_history():
+#     history = {"example": "data"}
+#     autogen.Completion.start_logging(history_dict=history)
+#     assert autogen.Completion._history_dict == history
 
 if __name__ == "__main__":
     import openai

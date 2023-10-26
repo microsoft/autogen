@@ -1182,3 +1182,4 @@ class ChatCompletion(Completion):
     default_search_space = Completion.default_search_space.copy()
     default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])
     openai_completion_class = not ERROR and openai.ChatCompletion
+
