@@ -1,36 +1,39 @@
 import re
-from time import sleep
-import logging
-import time
-from typing import Any, List, Optional, Dict, Callable, Union
 import sys
+import time
+import logging
 import shutil
+from typing import Any, List, Optional, Dict, Callable, Union
+from time import sleep
+from collections import defaultdict
+
 import numpy as np
+import diskcache
 from flaml import tune, BlendSearch
 from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
-from .openai_utils import get_key
-from collections import defaultdict
+from openai.error import (
+    ServiceUnavailableError,
+    RateLimitError,
+    APIError,
+    InvalidRequestError,
+    APIConnectionError,
+    Timeout,
+    AuthenticationError,
+)
+from openai import Completion as OpenaiCompletion
+from openai import ChatCompletion
 import litellm
-litellm.set_verbose=True
-try:
-    import openai
-    from openai.error import (
-        ServiceUnavailableError,
-        RateLimitError,
-        APIError,
-        InvalidRequestError,
-        APIConnectionError,
-        Timeout,
-        AuthenticationError,
-    )
-    from openai import Completion as openai_Completion
-    import diskcache
+import openai
 
-    ERROR = None
+from build.lib.autogen.oai.openai_utils import get_key
+
+ERROR = None
+try:
+    import diskcache
 except ImportError:
     ERROR = ImportError("please install openai and diskcache to use the autogen.oai subpackage.")
-    openai_Completion = object
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -39,9 +42,27 @@ if not logger.handlers:
     logger.addHandler(_ch)
 
 
-class Completion(openai_Completion):
-    """A class for OpenAI completion API.
+class OpenAIClient:
+    @staticmethod
+    def create_completion(api_key: str, config: Dict[str, Any]) -> Dict:
+        if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in ChatCompletion.chat_models or issubclass(
+            ChatCompletion, OpenaiCompletion
+        ):
+            openai_completion = ChatCompletion
+        else:
+            openai_completion = OpenaiCompletion
+        api_type = config.get("api_type", None)
+        sanitized_config = config.copy()
+        sanitized_config.pop("api_type", None)
+        if api_type and re.sub(r"[^a-zA-Z0-9]", "", api_type).lower() == "litellm":
+            return litellm.completion(**sanitized_config)
+        else:
+            return openai_completion.create(api_key=api_key, **sanitized_config)
 
+
+class Completion(OpenaiCompletion):
+    """
+    A class for OpenAI completion API.
     It also supports: ChatCompletion, Azure OpenAI API.
     """
 
@@ -117,17 +138,15 @@ class Completion(openai_Completion):
     max_retry_period = 120
     # time out for request to openai server
     request_timeout = 60
-
     openai_completion_class = not ERROR and openai.Completion
     _total_cost = 0
     optimization_budget = None
-
     _history_dict = _count_create = None
 
     @classmethod
     def set_cache(cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache"):
-        """Set cache path.
-
+        """
+        Set cache path.
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 Results corresponding to different seeds will be cached in different places.
@@ -139,8 +158,8 @@ class Completion(openai_Completion):
 
     @classmethod
     def clear_cache(cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache"):
-        """Clear cache.
-
+        """
+        Clear cache.
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 If omitted, all caches under cache_path_root will be cleared.
@@ -148,10 +167,11 @@ class Completion(openai_Completion):
                 The complete cache path will be {cache_path}/{seed}.
         """
         if seed is None:
-            shutil.rmtree(cache_path_root, ignore_errors=True)
+            shutil.rmtree(str(cache_path_root), ignore_errors=True)
             return
         with diskcache.Cache(f"{cache_path_root}/{seed}") as cache:
             cache.clear()
+
 
     @classmethod
     def _book_keeping(cls, config: Dict, response):
@@ -171,88 +191,72 @@ class Completion(openai_Completion):
                 if len(messages) > 1 and messages[-1]["role"] != "assistant":
                     existing_key = get_key(messages[:-1])
                     value = cls._history_dict.pop(existing_key, value)
-                key = get_key(messages + [choice["message"] for choice in response["choices"]])
+                key = get_key(messages + [choice["text"] for choice in response.choices] if response != -1 else [])
             else:
-                key = get_key([config["prompt"]] + [choice.get("text") for choice in response["choices"]])
-            value["created_at"].append(cls._count_create)
-            value["cost"].append(response["cost"])
-            value["token_count"].append(
-                {
-                    "model": response["model"],
-                    "prompt_tokens": response["usage"]["prompt_tokens"],
-                    "completion_tokens": response["usage"].get("completion_tokens", 0),
-                    "total_tokens": response["usage"]["total_tokens"],
-                }
-            )
-            cls._history_dict[key] = value
-            cls._count_create += 1
+                key = get_key([config["prompt"]] + [choice.get("text") for choice in response.choices] if response != -1 else [])
+            if response != -1 and "cost" in response:
+                value["created_at"].append(cls._count_create)
+                value["cost"].append(response.cost)
+                value["token_count"].append(
+                    {
+                        "model": response.model,
+                        "prompt_tokens": response.usage.prompt_tokens,
+                        "completion_tokens": response.usage.completion_tokens or 0,
+                        "total_tokens": response.usage.total_tokens,
+                    }
+                )
+                cls._history_dict[key] = value
+            cls._count_create = cls._count_create + 1 if cls._count_create is not None else 1
             return
         cls._history_dict[cls._count_create] = {
             "request": config,
-            "response": response.to_dict_recursive(),
+            "response": response,
         }
-        cls._count_create += 1
+        cls._count_create = cls._count_create + 1 if cls._count_create is not None else 1
 
     @classmethod
-    def _get_response(cls, config: Dict[str,Any], raise_on_ratelimit_or_timeout:bool=False, use_cache:bool=True) ->Optional[Dict]:
-        """Get the response from the openai api call.
-
-        Try cache first. If not found, call the openai api. If the api call fails, retry after retry_wait_time.
-        """
-        config = config.copy()
-        openai.api_key_path = config.pop("api_key_path", openai.api_key_path)
+    def _get_response(
+        cls,
+        config: Dict[str, Any],
+        raise_on_ratelimit_or_timeout: bool = False,
+        use_cache: bool = True,
+    ) -> Optional[Dict]:
+        openai.api_key_path = config.get("api_key_path", openai.api_key_path)
         key = get_key(config)
         if use_cache:
             response = cls._cache.get(key, None)
             if response is not None and (response != -1 or not raise_on_ratelimit_or_timeout):
-                # print("using cached response")
                 cls._book_keeping(config, response)
-                return response  # type: ignore
-        openai_completion = (
-            openai.ChatCompletion
-            if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
-            or issubclass(cls, ChatCompletion)
-            else openai.Completion
-        )
+                return response  # type: ignore[return-value]
+        if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models or issubclass(
+            cls, ChatCompletion
+        ):
+            openai_completion = openai.ChatCompletion
+        else:
+            openai_completion = openai.Completion
         start_time = time.time()
         request_timeout = cls.request_timeout
-        max_retry_period = config.pop("max_retry_period", cls.max_retry_period)
-        retry_wait_time = config.pop("retry_wait_time", cls.retry_wait_time)
-        while True:
+        max_retry_period = config.get("max_retry_period", cls.max_retry_period)
+        retry_wait_time = config.get("retry_wait_time", cls.retry_wait_time)
+        max_retries = max_retry_period // retry_wait_time
+        for _ in range(max_retries):
             try:
                 if "request_timeout" not in config:
                     config["request_timeout"] = request_timeout
-                api_type = config.get("api_type", None)
-                sanitized_config = config.copy()
-                if 'api_type' in sanitized_config:
-                    del sanitized_config['api_type']
-                if api_type and re.sub(r'[^a-zA-Z0-9]', '', api_type).lower() == "litellm":
-                    response = litellm.completion(**sanitized_config)
-                else:
-                    response = openai_completion.create(**sanitized_config)
-            except (
-                ServiceUnavailableError,
-                APIConnectionError,
-            ):
-                # transient error
+                response = OpenAIClient.create_completion(openai.api_key_path, config)
+            except (ServiceUnavailableError, APIConnectionError):
                 logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
                 sleep(retry_wait_time)
             except APIError as err:
-                error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
-                error_code = error_code and error_code.get("code")
+                error_code = err.json_body.get("error") if err.json_body and isinstance(err.json_body, dict) else None
                 if error_code == "content_filter":
                     raise
-                # transient error
                 logger.info(f"retrying in {retry_wait_time} seconds...", exc_info=1)
                 sleep(retry_wait_time)
             except (RateLimitError, Timeout) as err:
                 time_left = max_retry_period - (time.time() - start_time + retry_wait_time)
-                if (
-                    time_left > 0
-                    and isinstance(err, RateLimitError)
-                    or time_left > request_timeout
-                    and isinstance(err, Timeout)
-                    and "request_timeout" not in config
+                if (time_left > 0 and isinstance(err, RateLimitError)) or (
+                    time_left > request_timeout and isinstance(err, Timeout) and "request_timeout" not in config
                 ):
                     if isinstance(err, Timeout):
                         request_timeout <<= 1
@@ -271,18 +275,16 @@ class Completion(openai_Completion):
                     return response
             except InvalidRequestError:
                 if "azure" in config.get("api_type", openai.api_type) and "model" in config:
-                    # azure api uses "engine" instead of "model"
-                    config["engine"] = config.pop("model").replace("gpt-3.5-turbo", "gpt-35-turbo")
+                    model = config.get("model")
+                    if model is not None:
+                        config["engine"] = model.replace("gpt-3.5-turbo", "gpt-35-turbo")
                 else:
                     raise
             else:
                 if use_cache:
                     cls._cache.set(key, response)
                 cls._book_keeping(config, response)
-                if isinstance(response, dict):
-                    return response
-                else:
-                    return None
+                return response if isinstance(response, dict) else None
 
     @classmethod
     def _get_max_valid_n(cls, key, max_tokens):
@@ -380,14 +382,14 @@ class Completion(openai_Completion):
         if prune:
             region_key = cls._get_region_key(config)
             max_valid_n = cls._get_max_valid_n(region_key, max_tokens)
-            if cls.avg_input_tokens:
-                target_output_tokens = (inference_budget * 1000 - cls.avg_input_tokens * price_input) / price_output
-                # max_tokens bounds the maximum tokens
-                # so using it we can calculate a valid n according to the avg # input tokens
-                max_valid_n = max(
-                    max_valid_n,
-                    int(target_output_tokens // max_tokens),
-                )
+            if cls.avg_input_tokens is not None and price_input is not None and price_output is not None and inference_budget is not None:
+                if None not in (cls.avg_input_tokens, price_input, price_output):
+                    target_output_tokens = (inference_budget * 1000 - cls.avg_input_tokens * price_input) / price_output
+                else:
+                    target_output_tokens = None
+            else:
+                target_output_tokens = None
+
             if config_n <= max_valid_n:
                 start_n = config_n
             else:
@@ -832,17 +834,17 @@ class Completion(openai_Completion):
                     logger.debug(f"failed with config {i}", exc_info=1)
                     if i == last:
                         raise
-        params = cls._construct_params(context, config, allow_format_str_template=allow_format_str_template)
+        params = cls._construct_params(context, config, allow_format_str_template=bool(allow_format_str_template))
         if not use_cache:
             return cls._get_response(
-                params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout, use_cache=False
+                params, raise_on_ratelimit_or_timeout=bool(raise_on_ratelimit_or_timeout), use_cache=False
             )
         seed = cls.seed
         if "seed" in params:
             cls.set_cache(params.pop("seed"))
         with diskcache.Cache(cls.cache_path) as cls._cache:
             cls.set_cache(seed)
-            return cls._get_response(params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout)
+            return cls._get_response(params, raise_on_ratelimit_or_timeout=bool(raise_on_ratelimit_or_timeout))
 
     @classmethod
     def instantiate(
@@ -1042,13 +1044,13 @@ class Completion(openai_Completion):
             The cost in USD. 0 if the model is not supported.
         """
         model = response.get("model")
-        if model not in cls.price1K:
+        if model is None or model not in cls.price1K or cls.price1K[model] is None:
             return 0
             # raise ValueError(f"Unknown model: {model}")
         usage = response["usage"]
         n_input_tokens = usage["prompt_tokens"]
         n_output_tokens = usage.get("completion_tokens", 0)
-        price1K = cls.price1K[model]
+        price1K = cls.price1K.get(model, 0)
         if isinstance(price1K, tuple):
             return (price1K[0] * n_input_tokens + price1K[1] * n_output_tokens) / 1000
         return price1K * (n_input_tokens + n_output_tokens) / 1000
