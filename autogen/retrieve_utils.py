@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import glob
 import tiktoken
 import chromadb
-from chromadb.api import API
+from chromadb.api import BaseAPI
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
@@ -278,7 +278,7 @@ def is_url(string: str):
 def create_vector_db_from_dir(
     dir_path: str,
     max_tokens: int = 4000,
-    client: API = None,
+    client: BaseAPI = None,
     db_path: str = "/tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     get_or_create: bool = False,
@@ -295,7 +295,7 @@ def create_vector_db_from_dir(
     Args:
         dir_path (str): the path to the directory, file or url.
         max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
-        client (Optional, API): the chromadb client. Default is None.
+        client (Optional, BaseAPI): the chromadb client. Default is None.
         db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
@@ -349,7 +349,7 @@ def create_vector_db_from_dir(
 def query_vector_db(
     query_texts: List[str],
     n_results: int = 10,
-    client: API = None,
+    client: BaseAPI = None,
     db_path: str = "/tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     search_string: str = "",
@@ -362,7 +362,7 @@ def query_vector_db(
     Args:
         query_texts (List[str]): the query texts.
         n_results (Optional, int): the number of results to return. Default is 10.
-        client (Optional, API): the chromadb compatible client. Default is None, a chromadb client will be used.
+        client (Optional, BaseAPI): the chromadb compatible client. Default is None, a chromadb client will be used.
         db_path (Optional, str): the path to the vector db. Default is "/tmp/chromadb.db".
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         search_string (Optional, str): the search string. Default is "".
