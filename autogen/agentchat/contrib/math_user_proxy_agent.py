@@ -289,7 +289,7 @@ class MathUserProxyAgent(UserProxyAgent):
         message = message.get("content", "")
         code_blocks = extract_code(message)
 
-        if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
+        if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN or code_blocks == []:
             # no code block is found, lang should be `UNKNOWN``
             return True, self._default_auto_reply
         is_success, all_success = True, True
