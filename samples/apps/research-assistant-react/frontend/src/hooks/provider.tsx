@@ -4,6 +4,7 @@ import {
   getLocalStorage,
   setLocalStorage,
 } from "../components/utils";
+import { message } from "antd";
 
 export interface IUser {
   name: string;
@@ -37,8 +38,10 @@ const Provider = ({ children }: any) => {
   );
 
   const logout = () => {
-    setUser(null);
-    eraseCookie(cookie_name);
+    // setUser(null);
+    // eraseCookie(cookie_name);
+    console.log("Please implement your own logout logic");
+    message.info("Please implement your own logout logic");
   };
 
   const updateDarkMode = (darkMode: string) => {

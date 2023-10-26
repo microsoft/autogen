@@ -125,9 +125,9 @@ const ChatBox = ({
 
   const examplePrompts = [
     {
-      title: "Arxiv",
+      title: "Stock Price",
       prompt:
-        "Find arxiv papers that show how are people studying trust calibration in AI based systems",
+        "Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png",
     },
     {
       title: "Sine Wave",
