@@ -18,10 +18,10 @@ except ImportError as e:
 class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def __init__(
         self,
-        name="RetrieveChatAgent",
-        human_input_mode: str | None = "ALWAYS",
-        is_termination_msg: Callable[[Dict], bool] | None = None,
-        retrieve_config: Dict | None = None,
+        name="RetrieveChatAgent",  # default set to RetrieveChatAgent
+        human_input_mode: Optional[str] = "ALWAYS",
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
+        retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
     ):
         """
