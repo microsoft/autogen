@@ -380,7 +380,7 @@ def test_math(num_samples=-1):
     vanilla_config = {
         "model": "text-ada-001",
         "temperature": 1,
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "n": 1,
         "prompt": prompts[0],
         "stop": "###",
