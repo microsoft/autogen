@@ -361,7 +361,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         """
         if not self._collection or self._get_or_create:
             print("Trying to create collection.")
-            create_vector_db_from_dir(
+            self._client = create_vector_db_from_dir(
                 dir_path=self._docs_path,
                 max_tokens=self._chunk_token_size,
                 client=self._client,
