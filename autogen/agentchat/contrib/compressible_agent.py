@@ -120,7 +120,7 @@ Reply "TERMINATE" in the end when everything is done.
             self.compress_config.update(compress_config)
             # convert trigger_count to int, default to 0.7
             trigger_count = self.compress_config["trigger_count"]
-            if isinstance(trigger_count, float) and 0 < trigger_count < 1:
+            if isinstance(trigger_count, float) and 0 < trigger_count <= 1:
                 self.compress_config["trigger_count"] = int(
                     trigger_count * get_max_token_limit(self.llm_config["model"])
                 )
