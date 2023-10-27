@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class CompressibleAgent(ConversableAgent):
-    """(Experimental) CompressibleAgent agent, that can compress messages when a threshold of tokens is reached before making queries to LLMs.
+    """(Experimental) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
+        it also provides the added feature of compression when activated through the `compress_config` setting.
 
-    CompressionAgent is a subclass of ConversableAgent, but is supposed to be an experimental version of AssistantAgent.
-    By default, it is equivalent to AssistantAgent. Additional feature of compression is enabled when `compress_config` is provided.
+    `compress_config` is set to False by default, making this agent equivalent to the `AssistantAgent`.
     The default system message is the same as AssistantAgent.
     `human_input_mode` is default to "NEVER"
     and `code_execution_config` is default to False.
@@ -56,44 +56,18 @@ Reply "TERMINATE" in the end when everything is done.
     ):
         """
         Args:
-            name (str): name of the agent.
+            name (str): agent name.
             system_message (str): system message for the ChatCompletion inference.
+                Please override this attribute if you want to reprogram the agent.
+            llm_config (dict): llm inference configuration.
+                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
             max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
-                When set to 0, no auto reply will be generated.
-            human_input_mode (str): whether to ask for human inputs every time a message is received.
-                Possible values are "ALWAYS", "TERMINATE", "NEVER".
-                (1) When "ALWAYS", the agent prompts for human input every time a message is received.
-                    Under this mode, the conversation stops when the human input is "exit",
-                    or when is_termination_msg is True and there is no human input.
-                (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
-                    the number of auto reply reaches the max_consecutive_auto_reply.
-                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
-                    when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
-            function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions.
-            code_execution_config (dict or False): config for the code execution.
-                To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
-                - work_dir (Optional, str): The working directory for the code execution.
-                    If None, a default working directory will be used.
-                    The default working directory is the "extensions" directory under
-                    "path_to_autogen".
-                - use_docker (Optional, list, str or bool): The docker image to use for code execution.
-                    If a list or a str of image name(s) is provided, the code will be executed in a docker container
-                    with the first image successfully pulled.
-                    If None, False or empty, the code will be executed in the current environment.
-                    Default is True when the docker python package is installed.
-                    When set to True, a default list will be used.
-                    We strongly recommend using docker for code execution.
-                - timeout (Optional, int): The maximum execution time in seconds.
-                - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
-            llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
-                for available options.
-                To disable llm-based auto reply, set to False.
-            default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+                The limit only plays a role when human_input_mode is not "ALWAYS".
             compress_config (dict or False): config for compression before oai_reply. Default to None, meaning no compression will be used and
                 the conversation will terminate when the token count exceeds the limit. You should contain the following keys:
                 - "mode" (Optional, str, default to "COMPRESS"): Choose from ["COMPRESS", "TERMINATE"]. "COMPRESS": enable the compression agent.
@@ -103,6 +77,8 @@ Reply "TERMINATE" in the end when everything is done.
                     If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
                 - "async" (Optional, bool, default to False): whether to compress asynchronously.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
+            **kwargs (dict): Please refer to other kwargs in
+                [ConversableAgent](conversable_agent#__init__).
         """
         super().__init__(
             name=name,
@@ -120,36 +96,37 @@ Reply "TERMINATE" in the end when everything is done.
             if compress_config is True:
                 self.compress_config = {}
             if not isinstance(compress_config, dict):
-                raise ValueError("compress_config must be a dict or 'False'.")
-
-            # convert trigger_count to int, default to 0.7
-            trigger_count = compress_config.get("trigger_count", 0.7)
-            if isinstance(trigger_count, float) and 0 < trigger_count < 1:
-                trigger_count = int(trigger_count * get_max_token_limit(self.llm_config["model"]))
-            else:
-                trigger_count = int(trigger_count)
+                raise ValueError("compress_config must be a dict or True/False.")
 
             assert compress_config.get("mode", "COMPRESS") in [
                 "COMPRESS",
                 "TERMINATE",
                 "CUSTOMIZED",
             ], "compress_config['mode'] must be 'COMPRESS' or 'TERMINATE' or 'CUSTOMIZED'"
-            if compress_config.get("mode", "COMPRESS") == "TERMINATE":
-                self.compress_config = compress_config
-            elif compress_config.get("mode", "COMPRESS") == "CUSTOMIZED":
+
+            self.compress_config = {
+                "mode": "COMPRESS",
+                "compress_function": None,
+                "trigger_count": 0.7,
+                "async": False,
+                "broadcast": True,
+                "verbose": False,
+            }
+            self.compress_config.update(compress_config)
+            # convert trigger_count to int, default to 0.7
+            trigger_count = self.compress_config["trigger_count"]
+            if isinstance(trigger_count, float) and 0 < trigger_count < 1:
+                self.compress_config["trigger_count"] = int(
+                    trigger_count * get_max_token_limit(self.llm_config["model"])
+                )
+
+            if self.compress_config["mode"] == "CUSTOMIZED":
                 assert (
-                    "compress_function" in compress_config
-                ), "compress_config['compress_function'] must be provided when mode is 'CUSTOMIZED'"
-                self.compress_config = compress_config
-            else:
-                self.compress_config = {
-                    "mode": "COMPRESS",
-                    "compress_function": None,
-                    "trigger_count": trigger_count,
-                    "async": compress_config.get("async", False),  # TODO: support async compression
-                    "broadcast": compress_config.get("broadcast", True),
-                    "verbose": compress_config.get("verbose", False),
-                }
+                    "compress_function" in self.compress_config
+                ), "compress_function must be provided when mode is 'CUSTOMIZED'"
+            elif self.compress_config["compress_function"] is not None:
+                print("Warning: compress_function is provided but mode is not 'CUSTOMIZED'.")
+
         else:
             self.compress_config = False
 
@@ -168,19 +145,24 @@ Reply "TERMINATE" in the end when everything is done.
     ) -> Union[str, Dict, None]:
         """
 
-        Note:
-        Removed the following lines:
+        Note on difference from ConversableAgent.generate_reply:
+        The following lines are removed:
         ```
         if messages is None:
             messages = self._oai_messages[sender]
         ```
         Reason:
-        1. The two lines deleted is in every `generate_<>_reply` function. So when both messages and
-            sender are passed to a subsequent `generate_<>_reply`, it will perform the same logic.
-        2. Why needed for compression: Compression will modify `self._oai_messages`, and it is expected
-            that `generate_oai_reply` will use the updated messages from `self._oai_messages`.
-            With the two lines, the messages will not be None and the updated `self._oai_messages` will not be used.
+        1. It will make no difference because every `generate_<>_reply` (e.g. generate_oai_reply) has the exact two lines
+            to replace `messages` with `self._oai_messages[sender]` if `messages` is None.
 
+        2. Why needed for compression:
+            - The `on_oai_token_limit` will modify `self._oai_messages[sender]`.
+            - In `generate_oai_reply`, `messages` and `sender` are passed in (line 179).
+            - If the two lines are not removed here, messages are never None, and `generate_oai_reply` will
+                always use `messages`, which is not compressed.
+            - If the two lines are removed, `generate_oai_reply` will find that `messages` is None and
+                use `self._oai_messages[sender]` instead, which is compressed.
+                (From 1, generate_oai_reply has the exact two lines)
         """
         if all((messages is None, sender is None)):
             error_msg = f"Either {messages=} or {sender=} must be provided."
@@ -288,31 +270,16 @@ Reply "TERMINATE" in the end when everything is done.
 
         The first message (the initial prompt) will not be compressed.
         The rest of the messages will be compressed into one message, the model is asked to distinuish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
-        Check out the DEFAULT_SYSTEM_MESSAGE prompt.
+        Check out the compress_sys_msg.
 
         TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
         """
-
-        compress_sys_msg = """You are a helpful AI assistant that will compress messages.
-Rules:
-1. Please summarize each of the message and reserve the titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
-2. Context after ##USER##, ##ASSISTANT## (and ##<Name>(<Title>)##): compress the content and reserve important information. If there is big chunk of code, please use ##CODE## to indicate and summarize what the code is doing with as few words as possible and include details like exact numbers and defined variables.
-3. Context after ##FUNCTION_CALL##: Keep the exact content if it is short. Otherwise, summarize/compress it and reserve names (func_name, argument names).
-4. Context after ##FUNCTION_RETURN## (or code return): Keep the exact content if it is short. Summarize/compress if it is too long, you should note what the function has achieved and what the return value is.
-"""
-        # Uncomment the following line to check the content to compress
-        if self.compress_config["verbose"]:
-            print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
-
-        # 1. use passed-in config and messages
-        # in function on_oai_limit of conversable agent, we will pass in llm_config from "config" parameter.
+        # 1. use the same config for compression and remove functions from llm_config
         llm_config = copy.deepcopy(self.llm_config) if config is None else copy.deepcopy(config)
-        # remove functions from llm_config
-        if "functions" in llm_config:
-            del llm_config["functions"]
-
         if llm_config is False or messages is None:
             return False, None
+        if "functions" in llm_config:
+            del llm_config["functions"]
 
         # 2. stop if there is only one message in the list
         if len(messages) <= 1:
@@ -320,10 +287,13 @@ Rules:
             return False, None
 
         # 3. put all history into one, except the first one
+        if self.compress_config["verbose"]:
+            print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
+
         compressed_prompt = "Below is the compressed content from the previous conversation, evaluate the process and continue if necessary:\n"
         chat_to_compress = "To be compressed:\n"
-        start_index = 1
-        for m in messages[start_index:]:
+
+        for m in messages[1:]:
             if m.get("role") == "function":
                 chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"): \n{m['content']}\n"
             else:
@@ -353,6 +323,13 @@ Rules:
             print(chat_to_compress[0]["content"])
 
         # 4. use LLM to compress
+        compress_sys_msg = """You are a helpful AI assistant that will compress messages.
+Rules:
+1. Please summarize each of the message and reserve the titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
+2. Context after ##USER##, ##ASSISTANT## (and ##<Name>(<Title>)##): compress the content and reserve important information. If there is big chunk of code, please use ##CODE## to indicate and summarize what the code is doing with as few words as possible and include details like exact numbers and defined variables.
+3. Context after ##FUNCTION_CALL##: Keep the exact content if it is short. Otherwise, summarize/compress it and reserve names (func_name, argument names).
+4. Context after ##FUNCTION_RETURN## (or code return): Keep the exact content if it is short. Summarize/compress if it is too long, you should note what the function has achieved and what the return value is.
+"""
         try:
             response = oai.ChatCompletion.create(
                 context=None,
@@ -360,8 +337,7 @@ Rules:
                 **llm_config,
             )
         except Exception as e:
-            logger.warning(f"Failed to compress the content due to {e}")
-            print(f"Failed to compress the content due to {e}")
+            print(colored(f"Failed to compress the content due to {e}", "red"), flush=True)
             return False, None
 
         compressed_message = oai.ChatCompletion.extract_text_or_function_call(response)[0]
