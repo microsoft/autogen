@@ -13,6 +13,17 @@ ENV_DIR = "./includes"
 
 
 def run_scenarios(scenario, n_repeats, is_native, results_dir="results"):
+    """
+    Run a set testbed scenarios a given number of times.
+
+    Args:
+        scenario (path):    The file or folder containing the scenario JSONL instances. If given a folder, then
+                            all JSONL files in the folder will be loaded and run.
+        n_repeats (int):    The number of times each scenario instance will be repeated
+        is_native (bool):   True if the scenario should be run locally rather than in Docker (proceed with caution!)
+        results_dir (path): The folder were results will be saved.
+    """
+
     files = []
 
     # Figure out which files or folders we are working with
@@ -107,6 +118,13 @@ def expand_scenario(scenario_dir, scenario, output_file):
 
 
 def run_scenario_natively(work_dir):
+    """
+    Run a scenario in the native environment.
+
+    Args:
+        work_dir (path): the path to the working directory previously created to house this sceario instance
+    """
+
     # Get the current working directory
     cwd = os.getcwd()
 
@@ -137,6 +155,14 @@ rm ENV
 
 
 def run_scenario_in_docker(work_dir, timeout=600):
+    """
+    Run a scenario in a Docker environment.
+
+    Args:
+        work_dir (path): the path to the working directory previously created to house this sceario instance
+        timeout (Optional, int): the number of seconds to allow a Docker container to run before timing out
+    """
+
     # Create a docker client
     client = docker.from_env()
     image_name = "python:3.11"
