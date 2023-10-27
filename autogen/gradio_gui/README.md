@@ -1,33 +1,35 @@
-def install_dependencies():
-    # <------------------- install dependencies  ------------------->
-    def try_install_deps(deps, reload_m=[]):
-        """
-        install dependencies if not installed.
-        """
-        input(f'You are about to install dependencies {str(deps)}, press Enter to continue ...')
-        import subprocess, sys, importlib
-        for dep in deps:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', dep])
-        import site
-        importlib.reload(site)
-        for m in reload_m:
-            importlib.reload(__import__(m))
+# AutoGen's Gradio GUI
 
-    # <-------------------  dependencies  ------------------->
-    try:
-        import gradio as gr
-        import void_terminal
-    except:
-        try_install_deps(deps=["void-terminal>=0.0.8"]) 
-        try_install_deps(deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"])
+This is a GUI for AutoGen. It is written in Python and uses the [Gradio](https://gradio.app/) library.
 
-    if gr.__version__ not in ['3.32.6']: 
-        # this is a special version of gradio, which is not available on pypi.org
-        try_install_deps(deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"])
+## Installation
 
-# <-------------------  import  ------------------->
-install_dependencies()
+First install AutoGen:
 
+```bash
+python -m pip install pyautogen
+```
+
+Next, run following command launch GUI:
+
+```bash
+export API_KEY=<your-api-key>
+export API_KEY=<your-api-key>
+python -m autogen.launch_gui
+```
+
+> Note:
+> When you run `launch_gui`, the program will automatically install additional dependencies with `pip install --user ...`
+>
+
+## Customize your own multiagent chat
+
+
+- Create a python file with templete below
+- Edit and add your own multiagent chat
+- Then run it
+
+```python
 # <-------------------  import  ------------------->
 from autogen.gradio_gui.gradio_service import main, install_dependencies
 from autogen.gradio_gui.plugin import autogen_terminal
@@ -160,3 +162,6 @@ if __name__ == "__main__":
             },
         }
     )
+
+```
+

@@ -1,5 +1,5 @@
 from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate
-from gradio_gui.utils.pipe import PluginMultiprocessManager, PipeCom
+from autogen.gradio_gui.utils.pipe import PluginMultiprocessManager, PipeCom
 import time
 
 
@@ -72,3 +72,48 @@ class AutoGenGeneral(PluginMultiprocessManager):
         while True:
             msg = self.child_conn.recv() # PipeCom
             self.do_audogen(msg)
+
+
+
+class AutoGenGroupChat(AutoGenGeneral):
+
+    def do_audogen(self, input):
+        # ⭐⭐ run in subprocess
+        import autogen
+        from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate
+        from autogen.gradio_gui.utils.pipe import PluginMultiprocessManager, PipeCom
+        input = input.content
+        with ProxyNetworkActivate("AutoGen"):
+            config_list = [{
+                'model': self.llm_kwargs['llm_model'], 
+                'api_key': self.llm_kwargs['api_key'],
+            },]
+            code_execution_config={"work_dir": self.autogen_work_dir, "use_docker":self.use_docker}
+            agents = self.define_agents()
+            agents = []
+            for agent_kwargs in agents:
+                agent_cls = agent_kwargs.pop('cls')
+                kwargs = {
+                    'llm_config':{
+                        "config_list": config_list,
+                    },
+                    'code_execution_config':code_execution_config
+                }
+                kwargs.update(agent_kwargs)
+                agent_handle = agent_cls(**kwargs)
+                agent_handle._print_received_message = lambda a,b: self.gpt_academic_print_override(agent_kwargs, a, b)
+                agents.append(agent_handle)
+                if agent_kwargs['name'] == 'user_proxy':
+                    agent_handle.get_human_input = lambda a: self.gpt_academic_get_human_input(user_proxy, a)
+                    user_proxy = agent_handle
+            try:
+                groupchat = autogen.GroupChat(agents=agents, messages=[], max_round=50)
+                manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={
+                    "temperature": 0,
+                    "config_list": config_list,
+                })
+                if user_proxy is None: raise Exception("user_proxy is not defined")
+                user_proxy.initiate_chat(manager, message=input)
+            except Exception as e:
+                tb_str = '```\n' + trimmed_format_exc() + '```'
+                self.child_conn.send(PipeCom("done", "AutoGen exe failed: \n\n" + tb_str))
