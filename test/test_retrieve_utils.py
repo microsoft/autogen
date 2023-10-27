@@ -161,6 +161,21 @@ class TestRetrieveUtils:
             == "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities\nof Large Language Models (LLMs) for various applications. The primary purpose o"
         )
 
+    def test_retrieve_utils(self):
+        client = chromadb.PersistentClient(path="/tmp/chromadb")
+        create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs")
+        results = query_vector_db(
+            query_texts=[
+                "How can I use AutoGen UserProxyAgent and AssistantAgent to do code generation?",
+            ],
+            n_results=4,
+            client=client,
+            collection_name="autogen-docs",
+            search_string="AutoGen",
+        )
+        print(results["ids"][0])
+        assert len(results["ids"][0]) == 4
+
 
 if __name__ == "__main__":
     pytest.main()
