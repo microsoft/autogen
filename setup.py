@@ -53,6 +53,7 @@ setuptools.setup(
             "sympy",
             "tiktoken",
             "wolframalpha",
+            "qdrant_client[fastembed]",
             "tiktoken",
         ],
         "blendsearch": ["flaml[blendsearch]"],
