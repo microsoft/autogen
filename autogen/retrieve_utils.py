@@ -5,7 +5,11 @@ from urllib.parse import urlparse
 import glob
 import tiktoken
 import chromadb
-from chromadb.api import BaseAPI
+
+if chromadb.__version__ < "0.4.15":
+    from chromadb.api import API
+else:
+    from chromadb.api import ClientAPI as API
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
@@ -204,7 +208,7 @@ def is_url(string: str):
 def create_vector_db_from_dir(
     dir_path: str,
     max_tokens: int = 4000,
-    client: BaseAPI = None,
+    client: API = None,
     db_path: str = "/tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     get_or_create: bool = False,
@@ -213,7 +217,7 @@ def create_vector_db_from_dir(
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
     custom_text_split_function: Callable = None,
-):
+) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
         you prepared your own vector db.
@@ -233,6 +237,9 @@ def create_vector_db_from_dir(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+
+    Returns:
+        API: the chromadb client.
     """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
@@ -270,12 +277,13 @@ def create_vector_db_from_dir(
             )
     except ValueError as e:
         logger.warning(f"{e}")
+    return client
 
 
 def query_vector_db(
     query_texts: List[str],
     n_results: int = 10,
-    client: BaseAPI = None,
+    client: API = None,
     db_path: str = "/tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     search_string: str = "",
