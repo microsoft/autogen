@@ -5,12 +5,16 @@ from urllib.parse import urlparse
 import glob
 import tiktoken
 import chromadb
-from chromadb.api import API
+
+if chromadb.__version__ < "0.4.15":
+    from chromadb.api import API
+else:
+    from chromadb.api import ClientAPI as API
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
 import pypdf
-
+from autogen.token_count_utils import count_token
 
 logger = logging.getLogger(__name__)
 TEXT_FORMATS = [
@@ -33,80 +37,6 @@ TEXT_FORMATS = [
 VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
-def num_tokens_from_text(
-    text: str,
-    model: str = "gpt-3.5-turbo-0613",
-    return_tokens_per_name_and_message: bool = False,
-    custom_token_count_function: Callable = None,
-) -> Union[int, Tuple[int, int, int]]:
-    """Return the number of tokens used by a text.
-
-    Args:
-        text (str): The text to count tokens for.
-        model (Optional, str): The model to use for tokenization. Default is "gpt-3.5-turbo-0613".
-        return_tokens_per_name_and_message (Optional, bool): Whether to return the number of tokens per name and per
-            message. Default is False.
-        custom_token_count_function (Optional, Callable): A custom function to count tokens. Default is None.
-
-    Returns:
-        int: The number of tokens used by the text.
-        int: The number of tokens per message. Only returned if return_tokens_per_name_and_message is True.
-        int: The number of tokens per name. Only returned if return_tokens_per_name_and_message is True.
-    """
-    if isinstance(custom_token_count_function, Callable):
-        token_count, tokens_per_message, tokens_per_name = custom_token_count_function(text)
-    else:
-        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-        try:
-            encoding = tiktoken.encoding_for_model(model)
-        except KeyError:
-            logger.debug("Warning: model not found. Using cl100k_base encoding.")
-            encoding = tiktoken.get_encoding("cl100k_base")
-        known_models = {
-            "gpt-3.5-turbo": (3, 1),
-            "gpt-35-turbo": (3, 1),
-            "gpt-3.5-turbo-0613": (3, 1),
-            "gpt-3.5-turbo-16k-0613": (3, 1),
-            "gpt-3.5-turbo-0301": (4, -1),
-            "gpt-4": (3, 1),
-            "gpt-4-0314": (3, 1),
-            "gpt-4-32k-0314": (3, 1),
-            "gpt-4-0613": (3, 1),
-            "gpt-4-32k-0613": (3, 1),
-        }
-        tokens_per_message, tokens_per_name = known_models.get(model, (3, 1))
-        token_count = len(encoding.encode(text))
-
-    if return_tokens_per_name_and_message:
-        return token_count, tokens_per_message, tokens_per_name
-    else:
-        return token_count
-
-
-def num_tokens_from_messages(
-    messages: dict,
-    model: str = "gpt-3.5-turbo-0613",
-    custom_token_count_function: Callable = None,
-    custom_prime_count: int = 3,
-):
-    """Return the number of tokens used by a list of messages."""
-    num_tokens = 0
-    for message in messages:
-        for key, value in message.items():
-            _num_tokens, tokens_per_message, tokens_per_name = num_tokens_from_text(
-                value,
-                model=model,
-                return_tokens_per_name_and_message=True,
-                custom_token_count_function=custom_token_count_function,
-            )
-            num_tokens += _num_tokens
-            if key == "name":
-                num_tokens += tokens_per_name
-        num_tokens += tokens_per_message
-    num_tokens += custom_prime_count  # With ChatGPT, every reply is primed with <|start|>assistant<|message|>
-    return num_tokens
-
-
 def split_text_to_chunks(
     text: str,
     max_tokens: int = 4000,
@@ -121,7 +51,7 @@ def split_text_to_chunks(
         must_break_at_empty_line = False
     chunks = []
     lines = text.split("\n")
-    lines_tokens = [num_tokens_from_text(line) for line in lines]
+    lines_tokens = [count_token(line) for line in lines]
     sum_tokens = sum(lines_tokens)
     while sum_tokens > max_tokens:
         if chunk_mode == "one_line":
@@ -144,7 +74,7 @@ def split_text_to_chunks(
                 split_len = int(max_tokens / lines_tokens[0] * 0.9 * len(lines[0]))
                 prev = lines[0][:split_len]
                 lines[0] = lines[0][split_len:]
-                lines_tokens[0] = num_tokens_from_text(lines[0])
+                lines_tokens[0] = count_token(lines[0])
             else:
                 logger.warning("Failed to split docs with must_break_at_empty_line being True, set to False.")
                 must_break_at_empty_line = False
@@ -287,7 +217,7 @@ def create_vector_db_from_dir(
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
     custom_text_split_function: Callable = None,
-):
+) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
         you prepared your own vector db.
@@ -307,6 +237,9 @@ def create_vector_db_from_dir(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+
+    Returns:
+        API: the chromadb client.
     """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
@@ -344,6 +277,7 @@ def create_vector_db_from_dir(
             )
     except ValueError as e:
         logger.warning(f"{e}")
+    return client
 
 
 def query_vector_db(
