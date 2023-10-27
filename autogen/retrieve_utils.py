@@ -5,7 +5,11 @@ from urllib.parse import urlparse
 import glob
 import tiktoken
 import chromadb
-from chromadb.api import API
+
+if chromadb.__version__ < "0.4.15":
+    from chromadb.api import API
+else:
+    from chromadb.api import ClientAPI as API
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
@@ -254,7 +258,10 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
 def get_file_from_url(url: str, save_path: str = None):
     """Download a file from a URL."""
     if save_path is None:
+        os.makedirs("/tmp/chromadb", exist_ok=True)
         save_path = os.path.join("/tmp/chromadb", os.path.basename(url))
+    else:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(save_path, "wb") as f:
@@ -284,7 +291,7 @@ def create_vector_db_from_dir(
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
     custom_text_split_function: Callable = None,
-):
+) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
         you prepared your own vector db.
@@ -304,6 +311,9 @@ def create_vector_db_from_dir(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+
+    Returns:
+        API: the chromadb client.
     """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
@@ -341,6 +351,7 @@ def create_vector_db_from_dir(
             )
     except ValueError as e:
         logger.warning(f"{e}")
+    return client
 
 
 def query_vector_db(
