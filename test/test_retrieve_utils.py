@@ -11,10 +11,9 @@ from autogen.retrieve_utils import (
     is_url,
     create_vector_db_from_dir,
     query_vector_db,
-    num_tokens_from_text,
-    num_tokens_from_messages,
     TEXT_FORMATS,
 )
+from autogen.token_count_utils import count_token
 
 import os
 import sys
@@ -31,31 +30,10 @@ integration, testing, and deployment."""
 
 
 class TestRetrieveUtils:
-    def test_num_tokens_from_text_custom_token_count_function(self):
-        def custom_token_count_function(text):
-            return len(text), 1, 2
-
-        text = "This is a sample text."
-        assert num_tokens_from_text(
-            text, return_tokens_per_name_and_message=True, custom_token_count_function=custom_token_count_function
-        ) == (22, 1, 2)
-
-    def test_num_tokens_from_text(self):
-        text = "This is a sample text."
-        assert num_tokens_from_text(text) == len(tiktoken.get_encoding("cl100k_base").encode(text))
-
-    def test_num_tokens_from_messages(self):
-        messages = [{"content": "This is a sample text."}, {"content": "Another sample text."}]
-        # Review the implementation of num_tokens_from_messages
-        # and adjust the expected_tokens accordingly.
-        actual_tokens = num_tokens_from_messages(messages)
-        expected_tokens = actual_tokens  # Adjusted to make the test pass temporarily.
-        assert actual_tokens == expected_tokens
-
     def test_split_text_to_chunks(self):
         long_text = "A" * 10000
         chunks = split_text_to_chunks(long_text, max_tokens=1000)
-        assert all(num_tokens_from_text(chunk) <= 1000 for chunk in chunks)
+        assert all(count_token(chunk) <= 1000 for chunk in chunks)
 
     def test_split_text_to_chunks_raises_on_invalid_chunk_mode(self):
         with pytest.raises(AssertionError):
