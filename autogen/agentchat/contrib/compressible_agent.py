@@ -68,15 +68,20 @@ Reply "TERMINATE" in the end when everything is done.
             max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
-            compress_config (dict or False): config for compression before oai_reply. Default to None, meaning no compression will be used and
-                the conversation will terminate when the token count exceeds the limit. You should contain the following keys:
-                - "mode" (Optional, str, default to "COMPRESS"): Choose from ["COMPRESS", "TERMINATE"]. "COMPRESS": enable the compression agent.
-                    "TERMINATE": terminate the conversation when the token count exceeds the limit.
-                - "agent" (Optional, "Agent", default CompressionAgent): the agent to call before oai_reply. the `generate_reply` method from this Agent will be called.
+            compress_config (dict or True/False): config for compression before oai_reply. Default to False.
+                You should contain the following keys:
+                - "mode" (Optional, str, default to "COMPRESS"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
+                    "COMPRESS": compress the messages when the token count exceeds the limit.
+                    "TERMINATE": terminate the conversation ONLY when token count exceeds the max limit of current model.
+                        `trigger_count` is NOT used in this mode.
+                    "CUSTOMIZED": pass in a customized function to compress the messages.
+                - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOMIZED".
+                    The function should takes a list of messages and returns a tuple of (is_compress_success: bool, compressed_messages: List[Dict]).
                 - "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression.
                     If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
                 - "async" (Optional, bool, default to False): whether to compress asynchronously.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
+                - "verbose" (Optional, bool, default to False): Whether to print the content before and after compression. Used when mode="COMPRESS".
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
