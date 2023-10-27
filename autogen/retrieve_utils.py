@@ -1,9 +1,8 @@
-from typing import List, Union, Dict, Tuple, Callable
+from typing import List, Union, Callable
 import os
 import requests
 from urllib.parse import urlparse
 import glob
-import tiktoken
 import chromadb
 
 if chromadb.__version__ < "0.4.15":

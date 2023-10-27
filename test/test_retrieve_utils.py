@@ -7,19 +7,15 @@ from autogen.retrieve_utils import (
     extract_text_from_pdf,
     split_files_to_chunks,
     get_files_from_dir,
-    get_file_from_url,
     is_url,
     create_vector_db_from_dir,
     query_vector_db,
-    TEXT_FORMATS,
 )
 from autogen.token_count_utils import count_token
 
 import os
-import sys
 import pytest
 import chromadb
-import tiktoken
 
 
 test_dir = os.path.join(os.path.dirname(__file__), "test_files")
@@ -157,6 +153,7 @@ class TestRetrieveUtils:
             client=client,
             collection_name="mytestcollection",
             custom_text_split_function=custom_text_split_function,
+            get_or_create=True,
         )
         results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
         assert (
