@@ -1,4 +1,4 @@
-from autogen.token_count_utils import count_token, num_tokens_from_functions
+from autogen.token_count_utils import count_token, num_tokens_from_functions, token_left, percentile_used
 import pytest
 
 func1 = {
@@ -58,9 +58,13 @@ def test_count_token():
         },
     ]
     assert count_token(messages) == 34
+    assert percentile_used(messages) == 34 / 4096
+    assert token_left(messages) == 4096 - 34
 
     text = "I'm sorry, but I'm not able to"
     assert count_token(text) == 10
+    assert token_left(text) == 4096 - 10
+    assert percentile_used(text) == 10 / 4096
 
 
 if __name__ == "__main__":
