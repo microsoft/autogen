@@ -376,7 +376,7 @@ def test_math(num_samples=-1):
     ]
 
     autogen.Completion.set_cache(seed)
-    config_list = autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai")
+    config_list = autogen.config_list_openai_aoai(KEY_LOC)[:2]
     vanilla_config = {
         "model": "text-davinci-003",
         "temperature": 1,
