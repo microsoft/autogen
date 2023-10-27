@@ -78,7 +78,7 @@ Reply "TERMINATE" in the end when everything is done.
                 - "async" (Optional, bool, default to False): whether to compress asynchronously.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
             **kwargs (dict): Please refer to other kwargs in
-                [ConversableAgent](/autogen/docs/reference/agentchat/contrib/conversable_agent).
+                [ConversableAgent](../conversable_agent#__init__).
         """
         super().__init__(
             name=name,
