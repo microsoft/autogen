@@ -3,7 +3,8 @@ import autogen
 import pytest
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
-async def test_stream():
+@pytest.mark.asyncio
+async def test_async_get_human_input():
     try:
         import openai
     except ImportError:
@@ -13,6 +14,7 @@ async def test_stream():
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
+        max_consecutive_auto_reply=2,
         llm_config={
             "request_timeout": 600,
             "seed": 41,
@@ -28,6 +30,12 @@ async def test_stream():
         code_execution_config=False,
         default_auto_reply=None
     )
+
+    async def custom_a_get_human_input(prompt):
+        return "This is a test"
+
+    user_proxy.a_get_human_input = custom_a_get_human_input
+
     user_proxy._reply_func_list = []
     user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.generate_oai_reply)
     user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.generate_code_execution_reply)
@@ -36,8 +44,9 @@ async def test_stream():
 
     await user_proxy.a_initiate_chat(
         assistant,
+        clear_history=True,
         message="""Hello."""
     )
 
 if __name__ == "__main__":
-    asyncio.run(test_stream())
+    test_async_get_human_input()
