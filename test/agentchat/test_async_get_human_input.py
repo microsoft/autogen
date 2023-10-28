@@ -27,8 +27,7 @@ async def test_async_get_human_input():
         name="user",
         human_input_mode="ALWAYS",
         max_consecutive_auto_reply=1,
-        code_execution_config=False,
-        default_auto_reply=None
+        code_execution_config=False
     )
 
     async def custom_a_get_human_input(prompt):
