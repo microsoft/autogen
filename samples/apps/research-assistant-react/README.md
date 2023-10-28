@@ -36,6 +36,24 @@ Navigate to <http://localhost:8000/> to view the web ui.
 
 To update the web ui, navigate to the frontend directory, make changes and rebuild the ui.
 
+## Example Usage
+
+Let us use a simple query demonstrating the capabilities of the research assistant.
+
+```
+Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png
+```
+
+The agents responds by _writing code_ to create a python program to generate the chart with the stock prices. You can use the `@execute` meta-prompt to execute the code generated.
+
+> Note than there could be multiple turns between the `AssistantAgent` and the `UserProxyAgent` to produce and execute the code in order to complete the task.
+
+![ARA](./docs/ara_stockprices.png)
+
+You can also view the debug console that generates useful information to see how the agents are interacting in the background.
+
+![ARA](./docs/ara_console.png)
+
 ## Acknowledgements
 
 Based on the [AutoGen](https://microsoft.github.io/autogen) project.
