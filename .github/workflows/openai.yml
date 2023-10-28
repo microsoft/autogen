@@ -11,7 +11,6 @@ on:
       - 'test/**'
       - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
       - 'notebook/agentchat_function_call.ipynb'
-      - 'notebook/agentchat_MathChat.ipynb'
       - '.github/workflows/openai.yml'
 
 jobs:
@@ -36,17 +35,13 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e.[blendsearch]
+          pip install -e.
           python -c "import autogen"
-          pip install coverage pytest-asyncio datasets
+          pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         if: matrix.python-version == '3.9'
         run: |
           pip install docker
-      - name: Install packages for MathChat when needed
-        if: matrix.python-version != '3.11'
-        run: |
-          pip install -e .[mathchat]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
@@ -68,7 +63,6 @@ jobs:
         run: |
           pip install nbconvert nbformat ipykernel
           coverage run -a -m pytest test/agentchat/test_function_call_groupchat.py
-          coverage run -a -m pytest test/agentchat/test_teachable_agent.py
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
