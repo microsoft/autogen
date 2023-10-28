@@ -19,7 +19,9 @@ async def test_async_get_human_input():
         llm_config={"request_timeout": 600, "seed": 41, "config_list": config_list, "temperature": 0},
     )
 
-    user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
+    user_proxy = autogen.UserProxyAgent(
+        name="user", human_input_mode="ALWAYS", code_execution_config=False
+    )
 
     async def custom_a_get_human_input(prompt):
         return "This is a test"
@@ -32,4 +34,4 @@ async def test_async_get_human_input():
 
 
 if __name__ == "__main__":
-    test_async_get_human_input()
+    asyncio.run(test_async_get_human_input())
