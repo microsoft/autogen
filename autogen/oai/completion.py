@@ -9,6 +9,7 @@ from flaml import tune, BlendSearch
 from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
 from .openai_utils import get_key
+from .chat_completion_proxy import ChatCompletionProxy
 from collections import defaultdict
 
 try:
@@ -207,7 +208,7 @@ class Completion(openai_Completion):
                 cls._book_keeping(config, response)
                 return response
         openai_completion = (
-            openai.ChatCompletion
+            ChatCompletionProxy # Support streaming for chat models
             if config["model"].replace("gpt-35-turbo", "gpt-3.5-turbo") in cls.chat_models
             or issubclass(cls, ChatCompletion)
             else openai.Completion

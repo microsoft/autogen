@@ -15,6 +15,7 @@ __version__ = version["__version__"]
 
 install_requires = [
     "openai<1",
+    "tiktoken",
     "diskcache",
     "termcolor",
     "flaml",
