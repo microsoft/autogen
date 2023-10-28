@@ -703,7 +703,7 @@ class Completion(openai_Completion):
         context: Optional[Dict] = None,
         use_cache: Optional[bool] = True,
         config_list: Optional[List[Dict]] = None,
-        filter_func: Optional[Callable[[Dict, Dict, Dict], bool]] = None,
+        filter_func: Optional[Callable[[Dict, Dict], bool]] = None,
         raise_on_ratelimit_or_timeout: Optional[bool] = True,
         allow_format_str_template: Optional[bool] = False,
         **config,
@@ -749,7 +749,7 @@ class Completion(openai_Completion):
         )
         ```
 
-            filter_func (Callable, Optional): A function that takes in the context, the config and the response and returns a boolean to indicate whether the response is valid. E.g.,
+            filter_func (Callable, Optional): A function that takes in the context and the response and returns a boolean to indicate whether the response is valid. E.g.,
 
         ```python
         def yes_or_no_filter(context, config, response):
@@ -803,9 +803,7 @@ class Completion(openai_Completion):
                     )
                     if response == -1:
                         return response
-                    pass_filter = filter_func is None or filter_func(
-                        context=context, base_config=config, response=response
-                    )
+                    pass_filter = filter_func is None or filter_func(context=context, response=response)
                     if pass_filter or i == last:
                         response["cost"] = cost + response["cost"]
                         response["config_id"] = i
