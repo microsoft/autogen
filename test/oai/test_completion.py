@@ -231,7 +231,7 @@ def test_humaneval(num_samples=1):
         raise_on_ratelimit_or_timeout=False,
     )
     # assert response == -1
-    config_list = autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai")
+    config_list = autogen.config_list_openai_aoai(KEY_LOC)
     # a minimal tuning example
     config, _ = autogen.Completion.tune(
         data=tune_data,
@@ -376,11 +376,11 @@ def test_math(num_samples=-1):
     ]
 
     autogen.Completion.set_cache(seed)
-    config_list = autogen.config_list_openai_aoai(KEY_LOC)[:2]
+    config_list = autogen.config_list_openai_aoai(KEY_LOC)
     vanilla_config = {
-        "model": "text-davinci-003",
+        "model": "text-ada-001",
         "temperature": 1,
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "n": 1,
         "prompt": prompts[0],
         "stop": "###",
@@ -451,5 +451,5 @@ if __name__ == "__main__":
     # test_chatcompletion()
     # test_multi_model()
     # test_nocontext()
-    test_humaneval(1)
-    # test_math(1)
+    # test_humaneval(1)
+    test_math(1)
