@@ -57,9 +57,9 @@ jobs:
         run: |
           pip install -e .[teachable]
       - name: Install packages for RetrieveChat with QDrant when needed
-        if: matrix.python-version == '3.9'
+        if: matrix.python-version == '3.11'
         run: |
-          pip install qdrant_client[fastembed]
+          pip install -e .[retrievechat] qdrant_client[fastembed]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
@@ -80,6 +80,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
+          coverage run -a -m pytest test/agentchat/test_qdrant_retrievechat.py
           coverage run -a -m pytest test/test_with_openai.py
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
