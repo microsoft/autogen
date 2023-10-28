@@ -9,7 +9,7 @@ When not using a docker container, we recommend using a virtual environment to i
 You can create a virtual environment with `venv` as below:
 ```bash
 python3 -m venv pyautogen
-source autogen/bin/activate
+source pyautogen/bin/activate
 ```
 
 The following command will deactivate the current `venv` environment:
