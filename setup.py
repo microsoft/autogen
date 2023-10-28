@@ -19,6 +19,7 @@ install_requires = [
     "termcolor",
     "flaml",
     "python-dotenv",
+    "tiktoken",
 ]
 
 
