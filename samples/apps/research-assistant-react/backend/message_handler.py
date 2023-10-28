@@ -71,6 +71,7 @@ def process_user_message(
 
     trigger_memorization = message.strip().lower() == "@memorize"
     if trigger_memorization:
+        print("Triggering memorization ...")
         response = learn_skill(history, utils_dir, llm_config)
         return response
 
