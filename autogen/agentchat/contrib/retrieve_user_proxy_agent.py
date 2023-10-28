@@ -6,7 +6,8 @@ except ImportError:
     raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
-from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, num_tokens_from_text
+from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
+from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
@@ -124,8 +125,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in chromadb. Default is False. Will be set to False if docs_path is None.
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
-                    The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
-                    Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
+                    The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
+                    Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
                 - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
@@ -180,7 +181,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._get_or_create = (
             self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else False
         )
-        self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", None)
+        self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", count_token)
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = True if self._docs_path is None else False  # whether the collection is created
@@ -244,7 +245,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 continue
             if results["ids"][0][idx] in self._doc_ids:
                 continue
-            _doc_tokens = num_tokens_from_text(doc, custom_token_count_function=self.custom_token_count_function)
+            _doc_tokens = self.custom_token_count_function(doc, self._model)
             if _doc_tokens > self._context_max_tokens:
                 func_print = f"Skip doc_id {results['ids'][0][idx]} as it is too long to fit in the context."
                 print(colored(func_print, "green"), flush=True)
@@ -361,7 +362,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         """
         if not self._collection or self._get_or_create:
             print("Trying to create collection.")
-            create_vector_db_from_dir(
+            self._client = create_vector_db_from_dir(
                 dir_path=self._docs_path,
                 max_tokens=self._chunk_token_size,
                 client=self._client,
