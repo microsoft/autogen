@@ -874,7 +874,7 @@ class Completion(openai_Completion):
         params = cls._construct_params(
             context, config, allow_format_str_template=allow_format_str_template
         )
-        if not use_cache:
+        if not use_cache or "seed" not in params:
             return cls._get_response(
                 params,
                 raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout,

@@ -1,13 +1,16 @@
 import os
-
-# os.environ["ALFWORLD_DATA"] = "/data/alfworld"
+os.environ["ALFWORLD_DATA"] = "/data/alfworld"
 
 from autogen.agentchat import AssistantAgent
 import json
-from src.chat_utils import ALFAgent, get_all_game_files, set_context
+from src.chat_utils import ALFAgent, get_all_game_files, set_context, AssistantAgentAlf
 
-config_list = [{"api_key": "", "model": "gpt-3.5-turbo"}]
-
+config_list = [
+    {
+        'api_key': '',
+        'model': "gpt-3.5-turbo"
+    }
+]
 game_files = get_all_game_files("src/tasks/base_config.yaml")
 game_files.sort()
 print(f"Loaded a total of {len(game_files)} game files.")
@@ -19,31 +22,30 @@ prefixs = [
     "look_at_obj",
     "pick_two_obj",
 ]
-seed = [41, 42, 43]
+seed = [12354, 12345, 12435, 21354, 31452, 31453]
+base_dir = "logs_multiagent/"
+success = 0
 
 for prefix in prefixs:
-    if not os.path.exists(f"logs_twoagent/{prefix}/"):
-        os.mkdir(f"logs_twoagent/{prefix}/")
+    os.makedirs(base_dir + f"{prefix}/", exist_ok=True)
 
 for i, file in enumerate(game_files):
     for prefix in prefixs:
         if prefix in file:
-            save_path = f"logs_twoagent/{prefix}/{i}.json"
-            fail_path = f"logs_twoagent/{prefix}/{i}_failed.json"
+            path = base_dir + f"{prefix}/{i}.json"
 
     print(f"Evaluating file {i}...")
 
-    for test_counter in range(3):
+    for cnt in range(3):
         try:
             user_proxy = ALFAgent(name="ALFWorld user proxy agent", task_path=file)
-            assistant = AssistantAgent(
+            assistant = AssistantAgentAlf(
                 name="assistant",
                 system_message="You are a helpful assistant.",
                 llm_config={
                     "config_list": config_list,
                     "temperature": 0,
-                    "seed": seed[test_counter],
-                    "top_p": 1,
+                    # "seed": seed[cnt],
                 },
             )
             # get in-context examples and inject them into conversation history
@@ -53,16 +55,19 @@ for i, file in enumerate(game_files):
 
             history = assistant.chat_messages[user_proxy]
             reply = history[-3]["content"]
+            with open(path, "w") as f:
+                json.dump(history, f, indent=4)
+
             if (
-                "Task success, now reply TERMINATE" in reply
-                and history[-3]["role"] == "user"
+                "Task success, now reply TERMINATE" in reply 
+                and history[-3]['role'] == 'user'
             ):
-                with open(save_path, "w") as f:
-                    json.dump(assistant.chat_messages[user_proxy], f, indent=4)
+                success += 1
                 break
-            else:
-                with open(fail_path, "w") as f:
-                    json.dump(assistant.chat_messages[user_proxy], f, indent=4)
 
         except Exception as e:
+            # May encounter context overflow error, we should just skip it.
             print(e)
+
+print("Success task number: ", success)
+print("Success rate: ", success * 100 // 134)
