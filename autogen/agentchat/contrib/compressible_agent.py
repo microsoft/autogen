@@ -40,6 +40,14 @@ If the result indicates there is an error, fix the error and output the code aga
 When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
 Reply "TERMINATE" in the end when everything is done.
     """
+    DEFAULT_COMPRESS_CONFIG = {
+        "mode": "TERMINATE",
+        "compress_function": None,
+        "trigger_count": 0.7,
+        "async": False,
+        "broadcast": True,
+        "verbose": False,
+    }
 
     def __init__(
         self,
@@ -70,10 +78,10 @@ Reply "TERMINATE" in the end when everything is done.
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             compress_config (dict or True/False): config for compression before oai_reply. Default to False.
                 You should contain the following keys:
-                - "mode" (Optional, str, default to "COMPRESS"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
-                    "COMPRESS": compress the messages when the token count exceeds the limit.
+                - "mode" (Optional, str, default to "TERMINATE"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
                     "TERMINATE": terminate the conversation ONLY when token count exceeds the max limit of current model.
                         `trigger_count` is NOT used in this mode.
+                    "COMPRESS": compress the messages when the token count exceeds the limit.
                     "CUSTOMIZED": pass in a customized function to compress the messages.
                 - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOMIZED".
                     The function should takes a list of messages and returns a tuple of (is_compress_success: bool, compressed_messages: List[Dict]).
@@ -97,29 +105,32 @@ Reply "TERMINATE" in the end when everything is done.
             default_auto_reply=default_auto_reply,
         )
 
+        self._set_compress_config(compress_config)
+
+        self._reply_func_list.clear()
+        self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
+        self.register_reply([Agent], CompressibleAgent.on_oai_token_limit)  # check token limit
+        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
+        self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+
+    def _set_compress_config(self, compress_config: Optional[Dict] = False):
         if compress_config:
             if compress_config is True:
                 self.compress_config = {}
             if not isinstance(compress_config, dict):
                 raise ValueError("compress_config must be a dict or True/False.")
 
-            assert compress_config.get("mode", "COMPRESS") in [
-                "COMPRESS",
-                "TERMINATE",
-                "CUSTOMIZED",
-            ], "compress_config['mode'] must be 'COMPRESS' or 'TERMINATE' or 'CUSTOMIZED'"
+            allowed_modes = ["COMPRESS", "TERMINATE", "CUSTOMIZED"]
+            if compress_config.get("mode", "TERMINATE") not in allowed_modes:
+                raise ValueError(f"Invalid compression mode. Allowed values are: {', '.join(allowed_modes)}")
 
-            self.compress_config = {
-                "mode": "COMPRESS",
-                "compress_function": None,
-                "trigger_count": 0.7,
-                "async": False,
-                "broadcast": True,
-                "verbose": False,
-            }
+            self.compress_config = self.DEFAULT_COMPRESS_CONFIG
             self.compress_config.update(compress_config)
             # convert trigger_count to int, default to 0.7
             trigger_count = self.compress_config["trigger_count"]
+            if not (isinstance(trigger_count, int) or isinstance(trigger_count, float)) or trigger_count <= 0:
+                raise ValueError("trigger_count must be a positive number.")
             if isinstance(trigger_count, float) and 0 < trigger_count <= 1:
                 self.compress_config["trigger_count"] = int(
                     trigger_count * get_max_token_limit(self.llm_config["model"])
@@ -134,13 +145,6 @@ Reply "TERMINATE" in the end when everything is done.
 
         else:
             self.compress_config = False
-
-        self._reply_func_list.clear()
-        self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
-        self.register_reply([Agent], CompressibleAgent.on_oai_token_limit)  # check token limit
-        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
-        self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
-        self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
     def generate_reply(
         self,
@@ -188,7 +192,7 @@ Reply "TERMINATE" in the end when everything is done.
                     return reply
         return self._default_auto_reply
 
-    def compute_init_token_count(self):
+    def _compute_init_token_count(self):
         """Check if the agent is LLM-based and compute the initial token count."""
         if self.llm_config is False:
             return 0
@@ -217,7 +221,7 @@ Reply "TERMINATE" in the end when everything is done.
             messages = self._oai_messages[sender]
 
         # 1. mode = "TERMINATE", terminate the agent if no token left.
-        token_used = self.compute_init_token_count() + count_token(messages, llm_config["model"])
+        token_used = self._compute_init_token_count() + count_token(messages, llm_config["model"])
         max_token = max(get_max_token_limit(llm_config["model"]), llm_config.get("max_token", 0))
         if self.compress_config["mode"] == "TERMINATE":
             if max_token - token_used <= 0:
@@ -253,7 +257,7 @@ Reply "TERMINATE" in the end when everything is done.
                 "Total prompt token count after compression: {}".format(
                     count_token(self._oai_messages[sender][1:], llm_config["model"]),
                     count_token(compressed_messages[1:], llm_config["model"]),
-                    count_token(compressed_messages, llm_config["model"]) + self.compute_init_token_count(),
+                    count_token(compressed_messages, llm_config["model"]) + self._compute_init_token_count(),
                 )
             )
             print(colored(to_print, "magenta"), flush=True)
@@ -299,28 +303,30 @@ Reply "TERMINATE" in the end when everything is done.
         chat_to_compress = "To be compressed:\n"
 
         for m in messages[1:]:
+            # Handle function role
             if m.get("role") == "function":
                 chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"): \n{m['content']}\n"
-            else:
-                if "name" in m:
-                    # {"name" : "Bob", "role" : "assistant"} -> ##Bob(ASSISTANT)##
-                    chat_to_compress += f"##{m['name']}({m['role'].upper()})## {m['content']}\n"
-                elif m["content"] is not None:
-                    if compressed_prompt in m["content"]:
-                        # remove the compressed_prompt from the content
-                        tmp = m["content"].replace(compressed_prompt, "")
-                        chat_to_compress += f"{tmp}\n"
-                    else:
-                        chat_to_compress += f"##{m['role'].upper()}## {m['content']}\n"
 
-                if "function_call" in m:
-                    if (
-                        m["function_call"].get("name", None) is None
-                        or m["function_call"].get("arguments", None) is None
-                    ):
-                        chat_to_compress += f"##FUNCTION_CALL## {m['function_call']}\n"
-                    else:
-                        chat_to_compress += f"##FUNCTION_CALL## \nName: {m['function_call']['name']}\nArgs: {m['function_call']['arguments']}\n"
+            # If name exists in the message
+            elif "name" in m:
+                chat_to_compress += f"##{m['name']}({m['role'].upper()})## {m['content']}\n"
+
+            # Handle case where content is not None and name is absent
+            elif m.get("content"):  # This condition will also handle None and empty string
+                if compressed_prompt in m["content"]:
+                    chat_to_compress += m["content"].replace(compressed_prompt, "") + "\n"
+                else:
+                    chat_to_compress += f"##{m['role'].upper()}## {m['content']}\n"
+
+            # Handle function_call in the message
+            if "function_call" in m:
+                function_name = m["function_call"].get("name")
+                function_args = m["function_call"].get("arguments")
+
+                if not function_name or not function_args:
+                    chat_to_compress += f"##FUNCTION_CALL## {m['function_call']}\n"
+                else:
+                    chat_to_compress += f"##FUNCTION_CALL## \nName: {function_name}\nArgs: {function_args}\n"
 
         chat_to_compress = [{"role": "user", "content": chat_to_compress}]
 

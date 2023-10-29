@@ -3,18 +3,19 @@ import sys
 import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
-try:
-    from autogen.agentchat.contrib.compressible_agent import (
-        CompressibleAgent,
-    )
+from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 
-    skip_test = False
-except ImportError:
-    skip_test = True
+config_list = autogen.config_list_from_json(
+    OAI_CONFIG_LIST,
+    file_location=KEY_LOC,
+    filter_dict={
+        "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
+    },
+)
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_test,
+    sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows",
 )
 def test_compressible_agent():
@@ -25,14 +26,6 @@ def test_compressible_agent():
 
     conversations = {}
     autogen.ChatCompletion.start_logging(conversations)
-
-    config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
-        },
-    )
 
     assistant = CompressibleAgent(
         name="assistant",
@@ -66,5 +59,40 @@ def test_compressible_agent():
     print(conversations)
 
 
+def test_compress_messsage():
+    try:
+        import openai
+    except ImportError:
+        return
+
+    assistant = CompressibleAgent(
+        name="assistant",
+        llm_config={
+            "request_timeout": 600,
+            "seed": 43,
+            "config_list": config_list,
+        },
+        compress_config={
+            "mode": "COMPRESS",
+            "trigger_count": 600,
+            "verbose": True,
+        },
+    )
+
+    assert assistant.compress_messages([{"content": "hello world", "role": "user"}]) == (
+        False,
+        None,
+    ), "Single message should not be compressed"
+    is_success, compressed = assistant.compress_messages(
+        [
+            {"content": "Hello!", "role": "user"},
+            {"content": "How can I help you today?", "role": "assistant"},
+            {"content": "Can you tell me a joke about programming?", "role": "assistant"},
+        ]
+    )
+    assert is_success, "Compression should be successful"
+
+
 if __name__ == "__main__":
+    test_compress_messsage()
     test_compressible_agent()
