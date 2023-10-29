@@ -54,7 +54,7 @@ conda install pyautogen -c conda-forge
 openai v1 is a total rewrite of the library with many breaking changes. For example, the inference requires instantiating a client, instead of using a global class method.
 Therefore, some changes are required for users of `pyautogen<0.2`.
 
-- `api_base` -> `base_url` in `llm_config` and `config_list`.
+- `api_base` -> `base_url`, `request_timeout` -> `timeout` in `llm_config` and `config_list`. `max_retry_period` and `retry_wait_time` are deprecated. `max_retries` can be set for each client.
 - MathChat, RetrieveChat, and TeachableAgent are unsupported until they are tested in future release.
 - `autogen.Completion` and `autogen.ChatCompletion` are deprecated. The essential functionalities are moved to `autogen.OpenAIWrapper`:
 ```python
