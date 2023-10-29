@@ -40,7 +40,7 @@ user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stoc
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](/img/chat_example.png)
 
-* [Code examples](/docs/Examples/AutoGen-AgentChat).
+* [Code examples](/docs/Examples/AgentChat).
 * [Documentation](/docs/Use-Cases/agent_chat).
 
 #### Enhanced LLM Inferences
@@ -60,13 +60,13 @@ config, analysis = autogen.Completion.tune(
 response = autogen.Completion.create(context=test_instance, **config)
 ```
 
-* [Code examples](/docs/Examples/AutoGen-Inference).
+* [Code examples](/docs/Examples/Inference).
 * [Documentation](/docs/Use-Cases/enhanced_inference).
 
 ### Where to Go Next ?
 
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat) and [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
-* Find [code examples](/docs/Examples/AutoGen-AgentChat).
+* Find [code examples](/docs/Examples/AgentChat).
 * Read [SDK](/docs/reference/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
 * [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)

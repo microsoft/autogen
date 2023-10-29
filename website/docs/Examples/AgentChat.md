@@ -1,4 +1,4 @@
-# AutoGen - Automated Multi Agent Chat
+# Automated Multi Agent Chat
 
 AutoGen offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. This framework allows tool use and human participation via multi-agent conversation.
 Please find documentation about this feature [here](/docs/Use-Cases/agent_chat).
