@@ -6,7 +6,7 @@ This is the code for evaluating ALFChat on ALFWorld.
 Download `alfworld` data and install environments following instructions [here](https://github.com/alfworld/alfworld).
 
 ### Option 2: Docker (Recommended)
-We provide a docker that has set up all the environments. The code is in its `/autogen-eval` diorectory.
+We provide a docker that has set up all the environments. The code is in its `/autogen-eval` directory.
 
 ```bash
 docker pull leoljl/alfchat
