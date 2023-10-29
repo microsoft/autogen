@@ -114,6 +114,23 @@ When chat models are used and `prompt` is given as the input to `autogen.Complet
 
 `autogen.OpenAIWrapper.create()` can be used to create completions for both chat and non-chat models, and both OpenAI API and Azure OpenAI API.
 
+```python
+from autogen import OpenAIWrapper
+# OpenAI endpoint
+client = OpenAIWrapper()
+# ChatCompletion
+response = client.create(messages=[{"role": "user", "content": "2+2="}], model="gpt-3.5-turbo")
+# extract the response text
+print(client.extract_text_or_function_call(response))
+# Azure OpenAI endpoint
+client = OpenAIWrapper(api_key=..., base_url=..., api_version=..., api_type="azure")
+# Completion
+response = client.create(prompt="2+2=", model="gpt-3.5-turbo-instruct")
+# extract the response text
+print(client.extract_text_or_function_call(response))
+
+```
+
 For local LLMs, one can spin up an endpoint using a package like [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
 <!-- When only working with the chat-based models, `autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages. -->
@@ -121,6 +138,18 @@ For local LLMs, one can spin up an endpoint using a package like [FastChat](http
 ## Caching
 
 API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
+
+```python
+client = OpenAIWrapper(seed=...)
+client.create(...)
+```
+
+```python
+client = OpenAIWrapper()
+client.create(seed=..., ...)
+```
+
+Caching is enabled by default with seed 41. To disable it please set `seed` to None.
 
 ## Error handling
 
@@ -133,7 +162,7 @@ API call results are cached locally and reused when the same request is issued. 
 - `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
 
 Moreover,  -->
-One can pass a list of configurations of different models/endpoints to mitigate the rate limits. For example,
+One can pass a list of configurations of different models/endpoints to mitigate the rate limits and other runtime error. For example,
 
 ```python
 client = OpenAIWrapper(
@@ -158,7 +187,7 @@ client = OpenAIWrapper(
 )
 ```
 
-It will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama2-chat-7B one by one,
+`client.create()` will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama2-chat-7B one by one,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
 For convenience, we provide a number of utility functions to load config lists.
@@ -184,8 +213,10 @@ def valid_json_filter(response, **_):
             pass
     return False
 
-response = client.create(
+client = OpenAIWrapper(
     config_list=[{"model": "text-ada-001"}, {"model": "gpt-3.5-turbo-instruct"}, {"model": "text-davinci-003"}],
+)
+response = client.create(
     prompt="How to construct a json request to Bing API to search for 'latest AI news'? Return the JSON request.",
     filter_func=valid_json_filter,
 )

@@ -26,7 +26,10 @@ try:
 
     ERROR = None
 except ImportError:
-    ERROR = ImportError("please install openai and diskcache to use the autogen.oai subpackage.")
+    ERROR = ImportError(
+        "(Deprecated) The autogen.Completion class requires openai<1 and diskcache. "
+        "Please switch to autogen.OpenAIWrapper for openai>=1."
+    )
     openai_Completion = object
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -567,6 +570,10 @@ class Completion(openai_Completion):
             dict: The optimized hyperparameter setting.
             tune.ExperimentAnalysis: The tuning results.
         """
+        logger.warning(
+            "tuning via Completion.tune is deprecated in pyautogen v0.2 and openai>=1. "
+            "flaml.tune supports tuning more generically."
+        )
         if ERROR:
             raise ERROR
         space = cls.default_search_space.copy()
@@ -775,6 +782,11 @@ class Completion(openai_Completion):
                 - `config_id`: the index of the config in the config_list that is used to generate the response.
                 - `pass_filter`: whether the response passes the filter function. None if no filter is provided.
         """
+        logger.warning(
+            "Completion.create is deprecated in pyautogen v0.2 and openai>=1. "
+            "The new openai requires initiating a client for inference. "
+            "Please refer to https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification"
+        )
         if ERROR:
             raise ERROR
 
@@ -1159,6 +1171,12 @@ class Completion(openai_Completion):
                 while the compact history dict has a linear size.
             reset_counter (bool): whether to reset the counter of the number of API calls.
         """
+        logger.warning(
+            "logging via Completion.start_logging is deprecated in pyautogen v0.2. "
+            "logging via OpenAIWrapper will be added back in a future release."
+        )
+        if ERROR:
+            raise ERROR
         cls._history_dict = {} if history_dict is None else history_dict
         cls._history_compact = compact
         cls._count_create = 0 if reset_counter or cls._count_create is None else cls._count_create
