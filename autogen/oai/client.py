@@ -17,7 +17,7 @@ try:
 
     ERROR = None
 except ImportError:
-    ERROR = ImportError("please install openai>=1 and diskcache to use the autogen.oai subpackage.")
+    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
 logger = logging.getLogger(__name__)
 if not logger.handlers:
