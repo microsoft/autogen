@@ -153,7 +153,6 @@ def python2functions(file_path) -> List[SkillFunction]:
         content = f.read()
 
     functions = text2functions(content, file_path)
-
     return functions
 
 
@@ -195,13 +194,15 @@ def learn_skill(
         if msg["role"] == "assistant":
             last_assistant_message = msg
             break
-    print("Last assistant message", last_assistant_message)
+   
+    if last_assistant_message is not None and len(last_assistant_message) > 0:
+        print("Last assistant message:{}\n".format(last_assistant_message))
+
     last_code = None
     if last_assistant_message is not None:
         metadata = json.loads(last_assistant_message["metadata"])
         last_code = metadata["code"]
-
-        print("Last code", last_code)
+        print("Last code:\n{}".format(last_code))
 
     if last_code is None:
         return {
