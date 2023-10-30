@@ -50,7 +50,7 @@ def gpt3_5_turbo(messages):
     )
 
     LLM_CONFIG = {
-        "request_timeout": 600,
+        # "request_timeout": 600,
         "seed": 42,  # change the seed for different trials
         "config_list": CONFIG_LIST,
         "temperature": 0,
@@ -251,7 +251,7 @@ def download_arxiv_paper(arxiv_id_or_url, dest_folder="."):
     m = re.search(r"^https://arxiv.org/(pdf|abs)/([\d\.v]+?)(\.pdf)?$", arxiv_id_or_url)
     if m:
         arxiv_id = m.group(2)
-    elif re.search("^[\d\.v]+$", arxiv_id_or_url):
+    elif re.search("^[\\d\\.v]+$", arxiv_id_or_url):
         arxiv_id = arxiv_id_or_url
     else:
         raise ValueError("Invalid arxiv_id_or_url")
@@ -319,10 +319,10 @@ def propose_scholarly_websearch_queries(research_question, max_queries=10):
     messages.append(
         {
             "role": "user",
-            "content": 'Write %d search queries that I can use to continue researching this topic. The output should be a single JSON array, and should contain the %d queries EXACTLY as I would input them to Google Scholar. For example ["query_1", "query_2", ..., "query_n"]'
-            % (max_queries, max_queries),
-        }
-    )
+            "content": 'Write %d search queries that I can use to continue researching this topic. The output should be a single JSON array, and should contain the %d queries EXACTLY as I would input them to Google Scholar. For example ["query_1", "query_2", ..., "query_n"]' %
+            (max_queries,
+             max_queries),
+        })
 
     # Try to parse this twice
     queries = None
@@ -354,7 +354,7 @@ def propose_scholarly_websearch_queries(research_question, max_queries=10):
 
 #
 ###############################################################################
-def find_relevant_papers(research_question, max_papers=25):
+def find_relevant_papers(research_question, max_papers=8):
     """
     Given a research question, consider a large number of papers, rank and filter them acording to their relevance to a user's research question.
 
@@ -389,17 +389,17 @@ def find_relevant_papers(research_question, max_papers=25):
         for j in range(0, len(results_lists)):
             if i >= len(results_lists[j]):
                 continue
-            
+
             r = results_lists[j][i]
 
             # We already listed this paper
             if r["pdf_url"] in unique_ids:
                 continue
-            
+
             # Add it to the list
             papers.append(r)
             unique_ids[r["pdf_url"]] = True
-    
+
     log_progress("Found " + str(len(papers)) + " distinct papers.")
     return papers
 
@@ -425,8 +425,9 @@ def write_literature_review(research_question, relevant_papers=None):
     # Create the bibliography if none was provided
     if relevant_papers is None:
         relevant_papers = find_relevant_papers(research_question)
-    elif type(relevant_papers) is not list:
-        # Sometimes autogen messes up and passes a string to this function. If it does, throw an error with a strong hint to how to fix
+    elif not isinstance(relevant_papers, list):
+        # Sometimes autogen messes up and passes a string to this function. If it
+        # does, throw an error with a strong hint to how to fix
         raise ValueError(
             "When calling 'write_literature_review', the 'relevant_papers' argument must be a returned from a previous call to the 'find_relevant_papers( research_question ) or search_arxiv( query ) function"
         )
@@ -487,4 +488,6 @@ def write_literature_review(research_question, relevant_papers=None):
 
 
 # HINT: If asked to find academic papers, prefer find_relevant_papers over search_arxiv
-# HINT: If asked for information or the latest developments on a particular academic topic, prefer write_literature_review over find_relevant_papers or search_arxiv
+# HINT: If asked for information or the latest developments on a
+# particular academic topic, prefer write_literature_review over
+# find_relevant_papers or search_arxiv

@@ -24,7 +24,7 @@ class AgentWorkFlow(Enum):
     PLANNER_CODER = "PlannerCoder"
 
 
-## Sorted listed of available RA types
+# Sorted listed of available RA types
 AVAILABLE_RAS = [
     {
         "agent": AgentWorkFlow.CODER_ONLY,
@@ -63,7 +63,7 @@ def process_user_message(
 
     config_list = autogen.config_list_from_json(path_to_config_list)
     llm_config = {
-        "request_timeout": 600,
+        # "request_timeout": 600,
         "seed": 42,  # change the seed for different trials
         "config_list": config_list,
         "temperature": 0,

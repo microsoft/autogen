@@ -23,7 +23,7 @@ def copy_utils(utils_dir, work_dir):
 def create_llm_config(path_to_config_list: str):
     config_list = autogen.config_list_from_json(path_to_config_list)
     llm_config = {
-        "request_timeout": 600,
+        # "request_timeout": 600,
         "seed": 42,  # Change the seed for different trials
         "config_list": config_list,
         "temperature": 0,
