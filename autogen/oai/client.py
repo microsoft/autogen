@@ -250,9 +250,11 @@ class OpenAIWrapper:
         
     def _completions_create(self, client, params):
         completions = client.chat.completions if "messages" in params else client.completions
-        # If streaming is enabled, iterate over the chunks of the response
-        if params.get("stream", False) and "messages" in params:
-            response_content = ""
+        # If streaming is enabled, has messages, and does not have functions, then
+        # iterate over the chunks of the response
+        if (params.get("stream", False) and "messages" in params and 'functions' not in params):
+            response_contents = [""] * params.get('n', 1)
+            finish_reasons = [""] * params.get('n', 1)            
             completion_tokens = 0
             
             # Set the terminal text color to green
@@ -261,42 +263,51 @@ class OpenAIWrapper:
             # Send the chat completion request to OpenAI's API and process the response in chunks
             for chunk in completions.create(**params):
                 if chunk.choices:
-                    content = chunk.choices[0].delta.content
-                    # If content is present, print it to the terminal and update response variables
-                    if content is not None:
-                        print(content, end='', flush=True)
-                        response_content += content
-                        completion_tokens += 1
-            
+                    for choice in chunk.choices:
+                        content = choice.delta.content
+                        finish_reasons[choice.index] = choice.finish_reason
+                        # If content is present, print it to the terminal and update response variables
+                        if content is not None:
+                            print(content, end='', flush=True)
+                            response_contents[choice.index] += content
+                            completion_tokens += 1
+                        else:
+                            print()
+                            
             # Reset the terminal text color
             print("\033[0m\n")
             
             # Prepare the final ChatCompletion object based on the accumulated data
-            prompt_tokens = count_token(params["messages"], chunk.model)
+            model = chunk.model.replace("gpt-35", "gpt-3.5") # hack for Azure API
+            prompt_tokens = count_token(params["messages"], model)
             response = ChatCompletion(
                 id=chunk.id,
-                created=chunk.created,
                 model=chunk.model,
-                object=chunk.object,
-                choices=[
-                    Choice(
-                        finish_reason=chunk.choices[0].finish_reason,
-                        index=chunk.choices[0].index,
-                        message=ChatCompletionMessage(
-                            role='assistant',
-                            content=response_content,
-                            function_call=chunk.choices[0].delta.function_call
-                        )
-                    )
-                ],
+                created=chunk.created,
+                object='chat.completion',
+                choices=[],
                 usage=CompletionUsage(
                     prompt_tokens = prompt_tokens,
                     completion_tokens = completion_tokens,
                     total_tokens = prompt_tokens + completion_tokens
                 )
             )
+            for i in range(len(response_contents)):
+                response.choices.append(
+                    Choice(
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role='assistant',
+                            content=response_contents[i],
+                            function_call=None
+                        )
+                    )
+                )
         else:
-             # If streaming is not enabled, send a regular chat completion request
+            # If streaming is not enabled, send a regular chat completion request
+            # Ensure streaming is disabled
+            params['stream'] = False
             response = completions.create(**params)
         return response
 
