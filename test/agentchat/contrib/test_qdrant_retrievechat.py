@@ -1,9 +1,9 @@
 import os
-
+import sys
 import pytest
-
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import ChatCompletion, config_list_from_json
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
@@ -30,7 +30,7 @@ def test_retrievechat():
         return
 
     conversations = {}
-    # ChatCompletion.start_logging(conversations)
+    ChatCompletion.start_logging(conversations)
 
     config_list = config_list_from_json(
         OAI_CONFIG_LIST,
