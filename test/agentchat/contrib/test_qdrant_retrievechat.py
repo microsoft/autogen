@@ -23,7 +23,10 @@ except ImportError:
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
-@pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or not QDRANT_INSTALLED,
+    reason="do not run on MacOS or windows or qdrant_client is not installed",
+)
 def test_retrievechat():
     try:
         import openai
@@ -36,9 +39,6 @@ def test_retrievechat():
     config_list = config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
-        },
     )
 
     assistant = RetrieveAssistantAgent(

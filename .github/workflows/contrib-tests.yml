@@ -5,7 +5,7 @@ name: ContribTests
 
 on:
   pull_request:
-    # branches: ['main']
+    branches: ['main', 'dev/v0.2']
     paths:
       - 'autogen/**'
       - 'test/agentchat/contrib/**'

@@ -28,7 +28,7 @@ simplify the process of building applications that leverage the power of LLMs, a
 integration, testing, and deployment."""
 
 
-@pytest.mark.skipif(skip, reason="dependency not installed")
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestRetrieveUtils:
     def test_split_text_to_chunks(self):
         long_text = "A" * 10000

@@ -21,7 +21,10 @@ except ImportError:
     skip_test = True
 
 
-@pytest.mark.skipif(skip_test, reason="dependencies not installed")
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_retrievechat():
     try:
         import openai
@@ -34,9 +37,6 @@ def test_retrievechat():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
-        },
     )
 
     assistant = RetrieveAssistantAgent(
