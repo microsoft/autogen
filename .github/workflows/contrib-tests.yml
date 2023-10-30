@@ -38,8 +38,8 @@ jobs:
           pip install pytest
       - name: Install packages and dependencies for RetrieveChat
         run: |
-          pip install -e .[retrievechat]
           pip install qdrant_client[fastembed]
+          pip install -e .[retrievechat]
           pip uninstall -y openai
       - name: Test RetrieveChat
         run: |
