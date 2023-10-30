@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
@@ -44,6 +45,7 @@ def get_market_news(ind, ind_upper):
     return feeds_summary
 
 
+@pytest.mark.asyncio
 async def test_stream():
     try:
         import openai
@@ -68,7 +70,7 @@ async def test_stream():
     assistant = autogen.AssistantAgent(
         name="assistant",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 41,
             "config_list": config_list,
             "temperature": 0,
