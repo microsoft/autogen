@@ -21,10 +21,7 @@ except ImportError:
     skip_test = True
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_test,
-    reason="do not run on MacOS or windows",
-)
+@pytest.mark.skipif(skip_test, reason="dependencies not installed")
 def test_retrievechat():
     try:
         import openai
