@@ -8,11 +8,14 @@ import inspect
 from flaml.automl.logger import logger_formatter
 
 from autogen.oai.openai_utils import get_key
+from autogen.token_count_utils import count_token
 
 try:
     from openai import OpenAI, APIError
     from openai.types.chat import ChatCompletion
+    from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
     from openai.types.completion import Completion
+    from openai.types.completion_usage import CompletionUsage
     import diskcache
 
     ERROR = None
@@ -233,9 +236,8 @@ class OpenAIWrapper:
                             response.pass_filter = pass_filter
                             # TODO: add response.cost
                             return response
-                completions = client.chat.completions if "messages" in params else client.completions
                 try:
-                    response = completions.create(**params)
+                    response = self._completions_create(client, params)
                 except APIError:
                     logger.debug(f"config {i} failed", exc_info=1)
                     if i == last:
@@ -245,6 +247,58 @@ class OpenAIWrapper:
                         # Cache the response
                         cache.set(key, response)
                     return response
+        
+    def _completions_create(self, client, params):
+        completions = client.chat.completions if "messages" in params else client.completions
+        # If streaming is enabled, iterate over the chunks of the response
+        if params.get("stream", False) and "messages" in params:
+            response_content = ""
+            completion_tokens = 0
+            
+            # Set the terminal text color to green
+            print("\033[32m", end='')
+            
+            # Send the chat completion request to OpenAI's API and process the response in chunks
+            for chunk in completions.create(**params):
+                if chunk.choices:
+                    content = chunk.choices[0].delta.content
+                    # If content is present, print it to the terminal and update response variables
+                    if content is not None:
+                        print(content, end='', flush=True)
+                        response_content += content
+                        completion_tokens += 1
+            
+            # Reset the terminal text color
+            print("\033[0m\n")
+            
+            # Prepare the final ChatCompletion object based on the accumulated data
+            prompt_tokens = count_token(params["messages"], chunk.model)
+            response = ChatCompletion(
+                id=chunk.id,
+                created=chunk.created,
+                model=chunk.model,
+                object=chunk.object,
+                choices=[
+                    Choice(
+                        finish_reason=chunk.choices[0].finish_reason,
+                        index=chunk.choices[0].index,
+                        message=ChatCompletionMessage(
+                            role='assistant',
+                            content=response_content,
+                            function_call=chunk.choices[0].delta.function_call
+                        )
+                    )
+                ],
+                usage=CompletionUsage(
+                    prompt_tokens = prompt_tokens,
+                    completion_tokens = completion_tokens,
+                    total_tokens = prompt_tokens + completion_tokens
+                )
+            )
+        else:
+             # If streaming is not enabled, send a regular chat completion request
+            response = completions.create(**params)
+        return response
 
     @classmethod
     def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
