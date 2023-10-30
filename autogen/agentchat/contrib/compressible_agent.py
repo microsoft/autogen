@@ -1,5 +1,5 @@
 from typing import Callable, Dict, Optional, Union, Tuple, List, Any
-from autogen import oai
+from autogen import OpenAIWrapper
 from autogen import Agent, ConversableAgent
 import copy
 import asyncio
@@ -68,7 +68,7 @@ Reply "TERMINATE" in the end when everything is done.
             system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
             llm_config (dict): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
@@ -106,6 +106,17 @@ Reply "TERMINATE" in the end when everything is done.
         )
 
         self._set_compress_config(compress_config)
+
+        # create a separate client for compression.
+        if llm_config is False:
+            self.llm_compress_config = False
+            self.compress_client = None
+        else:
+            self.llm_compress_config = self.llm_config.copy()
+            # remove functions
+            if "functions" in self.llm_compress_config:
+                del self.llm_compress_config["functions"]
+            self.compress_client = OpenAIWrapper(**self.llm_compress_config)
 
         self._reply_func_list.clear()
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
@@ -283,12 +294,8 @@ Reply "TERMINATE" in the end when everything is done.
 
         TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
         """
-        # 1. use the same config for compression and remove functions from llm_config
-        llm_config = copy.deepcopy(self.llm_config) if config is None else copy.deepcopy(config)
-        if llm_config is False or messages is None:
-            return False, None
-        if "functions" in llm_config:
-            del llm_config["functions"]
+        # 1. use the compression client
+        client = self.compress_client if config is None else config
 
         # 2. stop if there is only one message in the list
         if len(messages) <= 1:
@@ -342,16 +349,15 @@ Rules:
 4. Context after ##FUNCTION_RETURN## (or code return): Keep the exact content if it is short. Summarize/compress if it is too long, you should note what the function has achieved and what the return value is.
 """
         try:
-            response = oai.ChatCompletion.create(
+            response = client.create(
                 context=None,
                 messages=[{"role": "system", "content": compress_sys_msg}] + chat_to_compress,
-                **llm_config,
             )
         except Exception as e:
             print(colored(f"Failed to compress the content due to {e}", "red"), flush=True)
             return False, None
 
-        compressed_message = oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        compressed_message = self.client.extract_text_or_function_call(response)[0]
         assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
         if self.compress_config["verbose"]:
             print(
