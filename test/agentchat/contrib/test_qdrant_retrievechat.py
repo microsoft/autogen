@@ -20,19 +20,21 @@ try:
 except ImportError:
     QDRANT_INSTALLED = False
 
+try:
+    import openai
+
+    OPENAI_INSTALLED = True
+except ImportError:
+    OPENAI_INSTALLED = False
+
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not QDRANT_INSTALLED,
-    reason="do not run on MacOS or windows or qdrant_client is not installed",
+    sys.platform in ["darwin", "win32"] or not QDRANT_INSTALLED or not OPENAI_INSTALLED,
+    reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_retrievechat():
-    try:
-        import openai
-    except ImportError:
-        return
-
     conversations = {}
     ChatCompletion.start_logging(conversations)
 
