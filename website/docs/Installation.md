@@ -8,8 +8,13 @@ When not using a docker container, we recommend using a virtual environment to i
 
 You can create a virtual environment with `venv` as below:
 ```bash
-python3 -m venv autogen
-source autogen/bin/activate
+python3 -m venv pyautogen
+source pyautogen/bin/activate
+```
+
+The following command will deactivate the current `venv` environment:
+```bash
+deactivate
 ```
 
 ### Option 2: conda
@@ -17,8 +22,13 @@ source autogen/bin/activate
 Another option is with `Conda`, Conda works better at solving dependency conflicts than pip. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
 ```bash
-conda create -n autogen python=3.10  # python 3.10 is recommended as it's stable and not too old
-conda activate autogen
+conda create -n pyautogen python=3.10  # python 3.10 is recommended as it's stable and not too old
+conda activate pyautogen
+```
+
+The following command will deactivate the current `conda` environment:
+```bash
+conda deactivate
 ```
 
 Now, you're ready to install AutoGen in the virtual environment you've just created.
