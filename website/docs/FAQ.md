@@ -125,7 +125,7 @@ Please visit https://docs.trychroma.com/troubleshooting#sqlite to learn how to u
 
 Workaround:
 1. `pip install pysqlite3-binary`
-2. `mkdir ../../home/vscode/.local/lib/python3.10/site-packages/google/colab`
+2. `mkdir /home/vscode/.local/lib/python3.10/site-packages/google/colab`
 
 Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a44271061cc8e272f3c300?permalink_comment_id=4711478#gistcomment-4711478), linked from the official [chromadb docs](https://docs.trychroma.com/troubleshooting#sqlite), adding this folder triggers chromadb to use pysqlite3 instead of the default.
 
