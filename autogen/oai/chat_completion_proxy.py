@@ -1,6 +1,8 @@
 import openai
 import tiktoken
 
+from openai.openai_object import OpenAIObject
+
 class ChatCompletionProxy():
     @classmethod
     def _prompt_tokens(cls, messages):
@@ -15,8 +17,10 @@ class ChatCompletionProxy():
     @classmethod
     def create(cls, *args, **kwargs):
         # Check if streaming is enabled in the function arguments
-        if kwargs.get("stream", False):
-            response_content = ""
+        if kwargs.get('stream', False) and 'functions' not in kwargs:
+            # Prepare response array based on parameter 'n'
+            response_contents = [""] * kwargs.get('n', 1)
+            finish_reasons = [""] * kwargs.get('n', 1)
             completion_tokens = 0
             
             # Set the terminal text color to green for better visibility
@@ -25,32 +29,46 @@ class ChatCompletionProxy():
             # Send the chat completion request to OpenAI's API and process the response in chunks
             for chunk in openai.ChatCompletion.create(*args, **kwargs):
                 if chunk["choices"]:
-                    content = chunk["choices"][0].get("delta", {}).get("content")
-                    # If content is present, print it to the terminal and update response variables
-                    if content is not None:
-                        print(content, end='', flush=True)
-                        response_content += content
-                        completion_tokens += 1
+                    for choice in chunk["choices"]:
+                        content = choice.get("delta", {}).get("content")
+                        # If content is present, print it to the terminal and update response variables
+                        if content is not None:
+                            print(content, end='', flush=True)
+                            response_contents[choice.index] += content
+                            finish_reasons[choice.index] = choice.get("finish_reasons", None)
+                            completion_tokens += 1
+                        else:
+                            print()
             
             # Reset the terminal text color
             print("\033[0m\n")
             
             # Prepare the final response object based on the accumulated data
-            response = chunk
-            response["choices"][0]["message"] = {
-                'role': 'assistant',
-                'content': response_content
-            }
-            
             prompt_tokens = cls._prompt_tokens(kwargs["messages"])
-            # Add usage information to the response
-            response["usage"] = {
+            response = OpenAIObject()
+            response.id = chunk['id']
+            response.object = 'chat.completion'
+            response.created = chunk['created']
+            response.model = chunk['model']
+            response.choices = []
+            response.usage = {
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
                 "total_tokens": prompt_tokens + completion_tokens
             }
+            for i in range(len(response_contents)):
+                response["choices"].append({
+                    "index": i,
+                    "finish_reason": finish_reasons[i],
+                    "message": {
+                        'role': 'assistant',
+                        'content': response_contents[i]
+                    }
+                })
         else:
             # If streaming is not enabled, send a regular chat completion request
+            # Ensure streaming is disabled
+            kwargs['stream'] = False
             response = openai.ChatCompletion.create(*args, **kwargs)
         
         # Return the final response object
