@@ -25,6 +25,7 @@ class TeachableAgent(ConversableAgent):
     def __init__(
         self,
         name="teachableagent",
+        function_map: Optional[Dict[str, Callable]] = None,
         system_message: Optional[
             str
         ] = "You are a helpful AI assistant that remembers user teachings from prior chats.",
@@ -57,6 +58,7 @@ class TeachableAgent(ConversableAgent):
         """
         super().__init__(
             name=name,
+            function_map=function_map,
             system_message=system_message,
             human_input_mode=human_input_mode,
             llm_config=llm_config,
@@ -90,6 +92,11 @@ class TeachableAgent(ConversableAgent):
     def prepopulate_db(self):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
+    
+    def register_function(self, name: str, function: Callable):
+        if self.function_map is None:
+            self.function_map = {}
+        self.function_map[name] = function
 
     def _generate_teachable_assistant_reply(
         self,
@@ -128,7 +135,25 @@ class TeachableAgent(ConversableAgent):
         # Generate a response.
         msgs = self._oai_system_message + messages
         response = oai.ChatCompletion.create(messages=msgs, **self.llm_config)
-        response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        response_values = oai.ChatCompletion.extract_text_or_function_call(response)
+        if len(response_values) == 2:
+            response_text, function_call = response_values
+        else:
+            response_text = response_values[0]
+            function_call = None  # Or some default value
+
+        # Check for function calls
+        if function_call:
+            func_name = function_call.get('name')
+            args = function_call.get('args', [])
+            kwargs = function_call.get('kwargs', {})
+            
+            # Call the function if it exists in function_map
+            if func_name in self.function_map:
+                return True, self.function_map[func_name](*args, **kwargs)
+            else:
+                return True, f"Function {func_name} not found"
+
         return True, response_text
 
     def learn_from_user_feedback(self):
