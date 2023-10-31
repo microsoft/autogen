@@ -36,7 +36,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install pytest
       - name: Install qdrant_client when python-version is 3.10
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.10' || matrix.python-version == '3.8'
         run: |
           pip install qdrant_client[fastembed]
       - name: Install packages and dependencies for RetrieveChat
