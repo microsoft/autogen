@@ -126,6 +126,7 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
+        self.register_reply([Agent, None], ConversableAgent.generate_async_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
     def register_reply(
@@ -661,6 +662,28 @@ class ConversableAgent(Agent):
             return True, func_return
         return False, None
 
+    async def generate_async_function_call_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ):
+        """Generate a reply using async function call."""
+        if config is None:
+            config = self
+        if messages is None:
+            messages = self._oai_messages[sender]
+        message = messages[-1]
+        if "function_call" in message:
+            func_call = message["function_call"]
+            func_name = func_call.get("name", "")
+            func = self._function_map.get(func_name, None)
+            if func and asyncio.coroutines.iscoroutinefunction(func):
+                _, func_return = await self.a_execute_function(func_call)
+                return True, func_return
+
+        return False, None
+
     def check_termination_and_human_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -990,6 +1013,56 @@ class ConversableAgent(Agent):
                 )
                 try:
                     content = func(**arguments)
+                    is_exec_success = True
+                except Exception as e:
+                    content = f"Error: {e}"
+        else:
+            content = f"Error: Function {func_name} not found."
+
+        return is_exec_success, {
+            "name": func_name,
+            "role": "function",
+            "content": str(content),
+        }
+
+    async def a_execute_function(self, func_call):
+        """Execute an async function call and return the result.
+
+        Override this function to modify the way async functions are executed.
+
+        Args:
+            func_call: a dictionary extracted from openai message at key "function_call" with keys "name" and "arguments".
+
+        Returns:
+            A tuple of (is_exec_success, result_dict).
+            is_exec_success (boolean): whether the execution is successful.
+            result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
+        """
+        func_name = func_call.get("name", "")
+        func = self._function_map.get(func_name, None)
+
+        is_exec_success = False
+        if func is not None:
+            # Extract arguments from a json-like string and put it into a dict.
+            input_string = self._format_json_str(func_call.get("arguments", "{}"))
+            try:
+                arguments = json.loads(input_string)
+            except json.JSONDecodeError as e:
+                arguments = None
+                content = f"Error: {e}\n You argument should follow json format."
+
+            # Try to execute the function
+            if arguments is not None:
+                print(
+                    colored(f"\n>>>>>>>> EXECUTING ASYNC FUNCTION {func_name}...", "magenta"),
+                    flush=True,
+                )
+                try:
+                    if asyncio.coroutines.iscoroutinefunction(func):
+                        content = await func(**arguments)
+                    else:
+                        # Fallback to sync function if the function is not async
+                        content = func(**arguments)
                     is_exec_success = True
                 except Exception as e:
                     content = f"Error: {e}"
