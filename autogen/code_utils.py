@@ -96,7 +96,7 @@ def extract_code(
 # Make sure to add the right "python" or "sh" identifier if the language identifier is missing for a code block.
 # Don't make other changes to the code blocks.
 # Don't reply anything else if at least one code block is expected to run.
-# If no code block is expeted to run, check whether the task has been successfully finished at full satisfaction.
+# If no code block is expected to run, check whether the task has been successfully finished at full satisfaction.
 # If not, reply with the reason why the task is not finished.""",
 #     },
 # ]
