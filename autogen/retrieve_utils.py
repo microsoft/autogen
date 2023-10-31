@@ -266,11 +266,15 @@ def create_vector_db_from_dir(
 
         if custom_text_split_function is not None:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path, custom_text_types, recursive), custom_text_split_function=custom_text_split_function
+                get_files_from_dir(dir_path, custom_text_types, recursive),
+                custom_text_split_function=custom_text_split_function,
             )
         else:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path, custom_text_types, recursive), max_tokens, chunk_mode, must_break_at_empty_line
+                get_files_from_dir(dir_path, custom_text_types, recursive),
+                max_tokens,
+                chunk_mode,
+                must_break_at_empty_line,
             )
         logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
