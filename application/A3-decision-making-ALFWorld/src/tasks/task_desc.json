@@ -1,8 +1,8 @@
 {
-    "pick_and_place": " Hint: You must find and **take** the object before you can examine it. You can put the target object on any shelf/drawer/cabinet/desk. Do not take what is in it into consideration.",
+    "pick_and_place": " Hint: You must find and **take** the object before you can examine it. You can put the target object on any shelf/drawer/cabinet/desk/safe. Do not take what is in it into consideration.",
     "pick_clean_then_place": " Hint: You must find and **take** the object before you can place it elsewhere. Wash the object in the sinkbasin, do not care if there is water in it.",
     "pick_heat_then_place": " Hint: You need to take the object, go to microwave, then use command 'heat object 1 with microwave 1' to heat an object. Do not put the object in microwave.",
     "pick_cool_then_place": " Hint: You need to take the object, go to fridge, then use command 'cool object with fridge 1' to cool an object. You should open the microwave before putting an object in it.",
-    "look_at_obj": " Hint: You must find and **take** the object before you can examine it. Reflect on **all** the locations to find the object. You must go to where the desklamp is before you can use it. Your hand can take only **one** object.",
-    "pick_two_obj": " Hint: You must find and **take** the object before you can place it elsewhere. "
+    "look_at_obj": " Hint: You must find and **take** the object before you can examine it. You must go to where the desklamp is before you can use it. Do not take unnecessary things with you. Your hand can take only **one** object.",
+    "pick_two_obj": " Hint: You must find and **take** the object before you can place it elsewhere. You can take only **one** object at a time. "
 }

@@ -28,5 +28,5 @@ def get_success_rate(directory):
 pattern = r'\d+\.json'
 directory = get_dir()
 success = get_success_rate(directory)
-print("Success tasks: ", success)
-print("Success rate: ", success * 100 // 134)
+print("Best success task number: ", success)
+print("Best success rate: ", success * 100 // 134)

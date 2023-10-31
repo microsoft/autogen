@@ -235,7 +235,7 @@ class ALFAgent(ConversableAgent):
             self.invalid_counter = 0
             self.ground_counter += 1
         
-        if self.ground_counter == 15:
+        if self.ground_counter == 10:
             return True, "Task failed, now reply TERMINATE.\n"
         
         return True, reply
