@@ -3,7 +3,7 @@ from collections import defaultdict
 import copy
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, Generator
 from autogen import oai
 from .agent import Agent
 from autogen.code_utils import (
@@ -119,6 +119,7 @@ class ConversableAgent(Agent):
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._max_consecutive_auto_reply_dict = defaultdict(self.max_consecutive_auto_reply)
+        self._agent_chat_chain: List[Agent] | None = None
         self._function_map = {} if function_map is None else function_map
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
@@ -127,6 +128,17 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+
+    @property
+    def agent_chat_chain(self) -> None | Generator[Agent, None, None]:
+        if self._agent_chat_chain is None:
+            return None
+        for agent in self._agent_chat_chain:
+            yield agent
+
+    @agent_chat_chain.setter
+    def agent_chat_chain(self, _agent_chat_chain: List[Agent]):
+        self._agent_chat_chain = _agent_chat_chain
 
     def register_reply(
         self,
@@ -555,6 +567,7 @@ class ConversableAgent(Agent):
 
     def reset(self):
         """Reset the agent."""
+        self._agent_chat_chain = None
         self.clear_history()
         self.reset_consecutive_auto_reply_counter()
         self.stop_reply_at_receive()

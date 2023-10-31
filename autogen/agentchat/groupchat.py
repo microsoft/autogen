@@ -162,7 +162,7 @@ class GroupChatManager(ConversableAgent):
                 break
             try:
                 # select the next speaker
-                agent_chat_chain = getattr(speaker, "agent_chat_chain", None)
+                agent_chat_chain = speaker.agent_chat_chain if agent_chat_chain is None else agent_chat_chain
                 if agent_chat_chain is not None:
                     speaker = next(agent_chat_chain, None)
                     if speaker is None:

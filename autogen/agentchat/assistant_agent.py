@@ -1,6 +1,5 @@
 from .conversable_agent import ConversableAgent
-from .agent import Agent
-from typing import Callable, Dict, Optional, Union, Generator, List
+from typing import Callable, Dict, Optional, Union
 
 
 class AssistantAgent(ConversableAgent):
@@ -65,18 +64,3 @@ Reply "TERMINATE" in the end when everything is done.
             llm_config=llm_config,
             **kwargs,
         )
-
-    @property
-    def agent_chat_chain(self) -> None | Generator[Agent, None, None]:
-        if self._agent_chat_chain is None:
-            return None
-        for agent in self._agent_chat_chain:
-            yield agent
-
-    @agent_chat_chain.setter
-    def agent_chat_chain(self, agent_chat_chain: List[Agent]):
-        self._agent_chat_chain = agent_chat_chain
-
-    def reset(self):
-        self._agent_chat_chain = None
-        super().reset()
