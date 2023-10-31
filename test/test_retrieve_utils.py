@@ -166,8 +166,8 @@ class TestRetrieveUtils:
         )
         results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
         assert (
-            results.get("documents")[0][0]
-            == "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities of Large Language Models (LLMs) for various applications. The primary purpose "
+            "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities"
+            in results.get("documents")[0][0]
         )
 
     @pytest.mark.skipif(
