@@ -177,7 +177,7 @@ class MathUserProxyAgent(UserProxyAgent):
         self.last_reply = None
 
     def generate_init_message(self, problem, prompt_type="default", customized_prompt=None):
-        """Generate a prompt for the assitant agent with the given problem and prompt.
+        """Generate a prompt for the assistant agent with the given problem and prompt.
 
         Args:
             problem (str): the problem to be solved.
