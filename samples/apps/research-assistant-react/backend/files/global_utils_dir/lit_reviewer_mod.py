@@ -45,9 +45,7 @@ def gpt3_5_turbo(messages):
     """
     import autogen
 
-    CONFIG_LIST = autogen.config_list_from_json(
-        "OAI_CONFIG_LIST", filter_dict={"model": ["gpt-3.5-turbo-16k"]}
-    )
+    CONFIG_LIST = autogen.config_list_from_json("OAI_CONFIG_LIST", filter_dict={"model": ["gpt-3.5-turbo-16k"]})
 
     LLM_CONFIG = {
         # "request_timeout": 600,
@@ -56,9 +54,7 @@ def gpt3_5_turbo(messages):
         "temperature": 0,
     }
 
-    response = autogen.oai.ChatCompletion.create(
-        messages=messages, use_cache=True, **LLM_CONFIG
-    )
+    response = autogen.oai.ChatCompletion.create(messages=messages, use_cache=True, **LLM_CONFIG)
     return autogen.oai.ChatCompletion.extract_text_or_function_call(response)[0]
 
 
@@ -108,9 +104,7 @@ def bing_search(query):
 
     headers = {"Ocp-Apim-Subscription-Key": os.environ["BING_API_KEY"]}
     params = {"q": query, "textDecorations": False, "textFormat": "raw"}
-    response = requests.get(
-        "https://api.bing.microsoft.com/v7.0/search", headers=headers, params=params
-    )
+    response = requests.get("https://api.bing.microsoft.com/v7.0/search", headers=headers, params=params)
     response.raise_for_status()
     results = response.json()
 
@@ -171,9 +165,7 @@ def search_arxiv(query, max_results=10):
 
     import arxiv
 
-    key = hashlib.md5(
-        ("search_arxiv(" + str(max_results) + ")" + query).encode("utf-8")
-    ).hexdigest()
+    key = hashlib.md5(("search_arxiv(" + str(max_results) + ")" + query).encode("utf-8")).hexdigest()
     # Create the cache if it doesn't exist
     cache_dir = ".cache"
     if not os.path.isdir(cache_dir):
@@ -194,9 +186,7 @@ def search_arxiv(query, max_results=10):
     query = re.sub(r"[^\s\w]", " ", query.lower())
     query = re.sub(r"\s+", " ", query).strip()
 
-    search = arxiv.Search(
-        query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance
-    )
+    search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)
 
     jresults = list()
     for result in search.results():
@@ -212,7 +202,7 @@ def search_arxiv(query, max_results=10):
         r["doi"] = result.doi
         r["primary_category"] = result.primary_category
         r["categories"] = result.categories
-        r["links"] = [str(l) for l in result.links]
+        r["links"] = [str(link) for link in result.links]
         r["pdf_url"] = result.pdf_url
         jresults.append(r)
 
@@ -312,17 +302,16 @@ def propose_scholarly_websearch_queries(research_question, max_queries=10):
     messages.append(
         {
             "role": "user",
-            "content": "I am conducting a literature review on the following topic:\n%s"
-            % research_question,
+            "content": "I am conducting a literature review on the following topic:\n%s" % research_question,
         }
     )
     messages.append(
         {
             "role": "user",
-            "content": 'Write %d search queries that I can use to continue researching this topic. The output should be a single JSON array, and should contain the %d queries EXACTLY as I would input them to Google Scholar. For example ["query_1", "query_2", ..., "query_n"]' %
-            (max_queries,
-             max_queries),
-        })
+            "content": 'Write %d search queries that I can use to continue researching this topic. The output should be a single JSON array, and should contain the %d queries EXACTLY as I would input them to Google Scholar. For example ["query_1", "query_2", ..., "query_n"]'
+            % (max_queries, max_queries),
+        }
+    )
 
     # Try to parse this twice
     queries = None
@@ -466,9 +455,7 @@ def write_literature_review(research_question, relevant_papers=None):
             "content": "Read the following annotated bibliography:\n" + _bib,
         }
     )
-    messages.append(
-        {"role": "system", "content": "I have read the annotated bibliography."}
-    )
+    messages.append({"role": "system", "content": "I have read the annotated bibliography."})
     messages.append(
         {
             "role": "user",

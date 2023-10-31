@@ -7,6 +7,7 @@ from datetime import datetime
 from autogen.code_utils import extract_code
 
 from utils import get_standalone_func
+
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel
 
@@ -117,9 +118,9 @@ def text2functions(content, source_file) -> List[SkillFunction]:
             docstring = ast.get_docstring(item) or "No docstring available"
 
             code = (
-                content.splitlines()[item.lineno - 1: item.end_lineno]
+                content.splitlines()[item.lineno - 1 : item.end_lineno]
                 if item.end_lineno
-                else content.splitlines()[item.lineno - 1:]
+                else content.splitlines()[item.lineno - 1 :]
             )
             code = "\n".join(code)
 
@@ -194,7 +195,7 @@ def learn_skill(
         if msg["role"] == "assistant":
             last_assistant_message = msg
             break
-   
+
     if last_assistant_message is not None and len(last_assistant_message) > 0:
         print("Last assistant message:{}\n".format(last_assistant_message))
 

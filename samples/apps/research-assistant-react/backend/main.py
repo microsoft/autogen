@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
+
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel
 from typing import Optional
@@ -191,8 +192,7 @@ path_to_config_list = "./OAI_CONFIG_LIST"
 resulting_config = create_llm_config(path_to_config_list)
 
 
-def handle_message(message: Message, ra_type=AgentWorkFlow.CODER_ONLY,
-                   enable_personalization=False):
+def handle_message(message: Message, ra_type=AgentWorkFlow.CODER_ONLY, enable_personalization=False):
     all_user_messages = get_messages(message.userId)["data"]
     messages = all_user_messages[:-1]
     # Inserting this assert because previous statement assumes that the last message
@@ -354,15 +354,15 @@ async def add_message(message: Message):
 
         insert_db(
             "INSERT INTO messages (userId, rootMsgId, msgId, role, content, metadata, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (message.userId,
-             message.rootMsgId,
-             responseMsgId,
-             "assistant",
-             response["message"],
-             json.dumps(
-                 response["metadata"]),
+            (
+                message.userId,
+                message.rootMsgId,
+                responseMsgId,
+                "assistant",
+                response["message"],
+                json.dumps(response["metadata"]),
                 current_timestamp,
-             ),
+            ),
         )
 
         response["msgId"] = responseMsgId
@@ -387,8 +387,7 @@ def get_profile(user_id: str = None):
     if user_id is None:
         profile = ""
     else:
-        profile = query_db(
-            "SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
+        profile = query_db("SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
         if len(profile) == 0:
             profile = ""
         else:
@@ -456,8 +455,7 @@ def refresh_profile(user_id: str = None):
     # Get the user profile
     # TODO: This should later be refactored, as it is redundant and was
     # verbatim copied from the api get profile route
-    old_profile = query_db(
-        "SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
+    old_profile = query_db("SELECT profile FROM personalization_profiles WHERE userId = ?", (user_id,))
     if len(old_profile) == 0:
         old_profile = ""
     else:
@@ -490,7 +488,7 @@ def refresh_profile(user_id: str = None):
                 abridged_message = (
                     abridged_message[0:ASSISTANT_MESSAGE_START_LEN]
                     + " (...) "
-                    + abridged_message[len(abridged_message) - (ASSISTANT_MESSAGE_END_LEN):]
+                    + abridged_message[len(abridged_message) - (ASSISTANT_MESSAGE_END_LEN) :]
                 )
 
             transcript = "ASSISTANT: " + abridged_message + "\n\n" + transcript
@@ -511,8 +509,8 @@ def refresh_profile(user_id: str = None):
         prompt_suffix = "."
     else:
         known_info = (
-            "From prior conversation with USER, we have the following BIOGRAPHY about them on file:\n" +
-            old_profile)
+            "From prior conversation with USER, we have the following BIOGRAPHY about them on file:\n" + old_profile
+        )
         prompt_suffix = ", as well as any prior assumptions about the user that need to be revised."
 
     # Ok, now for the main prompt
@@ -535,9 +533,11 @@ Here is the transcript:
     new_info = generate_oai_reply(messages, llm_config)
     messages.append({"role": "assistant", "content": new_info})
     messages.append(
-        {"role": "user",
-         "content":
-         "Based in this information, write a new BIOGRAPHY about the USER. The biography should be at most 2 paragraphs.", })
+        {
+            "role": "user",
+            "content": "Based in this information, write a new BIOGRAPHY about the USER. The biography should be at most 2 paragraphs.",
+        }
+    )
 
     revised_bio = generate_oai_reply(messages, llm_config)
 

@@ -35,8 +35,7 @@ class TwoAgentWorkflow(RAWorkflow):
 
         # Only add the personalization to the non-coding tasks
         personalization_suffix = ""
-        if trigger_execution is False and not (
-                personalization_profile is None or personalization_profile == ""):
+        if trigger_execution is False and not (personalization_profile is None or personalization_profile == ""):
             personalization_suffix = f"""
 
 As you are working to fulfil the user's requests, please quietly and carefully think about their interests and
@@ -50,8 +49,10 @@ their preferences, as inferred from their biography below, then craft your respo
 
         prompt_suffix = utils_2_prompt(self.utils_dir)
         self.primary_assistant = autogen.AssistantAgent(
-            name="primary_assitant", system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE +
-            prompt_suffix + personalization_suffix, llm_config=self.llm_config,)
+            name="primary_assitant",
+            system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE + prompt_suffix + personalization_suffix,
+            llm_config=self.llm_config,
+        )
 
         self.primary_assistant._print_received_message = custom_printer
 
@@ -111,8 +112,7 @@ their preferences, as inferred from their biography below, then craft your respo
                 silent=self.silent,
             )
 
-            final_code, result = extract_code_result(
-                self.primary_assistant.chat_messages[self.user_proxy])
+            final_code, result = extract_code_result(self.primary_assistant.chat_messages[self.user_proxy])
             return result, final_code
         else:
             # Populate the entire history and request a response from
