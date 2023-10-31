@@ -146,6 +146,12 @@ Reply "TERMINATE" in the end when everything is done.
                 self.compress_config["trigger_count"] = int(
                     trigger_count * get_max_token_limit(self.llm_config["model"])
                 )
+            init_count = self._compute_init_token_count()
+            if trigger_count < init_count:
+                print(
+                    f"Warning: trigger_count {trigger_count} is less than the initial token count {init_count} (system message + function description if passed), compression will be disabled. Please increase trigger_count if you want to enable compression."
+                )
+                self.compress_config = False
 
             if self.compress_config["mode"] == "CUSTOMIZED":
                 assert (
@@ -214,6 +220,39 @@ Reply "TERMINATE" in the end when everything is done.
 
         return func_count + count_token(self._oai_system_message, self.llm_config["model"])
 
+    def _manage_history_on_token_limit(self, messages, token_used, max_token_allowed, model):
+        """Manage the message history with different modes when token limit is reached.
+        Return:
+            final (bool): whether to terminate the agent.
+            compressed_messages (List[Dict]): the compressed messages. None if no compression or compression failed.
+        """
+        # 1. mode = "TERMINATE", terminate the agent if no token left.
+        if self.compress_config["mode"] == "TERMINATE":
+            if max_token_allowed - token_used <= 0:
+                # Teminate if no token left.
+                print(
+                    colored(
+                        f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existed token count: {token_used}',
+                        "yellow",
+                    ),
+                    flush=True,
+                )
+                return True, None
+            return False, None
+
+        # if token_used is less than trigger_count, no compression will be used.
+        if token_used < self.compress_config["trigger_count"]:
+            return False, None
+
+        # 2. mode = "COMPRESS" or mode = "CUSTOMIZED", compress the messages
+        copied_messages = copy.deepcopy(messages)
+        if self.compress_config["mode"] == "COMPRESS":
+            return self.compress_messages(copied_messages)
+        elif self.compress_config["mode"] == "CUSTOMIZED":
+            return self.compress_config["compress_function"](copied_messages)
+        else:
+            raise ValueError(f"Unknown compression mode: {self.compress_config['mode']}")
+
     def on_oai_token_limit(
         self,
         messages: Optional[List[Dict]] = None,
@@ -231,44 +270,20 @@ Reply "TERMINATE" in the end when everything is done.
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # 1. mode = "TERMINATE", terminate the agent if no token left.
-        token_used = self._compute_init_token_count() + count_token(messages, llm_config["model"])
-        max_token = max(get_max_token_limit(llm_config["model"]), llm_config.get("max_token", 0))
-        if self.compress_config["mode"] == "TERMINATE":
-            if max_token - token_used <= 0:
-                # Teminate if no token left.
-                print(
-                    colored(
-                        f"Warning: Terminate Agent \"{self.name}\" due to no token left for oai reply. max token for {llm_config['model']}: {max_token}, existed token count: {token_used}",
-                        "yellow",
-                    ),
-                    flush=True,
-                )
-                return True, None
-            return False, None
-
-        # on_oai_token_limit requires a sender. Otherwise, the compressed messages cannot be saved
-        # if token_used is less than trigger_count, no compression will be used.
-        if sender is None or token_used < self.compress_config["trigger_count"]:
-            return False, None
-
-        # 2. mode = "COMPRESS" or mode = "CUSTOMIZED" , compress the messages
-        copied_messages = copy.deepcopy(messages)
-        if self.compress_config["mode"] == "COMPRESS":
-            is_compress_success, compressed_messages = self.compress_messages(copied_messages)
-        elif self.compress_config["mode"] == "CUSTOMIZED":
-            is_compress_success, compressed_messages = self.compress_config["compress_function"](copied_messages)
-        else:
-            raise ValueError(f"Unknown compression mode: {self.compress_config['mode']}")
+        model = llm_config["model"]
+        token_used = self._compute_init_token_count() + count_token(messages, model)
+        final, compressed_messages = self._manage_history_on_token_limit(
+            messages, token_used, get_max_token_limit(model), model
+        )
 
         # update message history with compressed messages
-        if is_compress_success:
+        if compressed_messages is not None:
             to_print = (
                 "Token Count (of msgs after first prompt): Before compression: {} After: {} | "
                 "Total prompt token count after compression: {}".format(
-                    count_token(self._oai_messages[sender][1:], llm_config["model"]),
-                    count_token(compressed_messages[1:], llm_config["model"]),
-                    count_token(compressed_messages, llm_config["model"]) + self._compute_init_token_count(),
+                    count_token(self._oai_messages[sender][1:], model),
+                    count_token(compressed_messages[1:], model),
+                    count_token(compressed_messages, model) + self._compute_init_token_count(),
                 )
             )
             print(colored(to_print, "magenta"), flush=True)
@@ -278,8 +293,9 @@ Reply "TERMINATE" in the end when everything is done.
             if self.compress_config["broadcast"]:
                 sender._oai_messages[self] = copy.deepcopy(compressed_messages)
 
-        # sucessfully compressed, return False, None for generate_oai_reply to be called with the updated messages
-        return False, None
+            # sucessfully compressed, return False, None for generate_oai_reply to be called with the updated messages
+            return False, None
+        return final, None
 
     def compress_messages(
         self,
