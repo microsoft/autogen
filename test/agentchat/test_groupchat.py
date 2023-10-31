@@ -194,7 +194,7 @@ def test_group_chat_math_class():
     manager = autogen.GroupChatManager(
         groupchat=groupchat,
         llm_config=gpt3_5_config,
-        is_termination_msg=lambda message: message.startswith("[GROUPCHAT_TERMINATE]"),
+        is_termination_msg=lambda message: message["content"].startswith("[GROUPCHAT_TERMINATE]"),
     )
     user_proxy.send(
         "welcome to the class. I'm admin here. Teacher, you create 3 math questions for student to answer. Let me know when student resolve all questions.",
