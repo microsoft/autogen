@@ -59,6 +59,15 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
+    def selector_end_msg(self) -> List[Dict]:
+        """Return the message for the selector to select the next speaker."""
+        return [
+            {
+                "role": "system",
+                "content": f"Read the above conversation. Then select the next role from {self.agent_names} to play. Only return the role.",
+            }
+        ]
+
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
@@ -88,15 +97,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                     f"GroupChat is underpopulated with {n_agents} agents. Direct communication would be more efficient."
                 )
         selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = selector.generate_oai_reply(
-            self.messages
-            + [
-                {
-                    "role": "system",
-                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
-                }
-            ]
-        )
+        final, name = selector.generate_oai_reply(self.messages + self.selector_end_msg())
         if not final:
             # i = self._random.randint(0, len(self._agent_names) - 1)  # randomly pick an id
             return self.next_agent(last_speaker, agents)
@@ -147,10 +148,14 @@ class GroupChatManager(ConversableAgent):
         groupchat = config
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
+            print("message before change name")
+            print(message)
             if message["role"] != "function":
                 message["name"] = speaker.name
             groupchat.messages.append(message)
             # broadcast the message to all agents except the speaker
+            print("message to be appended")
+            print(message)
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
