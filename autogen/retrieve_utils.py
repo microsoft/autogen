@@ -216,6 +216,8 @@ def create_vector_db_from_dir(
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
     custom_text_split_function: Callable = None,
+    custom_text_types: List[str] = TEXT_FORMATS,
+    recursive: bool = True,
 ) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
@@ -236,6 +238,10 @@ def create_vector_db_from_dir(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+        custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
+            Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+        custom_text_types(Optional, List[str]): a list of file types to be processed. Default is TEXT_FORMATS.
+        recursive(Optional, bool): whether to search documents recursively in the dir_path. Default is True.
 
     Returns:
         API: the chromadb client.
@@ -260,11 +266,11 @@ def create_vector_db_from_dir(
 
         if custom_text_split_function is not None:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path), custom_text_split_function=custom_text_split_function
+                get_files_from_dir(dir_path, custom_text_types, recursive), custom_text_split_function=custom_text_split_function
             )
         else:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line
+                get_files_from_dir(dir_path, custom_text_types, recursive), max_tokens, chunk_mode, must_break_at_empty_line
             )
         logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000

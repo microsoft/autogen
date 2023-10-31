@@ -154,6 +154,7 @@ class TestRetrieveUtils:
             collection_name="mytestcollection",
             custom_text_split_function=custom_text_split_function,
             get_or_create=True,
+            recursive=False,
         )
         results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
         assert (
@@ -163,7 +164,7 @@ class TestRetrieveUtils:
 
     def test_retrieve_utils(self):
         client = chromadb.PersistentClient(path="/tmp/chromadb")
-        create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs")
+        create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs", custom_text_types=['txt', 'md', 'rtf', 'rst'])
         results = query_vector_db(
             query_texts=[
                 "How can I use AutoGen UserProxyAgent and AssistantAgent to do code generation?",
