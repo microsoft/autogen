@@ -28,7 +28,7 @@ except ImportError:
 )
 def test_retrievechat():
     conversations = {}
-    # autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)  # deprecated in v0.2
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,

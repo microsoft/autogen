@@ -31,26 +31,29 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install packages and dependencies
+      - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
           pip install pytest
-      - name: Install packages and dependencies for RetrieveChat
+      - name: Install qdrant_client when python-version is 3.10
+        if: matrix.python-version == '3.10'
         run: |
           pip install qdrant_client[fastembed]
+      - name: Install packages and dependencies for RetrieveChat
+        run: |
           pip install -e .[retrievechat]
           pip uninstall -y openai
       - name: Test RetrieveChat
         run: |
-          pytest test/test_retrieve_utils.py
-          pytest test/agentchat/contrib/test_retrievechat.py
-          pytest test/agentchat/contrib/test_qdrant_retrievechat.py
+          pytest test/test_retrieve_utils.py \
+                 test/agentchat/contrib/test_retrievechat.py \
+                 test/agentchat/contrib/test_qdrant_retrievechat.py
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          coverage run -a -m pytest test/test_retrieve_utils.py
-          coverage run -a -m pytest test/agentchat/contrib
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_retrieve_utils.py \
+                                    test/agentchat/contrib
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
