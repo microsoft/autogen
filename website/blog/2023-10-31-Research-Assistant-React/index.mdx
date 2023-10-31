@@ -1,10 +1,10 @@
 ---
 title: AutoGen Research Assistant - React based Web application.
-authors: samershi, pcdeadeasy, victordibia
+authors: [samershi, pcdeadeasy]
 tags: [LLM, React, Web]
 ---
 
-<img src="./img/ara_logo.svg">
+![ARA](./img/ara_stockprices.png)
 
 **TL;DR:**
 
@@ -12,13 +12,13 @@ tags: [LLM, React, Web]
 
 * We showcase examples of `Skill Creation` to demonstrate basic teachability and later recalling the skills in subsequent chats to perform tasks.
 
-* We showcase an example of `Personalization` to demonstrate basic adaptation and using that to learn user preferences.
+* We showcase an example of `Personalization` to demonstrate basic adaptation, where user preferences are learned and used to improve the interaction.
 
 ## Introduction
 
-The AutoGen Research Assistant (ARA) is a conversational assistant powered by AI agents built using the Autogen framework. ARA helps people perform research tasks ranging from literature reviews, to data analysis, to report generation via a simple chat-based interface.
+The AutoGen Research Assistant (ARA) is a conversational assistant powered by AI agents built using the Autogen framework. ARA helps users perform research tasks ranging from literature reviews, to data analysis, to report generation via a simple chat-based interface.
 
-Here are a few ways ARA can help you do research::
+Here are a few ways ARA can help you with research::
 
 1. **Brainstorming Partner:** Powered by conversable AutoGen agents, ARA can engage in natural language dialogues with you and other agents to brainstorm ideas or think through complex concepts.
 
@@ -26,18 +26,18 @@ Here are a few ways ARA can help you do research::
 
 3. **Content Creation:** Using AutoGen agents that can use tools and produce and execute code on your behalf, ARA can help create research artifacts like reports, tables, and graphs.
 
-The goals of the ARA sample application include demonstrating how AutoGen agents can help people solve complex tasks, and how to build a React-based web application with the AutoGen framework along with GATSBY and TailWind. ARA also demonstrates two experimental features:
+The goals of this sample application include demonstrating how AutoGen agents can help people solve complex tasks and showcasing how to build a React-based web application with the AutoGen framework.  
 
-AutoGen framework along with GATSBY and TailWind. ARA also demonstrates two experimental features:
+The Research Assistant web app also demonstrates two experimental features:
 
-* **Skill Learning**: To reduce the time and effort to complete repetitive tasks, such as conducting literature reviews or creating different types of graphs, you can teach ARA skills and recipes which it can reuse in the future.
-* **Personalization**: To personalize ARA’s behaviors, you can ask it to generate a bio of your preferences and needs based on previous conversations which it can then use to tailor future content it generates.
+* **Skill Learning**: To reduce the time and effort to complete repetitive tasks, such as conducting literature reviews or creating different types of graphs, you can _teach_ ARA skills and recipes which it can reuse in the future.
+* **Personalization**: To personalize the research assistant’s behaviors, you can ask it to generate a profile of your preferences  based on previous conversations, which it can then use to tailor future content it generates.
 
 ## Run It Yourself
 
 ARA can be run as a standalone web application. All the conversation and data stays on your local machine.
 
-Please use the [README.md](https://github.com/microsoft/autogen/blob/main/samples/apps/README.md) to get a jump start on the application.
+Please use the [README.md](https://github.com/microsoft/autogen/blob/main/samples/apps/README.md) for documentation on how to run the application.
 
 ## Capabilities
 
@@ -51,9 +51,25 @@ This demo focuses on the research assistant use case with some generalizations
 
 ## Example Usage
 
-A set of example queries are shown below, with the intent of demonstrating the capabilities of the research assistant.
+A set of example queries are shown below, with the intent of demonstrating the capabilities of the research assistant UI.
 
-> Note that this specific workflow will require a model with large context length (gpt-4-32k recommended) as abstracts from multiple papers are retrieved and inserted into the conversation history.
+### Fetch Stock Price Data
+
+Begin by entering the following query: 
+
+```
+Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png
+```
+
+The agents responds by _writing code_ to create a python program to generate the chart with the stock prices. You can use the `@execute` meta-prompt to execute the code generated.
+
+> Note than there could be multiple turns between the `AssistantAgent` and the `UserProxyAgent` to produce and execute the code in order to complete the task.
+
+![ARA](./img/ara_stockprices.png)
+
+### Literature Review
+
+> Please note that this specific workflow requires a model with a large context length (gpt-4-32k recommended) since abstracts from multiple papers are retrieved and inserted into the conversation history.
 
 ```
 Find arxiv papers that show how are people studying trust calibration in AI based systems
@@ -77,7 +93,7 @@ for i, paper in enumerate(papers):
     print(f"PDF URL: {paper['pdf_url']}")
 ```
 
-In response, the user can type `@execute` which causes the code to be executed and the response returned.
+In response, the user can type `@execute` which causes the code to be executed and the response displayed.
 
 Next, the user can request modifications to the code:
 
@@ -122,8 +138,10 @@ The user can then execute the suggested code by typing `@execute`.
 
 Following this, the user can also type `@memorize` which triggers a workflow that synthesizes a new skill function that captures the recent history of interactions. This new skill is saved in a file `backend/files/user/<user_hash>/utils_dir`.
 
-## Planned improvements
+
 
 ## Conclusion
 
-`ARA` is still under active research and development. For any problems you find or improvements you have in mind, please join our discussions in this repo and on our [Discord channel](https://discord.gg/pAbnFJrkgZ). We look forward to seeing how you and the rest of the community can use different agents and create new web based experiences with AutoGen!
+The research assistant is still under active research and development. For any issues or suggestions you may have for improvements, please feel free to join our discussions in this repo and on our [Discord channel](https://discord.gg/pAbnFJrkgZ). We look forward to seeing how you and the rest of the community can use different agents and create new web based experiences with AutoGen!
+
+
