@@ -3,6 +3,7 @@ import sys
 from typing import Dict, List, Optional, Union
 from .agent import Agent
 from .conversable_agent import ConversableAgent
+from .assistant_agent import AssistantAgent
 import logging
 
 logger = logging.getLogger(__name__)
@@ -144,6 +145,8 @@ class GroupChatManager(ConversableAgent):
             messages = self._oai_messages[sender]
         message = messages[-1]
         speaker = sender
+        last_speaker = sender
+        agent_chat_chain = None
         groupchat = config
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
@@ -159,9 +162,17 @@ class GroupChatManager(ConversableAgent):
                 break
             try:
                 # select the next speaker
-                speaker = groupchat.select_speaker(speaker, self)
+                agent_chat_chain = getattr(speaker, "agent_chat_chain", None)
+                if agent_chat_chain is not None:
+                    speaker = next(agent_chat_chain, None)
+                    if speaker is None:
+                        agent_chat_chain = None
+                        speaker = groupchat.select_speaker(last_speaker, self)
+                else:
+                    speaker = groupchat.select_speaker(speaker, self)
                 # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
+                last_speaker = speaker
             except KeyboardInterrupt:
                 # let the admin agent speak if interrupted
                 if groupchat.admin_name in groupchat.agent_names:
