@@ -177,9 +177,9 @@ class GroupChatManager(ConversableAgent):
                 break
 
             if (
-                reply is dict
+                type(reply)==dict
                 and self._is_termination_msg(reply)
-                or reply is str
+                or type(reply)==str
                 and self._is_termination_msg({"content": reply})
             ):
                 break
