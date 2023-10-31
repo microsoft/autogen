@@ -483,7 +483,7 @@ const ChatBox = ({
           )}
         </div>
       </div>
-      <div className="mt-2 p-2 absolute   bottom-0 w-full">
+      <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
         <div
           className={`mt-2   rounded p-2 shadow-lg flex mb-1  gap-2 ${
             loading ? " opacity-50 pointer-events-none" : ""
