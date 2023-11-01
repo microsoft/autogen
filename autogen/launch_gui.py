@@ -85,11 +85,11 @@ from void_terminal.toolbox import CatchException
 
 @CatchException
 def autogen_terminal_fn_01(*args, **kwargs):
-    return autogen_terminal(*args, AutoGenFn=AutoGenAskHuman, Callback="launch_gui->autogen_terminal_fn_01", **kwargs)
+    return autogen_terminal(*args, AutoGenFn=AutoGenAskHuman, Callback="autogen.launch_gui->autogen_terminal_fn_01", **kwargs)
 
 @CatchException
 def autogen_terminal_fn_02(*args, **kwargs):
-    return autogen_terminal(*args, AutoGenFn=AutoGenGroupChat, Callback="launch_gui->autogen_terminal_fn_02", **kwargs)
+    return autogen_terminal(*args, AutoGenFn=AutoGenGroupChat, Callback="autogen.launch_gui->autogen_terminal_fn_02", **kwargs)
 
 
 if __name__ == "__main__":
