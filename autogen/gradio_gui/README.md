@@ -12,7 +12,7 @@ python -m pip install pyautogen
 
 ## ⭐Run
 
-1. create `OAI_CONFIG_LIST`, write your OpenAI API key or azure API key. For example:
+1. Create a file named `OAI_CONFIG_LIST`, input your OpenAI or Azure OpenAI API key(s). For example:
 
 ```
 [
