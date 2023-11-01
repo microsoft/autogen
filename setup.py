@@ -1,11 +1,11 @@
-import setuptools
 import os
+
+import setuptools
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 with open("README.md", "r", encoding="UTF-8") as fh:
     long_description = fh.read()
-
 
 # Get the code version
 version = {}
@@ -21,7 +21,6 @@ install_requires = [
     "python-dotenv",
     "tiktoken",
 ]
-
 
 setuptools.setup(
     name="pyautogen",
@@ -60,6 +59,7 @@ setuptools.setup(
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf", "ipython"],
         "teachable": ["chromadb"],
+        "llava": ["replicate", "llava-torch"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
