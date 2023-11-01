@@ -28,7 +28,7 @@ python -m pip install pyautogen
 
 ```
 
-2. run following commands launch GUI:
+2. Run following commands to launch the GUI:
 
 ```bash
 export OAI_CONFIG_LIST='/path/to/OAI_CONFIG_LIST'
