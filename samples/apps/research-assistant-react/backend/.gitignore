@@ -1,6 +1,7 @@
 database.sqlite
 .cache/*
 files/user/*
+files/ui/*
 OAI_CONFIG_LIST
 scratch/
 

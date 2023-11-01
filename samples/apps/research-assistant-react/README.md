@@ -25,6 +25,16 @@ export OAI_CONFIG_LIST=/path/to/OAI_CONFIG_LIST
 export BING_API_KEY=<your bing api key>
 ```
 
+### Build and Run Frontend UI
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+The command above will build the frontend ui and copy the build artifacts to the backend folder. Note that you may have to run `npm install --force` to force resolve some peer dependencies.
+
 Run the web ui:
 
 ```bash
