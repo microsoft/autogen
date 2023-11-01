@@ -2,31 +2,35 @@ import os
 import pickle
 import importlib
 import base64
+import gradio as gr
+from void_terminal.check_proxy import get_current_version
+from void_terminal.themes.theme import adjust_theme, advanced_css, theme_declaration, load_dynamic_theme
+from void_terminal.request_llms.bridge_all import predict
+from void_terminal.core_functional import get_core_functions
+from void_terminal.check_proxy import check_proxy, auto_update, warm_up_modules
+from void_terminal.crazy_functions.live_audio.audio_io import RealtimeAudioDistribution
+from void_terminal.toolbox import (
+    format_io,
+    find_free_port,
+    on_file_uploaded,
+    on_report_generated,
+    get_conf,
+    ArgsGeneralWrapper,
+    load_chat_cookies,
+    DummyWith,
+)
 
 # Avoid unexpected pollution caused by proxy networks
 os.environ["no_proxy"] = "*"
 
 
 def main(plugins):
-    import gradio as gr
-
     if gr.__version__ not in ["3.32.6"]:
         # this is a special version of gradio, which is not available on pypi.org
         raise ModuleNotFoundError(
             "Use the built-in Gradio for the best experience!"
             + "Please run `pip install -r https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl` Command to install built-in Gradio and other dependencies, See details in requirements.txt."
         )
-    from void_terminal.request_llms.bridge_all import predict
-    from void_terminal.toolbox import (
-        format_io,
-        find_free_port,
-        on_file_uploaded,
-        on_report_generated,
-        get_conf,
-        ArgsGeneralWrapper,
-        load_chat_cookies,
-        DummyWith,
-    )
 
     proxies, WEB_PORT, LLM_MODEL, CONCURRENT_COUNT, AUTHENTICATION = get_conf(
         "proxies", "WEB_PORT", "LLM_MODEL", "CONCURRENT_COUNT", "AUTHENTICATION"
@@ -43,8 +47,6 @@ def main(plugins):
 
     # If WEB_PORT is -1, then a random port will be selected for WEB
     PORT = find_free_port() if WEB_PORT <= 0 else WEB_PORT
-    from void_terminal.check_proxy import get_current_version
-    from void_terminal.themes.theme import adjust_theme, advanced_css, theme_declaration, load_dynamic_theme
 
     initial_prompt = "Serve me as a writing and programming assistant."
     title_html = f'<h1 align="center">AutoGen</h1>{theme_declaration}'
@@ -83,7 +85,6 @@ def main(plugins):
     )
 
     # Some common functional modules
-    from void_terminal.core_functional import get_core_functions
 
     functional = get_core_functions()
 
@@ -105,7 +106,6 @@ def main(plugins):
     set_theme = adjust_theme()
 
     # Proxy and automatic update
-    from void_terminal.check_proxy import check_proxy, auto_update, warm_up_modules
 
     proxy_info = check_proxy(proxies)
 
@@ -677,8 +677,6 @@ def main(plugins):
             outputs=[*[plugin["Button"] for name, plugin in plugins_as_btn.items()], dropdown],
         )
         if ENABLE_AUDIO:
-            from void_terminal.crazy_functions.live_audio.audio_io import RealtimeAudioDistribution
-
             rad = RealtimeAudioDistribution()
 
             def deal_audio(audio, cookies):
