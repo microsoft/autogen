@@ -4,7 +4,7 @@ This is a GUI for AutoGen. It is written in Python and uses the [Gradio](https:/
 
 ## ⭐Installation
 
-1. install AutoGen:
+1. Install AutoGen:
 
 ```bash
 python -m pip install pyautogen
