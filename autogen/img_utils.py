@@ -7,7 +7,7 @@ import requests
 from PIL import Image
 
 
-def get_image_data(image_file, use_b64=True):
+def get_image_data(image_file: str, use_b64=True) -> bytes:
     if image_file.startswith("http://") or image_file.startswith("https://"):
         response = requests.get(image_file)
         content = response.content
@@ -134,5 +134,17 @@ def extract_img_paths(paragraph: str) -> list:
     return img_paths
 
 
-def _to_pil(data):
+def _to_pil(data: str) -> Image.Image:
+    """
+    Converts a base64 encoded image data string to a PIL Image object.
+
+    This function first decodes the base64 encoded string to bytes, then creates a BytesIO object from the bytes,
+    and finally creates and returns a PIL Image object from the BytesIO object.
+
+    Parameters:
+        data (str): The base64 encoded image data string.
+
+    Returns:
+        Image.Image: The PIL Image object created from the input data.
+    """
     return Image.open(BytesIO(base64.b64decode(data)))

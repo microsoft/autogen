@@ -53,7 +53,7 @@ class MultimodalConversableAgent(ConversableAgent):
         """Return the system message."""
         return self._oai_system_message[0]["content"]
 
-    def update_system_message(self, system_message: str):
+    def update_system_message(self, system_message: Union[Dict, List, str]):
         """Update the system message.
 
         Args:
