@@ -22,7 +22,6 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # we will override the following variables later.
-MODEL_NAME = ""
 SEP = "###"
 
 DEFAULT_LLAVA_SYS_MSG = "You are an AI agent and you can view images."
@@ -155,49 +154,22 @@ def llava_call_binary(
             continue
 
 
-def llava_call(
-    prompt: str,
-    model_name: str = MODEL_NAME,
-    images: list = [],
-    max_new_tokens: int = 1000,
-    temperature: float = 0.5,
-    seed: int = 1,
-) -> str:
+def llava_call(prompt: str, llm_config: dict) -> str:
     """
-    Makes a call to the LLaVA service to generate text based on a given prompt and optionally provided images.
-
-    Args:
-        - prompt (str): The input text for the model. Any image paths or placeholders in the text should be replaced with "<image>".
-        - model_name (str, optional): The name of the model to use for the text generation. Defaults to the global constant MODEL_NAME.
-        - images (list, optional): A list of image paths or URLs. If not provided, they will be extracted from the prompt.
-            If provided, they will be appended to the prompt with the "<image>" placeholder.
-        - max_new_tokens (int, optional): Maximum number of new tokens to generate. Defaults to 1000.
-        - temperature (float, optional): temperature for the model. Defaults to 0.5.
-
-    Returns:
-        - str: Generated text from the model.
-
-    Raises:
-        - AssertionError: If the number of "<image>" tokens in the prompt and the number of provided images do not match.
-        - RunTimeError: If any of the provided images is empty.
-
-    Notes:
-    - Any image paths or URLs in the prompt are automatically replaced with the "<image>" token.
-    - If more images are provided than there are "<image>" tokens in the prompt, the extra tokens are appended to the end of the prompt.
+    Makes a call to the LLaVA service to generate text based on a given prompt
     """
 
-    if len(images) == 0:
-        prompt, images = lmm_formater(prompt, order_image_tokens=False)
-    else:
-        # Append the <image> token if missing
-        assert prompt.count("<image>") <= len(images), "the number "
-        "of image token in prompt and in the images list should be the same!"
-        num_token_missing = len(images) - prompt.count("<image>")
-        prompt += " <image> " * num_token_missing
-        images = [get_image_data(x) for x in images]
+    prompt, images = lmm_formater(prompt, order_image_tokens=False)
 
     for im in images:
         if len(im) == 0:
             raise RuntimeError("An image is empty!")
 
-    return llava_call_binary(prompt, images, model_name, max_new_tokens, temperature, seed)
+    return llava_call_binary(
+        prompt,
+        images,
+        config_list=llm_config["config_list"],
+        max_new_tokens=llm_config.get("max_new_tokens", 2000),
+        temperature=llm_config.get("temperature", 0.5),
+        seed=llm_config.get("seed", None),
+    )
