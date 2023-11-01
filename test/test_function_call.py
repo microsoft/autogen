@@ -127,7 +127,68 @@ def test_execute_function():
     assert user.execute_function(func_call)[1]["content"] == "42"
 
 
+@pytest.mark.asyncio
+async def test_a_execute_function():
+    from autogen.agentchat import UserProxyAgent
+    import time
+
+    # Create an async function
+    async def add_num(num_to_be_added):
+        given_num = 10
+        time.sleep(1)
+        return num_to_be_added + given_num
+
+    user = UserProxyAgent(name="test", function_map={"add_num": add_num})
+    correct_args = {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}
+
+    # Asset coroutine doesn't match.
+    assert user.execute_function(func_call=correct_args)[1]["content"] != "15"
+    # Asset awaited coroutine does match.
+    assert (await user.a_execute_function(func_call=correct_args))[1]["content"] == "15"
+
+    # function name called is wrong or doesn't exist
+    wrong_func_name = {"name": "subtract_num", "arguments": '{ "num_to_be_added": 5 }'}
+    assert "Error: Function" in (await user.a_execute_function(func_call=wrong_func_name))[1]["content"]
+
+    # arguments passed is not in correct json format
+    wrong_json_format = {
+        "name": "add_num",
+        "arguments": '{ "num_to_be_added": 5, given_num: 10 }',
+    }  # should be "given_num" with quotes
+    assert (
+        "You argument should follow json format."
+        in (await user.a_execute_function(func_call=wrong_json_format))[1]["content"]
+    )
+
+    # function execution error with wrong arguments passed
+    wrong_args = {"name": "add_num", "arguments": '{ "num_to_be_added": 5, "given_num": 10 }'}
+    assert "Error: " in (await user.a_execute_function(func_call=wrong_args))[1]["content"]
+
+    # 2. test calling a class method
+    class AddNum:
+        def __init__(self, given_num):
+            self.given_num = given_num
+
+        def add(self, num_to_be_added):
+            self.given_num = num_to_be_added + self.given_num
+            return self.given_num
+
+    user = UserProxyAgent(name="test", function_map={"add_num": AddNum(given_num=10).add})
+    func_call = {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}
+    assert (await user.a_execute_function(func_call=func_call))[1]["content"] == "15"
+    assert (await user.a_execute_function(func_call=func_call))[1]["content"] == "20"
+
+    # 3. test calling a function with no arguments
+    def get_number():
+        return 42
+
+    user = UserProxyAgent("user", function_map={"get_number": get_number})
+    func_call = {"name": "get_number", "arguments": "{}"}
+    assert (await user.a_execute_function(func_call))[1]["content"] == "42"
+
+
 if __name__ == "__main__":
     test_json_extraction()
     test_execute_function()
+    test_a_execute_function()
     test_eval_math_responses()
