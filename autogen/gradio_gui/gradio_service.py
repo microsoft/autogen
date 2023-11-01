@@ -10,7 +10,7 @@ def main(plugins):
         raise ModuleNotFoundError(
             "Use the built-in Gradio for the best experience!" + 
             "Please run `pip install -r https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl` Command to install built-in Gradio and other dependencies, See details in requirements.txt.")
-    from void_terminal.request_llm.bridge_all import predict
+    from void_terminal.request_llms.bridge_all import predict
     from void_terminal.toolbox import format_io, find_free_port, on_file_uploaded, on_report_generated, get_conf, ArgsGeneralWrapper, load_chat_cookies, DummyWith
     proxies, WEB_PORT, LLM_MODEL, CONCURRENT_COUNT, AUTHENTICATION = get_conf('proxies', 'WEB_PORT', 'LLM_MODEL', 'CONCURRENT_COUNT', 'AUTHENTICATION')
     CHATBOT_HEIGHT, LAYOUT, AVAIL_LLM_MODELS, AUTO_CLEAR_TXT = get_conf('CHATBOT_HEIGHT', 'LAYOUT', 'AVAIL_LLM_MODELS', 'AUTO_CLEAR_TXT')
@@ -49,7 +49,7 @@ def main(plugins):
     # from void_terminal.crazy_functional import get_crazy_functions
     # plugins = get_crazy_functions()
     # for k, v in plugins.items():  plugins[k]['Group'] = "Agent"
-    # DEFAULT_FN_GROUPS, = get_conf('DEFAULT_FN_GROUPS')
+    # DEFAULT_FN_GROUPS = get_conf('DEFAULT_FN_GROUPS')
     DEFAULT_FN_GROUPS = ["Agent", "Conversation"]
     all_plugin_groups = list(set([g for _, plugin in plugins.items() for g in plugin['Group'].split('|')]))
     match_group = lambda tags, groups: any([g in groups for g in tags.split('|')])
@@ -312,6 +312,8 @@ def main(plugins):
             if not plugins[k].get("AsButton", True): continue
             click_handle = plugins[k]["Button"].click(ArgsGeneralWrapper(plugins[k]["Function"]), [*input_combo], output_combo)
             click_handle.then(on_report_generated, [cookies, file_upload, chatbot], [cookies, file_upload, chatbot])
+            if AUTO_CLEAR_TXT:
+                plugins[k]["Button"].click(lambda: ("",""), None, [txt, txt2])
             cancel_handles.append(click_handle)
         # Interaction between dropdown menu and dynamic button in function plugin
         def on_dropdown_changed(k):
@@ -393,7 +395,7 @@ def main(plugins):
                             "- plot $y=x^2$ with $x \in (-2,1)$, save the image to res.jpg\n\n" + 
                             "- find the solution of $sin(x)=cos(x)$ by ploting the culve within $x > 0$, save the image to res.png\n\n" + 
                             "- plot $z=cos(x^2+y^2)$, save the image to wave.jpg\n\n" + 
-                            "(2) click the small red button `AutoGen_Fn_01`."])
+                            "(2) click the small red button `AutoGen ...`."])
             return cookies, chatbot
         demo.load(init_cookie, inputs=[cookies, chatbot], outputs=[cookies, chatbot])
         darkmode_js = """(dark) => {

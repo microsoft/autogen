@@ -167,3 +167,7 @@ wolfram.txt
 
 # DB on disk for TeachableAgent
 tmp/
+
+# logs
+gpt_log
+debug_gui.py

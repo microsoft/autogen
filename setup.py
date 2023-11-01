@@ -60,7 +60,7 @@ setuptools.setup(
         "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf"],
         "teachable": ["chromadb"],
         "gui":[
-            "void-terminal>=0.0.8",
+            "void-terminal>=0.0.9",
         ]
     },
     classifiers=[

@@ -1,102 +1,88 @@
-def install_dependencies():
-    # <------------------- install dependencies  ------------------->
-    def try_install_deps(deps, reload_m=[]):
-        """
-        install dependencies if not installed.
-        """
-        input(f'You are about to install dependencies {str(deps)}, press Enter to continue ...')
-        import subprocess, sys, importlib
-        for dep in deps:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', dep])
-        import site
-        importlib.reload(site)
-        for m in reload_m:
-            importlib.reload(__import__(m))
-
-    # <-------------------  dependencies  ------------------->
-    try:
-        import gradio as gr
-        import void_terminal
-    except:
-        try_install_deps(deps=["void-terminal>=0.0.8"]) 
-        try_install_deps(deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"])
-
-    if gr.__version__ not in ['3.32.6']: 
-        # this is a special version of gradio, which is not available on pypi.org
-        try_install_deps(deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"])
-
 # <-------------------  import  ------------------->
-install_dependencies()
-
-# <-------------------  import  ------------------->
-from autogen.gradio_gui.gradio_service import main, install_dependencies
-from autogen.gradio_gui.plugin import autogen_terminal
 from autogen.gradio_gui.utils.general import AutoGenGeneral, AutoGenGroupChat
-from void_terminal.toolbox import CatchException
+from autogen.gradio_gui.plugin import autogen_terminal
+from autogen.gradio_gui.gradio_service import main
+from autogen.gradio_gui import install_dependencies, init_config
 
-# <-------------------  define autogen agents (assistant + user_proxy) ------------------->
+install_dependencies()
+llm_config = init_config()
+
 class AutoGenAskHuman(AutoGenGeneral):
     def define_agents(self):
         from autogen import AssistantAgent, UserProxyAgent
-        return [
+        agents = [
             {
                 "name": "assistant",            # name of the agent.
                 "cls":  AssistantAgent,         # class of the agent.
+                "llm_config": llm_config,
             },
             {
                 "name": "user_proxy",           # name of the agent.
                 "cls":  UserProxyAgent,         # class of the agent.
                 "human_input_mode": "ALWAYS",   # always ask for human input.
-                "llm_config": False,            # disables llm-based auto reply.
+                # disables llm-based auto reply.
+                "llm_config": False,
             },
         ]
+        return agents
 
 
 # <-------------------  define autogen agents (group chat)  ------------------->
 class AutoGenGroupChat(AutoGenGroupChat):
     def define_agents(self):
         from autogen import AssistantAgent, UserProxyAgent
-        return [
+        agents = [
             {
                 "name": "Engineer",             # name of the agent.
                 "cls":  AssistantAgent,         # class of the agent.
+                "llm_config": llm_config,
                 "system_message": '''Engineer. You follow an approved plan. You write python/shell code to solve tasks. Wrap the code in a code block that specifies the script type. The user can't modify your code. So do not suggest incomplete code which requires others to modify. Don't use a code block if it's not intended to be executed by the executor.                    Don't include multiple code blocks in one response. Do not ask others to copy and paste the result. Check the execution result returned by the executor.                     If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.'''
             },
             {
                 "name": "Scientist",            # name of the agent.
                 "cls":  AssistantAgent,         # class of the agent.
+                "llm_config": llm_config,
                 "system_message": '''Scientist. You follow an approved plan. You are able to categorize papers after seeing their abstracts printed. You don't write code.'''
             },
             {
                 "name": "Planner",              # name of the agent.
                 "cls":  AssistantAgent,         # class of the agent.
+                "llm_config": llm_config,
                 "system_message": '''Planner. Suggest a plan. Revise the plan based on feedback from admin and critic, until admin approval. The plan may involve an engineer who can write code and a scientist who doesn't write code. Explain the plan first. Be clear which step is performed by an engineer, and which step is performed by a scientist.'''
             },
             {
                 "name": "Executor",             # name of the agent.
                 "cls":  UserProxyAgent,         # class of the agent.
                 "human_input_mode": "NEVER",
+                "llm_config": llm_config,
                 "system_message": '''Executor. Execute the code written by the engineer and report the result.'''
             },
             {
                 "name": "Critic",               # name of the agent.
                 "cls":  AssistantAgent,         # class of the agent.
+                "llm_config": llm_config,
                 "system_message": '''Critic. Double check plan, claims, code from other agents and provide feedback. Check whether the plan includes adding verifiable info such as source URL.'''
             },
             {
                 "name": "user_proxy",           # name of the agent.
                 "cls":  UserProxyAgent,         # class of the agent.
                 "human_input_mode": "NEVER",    # never ask for human input.
-                "llm_config": False,            # disables llm-based auto reply.
+                # disables llm-based auto reply.
+                "llm_config": False,
                 "code_execution_config": False,
                 "system_message": "A human admin. Interact with the planner to discuss the plan. Plan execution needs to be approved by this admin.",
             },
         ]
+        return agents
+
+    def define_group_chat_manager_config(self):
+        llm_config.update({"temperature": 0})
+        return {"llm_config": llm_config}
     
 
-
-
 # <-------------------  define autogen buttons  ------------------->
+from void_terminal.toolbox import CatchException
+
 @CatchException
 def autogen_terminal_fn_01(*args, **kwargs):
     return autogen_terminal(*args, AutoGenFn=AutoGenAskHuman, Callback="launch_gui->autogen_terminal_fn_01", **kwargs)
@@ -107,17 +93,6 @@ def autogen_terminal_fn_02(*args, **kwargs):
 
 
 if __name__ == "__main__":
-    # <-------------------  change configurations  ------------------->
-    import void_terminal
-    
-    # void_terminal.set_conf(key="USE_PROXY", value=True)
-    # void_terminal.set_conf(key="proxies", value='{"http": "http://localhost:10881", "https": "http://localhost:10881"}')
-    void_terminal.set_conf(key="API_KEY",value="sk-yourapikey")
-    void_terminal.set_conf(key="LLM_MODEL", value="gpt-3.5-turbo-16k")
-    void_terminal.set_conf(key="AUTOGEN_USE_DOCKER", value=False)
-    void_terminal.set_conf(key="PATH_LOGGING", value="gpt_log")
-    void_terminal.set_conf(key="DARK_MODE", value=True)
-    void_terminal.set_conf(key="AUTO_CLEAR_TXT", value=True)
 
 
     # <-------------------  add fn buttons to GUI & launch gradio  ------------------->

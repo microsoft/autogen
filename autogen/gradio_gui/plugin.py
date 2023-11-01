@@ -29,7 +29,7 @@ def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pr
     web_port        Port number on which the software is running
     """
     # Check if the current model meets the requirements
-    supported_llms = ['gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k']
+    supported_llms = ['gpt-3.5-turbo-16k', 'gpt-4', 'gpt-4-32k', 'azure-gpt-3.5-turbo-16k', 'azure-gpt-4', 'azure-gpt-4-32k']
     llm_kwargs['api_key'] = select_api_key(
         llm_kwargs['api_key'], llm_kwargs['llm_model'])
     if llm_kwargs['llm_model'] not in supported_llms:
@@ -39,7 +39,7 @@ def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pr
         return
 
     # Check if the current model meets the requirements
-    API_URL_REDIRECT, = get_conf('API_URL_REDIRECT')
+    API_URL_REDIRECT = get_conf('API_URL_REDIRECT')
     if len(API_URL_REDIRECT) > 0:
         chatbot.append([f"Task: {txt}", f"Transfers are not supported."])
         yield from update_ui(chatbot=chatbot, history=history)

@@ -13,14 +13,13 @@ class PluginMultiprocessManager():
         # ⭐ run in main process
         self.autogen_work_dir = os.path.join(get_log_folder('autogen'), gen_time_str())
         self.previous_work_dir_files = {}
-        self.llm_kwargs = llm_kwargs
         self.plugin_kwargs = plugin_kwargs
         self.chatbot = chatbot
         self.history = history
         self.system_prompt = system_prompt
         self.web_port = web_port
         self.alive = True
-        self.use_docker, = get_conf('AUTOGEN_USE_DOCKER')
+        self.use_docker = get_conf('AUTOGEN_USE_DOCKER')
 
         # create a thread to monitor self.heartbeat, terminate the instance if no heartbeat for a long time
         timeout_seconds = 5*60
@@ -100,6 +99,9 @@ class PluginMultiprocessManager():
         if create_or_resume == 'create':
             self.cnt = 1
             self.parent_conn = self.launch_subprocess_with_pipe() # ⭐⭐⭐
+        else:
+            if 'Waiting for further instructions.' in self.chatbot[-1][-1]:
+                self.chatbot.pop(-1)    # remove the last line
         self.send_command(txt)
 
         if txt == 'exit': 
@@ -112,6 +114,8 @@ class PluginMultiprocessManager():
             time.sleep(0.5)
             if self.parent_conn.poll(): 
                 if '[GPT-Academic] waiting' in self.chatbot[-1][-1]:
+                    self.chatbot.pop(-1)    # remove the last line
+                if 'Waiting for further instructions.' in self.chatbot[-1][-1]:
                     self.chatbot.pop(-1)    # remove the last line
                 msg = self.parent_conn.recv() # PipeCom
                 if msg.cmd == "done":
