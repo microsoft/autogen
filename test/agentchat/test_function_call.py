@@ -11,7 +11,7 @@ from test_assistant_agent import KEY_LOC
 
 
 @pytest.mark.skipif(OpenAI is None, reason="openai>=1 not installed")
-def _test_eval_math_responses():
+def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
         KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
     )
@@ -36,8 +36,8 @@ def _test_eval_math_responses():
             },
         },
     ]
-    response = autogen.ChatCompletion.create(
-        config_list=config_list,
+    client = autogen.OpenAIWrapper(config_list=config_list)
+    response = client.create(
         messages=[
             {
                 "role": "user",
@@ -47,10 +47,10 @@ def _test_eval_math_responses():
         functions=functions,
     )
     print(response)
-    responses = autogen.ChatCompletion.extract_text_or_function_call(response)
+    responses = client.extract_text_or_function_call(response)
     print(responses[0])
-    function_call = responses[0]["function_call"]
-    name, arguments = function_call["name"], json.loads(function_call["arguments"])
+    function_call = responses[0].function_call
+    name, arguments = function_call.name, json.loads(function_call.arguments)
     assert name == "eval_math_responses"
     print(arguments["responses"])
     # if isinstance(arguments["responses"], str):
@@ -192,4 +192,4 @@ if __name__ == "__main__":
     # test_json_extraction()
     # test_execute_function()
     asyncio.run(test_a_execute_function())
-    # _test_eval_math_responses()
+    test_eval_math_responses()
