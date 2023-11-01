@@ -32,7 +32,7 @@ class TestGetImageData(unittest.TestCase):
 
     def test_local_image(self):
         # Create a temporary file to simulate a local image file.
-        with tempfile.NamedTemporaryFile(delete=True, suffix=".png") as temp_image_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_image_file:
             image = Image.new("RGB", (60, 30), color=(73, 109, 137))
             image.save(temp_image_file.name)
 
@@ -41,6 +41,7 @@ class TestGetImageData(unittest.TestCase):
             expected_content = base64.b64encode(temp_image_file.read()).decode("utf-8")
 
             self.assertEqual(result, expected_content)
+            os.unlink(temp_image_file.name)
 
 
 class TestLmmFormater(unittest.TestCase):
