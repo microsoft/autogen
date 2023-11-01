@@ -42,7 +42,7 @@ python -m autogen.launch_gui
 > Note:
 > When you run `launch_gui`, the program will automatically install additional dependencies with `pip install --user ...` if they are not installed.
 
-## ⭐Customize
+## ⭐Customization
 
 
 1. Create a python file `test.py` with templete below
