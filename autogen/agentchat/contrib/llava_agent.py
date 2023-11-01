@@ -115,7 +115,7 @@ def _llava_call_binary_with_config(
         }
 
         response = requests.post(
-            os.path.join(config["api_base"], "worker_generate_stream"), headers=headers, json=pload, stream=False
+            config["api_base"].rstrip("/") + "/worker_generate_stream", headers=headers, json=pload, stream=False
         )
 
         for chunk in response.iter_lines(chunk_size=8192, decode_unicode=False, delimiter=b"\0"):
