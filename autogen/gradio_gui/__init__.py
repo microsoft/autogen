@@ -40,20 +40,27 @@ to start the GUI.
 """)
     config_list = config_list_from_json(env_or_file=config_file_path)
     llm_config = {"config_list": config_list}
+    print(config_list)
     return llm_config
 
 
 def init_config():
     import void_terminal
+    import os
     
     llm_config = init_config_list()
     # set network proxy
+
     # void_terminal.set_conf(key="USE_PROXY", value=True)
     # void_terminal.set_conf(key="proxies", value='{"http": "http://localhost:10881", "https": "http://localhost:10881"}')
-    void_terminal.set_conf(key="AUTOGEN_USE_DOCKER", value=False)
-    void_terminal.set_conf(key="PATH_LOGGING", value="gpt_log")
-    void_terminal.set_conf(key="DARK_MODE", value=True)
-    void_terminal.set_conf(key="AUTO_CLEAR_TXT", value=True)
+    if os.environ.get("AUTOGEN_USE_DOCKER", None) is None:
+        void_terminal.set_conf(key="AUTOGEN_USE_DOCKER", value=False)
+    if os.environ.get("PATH_LOGGING", None) is None:
+        void_terminal.set_conf(key="PATH_LOGGING", value="gpt_log")
+    if os.environ.get("DARK_MODE", None) is None:
+        void_terminal.set_conf(key="DARK_MODE", value=True)
+    if os.environ.get("AUTO_CLEAR_TXT", None) is None:
+        void_terminal.set_conf(key="AUTO_CLEAR_TXT", value=True)
 
     # the following configurations only influence direct chat, not autogen
     void_terminal.set_conf(key="API_KEY", value=llm_config["config_list"][0]["api_key"])

@@ -48,10 +48,10 @@ def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pr
     # Try to import dependencies, if any are missing, provide installation suggestions
     try:
         import autogen
-        import docker
+        if get_conf('AUTOGEN_USE_DOCKER'): import docker
     except:
         chatbot.append([f"Task: {txt}",
-                        f"Failed to import software dependencies. Additional dependencies are required to use this module, install with 'pip install --upgrade pyautogen docker'."])
+                        f"Failed to import software dependencies. Additional dependencies are required to use this module, install with `pip install --upgrade pyautogen docker`."])
         yield from update_ui(chatbot=chatbot, history=history)
         return
 
@@ -62,7 +62,7 @@ def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pr
         import os
         import time
         import subprocess
-        subprocess.Popen(['docker', '--version'])
+        if get_conf('AUTOGEN_USE_DOCKER'): subprocess.Popen(['docker', '--version'])
     except:
         chatbot.append([f"Task: {txt}", f"Missing docker runtime environment!"])
         yield from update_ui(chatbot=chatbot, history=history)

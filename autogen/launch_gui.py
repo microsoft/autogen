@@ -1,10 +1,10 @@
+from autogen.gradio_gui import install_dependencies, init_config
+install_dependencies()
 # <-------------------  import  ------------------->
 from autogen.gradio_gui.utils.general import AutoGenGeneral, AutoGenGroupChat
 from autogen.gradio_gui.plugin import autogen_terminal
 from autogen.gradio_gui.gradio_service import main
-from autogen.gradio_gui import install_dependencies, init_config
 
-install_dependencies()
 llm_config = init_config()
 
 class AutoGenAskHuman(AutoGenGeneral):
@@ -93,8 +93,6 @@ def autogen_terminal_fn_02(*args, **kwargs):
 
 
 if __name__ == "__main__":
-
-
     # <-------------------  add fn buttons to GUI & launch gradio  ------------------->
     from void_terminal.crazy_functions.ConversationHistoryArchive import ConversationHistoryArchive
     from void_terminal.crazy_functions.Accessibility import ClearCache

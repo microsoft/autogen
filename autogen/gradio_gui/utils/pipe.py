@@ -17,7 +17,7 @@ class PluginMultiprocessManager():
         self.chatbot = chatbot
         self.history = history
         self.system_prompt = system_prompt
-        self.web_port = web_port
+        # self.web_port = web_port
         self.alive = True
         self.use_docker = get_conf('AUTOGEN_USE_DOCKER')
 
