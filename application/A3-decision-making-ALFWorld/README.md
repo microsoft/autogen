@@ -9,7 +9,7 @@ Download `alfworld` data and install environments following instructions [here](
 We provide a docker that has set up all the environments. The code is in its `/autogen-eval` directory.
 
 ```bash
-docker pull leoljl/alfchat
+docker pull leoljl/alfchat:v2
 docker run -it leoljl/alfchat zsh
 # now you are in docker environment
 cd /autogen-eval/application/A3-decision-making-ALFWorld
