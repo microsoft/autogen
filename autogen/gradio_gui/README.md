@@ -46,7 +46,7 @@ python -m autogen.launch_gui
 
 
 1. Create a python file `test.py` with templete below
-2. Edit and add your own multiagent chat
+2. Edit and add your own group chat
 3. Run it with `python test.py`
 
 ```python
