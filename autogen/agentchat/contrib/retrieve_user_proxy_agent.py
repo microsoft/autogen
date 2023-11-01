@@ -124,13 +124,13 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
                 - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in chromadb. Default is False. Will be set to False if docs_path is None.
-                - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
+                - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
                     Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
-                - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
+                - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
-                - custom_text_types(Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
-                - recursive(Optional, bool): whether to search documents recursively in the docs_path. Default is True.
+                - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
+                - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
