@@ -59,9 +59,9 @@ setuptools.setup(
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf", "ipython"],
         "teachable": ["chromadb"],
-        "gui":[
+        "gui": [
             "void-terminal>=0.0.9",
-        ]
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

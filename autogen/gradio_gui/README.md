@@ -84,7 +84,7 @@ class AutoGenGroupChat(AutoGenGroupChat):
     def define_group_chat_manager_config(self):
         llm_config.update({"temperature": 0})
         return {"llm_config": llm_config}
-    
+
 def autogen_terminal_groupchat(*args, **kwargs):
     return autogen_terminal(*args, AutoGenFn=AutoGenGroupChat, Callback=f"{os.path.basename(__file__).split('.py')[0]}->autogen_terminal_fn_02", **kwargs)
 
@@ -101,4 +101,3 @@ if __name__ == "__main__":
         }
     )
 ```
-
