@@ -40,6 +40,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
+          pip install "unstructured[docx,pptx]"
           pip install -e.[mathchat,retrievechat,test] datasets pytest
           pip uninstall -y openai
       - name: Test with pytest
