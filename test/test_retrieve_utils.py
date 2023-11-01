@@ -14,6 +14,7 @@ from autogen.retrieve_utils import (
 from autogen.token_count_utils import count_token
 
 import os
+import sys
 import pytest
 import chromadb
 
@@ -170,10 +171,6 @@ class TestRetrieveUtils:
             in results.get("documents")[0][0]
         )
 
-    @pytest.mark.skipif(
-        HAS_UNSTRUCTURED,
-        reason="do not run if unstructured is installed",
-    )
     def test_retrieve_utils(self):
         client = chromadb.PersistentClient(path="/tmp/chromadb")
         create_vector_db_from_dir(

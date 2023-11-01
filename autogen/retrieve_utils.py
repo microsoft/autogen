@@ -40,29 +40,7 @@ TEXT_FORMATS = [
     "yml",
     "pdf",
 ]
-UNSTRUCTURED_FORMATS = [
-    "eml",
-    "html",
-    "json",
-    "md",
-    "msg",
-    "rst",
-    "rtf",
-    "txt",
-    "xml",
-    "csv",
-    "doc",
-    "docx",
-    "epub",
-    "odt",
-    "pdf",
-    "ppt",
-    "pptx",
-    "tsv",
-    "xlsx",
-    "jpeg",
-    "png",
-]
+UNSTRUCTURED_FORMATS = ["docx", "doc", "odt", "pptx", "ppt", "xlsx", "eml", "msg", "epub"]
 if HAS_UNSTRUCTURED:
     TEXT_FORMATS += UNSTRUCTURED_FORMATS
     TEXT_FORMATS = list(set(TEXT_FORMATS))
