@@ -10,7 +10,7 @@ Before you begin, you must configure your API keys for use with the Testbed. The
 
 Then edit ``includes/ENV`` as needed.
 
-The Testbed also requires installation of the __python docker__ library:
+The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ library. **It will not run in codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/). To install the Python library:
 
 ``pip install docker``
 
