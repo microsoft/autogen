@@ -1,6 +1,6 @@
 # Autogen Testbed Environment
 
-The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts. By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
 ## Setup
 
@@ -134,14 +134,15 @@ testbed_utils.finalize(assistant, user_proxy)
 ```
 
 
-## Running HumanEval
+## (Example) Running HumanEval
 
-One sample Testbed scenario type is a variation of the classic [HumanEval](https://github.com/openai/human-eval) benchmark. In this scenario, agents are given access to the unit test results, and are able to continue to debug their code until the problem is solved or they run out of tokens or turns. We can then count how many turns it took to solve the problem (returning -1 if the problem remains unsolved by the end of the conversation).
+One sample Testbed scenario type is a variation of the classic [HumanEval](https://github.com/openai/human-eval) benchmark. In this scenario, agents are given access to the unit test results, and are able to continue to debug their code until the problem is solved or they run out of tokens or turns. We can then count how many turns it took to solve the problem (returning -1 if the problem remains unsolved by the end of the conversation, and "" if the run is missing).
 
-Accessing this scenario-type requires downloading and converting the datasets, running the Testbed, and finally collating the results. The following commands will accomplish this, running each test instance 3 times with GPT-3.5-Turbo-16k:
+Accessing this scenario-type requires downloading and converting the HumanEval dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance 3 times with GPT-3.5-Turbo-16k:
 
 ```
 python utils/download_humaneval.py
 python ./run_scenarios.py --repeat 3 scenarios/human_eval_two_agents_gpt35.jsonl
-python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 > human_eval_two_agents_gpt35_results.csv && cat human_eval_two_agents_gpt35_results.csv
+python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
+cat human_eval_results_gpt35.csv
 ```
