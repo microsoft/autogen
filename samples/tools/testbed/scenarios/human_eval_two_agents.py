@@ -30,7 +30,7 @@ with open(os.path.join(work_dir, "my_tests.py"), "wt") as fh:
 def run_tests(candidate):
    check(candidate)
    # We can search for this string in the output
-   print("ALL TESTS PASSED !#!#")
+   print("ALL TESTS PASSED !#!#\\nTERMINATE")
 """
     )
 

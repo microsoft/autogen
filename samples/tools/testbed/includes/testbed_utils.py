@@ -17,8 +17,6 @@ def init():
         None
     """
 
-    autogen.ChatCompletion.start_logging(compact=False)
-
     # Print some information about the run
     with open("timestamp.txt", "wt") as f:
         f.write("Timestamp: " + datetime.now().isoformat() + "\n")
@@ -39,10 +37,6 @@ def finalize(agents):
     """
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
-
-    with open(os.path.join(script_dir, "chat_completions.json"), "wt") as fh:
-        fh.write(json.dumps(autogen.ChatCompletion.logged_history, indent=4))
-        autogen.ChatCompletion.stop_logging()
 
     def messages_to_json(agent):
         messages = dict()
