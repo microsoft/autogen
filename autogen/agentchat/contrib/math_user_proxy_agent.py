@@ -402,7 +402,7 @@ class WolframAlphaAPIWrapper(BaseModel):
 
         return values
 
-    def run(self, query: str) -> str:
+    def run(self, query: str) -> tuple[str, bool]:
         """Run query through WolframAlpha and parse result."""
         from urllib.error import HTTPError
 
