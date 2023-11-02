@@ -108,3 +108,11 @@ pip install "pyautogen[mathchat]<0.2"
 
 Example notebooks:
 [Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
+
+* Large Multimodal Models
+
+We support both GPT4-V and LLaVA now. See [this notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb) for an example of our LLaVA agent.
+
+```bash
+pip install "pyautogen[lmm]<0.2"
+```

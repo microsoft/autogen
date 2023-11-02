@@ -9,7 +9,7 @@ on:
     paths:
       - 'autogen/**'
       - 'test/agentchat/**'
-      - 'test/agentchat/contrib/**'
+      - 'test/agentchat/contrib/llava_agent.py'
       - '.github/workflows/lmm-test.yml'
       - 'setup.py'
 
@@ -42,7 +42,7 @@ jobs:
           pip install qdrant_client[fastembed]
       - name: Install packages and dependencies for LMM
         run: |
-          pip install -e .[llava]
+          pip install -e .[lmm]
           pip uninstall -y openai
       - name: Test LMM and LLaVA
         run: |
