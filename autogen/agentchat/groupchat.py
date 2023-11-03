@@ -130,7 +130,12 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        # Order of register_reply is important.
+        # Allow sync chat if initiated using initiate_chat
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
+        # Allow async chat if initiated using a_initiate_chat
+        self.register_reply(Agent, GroupChatManager.a_run_chat, config=groupchat, reset_config=GroupChat.reset)
+
         # self._random = random.Random(seed)
 
     def run_chat(
@@ -175,5 +180,50 @@ class GroupChatManager(ConversableAgent):
                 break
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
+            message = self.last_message(speaker)
+        return True, None
+
+    async def a_run_chat(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[GroupChat] = None,
+    ):
+        """Run a group chat asynchronously."""
+        if messages is None:
+            messages = self._oai_messages[sender]
+        message = messages[-1]
+        speaker = sender
+        groupchat = config
+        for i in range(groupchat.max_round):
+            # set the name to speaker's name if the role is not function
+            if message["role"] != "function":
+                message["name"] = speaker.name
+            groupchat.messages.append(message)
+            # broadcast the message to all agents except the speaker
+            for agent in groupchat.agents:
+                if agent != speaker:
+                    await self.a_send(message, agent, request_reply=False, silent=True)
+            if i == groupchat.max_round - 1:
+                # the last round
+                break
+            try:
+                # select the next speaker
+                speaker = groupchat.select_speaker(speaker, self)
+                # let the speaker speak
+                reply = await speaker.a_generate_reply(sender=self)
+            except KeyboardInterrupt:
+                # let the admin agent speak if interrupted
+                if groupchat.admin_name in groupchat.agent_names:
+                    # admin agent is one of the participants
+                    speaker = groupchat.agent_by_name(groupchat.admin_name)
+                    reply = await speaker.a_generate_reply(sender=self)
+                else:
+                    # admin agent is not found in the participants
+                    raise
+            if reply is None:
+                break
+            # The speaker sends the message without requesting a reply
+            await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
         return True, None
