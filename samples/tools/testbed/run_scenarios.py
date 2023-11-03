@@ -7,12 +7,13 @@ import sys
 import time
 import pathlib
 import argparse
+from autogen import config_list_from_json
 
 # Location of the environment directory
-ENV_DIR = "./includes"
+INCLUDES_DIR = "./includes"
 
 
-def run_scenarios(scenario, n_repeats, is_native, results_dir="results"):
+def run_scenarios(scenario, n_repeats, is_native, config_list, results_dir="results"):
     """
     Run a set testbed scenarios a given number of times.
 
@@ -21,6 +22,7 @@ def run_scenarios(scenario, n_repeats, is_native, results_dir="results"):
                             all JSONL files in the folder will be loaded and run.
         n_repeats (int):    The number of times each scenario instance will be repeated
         is_native (bool):   True if the scenario should be run locally rather than in Docker (proceed with caution!)
+        config_list (list): An Autogen OAI_CONFIG_LIST to be used when running scenarios.
         results_dir (path): The folder were results will be saved.
     """
 
@@ -88,13 +90,18 @@ def run_scenarios(scenario, n_repeats, is_native, results_dir="results"):
                     os.mkdir(results_repetition)
                     expand_scenario(scenario_dir, instance, os.path.join(results_repetition, "scenario.py"))
 
-                    # Also copy the contents of ENV_DIR
-                    for item in os.listdir(ENV_DIR):
+                    # Also copy the contents of INCLUDES_DIR
+                    for item in os.listdir(INCLUDES_DIR):
                         if item.endswith(".example"):
                             continue
-                        item_path = os.path.join(ENV_DIR, item)
+                        item_path = os.path.join(INCLUDES_DIR, item)
                         if os.path.isfile(item_path):
                             shutil.copyfile(item_path, os.path.join(results_repetition, item))
+
+                    # Append the config list to the ENV file
+                    config_list_json = json.dumps(config_list)
+                    with open(os.path.join(results_repetition, "ENV"), "at") as fh:
+                        fh.write(f"export OAI_CONFIG_LIST='{config_list_json}'\n")
 
                     # Run the scenario
                     if is_native:
@@ -138,7 +145,7 @@ def run_scenario_natively(work_dir):
             """#
 . ./ENV
 python scenario.py
-rm ENV
+echo SCENARIO COMPLETE !#!#
 """
         )
 
@@ -186,6 +193,7 @@ def run_scenario_in_docker(work_dir, timeout=600):
 pip install pyautogen
 python scenario.py
 rm ENV
+echo SCENARIO COMPLETE !#!#
 """
         )
 
@@ -242,6 +250,13 @@ if __name__ == "__main__":
         default="scenarios",
     )
     parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        help="The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).",
+        default="OAI_CONFIG_LIST",
+    )
+    parser.add_argument(
         "-r", "--repeat", type=int, help="The number of repetitions to run for each scenario (default: 10).", default=10
     )
     parser.add_argument(
@@ -252,6 +267,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Load the OAI_CONFIG_LIST
+    config_list = config_list_from_json(env_or_file=args.config)
+    if len(config_list) == 0:
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
+
+    # Warn if running natively
     if args.native:
         choice = input(
             'WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\nAre you absolutely sure you want to continue with native execution? Type "Yes" exactly, and in full, to proceed: '
@@ -266,11 +287,12 @@ if __name__ == "__main__":
         import docker
 
     # Warn aboit a common error
-    env_file = os.path.join(ENV_DIR, "ENV")
-    example_file = os.path.join(ENV_DIR, "ENV.example")
+    env_file = os.path.join(INCLUDES_DIR, "ENV")
+    example_file = os.path.join(INCLUDES_DIR, "ENV.example")
     if not os.path.isfile(env_file):
-        sys.exit(
-            f"The environment file '{env_file}' does not exist. If this is your first time setting up the testbed, you will want to rename '{example_file}' to '{env_file}' and edit it to include your API keys and configurations."
+        shutil.copyfile(example_file, env_file)
+        sys.stderr.write(
+            f"The environment file '{env_file}' does not exist (perhaps this is your first time setting up the testbed). A default environment file has been provided, but you may want to edit it to include your API keys and configurations.\n"
         )
 
-    run_scenarios(args.scenario, args.repeat, is_native)
+    run_scenarios(args.scenario, args.repeat, is_native, config_list)

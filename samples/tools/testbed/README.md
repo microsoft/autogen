@@ -4,11 +4,9 @@ The Autogen Testbed environment is a tool for repeatedly running a set of pre-de
 
 ## Setup
 
-Before you begin, you must configure your API keys for use with the Testbed. These keys extend beyond those typically found in an OAI_CONFIG_LIST, and can include such things as keys for the Bing Search API or other services used by the scenarios. There is an example ENV file in ``includes/ENV.example``. To get started:
+Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
 
-``cp includes/ENV.example includes/ENV``
-
-Then edit ``includes/ENV`` as needed.
+For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV` file in the `includes` folder. A sample has been provided in ``includes/ENV.example``. Edit ``includes/ENV`` as needed.
 
 The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ library. **It will not run in codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/). To install the Python library:
 
@@ -38,6 +36,9 @@ options:
 
   -r REPEAT, --repeat REPEAT
                 The number of repetitions to run for each scenario (default: 10).
+
+  -c CONFIG, --config CONFIG
+                The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
 
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
