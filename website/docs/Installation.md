@@ -114,5 +114,5 @@ Example notebooks:
 We support both GPT4-V and LLaVA now. See [this notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb) for an example of our LLaVA agent.
 
 ```bash
-pip install "pyautogen[lmm]<0.2"
+pip install "pyautogen[lmm]"
 ```

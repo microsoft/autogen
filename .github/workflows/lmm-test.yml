@@ -7,9 +7,12 @@ on:
   pull_request:
     branches: ['main', 'dev/v0.2']
     paths:
-      - 'autogen/**'
-      - 'test/agentchat/**'
-      - 'test/agentchat/contrib/llava_agent.py'
+      - 'autogen/img_utils.py'
+      - 'autogen/agentchat/multimodal_conversable_agent.py'
+      - 'autogen/agentchat/contrib/llava_agent.py'
+      - 'test/test_img_utils.py'
+      - 'test/agentchat/test_lmm.py'
+      - 'test/agentchat/contrib/test_llava.py'
       - '.github/workflows/lmm-test.yml'
       - 'setup.py'
 
