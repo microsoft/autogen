@@ -22,6 +22,7 @@ class CompressibleAgent(ConversableAgent):
         it also provides the added feature of compression when activated through the `compress_config` setting.
 
     `compress_config` is set to False by default, making this agent equivalent to the `AssistantAgent`.
+    This agent does not work well in a GroupChat: The compressed messages will not be sent to all the agents in the group.
     The default system message is the same as AssistantAgent.
     `human_input_mode` is default to "NEVER"
     and `code_execution_config` is default to False.
@@ -232,7 +233,7 @@ Reply "TERMINATE" in the end when everything is done.
                 # Teminate if no token left.
                 print(
                     colored(
-                        f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existed token count: {token_used}',
+                        f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existing token count: {token_used}',
                         "yellow",
                     ),
                     flush=True,
@@ -253,7 +254,24 @@ Reply "TERMINATE" in the end when everything is done.
         else:
             raise ValueError(f"Unknown compression mode: {self.compress_config['mode']}")
 
+        for i in range(len(compress_messages)):
+            compress_messages[i] = self._get_valid_oai_message(compress_messages[i])
         return False, compress_messages
+
+    def _get_valid_oai_message(self, message):
+        """Convert a message into a valid ChatCompletion message."""
+        oai_message = {k: message[k] for k in ("content", "function_call", "name", "context") if k in message}
+        if "content" not in oai_message:
+            if "function_call" in oai_message:
+                oai_message["content"] = None  # if only function_call is provided, content will be set to None.
+            else:
+                raise ValueError(
+                    "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
+                )
+        if "function_call" in oai_message:
+            oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
+            oai_message["function_call"] = dict(oai_message["function_call"])
+        return oai_message
 
     def on_oai_token_limit(
         self,
@@ -294,6 +312,15 @@ Reply "TERMINATE" in the end when everything is done.
             self._oai_messages[sender] = compressed_messages
             if self.compress_config["broadcast"]:
                 sender._oai_messages[self] = copy.deepcopy(compressed_messages)
+
+                # converting roles
+                for i in range(len(sender._oai_messages[self])):
+                    cmsg = sender._oai_messages[self][i]
+                    if "function_call" in cmsg or cmsg["role"] == "user":
+                        cmsg["role"] = "assistant"
+                    elif cmsg["role"] == "assistant":
+                        cmsg["role"] = "user"
+                    self._oai_messages[sender][i] = cmsg
 
             # sucessfully compressed, return False, None for generate_oai_reply to be called with the updated messages
             return False, None
