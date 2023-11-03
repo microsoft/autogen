@@ -1,0 +1,121 @@
+<mxfile host="65bd71144e">
+    <diagram id="QYajzTewMzwTbSUMhWZi" name="Page-1">
+        <mxGraphModel dx="3415" dy="1405" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="4" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="2" target="3">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="2" target="5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="2" target="23">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="2" target="27">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="36" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="2" target="35">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Autogen Package&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="298" y="72" width="207" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="3" target="9">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="3" target="16">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="5" target="18">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="3" target="21">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="Assistant Agent" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-172" y="371" width="183" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="5" target="7">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" style="edgeStyle=none;html=1;fontSize=24;startArrow=none;" edge="1" parent="1" source="12" target="3">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="UserProxy Agent&lt;br&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="726" y="369" width="198" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="Execute code&amp;nbsp;&lt;br&gt;in place of human" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="699" y="466" width="207" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="Writes code&amp;nbsp;&lt;br&gt;to complete a task" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-187" y="478" width="213" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="" style="edgeStyle=none;html=1;fontSize=24;endArrow=none;" edge="1" parent="1" source="5" target="12">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="196.51352313167263" as="sourcePoint"/>
+                        <mxPoint x="128" y="191.41174377224195" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="15" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="12" target="14">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" value="Assistant recieves&lt;br&gt;message from&amp;nbsp;&lt;br&gt;UserProxy" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="140" y="551" width="211" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="The output executed as&amp;nbsp;&lt;br&gt;python script, and the&amp;nbsp;&lt;br&gt;output is kept in extensions&amp;nbsp;&lt;br&gt;folder" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-317" y="664" width="314" height="127" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="Can register reply&amp;nbsp;&lt;br&gt;to the coversable agent.&amp;nbsp;&lt;br&gt;This leads to&amp;nbsp;&lt;br&gt;prolonged multi-step&amp;nbsp;&lt;br&gt;dialogues. Even Chess&amp;nbsp;&lt;br&gt;is played, by creating a&amp;nbsp;&lt;br&gt;subclass" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-591" y="295" width="281" height="214" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="Python function&amp;nbsp;&lt;br&gt;can be registered, to openAI" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="661" y="195" width="320" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="llm_config can be&amp;nbsp;&lt;br&gt;attached to the agent" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-225" y="204" width="244" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="23" target="25">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;RetrieverUserProxyAgent&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="1066" y="64" width="290" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Has Special power to&amp;nbsp;&lt;br&gt;work with the vector database&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="1043" y="-71" width="336" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="27" target="29">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="27" target="31">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="34" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="27" target="33">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;GroupChat&amp;nbsp;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-263" y="52" width="142" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="29" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Can take list of other&amp;nbsp;&lt;br&gt;UserProxy and Assistant Agent.&amp;nbsp;&lt;br&gt;Create dialogue between these agents&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-394" y="-177" width="429" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;There are usescase like&lt;br&gt;* Research&lt;br&gt;* Code generation&lt;br&gt;* Content creation&lt;br&gt;* Visualisation checking&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-803" y="-190" width="273" height="156" as="geometry"/>
+                </mxCell>
+                <mxCell id="33" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;GroupChat&amp;nbsp;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="-685" y="127" width="142" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="38" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="35" target="37">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="35" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;ChatCompletion&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="1092" y="209.5" width="190" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="37" value="One of the methods is&amp;nbsp;&lt;br&gt;logging history. That keeps&amp;nbsp;&lt;br&gt;the logs of conversation&lt;br&gt;for later retrieval" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="1029" y="397" width="309" height="127" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
