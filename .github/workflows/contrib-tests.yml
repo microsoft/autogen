@@ -17,8 +17,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  build:
-
+  RetrieveChatTest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
