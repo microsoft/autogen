@@ -102,10 +102,6 @@ class CompressibleGroupChatManager(CompressibleAgent):
         # we will only count the token used by groupmanager
         model = self.llm_config.get("model")
         self.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
-        # print(groupchat.messages)
-        # print(new_message)
-        # print(groupchat.selector_end_msg())
-        # print(groupchat.messages + [new_message,  groupchat.selector_end_msg()])
         token_used = self._compute_init_token_count() + count_token(
             groupchat.messages + [new_message] + groupchat.selector_end_msg(), model
         )
@@ -134,17 +130,10 @@ class CompressibleGroupChatManager(CompressibleAgent):
                 print(f"{agent.name}: after: {agent._oai_messages[self]}")
                 print()
 
-            return False  # don't terminate
-
-        if max_token - token_used <= 0:
-            print(
-                f"Warning: Compression failed, but no token left, terminate. (max_token allowed for {model}: {max_token}, current token count: {token_used})"
-            )
-            return True
-
         return False
 
     def _convert_agent_messages(self, compressed_messages, agent):
+        """Convert messages to a corresponding agent's view"""
         converted_messages = []
         tmp_messages = copy.deepcopy(compressed_messages)
         for cmsg in tmp_messages:

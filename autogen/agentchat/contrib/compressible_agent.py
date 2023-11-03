@@ -260,7 +260,7 @@ Reply "TERMINATE" in the end when everything is done.
 
     def _get_valid_oai_message(self, message):
         """Convert a message into a valid ChatCompletion message."""
-        oai_message = {k: message[k] for k in ("content", "function_call", "name", "context") if k in message}
+        oai_message = {k: message[k] for k in ("content", "function_call", "name", "context", "role") if k in message}
         if "content" not in oai_message:
             if "function_call" in oai_message:
                 oai_message["content"] = None  # if only function_call is provided, content will be set to None.
