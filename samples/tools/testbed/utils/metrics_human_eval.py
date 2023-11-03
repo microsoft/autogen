@@ -80,7 +80,25 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(script_path)
 
     parser = argparse.ArgumentParser(
-        description=f"{script_name} will compute metrics on the collated results of the HumanEval scenarios. Use collate_human_eval.py to prepare input to this script.".strip()
+        description=f"""
+{script_name} will compute metrics on the collated results of the HumanEval scenarios. Use collate_human_eval.py to prepare input to this script.
+
+The output will be formatted as a CSV with the following schema:
+
+Trial, cumulative_passes_by_turn_1, ..., cumulative_passes_by_turn_N, fails, missing
+0      x_01,                             x_0N,                        y_0,   z_0
+1      x_11,                             x_1N,                        y_1,   z_1
+...
+M      x_M1,                             x_MN,                        y_M,   z_M
+
+Where:
+
+  x_ij is the number of HumanEval problems in Trial i that achieved a passing result by conversation turn j.
+  y_i  is the number of HumanEval problems in Trial i that never achieved a passing result (they failed).
+  z_i  is the number of HumanEval problems in Trial i that have missing data.
+
+""".strip(),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     parser.add_argument(

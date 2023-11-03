@@ -78,7 +78,19 @@ if __name__ == "__main__":
     )
 
     parser = argparse.ArgumentParser(
-        description=f"{script_name} will collate the results of a the HumanEval scenarios, and output them to a CSV".strip()
+        description=f"""
+{script_name} will collate the results of the HumanEval scenarios and output them to a CSV. The CSV format is as follows:
+
+TestId,      Trial0, Trial1, ...,    TrialN
+HumanEval_1, x_10,   x_11,   ...,    X_1N
+HumanEval_2, x_20,   x_21,   ...,    X_2N
+...
+HumanEval_M, x_M0,   x_M1,   ...,    X_MN
+
+
+Where x_ij is the number of AsssitantAgent conversation turns needed to pass all the tests for problem i, in Trial/repetition j. If the agent was not able to pass the tests by the end of the conversation, the value will be -1. If data for the trial is missing, the value will be an empty string "".
+""".strip(),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     parser.add_argument(
