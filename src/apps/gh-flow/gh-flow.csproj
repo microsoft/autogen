@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="7.2.1" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.21.0" />
     <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="7.2.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
   
 

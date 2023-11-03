@@ -2,6 +2,7 @@ using Microsoft.AI.DevTeam;
 using Microsoft.AI.DevTeam.Skills;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
+using Octokit.Webhooks.Events.CommitComment;
 using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
@@ -60,6 +61,19 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         {
             await HandleNewAsk(issueNumber, skillName, functionName, suffix, input, org, repo);
         }
+    }
+
+    // TODO: implement
+    protected override Task ProcessPushWebhookAsync(WebhookHeaders headers, PushEvent pushEvent)
+    {
+        var org = pushEvent.Organization.Login;
+        var repo = pushEvent.Repository.Name;
+        // Assumes the label follows the following convention: Skill.Function example: PM.Readme
+       
+        var suffix = $"{org}-{repo}";
+        var ingester = _grains.GetGrain<IIngestRepo>(suffix);
+
+        return Task.CompletedTask;
     }
 
     private async Task HandleClosingIssue(long issueNumber, string skillName, string functionName, string suffix, string org, string repo)
@@ -182,6 +196,11 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         {
             var conductor = _grains.GetGrain<IOrchestrateWorkflows>(issueNumber, suffix);
             await conductor.InitialFlow(input, org, repo, issueNumber);
+        }
+        else if (skillName == "Repo" && functionName == "Ingest")
+        {
+            var ingestor = _grains.GetGrain<IIngestRepo>(suffix);
+            await ingestor.IngestionFlow(org, repo, "main");
         }
         else if (skillName == nameof(PM) && functionName == nameof(PM.Readme))
         {

@@ -1,8 +1,11 @@
 {
     "dotnet.defaultSolution": "sk-dev-team.sln",
-    "azureFunctions.deploySubpath": "sk-azfunc-server/bin/Release/net7.0/publish",
-    "azureFunctions.projectLanguage": "C#",
+    "azureFunctions.deploySubpath": "src/apps/ingest",
+    "azureFunctions.projectLanguage": "JavaScript",
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
-    "azureFunctions.preDeployTask": "publish (functions)"
+    "azureFunctions.preDeployTask": "npm prune (functions)",
+    "azureFunctions.postDeployTask": "npm install (functions)",
+    "azureFunctions.projectLanguageModel": 4,
+    "azureFunctions.projectSubpath": "src/apps/ingest"
 }
