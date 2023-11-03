@@ -3,6 +3,7 @@ from autogen import OpenAIWrapper
 from autogen import Agent, ConversableAgent
 import sys
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
+import copy
 
 try:
     from termcolor import colored
@@ -18,6 +19,29 @@ from autogen.agentchat.groupchat import GroupChat
 
 class CompressibleGroupChatManager(CompressibleAgent):
     """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
+
+    def __init__(
+        self,
+        groupchat: GroupChat,
+        name: Optional[str] = "chat_manager",
+        # unlimited consecutive auto reply by default
+        max_consecutive_auto_reply: Optional[int] = sys.maxsize,
+        human_input_mode: Optional[str] = "NEVER",
+        system_message: Optional[str] = "Group chat manager.",
+        # seed: Optional[int] = 4,
+        **kwargs,
+    ):
+        super().__init__(
+            name=name,
+            max_consecutive_auto_reply=max_consecutive_auto_reply,
+            human_input_mode=human_input_mode,
+            system_message=system_message,
+            **kwargs,
+        )
+        self.register_reply(
+            Agent, CompressibleGroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset
+        )
+        # self._random = random.Random(seed)
 
     def run_chat(
         self,
@@ -76,11 +100,16 @@ class CompressibleGroupChatManager(CompressibleAgent):
             return False
 
         # we will only count the token used by groupmanager
-        token_used = count_token(
-            groupchat.select_speaker_msg + groupchat.messages + [new_message] + groupchat.selector_end_msg,
-            self.llm_config["model"],
+        model = self.llm_config.get("model")
+        self.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
+        # print(groupchat.messages)
+        # print(new_message)
+        # print(groupchat.selector_end_msg())
+        # print(groupchat.messages + [new_message,  groupchat.selector_end_msg()])
+        token_used = self._compute_init_token_count() + count_token(
+            groupchat.messages + [new_message] + groupchat.selector_end_msg(), model
         )
-        max_token = max(get_max_token_limit(self.llm_config["model"]), self.llm_config.get("max_token", 0))
+        max_token = max(get_max_token_limit(model), self.llm_config.get("max_token", 0))
 
         final, compressed_messages = self._manage_history_on_token_limit(
             groupchat.messages, token_used, max_token, last_speaker
@@ -95,29 +124,30 @@ class CompressibleGroupChatManager(CompressibleAgent):
             groupchat.messages = compressed_messages
             # update all agents' messages
             for agent in groupchat.agents:
+                print(f"{agent.name}: before: {agent._oai_messages[self]}")
                 if agent != last_speaker:
                     agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent)
                 else:
                     agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent) + [
                         agent.last_message(self)
                     ]
+                print(f"{agent.name}: after: {agent._oai_messages[self]}")
+                print()
+
             return False  # don't terminate
 
-        elif max_token - token_used <= 0:
+        if max_token - token_used <= 0:
             print(
-                f"Warning: Compression failed, but no token left, terminate. (max_token allowed for {self.llm_config['model']}: {max_token}, current token count: {token_used})"
+                f"Warning: Compression failed, but no token left, terminate. (max_token allowed for {model}: {max_token}, current token count: {token_used})"
             )
             return True
-        else:
-            print(
-                f"Warning: Compression failed, but didn't reached max_token, continue. (max_token allowed for {self.llm_config['model']}: {max_token}, current token count: {token_used})"
-            )
-            return False
+
+        return False
 
     def _convert_agent_messages(self, compressed_messages, agent):
         converted_messages = []
-
-        for cmsg in compressed_messages.copy():
+        tmp_messages = copy.deepcopy(compressed_messages)
+        for cmsg in tmp_messages:
             if cmsg["role"] == "function" or cmsg["role"] == "system":
                 pass  # do nothing
             elif cmsg["name"] == agent.name:

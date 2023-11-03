@@ -247,11 +247,13 @@ Reply "TERMINATE" in the end when everything is done.
         # 2. mode = "COMPRESS" or mode = "CUSTOMIZED", compress the messages
         copied_messages = copy.deepcopy(messages)
         if self.compress_config["mode"] == "COMPRESS":
-            return self.compress_messages(copied_messages)
+            _, compress_messages = self.compress_messages(copied_messages)
         elif self.compress_config["mode"] == "CUSTOMIZED":
-            return self.compress_config["compress_function"](copied_messages)
+            _, compress_messages = self.compress_config["compress_function"](copied_messages)
         else:
             raise ValueError(f"Unknown compression mode: {self.compress_config['mode']}")
+
+        return False, compress_messages
 
     def on_oai_token_limit(
         self,
