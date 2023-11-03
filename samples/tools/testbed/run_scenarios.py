@@ -9,8 +9,8 @@ import pathlib
 import argparse
 from autogen import config_list_from_json
 
-# Location of the environment directory
-INCLUDES_DIR = "./includes"
+# Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
+INCLUDES_DIR = "includes"
 
 
 def run_scenarios(scenario, n_repeats, is_native, config_list, results_dir="results"):
