@@ -8,11 +8,11 @@ AutoGen is a framework that enables development of LLM applications using multip
 
 ### Main Features
 
-* AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcome their weaknesses.
-* It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
+- AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
+- It supports [diverse conversation patterns](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
 the number of agents, and agent conversation topology.
-* It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. They demonstrate how AutoGen can easily support different conversation patterns.
-* AutoGen provides **enhanced LLM inference**. It offers easy performance tuning, plus utilities like API unification & caching, and advanced usage patterns, such as error handling, multi-config inference, context programming etc.
+- It provides a collection of working systems with different complexities. These systems span a [wide range of applications](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen) from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
+- AutoGen provides [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification). It offers utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
 
 AutoGen is powered by collaborative [research studies](/docs/Research) from Microsoft, Penn State University, and University of Washington.
 
@@ -40,13 +40,13 @@ user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stoc
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](/img/chat_example.png)
 
-* [Code examples](/docs/Examples/AutoGen-AgentChat).
+* [Code examples](/docs/Examples/AgentChat).
 * [Documentation](/docs/Use-Cases/agent_chat).
 
 #### Enhanced LLM Inferences
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
-# perform tuning
+# perform tuning for openai<1
 config, analysis = autogen.Completion.tune(
     data=tune_data,
     metric="success",
@@ -60,13 +60,13 @@ config, analysis = autogen.Completion.tune(
 response = autogen.Completion.create(context=test_instance, **config)
 ```
 
-* [Code examples](/docs/Examples/AutoGen-Inference).
+* [Code examples](/docs/Examples/Inference).
 * [Documentation](/docs/Use-Cases/enhanced_inference).
 
 ### Where to Go Next ?
 
 * Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat) and [enhanced LLM inference](/docs/Use-Cases/enhanced_inference).
-* Find [code examples](/docs/Examples/AutoGen-AgentChat).
+* Find [code examples](/docs/Examples/AgentChat).
 * Read [SDK](/docs/reference/agentchat/conversable_agent/).
 * Learn about [research](/docs/Research) around AutoGen.
 * [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)

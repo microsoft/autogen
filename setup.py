@@ -14,11 +14,12 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai<1",
+    "openai==1.0.0b3",
     "diskcache",
     "termcolor",
     "flaml",
     "python-dotenv",
+    "tiktoken",
 ]
 
 
@@ -39,25 +40,17 @@ setuptools.setup(
     install_requires=install_requires,
     extras_require={
         "test": [
-            "chromadb",
-            "lancedb",
             "coverage>=5.3",
-            "datasets",
             "ipykernel",
             "nbconvert",
             "nbformat",
             "pre-commit",
-            "pydantic==1.10.9",
             "pytest-asyncio",
             "pytest>=6.1.1",
-            "sympy",
-            "tiktoken",
-            "wolframalpha",
-            "qdrant_client[fastembed]",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf", "ipython"],
+        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
         "teachable": ["chromadb"],
     },
     classifiers=[
