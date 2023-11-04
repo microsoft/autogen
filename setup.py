@@ -15,12 +15,10 @@ __version__ = version["__version__"]
 
 install_requires = [
     "openai==1.0.0b3",
-    "openai==1.0.0b3",
     "diskcache",
     "termcolor",
     "flaml",
     "python-dotenv",
-    "tiktoken",
     "tiktoken",
 ]
 
@@ -42,10 +40,7 @@ setuptools.setup(
     install_requires=install_requires,
     extras_require={
         "test": [
-            # "chromadb",
-            # "lancedb",
             "coverage>=5.3",
-            # "datasets",
             "ipykernel",
             "nbconvert",
             "nbformat",
