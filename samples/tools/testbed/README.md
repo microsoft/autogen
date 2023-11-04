@@ -2,6 +2,8 @@
 
 The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
+This Testbed sample has been tested in, and is known to work with, Autogen versions 0.1.14 and 0.2.0b1
+
 ## Setup
 
 Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
