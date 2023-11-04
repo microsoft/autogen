@@ -76,6 +76,7 @@ jobs:
           pip install pytest
       - name: Install packages and dependencies for Compression
         run: |
+          pip install -e .
           pip uninstall -y openai
       - name: Test Compression
         run: |

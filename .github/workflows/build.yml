@@ -42,14 +42,24 @@ jobs:
           python -c "import autogen"
           pip install -e. pytest
           pip uninstall -y openai
-      - name: Remove __pycache__ directories
-        run: |
-          find . -type f -name "*.pyc" -delete
-          find . -type d -name "__pycache__" -exec rm -r {} +
       - name: Test with pytest
         if: matrix.python-version != '3.10'
         run: |
+          echo "Listing all .pyc files and __pycache__ directories before removal:"
+          find . -type f -name "*.pyc" -print
+          find . -type d -name "__pycache__" -print
+
+          echo "Removing all .pyc files and __pycache__ directories:"
+          find . -type f -name "*.pyc" -delete
+          find . -type d -name "__pycache__" -exec rm -r {} +
+
+          echo "Listing all .pyc files and __pycache__ directories after removal:"
+          find . -type f -name "*.pyc" -print
+          find . -type d -name "__pycache__" -print
+
+          echo "Running pytest:"
           pytest test
+
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
