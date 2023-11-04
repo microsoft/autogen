@@ -13,17 +13,19 @@ config_list = autogen.config_list_from_json(
     },
 )
 
+try:
+    import openai
+
+    OPENAI_INSTALLED = True
+except ImportError:
+    OPENAI_INSTALLED = False
+
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows",
 )
 def test_compressible_agent():
-    try:
-        import openai
-    except ImportError:
-        return
-
     conversations = {}
 
     assistant = CompressibleAgent(
@@ -58,12 +60,11 @@ def test_compressible_agent():
     print(conversations)
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
+    reason="do not run on MacOS or windows",
+)
 def test_compress_messsage():
-    try:
-        import openai
-    except ImportError:
-        return
-
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
