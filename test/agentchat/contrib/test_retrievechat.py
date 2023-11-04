@@ -1,9 +1,13 @@
 import pytest
+import os
 import sys
 import autogen
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
+    import openai
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
         RetrieveAssistantAgent,
     )
@@ -20,30 +24,22 @@ except ImportError:
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip_test,
-    reason="do not run on MacOS or windows",
+    reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_retrievechat():
-    try:
-        import openai
-    except ImportError:
-        return
-
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)  # deprecated in v0.2
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
-        },
     )
 
     assistant = RetrieveAssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 42,
             "config_list": config_list,
         },

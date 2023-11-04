@@ -1,28 +1,23 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Build
+name: ContribTests
 
 on:
-  push:
-    branches: ['main']
+  pull_request:
+    branches: ['main', 'dev/v0.2']
     paths:
       - 'autogen/**'
-      - 'test/**'
-      - '.github/workflows/build.yml'
+      - 'test/agentchat/contrib/**'
+      - '.github/workflows/contrib-tests.yml'
       - 'setup.py'
-  pull_request:
-    branches: ['main']
-  merge_group:
-    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  build:
-
+  RetrieveChatTest:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -35,23 +30,26 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install packages and dependencies
+      - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e .
-          python -c "import autogen"
-          pip install -e. pytest
-          pip uninstall -y openai
-      - name: Test with pytest
-        if: matrix.python-version != '3.10'
+          pip install pytest
+      - name: Install qdrant_client when python-version is 3.10
+        if: matrix.python-version == '3.10' || matrix.python-version == '3.8'
         run: |
-          pytest test
+          pip install qdrant_client[fastembed]
+      - name: Install packages and dependencies for RetrieveChat
+        run: |
+          pip install -e .[retrievechat]
+          pip uninstall -y openai
+      - name: Test RetrieveChat
+        run: |
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[mathchat,test]
-          pip uninstall -y openai
-          coverage run -a -m pytest test
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
