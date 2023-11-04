@@ -264,7 +264,7 @@ Reply "TERMINATE" in the end when everything is done.
         return False, compress_messages
 
     def _get_valid_oai_message(self, message):
-        """Convert a message into a valid ChatCompletion message."""
+        """Convert a message into a valid OpenAI ChatCompletion message."""
         oai_message = {k: message[k] for k in ("content", "function_call", "name", "context", "role") if k in message}
         if "content" not in oai_message:
             if "function_call" in oai_message:
@@ -296,29 +296,27 @@ Reply "TERMINATE" in the end when everything is done.
             messages = self._oai_messages[sender]
 
         model = llm_config["model"]
-        token_used = self._compute_init_token_count() + count_token(messages, model)
+        init_token_count = self._compute_init_token_count()
+        token_used = init_token_count + count_token(messages, model)
         final, compressed_messages = self._manage_history_on_token_limit(
             messages, token_used, get_max_token_limit(model), model
         )
 
         # update message history with compressed messages
         if compressed_messages is not None:
-            to_print = (
-                "Token Count (of msgs after first prompt): Before compression: {} After: {} | "
-                "Total prompt token count after compression: {}".format(
-                    count_token(self._oai_messages[sender][1:], model),
-                    count_token(compressed_messages[1:], model),
-                    count_token(compressed_messages, model) + self._compute_init_token_count(),
-                )
+            to_print = "Token Count (including {} tokens from system msg and function descriptions). Before compression : {} | After: {}".format(
+                init_token_count,
+                token_used,
+                count_token(compressed_messages, model) + init_token_count,
             )
             print(colored(to_print, "magenta"), flush=True)
             print("-" * 80, flush=True)
 
             self._oai_messages[sender] = compressed_messages
             if self.compress_config["broadcast"]:
+                # update the compressed message history to sender
                 sender._oai_messages[self] = copy.deepcopy(compressed_messages)
-
-                # converting roles
+                # switching the role of the messages for the sender
                 for i in range(len(sender._oai_messages[self])):
                     cmsg = sender._oai_messages[self][i]
                     if "function_call" in cmsg or cmsg["role"] == "user":
@@ -429,5 +427,5 @@ Rules:
                     "role": "system",
                 },
             ]
-            + messages[-leave_last_n:],
+            + messages[len(messages) - leave_last_n :],
         )
