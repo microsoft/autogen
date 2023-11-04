@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10"]
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
@@ -38,13 +38,11 @@ jobs:
           python -c "import autogen"
           pip install coverage pytest-asyncio
       - name: Install packages for test when needed
-        if: matrix.python-version == '3.10'
         run: |
           pip install docker
           pip install qdrant_client[fastembed]
           pip install -e .[retrievechat]
       - name: Coverage
-        if: matrix.python-version == '3.10'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
