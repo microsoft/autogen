@@ -48,6 +48,7 @@ Reply "TERMINATE" in the end when everything is done.
         "async": False,
         "broadcast": True,
         "verbose": False,
+        "leave_last_n": 2,
     }
 
     def __init__(
@@ -91,6 +92,7 @@ Reply "TERMINATE" in the end when everything is done.
                 - "async" (Optional, bool, default to False): whether to compress asynchronously.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
                 - "verbose" (Optional, bool, default to False): Whether to print the content before and after compression. Used when mode="COMPRESS".
+                - "leave_last_n" (Optional, int, default to 0): If provided, the last n messages will not be compressed. Used when mode="COMPRESS".
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
@@ -147,6 +149,8 @@ Reply "TERMINATE" in the end when everything is done.
                 self.compress_config["trigger_count"] = int(
                     trigger_count * get_max_token_limit(self.llm_config["model"])
                 )
+            if not isinstance(self.compress_config["leave_last_n"], int) or self.compress_config["leave_last_n"] < 0:
+                raise ValueError("leave_last_n must be a non-negative integer.")
             init_count = self._compute_init_token_count()
             if trigger_count < init_count:
                 print(
@@ -254,12 +258,13 @@ Reply "TERMINATE" in the end when everything is done.
         else:
             raise ValueError(f"Unknown compression mode: {self.compress_config['mode']}")
 
-        for i in range(len(compress_messages)):
-            compress_messages[i] = self._get_valid_oai_message(compress_messages[i])
+        if compress_messages is not None:
+            for i in range(len(compress_messages)):
+                compress_messages[i] = self._get_valid_oai_message(compress_messages[i])
         return False, compress_messages
 
     def _get_valid_oai_message(self, message):
-        """Convert a message into a valid ChatCompletion message."""
+        """Convert a message into a valid OpenAI ChatCompletion message."""
         oai_message = {k: message[k] for k in ("content", "function_call", "name", "context", "role") if k in message}
         if "content" not in oai_message:
             if "function_call" in oai_message:
@@ -291,36 +296,34 @@ Reply "TERMINATE" in the end when everything is done.
             messages = self._oai_messages[sender]
 
         model = llm_config["model"]
-        token_used = self._compute_init_token_count() + count_token(messages, model)
+        init_token_count = self._compute_init_token_count()
+        token_used = init_token_count + count_token(messages, model)
         final, compressed_messages = self._manage_history_on_token_limit(
             messages, token_used, get_max_token_limit(model), model
         )
 
         # update message history with compressed messages
         if compressed_messages is not None:
-            to_print = (
-                "Token Count (of msgs after first prompt): Before compression: {} After: {} | "
-                "Total prompt token count after compression: {}".format(
-                    count_token(self._oai_messages[sender][1:], model),
-                    count_token(compressed_messages[1:], model),
-                    count_token(compressed_messages, model) + self._compute_init_token_count(),
-                )
+            to_print = "Token Count (including {} tokens from system msg and function descriptions). Before compression : {} | After: {}".format(
+                init_token_count,
+                token_used,
+                count_token(compressed_messages, model) + init_token_count,
             )
             print(colored(to_print, "magenta"), flush=True)
             print("-" * 80, flush=True)
 
             self._oai_messages[sender] = compressed_messages
             if self.compress_config["broadcast"]:
+                # update the compressed message history to sender
                 sender._oai_messages[self] = copy.deepcopy(compressed_messages)
-
-                # converting roles
+                # switching the role of the messages for the sender
                 for i in range(len(sender._oai_messages[self])):
                     cmsg = sender._oai_messages[self][i]
                     if "function_call" in cmsg or cmsg["role"] == "user":
                         cmsg["role"] = "assistant"
                     elif cmsg["role"] == "assistant":
                         cmsg["role"] = "user"
-                    self._oai_messages[sender][i] = cmsg
+                    sender._oai_messages[self][i] = cmsg
 
             # sucessfully compressed, return False, None for generate_oai_reply to be called with the updated messages
             return False, None
@@ -343,8 +346,11 @@ Reply "TERMINATE" in the end when everything is done.
         client = self.compress_client if config is None else config
 
         # 2. stop if there is only one message in the list
-        if len(messages) <= 1:
-            logger.warning(f"The first message contains {count_token(messages)} tokens, which will not be compressed.")
+        leave_last_n = self.compress_config.get("leave_last_n", 0)
+        if leave_last_n + 1 >= len(messages):
+            logger.warning(
+                f"Warning: Compression skipped at trigger count threshold. The first msg and last {leave_last_n} msgs will not be compressed. current msg count: {len(messages)}. Consider raising trigger_count."
+            )
             return False, None
 
         # 3. put all history into one, except the first one
@@ -354,7 +360,7 @@ Reply "TERMINATE" in the end when everything is done.
         compressed_prompt = "Below is the compressed content from the previous conversation, evaluate the process and continue if necessary:\n"
         chat_to_compress = "To be compressed:\n"
 
-        for m in messages[1:]:
+        for m in messages[1 : len(messages) - leave_last_n]:  # 0, 1, 2, 3, 4
             # Handle function role
             if m.get("role") == "function":
                 chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"): \n{m['content']}\n"
@@ -412,10 +418,14 @@ Rules:
             print(compressed_message, colored("\n" + "*" * 80, "magenta"))
 
         # 5. add compressed message to the first message and return
-        return True, [
-            messages[0],
-            {
-                "content": compressed_prompt + compressed_message,
-                "role": "system",
-            },
-        ]
+        return (
+            True,
+            [
+                messages[0],
+                {
+                    "content": compressed_prompt + compressed_message,
+                    "role": "system",
+                },
+            ]
+            + messages[len(messages) - leave_last_n :],
+        )

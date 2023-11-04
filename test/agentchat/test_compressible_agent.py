@@ -25,7 +25,6 @@ def test_compressible_agent():
         return
 
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
 
     assistant = CompressibleAgent(
         name="assistant",
