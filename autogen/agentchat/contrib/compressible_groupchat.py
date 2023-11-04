@@ -60,16 +60,17 @@ class CompressibleGroupChatManager(CompressibleAgent):
             if message["role"] != "function":
                 message["name"] = speaker.name
 
-            # check if the groupchat is over the limit, and compress if needed
-            is_terminte = self.on_groupchat_limit(groupchat, message, speaker)
-            if is_terminte:
-                break
-
             groupchat.messages.append(message)
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
+
+            # check if the groupchat is over the limit, and compress if needed
+            is_terminte = self.on_groupchat_limit(groupchat)
+            if is_terminte:
+                break
+
             if i == groupchat.max_round - 1:
                 # the last round
                 break
@@ -94,7 +95,7 @@ class CompressibleGroupChatManager(CompressibleAgent):
             message = self.last_message(speaker)
         return True, None
 
-    def on_groupchat_limit(self, groupchat: GroupChat, new_message: Dict, last_speaker: Agent):
+    def on_groupchat_limit(self, groupchat: GroupChat):
         # disabled if compress_config is False
         if self.compress_config is False:
             return False
@@ -103,37 +104,34 @@ class CompressibleGroupChatManager(CompressibleAgent):
         model = self.llm_config.get("model")
         self.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
         token_used = self._compute_init_token_count() + count_token(
-            groupchat.messages + [new_message] + groupchat.selector_end_msg(), model
+            groupchat.messages + groupchat.selector_end_msg(), model
         )
         max_token = max(get_max_token_limit(model), self.llm_config.get("max_token", 0))
 
+        # check if the token used is over the limit
         final, compressed_messages = self._manage_history_on_token_limit(
-            groupchat.messages, token_used, max_token, last_speaker
+            groupchat.messages, token_used, max_token, model
         )
         # False, None -> no compression is needed
         # False, compressed_messages -> compress success
         # True, None -> terminate
-        if final:
-            return True
 
+        # update the groupchat messages
+        if final:
+            return True  # terminate
         if compressed_messages is not None:
-            groupchat.messages = compressed_messages
+            groupchat.messages = copy.deepcopy(compressed_messages)
             # update all agents' messages
             for agent in groupchat.agents:
                 print(f"{agent.name}: before: {agent._oai_messages[self]}")
-                if agent != last_speaker:
-                    agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent)
-                else:
-                    agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent) + [
-                        agent.last_message(self)
-                    ]
+                agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent)
                 print(f"{agent.name}: after: {agent._oai_messages[self]}")
                 print()
 
         return False
 
     def _convert_agent_messages(self, compressed_messages, agent):
-        """Convert messages to a corresponding agent's view"""
+        """Convert messages to a corresponding agent's view."""
         converted_messages = []
         tmp_messages = copy.deepcopy(compressed_messages)
         for cmsg in tmp_messages:
@@ -142,9 +140,12 @@ class CompressibleGroupChatManager(CompressibleAgent):
             elif cmsg["name"] == agent.name:
                 del cmsg["name"]
                 cmsg["role"] = "assistant"
-            elif "function_call" in cmsg:
-                cmsg["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
             else:
                 cmsg["role"] = "user"
+
+            # if the message is a function call, the role is assistant
+            if "function_call" in cmsg:
+                cmsg["role"] = "assistant"
+
             converted_messages.append(cmsg)
         return converted_messages
