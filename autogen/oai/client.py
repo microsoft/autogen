@@ -70,7 +70,8 @@ class OpenAIWrapper:
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
         if config_list:
-            self._clients = [self._client(config, openai_config) for config in config_list]
+            config_list = [config.copy() for config in config_list]  # make a copy before modifying
+            self._clients = [self._client(config, openai_config) for config in config_list]  # could modify the config
             self._config_list = [
                 {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
