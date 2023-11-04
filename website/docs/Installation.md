@@ -36,6 +36,7 @@ Now, you're ready to install AutoGen in the virtual environment you've just crea
 ## Python
 
 AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
+AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
 
 ```bash
 pip install pyautogen
@@ -55,7 +56,7 @@ openai v1 is a total rewrite of the library with many breaking changes. For exam
 Therefore, some changes are required for users of `pyautogen<0.2`.
 
 - `api_base` -> `base_url`, `request_timeout` -> `timeout` in `llm_config` and `config_list`. `max_retry_period` and `retry_wait_time` are deprecated. `max_retries` can be set for each client.
-- MathChat, RetrieveChat, and TeachableAgent are unsupported until they are tested in future release.
+- MathChat, TeachableAgent are unsupported until they are tested in future release.
 - `autogen.Completion` and `autogen.ChatCompletion` are deprecated. The essential functionalities are moved to `autogen.OpenAIWrapper`:
 ```python
 from autogen import OpenAIWrapper
@@ -91,6 +92,7 @@ Example notebooks:
 * retrievechat
 
 `pyautogen<0.2` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+`pyautogen<0.2` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
 ```bash
 pip install "pyautogen[retrievechat]<0.2"
 ```
@@ -102,7 +104,9 @@ Example notebooks:
 * mathchat
 
 `pyautogen<0.2` offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
+`pyautogen<0.2` offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
 ```bash
+pip install "pyautogen[mathchat]<0.2"
 pip install "pyautogen[mathchat]<0.2"
 ```
 

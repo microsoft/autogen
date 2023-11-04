@@ -42,13 +42,14 @@ The easiest way to start playing is
 
     [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
 
- 2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct config.
+ 2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
 
 
 ## Installation
 
+AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
 AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
 
 ```bash
@@ -72,6 +73,7 @@ For LLM inference configurations, check the [FAQs](https://microsoft.github.io/a
 
 ## Multi-Agent Conversation Framework
 
+Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
 Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
@@ -107,14 +109,19 @@ The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
 
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AgentChat) for this feature.
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AgentChat) for this feature.
 
 ## Enhanced LLM Inferences
 
 Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification) with powerful functionalities like caching, error handling, multi-config inference and templating.
 
 <!-- For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification) with powerful functionalities like caching, error handling, multi-config inference and templating.
+
+<!-- For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
 
 ```python
+# perform tuning for openai<1
 # perform tuning for openai<1
 config, analysis = autogen.Completion.tune(
     data=tune_data,
@@ -129,6 +136,7 @@ config, analysis = autogen.Completion.tune(
 response = autogen.Completion.create(context=test_instance, **config)
 ```
 
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/Inference) for this feature. -->
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/Inference) for this feature. -->
 
 ## Documentation

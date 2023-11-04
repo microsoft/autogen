@@ -90,7 +90,7 @@ class OpenAIWrapper:
                 # remove the api_version from extra_kwargs
                 extra_kwargs.pop("api_version")
         if segment == "extra":
-            return config
+            return
         # deal with api_type
         api_type = extra_kwargs.get("api_type")
         if api_type is not None and api_type.startswith("azure") and headers_segment not in config:
@@ -102,6 +102,9 @@ class OpenAIWrapper:
             model = extra_kwargs.get("model")
             if model is None:
                 return
+            if "gpt-3.5" in model:
+                # hack for azure gpt-3.5
+                extra_kwargs["model"] = model = model.replace("gpt-3.5", "gpt-35")
             base_url = config.get("base_url")
             if base_url is None:
                 raise ValueError("to use azure openai api, base_url must be specified.")

@@ -28,7 +28,7 @@ simplify the process of building applications that leverage the power of LLMs, a
 integration, testing, and deployment."""
 
 
-@pytest.mark.skipif(skip, reason="dependency not installed")
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestRetrieveUtils:
     def test_split_text_to_chunks(self):
         long_text = "A" * 10000
@@ -167,7 +167,9 @@ class TestRetrieveUtils:
 
     def test_retrieve_utils(self):
         client = chromadb.PersistentClient(path="/tmp/chromadb")
-        create_vector_db_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs")
+        create_vector_db_from_dir(
+            dir_path="./website/docs", client=client, collection_name="autogen-docs", get_or_create=True
+        )
         results = query_vector_db(
             query_texts=[
                 "How can I use AutoGen UserProxyAgent and AssistantAgent to do code generation?",

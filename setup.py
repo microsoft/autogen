@@ -15,10 +15,12 @@ __version__ = version["__version__"]
 
 install_requires = [
     "openai==1.0.0b3",
+    "openai==1.0.0b3",
     "diskcache",
     "termcolor",
     "flaml",
     "python-dotenv",
+    "tiktoken",
     "tiktoken",
 ]
 
@@ -48,17 +50,12 @@ setuptools.setup(
             "nbconvert",
             "nbformat",
             "pre-commit",
-            # "pydantic==1.10.9",
             "pytest-asyncio",
             "pytest>=6.1.1",
-            # "sympy",
-            # "tiktoken",
-            # "wolframalpha",
-            # "qdrant_client[fastembed]",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb", "tiktoken", "sentence_transformers", "pypdf", "ipython"],
+        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
         "teachable": ["chromadb"],
     },
     classifiers=[
