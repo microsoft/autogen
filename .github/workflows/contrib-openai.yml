@@ -1,24 +1,23 @@
-# This workflow will install Python dependencies and run tests with a variety of Python versions
+# This workflow will install Python dependencies and run tests
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: OpenAI
+name: OpenAI4ContribTests
 
 on:
   pull_request_target:
     branches: ['main']
     paths:
       - 'autogen/**'
-      - 'test/**'
-      - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
-      - 'notebook/agentchat_function_call.ipynb'
-      - '.github/workflows/openai.yml'
+      - 'test/agentchat/contrib/**'
+      - '.github/workflows/contrib-openai.yml'
+      - 'setup.py'
 
 jobs:
-  test:
+  RetrieveChatTest:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10"]
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
@@ -35,41 +34,23 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e.
+          pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
       - name: Install packages for test when needed
-        if: matrix.python-version == '3.9'
         run: |
           pip install docker
-      - name: Install dependencies for test when needed
-        if: matrix.python-version == '3.10'  # test_agentchat_function_call
-        run: |
-          pip install -e.[mathchat]
+          pip install qdrant_client[fastembed]
+          pip install -e .[retrievechat]
       - name: Coverage
-        if: matrix.python-version == '3.9'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test
+          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
           coverage xml
-      - name: Coverage and check notebook outputs
-        if: matrix.python-version != '3.9'
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
-          WOLFRAM_ALPHA_APPID: ${{ secrets.WOLFRAM_ALPHA_APPID }}
-          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
-        run: |
-          pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/agentchat/test_function_call_groupchat.py
-          coverage run -a -m pytest test/test_notebook.py
-          coverage xml
-          cat "$(pwd)/test/executed_openai_notebook_output.txt"
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

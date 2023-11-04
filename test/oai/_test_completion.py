@@ -13,9 +13,8 @@ from autogen.code_utils import (
     generate_code,
 )
 from autogen.math_utils import eval_math_responses, solve_problem
+from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
-KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -272,7 +271,7 @@ def test_humaneval(num_samples=1):
     )
     response = autogen.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
     print(response)
-    from openai.error import RateLimitError
+    from openai import RateLimitError
 
     try:
         code, cost, selected = implement(tune_data[1], [{**config_list[-1], **config}])

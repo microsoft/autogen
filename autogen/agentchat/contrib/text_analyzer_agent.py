@@ -10,7 +10,7 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 
 class TextAnalyzerAgent(ConversableAgent):
-    """Text Analysis agent, a subclass of ConversableAgent designed to analyze text as instructed."""
+    """(Experimental) Text Analysis agent, a subclass of ConversableAgent designed to analyze text as instructed."""
 
     def __init__(
         self,
@@ -26,7 +26,7 @@ class TextAnalyzerAgent(ConversableAgent):
             system_message (str): system message for the ChatCompletion inference.
             human_input_mode (str): This agent should NEVER prompt the human for input.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
             teach_config (dict or None): Additional parameters used by TeachableAgent.
@@ -74,9 +74,5 @@ class TextAnalyzerAgent(ConversableAgent):
         msg_text = "\n".join(
             [analysis_instructions, text_to_analyze, analysis_instructions]
         )  # Repeat the instructions.
-        messages = self._oai_system_message + [{"role": "user", "content": msg_text}]
-
         # Generate and return the analysis string.
-        response = oai.ChatCompletion.create(context=None, messages=messages, **self.llm_config)
-        output_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
-        return output_text
+        return self.generate_oai_reply([{"role": "user", "content": msg_text}], None, None)[1]
