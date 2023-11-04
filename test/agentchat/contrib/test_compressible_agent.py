@@ -1,9 +1,13 @@
 import pytest
 import sys
 import autogen
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-
+import os
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
+
+here = os.path.abspath(os.path.dirname(__file__))
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+
 
 config_list = autogen.config_list_from_json(
     OAI_CONFIG_LIST,
@@ -48,7 +52,7 @@ def test_compressible_agent():
         max_consecutive_auto_reply=5,
         is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE")
         or x.get("content", "").rstrip().endswith("TERMINATE."),
-        code_execution_config={"work_dir": "math"},
+        code_execution_config={"work_dir": here},
     )
 
     user_proxy.initiate_chat(
