@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import sys
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 import logging
@@ -59,8 +59,8 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
-        """Select the next speaker."""
+    def prepare_agents_subset(self) -> Tuple[Optional[Agent], List[Agent]]:
+        """Returns list of agents to be picked from and in some special cases returns next speaker directly."""
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
             # find agents with the right function_map which contains the function name
             agents = [
@@ -68,12 +68,12 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             ]
             if len(agents) == 1:
                 # only one agent can execute the function
-                return agents[0]
+                return agents[0], agents
             elif not agents:
                 # find all the agents with function_map
                 agents = [agent for agent in self.agents if agent.function_map]
                 if len(agents) == 1:
-                    return agents[0]
+                    return agents[0], agents
                 elif not agents:
                     raise ValueError(
                         f"No agent can execute the function {self.messages[-1]['name']}. "
@@ -87,6 +87,14 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 logger.warning(
                     f"GroupChat is underpopulated with {n_agents} agents. Direct communication would be more efficient."
                 )
+        return None, agents
+
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+        """Select the next speaker."""
+        next_speaker, agents = self.prepare_agents_subset()
+        if next_speaker:
+            return next_speaker
+
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = selector.generate_oai_reply(
             self.messages
@@ -106,33 +114,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return self.next_agent(last_speaker, agents)
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
-        """Select the next speaker."""
-        if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
-            # find agents with the right function_map which contains the function name
-            agents = [
-                agent for agent in self.agents if agent.can_execute_function(self.messages[-1]["function_call"]["name"])
-            ]
-            if len(agents) == 1:
-                # only one agent can execute the function
-                return agents[0]
-            elif not agents:
-                # find all the agents with function_map
-                agents = [agent for agent in self.agents if agent.function_map]
-                if len(agents) == 1:
-                    return agents[0]
-                elif not agents:
-                    raise ValueError(
-                        f"No agent can execute the function {self.messages[-1]['name']}. "
-                        "Please check the function_map of the agents."
-                    )
-        else:
-            agents = self.agents
-            # Warn if GroupChat is underpopulated
-            n_agents = len(agents)
-            if n_agents < 3:
-                logger.warning(
-                    f"GroupChat is underpopulated with {n_agents} agents. Direct communication would be more efficient."
-                )
+        """Select the next speaker asynchronously."""
+        next_speaker, agents = self.prepare_agents_subset()
+        if next_speaker:
+            return next_speaker
+
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = await selector.a_generate_oai_reply(
             self.messages
