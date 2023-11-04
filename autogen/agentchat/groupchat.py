@@ -105,6 +105,52 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         except ValueError:
             return self.next_agent(last_speaker, agents)
 
+    async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+        """Select the next speaker."""
+        if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
+            # find agents with the right function_map which contains the function name
+            agents = [
+                agent for agent in self.agents if agent.can_execute_function(self.messages[-1]["function_call"]["name"])
+            ]
+            if len(agents) == 1:
+                # only one agent can execute the function
+                return agents[0]
+            elif not agents:
+                # find all the agents with function_map
+                agents = [agent for agent in self.agents if agent.function_map]
+                if len(agents) == 1:
+                    return agents[0]
+                elif not agents:
+                    raise ValueError(
+                        f"No agent can execute the function {self.messages[-1]['name']}. "
+                        "Please check the function_map of the agents."
+                    )
+        else:
+            agents = self.agents
+            # Warn if GroupChat is underpopulated
+            n_agents = len(agents)
+            if n_agents < 3:
+                logger.warning(
+                    f"GroupChat is underpopulated with {n_agents} agents. Direct communication would be more efficient."
+                )
+        selector.update_system_message(self.select_speaker_msg(agents))
+        final, name = await selector.a_generate_oai_reply(
+            self.messages
+            + [
+                {
+                    "role": "system",
+                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
+                }
+            ]
+        )
+        if not final:
+            # i = self._random.randint(0, len(self._agent_names) - 1)  # randomly pick an id
+            return self.next_agent(last_speaker, agents)
+        try:
+            return self.agent_by_name(name)
+        except ValueError:
+            return self.next_agent(last_speaker, agents)
+
     def _participant_roles(self):
         return "\n".join([f"{agent.name}: {agent.system_message}" for agent in self.agents])
 
@@ -209,7 +255,7 @@ class GroupChatManager(ConversableAgent):
                 break
             try:
                 # select the next speaker
-                speaker = groupchat.select_speaker(speaker, self)
+                speaker = await groupchat.a_select_speaker(speaker, self)
                 # let the speaker speak
                 reply = await speaker.a_generate_reply(sender=self)
             except KeyboardInterrupt:
