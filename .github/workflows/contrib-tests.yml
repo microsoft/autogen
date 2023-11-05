@@ -53,10 +53,9 @@ jobs:
         id: install_mathchat
         if: ${{ always() }}
         run: |
-          echo "result=failure" >> $GITHUB_OUTPUT
+          exit 1
           pip install -e .[mathchat]
           pip uninstall -y openai
-          echo "result=success" >> $GITHUB_OUTPUT
       - name: test MathChat
         if: ${{ always() && steps.install_mathchat.outcome == 'success' }}
         run: |
