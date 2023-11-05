@@ -57,11 +57,10 @@ jobs:
         if: ${{ always() }}
         run: |
           set -e
-          trap 'echo "::set-output name=result::failure"' ERR
+          trap 'echo "result=failure" >> $GITHUB_OUTPUT' ERR
           pip install docker
           pip install -e .[mathchat]
-          echo "::set-output name=result::success"
-
+          echo "result=failure" >> $GITHUB_OUTPUT
       - name: Coverage MathChat
         if: ${{ steps.install_mathchat.outputs.result == 'success' }}
         env:
