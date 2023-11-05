@@ -27,7 +27,7 @@ except ImportError:
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows",
+    reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_compressible_agent():
     conversations = {}
@@ -66,7 +66,7 @@ def test_compressible_agent():
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows",
+    reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_compress_messsage():
     assistant = CompressibleAgent(

@@ -56,7 +56,6 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
-
   CompressionTest:
     strategy:
       matrix:
