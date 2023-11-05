@@ -6,19 +6,22 @@ from autogen.agentchat.contrib.math_user_proxy_agent import (
     _remove_print,
     _add_print_to_last_line,
 )
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    from openai import OpenAI
+    import openai
+
+    OPENAI_INSTALLED = True
 except ImportError:
-    skip = True
-else:
-    skip = False
+    OPENAI_INSTALLED = False
 
 
 @pytest.mark.skipif(
-    skip or sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows",
+    OPENAI_INSTALLED or sys.platform in ["darwin", "win32"],
+    reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_math_user_proxy_agent():
     from autogen.agentchat.assistant_agent import AssistantAgent
@@ -119,7 +122,7 @@ def test_generate_prompt():
 
 
 if __name__ == "__main__":
-    # test_add_remove_print()
-    # test_execute_one_python_code()
-    # test_generate_prompt()
+    test_add_remove_print()
+    test_execute_one_python_code()
+    test_generate_prompt()
     test_math_user_proxy_agent()

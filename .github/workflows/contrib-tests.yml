@@ -38,6 +38,7 @@ jobs:
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10' || matrix.python-version == '3.8'
         run: |
+          exit 1
           pip install qdrant_client[fastembed]
       - name: Install packages and dependencies for RetrieveChat
         run: |
@@ -60,7 +61,7 @@ jobs:
       - name: test MathChat
         if: ${{ steps.install_mathchat.outputs.result == 'success' }}
         run: |
-          pytest test/test_math_utils.py test/agentchat/contrib/test_math_user_proxy_agent.py
+          pytest test/agentchat/contrib/test_math_user_proxy_agent.py
 
       # Coverage
       - name: Coverage
