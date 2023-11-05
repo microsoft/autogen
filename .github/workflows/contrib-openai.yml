@@ -60,7 +60,7 @@ jobs:
           trap 'echo "result=failure" >> $GITHUB_OUTPUT' ERR
           pip install docker
           pip install -e .[mathchat]
-          echo "result=failure" >> $GITHUB_OUTPUT
+          echo "result=success" >> $GITHUB_OUTPUT
       - name: Coverage MathChat
         if: ${{ steps.install_mathchat.outputs.result == 'success' }}
         env:
