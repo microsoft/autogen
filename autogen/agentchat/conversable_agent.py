@@ -627,8 +627,7 @@ class ConversableAgent(Agent):
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai asynchronously."""
         return await asyncio.get_event_loop().run_in_executor(
-            None,
-            functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
+            None, functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
         )
 
     def generate_code_execution_reply(
