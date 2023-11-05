@@ -3,17 +3,29 @@ import os
 import requests
 from urllib.parse import urlparse
 import glob
-import chromadb
-
-if chromadb.__version__ < "0.4.15":
-    from chromadb.api import API
-else:
-    from chromadb.api import ClientAPI as API
-from chromadb.api.types import QueryResult
-import chromadb.utils.embedding_functions as ef
 import logging
-import pypdf
 from autogen.token_count_utils import count_token
+
+try:
+    import chromadb
+
+    if chromadb.__version__ < "0.4.15":
+        from chromadb.api import API
+    else:
+        from chromadb.api import ClientAPI as API
+    from chromadb.api.types import QueryResult
+    import chromadb.utils.embedding_functions as ef
+
+    HAS_CHROMADB = True
+except ImportError:
+    HAS_CHROMADB = False
+
+    class API:
+        pass
+
+    class QueryResult(dict):
+        pass
+
 
 logger = logging.getLogger(__name__)
 TEXT_FORMATS = [
@@ -88,6 +100,8 @@ def split_text_to_chunks(
 
 def extract_text_from_pdf(file: str) -> str:
     """Extract text from PDF files"""
+    import pypdf
+
     text = ""
     with open(file, "rb") as f:
         reader = pypdf.PdfReader(f)
@@ -240,6 +254,8 @@ def create_vector_db_from_dir(
     Returns:
         API: the chromadb client.
     """
+    if not HAS_CHROMADB:
+        raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
     try:
@@ -314,6 +330,8 @@ def query_vector_db(
                 metadatas: Optional[List[List[Metadata]]]
                 distances: Optional[List[List[float]]]
     """
+    if not HAS_CHROMADB:
+        raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
     # the collection's embedding function is always the default one, but we want to use the one we used to create the

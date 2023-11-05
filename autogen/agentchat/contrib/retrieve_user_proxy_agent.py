@@ -1,17 +1,11 @@
 import re
-
-try:
-    import chromadb
-except ImportError:
-    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
+from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from IPython import get_ipython
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
 from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
-
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
-from IPython import get_ipython
 
 try:
     from termcolor import colored
@@ -19,6 +13,15 @@ except ImportError:
 
     def colored(x, *args, **kwargs):
         return x
+
+
+try:
+    import chromadb
+except ImportError:
+
+    class chromadb:
+        class Client:
+            pass
 
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
