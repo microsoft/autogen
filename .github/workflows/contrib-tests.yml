@@ -65,7 +65,7 @@ jobs:
           echo "install_mathchat result: ${{ steps.install_mathchat.outputs.result }}"
 
       - name: test MathChat
-        if: ${{ steps.install_mathchat.outputs.result == 'success' }}
+        if: ${{ always() && steps.install_mathchat.outputs.result == 'success' }}
         run: |
           pytest test/agentchat/contrib/test_math_user_proxy_agent.py
 
