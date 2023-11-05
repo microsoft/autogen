@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install -e.[mathchat,retrievechat,test] datasets pytest
+          pip install -e. pytest
           pip uninstall -y openai
       - name: Install unstructured if not windows
         if: matrix.os != 'windows-2019'
@@ -53,7 +53,8 @@ jobs:
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install coverage
+          pip install -e .[mathchat,test]
+          pip uninstall -y openai
           coverage run -a -m pytest test
           coverage xml
       - name: Upload coverage to Codecov

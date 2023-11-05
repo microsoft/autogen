@@ -1,22 +1,25 @@
 """
 Unit test for retrieve_utils.py
 """
-
-from autogen.retrieve_utils import (
-    split_text_to_chunks,
-    extract_text_from_pdf,
-    split_files_to_chunks,
-    get_files_from_dir,
-    is_url,
-    create_vector_db_from_dir,
-    query_vector_db,
-)
-from autogen.token_count_utils import count_token
-
+try:
+    import chromadb
+    from autogen.retrieve_utils import (
+        split_text_to_chunks,
+        extract_text_from_pdf,
+        split_files_to_chunks,
+        get_files_from_dir,
+        is_url,
+        create_vector_db_from_dir,
+        query_vector_db,
+    )
+    from autogen.token_count_utils import count_token
+except ImportError:
+    skip = True
+else:
+    skip = False
 import os
 import sys
 import pytest
-import chromadb
 
 try:
     from unstructured.partition.auto import partition
@@ -32,6 +35,7 @@ simplify the process of building applications that leverage the power of LLMs, a
 integration, testing, and deployment."""
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestRetrieveUtils:
     def test_split_text_to_chunks(self):
         long_text = "A" * 10000

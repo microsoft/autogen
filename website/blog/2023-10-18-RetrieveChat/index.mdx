@@ -65,7 +65,7 @@ You can find a list of all supported document types by using `autogen.retrieve_u
 
 1. Import Agents
 ```python
-from autogen
+import autogen
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 ```
@@ -301,7 +301,7 @@ llm_config = {
         },
     ],
     "config_list": config_list,
-    "request_timeout": 60,
+    "timeout": 60,
     "seed": 42,
 }
 
