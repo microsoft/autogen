@@ -58,7 +58,7 @@ jobs:
           pip uninstall -y openai
           echo "result=success" >> $GITHUB_OUTPUT
       - name: test MathChat
-        if: ${{ always() && steps.install_mathchat.outputs.result == 'success' }}
+        if: ${{ always() && steps.install_mathchat.outcome == 'success' }}
         run: |
           pytest test/agentchat/contrib/test_math_user_proxy_agent.py
 
