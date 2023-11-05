@@ -38,7 +38,7 @@ AutoGen is powered by collaborative [research studies](https://microsoft.github.
 
 ## Quickstart
 The easiest way to start playing is
-1. Click below to use the Github Codespace
+1. Click below to use the GitHub Codespace
 
     [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
 
@@ -66,7 +66,7 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
-For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the python docker package, and using docker.
+For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the Python docker package and using docker.
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
