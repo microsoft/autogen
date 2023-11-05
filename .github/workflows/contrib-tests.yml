@@ -56,7 +56,7 @@ jobs:
           trap 'echo "::set-output name=result::failure"' ERR
           pip install -e .[mathchat]
           pip uninstall -y openai
-          echo "::set-output name=result::success
+          echo "::set-output name=result::success"
       - name: test MathChat
         if: ${{ steps.install_mathchat.outputs.result == 'success' }}
         run: |
