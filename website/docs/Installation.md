@@ -68,7 +68,7 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
 - `use_cache` is removed as a kwarg in `OpenAIWrapper.create()` for being automatically decided by `seed`: int | None.
 
 ### Optional Dependencies
-* docker
+- #### docker
 
 For the best user experience and seamless code execution, we highly recommend using Docker with AutoGen. Docker is a containerization platform that simplifies the setup and execution of your code. Developing in a docker container, such as GitHub Codespace, also makes the development convenient.
 
@@ -77,7 +77,7 @@ When running AutoGen out of a docker container, to use docker for code execution
 pip install docker
 ```
 
-* blendsearch
+- #### blendsearch
 
 `pyautogen<0.2` offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Please install with the [blendsearch] option to use it.
 ```bash
@@ -85,21 +85,37 @@ pip install "pyautogen[blendsearch]<0.2"
 ```
 
 Example notebooks:
-[Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb),
+
+[Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
+
 [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
 
-* retrievechat
+- #### retrievechat
 
 `pyautogen<0.2` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
 ```bash
 pip install "pyautogen[retrievechat]<0.2"
 ```
 
+RetrieveChat can handle various types of documents. By default, it can process
+plain text and PDF files, including formats such as 'txt', 'json', 'csv', 'tsv',
+'md', 'html', 'htm', 'rtf', 'rst', 'jsonl', 'log', 'xml', 'yaml', 'yml' and 'pdf'.
+If you install [unstructured](https://unstructured-io.github.io/unstructured/installation/full_installation.html)
+(`pip install "unstructured[all-docs]"`), additional document types such as 'docx',
+'doc', 'odt', 'pptx', 'ppt', 'xlsx', 'eml', 'msg', 'epub' will also be supported.
+
+You can find a list of all supported document types by using `autogen.retrieve_utils.TEXT_FORMATS`.
+
 Example notebooks:
-[Automated Code Generation and Question Answering with Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb),
+
+[Automated Code Generation and Question Answering with Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
+
 [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
 
-* mathchat
+[Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
+
+
+- #### mathchat
 
 `pyautogen<0.2` offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
 ```bash
@@ -107,4 +123,5 @@ pip install "pyautogen[mathchat]<0.2"
 ```
 
 Example notebooks:
+
 [Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
