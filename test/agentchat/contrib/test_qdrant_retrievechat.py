@@ -35,6 +35,15 @@ test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_retrievechat():
+    try:
+        # uninstall chromadb first
+        import chromadb
+
+        HAS_CHROMADB = True
+        os.system("pip uninstall -yq chromadb")
+    except ImportError:
+        HAS_CHROMADB = False
+
     conversations = {}
     # ChatCompletion.start_logging(conversations)  # deprecated in v0.2
 
@@ -70,6 +79,9 @@ def test_retrievechat():
     code_problem = "How can I use FLAML to perform a classification task, set use_spark=True, train 30 seconds and force cancel jobs if time limit is reached."
     ragproxyagent.initiate_chat(assistant, problem=code_problem, silent=True)
     print(conversations)
+    # reinstall chromadb
+    if HAS_CHROMADB:
+        os.system("pip install -q chromadb")
 
 
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
