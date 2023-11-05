@@ -55,14 +55,10 @@ jobs:
         run: |
           set -e
           trap 'echo "result=failure" >> $GITHUB_OUTPUT' ERR
+          exit 1
           pip install -e .[mathchat]
           pip uninstall -y openai
           echo "result=success" >> $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
-      - name: Check install_mathchat output
-        if: ${{ always() }}
-        run: |
-          echo "install_mathchat result: ${{ steps.install_mathchat.outputs.result }}"
 
       - name: test MathChat
         if: ${{ always() && steps.install_mathchat.outputs.result == 'success' }}
