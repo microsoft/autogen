@@ -41,7 +41,6 @@ jobs:
           pip install qdrant_client[fastembed]
       - name: Install packages and dependencies for RetrieveChat
         run: |
-          exit 1
           pip install -e .[retrievechat]
           pip uninstall -y openai
       - name: Test RetrieveChat
@@ -53,7 +52,6 @@ jobs:
         id: install_mathchat
         if: ${{ always() }}
         run: |
-          exit 1
           pip install -e .[mathchat]
           pip uninstall -y openai
       - name: test MathChat
