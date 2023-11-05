@@ -10,7 +10,7 @@ public class Dev : SemanticPersona, IDevelopCode
     private readonly IKernel _kernel;
     protected override string MemorySegment => "dev-memory"; 
 
-    public Dev(IKernel kernel, [PersistentState("state", "messages")]IPersistentState<ChatHistory> state) : base(state)
+    public Dev(IKernel kernel, [PersistentState("state", "messages")]IPersistentState<SemanticPersonaState> state) : base(state)
     {
         _kernel = kernel;
     }
@@ -45,6 +45,11 @@ public class Dev : SemanticPersona, IDevelopCode
    
 
     public Task<string> ReviewPlan(string plan)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<string> BuildUnderstanding(string content)
     {
         throw new NotImplementedException();
     }

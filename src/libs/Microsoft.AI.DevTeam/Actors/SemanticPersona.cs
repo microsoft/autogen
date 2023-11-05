@@ -7,13 +7,13 @@ namespace Microsoft.AI.DevTeam;
 public abstract class SemanticPersona : Grain, IChatHistory
 {
     public SemanticPersona(
-         [PersistentState("state", "messages")] IPersistentState<ChatHistory> state)
+         [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state)
     {
         _state = state;
     }
     protected virtual string MemorySegment { get; set; }
     protected List<ChatHistoryItem> History { get; set; }
-    protected readonly IPersistentState<ChatHistory> _state;
+    protected readonly IPersistentState<SemanticPersonaState> _state;
 
     public async Task<string> GetLastMessage()
     {
@@ -38,6 +38,11 @@ public interface IChatHistory
     Task<string> GetLastMessage();
 }
 
+public interface IUnderstand
+{
+    Task<string> BuildUnderstanding(string content);
+}
+
 
 [Serializable]
 public class ChatHistoryItem
@@ -48,9 +53,10 @@ public class ChatHistoryItem
 
 }
 
-public class ChatHistory
+public class SemanticPersonaState
 {
     public List<ChatHistoryItem> History { get; set; }
+    public string Understanding { get; set; }
 }
 
 public enum ChatUserType

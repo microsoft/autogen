@@ -10,7 +10,7 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
     private readonly IKernel _kernel;
     protected override string MemorySegment => "dev-lead-memory";
 
-    public DeveloperLead(IKernel kernel, [PersistentState("state", "messages")] IPersistentState<ChatHistory> state) : base(state)
+    public DeveloperLead(IKernel kernel, [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state) : base(state)
     {
         _kernel = kernel;
     }
@@ -53,6 +53,11 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
         var plan = _state.State.History.Last().Message;
         var response = JsonSerializer.Deserialize<DevLeadPlanResponse>(plan);
         return Task.FromResult(response);
+    }
+
+    public Task<string> BuildUnderstanding(string content)
+    {
+        throw new NotImplementedException();
     }
 }
 
