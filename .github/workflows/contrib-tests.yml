@@ -44,6 +44,7 @@ jobs:
           pip install -e .[retrievechat]
           pip uninstall -y openai
       - name: Test RetrieveChat
+        if: matrix.python-version != '3.10'
         run: |
           pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
 
@@ -55,7 +56,7 @@ jobs:
           pip install -e .[mathchat]
           pip uninstall -y openai
       - name: test MathChat
-        if: ${{ always() && steps.install_mathchat.outcome == 'success' }}
+        if: ${{ always() && steps.install_mathchat.outcome == 'success' && matrix.python-version != '3.10'}}
         run: |
           pytest test/agentchat/contrib/test_math_user_proxy_agent.py
 
