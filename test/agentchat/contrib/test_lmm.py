@@ -1,11 +1,17 @@
-import autogen
-from autogen.agentchat.agent import Agent
-from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
-
-import os
-import sys
 import unittest
 from unittest.mock import MagicMock
+
+import pytest
+
+import autogen
+from autogen.agentchat.agent import Agent
+
+try:
+    from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+except ImportError:
+    skip = True
+else:
+    skip = False
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -16,6 +22,7 @@ base64_encoded_image = (
 )
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestMultimodalConversableAgent(unittest.TestCase):
     def setUp(self):
         config_list = autogen.config_list_from_json(

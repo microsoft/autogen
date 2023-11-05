@@ -1,20 +1,27 @@
-import autogen
-from autogen.agentchat.contrib.llava_agent import (
-    LLaVAAgent,
-    _llava_call_binary_with_config,
-    llava_call,
-    llava_call_binary,
-)
-
-import os
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
+import autogen
+
+try:
+    from autogen.agentchat.contrib.llava_agent import (
+        LLaVAAgent,
+        _llava_call_binary_with_config,
+        llava_call,
+        llava_call_binary,
+    )
+except ImportError:
+    skip = True
+else:
+    skip = False
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestLLaVAAgent(unittest.TestCase):
     def setUp(self):
         config_list = autogen.config_list_from_json(
@@ -42,6 +49,7 @@ class TestLLaVAAgent(unittest.TestCase):
         mock_image_reply.assert_called_once()
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestLLavaCallBinaryWithConfig(unittest.TestCase):
     @patch("requests.post")
     def test_local_mode(self, mock_post):
@@ -99,6 +107,7 @@ class TestLLavaCallBinaryWithConfig(unittest.TestCase):
         )
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestLLavaCall(unittest.TestCase):
     @patch("autogen.agentchat.contrib.llava_agent.lmm_formater")
     @patch("autogen.agentchat.contrib.llava_agent.llava_call_binary")

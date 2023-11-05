@@ -1,16 +1,22 @@
 import base64
 import os
-import tempfile
 import unittest
-from io import BytesIO
 from unittest.mock import patch
 
+import pytest
 import requests
-from PIL import Image
 
-from autogen.img_utils import _to_pil, extract_img_paths, get_image_data, gpt4v_formatter, lmm_formater
+try:
+    from PIL import Image
+
+    from autogen.img_utils import _to_pil, extract_img_paths, get_image_data, gpt4v_formatter, lmm_formater
+except ImportError:
+    skip = True
+else:
+    skip = False
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestGetImageData(unittest.TestCase):
     def test_http_image(self):
         with patch("requests.get") as mock_get:
@@ -46,6 +52,7 @@ class TestGetImageData(unittest.TestCase):
         os.remove(temp_file)
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestLmmFormater(unittest.TestCase):
     def test_no_images(self):
         """
@@ -83,6 +90,7 @@ class TestLmmFormater(unittest.TestCase):
         self.assertEqual(result, expected_output)
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestGpt4vFormatter(unittest.TestCase):
     def test_no_images(self):
         """
@@ -128,6 +136,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         self.assertEqual(result, expected_output)
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestExtractImgPaths(unittest.TestCase):
     def test_no_images(self):
         """
