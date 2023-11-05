@@ -20,7 +20,7 @@ except ImportError:
 
 
 @pytest.mark.skipif(
-    OPENAI_INSTALLED or sys.platform in ["darwin", "win32"],
+    not OPENAI_INSTALLED or sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_math_user_proxy_agent():
