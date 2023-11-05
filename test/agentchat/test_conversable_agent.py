@@ -15,7 +15,7 @@ def conversable_agent():
 
 def test_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent.register_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello"
@@ -53,7 +53,7 @@ def test_trigger():
 
 def test_context():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1.send(
         {
             "content": "hello {name}",
@@ -131,7 +131,7 @@ def test_generate_code_execution_reply():
 
 def test_max_consecutive_auto_reply():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
-    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 2
     agent.update_max_consecutive_auto_reply(1)
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
@@ -159,8 +159,8 @@ def test_max_consecutive_auto_reply():
 
 
 def test_conversable_agent():
-    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
-    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="ALWAYS")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="TERMINATE")
 
     # monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.receive("hello", dummy_agent_2)  # receive a str
@@ -212,7 +212,9 @@ def test_generate_reply():
         given_num = 10
         return num_to_be_added + given_num
 
-    dummy_agent_2 = ConversableAgent(name="user_proxy", human_input_mode="TERMINATE", function_map={"add_num": add_num})
+    dummy_agent_2 = ConversableAgent(
+        name="user_proxy", llm_config=False, human_input_mode="TERMINATE", function_map={"add_num": add_num}
+    )
     messsages = [{"function_call": {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}, "role": "assistant"}]
 
     # when sender is None, messages is provided
@@ -221,7 +223,7 @@ def test_generate_reply():
     ), "generate_reply not working when sender is None"
 
     # when sender is provided, messages is None
-    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="ALWAYS")
     dummy_agent_2._oai_messages[dummy_agent_1] = messsages
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"

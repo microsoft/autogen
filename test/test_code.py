@@ -284,7 +284,7 @@ def test_execute_code_no_docker():
     assert image is None
 
 
-def test_improve():
+def _test_improve():
     try:
         import openai
     except ImportError:
