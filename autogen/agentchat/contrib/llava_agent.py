@@ -98,7 +98,7 @@ class LLaVAAgent(MultimodalConversableAgent):
 def _llava_call_binary_with_config(
     prompt: str, images: list, config: dict, max_new_tokens: int = 1000, temperature: float = 0.5, seed: int = 1
 ):
-    if config["api_base"].find("0.0.0.0") >= 0 or config["api_base"].find("localhost") >= 0:
+    if config["base_url"].find("0.0.0.0") >= 0 or config["base_url"].find("localhost") >= 0:
         llava_mode = "local"
     else:
         llava_mode = "remote"
@@ -115,7 +115,7 @@ def _llava_call_binary_with_config(
         }
 
         response = requests.post(
-            config["api_base"].rstrip("/") + "/worker_generate_stream", headers=headers, json=pload, stream=False
+            config["base_url"].rstrip("/") + "/worker_generate_stream", headers=headers, json=pload, stream=False
         )
 
         for chunk in response.iter_lines(chunk_size=8192, decode_unicode=False, delimiter=b"\0"):
@@ -126,7 +126,7 @@ def _llava_call_binary_with_config(
         # The Replicate version of the model only support 1 image for now.
         img = "data:image/jpeg;base64," + images[0]
         response = replicate.run(
-            config["api_base"], input={"image": img, "prompt": prompt.replace("<image>", " "), "seed": seed}
+            config["base_url"], input={"image": img, "prompt": prompt.replace("<image>", " "), "seed": seed}
         )
         # The yorickvp/llava-13b model can stream output as it's running.
         # The predict method returns an iterator, and you can iterate over that output.

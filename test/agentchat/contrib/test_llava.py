@@ -34,7 +34,7 @@ class TestLLavaCallBinaryWithConfig(unittest.TestCase):
         output = _llava_call_binary_with_config(
             prompt="Test Prompt",
             images=[],
-            config={"api_base": "http://0.0.0.0/api", "model": "test-model"},
+            config={"base_url": "http://0.0.0.0/api", "model": "test-model"},
             max_new_tokens=1000,
             temperature=0.5,
             seed=1,
@@ -65,7 +65,7 @@ class TestLLavaCallBinaryWithConfig(unittest.TestCase):
         output = _llava_call_binary_with_config(
             prompt="Test Prompt",
             images=["image_data"],
-            config={"api_base": "http://remote/api", "model": "test-model"},
+            config={"base_url": "http://remote/api", "model": "test-model"},
             max_new_tokens=1000,
             temperature=0.5,
             seed=1,
@@ -89,7 +89,7 @@ class TestLLavaCall(unittest.TestCase):
 
         # Set up the llm_config dictionary
         llm_config = {
-            "config_list": [{"api_key": "value", "api_base": "localhost:8000"}],
+            "config_list": [{"api_key": "value", "base_url": "localhost:8000"}],
             "max_new_tokens": 2000,
             "temperature": 0.5,
             "seed": 1,
