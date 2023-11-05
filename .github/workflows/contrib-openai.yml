@@ -13,7 +13,7 @@ on:
       - 'setup.py'
 
 jobs:
-  RetrieveChatTest:
+  OpenAI4ContribTests:
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -37,12 +37,12 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
-      - name: Install packages for test when needed
+      - name: Install packages for Retrievechat
         run: |
           pip install docker
           pip install qdrant_client[fastembed]
           pip install -e .[retrievechat]
-      - name: Coverage
+      - name: Coverage Retrievechat
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
@@ -50,6 +50,27 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+          coverage xml
+
+      - name: Install packages for MathChat
+        id: install_mathchat
+        if: ${{ always() }}
+        run: |
+          set -e
+          trap 'echo "::set-output name=result::failure"' ERR
+          pip install docker
+          pip install -e .[mathchat]
+          echo "::set-output name=result::success
+
+      - name: Coverage MathChat
+        if: ${{ steps.install_mathchat.outputs.result == 'success' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
+        run: |
+          coverage run -a -m pytest test/agentchat/contrib/test_math_user_proxy_agent.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

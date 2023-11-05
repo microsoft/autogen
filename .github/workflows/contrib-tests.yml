@@ -5,7 +5,7 @@ name: ContribTests
 
 on:
   pull_request:
-    branches: ['main', 'dev/v0.2']
+    branches: ['main']
     paths:
       - 'autogen/**'
       - 'test/agentchat/contrib/**'
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  RetrieveChatTest:
+  ContribTests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -34,6 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
+      # RetrieveChat
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10' || matrix.python-version == '3.8'
         run: |
@@ -45,6 +46,23 @@ jobs:
       - name: Test RetrieveChat
         run: |
           pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+
+      # MathChat
+      - name: Install packages and dependencies for MathChat
+        id: install_mathchat
+        if: ${{ always() }}
+        run: |
+          set -e
+          trap 'echo "::set-output name=result::failure"' ERR
+          pip install -e .[mathchat]
+          pip uninstall -y openai
+          echo "::set-output name=result::success
+      - name: test MathChat
+        if: ${{ steps.install_mathchat.outputs.result == 'success' }}
+        run: |
+          pytest test/test_math_utils.py test/agentchat/contrib/test_math_user_proxy_agent.py
+
+      # Coverage
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
