@@ -79,6 +79,7 @@ def test_retrievechat():
     code_problem = "How can I use FLAML to perform a classification task, set use_spark=True, train 30 seconds and force cancel jobs if time limit is reached."
     ragproxyagent.initiate_chat(assistant, problem=code_problem, silent=True)
     print(conversations)
+
     # reinstall chromadb
     if HAS_CHROMADB:
         os.system("pip install -q chromadb")
@@ -86,6 +87,15 @@ def test_retrievechat():
 
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
 def test_qdrant_filter():
+    try:
+        # uninstall chromadb first
+        import chromadb
+
+        HAS_CHROMADB = True
+        os.system("pip uninstall -yq chromadb")
+    except ImportError:
+        HAS_CHROMADB = False
+
     client = QdrantClient(":memory:")
     create_qdrant_from_dir(dir_path="./website/docs", client=client, collection_name="autogen-docs")
     results = query_qdrant(
@@ -97,6 +107,10 @@ def test_qdrant_filter():
         search_string="AutoGen",
     )
     assert len(results["ids"][0]) == 4
+
+    # reinstall chromadb
+    if HAS_CHROMADB:
+        os.system("pip install -q chromadb")
 
 
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
