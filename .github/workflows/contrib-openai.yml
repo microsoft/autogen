@@ -50,7 +50,6 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
-          coverage xml
 
       - name: Install packages for MathChat
         id: install_mathchat
@@ -62,7 +61,7 @@ jobs:
           pip install -e .[mathchat]
           echo "result=success" >> $GITHUB_OUTPUT
       - name: Coverage MathChat
-        if: ${{ steps.install_mathchat.outputs.result == 'success' }}
+        if: ${{ always() && steps.install_mathchat.outputs.result == 'success' }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
@@ -70,6 +69,9 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           coverage run -a -m pytest test/agentchat/contrib/test_math_user_proxy_agent.py
+
+      - name: convert coverage to xml
+        run: |
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
