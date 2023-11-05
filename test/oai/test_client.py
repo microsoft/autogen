@@ -1,6 +1,6 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_code import OAI_CONFIG_LIST, KEY_LOC
+from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
 try:
     from openai import OpenAI
@@ -15,7 +15,7 @@ def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "2+2="}])
