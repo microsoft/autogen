@@ -83,6 +83,7 @@ def _test_agentchat_MathChat(save=False):
 def _test_oai_chatgpt_gpt4(save=False):
     run_notebook("oai_chatgpt_gpt4.ipynb", save=save)
 
+
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
