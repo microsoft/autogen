@@ -43,6 +43,16 @@ class CompressibleGroupChatManager(CompressibleAgent):
         )
         # self._random = random.Random(seed)
 
+        if self.compress_config:
+            init_count = count_token(
+                groupchat.select_speaker_msg(groupchat.agents), self.llm_config.get("model")
+            ) + count_token(groupchat.selector_end_msg(), self.llm_config.get("model"))
+            trigger_count = self.compress_config["trigger_count"]
+            if init_count >= trigger_count:
+                print(
+                    f"Warning: trigger_count {trigger_count} is less than the initial token count to select speaker {init_count}. Compression will be performed at each turn. Please increase trigger_count if this is not desired."
+                )
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
@@ -103,9 +113,8 @@ class CompressibleGroupChatManager(CompressibleAgent):
         # we will only count the token used by groupmanager
         model = self.llm_config.get("model")
         self.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
-        token_used = self._compute_init_token_count() + count_token(
-            groupchat.messages + groupchat.selector_end_msg(), model
-        )
+        init_token_count = self._compute_init_token_count()
+        token_used = init_token_count + count_token(groupchat.messages + groupchat.selector_end_msg(), model)
         max_token = max(get_max_token_limit(model), self.llm_config.get("max_token", 0))
 
         # check if the token used is over the limit
@@ -121,12 +130,12 @@ class CompressibleGroupChatManager(CompressibleAgent):
             return True  # terminate
         if compressed_messages is not None:
             groupchat.messages = copy.deepcopy(compressed_messages)
+            self._print_compress_info(
+                init_token_count, token_used, init_token_count + count_token(compressed_messages, model)
+            )
             # update all agents' messages
             for agent in groupchat.agents:
-                print(f"{agent.name}: before: {agent._oai_messages[self]}")
                 agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent)
-                print(f"{agent.name}: after: {agent._oai_messages[self]}")
-                print()
 
         return False
 
