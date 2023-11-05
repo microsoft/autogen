@@ -8,7 +8,7 @@ import requests
 from regex import R
 
 from autogen.agentchat.agent import Agent
-from autogen.agentchat.multimodal_conversable_agent import MultimodalConversableAgent
+from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.img_utils import get_image_data, lmm_formater
 
 try:

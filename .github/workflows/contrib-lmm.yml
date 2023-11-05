@@ -8,7 +8,7 @@ on:
     branches: ['main', 'dev/v0.2']
     paths:
       - 'autogen/img_utils.py'
-      - 'autogen/agentchat/multimodal_conversable_agent.py'
+      - 'autogen/agentchat/contrib/multimodal_conversable_agent.py'
       - 'autogen/agentchat/contrib/llava_agent.py'
       - 'test/test_img_utils.py'
       - 'test/agentchat/test_lmm.py'
@@ -54,7 +54,7 @@ jobs:
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_img_utils.py test/agentchat/test_lmm.py test/agentchat/contrib/test_llava.py
+          coverage run -a -m pytest test/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

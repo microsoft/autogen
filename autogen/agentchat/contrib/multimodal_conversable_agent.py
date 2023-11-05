@@ -1,10 +1,8 @@
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import oai
+from autogen.agentchat import Agent, ConversableAgent
 from autogen.img_utils import gpt4v_formatter
-
-from .agent import Agent
-from .conversable_agent import ConversableAgent
 
 try:
     from termcolor import colored

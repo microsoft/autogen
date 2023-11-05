@@ -1,6 +1,4 @@
-import unittest
-from unittest.mock import MagicMock, patch
-
+import autogen
 from autogen.agentchat.contrib.llava_agent import (
     LLaVAAgent,
     _llava_call_binary_with_config,
@@ -8,10 +6,32 @@ from autogen.agentchat.contrib.llava_agent import (
     llava_call_binary,
 )
 
+import os
+import sys
+import unittest
+from unittest.mock import MagicMock, patch
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+
 
 class TestLLaVAAgent(unittest.TestCase):
     def setUp(self):
-        self.agent = LLaVAAgent(name="TestAgent")
+        config_list = autogen.config_list_from_json(
+            OAI_CONFIG_LIST,
+            file_location=KEY_LOC,
+            filter_dict={
+                "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            },
+        )
+        self.agent = LLaVAAgent(
+            name="TestAgent",
+            llm_config={
+                "timeout": 600,
+                "seed": 42,
+                "config_list": config_list,
+            },
+        )
 
     def test_init(self):
         self.assertIsInstance(self.agent, LLaVAAgent)
