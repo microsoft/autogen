@@ -278,6 +278,15 @@ Reply "TERMINATE" in the end when everything is done.
             oai_message["function_call"] = dict(oai_message["function_call"])
         return oai_message
 
+    def _print_compress_info(self, init_token_count, token_used, token_after_compression):
+        to_print = "Token Count (including {} tokens from system msg and function descriptions). Before compression : {} | After: {}".format(
+            init_token_count,
+            token_used,
+            token_after_compression,
+        )
+        print(colored(to_print, "magenta"), flush=True)
+        print("-" * 80, flush=True)
+
     def on_oai_token_limit(
         self,
         messages: Optional[List[Dict]] = None,
@@ -304,14 +313,9 @@ Reply "TERMINATE" in the end when everything is done.
 
         # update message history with compressed messages
         if compressed_messages is not None:
-            to_print = "Token Count (including {} tokens from system msg and function descriptions). Before compression : {} | After: {}".format(
-                init_token_count,
-                token_used,
-                count_token(compressed_messages, model) + init_token_count,
+            self._print_compress_info(
+                init_token_count, token_used, count_token(compressed_messages, model) + init_token_count
             )
-            print(colored(to_print, "magenta"), flush=True)
-            print("-" * 80, flush=True)
-
             self._oai_messages[sender] = compressed_messages
             if self.compress_config["broadcast"]:
                 # update the compressed message history to sender
