@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="QYajzTewMzwTbSUMhWZi" name="Page-1">
-        <mxGraphModel dx="3948" dy="2093" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="4864" dy="2524" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -19,13 +19,13 @@
                 <mxCell id="36" value="" style="edgeStyle=none;html=1;fontSize=24;" parent="1" source="2" target="35" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="40" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="2" target="39">
+                <mxCell id="40" value="" style="edgeStyle=none;html=1;" parent="1" source="2" target="39" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="44" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="2" target="43">
+                <mxCell id="44" value="" style="edgeStyle=none;html=1;" parent="1" source="2" target="43" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="52" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="2" target="51">
+                <mxCell id="52" value="" style="edgeStyle=none;html=1;" parent="1" source="2" target="51" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
                 <mxCell id="2" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Autogen Package&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
@@ -43,7 +43,7 @@
                 <mxCell id="22" style="edgeStyle=none;html=1;fontSize=24;" parent="1" source="3" target="21" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="47" style="edgeStyle=none;html=1;entryX=0.607;entryY=-0.129;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="3" target="48">
+                <mxCell id="47" style="edgeStyle=none;html=1;entryX=0.607;entryY=-0.129;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="3" target="48" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="-488.7142857142853" y="713.8571428571431" as="targetPoint"/>
                     </mxGeometry>
@@ -57,7 +57,7 @@
                 <mxCell id="11" style="edgeStyle=none;html=1;fontSize=24;startArrow=none;" parent="1" source="12" target="3" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="49" style="edgeStyle=none;html=1;" edge="1" parent="1" source="5" target="50">
+                <mxCell id="49" style="edgeStyle=none;html=1;" parent="1" source="5" target="50" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <mxPoint x="1111.2857142857147" y="692.4285714285716" as="targetPoint"/>
                     </mxGeometry>
@@ -134,44 +134,128 @@
                 <mxCell id="37" value="One of the methods is&amp;nbsp;&lt;br&gt;logging history. That keeps&amp;nbsp;&lt;br&gt;the logs of conversation&lt;br&gt;for later retrieval" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" parent="1" vertex="1">
                     <mxGeometry x="1029" y="397" width="309" height="127" as="geometry"/>
                 </mxCell>
-                <mxCell id="42" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="39" target="41">
+                <mxCell id="42" value="" style="edgeStyle=none;html=1;" parent="1" source="39" target="41" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="39" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;MathUserProxyAgent&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="39" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;MathUserProxyAgent&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="845" y="-215" width="246" height="41" as="geometry"/>
                 </mxCell>
-                <mxCell id="41" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Able to take on Math equations&amp;nbsp;&lt;br&gt;and provide solutions&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="41" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Able to take on Math equations&amp;nbsp;&lt;br&gt;and provide solutions&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="790" y="-350" width="356" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="46" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="43" target="45">
+                <mxCell id="46" value="" style="edgeStyle=none;html=1;" parent="1" source="43" target="45" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="43" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;QuadrantRetrieveUserProxyAgent&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="43" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;QuadrantRetrieveUserProxyAgent&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="192" y="-210" width="382" height="41" as="geometry"/>
                 </mxCell>
-                <mxCell id="45" value="&lt;span style=&quot;font-size: 24px;&quot;&gt;Is used for creating Rag based&amp;nbsp;&lt;br&gt;QA style agent.&amp;nbsp;&lt;br&gt;&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="45" value="&lt;span style=&quot;font-size: 24px;&quot;&gt;Is used for creating Rag based&amp;nbsp;&lt;br&gt;QA style agent.&amp;nbsp;&lt;br&gt;&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="207" y="-345" width="352" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="48" value="RetrieveAssistantAgent" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                <mxCell id="48" value="RetrieveAssistantAgent" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" parent="1" vertex="1">
                     <mxGeometry x="-894" y="716" width="267" height="41" as="geometry"/>
                 </mxCell>
-                <mxCell id="50" value="RetrieveUserProxyAgent" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                <mxCell id="50" value="RetrieveUserProxyAgent" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" parent="1" vertex="1">
                     <mxGeometry x="1338" y="736" width="282" height="41" as="geometry"/>
                 </mxCell>
-                <mxCell id="54" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="51" target="53">
+                <mxCell id="54" value="" style="edgeStyle=none;html=1;" parent="1" source="51" target="53" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="56" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="51" target="55">
+                <mxCell id="56" value="" style="edgeStyle=none;html=1;" parent="1" source="51" target="55" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="51" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Teachable Agents&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="51" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Teachable Agents&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="-247" y="-421" width="207" height="41" as="geometry"/>
                 </mxCell>
-                <mxCell id="53" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;The conversation had with these agents are&amp;nbsp;&lt;br&gt;retained inside the vectordatabase for future use&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="53" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;The conversation had with these agents are&amp;nbsp;&lt;br&gt;retained inside the vectordatabase for future use&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="-410" y="-556" width="533" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="55" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;The text are analyzed before&amp;nbsp;&lt;br&gt;loading using TextAnalyzerAgent&amp;nbsp;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="55" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;The text are analyzed before&amp;nbsp;&lt;br&gt;loading using TextAnalyzerAgent&amp;nbsp;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="-800" y="-433" width="372" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="59" value="" style="edgeStyle=none;html=1;fontSize=48;startArrow=none;" edge="1" parent="1" source="60" target="58">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="57" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;Agent (Abstract Class)&lt;br&gt;Only methods are&amp;nbsp;&lt;br&gt;defined&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="2521.5" y="504" width="498" height="185" as="geometry"/>
+                </mxCell>
+                <mxCell id="63" value="" style="edgeStyle=none;html=1;fontSize=48;startArrow=none;" edge="1" parent="1" source="69" target="62">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="65" value="" style="edgeStyle=none;html=1;fontSize=48;startArrow=none;" edge="1" parent="1" source="66" target="64">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="72" value="" style="edgeStyle=none;html=1;fontSize=48;" edge="1" parent="1" source="58" target="71">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="58" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;ConversationalAgent&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="2538.5" y="-177" width="464" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="61" value="" style="edgeStyle=none;html=1;fontSize=48;endArrow=none;" edge="1" parent="1" source="57" target="60">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2771.660806618407" y="166" as="sourcePoint"/>
+                        <mxPoint x="2766.506721820062" y="-190" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="60" value="Subclass" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="2664" y="217" width="213" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="62" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;AgentAssistant&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="1927" y="-474" width="338" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="64" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;UserProxyAgent&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3269" y="-505" width="367" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="67" value="" style="edgeStyle=none;html=1;fontSize=48;endArrow=none;" edge="1" parent="1" source="58" target="66">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2843.2743902439024" y="-177" as="sourcePoint"/>
+                        <mxPoint x="3379.7256097560976" y="-435" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="66" value="Configured" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3002.5" y="-345" width="253" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="70" value="" style="edgeStyle=none;html=1;fontSize=48;endArrow=none;" edge="1" parent="1" source="58" target="69">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="2691.013468013468" y="-177" as="sourcePoint"/>
+                        <mxPoint x="2175.486531986532" y="-404" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="69" value="Configured" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="2327" y="-329" width="253" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="74" value="" style="edgeStyle=none;html=1;fontSize=48;" edge="1" parent="1" source="71" target="73">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="78" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="71" target="75">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="79" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="71" target="76">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="80" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="71" target="77">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="82" value="" style="edgeStyle=none;html=1;fontSize=24;" edge="1" parent="1" source="71" target="81">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="71" value="&lt;font style=&quot;font-size: 48px;&quot;&gt;Various Operations&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3565" y="-104" width="425" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="73" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Auto Reply&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3191" y="77" width="135" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="75" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Human_input_response&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3371" y="77" width="273" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="76" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Get_human_input&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3681" y="77" width="209" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="77" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Execute Code Blocks&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=48;" vertex="1" parent="1">
+                    <mxGeometry x="3983" y="77" width="246" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="81" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;generate init message&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="4160" y="11" width="254" height="41" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
