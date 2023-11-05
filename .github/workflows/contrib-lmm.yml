@@ -11,7 +11,7 @@ on:
       - 'autogen/agentchat/contrib/multimodal_conversable_agent.py'
       - 'autogen/agentchat/contrib/llava_agent.py'
       - 'test/test_img_utils.py'
-      - 'test/agentchat/test_lmm.py'
+      - 'test/agentchat/contrib/test_lmm.py'
       - 'test/agentchat/contrib/test_llava.py'
       - '.github/workflows/lmm-test.yml'
       - 'setup.py'
@@ -49,7 +49,7 @@ jobs:
           pip uninstall -y openai
       - name: Test LMM and LLaVA
         run: |
-          pytest test/test_img_utils.py test/agentchat/test_lmm.py test/agentchat/contrib/test_llava.py
+          pytest test/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
