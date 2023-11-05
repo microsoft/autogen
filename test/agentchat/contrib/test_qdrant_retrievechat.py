@@ -1,10 +1,11 @@
 import os
-
+import sys
 import pytest
-
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
-from autogen import ChatCompletion, config_list_from_json
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+from autogen import config_list_from_json
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from qdrant_client import QdrantClient
@@ -19,32 +20,34 @@ try:
 except ImportError:
     QDRANT_INSTALLED = False
 
-test_dir = os.path.join(os.path.dirname(__file__), "..", "test_files")
+try:
+    import openai
+
+    OPENAI_INSTALLED = True
+except ImportError:
+    OPENAI_INSTALLED = False
+
+test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
-@pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or not QDRANT_INSTALLED or not OPENAI_INSTALLED,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_retrievechat():
-    try:
-        import openai
-    except ImportError:
-        return
-
     conversations = {}
-    ChatCompletion.start_logging(conversations)
+    # ChatCompletion.start_logging(conversations)  # deprecated in v0.2
 
     config_list = config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={
-            "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314"],
-        },
     )
 
     assistant = RetrieveAssistantAgent(
         name="assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 42,
             "config_list": config_list,
         },
