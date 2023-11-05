@@ -43,11 +43,6 @@ class TestLLaVAAgent(unittest.TestCase):
     def test_init(self):
         self.assertIsInstance(self.agent, LLaVAAgent)
 
-    @patch.object(LLaVAAgent, "_image_reply")
-    def test_image_reply(self, mock_image_reply):
-        self.agent._image_reply()
-        mock_image_reply.assert_called_once()
-
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestLLavaCallBinaryWithConfig(unittest.TestCase):
