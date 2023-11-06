@@ -15,6 +15,13 @@ import logging
 import pypdf
 from autogen.token_count_utils import count_token
 
+try:
+    from unstructured.partition.auto import partition
+
+    HAS_UNSTRUCTURED = True
+except ImportError:
+    HAS_UNSTRUCTURED = False
+
 logger = logging.getLogger(__name__)
 TEXT_FORMATS = [
     "txt",
@@ -33,6 +40,10 @@ TEXT_FORMATS = [
     "yml",
     "pdf",
 ]
+UNSTRUCTURED_FORMATS = ["docx", "doc", "odt", "pptx", "ppt", "xlsx", "eml", "msg", "epub"]
+if HAS_UNSTRUCTURED:
+    TEXT_FORMATS += UNSTRUCTURED_FORMATS
+    TEXT_FORMATS = list(set(TEXT_FORMATS))
 VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
@@ -123,7 +134,10 @@ def split_files_to_chunks(
         _, file_extension = os.path.splitext(file)
         file_extension = file_extension.lower()
 
-        if file_extension == ".pdf":
+        if HAS_UNSTRUCTURED and file_extension[1:] in UNSTRUCTURED_FORMATS:
+            text = partition(file)
+            text = "\n".join([t.text for t in text]) if len(text) > 0 else ""
+        elif file_extension == ".pdf":
             text = extract_text_from_pdf(file)
         else:  # For non-PDF text-based files
             with open(file, "r", encoding="utf-8", errors="ignore") as f:
