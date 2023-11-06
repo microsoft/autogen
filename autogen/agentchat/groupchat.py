@@ -22,7 +22,7 @@ class GroupChat:
         in its `function_map`.
     """
 
-    agents: List[Agent]
+    agents: List[ConversableAgent]
     messages: List[Dict]
     max_round: int = 10
     admin_name: str = "Admin"
@@ -37,11 +37,11 @@ class GroupChat:
         """Reset the group chat."""
         self.messages.clear()
 
-    def agent_by_name(self, name: str) -> Agent:
+    def agent_by_name(self, name: str) -> ConversableAgent:
         """Returns the agent with a given name."""
         return self.agents[self.agent_names.index(name)]
 
-    def next_agent(self, agent: Agent, agents: List[Agent]) -> Agent:
+    def next_agent(self, agent: Agent, agents: List[ConversableAgent]) -> ConversableAgent:
         """Return the next agent in the list."""
         if agents == self.agents:
             return agents[(self.agent_names.index(agent.name) + 1) % len(agents)]
@@ -51,7 +51,7 @@ class GroupChat:
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
 
-    def select_speaker_msg(self, agents: List[Agent]):
+    def select_speaker_msg(self, agents: List[ConversableAgent]):
         """Return the message for selecting the next speaker."""
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles()}.
