@@ -9,13 +9,14 @@ tags: [LMM, multimodal]
 **In Brief:**
 * Introducing the **Multimodal Conversable Agent** and the **LLaVA Agent** to enhance LMM functionalities.
 * Users can input text and images simultaneously using the `<img img_path>` tag to specify image loading.
+* Demonstrated through the [GPT-4V notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb).
 * Demonstrated through the [LLaVA notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb).
 
 ## Introduction
 Large multimodal models (LMMs) augment large language models (LLMs) with the ability to process multi-sensory data.
 
 This blog post and the latest AutoGen update concentrate on visual comprehension. Users can input images, pose questions about them, and receive text-based responses from these LMMs.
-Future AutoGen updates will introduce additional multimodal capabilities such as image generation with DALLE models, audio processing, and video comprehension.
+We support the `gpt-4-vision-preview` model from OpenAI and `LLaVA` model from Microsoft now.
 
 Here, we emphasize the **Multimodal Conversable Agent** and the **LLaVA Agent** due to their growing popularity.
 GPT-4V represents the forefront in image comprehension, while LLaVA is an efficient model, fine-tuned from LLama-2.
@@ -61,7 +62,7 @@ The `MultimodalConversableAgent` interprets the input prompt, extracting images 
 ## Advanced Usage
 Similar to other AutoGen agents, multimodal agents support multi-round dialogues with other agents, code generation, factual queries, and management via a GroupChat interface.
 
-For example, the `FigureCreator` in our [notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb) integrates two agents: a coder (an AssistantAgent) and critics (a multimodal agent).
+For example, the `FigureCreator` in our [GPT-4V notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb) and [LLaVA notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb) integrates two agents: a coder (an AssistantAgent) and critics (a multimodal agent).
 The coder drafts Python code for visualizations, while the critics provide insights for enhancement. Collaboratively, these agents aim to refine visual outputs.
 With `human_input_mode=ALWAYS`, you can also contribute suggestions for better visualizations.
 
