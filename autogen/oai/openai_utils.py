@@ -83,8 +83,8 @@ def config_list_openai_aoai(
                 os.environ["OPENAI_API_KEY"] = key_file.read().strip()
         except FileNotFoundError:
             logging.info(
-                "To use OpenAI API, please set OPENAI_API_KEY in os.environ "
-                "or create key_openai.txt in the specified path, or specify the api_key in config_list."
+                "OPENAI_API_KEY is not found in os.environ "
+                "and key_openai.txt is not found in the specified path. You can specify the api_key in the config_list."
             )
     if "AZURE_OPENAI_API_KEY" not in os.environ and exclude != "aoai":
         try:
@@ -92,8 +92,8 @@ def config_list_openai_aoai(
                 os.environ["AZURE_OPENAI_API_KEY"] = key_file.read().strip()
         except FileNotFoundError:
             logging.info(
-                "To use Azure OpenAI API, please set AZURE_OPENAI_API_KEY in os.environ "
-                "or create key_aoai.txt in the specified path, or specify the api_key in config_list."
+                "AZURE_OPENAI_API_KEY is not found in os.environ "
+                "and key_aoai.txt is not found in the specified path. You can specify the api_key in the config_list."
             )
     if "AZURE_OPENAI_API_BASE" not in os.environ and exclude != "aoai":
         try:
@@ -101,8 +101,8 @@ def config_list_openai_aoai(
                 os.environ["AZURE_OPENAI_API_BASE"] = key_file.read().strip()
         except FileNotFoundError:
             logging.info(
-                "To use Azure OpenAI API, please set AZURE_OPENAI_API_BASE in os.environ "
-                "or create base_aoai.txt in the specified path, or specify the api_base in config_list."
+                "AZURE_OPENAI_API_BASE is not found in os.environ "
+                "and base_aoai.txt is not found in the specified path. You can specify the base_url in the config_list."
             )
     aoai_config = (
         get_config_list(
@@ -111,7 +111,7 @@ def config_list_openai_aoai(
             # Assuming Azure OpenAI api bases in os.environ["AZURE_OPENAI_API_BASE"], in separated lines
             base_urls=os.environ.get("AZURE_OPENAI_API_BASE", "").split("\n"),
             api_type="azure",
-            api_version="2023-07-01-preview",  # change if necessary
+            api_version="2023-08-01-preview",  # change if necessary
         )
         if exclude != "aoai"
         else []
