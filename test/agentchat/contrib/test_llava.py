@@ -94,11 +94,11 @@ class TestLLavaCallBinaryWithConfig(unittest.TestCase):
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestLLavaCall(unittest.TestCase):
-    @patch("autogen.agentchat.contrib.llava_agent.lmm_formater")
+    @patch("autogen.agentchat.contrib.llava_agent.llava_formater")
     @patch("autogen.agentchat.contrib.llava_agent.llava_call_binary")
-    def test_llava_call(self, mock_llava_call_binary, mock_lmm_formater):
+    def test_llava_call(self, mock_llava_call_binary, mock_llava_formater):
         # Set up the mocks
-        mock_lmm_formater.return_value = ("formatted prompt", ["image1", "image2"])
+        mock_llava_formater.return_value = ("formatted prompt", ["image1", "image2"])
         mock_llava_call_binary.return_value = "Generated Text"
 
         # Set up the llm_config dictionary
@@ -113,7 +113,7 @@ class TestLLavaCall(unittest.TestCase):
         result = llava_call("Test Prompt", llm_config)
 
         # Check the results
-        mock_lmm_formater.assert_called_once_with("Test Prompt", order_image_tokens=False)
+        mock_llava_formater.assert_called_once_with("Test Prompt", order_image_tokens=False)
         mock_llava_call_binary.assert_called_once_with(
             "formatted prompt",
             ["image1", "image2"],

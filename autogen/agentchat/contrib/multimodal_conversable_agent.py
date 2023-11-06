@@ -12,10 +12,9 @@ except ImportError:
         return x
 
 
-from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from autogen.code_utils import content_str
 
-DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant.
-You can also view images, where the "<image i>" represent the i-th image you received."""
+DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant."""
 
 
 class MultimodalConversableAgent(ConversableAgent):
@@ -106,39 +105,3 @@ class MultimodalConversableAgent(ConversableAgent):
                 )
                 print(colored("*" * len(func_print), "green"), flush=True)
         print("\n", "-" * 80, flush=True, sep="")
-
-    def generate_code_execution_reply(
-        self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
-    ):
-        """Generate a reply using code execution."""
-        code_execution_config = config if config is not None else self._code_execution_config
-        if code_execution_config is False:
-            return False, None
-        if messages is None:
-            messages = self._oai_messages[sender]
-        last_n_messages = code_execution_config.pop("last_n_messages", 1)
-
-        # iterate through the last n messages reversly
-        # if code blocks are found, execute the code blocks and return the output
-        # if no code blocks are found, continue
-        for i in range(min(len(messages), last_n_messages)):
-            message = messages[-(i + 1)]
-            if not message["content"]:
-                continue
-            code_blocks = extract_code(content_str(message["content"]))
-            if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-                continue
-
-            # found code blocks, execute code and push "last_n_messages" back
-            exitcode, logs = self.execute_code_blocks(code_blocks)
-            code_execution_config["last_n_messages"] = last_n_messages
-            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
-
-        # no code blocks are found, push last_n_messages back and return.
-        code_execution_config["last_n_messages"] = last_n_messages
-
-        return False, None

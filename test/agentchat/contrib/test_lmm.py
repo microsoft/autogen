@@ -39,7 +39,7 @@ class TestMultimodalConversableAgent(unittest.TestCase):
             [
                 {
                     "type": "text",
-                    "text": 'You are a helpful AI assistant.\nYou can also view images, where the "<image i>" represent the i-th image you received.',
+                    "text": "You are a helpful AI assistant.",
                 }
             ],
         )
@@ -51,7 +51,7 @@ class TestMultimodalConversableAgent(unittest.TestCase):
             self.agent.system_message,
             [
                 {"type": "text", "text": "We will discuss "},
-                {"type": "image_url", "image_url": {"url": base64_encoded_image.replace("data:image/png;base64,", "")}},
+                {"type": "image_url", "image_url": {"url": base64_encoded_image}},
                 {"type": "text", "text": " in this conversation."},
             ],
         )

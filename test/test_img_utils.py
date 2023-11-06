@@ -10,11 +10,22 @@ import requests
 try:
     from PIL import Image
 
-    from autogen.img_utils import _to_pil, extract_img_paths, get_image_data, gpt4v_formatter, lmm_formater
+    from autogen.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
 except ImportError:
     skip = True
 else:
     skip = False
+
+
+base64_encoded_image = (
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
+    "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
+)
+
+raw_encoded_image = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
+    "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
+)
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
@@ -30,10 +41,6 @@ class TestGetImageData(unittest.TestCase):
             self.assertEqual(result, base64.b64encode(b"fake image content").decode("utf-8"))
 
     def test_base64_encoded_image(self):
-        base64_encoded_image = (
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
-            "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
-        )
         result = get_image_data(base64_encoded_image)
         self.assertEqual(result, base64_encoded_image.split(",", 1)[1])
 
@@ -54,40 +61,40 @@ class TestGetImageData(unittest.TestCase):
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
-class TestLmmFormater(unittest.TestCase):
+class TestLlavaFormater(unittest.TestCase):
     def test_no_images(self):
         """
-        Test the lmm_formater function with a prompt containing no images.
+        Test the llava_formater function with a prompt containing no images.
         """
         prompt = "This is a test."
         expected_output = (prompt, [])
-        result = lmm_formater(prompt)
+        result = llava_formater(prompt)
         self.assertEqual(result, expected_output)
 
     @patch("autogen.img_utils.get_image_data")
     def test_with_images(self, mock_get_image_data):
         """
-        Test the lmm_formater function with a prompt containing images.
+        Test the llava_formater function with a prompt containing images.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = "fake image data"
+        mock_get_image_data.return_value = raw_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
-        expected_output = ("This is a test with an image <image>.", ["fake image data"])
-        result = lmm_formater(prompt)
+        expected_output = ("This is a test with an image <image>.", [raw_encoded_image])
+        result = llava_formater(prompt)
         self.assertEqual(result, expected_output)
 
     @patch("autogen.img_utils.get_image_data")
     def test_with_ordered_images(self, mock_get_image_data):
         """
-        Test the lmm_formater function with ordered image tokens.
+        Test the llava_formater function with ordered image tokens.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = "fake image data"
+        mock_get_image_data.return_value = raw_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
-        expected_output = ("This is a test with an image <image 0>.", ["fake image data"])
-        result = lmm_formater(prompt, order_image_tokens=True)
+        expected_output = ("This is a test with an image <image 0>.", [raw_encoded_image])
+        result = llava_formater(prompt, order_image_tokens=True)
         self.assertEqual(result, expected_output)
 
 
@@ -108,12 +115,12 @@ class TestGpt4vFormatter(unittest.TestCase):
         Test the gpt4v_formatter function with a prompt containing images.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = "fake image data"
+        mock_get_image_data.return_value = raw_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
         expected_output = [
             {"type": "text", "text": "This is a test with an image "},
-            {"type": "image_url", "image_url": {"url": "fake image data"}},
+            {"type": "image_url", "image_url": {"url": base64_encoded_image}},
             {"type": "text", "text": "."},
         ]
         result = gpt4v_formatter(prompt)
@@ -125,16 +132,16 @@ class TestGpt4vFormatter(unittest.TestCase):
         Test the gpt4v_formatter function with a prompt containing multiple images.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = "fake image data"
+        mock_get_image_data.return_value = raw_encoded_image
 
         prompt = (
             "This is a test with images <img http://example.com/image1.png> and <img http://example.com/image2.png>."
         )
         expected_output = [
             {"type": "text", "text": "This is a test with images "},
-            {"type": "image_url", "image_url": {"url": "fake image data"}},
+            {"type": "image_url", "image_url": {"url": base64_encoded_image}},
             {"type": "text", "text": " and "},
-            {"type": "image_url", "image_url": {"url": "fake image data"}},
+            {"type": "image_url", "image_url": {"url": base64_encoded_image}},
             {"type": "text", "text": "."},
         ]
         result = gpt4v_formatter(prompt)
