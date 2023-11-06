@@ -81,15 +81,3 @@ jobs:
       - name: Test Compression
         run: |
           pytest test/agentchat/contrib/test_compressible_agent.py
-      - name: Coverage
-        if: matrix.python-version == '3.10'
-        run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib
-          coverage xml
-      - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10'
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittests

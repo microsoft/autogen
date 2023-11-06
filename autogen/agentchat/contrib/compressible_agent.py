@@ -131,7 +131,7 @@ Reply "TERMINATE" in the end when everything is done.
     def _set_compress_config(self, compress_config: Optional[Dict] = False):
         if compress_config:
             if compress_config is True:
-                self.compress_config = {}
+                compress_config = {}
             if not isinstance(compress_config, dict):
                 raise ValueError("compress_config must be a dict or True/False.")
 
@@ -141,6 +141,10 @@ Reply "TERMINATE" in the end when everything is done.
 
             self.compress_config = self.DEFAULT_COMPRESS_CONFIG
             self.compress_config.update(compress_config)
+
+            if not isinstance(self.compress_config["leave_last_n"], int) or self.compress_config["leave_last_n"] < 0:
+                raise ValueError("leave_last_n must be a non-negative integer.")
+
             # convert trigger_count to int, default to 0.7
             trigger_count = self.compress_config["trigger_count"]
             if not (isinstance(trigger_count, int) or isinstance(trigger_count, float)) or trigger_count <= 0:
@@ -149,8 +153,7 @@ Reply "TERMINATE" in the end when everything is done.
                 self.compress_config["trigger_count"] = int(
                     trigger_count * get_max_token_limit(self.llm_config["model"])
                 )
-            if not isinstance(self.compress_config["leave_last_n"], int) or self.compress_config["leave_last_n"] < 0:
-                raise ValueError("leave_last_n must be a non-negative integer.")
+                trigger_count = self.compress_config["trigger_count"]
             init_count = self._compute_init_token_count()
             if trigger_count < init_count:
                 print(
@@ -158,11 +161,9 @@ Reply "TERMINATE" in the end when everything is done.
                 )
                 self.compress_config = False
 
-            if self.compress_config["mode"] == "CUSTOMIZED":
-                assert (
-                    "compress_function" in self.compress_config
-                ), "compress_function must be provided when mode is 'CUSTOMIZED'"
-            elif self.compress_config["compress_function"] is not None:
+            if self.compress_config["mode"] == "CUSTOMIZED" and self.compress_config["compress_function"] is None:
+                raise ValueError("compress_function must be provided when mode is CUSTOMIZED.")
+            if self.compress_config["mode"] != "CUSTOMIZED" and self.compress_config["compress_function"] is not None:
                 print("Warning: compress_function is provided but mode is not 'CUSTOMIZED'.")
 
         else:
@@ -200,7 +201,8 @@ Reply "TERMINATE" in the end when everything is done.
             logger.error(error_msg)
             raise AssertionError(error_msg)
 
-        # removed here
+        if messages is None:
+            messages = self._oai_messages[sender]
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -210,6 +212,8 @@ Reply "TERMINATE" in the end when everything is done.
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                if messages is not None and messages != self._oai_messages[sender]:
+                    messages = self._oai_messages[sender]
                 if final:
                     return reply
         return self._default_auto_reply
@@ -396,12 +400,12 @@ Reply "TERMINATE" in the end when everything is done.
             print(chat_to_compress[0]["content"])
 
         # 4. use LLM to compress
-        compress_sys_msg = """You are a helpful AI assistant that will compress messages.
+        compress_sys_msg = """You are a helpful assistant that will summarize and compress conversation history.
 Rules:
-1. Please summarize each of the message and reserve the titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
-2. Context after ##USER##, ##ASSISTANT## (and ##<Name>(<Title>)##): compress the content and reserve important information. If there is big chunk of code, please use ##CODE## to indicate and summarize what the code is doing with as few words as possible and include details like exact numbers and defined variables.
-3. Context after ##FUNCTION_CALL##: Keep the exact content if it is short. Otherwise, summarize/compress it and reserve names (func_name, argument names).
-4. Context after ##FUNCTION_RETURN## (or code return): Keep the exact content if it is short. Summarize/compress if it is too long, you should note what the function has achieved and what the return value is.
+1. Please summarize each of the message and reserve the exact titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
+2. Try to compress the content but reserve important information (a link, a specific number, etc.).
+3. Use words to summarize the code blocks or functions calls (##FUNCTION_CALL##) and their goals. For code blocks, please use ##CODE## to mark it.
+4. For returns from functions (##FUNCTION_RETURN##) or returns from code execution: summarize the content and indicate the status of the return (e.g. success, error, etc.).
 """
         try:
             response = client.create(
