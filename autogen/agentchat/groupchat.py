@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import sys
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 import logging
@@ -125,7 +125,7 @@ class GroupChatManager(ConversableAgent):
     def __init__(
         self,
         groupchat: GroupChat,
-        name: Optional[str] = "chat_manager",
+        name: str = "chat_manager",
         # unlimited consecutive auto reply by default
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
@@ -150,7 +150,7 @@ class GroupChatManager(ConversableAgent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[GroupChat] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Tuple[bool, Union[str, Dict, None]]:
         """Run a group chat."""
         if messages is None:
             messages = self._oai_messages[sender]
