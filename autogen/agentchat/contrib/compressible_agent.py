@@ -177,24 +177,11 @@ Reply "TERMINATE" in the end when everything is done.
     ) -> Union[str, Dict, None]:
         """
 
-        Note on difference from ConversableAgent.generate_reply:
-        The following lines are removed:
+        Adding to line 202:
         ```
-        if messages is None:
-            messages = self._oai_messages[sender]
+            if messages is not None and messages != self._oai_messages[sender]:
+                messages = self._oai_messages[sender]
         ```
-        Reason:
-        1. It will make no difference because every `generate_<>_reply` (e.g. generate_oai_reply) has the exact two lines
-            to replace `messages` with `self._oai_messages[sender]` if `messages` is None.
-
-        2. Why needed for compression:
-            - The `on_oai_token_limit` will modify `self._oai_messages[sender]`.
-            - In `generate_oai_reply`, `messages` and `sender` are passed in (line 179).
-            - If the two lines are not removed here, messages are never None, and `generate_oai_reply` will
-                always use `messages`, which is not compressed.
-            - If the two lines are removed, `generate_oai_reply` will find that `messages` is None and
-                use `self._oai_messages[sender]` instead, which is compressed.
-                (From 1, generate_oai_reply has the exact two lines)
         """
         if all((messages is None, sender is None)):
             error_msg = f"Either {messages=} or {sender=} must be provided."

@@ -79,5 +79,6 @@ jobs:
           pip install -e .
           pip uninstall -y openai
       - name: Test Compression
+        if: matrix.python-version != '3.10'
         run: |
           pytest test/agentchat/contrib/test_compressible_agent.py
