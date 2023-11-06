@@ -199,7 +199,7 @@ Reply "TERMINATE" in the end when everything is done.
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
-                if messages is not None and messages != self._oai_messages[sender]:
+                if messages is not None and sender is not None and messages != self._oai_messages[sender]:
                     messages = self._oai_messages[sender]
                 if final:
                     return reply
