@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import pdb
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import replicate
@@ -9,6 +10,7 @@ from regex import R
 
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+from autogen.code_utils import content_str
 from autogen.img_utils import get_image_data, lmm_formater
 
 try:
@@ -66,11 +68,12 @@ class LLaVAAgent(MultimodalConversableAgent):
 
         # The formats for LLaVA and GPT are different. So, we manually handle them here.
         images = []
-        prompt = self._content_str(self.system_message) + "\n"
+        prompt = content_str(self.system_message) + "\n"
         for msg in messages:
             role = "Human" if msg["role"] == "user" else "Assistant"
-            images += [d["image"] for d in msg["content"] if isinstance(d, dict)]
-            content_prompt = self._content_str(msg["content"])
+            # pdb.set_trace()
+            images += [d["image_url"]["url"] for d in msg["content"] if d["type"] == "image_url"]
+            content_prompt = content_str(msg["content"])
             prompt += f"{SEP}{role}: {content_prompt}\n"
         prompt += "\n" + SEP + "Assistant: "
         print(colored(prompt, "blue"))

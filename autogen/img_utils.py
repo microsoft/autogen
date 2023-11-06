@@ -100,17 +100,16 @@ def gpt4v_formatter(prompt: str) -> List[Union[str, dict]]:
             continue
 
         # Add text before this image tag to output list
-        output.append(prompt[last_index : match.start()])
+        output.append({"type": "text", "text": prompt[last_index : match.start()]})
 
         # Add image data to output list
-        output.append({"image": img_data})
+        output.append({"type": "image_url", "image_url": {"url": img_data}})
 
         last_index = match.end()
         image_count += 1
 
     # Add remaining text to output list
-    output.append(prompt[last_index:])
-
+    output.append({"type": "text", "text": prompt[last_index:]})
     return output
 
 

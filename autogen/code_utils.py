@@ -1,14 +1,15 @@
-import subprocess
-import sys
+import logging
 import os
 import pathlib
-from typing import List, Dict, Tuple, Optional, Union, Callable
 import re
+import subprocess
+import sys
 import time
-from hashlib import md5
-import logging
-from autogen import oai
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from hashlib import md5
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+from autogen import oai
 
 try:
     import docker
@@ -29,6 +30,19 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
+def content_str(content: Union[str, List]) -> str:
+    if type(content) is str:
+        return content
+    rst = ""
+    for item in content:
+        if item["type"] == "text":
+            rst += item["text"]
+        else:
+            assert isinstance(item, dict) and item["type"] == "image_url", "Wrong content format."
+            rst += "<image>"
+    return rst
+
+
 def infer_lang(code):
     """infer the language for the code.
     TODO: make it robust.
@@ -46,12 +60,13 @@ def infer_lang(code):
 
 
 def extract_code(
-    text: str, pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
+    text: Union[str, List], pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
 ) -> List[Tuple[str, str]]:
     """Extract code from a text.
 
     Args:
-        text (str): The text to extract code from.
+        text (str or List): The content to extract code from. The content can be
+            a string or a list, as returned by standard GPT or multimodal GPT.
         pattern (str, optional): The regular expression pattern for finding the
             code block. Defaults to CODE_BLOCK_PATTERN.
         detect_single_line_code (bool, optional): Enable the new feature for
@@ -62,6 +77,7 @@ def extract_code(
           If there is no code block in the input text, the language would be "unknown".
           If there is code block but the language is not specified, the language would be "".
     """
+    text = content_str(text)
     if not detect_single_line_code:
         match = re.findall(pattern, text, flags=re.DOTALL)
         return match if match else [(UNKNOWN, text)]

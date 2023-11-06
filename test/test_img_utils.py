@@ -1,5 +1,6 @@
 import base64
 import os
+import pdb
 import unittest
 from unittest.mock import patch
 
@@ -97,7 +98,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         Test the gpt4v_formatter function with a prompt containing no images.
         """
         prompt = "This is a test."
-        expected_output = [prompt]
+        expected_output = [{"type": "text", "text": prompt}]
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
 
@@ -110,7 +111,11 @@ class TestGpt4vFormatter(unittest.TestCase):
         mock_get_image_data.return_value = "fake image data"
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
-        expected_output = ["This is a test with an image ", {"image": "fake image data"}, "."]
+        expected_output = [
+            {"type": "text", "text": "This is a test with an image "},
+            {"type": "image_url", "image_url": {"url": "fake image data"}},
+            {"type": "text", "text": "."},
+        ]
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
 
@@ -126,11 +131,11 @@ class TestGpt4vFormatter(unittest.TestCase):
             "This is a test with images <img http://example.com/image1.png> and <img http://example.com/image2.png>."
         )
         expected_output = [
-            "This is a test with images ",
-            {"image": "fake image data"},
-            " and ",
-            {"image": "fake image data"},
-            ".",
+            {"type": "text", "text": "This is a test with images "},
+            {"type": "image_url", "image_url": {"url": "fake image data"}},
+            {"type": "text", "text": " and "},
+            {"type": "image_url", "image_url": {"url": "fake image data"}},
+            {"type": "text", "text": "."},
         ]
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
