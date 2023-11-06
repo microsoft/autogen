@@ -20,7 +20,7 @@ class MultimodalConversableAgent(ConversableAgent):
     def __init__(
         self,
         name: str,
-        system_message: Optional[Tuple[str, List]] = DEFAULT_LMM_SYS_MSG,
+        system_message: Optional[Union[str, List]] = DEFAULT_LMM_SYS_MSG,
         is_termination_msg: str = None,
         *args,
         **kwargs,
