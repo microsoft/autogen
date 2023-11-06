@@ -13,8 +13,6 @@ except ImportError:
 else:
     skip = False
 
-KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 base64_encoded_image = (
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
@@ -25,19 +23,12 @@ base64_encoded_image = (
 @pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestMultimodalConversableAgent(unittest.TestCase):
     def setUp(self):
-        config_list = autogen.config_list_from_json(
-            OAI_CONFIG_LIST,
-            file_location=KEY_LOC,
-            filter_dict={
-                "model": ["gpt-4", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
-            },
-        )
         self.agent = MultimodalConversableAgent(
             name="TestAgent",
             llm_config={
                 "timeout": 600,
                 "seed": 42,
-                "config_list": config_list,
+                "config_list": [{"model": "gpt-4-vision-preview", "api_key": "sk-fake"}],
             },
         )
 
@@ -46,7 +37,10 @@ class TestMultimodalConversableAgent(unittest.TestCase):
         self.assertEqual(
             self.agent.system_message,
             [
-                'You are a helpful AI assistant.\nYou can also view images, where the "<image i>" represent the i-th image you received.'
+                {
+                    "type": "text",
+                    "text": 'You are a helpful AI assistant.\nYou can also view images, where the "<image i>" represent the i-th image you received.',
+                }
             ],
         )
 
@@ -56,31 +50,26 @@ class TestMultimodalConversableAgent(unittest.TestCase):
         self.assertEqual(
             self.agent.system_message,
             [
-                "We will discuss ",
-                {"image": base64_encoded_image.replace("data:image/png;base64,", "")},
-                " in this conversation.",
+                {"type": "text", "text": "We will discuss "},
+                {"type": "image_url", "image_url": {"url": base64_encoded_image.replace("data:image/png;base64,", "")}},
+                {"type": "text", "text": " in this conversation."},
             ],
         )
 
     def test_message_to_dict(self):
         # Test string message
         message_str = "Hello"
-        expected_dict = {"content": ["Hello"]}
+        expected_dict = {"content": [{"type": "text", "text": "Hello"}]}
         self.assertDictEqual(self.agent._message_to_dict(message_str), expected_dict)
 
         # Test list message
-        message_list = ["Hello"]
+        message_list = [{"type": "text", "text": "Hello"}]
         expected_dict = {"content": message_list}
         self.assertDictEqual(self.agent._message_to_dict(message_list), expected_dict)
 
         # Test dictionary message
-        message_dict = {"content": "Hello"}
+        message_dict = {"content": [{"type": "text", "text": "Hello"}]}
         self.assertDictEqual(self.agent._message_to_dict(message_dict), message_dict)
-
-    def test_content_str(self):
-        content = ["Hello", {"image": "image_data"}]
-        expected_str = "Hello<image>"
-        self.assertEqual(self.agent._content_str(content), expected_str)
 
     def test_print_received_message(self):
         sender = Agent(name="SenderAgent")
