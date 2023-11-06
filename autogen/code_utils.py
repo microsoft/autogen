@@ -19,7 +19,7 @@ except ImportError:
 DEFAULT_MODEL = "gpt-4"
 FAST_MODEL = "gpt-3.5-turbo"
 # Regular expression for finding a code block
-CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
+CODE_BLOCK_PATTERN = r"```[ \t]*(\w*)\n(.*?)\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
@@ -83,10 +83,10 @@ def extract_code(
         return match if match else [(UNKNOWN, text)]
 
     # Extract both multi-line and single-line code block, separated by the | operator
-    # `{3}(\w+)?\s*([\s\S]*?)`{3}: Matches multi-line code blocks.
+    # `{3}[ \t]*(\w+)?\s*([\s\S]*?)`{3}: Matches multi-line code blocks.
     #    The (\w+)? matches the language, where the ? indicates it is optional.
     # `([^`]+)`: Matches inline code.
-    code_pattern = re.compile(r"`{3}(\w+)?\s*([\s\S]*?)`{3}|`([^`]+)`")
+    code_pattern = re.compile(r"`{3}[ \t]*(\w+)?\s*([\s\S]*?)`{3}|`([^`]+)`")
     code_blocks = code_pattern.findall(text)
 
     # Extract the individual code blocks and languages from the matched groups
