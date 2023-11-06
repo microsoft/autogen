@@ -403,6 +403,8 @@ class ConversableAgent(Agent):
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
         print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
+        message = self._message_to_dict(message)
+
         if message.get("role") == "function":
             func_print = f"***** Response from calling function \"{message['name']}\" *****"
             print(colored(func_print, "green"), flush=True)
