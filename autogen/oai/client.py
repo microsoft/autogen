@@ -109,9 +109,9 @@ class OpenAIWrapper:
             base_url = config.get("base_url")
             if base_url is None:
                 raise ValueError("to use azure openai api, base_url must be specified.")
-            suffix = f"openai/deployments/{model}"
+            suffix = f"/openai/deployments/{model}"
             if not base_url.endswith(suffix):
-                config["base_url"] += suffix
+                config["base_url"] += suffix[1:] if base_url.endswith("/") else suffix
 
     def _separate_openai_config(self, config):
         """Separate the config into openai_config and extra_kwargs."""
