@@ -21,7 +21,7 @@ class MultimodalConversableAgent(ConversableAgent):
         self,
         name: str,
         system_message: Optional[Tuple[str, List]] = DEFAULT_LMM_SYS_MSG,
-        is_termination_msg=None,
+        is_termination_msg: str = None,
         *args,
         **kwargs,
     ):

@@ -51,11 +51,10 @@ class LLaVAAgent(MultimodalConversableAgent):
         )
 
         assert self.llm_config is not None, "llm_config must be provided."
-        self.register_reply([Agent, None], reply_func=LLaVAAgent._image_reply, position=0)
+        self.register_reply([Agent, None], reply_func=LLaVAAgent._image_reply, position=1)
 
     def _image_reply(self, messages=None, sender=None, config=None):
         # Note: we did not use "llm_config" yet.
-        # TODO 1: make the LLaVA API design compatible with llm_config
 
         if all((messages is None, sender is None)):
             error_msg = f"Either {messages=} or {sender=} must be provided."
@@ -66,7 +65,6 @@ class LLaVAAgent(MultimodalConversableAgent):
             messages = self._oai_messages[sender]
 
         # The formats for LLaVA and GPT are different. So, we manually handle them here.
-        # TODO: format the images from the history accordingly.
         images = []
         prompt = self._content_str(self.system_message) + "\n"
         for msg in messages:
