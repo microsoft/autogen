@@ -288,6 +288,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
     def _check_update_context(self, message):
         if isinstance(message, dict):
             message = message.get("content", "")
+        elif not isinstance(message, str):
+            message = ""
         update_context_case1 = "UPDATE CONTEXT" in message[-20:].upper() or "UPDATE CONTEXT" in message[:20].upper()
         update_context_case2 = self.customized_answer_prefix and self.customized_answer_prefix not in message.upper()
         return update_context_case1, update_context_case2
