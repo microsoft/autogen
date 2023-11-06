@@ -1,6 +1,6 @@
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from autogen import oai
+from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
 from autogen.img_utils import gpt4v_formatter
 
@@ -28,7 +28,7 @@ class MultimodalConversableAgent(ConversableAgent):
         """
         Args:
             name (str): agent name.
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str): system message for the OpenAIWrapper inference.
                 Please override this attribute if you want to reprogram the agent.
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
@@ -55,7 +55,7 @@ class MultimodalConversableAgent(ConversableAgent):
         """Update the system message.
 
         Args:
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str): system message for the OpenAIWrapper inference.
         """
         self._oai_system_message[0]["content"] = self._message_to_dict(system_message)["content"]
         self._oai_system_message[0]["role"] = "system"
@@ -95,7 +95,7 @@ class MultimodalConversableAgent(ConversableAgent):
             content = message.get("content")
             if content is not None:
                 if "context" in message:
-                    content = oai.ChatCompletion.instantiate(
+                    content = OpenAIWrapper.instantiate(
                         content,
                         message["context"],
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),

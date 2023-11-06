@@ -115,19 +115,6 @@ Example notebooks:
 [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
 
 
-- #### mathchat
-
-`pyautogen<0.2` offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
-```bash
-pip install "pyautogen[mathchat]<0.2"
-```
-
-Example notebooks:
-
-[Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
-
-
-
 - #### Large Multimodal Model (LMM) Agents
 
 We offered Multimodal Conversable Agent and LLaVA Agent. Please install with the [lmm] option to use it.
@@ -138,3 +125,15 @@ pip install "pyautogen[lmm]"
 Example notebooks:
 
 [LLaVA Agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
+
+
+- #### mathchat
+
+`pyautogen<0.2` offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
+```bash
+pip install "pyautogen[mathchat]<0.2"
+```
+
+Example notebooks:
+
+[Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
