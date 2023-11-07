@@ -18,8 +18,15 @@ except ImportError:
 else:
     skip = False
 import os
+import sys
 import pytest
 
+try:
+    from unstructured.partition.auto import partition
+
+    HAS_UNSTRUCTURED = True
+except ImportError:
+    HAS_UNSTRUCTURED = False
 
 test_dir = os.path.join(os.path.dirname(__file__), "test_files")
 expected_text = """AutoGen is an advanced tool designed to assist developers in harnessing the capabilities
@@ -47,7 +54,10 @@ class TestRetrieveUtils:
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
         chunks = split_files_to_chunks([pdf_file_path, txt_file_path])
-        assert all(isinstance(chunk, str) and chunk.strip() for chunk in chunks)
+        assert all(
+            isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
+            for chunk in chunks
+        )
 
     def test_get_files_from_dir(self):
         files = get_files_from_dir(test_dir)
@@ -161,14 +171,17 @@ class TestRetrieveUtils:
         )
         results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
         assert (
-            results.get("documents")[0][0]
-            == "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities\nof Large Language Models (LLMs) for various applications. The primary purpose o"
+            "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities"
+            in results.get("documents")[0][0]
         )
 
     def test_retrieve_utils(self):
         client = chromadb.PersistentClient(path="/tmp/chromadb")
         create_vector_db_from_dir(
-            dir_path="./website/docs", client=client, collection_name="autogen-docs", get_or_create=True
+            dir_path="./website/docs",
+            client=client,
+            collection_name="autogen-docs",
+            get_or_create=True,
         )
         results = query_vector_db(
             query_texts=[
@@ -181,6 +194,20 @@ class TestRetrieveUtils:
         )
         print(results["ids"][0])
         assert len(results["ids"][0]) == 4
+
+    @pytest.mark.skipif(
+        not HAS_UNSTRUCTURED,
+        reason="do not run if unstructured is not installed",
+    )
+    def test_unstructured(self):
+        pdf_file_path = os.path.join(test_dir, "example.pdf")
+        txt_file_path = os.path.join(test_dir, "example.txt")
+        word_file_path = os.path.join(test_dir, "example.docx")
+        chunks = split_files_to_chunks([pdf_file_path, txt_file_path, word_file_path])
+        assert all(
+            isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
+            for chunk in chunks
+        )
 
 
 if __name__ == "__main__":

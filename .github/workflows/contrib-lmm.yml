@@ -1,27 +1,27 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Build
+name: ContribTests
 
 on:
-  push:
-    branches: ['main']
-    paths:
-      - 'autogen/**'
-      - 'test/**'
-      - '.github/workflows/build.yml'
-      - 'setup.py'
   pull_request:
-    branches: ['main']
-  merge_group:
-    types: [checks_requested]
+    branches: ['main', 'dev/v0.2']
+    paths:
+      - 'autogen/img_utils.py'
+      - 'autogen/agentchat/contrib/multimodal_conversable_agent.py'
+      - 'autogen/agentchat/contrib/llava_agent.py'
+      - 'test/test_img_utils.py'
+      - 'test/agentchat/contrib/test_lmm.py'
+      - 'test/agentchat/contrib/test_llava.py'
+      - '.github/workflows/lmm-test.yml'
+      - 'setup.py'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  build:
+  LMMTest:
 
     runs-on: ${{ matrix.os }}
     strategy:
@@ -35,27 +35,22 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install packages and dependencies
+      - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e .
-          python -c "import autogen"
-          pip install -e. pytest
+          pip install pytest
+      - name: Install packages and dependencies for LMM
+        run: |
+          pip install -e .[lmm]
           pip uninstall -y openai
-      - name: Install unstructured if not windows
-        if: matrix.os != 'windows-2019'
+      - name: Test LMM and LLaVA
         run: |
-          pip install "unstructured[all-docs]"
-      - name: Test with pytest
-        if: matrix.python-version != '3.10'
-        run: |
-          pytest test
+          pytest test/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[test]
-          pip uninstall -y openai
-          coverage run -a -m pytest test
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
