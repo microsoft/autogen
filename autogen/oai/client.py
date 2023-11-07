@@ -70,7 +70,8 @@ class OpenAIWrapper:
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
         if config_list:
-            self._clients = [self._client(config, openai_config) for config in config_list]
+            config_list = [config.copy() for config in config_list]  # make a copy before modifying
+            self._clients = [self._client(config, openai_config) for config in config_list]  # could modify the config
             self._config_list = [
                 {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
@@ -108,9 +109,9 @@ class OpenAIWrapper:
             base_url = config.get("base_url")
             if base_url is None:
                 raise ValueError("to use azure openai api, base_url must be specified.")
-            suffix = f"openai/deployments/{model}"
+            suffix = f"/openai/deployments/{model}"
             if not base_url.endswith(suffix):
-                config["base_url"] += suffix
+                config["base_url"] += suffix[1:] if base_url.endswith("/") else suffix
 
     def _separate_openai_config(self, config):
         """Separate the config into openai_config and extra_kwargs."""
