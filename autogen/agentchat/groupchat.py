@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GroupChat:
-    """A group chat class that contains the following data fields:
+    """(In preview) A group chat class that contains the following data fields:
     - agents: a list of participating agents.
     - messages: a list of messages in the group chat.
     - max_round: the maximum number of rounds.
