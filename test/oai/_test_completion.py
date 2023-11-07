@@ -13,9 +13,8 @@ from autogen.code_utils import (
     generate_code,
 )
 from autogen.math_utils import eval_math_responses, solve_problem
+from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
-KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -231,7 +230,7 @@ def test_humaneval(num_samples=1):
         raise_on_ratelimit_or_timeout=False,
     )
     # assert response == -1
-    config_list = autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai")
+    config_list = autogen.config_list_openai_aoai(KEY_LOC)
     # a minimal tuning example
     config, _ = autogen.Completion.tune(
         data=tune_data,
@@ -272,7 +271,7 @@ def test_humaneval(num_samples=1):
     )
     response = autogen.ChatCompletion.create(context=test_data[0], config_list=config_list, **config)
     print(response)
-    from openai.error import RateLimitError
+    from openai import RateLimitError
 
     try:
         code, cost, selected = implement(tune_data[1], [{**config_list[-1], **config}])
@@ -376,11 +375,11 @@ def test_math(num_samples=-1):
     ]
 
     autogen.Completion.set_cache(seed)
-    config_list = autogen.config_list_openai_aoai(KEY_LOC, exclude="aoai")
+    config_list = autogen.config_list_openai_aoai(KEY_LOC)
     vanilla_config = {
-        "model": "text-davinci-003",
+        "model": "text-ada-001",
         "temperature": 1,
-        "max_tokens": 2048,
+        "max_tokens": 1024,
         "n": 1,
         "prompt": prompts[0],
         "stop": "###",
@@ -451,5 +450,5 @@ if __name__ == "__main__":
     # test_chatcompletion()
     # test_multi_model()
     # test_nocontext()
-    test_humaneval(1)
-    # test_math(1)
+    # test_humaneval(1)
+    test_math(1)
