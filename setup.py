@@ -14,7 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai==1.0.0b3",
+    "openai==1.1.1",
     "diskcache",
     "termcolor",
     "flaml",
@@ -58,5 +58,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.8, <3.12",
 )
