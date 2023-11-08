@@ -130,4 +130,4 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 
 ## How to get last message ?
 
-Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#chat_messages
+Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#last_message
