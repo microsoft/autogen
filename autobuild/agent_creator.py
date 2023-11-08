@@ -202,9 +202,9 @@ class AgentCreator:
             self.create_agent(agent_config[0], agent_config[1], default_llm_config)
 
         if coding is None:
-            resp = autogen.ChatCompletion.create(
-                messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=self.task)}],
-                **config_list[0]
+            api = autogen.OpenAIWrapper(config_list=config_list)
+            resp = api.create(
+                messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=self.task)}]
             ).choices[0].message.content
             coding = True if resp == 'YES' else False
 
