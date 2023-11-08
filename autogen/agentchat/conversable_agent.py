@@ -1204,5 +1204,3 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
-    
-
