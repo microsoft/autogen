@@ -17,6 +17,7 @@ assistant = AssistantAgent(
     llm_config={
         # "request_timeout": 180,  # Remove for autogen version >= 0.2, and OpenAI version >= 1.0
         "config_list": config_list,
+        "use_cache": False,
     },
 )
 user_proxy = UserProxyAgent(
