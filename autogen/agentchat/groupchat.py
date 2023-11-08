@@ -104,7 +104,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return self.agent_by_name(name)
         except ValueError:
             logger.warning(
-                    f"GroupChat select_speaker failed to resolve the next speaker's name. Speaker selection will default to the next speaker in the list. This is because the speaker selection OAI call returned:\n{name}"
+                f"GroupChat select_speaker failed to resolve the next speaker's name. Speaker selection will default to the next speaker in the list. This is because the speaker selection OAI call returned:\n{name}"
             )
             return self.next_agent(last_speaker, agents)
 
@@ -117,6 +117,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 )
             roles.append(f"{agent.name}: {agent.system_message}")
         return "\n".join(roles)
+
 
 class GroupChatManager(ConversableAgent):
     """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
