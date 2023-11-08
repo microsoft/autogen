@@ -71,7 +71,7 @@ async def test_stream():
         name="assistant",
         llm_config={
             "timeout": 600,
-            "seed": 41,
+            "cache_seed": 41,
             "config_list": config_list,
             "temperature": 0,
         },
