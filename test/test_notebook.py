@@ -84,6 +84,14 @@ def _test_oai_chatgpt_gpt4(save=False):
     run_notebook("oai_chatgpt_gpt4.ipynb", save=save)
 
 
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_hierarchy_flow_using_select_speaker(save=False):
+    run_notebook("agentchat_hierarchy_flow_using_select_speaker.ipynb", save=save)
+
+
 if __name__ == "__main__":
     test_agentchat_auto_feedback_from_code(save=True)
     # test_oai_chatgpt_gpt4(save=True)
