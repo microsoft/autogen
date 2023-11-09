@@ -53,6 +53,7 @@ class Completion(openai_Completion):
         "gpt-3.5-turbo-16k",
         "gpt-3.5-turbo-16k-0613",
         "gpt-35-turbo",
+        "gpt-35-turbo-0613",
         "gpt-35-turbo-16k",
         "gpt-4",
         "gpt-4-32k",
