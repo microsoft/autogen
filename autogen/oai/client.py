@@ -31,7 +31,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"seed", "filter_func", "allow_format_str_template", "context", "api_version"}
+    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
@@ -191,8 +191,8 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - `seed` (int | None) for the cache. Default to 41.
-                An integer seed is useful when implementing "controlled randomness" for the completion.
+            - `cache_seed` (int | None) for the cache. Default to 41.
+                An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
             - filter_func (Callable | None): A function that takes in the context and the response
                 and returns a boolean to indicate whether the response is valid. E.g.,
@@ -219,12 +219,12 @@ class OpenAIWrapper:
             self._process_for_azure(create_config, extra_kwargs, "extra")
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
-            # get the seed, filter_func and context
-            seed = extra_kwargs.get("seed", 41)
+            # get the cache_seed, filter_func and context
+            cache_seed = extra_kwargs.get("cache_seed", 41)
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
-            with diskcache.Cache(f"{self.cache_path_root}/{seed}") as cache:
-                if seed is not None:
+            with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
+                if cache_seed is not None:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
@@ -245,7 +245,7 @@ class OpenAIWrapper:
                     if i == last:
                         raise
                 else:
-                    if seed is not None:
+                    if cache_seed is not None:
                         # Cache the response
                         cache.set(key, response)
                     return response
