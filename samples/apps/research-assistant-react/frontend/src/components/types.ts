@@ -9,11 +9,11 @@ export interface IImageGeneratorConfig {
 
 export interface IMessage {
   userId: string;
-  rootMsgId: number;
-  msgId: number;
+  rootMsgId: string;
+  msgId?: string;
   role: string;
   content: string;
-  timestamp: string;
+  timestamp?: string;
   personalize?: boolean;
   use_cache?: boolean;
   ra?: string;

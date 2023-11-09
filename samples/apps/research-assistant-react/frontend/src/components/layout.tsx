@@ -5,8 +5,6 @@ import Footer from "./footer";
 
 /// import ant css
 import "antd/dist/reset.css";
-import { useMsal } from "@azure/msal-react";
-import LoginView from "./login";
 
 type Props = {
   title: string;
@@ -47,12 +45,7 @@ const Layout = ({
     <appContext.Consumer>
       {(context: any) => {
         if (restricted) {
-          return (
-            <div className="h-full ">
-              {context.user && layoutContent}
-              {!context.user && <LoginView meta={meta} />}
-            </div>
-          );
+          return <div className="h-full ">{context.user && layoutContent}</div>;
         } else {
           return layoutContent;
         }

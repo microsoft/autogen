@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/24/outline";
 import React, { ReactChildren, ReactChild, useRef } from "react";
 import Icon from "./icons";
+import { Modal } from "antd";
 
 interface IProps {
   children?: ReactChild | ReactChildren;
@@ -204,10 +205,12 @@ export const LoadingBar = ({ children }: IProps) => {
 };
 
 export const MessageBox = ({ title, children, className }: IProps) => {
-  const messageBox = useRef(null);
+  const messageBox = useRef<HTMLDivElement>(null);
 
   const closeMessage = () => {
-    messageBox.current.remove();
+    if (messageBox.current) {
+      messageBox.current.remove();
+    }
   };
 
   return (
@@ -235,6 +238,33 @@ export const MessageBox = ({ title, children, className }: IProps) => {
         </div>
       </div>
       {children}
+    </div>
+  );
+};
+
+export const ExpandView = ({ children, className = "" }: any) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  return (
+    <div className={`border rounded mb-6  border-secondary ${className}`}>
+      <div
+        role="button"
+        onClick={() => {
+          setIsOpen(true);
+        }}
+        className="text-xs mb-2 break-words"
+      >
+        {children}
+      </div>
+      {isOpen && (
+        <Modal
+          width={800}
+          open={isOpen}
+          onCancel={() => setIsOpen(false)}
+          footer={null}
+        >
+          {children}
+        </Modal>
+      )}
     </div>
   );
 };
