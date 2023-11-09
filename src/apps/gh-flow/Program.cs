@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 using Microsoft.SemanticKernel.Memory;
+using Microsoft.SemanticKernel.Reliability.Basic;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
 using Orleans.Configuration;
@@ -17,7 +18,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton(s =>
 {
     var ghOptions = s.GetService<IOptions<GithubOptions>>();
-    var ghService = new GithubAuthService(ghOptions);
+    var logger = s.GetService<ILogger<GithubAuthService>>();
+    var ghService = new GithubAuthService(ghOptions, logger);
     var client = ghService.GetGitHubClient().Result;
     return client;
 });
@@ -160,5 +162,9 @@ static IKernel CreateKernel(IServiceProvider provider)
     return new KernelBuilder()
                         .WithLoggerFactory(loggerFactory)
                         .WithAzureChatCompletionService(openAiConfig.DeploymentOrModelId, openAiConfig.Endpoint, openAiConfig.ApiKey, true, openAiConfig.ServiceId, true)
+                        .WithRetryBasic(new BasicRetryConfig {
+                            MaxRetryCount = 5,
+                            UseExponentialBackoff = true
+                        })
                         .WithMemory(semanticTextMemory).Build();
 }

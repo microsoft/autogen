@@ -25,126 +25,195 @@ public class GithubService : IManageGithub
 
     public async Task CommitToBranch(CommitRequest request)
     {
-        var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_azSettings.FilesAccountName};AccountKey={_azSettings.FilesAccountKey};EndpointSuffix=core.windows.net";
-
-        var dirName = $"{request.Dir}/{request.Org}-{request.Repo}/{request.ParentNumber}/{request.Number}";
-        var share = new ShareClient(connectionString, _azSettings.FilesShareName);
-        var directory = share.GetDirectoryClient(dirName);
-
-        var remaining = new Queue<ShareDirectoryClient>();
-        remaining.Enqueue(directory);
-        while (remaining.Count > 0)
+        try
         {
-            var dir = remaining.Dequeue();
-            await foreach (var item in dir.GetFilesAndDirectoriesAsync())
-            {
-                if (!item.IsDirectory && item.Name != "run.sh") // we don't want the generated script in the PR
-                {
-                    try
-                    {
-                        var file = dir.GetFileClient(item.Name);
-                        var filePath = file.Path.Replace($"{_azSettings.FilesShareName}/", "")
-                                                .Replace($"{dirName}/", "");
-                        var fileStream = await file.OpenReadAsync();
-                        using (var reader = new StreamReader(fileStream, Encoding.UTF8))
-                        {
-                            var value = reader.ReadToEnd();
+            var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_azSettings.FilesAccountName};AccountKey={_azSettings.FilesAccountKey};EndpointSuffix=core.windows.net";
 
-                            await _ghClient.Repository.Content.CreateFile(
-                                    request.Org, request.Repo, filePath,
-                                    new CreateFileRequest($"Commit message", value, request.Branch)); // TODO: add more meaningfull commit message
+            var dirName = $"{request.Dir}/{request.Org}-{request.Repo}/{request.ParentNumber}/{request.Number}";
+            var share = new ShareClient(connectionString, _azSettings.FilesShareName);
+            var directory = share.GetDirectoryClient(dirName);
+
+            var remaining = new Queue<ShareDirectoryClient>();
+            remaining.Enqueue(directory);
+            while (remaining.Count > 0)
+            {
+                var dir = remaining.Dequeue();
+                await foreach (var item in dir.GetFilesAndDirectoriesAsync())
+                {
+                    if (!item.IsDirectory && item.Name != "run.sh") // we don't want the generated script in the PR
+                    {
+                        try
+                        {
+                            var file = dir.GetFileClient(item.Name);
+                            var filePath = file.Path.Replace($"{_azSettings.FilesShareName}/", "")
+                                                    .Replace($"{dirName}/", "");
+                            var fileStream = await file.OpenReadAsync();
+                            using (var reader = new StreamReader(fileStream, Encoding.UTF8))
+                            {
+                                var value = reader.ReadToEnd();
+
+                                await _ghClient.Repository.Content.CreateFile(
+                                        request.Org, request.Repo, filePath,
+                                        new CreateFileRequest($"Commit message", value, request.Branch)); // TODO: add more meaningfull commit message
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Error while uploading file {item.Name}");
                         }
                     }
-                    catch (Exception ex)
+                    else if (item.IsDirectory)
                     {
-                        _logger.LogError(ex, $"Error while uploading file {item.Name}");
+                        remaining.Enqueue(dir.GetSubdirectoryClient(item.Name));
                     }
                 }
-                else if (item.IsDirectory)
-                {
-                    remaining.Enqueue(dir.GetSubdirectoryClient(item.Name));
-                }
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error committing to branch");
         }
     }
 
     public async Task CreateBranch(CreateBranchRequest request)
     {
-        var ghRepo = await _ghClient.Repository.Get(request.Org, request.Repo);
-        await _ghClient.Git.Reference.CreateBranch(request.Org, request.Repo, request.Branch, ghRepo.DefaultBranch);
+        try
+        {
+            var ghRepo = await _ghClient.Repository.Get(request.Org, request.Repo);
+            await _ghClient.Git.Reference.CreateBranch(request.Org, request.Repo, request.Branch, ghRepo.DefaultBranch);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating branch");
+        }
     }
 
     public async Task<string> GetMainLanguage(string org, string repo)
     {
-        var languages = await _ghClient.Repository.GetAllLanguages(org, repo);
-        var mainLanguage = languages.OrderByDescending(l => l.NumberOfBytes).First();
-        return mainLanguage.Name;
+        try
+        {
+            var languages = await _ghClient.Repository.GetAllLanguages(org, repo);
+            var mainLanguage = languages.OrderByDescending(l => l.NumberOfBytes).First();
+            return mainLanguage.Name;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting main language");
+            return default;
+        }
     }
 
     public async Task<NewIssueResponse> CreateIssue(CreateIssueRequest request)
     {
-        var newIssue = new NewIssue($"{request.Label} chain for #{request.ParentNumber}")
+        try
         {
-            Body = request.Input,
+            var newIssue = new NewIssue($"{request.Label} chain for #{request.ParentNumber}")
+            {
+                Body = request.Input,
 
-        };
-        newIssue.Labels.Add(request.Label);
-        var issue = await _ghClient.Issue.Create(request.Org, request.Repo, newIssue);
-        var commentBody = $" - [ ] #{issue.Number} - tracks {request.Label}";
-        var comment = await _ghClient.Issue.Comment.Create(request.Org, request.Repo, (int)request.ParentNumber, commentBody);
-        return new NewIssueResponse
+            };
+            newIssue.Labels.Add(request.Label);
+            var issue = await _ghClient.Issue.Create(request.Org, request.Repo, newIssue);
+            var commentBody = $" - [ ] #{issue.Number} - tracks {request.Label}";
+            var comment = await _ghClient.Issue.Comment.Create(request.Org, request.Repo, (int)request.ParentNumber, commentBody);
+            return new NewIssueResponse
+            {
+                IssueNumber = issue.Number,
+                CommentId = comment.Id
+            };
+        }
+        catch (Exception ex)
         {
-            IssueNumber = issue.Number,
-            CommentId = comment.Id
-        };
-
+            _logger.LogError(ex, "Error creating issue");
+            return default;
+        }
     }
 
     public async Task CreatePR(CreatePRRequest request)
     {
-        var ghRepo = await _ghClient.Repository.Get(request.Org, request.Repo);
-        await _ghClient.PullRequest.Create(request.Org, request.Repo, new NewPullRequest($"New app #{request.Number}", request.Branch, ghRepo.DefaultBranch));
+        try
+        {
+            var ghRepo = await _ghClient.Repository.Get(request.Org, request.Repo);
+            await _ghClient.PullRequest.Create(request.Org, request.Repo, new NewPullRequest($"New app #{request.Number}", request.Branch, ghRepo.DefaultBranch));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating PR");
+        }
+
     }
 
     public async Task MarkTaskComplete(MarkTaskCompleteRequest request)
     {
-        var comment = await _ghClient.Issue.Comment.Get(request.Org, request.Repo, request.CommentId);
-        var updatedComment = comment.Body.Replace("[ ]", "[x]");
-        await _ghClient.Issue.Comment.Update(request.Org, request.Repo, request.CommentId, updatedComment);
+        try
+        {
+            var comment = await _ghClient.Issue.Comment.Get(request.Org, request.Repo, request.CommentId);
+            var updatedComment = comment.Body.Replace("[ ]", "[x]");
+            await _ghClient.Issue.Comment.Update(request.Org, request.Repo, request.CommentId, updatedComment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking task complete");
+        }
+
     }
 
     public async Task PostComment(PostCommentRequest request)
     {
-        await _ghClient.Issue.Comment.Create(request.Org, request.Repo, request.Number, request.Content);
-    }
-
-    public async Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent,bool> filter)
-    {
-        var items = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo, branch);
-        return await CollectFiles(org, repo, branch, items, filter);
-    }
-
-    private async Task<IEnumerable<FileResponse>> CollectFiles(string org, string repo, string branch, IReadOnlyList<RepositoryContent> items,  Func<RepositoryContent,bool> filter)
-    {
-        var result = new List<FileResponse>();
-        foreach(var item in items)
+        try
         {
-            if (item.Type == ContentType.File && filter(item))
-            {
-               var content = await _httpClient.GetStringAsync(item.DownloadUrl);
-                result.Add(new FileResponse
-                {
-                    Name = item.Name,
-                    Content = content
-                });
-            }
-            else if (item.Type == ContentType.Dir)
-            {
-               var subItems = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo,item.Path, branch);
-               result.AddRange(await CollectFiles(org, repo, branch, subItems, filter));
-            }
+            await _ghClient.Issue.Comment.Create(request.Org, request.Repo, request.Number, request.Content);
         }
-        return result;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error posting comment");
+        }
+
+    }
+
+    public async Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent, bool> filter)
+    {
+        try
+        {
+            var items = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo, branch);
+            return await CollectFiles(org, repo, branch, items, filter);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting files");
+            return Enumerable.Empty<FileResponse>();
+        }
+    }
+
+    private async Task<IEnumerable<FileResponse>> CollectFiles(string org, string repo, string branch, IReadOnlyList<RepositoryContent> items, Func<RepositoryContent, bool> filter)
+    {
+        try
+        {
+            var result = new List<FileResponse>();
+            foreach (var item in items)
+            {
+                if (item.Type == ContentType.File && filter(item))
+                {
+                    var content = await _httpClient.GetStringAsync(item.DownloadUrl);
+                    result.Add(new FileResponse
+                    {
+                        Name = item.Name,
+                        Content = content
+                    });
+                }
+                else if (item.Type == ContentType.Dir)
+                {
+                    var subItems = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo, item.Path, branch);
+                    result.AddRange(await CollectFiles(org, repo, branch, subItems, filter));
+                }
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error collecting files");
+            return Enumerable.Empty<FileResponse>();
+        }
     }
 }
 
@@ -164,7 +233,7 @@ public interface IManageGithub
     Task CommitToBranch(CommitRequest request);
 
     Task PostComment(PostCommentRequest request);
-    Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent,bool> filter);
+    Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent, bool> filter);
     Task<string> GetMainLanguage(string org, string repo);
 }
 

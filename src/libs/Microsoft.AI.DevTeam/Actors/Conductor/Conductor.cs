@@ -37,8 +37,6 @@ public class Conductor : Grain, IOrchestrateWorkflows
                 ParentNumber = parentNumber
             });
             var suffix = $"{org}-{repo}";
-            var pm = GrainFactory.GetGrain<IManageProduct>(pmIssue.IssueNumber, suffix);
-            var devLead = GrainFactory.GetGrain<ILeadDevelopment>(devLeadIssue.IssueNumber, suffix);
             var lookup = GrainFactory.GetGrain<ILookupMetadata>(suffix);
 
             var metadataList = new List<StoreMetadataPairs>{
@@ -80,10 +78,5 @@ public class Conductor : Grain, IOrchestrateWorkflows
             });
         }
         await lookup.StoreMetadata(metadataList);
-    }
-
-    public Task ScheduleCommitSandboxRun(CommitRequest commitRequest, MarkTaskCompleteRequest markTaskCompleteRequest)
-    {
-        throw new NotImplementedException();
     }
 }
