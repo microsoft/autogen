@@ -130,7 +130,6 @@ class GroupChatManager(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[str] = "Group chat manager.",
-        # seed: Optional[int] = 4,
         **kwargs,
     ):
         super().__init__(
@@ -145,8 +144,6 @@ class GroupChatManager(ConversableAgent):
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # Allow async chat if initiated using a_initiate_chat
         self.register_reply(Agent, GroupChatManager.a_run_chat, config=groupchat, reset_config=GroupChat.reset)
-
-        # self._random = random.Random(seed)
 
     def run_chat(
         self,

@@ -30,7 +30,7 @@ def test_function_call_groupchat():
     )
     llm_config = {
         "config_list": config_list_gpt4,
-        "seed": 42,
+        "cache_seed": 42,
         "functions": [
             {
                 "name": "get_random_number",
