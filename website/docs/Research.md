@@ -37,7 +37,7 @@ For technical details, please check our technical report and research publicatio
 }
 ```
 
-* [EcoAssistant: using LLM assistant more affordably and accurately](https://arxiv.org/abs/2310.03046]). Jieyu Zhang, Ranjay Krishna, Ahmed H. Awadallah, Chi Wang. ArXiv preprint arXiv:2310.03046 (2023).
+* [EcoAssistant: using LLM assistant more affordably and accurately](https://arxiv.org/abs/2310.03046). Jieyu Zhang, Ranjay Krishna, Ahmed H. Awadallah, Chi Wang. ArXiv preprint arXiv:2310.03046 (2023).
 
 ```bibtex
 @inproceedings{zhang2023ecoassistant,
