@@ -2,6 +2,9 @@ import autogen
 import time
 import subprocess as sp
 import socket
+import os
+import json
+import hashlib
 from typing import *
 
 
@@ -9,9 +12,6 @@ class AgentCreator:
     """
     Descriptions
     """
-    host: str
-    task: str
-    config_path: str
     open_ports: List[str] = []
     agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
     openai_server_name: str = 'openai'
@@ -34,22 +34,24 @@ class AgentCreator:
 
     def __init__(
             self,
-            task: str,
             host: str = 'localhost',
             config_path: str = 'OAI_CONFIG_LIST',
+            build_config_path: Optional[str] = './.build_cache',
             endpoint_building_timeout: Optional[int] = 180
     ):
         """
         Args:
-            task: description of a task.
             endpoint_building_timeout: timeout for building up an endpoint server.
             config_path: path of the OpenAI api configs.
+            build_config_path: path of the build configs.
             host: endpoint host.
         """
-        self.task = task
         self.endpoint_building_timeout = endpoint_building_timeout
         self.config_path = config_path
         self.host = host
+        self.build_config_path = build_config_path
+        if not os.path.exists(build_config_path):
+            os.makedirs(build_config_path)
 
         print('Initializing usable port...')
         for port in range(8000, 65535):
@@ -68,9 +70,6 @@ class AgentCreator:
             return True
         except OSError:
             return False
-
-    def set_task(self, task: str):
-        self.task = task
 
     def create_agent(
             self,
@@ -177,7 +176,7 @@ class AgentCreator:
                 self.agent_procs[server_id][0].terminate()
                 self.open_ports.append(server_id.split('_')[-1])
 
-    def clear_all(self):
+    def clear_all_agents(self):
         """
         Clear all cached agents.
         """
@@ -186,25 +185,59 @@ class AgentCreator:
 
     def build(
             self,
+            task: str,
             default_llm_config: dict,
-            coding: bool = None
+            coding: bool = None,
+            use_cache: Optional[bool] = True
     ):
-        # TODO: not completed.
+        use_api = False
+        build_configs = {}
+
+        if use_cache:
+            build_configs = self._load_config(task)
+
+        if build_configs == {}:
+            use_api = True
+        else:
+            agent_configs = build_configs['agent_configs']
+            coding = build_configs['coding']
+            self.manager_system_message = build_configs['manager_system_message']
+
         config_list = autogen.config_list_from_json(
             self.config_path,
             filter_dict={
                 'model': ['gpt-4']
             }
         )
-        agent_configs = [('Coder_gpt-35', 'gpt-3.5-turbo'), ('Product_manager', 'gpt-3.5-turbo')]
+        build_manager = autogen.OpenAIWrapper(config_list=config_list)
+
+        # TODO: use the build manager to decide what agent should be created,
+        #  and generate system message for each agent and group chat manager.
+        if use_api:
+            pass
+
+        agent_configs = [
+            {
+                'name': 'Coder_gpt_35',
+                'model': 'gpt-3.5-turbo',
+                'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            },
+            {
+                'name': 'Product_manager',
+                'model': 'gpt-3.5-turbo',
+                'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            }
+        ]
 
         for agent_config in agent_configs:
-            self.create_agent(agent_config[0], agent_config[1], default_llm_config)
+            self.create_agent(agent_config['name'],
+                              agent_config['model'],
+                              default_llm_config,
+                              system_message=agent_config['system_message'])
 
         if coding is None:
-            api = autogen.OpenAIWrapper(config_list=config_list)
-            resp = api.create(
-                messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=self.task)}]
+            resp = build_manager.create(
+                messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=task)}]
             ).choices[0].message.content
             coding = True if resp == 'YES' else False
 
@@ -216,14 +249,35 @@ class AgentCreator:
                 human_input_mode="TERMINATE"
             )
         else:
-            self.initiate_agent_name = agent_configs[0][0]
+            self.initiate_agent_name = agent_configs[0]['name']
 
         self.group_chat_manager_config = default_llm_config.copy()
         self.group_chat_manager_config['config_list'] = config_list
         self.manager_system_message = 'Group chat manager.'
 
+        # TODO: save config.
+        save_config = {
+            'agent_configs': agent_configs,
+            'manager_system_message': self.manager_system_message,
+            'coding': coding
+        }
+        self._save_config(task, save_config)
+
+    def _save_config(self, task: str, config: dict):
+        filename = hashlib.md5(task.encode('utf-8')).hexdigest()
+        json.dump(config, open(f'{self.build_config_path}/{filename}.json', 'w'), indent=4)
+
+    def _load_config(self, task: str):
+        filename = hashlib.md5(task.encode('utf-8')).hexdigest()
+        filepath = f'{self.build_config_path}/{filename}.json'
+        if os.path.isfile(filepath):
+            return json.load(open(filepath))
+        else:
+            return {}
+
     def start(
             self,
+            task: str,
             max_round: Optional[int] = 12,
             init_messages: Optional[List[dict]] = []
     ):
@@ -231,10 +285,10 @@ class AgentCreator:
         Descriptions
 
         Args:
+            task: description of a task.
             max_round: the maximum number of rounds.
             init_messages: input messages before the task start. This can be the chat history from other group chat
                 or some preliminary of the task.
-            initiate_agent_name: the name of an agent use to initialize the group chat.
         """
         agent_list = [agent for agent, _ in self.agent_procs_assign.values()]
         if self.user_proxy is not None:
@@ -246,11 +300,11 @@ class AgentCreator:
                                            system_message=self.manager_system_message)
 
         if self.initiate_agent_name == "user" and self.user_proxy is not None:
-            self.user_proxy.initiate_chat(manager, message=self.task)
+            self.user_proxy.initiate_chat(manager, message=task)
         else:
             for agent in agent_list:
                 if self.initiate_agent_name == agent.name():
-                    agent.initiate_chat(manager, message=self.task)
+                    agent.initiate_chat(manager, message=task)
 
 
 if __name__ == '__main__':
@@ -258,12 +312,12 @@ if __name__ == '__main__':
     default_llm_config = {
         'temperature': 0
     }
+    task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 
     administrator = AgentCreator(
-        task="Find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
         config_path=config_path
     )
-    administrator.build(default_llm_config)
-    administrator.start()
-    administrator.clear_all()
+    administrator.build(task, default_llm_config)
+    administrator.start(task)
+    administrator.clear_all_agents()
 
