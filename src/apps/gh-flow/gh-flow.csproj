@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.0.3" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="0.24.230918.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="1.0.0-beta5" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="7.2.1" />
     <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="7.2.1" />
     <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="7.2.1" />

@@ -48,21 +48,49 @@ public static class Developer {
     public static SemanticFunctionConfig Explain = new SemanticFunctionConfig
     {
         PromptTemplate = """
-        You are a Software Developer. 
-        Please explain the code that is in the input below. You can include references or documentation links in your explanation. 
-        Also where appropriate please output a list of keywords to describe the code or its capabilities.
-        example:
-        Keywords: Azure, networking, security, authentication
+        You are an experienced software developer, with strong experience in Azure and Microsoft technologies.
+        Extract the key features and capabilities of the code file below, with the intent to build an understanding of an entire code repository.
+        You can include references or documentation links in your explanation. Also where appropriate please output a list of keywords to describe the code or its capabilities.
+        Example:
+            Keywords: Azure, networking, security, authentication
 
-        If the code's purpose is not clear output an error:
+        ===code===  
+         {{$input}}
+        ===end-code===
+        Only include the points in a bullet point format and DON'T add anything outside of the bulleted list.
+        Be short and concise. 
+        If the code's purpose is not clear output an error:  
         Error: The model could not determine the purpose of the code.
-        
-        --
-        Input: {{$input}}
         """,
         Name = nameof(Explain),
         SkillName = nameof(CodeExplainer),
-        Description = "From a description of a coding task out put the code or scripts necessary to complete the task.",
+        Description = "From a source file produce an explanation of what the code does",
+        MaxTokens = 6500,
+        Temperature = 0.0,
+        TopP = 0.0,
+        PPenalty = 0.0,
+        FPenalty = 0.0
+    };
+
+    public static SemanticFunctionConfig ConsolidateUnderstanding = new SemanticFunctionConfig
+    {
+        PromptTemplate = """
+        You are an experienced software developer, with strong experience in Azure and Microsoft technologies.
+        You are trying to build an understanding of the codebase from code files. This is the current understanding of the project:
+        ===current-understanding===
+         {{$input}}
+        ===end-current-understanding===
+        and this is the new information that surfaced
+        ===new-understanding===
+         {{$newUnderstanding}}
+        ===end-new-understanding===
+        Your job is to update your current understanding with the new information.
+        Only include the points in a bullet point format and DON'T add anything outside of the bulleted list.
+        Be short and concise. 
+        """,
+        Name = nameof(Explain),
+        SkillName = nameof(CodeExplainer),
+        Description = "From a source file produce an explanation of what the code does",
         MaxTokens = 6500,
         Temperature = 0.0,
         TopP = 0.0,
@@ -70,3 +98,5 @@ public static class Developer {
         FPenalty = 0.0
     };
 }
+
+

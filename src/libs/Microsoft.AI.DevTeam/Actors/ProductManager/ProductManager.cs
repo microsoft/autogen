@@ -9,7 +9,7 @@ public class ProductManager : SemanticPersona, IManageProduct
     private readonly IKernel _kernel;
     protected override string MemorySegment => "pm-memory";
 
-    public ProductManager(IKernel kernel,[PersistentState("state", "messages")] IPersistentState<ChatHistory> state) : base(state)
+    public ProductManager(IKernel kernel,[PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state) : base(state)
     {
         _kernel = kernel;
     }
@@ -38,5 +38,10 @@ public class ProductManager : SemanticPersona, IManageProduct
         });
         await _state.WriteStateAsync();
         return resultMessage;
+    }
+
+    public Task<string> BuildUnderstanding(string content)
+    {
+        throw new NotImplementedException();
     }
 }

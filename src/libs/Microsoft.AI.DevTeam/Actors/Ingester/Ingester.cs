@@ -23,9 +23,7 @@ public class Ingester : SemanticPersona, IIngestRepo
         var language = await _ghService.GetMainLanguage(org, repo);
         var files = await _ghService.GetFiles(org, repo, branch, Language.Filters[language]);
 
-        var pm = GrainFactory.GetGrain<IManageProduct>(0, suffix);
         var dev = GrainFactory.GetGrain<IDevelopCode>(0, suffix);
-        var devLead = GrainFactory.GetGrain<ILeadDevelopment>(0, suffix);
         
         foreach (var file in files)
         {
@@ -33,10 +31,7 @@ public class Ingester : SemanticPersona, IIngestRepo
             codeAnalysis.ToList().ForEach(async c =>
                 await _kernel.Memory.SaveInformationAsync(MemorySegment, c.CodeBlock, Guid.NewGuid().ToString(), c.Meaning));
 
-            Task.WaitAll(new[] {
-                pm.BuildUnderstanding(file.Content),
-                dev.BuildUnderstanding(file.Content),
-                devLead.BuildUnderstanding(file.Content)});
+            await dev.BuildUnderstanding(file.Content);
         }
     }
 }

@@ -13,8 +13,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="0.24.230918.1-preview" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="0.24.230918.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="1.0.0-beta5" />
     <PackageReference Include="Testcontainers" Version="3.2.0" />
    <ProjectReference Include="..\..\libs\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
   </ItemGroup>

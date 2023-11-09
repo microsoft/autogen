@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.2.1" />
     <PackageReference Include="Microsoft.Orleans.Runtime" Version="7.2.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="0.24.230918.1-preview" />
+   <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
     <PackageReference Include="Octokit" Version="7.1.0" />
     <PackageReference Include="GitHubJwt" Version="0.0.6" />
     <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0-beta.1" />
