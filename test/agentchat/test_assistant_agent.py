@@ -31,7 +31,7 @@ def test_ai_user_proxy_agent():
         system_message="You are a helpful assistant.",
         llm_config={
             "timeout": 600,
-            "seed": 42,
+            "cache_seed": 42,
             "config_list": config_list,
         },
     )
@@ -78,7 +78,7 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
         },
     )
     llm_config = {
-        "seed": 42,
+        "cache_seed": 42,
         "config_list": config_list,
         "max_tokens": 1024,
     }
@@ -125,7 +125,7 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
     # autogen.ChatCompletion.start_logging(conversations)
     llm_config = {
         "timeout": 600,
-        "seed": 42,
+        "cache_seed": 42,
         "config_list": config_list,
     }
     assistant = AssistantAgent(
