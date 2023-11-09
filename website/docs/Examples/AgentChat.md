@@ -1,4 +1,4 @@
-# AutoGen - Automated Multi Agent Chat
+# Automated Multi Agent Chat
 
 AutoGen offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. This framework allows tool use and human participation via multi-agent conversation.
 Please find documentation about this feature [here](/docs/Use-Cases/agent_chat).
@@ -25,7 +25,7 @@ Links to notebook examples:
 
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
    - Automated Continual Learning from New Data - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_stream.ipynb)
-   - [OptiGuide](https://github.com/microsoft/optiguide) - Large Language Models for Supply Chain Optimization.
+   - [OptiGuide](https://github.com/microsoft/optiguide) - Coding, Tool Using, Safeguarding & Question Anwering for Supply Chain Optimization
 
 4. **Tool Use**
 

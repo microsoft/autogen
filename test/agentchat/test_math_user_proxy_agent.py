@@ -8,21 +8,23 @@ from autogen.agentchat.contrib.math_user_proxy_agent import (
 )
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False
+
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    skip or sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows",
 )
 def test_math_user_proxy_agent():
-    try:
-        import openai
-    except ImportError:
-        return
-
     from autogen.agentchat.assistant_agent import AssistantAgent
 
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -35,8 +37,8 @@ def test_math_user_proxy_agent():
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
-            "seed": 42,
+            "timeout": 600,
+            "cache_seed": 42,
             "config_list": config_list,
         },
     )

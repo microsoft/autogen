@@ -20,7 +20,7 @@ def test_ai_user_proxy_agent():
         return
 
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -30,8 +30,8 @@ def test_ai_user_proxy_agent():
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "request_timeout": 600,
-            "seed": 42,
+            "timeout": 600,
+            "cache_seed": 42,
             "config_list": config_list,
         },
     )
@@ -78,7 +78,7 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
         },
     )
     llm_config = {
-        "seed": 42,
+        "cache_seed": 42,
         "config_list": config_list,
         "max_tokens": 1024,
     }
@@ -97,7 +97,10 @@ def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
             "timeout": 60,
         },
         llm_config=llm_config,
-        system_message="""Reply TERMINATE to end the conversation.""",
+        system_message="""Is code provided but not enclosed in ``` blocks?
+If so, remind that code blocks need to be enclosed in ``` blocks.
+Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
+If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
     )
     user.initiate_chat(assistant, message="TERMINATE")
     # should terminate without sending any message
@@ -119,10 +122,10 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
 
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     conversations = {}
-    autogen.ChatCompletion.start_logging(conversations)
+    # autogen.ChatCompletion.start_logging(conversations)
     llm_config = {
-        "request_timeout": 600,
-        "seed": 42,
+        "timeout": 600,
+        "cache_seed": 42,
         "config_list": config_list,
     }
     assistant = AssistantAgent(
@@ -148,12 +151,12 @@ print('Hello world!')
 ```""",
     )
     print(conversations)
-    autogen.ChatCompletion.print_usage_summary()
-    autogen.ChatCompletion.start_logging(compact=False)
+    # autogen.ChatCompletion.print_usage_summary()
+    # autogen.ChatCompletion.start_logging(compact=False)
     user.send("""Execute temp.py""", assistant)
-    print(autogen.ChatCompletion.logged_history)
-    autogen.ChatCompletion.print_usage_summary()
-    autogen.ChatCompletion.stop_logging()
+    # print(autogen.ChatCompletion.logged_history)
+    # autogen.ChatCompletion.print_usage_summary()
+    # autogen.ChatCompletion.stop_logging()
 
 
 def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
@@ -184,7 +187,7 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
         def generate_init_message(self, question) -> str:
             return self._prompt.format(question=question)
 
-    autogen.ChatCompletion.start_logging()
+    # autogen.ChatCompletion.start_logging()
     assistant = AssistantAgent("assistant", llm_config={"temperature": 0, "config_list": config_list})
     user = TSPUserProxyAgent(
         "user",
@@ -193,14 +196,14 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
         max_consecutive_auto_reply=max_consecutive_auto_reply,
     )
     user.initiate_chat(assistant, question=hard_questions[2])
-    print(autogen.ChatCompletion.logged_history)
-    autogen.ChatCompletion.stop_logging()
+    # print(autogen.ChatCompletion.logged_history)
+    # autogen.ChatCompletion.stop_logging()
 
 
 if __name__ == "__main__":
-    test_gpt35()
+    # test_gpt35()
     # test_create_execute_script(human_input_mode="TERMINATE")
     # when GPT-4, i.e., the DEFAULT_MODEL, is used, conversation in the following test
     # should terminate in 2-3 rounds of interactions (because is_termination_msg should be true after 2-3 rounds)
     # although the max_consecutive_auto_reply is set to 10.
-    # test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)

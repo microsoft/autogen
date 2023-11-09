@@ -1,15 +1,16 @@
 try:
-    import openai
+    from openai import OpenAI
 except ImportError:
-    openai = None
+    OpenAI = None
 import pytest
+import asyncio
 import json
 import autogen
 from autogen.math_utils import eval_math_responses
-from test_code import KEY_LOC
+from test_assistant_agent import KEY_LOC
 
 
-@pytest.mark.skipif(openai is None, reason="openai not installed")
+@pytest.mark.skipif(OpenAI is None, reason="openai>=1 not installed")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
         KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
@@ -35,8 +36,8 @@ def test_eval_math_responses():
             },
         },
     ]
-    response = autogen.ChatCompletion.create(
-        config_list=config_list,
+    client = autogen.OpenAIWrapper(config_list=config_list)
+    response = client.create(
         messages=[
             {
                 "role": "user",
@@ -46,10 +47,10 @@ def test_eval_math_responses():
         functions=functions,
     )
     print(response)
-    responses = autogen.ChatCompletion.extract_text_or_function_call(response)
+    responses = client.extract_text_or_function_call(response)
     print(responses[0])
-    function_call = responses[0]["function_call"]
-    name, arguments = function_call["name"], json.loads(function_call["arguments"])
+    function_call = responses[0].function_call
+    name, arguments = function_call.name, json.loads(function_call.arguments)
     assert name == "eval_math_responses"
     print(arguments["responses"])
     # if isinstance(arguments["responses"], str):
@@ -188,7 +189,7 @@ async def test_a_execute_function():
 
 
 if __name__ == "__main__":
-    test_json_extraction()
-    test_execute_function()
-    test_a_execute_function()
+    # test_json_extraction()
+    # test_execute_function()
+    asyncio.run(test_a_execute_function())
     test_eval_math_responses()

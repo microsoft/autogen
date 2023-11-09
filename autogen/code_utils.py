@@ -1,14 +1,15 @@
-import subprocess
-import sys
+import logging
 import os
 import pathlib
-from typing import List, Dict, Tuple, Optional, Union, Callable
 import re
+import subprocess
+import sys
 import time
-from hashlib import md5
-import logging
-from autogen import oai
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from hashlib import md5
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+from autogen import oai
 
 try:
     import docker
@@ -29,6 +30,19 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
+def content_str(content: Union[str, List]) -> str:
+    if type(content) is str:
+        return content
+    rst = ""
+    for item in content:
+        if item["type"] == "text":
+            rst += item["text"]
+        else:
+            assert isinstance(item, dict) and item["type"] == "image_url", "Wrong content format."
+            rst += "<image>"
+    return rst
+
+
 def infer_lang(code):
     """infer the language for the code.
     TODO: make it robust.
@@ -46,12 +60,13 @@ def infer_lang(code):
 
 
 def extract_code(
-    text: str, pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
+    text: Union[str, List], pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
 ) -> List[Tuple[str, str]]:
     """Extract code from a text.
 
     Args:
-        text (str): The text to extract code from.
+        text (str or List): The content to extract code from. The content can be
+            a string or a list, as returned by standard GPT or multimodal GPT.
         pattern (str, optional): The regular expression pattern for finding the
             code block. Defaults to CODE_BLOCK_PATTERN.
         detect_single_line_code (bool, optional): Enable the new feature for
@@ -62,6 +77,7 @@ def extract_code(
           If there is no code block in the input text, the language would be "unknown".
           If there is code block but the language is not specified, the language would be "".
     """
+    text = content_str(text)
     if not detect_single_line_code:
         match = re.findall(pattern, text, flags=re.DOTALL)
         return match if match else [(UNKNOWN, text)]
@@ -84,49 +100,8 @@ def extract_code(
     return extracted
 
 
-# _FIND_CODE_SYS_MSG = [
-#     {
-#         "role": "system",
-#         "content": """In the following conversation, an assistant suggests code and a user is expected to run it.
-# Read the conversation, and then find all the right code blocks for the user to run next in the right order.
-# Only return the code blocks that are expected to run.
-# Don't include code blocks which have been executed unless the user is requested to run the same block again.
-# When the user needs to run multiple blocks in sequence, make sure to output all the blocks to run in a right order.
-# If the line beginning with "# filename" is put before a code block, move it into the code block as the first line.
-# Make sure to add the right "python" or "sh" identifier if the language identifier is missing for a code block.
-# Don't make other changes to the code blocks.
-# Don't reply anything else if at least one code block is expected to run.
-# If no code block is expeted to run, check whether the task has been successfully finished at full satisfaction.
-# If not, reply with the reason why the task is not finished.""",
-#     },
-# ]
-# _FIND_CODE_CONFIG = {
-#     "model": FAST_MODEL,
-# }
-
-
-# def find_code(messages: List[Dict], sys_msg=None, **config) -> Tuple[List[Tuple[str, str]], str]:
-#     """Find code from a list of messages.
-
-#     Args:
-#         messages (str): The list of messages to find code from.
-#         sys_msg (Optional, str): The system message to prepend to the messages.
-#         config (Optional, dict): The configuration for the API call.
-
-#     Returns:
-#         list: A list of tuples, each containing the language and the code.
-#         str: The generated text by llm.
-#     """
-#     params = {**_FIND_CODE_CONFIG, **config}
-#     if sys_msg is None or not sys_msg[0]["content"]:
-#         sys_msg = _FIND_CODE_SYS_MSG
-#     response = oai.ChatCompletion.create(messages=sys_msg + messages, **params)
-#     content = oai.Completion.extract_text(response)[0]
-#     return extract_code(content), content
-
-
 def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, float]:
-    """Generate code.
+    """(openai<1) Generate code.
 
     Args:
         pattern (Optional, str): The regular expression pattern for finding the code block.
@@ -151,7 +126,7 @@ The current implementation of the function is as follows:
 
 
 def improve_function(file_name, func_name, objective, **config):
-    """(work in progress) Improve the function to achieve the objective."""
+    """(openai<1) Improve the function to achieve the objective."""
     params = {**_IMPROVE_FUNCTION_CONFIG, **config}
     # read the entire file into a str
     with open(file_name, "r") as f:
@@ -172,7 +147,7 @@ _IMPROVE_CODE_CONFIG = {
 
 
 def improve_code(files, objective, suggest_only=True, **config):
-    """Improve the code to achieve a given objective.
+    """(openai<1) Improve the code to achieve a given objective.
 
     Args:
         files (list): A list of file names containing the source code.
@@ -422,7 +397,7 @@ assertions:""",
 
 
 def generate_assertions(definition: str, **config) -> Tuple[str, float]:
-    """Generate assertions for a function.
+    """(openai<1) Generate assertions for a function.
 
     Args:
         definition (str): The function definition, including the signature and docstr.
@@ -459,7 +434,7 @@ def eval_function_completions(
     timeout: Optional[float] = 3,
     use_docker: Optional[bool] = True,
 ) -> Dict:
-    """Select a response from a list of responses for the function completion task (using generated assertions), and/or evaluate if the task is successful using a gold test.
+    """(openai<1) Select a response from a list of responses for the function completion task (using generated assertions), and/or evaluate if the task is successful using a gold test.
 
     Args:
         responses (list): The list of responses.
@@ -534,11 +509,11 @@ def eval_function_completions(
 _FUNC_COMPLETION_PROMPT = "# Python 3{definition}"
 _FUNC_COMPLETION_STOP = ["\nclass", "\ndef", "\nif", "\nprint"]
 _IMPLEMENT_CONFIGS = [
-    {"model": FAST_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "temperature": 0, "seed": 0},
-    {"model": FAST_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "stop": _FUNC_COMPLETION_STOP, "n": 7, "seed": 0},
-    {"model": DEFAULT_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "temperature": 0, "seed": 1},
-    {"model": DEFAULT_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "stop": _FUNC_COMPLETION_STOP, "n": 2, "seed": 2},
-    {"model": DEFAULT_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "stop": _FUNC_COMPLETION_STOP, "n": 1, "seed": 2},
+    {"model": FAST_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "temperature": 0, "cache_seed": 0},
+    {"model": FAST_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "stop": _FUNC_COMPLETION_STOP, "n": 7, "cache_seed": 0},
+    {"model": DEFAULT_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "temperature": 0, "cache_seed": 1},
+    {"model": DEFAULT_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "stop": _FUNC_COMPLETION_STOP, "n": 2, "cache_seed": 2},
+    {"model": DEFAULT_MODEL, "prompt": _FUNC_COMPLETION_PROMPT, "stop": _FUNC_COMPLETION_STOP, "n": 1, "cache_seed": 2},
 ]
 
 
@@ -549,7 +524,7 @@ class PassAssertionFilter:
         self.metrics = self.responses = None
 
     def pass_assertions(self, context, response, **_):
-        """Check if the response passes the assertions."""
+        """(openai<1) Check if the response passes the assertions."""
         responses = oai.Completion.extract_text(response)
         metrics = eval_function_completions(responses, context["definition"], assertions=self._assertions)
         self._assertions = metrics["assertions"]
@@ -564,7 +539,7 @@ def implement(
     configs: Optional[List[Dict]] = None,
     assertions: Optional[Union[str, Callable[[str], Tuple[str, float]]]] = generate_assertions,
 ) -> Tuple[str, float]:
-    """Implement a function from a definition.
+    """(openai<1) Implement a function from a definition.
 
     Args:
         definition (str): The function definition, including the signature and docstr.
