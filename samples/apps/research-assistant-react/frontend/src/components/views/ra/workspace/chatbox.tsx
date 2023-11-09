@@ -408,9 +408,7 @@ const ChatBox = ({
       role: "user",
       content: query,
       userId: user?.email || "",
-      timestamp: new Date().toISOString(),
-      rootMsgId: 0,
-      msgId: 0,
+      rootMsgId: "0",
       personalize: config.get.personalize,
       use_cache: config.get.use_cache,
       ra: config.get.ra,
@@ -455,11 +453,17 @@ const ChatBox = ({
             }
           });
         } else {
+          res.json().then((data) => {
+            console.log("error", data);
+            // setError(data);
+            message.error(data.message);
+          });
           message.error("Connection error. Ensure server is up and running.");
         }
       })
       .catch((err) => {
         setLoading(false);
+
         message.error("Connection error. Ensure server is up and running.");
       });
   };
