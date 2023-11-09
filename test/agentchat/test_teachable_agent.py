@@ -25,7 +25,7 @@ skill_verbosity = 3  # 0 for basic info, 1 to add memory operations, 2 for analy
 
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-seed = None
+cache_seed = None
 # If int, cached LLM calls will be skipped and responses pulled from cache. None exposes LLM non-determinism.
 
 # Specify the model to use by uncommenting one of the following lines.
@@ -43,7 +43,7 @@ def create_teachable_agent(reset_db=False, verbosity=0):
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC)
     teachable_agent = TeachableAgent(
         name="teachableagent",
-        llm_config={"config_list": config_list, "timeout": 120, "seed": seed},
+        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
         teach_config={
             "verbosity": verbosity,
             "reset_db": reset_db,
