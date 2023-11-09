@@ -18,7 +18,7 @@ public class Dev : SemanticPersona, IDevelopCode
 
     public async Task<string> GenerateCode(string ask)
     {
-        var function = _kernel.CreateSemanticFunction(Developer.Implement, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
+        var function = _kernel.CreateSemanticFunction(Developer.Implement, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
         var context = new ContextVariables();
         if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
         _state.State.History.Add(new ChatHistoryItem

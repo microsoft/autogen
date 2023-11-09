@@ -23,7 +23,7 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
         // var review = architect.ReviewPlan(plan);
         // return Task.FromResult(plan);
 
-        var function = _kernel.CreateSemanticFunction(DevLead.Plan, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
+        var function = _kernel.CreateSemanticFunction(DevLead.Plan, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.4, TopP = 1 });
         var context = new ContextVariables();
         context.Set("input", ask);
         if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();

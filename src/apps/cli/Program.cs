@@ -154,10 +154,8 @@ class Program
         {
             wafContext += $"\n {memory.Metadata.Text}";
         }
-        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
-        var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-                                                   skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-                                                   skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
+        var promptTemplate = Skills.ForSkillAndFunction(skillName, functionName);
+        var function = kernel.CreateSemanticFunction(promptTemplate);
 
         var context = new ContextVariables();
         context.Set("input", input);

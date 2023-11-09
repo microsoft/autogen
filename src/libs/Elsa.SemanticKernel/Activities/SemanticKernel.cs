@@ -86,9 +86,9 @@ public class SemanticKernelSkill : CodeActivity<string>
             var kernel = KernelBuilder();
 
             // load the skill
-            var promptTemplate = ForSkillAndFunction(skillName, functionName);
+            var promptTemplate = Skills.ForSkillAndFunction(skillName, functionName);
 
-            var function = kernel.CreateSemanticFunction(promptTemplate, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
+            var function = kernel.CreateSemanticFunction(promptTemplate, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
             // set the context (our prompt)
             var contextVars = new ContextVariables();
@@ -151,17 +151,6 @@ public class SemanticKernelSkill : CodeActivity<string>
         return list.ToString();
     }
 
-    private static string ForSkillAndFunction(string skillName, string functionName) => 
-    (skillName, functionName) switch
-    {
-        (nameof(PM), nameof(PM.BootstrapProject)) => PM.BootstrapProject,
-        (nameof(PM), nameof(PM.Readme)) => PM.Readme,
-        (nameof(DevLead), nameof(DevLead.Plan)) => DevLead.Plan,
-        (nameof(Developer), nameof(Developer.Implement)) => Developer.Implement,
-        (nameof(Developer), nameof(Developer.Improve)) => Developer.Improve,
-        _ => throw new ArgumentException($"Unable to find {skillName}.{functionName}")
-    };
-
     /// <summary>
     /// Gets a semantic kernel instance
     /// </summary>
@@ -209,9 +198,9 @@ public class SemanticKernelSkill : CodeActivity<string>
                     string field = function.FieldType.ToString();
                     if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
                     {
-                        var prompt = ForSkillAndFunction(skillType.Name, function.Name);
+                        var prompt = Skills.ForSkillAndFunction(skillType.Name, function.Name);
                         var skfunc = kernel.CreateSemanticFunction(
-                            prompt, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
+                            prompt, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
                         Console.WriteLine($"SK Added function: {skfunc.SkillName}.{skfunc.Name}");
                     }

@@ -8,8 +8,10 @@ using Elsa.Extensions;
 using Elsa.Workflows.Core;
 using Elsa.Workflows.Core.Contracts;
 using Elsa.Workflows.Core.Models;
+using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Orchestration;
 
 namespace Elsa.SemanticKernel;
@@ -164,19 +166,11 @@ public class SemanticKernelActivityProvider : IActivityProvider
                     string field = function.FieldType.ToString();
                     if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
                     {
-                        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillType.Name, function.Name);
+                        var promptTemplate = Skills.ForSkillAndFunction(skillType.Name, function.Name);
                         var skfunc = kernel.CreateSemanticFunction(
-                            skillConfig.PromptTemplate,
-                            skillConfig.Name,
-                            skillConfig.SkillName,
-                            skillConfig.Description,
-                            skillConfig.MaxTokens,
-                            skillConfig.Temperature,
-                            skillConfig.TopP,
-                            skillConfig.PPenalty,
-                            skillConfig.FPenalty);
+                            promptTemplate, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
-                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.SkillName}.{skfunc.Name}");
+                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.PluginName}.{skfunc.Name}");
                     }
                 }
             }

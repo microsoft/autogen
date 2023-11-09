@@ -97,8 +97,8 @@ public class SKWebHookEventProcessor : WebhookEventProcessor
 
     private async Task<string> RunSkill(string skillName, string functionName, string input)
     {
-        var prompt = ForSkillAndFunction(skillName, functionName);
-        var function = _kernel.CreateSemanticFunction(prompt, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
+        var prompt = Skills.ForSkillAndFunction(skillName, functionName);
+        var function = _kernel.CreateSemanticFunction(prompt, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
         var interestingMemories = _kernel.Memory.SearchAsync("waf-pages", input, 2);
         var wafContext = "Consider the following architectural guidelines:";
@@ -114,15 +114,4 @@ public class SKWebHookEventProcessor : WebhookEventProcessor
         var result = await _kernel.RunAsync(context, function);
         return result.ToString();
     }
-
-    private static string ForSkillAndFunction(string skillName, string functionName) => 
-    (skillName, functionName) switch
-    {
-        (nameof(PM), nameof(PM.BootstrapProject)) => PM.BootstrapProject,
-        (nameof(PM), nameof(PM.Readme)) => PM.Readme,
-        (nameof(DevLead), nameof(DevLead.Plan)) => DevLead.Plan,
-        (nameof(Developer), nameof(Developer.Implement)) => Developer.Implement,
-        (nameof(Developer), nameof(Developer.Improve)) => Developer.Improve,
-        _ => throw new ArgumentException($"Unable to find {skillName}.{functionName}")
-    };
 }
