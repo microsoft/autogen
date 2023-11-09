@@ -1,9 +1,10 @@
 database.sqlite
 .cache/*
-files/user/*
-files/ui/*
+autogenra/web/files/user/*
+autogenra/web/files/ui/*
 OAI_CONFIG_LIST
 scratch/
+autogenra/web/workdir/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
