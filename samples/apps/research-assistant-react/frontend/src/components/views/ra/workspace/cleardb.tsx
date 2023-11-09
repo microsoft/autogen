@@ -27,7 +27,7 @@ const ClearDBView = ({ setMessages, skillup, config, setMetadata }: any) => {
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
   const clearSkillsUrl = `${serverUrl}/skills/clear?user_id=${user?.email}`;
 
-  const [skills, setSkills] = React.useState<any[]>([]);
+  const [skills, setSkills] = React.useState<any>({});
   const [skillsLoading, setSkillsLoading] = React.useState(false);
 
   const [skillsModalOpen, setSkillsModalOpen] = React.useState(false);
@@ -121,6 +121,7 @@ const ClearDBView = ({ setMessages, skillup, config, setMetadata }: any) => {
       console.log(data);
       if (data && data.status) {
         message.success(data.message);
+        console.log("skills", data.skills);
         setSkills(data.skills);
       } else {
         message.error(data.message);
@@ -150,26 +151,22 @@ const ClearDBView = ({ setMessages, skillup, config, setMetadata }: any) => {
     setSkillsModalOpen(false);
   };
 
-  let allSkills: any[] = [];
   let userSkills: any[] = [];
   let globalSkills: any[] = [];
-  if (skills && skills.length > 0) {
-    skills.forEach((skill) => {
-      allSkills = allSkills.concat(skill.functions);
-      if (skill.file_name.includes("global_utils_dir")) {
-        globalSkills = globalSkills.concat(skill.functions);
-      } else {
-        userSkills = userSkills.concat(skill.functions);
-      }
-    });
+  if (skills) {
+    userSkills = skills.user;
+    globalSkills = skills.global;
   }
 
-  allSkills = allSkills.reverse();
-  userSkills = userSkills.reverse();
-  globalSkills = globalSkills.reverse();
+  // userSkills = userSkills.reverse();
+  // globalSkills = globalSkills.reverse();
 
-  const showSkillRows = (skills: any[]) => {
-    return (skills || []).map((skill: any, i: number) => {
+  const showSkillRows = (
+    skills: any[],
+    title: string,
+    open: boolean = true
+  ) => {
+    const skillrows = (skills || []).map((skill: any, i: number) => {
       return (
         <div
           key={"skillrow" + i}
@@ -179,11 +176,38 @@ const ClearDBView = ({ setMessages, skillup, config, setMetadata }: any) => {
           {" "}
           <span className="font-semibold">{skill?.name}</span>
           <div className="text-secondary">
-            {truncateText(skill.docstring, 50)}
+            {truncateText(skill.content, 50)}
           </div>
         </div>
       );
     });
+
+    return (
+      <div className="mt-4">
+        {/* <hr className="mb-2 mt-2" />
+  {showSkillRows(globalSkills)} */}
+
+        <CollapseBox
+          open={open}
+          title={
+            <div className="font-semibold  ">
+              {" "}
+              {title} ({skills.length})
+            </div>
+          }
+        >
+          <>
+            {skillrows}
+            {(!skills || skills.length == 0) && (
+              <div className="  rounded p-2 px-3 text-xs my-1">
+                {" "}
+                No {title} created yet.
+              </div>
+            )}
+          </>
+        </CollapseBox>
+      </div>
+    );
   };
 
   let windowHeight, skillsMaxHeight;
@@ -194,7 +218,7 @@ const ClearDBView = ({ setMessages, skillup, config, setMetadata }: any) => {
 
   return (
     <div className="flex flex-col gap-2 flex-wrap">
-      <Modal
+      {/* <Modal
         title={`(${skills && allSkills.length}) Available Skill${
           skills.length > 1 ? "s" : ""
         }`}
@@ -208,112 +232,27 @@ const ClearDBView = ({ setMessages, skillup, config, setMetadata }: any) => {
             <SkillsView skills={skills} />
           </div>
         )}
-      </Modal>
+      </Modal> */}
 
       <div className="text-right mt-2">
         <ProfileView config={config} />
       </div>
 
       <div className="mt-4">
-        <div className="hidden text-xs mb-2 break-words">
-          There are currently {allSkills.length} skills available. Click below
-          to view them.
-        </div>
-
-        {allSkills.length > 0 && (
+        {
           <div
             style={{
               maxHeight: skillsMaxHeight,
             }}
             className="overflow-x-hidden scroll  mb-4 pr-1   rounded  "
           >
-            <div>
-              <div className="hidden mb-2  flex">
-                <div className="font-semibold flex-1">
-                  {" "}
-                  User Skills ({userSkills.length})
-                </div>
-                {userSkills.length > 0 && (
-                  <div
-                    role="button"
-                    onClick={() => {
-                      clearSkills();
-                    }}
-                    className="hover:text-accent duration-300"
-                  >
-                    <TrashIcon className="w-5 h-5 inline-block" />
-                  </div>
-                )}
-              </div>
-              <hr className="mb-2" />
+            <>{showSkillRows(userSkills, "User Skills")}</>
 
-              <CollapseBox
-                open={true}
-                title={
-                  <div className="font-semibold  ">
-                    {" "}
-                    User Skills ({userSkills.length})
-                  </div>
-                }
-              >
-                <>
-                  {userSkills.length > 0 && (
-                    <div
-                      role="button"
-                      onClick={() => {
-                        clearSkills();
-                      }}
-                      className="hover:text-accent duration-300 text-right"
-                    >
-                      {" "}
-                      <span className="text-xs mr-1">clear skills</span>
-                      <TrashIcon className="w-5 h-5 inline-block" />
-                    </div>
-                  )}
-                  {showSkillRows(userSkills)}
-                  {(!userSkills || userSkills.length == 0) && (
-                    <div className="bg-secondary rounded p-2 px-3 text-xs my-1">
-                      {" "}
-                      No user skill created yet.
-                    </div>
-                  )}
-                </>
-              </CollapseBox>
-            </div>
-
-            <div className="mt-4">
-              {/* <hr className="mb-2 mt-2" />
-              {showSkillRows(globalSkills)} */}
-
-              <CollapseBox
-                open={false}
-                title={
-                  <div className="font-semibold  ">
-                    {" "}
-                    Global Skills ({globalSkills.length})
-                  </div>
-                }
-              >
-                <>{showSkillRows(globalSkills)}</>
-              </CollapseBox>
-            </div>
+            {globalSkills && globalSkills.length > 0 && (
+              <>{showSkillRows(globalSkills, "Global Skills")}</>
+            )}
           </div>
-        )}
-
-        <Button
-          className="block "
-          loading={skillsLoading}
-          type="default"
-          onClick={() => {
-            console.log("skills", skills);
-            setSkillsModalOpen(true);
-          }}
-        >
-          {!skillsLoading && (
-            <WrenchIcon className="w-5, h-5 inline-block mr-1" />
-          )}{" "}
-          All Skills {skills && `(${allSkills.length})`}
-        </Button>
+        }
       </div>
 
       <hr className="mb-2" />
