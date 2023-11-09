@@ -1,5 +1,6 @@
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 
@@ -15,7 +16,7 @@ public class ProductManager : SemanticPersona, IManageProduct
     }
     public async Task<string> CreateReadme(string ask)
     {
-        var function = _kernel.LoadFunction(nameof(PM), nameof(PM.Readme));
+        var function = _kernel.CreateSemanticFunction(PM.Readme, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
         var context = new ContextVariables();
         context.Set("input", ask);
         if(_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
@@ -38,10 +39,5 @@ public class ProductManager : SemanticPersona, IManageProduct
         });
         await _state.WriteStateAsync();
         return resultMessage;
-    }
-
-    public Task<string> BuildUnderstanding(string content)
-    {
-        throw new NotImplementedException();
     }
 }

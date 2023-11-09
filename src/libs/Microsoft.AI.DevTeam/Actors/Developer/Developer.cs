@@ -1,5 +1,6 @@
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 
@@ -17,7 +18,7 @@ public class Dev : SemanticPersona, IDevelopCode
 
     public async Task<string> GenerateCode(string ask)
     {
-        var function = _kernel.LoadFunction(nameof(Developer), nameof(Developer.Implement));
+        var function = _kernel.CreateSemanticFunction(Developer.Implement, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
         var context = new ContextVariables();
         if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
         _state.State.History.Add(new ChatHistoryItem

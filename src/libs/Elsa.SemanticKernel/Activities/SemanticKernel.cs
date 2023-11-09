@@ -6,7 +6,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Orchestration;
-using Microsoft.SemanticKernel.SkillDefinition;
 
 using System;
 using System.Text;
@@ -15,6 +14,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AI.DevTeam.Skills;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
 
 namespace Elsa.SemanticKernel;
@@ -86,11 +86,9 @@ public class SemanticKernelSkill : CodeActivity<string>
             var kernel = KernelBuilder();
 
             // load the skill
-            var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
+            var promptTemplate = ForSkillAndFunction(skillName, functionName);
 
-            var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-                        skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-                        skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
+            var function = kernel.CreateSemanticFunction(promptTemplate, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
 
             // set the context (our prompt)
             var contextVars = new ContextVariables();
@@ -106,10 +104,8 @@ public class SemanticKernelSkill : CodeActivity<string>
 
             //context.Set("wafContext", wafContext);
 
-            SKContext answer = await kernel.RunAsync(contextVars, function).ConfigureAwait(false);
-            string result = answer.Result;
-
-            workflowContext.SetResult(result);
+            var answer = await kernel.RunAsync(contextVars, function);
+            workflowContext.SetResult(answer);
         }
     }
 
@@ -121,41 +117,50 @@ public class SemanticKernelSkill : CodeActivity<string>
 
         var theSkills = LoadSkillsFromAssemblyAsync("skills", kernel);
         SKContext context = kernel.CreateNewContext();
-        var functionsAvailable = context.Skills.GetFunctionsView();
+        var functionsAvailable = context.Functions.GetFunctionViews();
 
         var list = new StringBuilder();
-        foreach (KeyValuePair<string, List<FunctionView>> skill in functionsAvailable.SemanticFunctions)
+        foreach (var function in functionsAvailable)
         {
-            Console.WriteLine($"Skill: {skill.Key}");
-            foreach (FunctionView func in skill.Value)
-            {
+            Console.WriteLine($"Skill: {function.PluginName}");
+            
                 // Function description
-                if (func.Description != null)
+                if (function.Description != null)
                 {
-                    list.AppendLine($"// {func.Description}");
+                    list.AppendLine($"// {function.Description}");
                 }
                 else
                 {
-                    Console.WriteLine("{0}.{1} is missing a description", func.SkillName, func.Name);
-                    list.AppendLine($"// Function {func.SkillName}.{func.Name}.");
+                    Console.WriteLine("{0}.{1} is missing a description", function.PluginName, function.Name);
+                    list.AppendLine($"// Function {function.PluginName}.{function.Name}.");
                 }
 
                 // Function name
-                list.AppendLine($"{func.SkillName}.{func.Name}");
+                list.AppendLine($"{function.PluginName}.{function.Name}");
 
                 // Function parameters
-                foreach (var p in func.Parameters)
+                foreach (var p in function.Parameters)
                 {
                     var description = string.IsNullOrEmpty(p.Description) ? p.Name : p.Description;
                     var defaultValueString = string.IsNullOrEmpty(p.DefaultValue) ? string.Empty : $" (default value: {p.DefaultValue})";
                     list.AppendLine($"Parameter \"{p.Name}\": {description} {defaultValueString}");
                 }
-            }
         }
 
         Console.WriteLine($"List of all skills ----- {list.ToString()}");
         return list.ToString();
     }
+
+    private static string ForSkillAndFunction(string skillName, string functionName) => 
+    (skillName, functionName) switch
+    {
+        (nameof(PM), nameof(PM.BootstrapProject)) => PM.BootstrapProject,
+        (nameof(PM), nameof(PM.Readme)) => PM.Readme,
+        (nameof(DevLead), nameof(DevLead.Plan)) => DevLead.Plan,
+        (nameof(Developer), nameof(Developer.Implement)) => Developer.Implement,
+        (nameof(Developer), nameof(Developer.Improve)) => Developer.Improve,
+        _ => throw new ArgumentException($"Unable to find {skillName}.{functionName}")
+    };
 
     /// <summary>
     /// Gets a semantic kernel instance
@@ -204,17 +209,9 @@ public class SemanticKernelSkill : CodeActivity<string>
                     string field = function.FieldType.ToString();
                     if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
                     {
-                        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillType.Name, function.Name);
+                        var prompt = ForSkillAndFunction(skillType.Name, function.Name);
                         var skfunc = kernel.CreateSemanticFunction(
-                            skillConfig.PromptTemplate,
-                            skillConfig.Name,
-                            skillConfig.SkillName,
-                            skillConfig.Description,
-                            skillConfig.MaxTokens,
-                            skillConfig.Temperature,
-                            skillConfig.TopP,
-                            skillConfig.PPenalty,
-                            skillConfig.FPenalty);
+                            prompt, new OpenAIRequestSettings { MaxTokens = 100, Temperature = 0.4, TopP = 1 });
 
                         Console.WriteLine($"SK Added function: {skfunc.SkillName}.{skfunc.Name}");
                     }

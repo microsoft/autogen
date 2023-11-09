@@ -1,5 +1,4 @@
 using DotNet.Testcontainers.Builders;
-using Microsoft.SemanticKernel.SkillDefinition;
 
 public class SandboxSkill
 {

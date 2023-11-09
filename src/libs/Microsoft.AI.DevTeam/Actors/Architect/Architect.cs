@@ -4,7 +4,7 @@ namespace Microsoft.AI.DevTeam;
 
 public class Architect : SemanticPersona, IArchitectSolutions
 {
-    public Architect( [PersistentState("state", "messages")]IPersistentState<ChatHistory> state) : base(state)
+    public Architect( [PersistentState("state", "messages")]IPersistentState<SemanticPersonaState> state) : base(state)
     {
         
     }

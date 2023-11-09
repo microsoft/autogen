@@ -1,6 +1,6 @@
 namespace Microsoft.AI.DevTeam;
 
-public interface IManageProduct : IGrainWithIntegerCompoundKey, IChatHistory, IUnderstand
+public interface IManageProduct : IGrainWithIntegerCompoundKey, IChatHistory
 {
     Task<string> CreateReadme(string ask);
 }
