@@ -10,7 +10,7 @@
   "scripts": {
     "develop": "gatsby clean && gatsby develop",
     "start": "gatsby clean && gatsby develop",
-    "build": "gatsby clean && rm -rf ../backend/autogenra/web/ui  && PREFIX_PATH_VALUE='' gatsby build --prefix-paths && cp -r  public/ ../backend/autogenra/web/ui",
+    "build": "gatsby clean && rm -rf ../autogenra/web/ui  && PREFIX_PATH_VALUE='' gatsby build --prefix-paths && cp -r  public/ ../autogenra/web/ui",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
     "typecheck": "tsc --noEmit"
