@@ -12,8 +12,13 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
+:fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 40 days after release.
 
-:fire: Heads-up: pyautogen v0.2 will switch to using openai v1.
+:fire: Nov 6: AutoGen is mentioned by Satya Nadella in a [fireside chat](https://youtu.be/0pLBvgYtv6U) around 13:20.
+
+:fire: Nov 1: AutoGen is the top trending repo on GitHub in October 2023.
+
+:fire: Heads-up: pyautogen v0.2 will switch to using openai v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
 
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
