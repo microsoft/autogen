@@ -19,14 +19,14 @@ except ImportError:
 DEFAULT_MODEL = "gpt-4"
 FAST_MODEL = "gpt-3.5-turbo"
 # Regular expression for finding a code block
-# `{3}[ \t]*(\w+)?\s*\n([\s\S]*?)\n`{3}: Matches multi-line code blocks.
+# ```[ \t]*(\w+)?\s*\n([\s\S]*?)\n```: Matches multi-line code blocks.
 #   The [ \t]* matches the potential spaces before language name.
 #   The (\w+)? matches the language, where the ? indicates it is optional.
 #   The \s* matches the potential spaces after language name.
-#   The \n makes sure there is a linebreak after ```.
+#   The \r?\n makes sure there is a linebreak after ```.
 #   The ([\s\S]*?) matches the code itself.
-#   The \n makes sure there is a linebreak before ```.
-CODE_BLOCK_PATTERN = r"`{3}[ \t]*(\w+)?\s*\n([\s\S]*?)\n`{3}"
+#   The \r?\n makes sure there is a linebreak before ```.
+CODE_BLOCK_PATTERN = r"```[ \t]*(\w+)?\s*\r?\n([\s\S]*?)\r?\n```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
