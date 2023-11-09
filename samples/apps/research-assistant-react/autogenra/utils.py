@@ -67,15 +67,14 @@ def delete_message(user_id: str, msg_id: str, dbmanager: DBManager, delete_all: 
         return messages 
 
 
-def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str) -> List[str]:
+def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str ) -> List[str]:
     """
-    Get a list of files that were modified within the specified timestamp range
-    and copy them to the destination directory.
+    Get a list of files that were modified within the specified timestamp range 
 
     :param start_timestamp: The start timestamp to filter modified files
     :param end_timestamp: The end timestamp to filter modified files
     :param source_dir: The directory to search for modified files
-    :param dest_dir: The directory to copy the modified files to
+     
     :return: A list of file paths that were modified within the timestamp range
     """
     modified_files = []
@@ -84,11 +83,8 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
             file_path = os.path.join(root, file)
             file_mtime = os.path.getmtime(file_path)
             if start_timestamp < file_mtime < end_timestamp:
-                uid = dest_dir.split("/")[-1]
-                modified_files.append(f"files/user/{uid}/{file}")
-                dest_file_path = os.path.join(dest_dir, os.path.relpath(file_path, start=source_dir))
-                os.makedirs(os.path.dirname(dest_file_path), exist_ok=True)
-                copy2(file_path, dest_file_path)
+                uid = source_dir.split("/")[-1]
+                modified_files.append(f"files/user/{uid}/{file}")  
     return modified_files
 
 
@@ -140,7 +136,65 @@ def skill_from_folder(folder: str) -> List[Dict[str, str]]:
             if file.endswith(".py"):
                 skill_name = file.split(".")[0]
                 skill_file_path = os.path.join(root, file)
-                with open(skill_file_path, "r") as f:
+                with open(skill_file_path, "r", encoding="utf-8") as f:
                     skill_content = f.read()
-                skills.append({"name": skill_name, "content": skill_content})
+                skills.append({"name": skill_name, "content": skill_content, "file_name":file})
     return skills
+
+def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir:str =None) -> List[Dict[str, str]]:
+    """
+    Get all skills from the user and global skills directories. If dest_dir, copy all skills to dest_dir.
+
+    :param user_skills_path: The path to the user skills directory
+    :param global_skills_path: The path to the global skills directory
+    :param dest_dir: The destination directory to copy all skills to
+    :return: A dictionary of user and global skills
+    """
+    user_skills = skill_from_folder(user_skills_path)
+    os.makedirs(user_skills_path, exist_ok=True)
+    global_skills = skill_from_folder(global_skills_path) 
+    skills = {
+        "user": user_skills,
+        "global": global_skills,
+    }
+
+    if dest_dir:
+        # check 
+        for skill in user_skills + global_skills:
+            skill_file_path = os.path.join(dest_dir, skill["file_name"])
+            with open(skill_file_path, "w", encoding="utf-8") as f:
+                f.write(skill["content"])
+
+    return skills 
+
+def get_skills_prompt(skills: List[Dict[str, str]]) -> str:
+    """
+    Get a prompt with the content of all skills.
+
+    :param skills: A dictionary of user and global skills
+    :return: A string containing the content of all skills
+    """
+    user_skills = skills["user"]
+    global_skills = skills["global"]
+    all_skills = user_skills + global_skills
+
+    prompt = """
+    
+While solving the task you may use functions in the files below.
+To use a function from a file in code, import the file and then use the function.
+If you need to install python packages, write shell code to
+install via pip and use --quiet option. 
+
+         """
+    for skill in all_skills:
+        prompt += f"""
+
+##### Begin of {skill["file_name"]} #####
+
+{skill["content"]}
+
+#### End of {skill["file_name"]} ####
+
+        """
+
+    return prompt

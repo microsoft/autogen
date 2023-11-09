@@ -16,8 +16,8 @@ class ChatManager():
         execute_code = "@execute" in message_text 
         human_input_mode = "NEVER" 
 
-        work_dir = kwargs.get("work_dir", None)
-        user_dir = kwargs.get("user_dir", None)
+        work_dir = kwargs.get("work_dir", None) 
+        skills_suffix = kwargs.get("skills_prompt", "")
 
         config_list = autogen.config_list_from_json(
             env_or_file="OAI_CONFIG_LIST"
@@ -41,7 +41,7 @@ class ChatManager():
             is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         )
 
-        skills_suffix = ""
+         
         primary_assistant = autogen.AssistantAgent(
             name="primary_assitant",
             system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE + skills_suffix,
@@ -89,7 +89,7 @@ class ChatManager():
              
         metadata["code"] = ""
         end_time = time.time()
-        modified_files = get_modified_files(start_time, end_time, work_dir, user_dir)
+        modified_files = get_modified_files(start_time, end_time, work_dir)
         metadata["files"] = modified_files
 
         print("Modified files: ", modified_files)
@@ -100,9 +100,7 @@ class ChatManager():
             role="assistant",
             content=output,
             metadata=json.dumps(metadata) 
-        )
-
-        
+        ) 
 
         return output_message
 

@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from ..db import DBManager
 from ..datamodel import Message, DeleteMessageModel,ClearDBModel
 from ..chat import ChatManager
-from ..utils import load_messages, md5_hash, save_message, delete_message, init_webserver_folders, skill_from_folder
+from ..utils import get_all_skills, load_messages, md5_hash, save_message, delete_message, init_webserver_folders, get_skills_prompt
 
 app = FastAPI()
 
@@ -54,10 +54,14 @@ async def add_message(message: Message):
     # save incoming message to db
     save_message(message=message, dbmanager=dbmanager)
     user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.userId))
-    os.makedirs(user_dir, exist_ok=True)
+    os.makedirs(user_dir, exist_ok=True) 
+
+    # load skills 
+    skills = get_all_skills(os.path.join(folders["user_skills_dir"], md5_hash(message.userId)), folders["global_skills_dir"], dest_dir=user_dir)  
+    skills_prompt = get_skills_prompt(skills)
 
     try: 
-        response_message:Message = chatmanager.chat(message=message, history=user_history, work_dir=folders["workdir_root"], user_dir=user_dir)  
+        response_message:Message = chatmanager.chat(message=message, history=user_history, work_dir=user_dir, skills_prompt=skills_prompt)  
  
         # save assistant response to db
         save_message(message=response_message, dbmanager=dbmanager) 
@@ -111,7 +115,7 @@ async def clear_db(req: ClearDBModel):
 
     try:
 
-        delete_message(user_id=req.userId, msg_id=None, dbmanager=dbmanager, all=True) 
+        delete_message(user_id=req.userId, msg_id=None, dbmanager=dbmanager, delete_all=True) 
         return {
             "status": True,
             "message": "Messages and files cleared successfully",
@@ -125,18 +129,8 @@ async def clear_db(req: ClearDBModel):
     
 
 @api.get("/skills")
-def get_skills(user_id: str): 
-    user_skills_path = os.path.join(folders["user_skills_dir"], md5_hash(user_id))
-    os.makedirs(user_skills_path, exist_ok=True)
-    user_skills = skill_from_folder(user_skills_path)
-
-    global_skils_path = folders["global_skills_dir"]
-    global_skills = skill_from_folder(global_skils_path)
-
-    skills = {
-        "user": user_skills,
-        "global": global_skills,
-    }
+def get_skills(user_id: str):  
+    skills = get_all_skills(os.path.join(folders["user_skills_dir"], md5_hash(user_id)), folders["global_skills_dir"] ) 
 
     return {
         "status": True,
