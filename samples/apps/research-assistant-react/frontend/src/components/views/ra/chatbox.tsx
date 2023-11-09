@@ -19,11 +19,11 @@ import {
   IGenConfig,
   IMessage,
   IStatus,
-} from "../../../types";
+} from "../../types";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { fetchJSON } from "../../../utils";
-import { appContext } from "../../../../hooks/provider";
-import Icon from "../../../icons";
+import { fetchJSON, guid } from "../../utils";
+import { appContext } from "../../../hooks/provider";
+import Icon from "../../icons";
 import { parse } from "path";
 
 const ChatBox = ({
@@ -407,6 +407,7 @@ const ChatBox = ({
     const payload: IMessage = {
       role: "user",
       content: query,
+      msgId: guid(),
       userId: user?.email || "",
       rootMsgId: "0",
       personalize: config.get.personalize,

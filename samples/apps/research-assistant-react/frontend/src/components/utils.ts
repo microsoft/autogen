@@ -192,3 +192,12 @@ export const ColorTween = (
   const b = Math.floor(start.b + (end.b - start.b) * percent);
   return `rgb(${r}, ${g}, ${b})`;
 };
+
+export const guid = () => {
+  var w = () => {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  };
+  return `${w()}${w()}-${w()}-${w()}-${w()}-${w()}${w()}${w()}`;
+};

@@ -6,13 +6,12 @@ import {
   IStatus,
   ITextGeneratorConfig,
 } from "../../types";
-import { fetchJSON, getLocalStorage, setLocalStorage } from "../../utils";
-import ChatBox from "./workspace/chatbox";
-import MetaDataView from "./workspace/metadata";
+import { fetchJSON, setLocalStorage } from "../../utils";
+import ChatBox from "./chatbox";
+import MetaDataView from "./metadata";
 import { appContext } from "../../../hooks/provider";
-import { message, notification } from "antd";
-import SideBarView from "./workspace/sidebar";
-import ArtifactBarView from "./workspace/artifactbar";
+import { message } from "antd";
+import SideBarView from "./sidebar";
 
 const RAView = () => {
   const [loading, setLoading] = React.useState(false);
@@ -20,14 +19,10 @@ const RAView = () => {
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [skillUpdated, setSkillUpdated] = React.useState("default");
 
-  const [api, contextHolder] = notification.useNotification();
-
   const skillup = {
     get: skillUpdated,
     set: setSkillUpdated,
   };
-
-  const messageFetched = React.useRef(false);
 
   const initMetaData = {};
   const [metadata, setMetadata] = React.useState(initMetaData);
@@ -45,8 +40,6 @@ const RAView = () => {
     prompter: "default",
     top_k: 25,
   };
-
-  let confLocalStorage = getLocalStorage("ara_config");
 
   const initConfig: IGenConfig = {
     metadata: initMetadata,
@@ -110,8 +103,6 @@ const RAView = () => {
 
   return (
     <div className="h-full   ">
-      {contextHolder}
-
       {/* <div className="border mt-2 rounded p-2 mb-2">
         <ClearDBView setMessages={setMessages} />
       </div> */}
@@ -138,7 +129,6 @@ const RAView = () => {
           <div className="h-full w-full ml-2  align-bottom    ">
             <MetaDataView metadata={metadata} setMetadata={setMetadata} />
           </div>
-          {/* <ArtifactBarView /> */}
         </div>
       </div>
     </div>

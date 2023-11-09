@@ -7,8 +7,8 @@ require("dotenv").config({
 const config: GatsbyConfig = {
   pathPrefix: `${process.env.PREFIX_PATH_VALUE}`,
   siteMetadata: {
-    title: `Research Assistant`,
-    description: `Research Assistant`,
+    title: `AutoGen Assistant`,
+    description: `AutoGen Assistant UI`,
     siteUrl: `http://tbd.place`,
   },
   flags: {
