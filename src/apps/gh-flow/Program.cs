@@ -1,4 +1,7 @@
+using System.Net;
 using System.Text.Json;
+using Azure;
+using Azure.AI.OpenAI;
 using Microsoft.AI.DevTeam;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
@@ -159,9 +162,14 @@ static IKernel CreateKernel(IServiceProvider provider)
     var embedingGeneration = new AzureTextEmbeddingGeneration(openAiConfig.EmbeddingDeploymentOrModelId, openAiConfig.Endpoint, openAiConfig.ApiKey);
     var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
 
+
+    var clientOptions = new OpenAIClientOptions();
+    clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
+    var openAIClient = new OpenAIClient(new Uri(openAiConfig.Endpoint), new AzureKeyCredential(openAiConfig.ApiKey), clientOptions);
+
     return new KernelBuilder()
                         .WithLoggerFactory(loggerFactory)
-                        .WithAzureChatCompletionService(openAiConfig.DeploymentOrModelId, openAiConfig.Endpoint, openAiConfig.ApiKey, true, openAiConfig.ServiceId, true)
+                        .WithAzureChatCompletionService(openAiConfig.DeploymentOrModelId, openAIClient)
                         .WithRetryBasic(new BasicRetryConfig {
                             MaxRetryCount = 5,
                             UseExponentialBackoff = true
