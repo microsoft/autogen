@@ -1,14 +1,11 @@
 import re
 
-try:
-    import chromadb
-except ImportError:
-    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
 from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
+from autogen.retriever import get_retriever
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 from IPython import get_ipython
@@ -95,8 +92,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
-                - client (Optional, chromadb.Client): the chromadb client. If key not provided, a default client `chromadb.Client()`
-                    will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
+                - client (Optional, Any): the vectordb client/connection. If key not provided, the Retreiver class should handle it.
                 - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
                     or the url to a single file. Default is None, which works only if the collection is already created.
                 - collection_name (Optional, str): the name of the collection.
@@ -123,7 +119,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
                 - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
-                    This is the same as that used in chromadb. Default is False. Will be set to False if docs_path is None.
+                    This is the same as that used in retriever. Default is False. Will be set to False if docs_path is None.
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
                     Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
@@ -132,7 +128,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
-        If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with below code.
+        If you have set up a customized vector db, and it's not compatible with retriever, you can easily plug in it with below code.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
@@ -164,8 +160,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         )
 
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
+        self._retriever_type = self._retrieve_config.get("retriever_type", "chromadb")
         self._task = self._retrieve_config.get("task", "default")
-        self._client = self._retrieve_config.get("client", chromadb.Client())
+        self._client = self._retrieve_config.get("client", None)
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         self._model = self._retrieve_config.get("model", "gpt-4")
@@ -345,13 +342,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
         """Retrieve docs based on the given problem and assign the results to the class property `_results`.
-        In case you want to customize the retrieval process, such as using a different vector db whose APIs are not
-        compatible with chromadb or filter results with metadata, you can override this function. Just keep the current
-        parameters and add your own parameters with default values, and keep the results in below type.
 
         Type of the results: Dict[str, List[List[Any]]], should have keys "ids" and "documents", "ids" for the ids of
-        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional. Refer
-        to `chromadb.api.types.QueryResult` as an example.
+        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional. 
             ids: List[string]
             documents: List[List[string]]
 
@@ -362,29 +355,25 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         """
         if not self._collection or self._get_or_create:
             print("Trying to create collection.")
-            self._client = create_vector_db_from_dir(
-                dir_path=self._docs_path,
-                max_tokens=self._chunk_token_size,
-                client=self._client,
-                collection_name=self._collection_name,
-                chunk_mode=self._chunk_mode,
-                must_break_at_empty_line=self._must_break_at_empty_line,
-                embedding_model=self._embedding_model,
-                get_or_create=self._get_or_create,
-                embedding_function=self._embedding_function,
-                custom_text_split_function=self.custom_text_split_function,
-            )
+            retriever_class = get_retriever(self._retriever_type)
+            self.retriever = retriever_class(
+                 name=self._collection_name,
+                 embedding_model_name=self._embedding_model, 
+                 embedding_function=self._embedding_function, 
+                 max_tokens= self._chunk_token_size,
+                 chunk_mode = self._chunk_mode,
+                 must_break_at_empty_line = self._must_break_at_empty_line,
+                 custom_text_split_function = self.custom_text_split_function,
+                 use_existing=not self._get_or_create,
+                 client=self._client
+                 )
             self._collection = True
             self._get_or_create = False
-
-        results = query_vector_db(
-            query_texts=[problem],
-            n_results=n_results,
-            search_string=search_string,
-            client=self._client,
-            collection_name=self._collection_name,
-            embedding_model=self._embedding_model,
-            embedding_function=self._embedding_function,
+        self.retriever.ingest_data(self._docs_path)
+        results = self.retriever.query(
+            texts=[problem],
+            top_k=n_results,
+            filter=search_string,
         )
         self._results = results
         print("doc_ids: ", results["ids"])
