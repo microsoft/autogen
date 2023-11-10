@@ -7,22 +7,18 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    import openai
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-
     skip_test = False
 except ImportError:
     skip_test = True
 
+def ask_ossinsight(question):
+    return f"That is a good question, but I don't know the answer yet. Please ask your human  developer friend to help you. \n\n{question}"
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip_test,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
-def ask_ossinsight(question):
-    return f"That is a good question, but I don't know the answer yet. Please ask your human  developer friend to help you. \n\n{question}"
-
-
 def test_gpt_assistant_chat():
     ossinsight_api_schema = {
         "name": "ossinsight_data_api",
