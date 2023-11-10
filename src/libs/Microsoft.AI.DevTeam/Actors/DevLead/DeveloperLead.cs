@@ -2,6 +2,7 @@ using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
+using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 using System.Text.Json;
@@ -10,13 +11,15 @@ namespace Microsoft.AI.DevTeam;
 public class DeveloperLead : SemanticPersona, ILeadDevelopment
 {
     private readonly IKernel _kernel;
+    private readonly ISemanticTextMemory _memory;
     private readonly ILogger<DeveloperLead> _logger;
 
     protected override string MemorySegment => "dev-lead-memory";
 
-    public DeveloperLead(IKernel kernel, [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, ILogger<DeveloperLead> logger) : base(state)
+    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state,IKernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger) : base(state)
     {
         _kernel = kernel;
+        _memory = memory;
         _logger = logger;
     }
     public async Task<string> CreatePlan(string ask)
@@ -33,7 +36,7 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
                 Order = _state.State.History.Count + 1,
                 UserType = ChatUserType.User
             });
-            await AddWafContext(_kernel, ask, context);
+            await AddWafContext(_memory, ask, context);
             context.Set("input", ask);
 
             var result = await _kernel.RunAsync(context, function);

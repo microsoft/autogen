@@ -1,4 +1,5 @@
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Memory;
 using Octokit;
 using Orleans.Runtime;
 
@@ -9,11 +10,13 @@ public class Ingester : SemanticPersona, IIngestRepo
     protected override string MemorySegment => "code-analysis";
     private readonly IManageGithub _ghService;
     private readonly IKernel _kernel;
+    private readonly ISemanticTextMemory _memory;
     private readonly IAnalyzeCode _codeAnalyzer;
-    public Ingester([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IManageGithub ghService, IKernel kernel, IAnalyzeCode codeAnalyzer) : base(state)
+    public Ingester([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IManageGithub ghService, IKernel kernel, ISemanticTextMemory memory, IAnalyzeCode codeAnalyzer) : base(state)
     {
         _ghService = ghService;
         _kernel = kernel;
+        _memory = memory;
         _codeAnalyzer = codeAnalyzer;
     }
 
@@ -29,7 +32,7 @@ public class Ingester : SemanticPersona, IIngestRepo
         {
             var codeAnalysis = await _codeAnalyzer.Analyze(file.Content);
             codeAnalysis.ToList().ForEach(async c =>
-                await _kernel.Memory.SaveInformationAsync(MemorySegment, c.CodeBlock, Guid.NewGuid().ToString(), c.Meaning));
+                await _memory.SaveInformationAsync(MemorySegment, c.CodeBlock, Guid.NewGuid().ToString(), c.Meaning));
 
             await dev.BuildUnderstanding(file.Content);
         }

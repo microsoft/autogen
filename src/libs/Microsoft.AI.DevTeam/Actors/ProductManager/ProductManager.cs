@@ -2,6 +2,7 @@ using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
+using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 
@@ -9,13 +10,15 @@ namespace Microsoft.AI.DevTeam;
 public class ProductManager : SemanticPersona, IManageProduct
 {
     private readonly IKernel _kernel;
+    private readonly ISemanticTextMemory _memory;
     private readonly ILogger<ProductManager> _logger;
 
     protected override string MemorySegment => "pm-memory";
 
-    public ProductManager(IKernel kernel, [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, ILogger<ProductManager> logger) : base(state)
+    public ProductManager([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<ProductManager> logger) : base(state)
     {
         _kernel = kernel;
+        _memory = memory;
         _logger = logger;
     }
     public async Task<string> CreateReadme(string ask)
@@ -32,7 +35,7 @@ public class ProductManager : SemanticPersona, IManageProduct
                 Order = _state.State.History.Count + 1,
                 UserType = ChatUserType.User
             });
-            await AddWafContext(_kernel, ask, context);
+            await AddWafContext(_memory, ask, context);
             context.Set("input", ask);
 
             var result = await _kernel.RunAsync(context, function);
