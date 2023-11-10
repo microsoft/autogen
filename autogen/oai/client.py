@@ -307,8 +307,8 @@ class OpenAIWrapper:
                     )
                 )
         else:
-            # If streaming is not enabled, send a regular chat completion request
-            # Ensure streaming is disabled
+            # If streaming is not enabled or using functions, send a regular chat completion request
+            # Functions are not supported, so ensure streaming is disabled
             params = params.copy()
             params["stream"] = False
             response = completions.create(**params)
