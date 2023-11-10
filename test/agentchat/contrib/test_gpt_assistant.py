@@ -8,12 +8,15 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+
     skip_test = False
 except ImportError:
     skip_test = True
 
+
 def ask_ossinsight(question):
     return f"That is a good question, but I don't know the answer yet. Please ask your human  developer friend to help you. \n\n{question}"
+
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip_test,
