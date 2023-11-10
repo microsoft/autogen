@@ -114,21 +114,19 @@ class GPTAssistantAgent(ConversableAgent):
             assistant_id=self._openai_assistant.id,
         )
 
-        intermediate_messages = []
-        run, status, run_response_messages = self._get_run_response(run)
-        intermediate_messages.extend(run_response_messages)
-        while status == "requires_action":
-            run, status, run_response_messages = self._get_run_response(run)
-            intermediate_messages.extend(run_response_messages)
+        run_response_messages = self._get_run_response(run)
+        assert len(run_response_messages) > 0, "No response from the assistant."
 
-        # merge a response
-        if len(intermediate_messages) > 1:
-            for message in intermediate_messages:
-                # just logging or do something with the intermediate messages?
-                logger.info("Intermediate message: %s", message)
+        response = {
+            "role": run_response_messages[-1]["role"],
+            "content": "",
+        }
+        for message in run_response_messages:
+            # just logging or do something with the intermediate messages?
+            response["content"] = response["content"] + message["content"] + "\n\n"
 
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
-        return True, intermediate_messages[-1]
+        return True, response
 
     def _get_run_response(self, run):
         """
@@ -140,42 +138,47 @@ class GPTAssistantAgent(ConversableAgent):
         Returns:
             Updated run object, status of the run, and response messages.
         """
-        run = self._wait_for_run(run.id, self._openai_thread.id)
-        if run.status == "completed":
-            response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread.id, order="asc")
-            response_messages = [
-                {"role": msg.role, "content": self._format_assistant_message(msg.content[0].text)}
-                for msg in response_messages
-                if msg.run_id == run.id
-            ]
-            return run, "completed", response_messages
-        elif run.status == "requires_action":
-            actions = []
-            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
-                function = tool_call.function
-                _, tool_response = self.execute_function(function.dict())
-                tool_response["metadata"] = {
-                    "tool_call_id": tool_call.id,
+        while True:
+            run = self._wait_for_run(run.id, self._openai_thread.id)
+            if run.status == "completed":
+                response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread.id, order="asc")
+                return [
+                    {"role": msg.role, "content": self._format_assistant_message(msg.content[0].text)}
+                    for msg in response_messages
+                    if msg.run_id == run.id
+                ]
+            elif run.status == "requires_action":
+                actions = []
+                for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                    function = tool_call.function
+                    is_exec_success, tool_response = self.execute_function(function.dict())
+                    tool_response["metadata"] = {
+                        "tool_call_id": tool_call.id,
+                        "run_id": run.id,
+                        "thread_id": self._openai_thread.id,
+                    }
+
+                    logger.info(
+                        "Intermediate executing(%s, Sucess: %s) : %s",
+                        tool_response["name"],
+                        is_exec_success,
+                        tool_response["content"],
+                    )
+                    actions.append(tool_response)
+
+                submit_tool_outputs = {
+                    "tool_outputs": [
+                        {"output": action["content"], "tool_call_id": action["metadata"]["tool_call_id"]}
+                        for action in actions
+                    ],
                     "run_id": run.id,
                     "thread_id": self._openai_thread.id,
                 }
 
-                actions.append(tool_response)
-
-            submit_tool_outputs = {
-                "tool_outputs": [
-                    {"output": action["content"], "tool_call_id": action["metadata"]["tool_call_id"]}
-                    for action in actions
-                ],
-                "run_id": run.id,
-                "thread_id": self._openai_thread.id,
-            }
-
-            run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
-            return run, "requires_action", actions
-        else:
-            run_info = json.dumps(run.dict(), indent=2)
-            raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
+                run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
+            else:
+                run_info = json.dumps(run.dict(), indent=2)
+                raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
 
     def _wait_for_run(self, run_id: str, thread_id: str) -> Any:
         """
