@@ -122,8 +122,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
-                - get_or_create (Optional, bool): if True, will create/return a collection for the retrieve chat.
-                    This is the same as that used in chromadb. Default is False. Will be set to True if docs_path is None.
+                - get_or_create (Optional, bool): if True, will create/return a collection for the retrieve chat. This is the same as that used in chromadb.
+                    Default is False. Will raise ValueError if the collection already exists and get_or_create is False. Will be set to True if docs_path is None.
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
                     Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
