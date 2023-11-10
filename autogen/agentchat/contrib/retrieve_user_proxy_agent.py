@@ -160,7 +160,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         )
 
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
-        self._retriever_type = self._retrieve_config.get("retriever_type", "chromadb")
+        self._retriever_type = self._retrieve_config.get("retriever_type")
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", None)
         self._docs_path = self._retrieve_config.get("docs_path", None)
