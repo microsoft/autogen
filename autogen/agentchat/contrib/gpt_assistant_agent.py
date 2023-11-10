@@ -4,6 +4,7 @@ import json
 import time
 import logging
 
+from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from typing import Dict, Optional, Union, List, Tuple, Any
@@ -41,7 +42,12 @@ class GPTAssistantAgent(ConversableAgent):
             llm_config=llm_config,
         )
 
-        self._openai_client = openai.OpenAI()
+        # Use AutoGen OpenAIWrapper to create a client
+        oai_wrapper = OpenAIWrapper(**self.llm_config)
+        if len(oai_wrapper._clients) > 1:
+            logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
+        self._openai_client = oai_wrapper._clients[0]
+
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
             # create a new assistant
@@ -123,7 +129,10 @@ class GPTAssistantAgent(ConversableAgent):
         }
         for message in run_response_messages:
             # just logging or do something with the intermediate messages?
-            response["content"] = response["content"] + message["content"] + "\n\n"
+            # if current response is not empty and there is more, append new lines
+            if len(response["content"]) > 0:
+                response["content"] += "\n\n"
+            response["content"] += message["content"]
 
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
         return True, response
@@ -142,11 +151,23 @@ class GPTAssistantAgent(ConversableAgent):
             run = self._wait_for_run(run.id, self._openai_thread.id)
             if run.status == "completed":
                 response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread.id, order="asc")
-                return [
-                    {"role": msg.role, "content": self._format_assistant_message(msg.content[0].text)}
-                    for msg in response_messages
-                    if msg.run_id == run.id
-                ]
+
+                new_messages = []
+                for msg in response_messages:
+                    if msg.run_id == run.id:
+                        for content in msg.content:
+                            if content.type == "text":
+                                new_messages.append(
+                                    {"role": msg.role, "content": self._format_assistant_message(content.text)}
+                                )
+                            elif content.type == "image_file":
+                                new_messages.append(
+                                    {
+                                        "role": msg.role,
+                                        "content": f"Recieved file id={content.image_file.file_id}",
+                                    }
+                                )
+                return new_messages
             elif run.status == "requires_action":
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
@@ -234,3 +255,45 @@ class GPTAssistantAgent(ConversableAgent):
     def can_execute_function(self, name: str) -> bool:
         """Whether the agent can execute the function."""
         return False
+
+    def clear_history(self, agent: Optional[Agent] = None):
+        """Clear the chat history of the agent.
+
+        Args:
+            agent: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
+        """
+        super().clear_history(agent)
+        if self._openai_thread:
+            # Delete the existing thread to start fresh in the next conversation
+            logger.info("Clearing thread %s", self._openai_thread.id)
+            self._openai_client.beta.threads.delete(self._openai_thread.id)
+            self._openai_thread = None
+            self._unread_index.clear()
+
+    def pretty_print_thread(self, thread):
+        if thread is None:
+            print("No thread to print")
+            return
+        # NOTE: that list may not be in order, sorting by created_at is important
+        messages = self._openai_client.beta.threads.messages.list(
+            thread_id=thread.id,
+        )
+        messages = sorted(messages.data, key=lambda x: x.created_at)
+        print("~~~~~~~THREAD CONTENTS~~~~~~~")
+        for message in messages:
+            content_types = [content.type for content in message.content]
+            print(f"[{message.created_at}]", message.role, ": [", ", ".join(content_types), "]")
+            for content in message.content:
+                content_type = content.type
+                if content_type == "text":
+                    print(content.type, ": ", content.text.value)
+                elif content_type == "image_file":
+                    print(content.type, ": ", content.image_file.file_id)
+                else:
+                    print(content.type, ": ", content)
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+    @property
+    def oai_threads(self) -> Dict[Agent, List[Dict]]:
+        """A dictionary of conversations from agent to list of messages."""
+        return self._openai_thread
