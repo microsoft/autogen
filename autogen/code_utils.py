@@ -194,6 +194,7 @@ def execute_code(
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
     use_docker: Optional[Union[List[str], str, bool]] = None,
+    env_vars: Optional[Dict[str, str]] = None,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -224,6 +225,7 @@ def execute_code(
                 - If `use_docker` is not set (i.e., left default to None) and the Docker package is not available, a warning will be displayed, but the code will run natively.
             If the code is executed in the current environment,
             the code must be trusted.
+        env_vars (Optional, dict): The environment variables to set for the code execution.
         lang (Optional, str): The language of the code. Default is "python".
 
     Returns:
@@ -347,6 +349,7 @@ def execute_code(
         working_dir="/workspace",
         detach=True,
         # get absolute path to the working directory
+        environment=env_vars,
         volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
     )
     start_time = time.time()
