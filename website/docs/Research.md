@@ -36,3 +36,14 @@ For technical details, please check our technical report and research publicatio
     booktitle={ArXiv preprint arXiv:2306.01337},
 }
 ```
+
+* [EcoAssistant: Using LLM Assistant More Affordably and Accurately](https://arxiv.org/abs/2310.03046). Jieyu Zhang, Ranjay Krishna, Ahmed H. Awadallah, Chi Wang. ArXiv preprint arXiv:2310.03046 (2023).
+
+```bibtex
+@inproceedings{zhang2023ecoassistant,
+    title={EcoAssistant: Using LLM Assistant More Affordably and Accurately},
+    author={Zhang, Jieyu and Krishna, Ranjay and Awadallah, Ahmed H and Wang, Chi},
+    year={2023},
+    booktitle={ArXiv preprint arXiv:2310.03046},
+}
+```
