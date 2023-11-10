@@ -6,10 +6,6 @@ import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import openai
-from openai.types.beta.threads.required_action_function_tool_call import (
-    RequiredActionFunctionToolCall,
-)
-
 
 from autogen import OpenAIWrapper
 from ..agent import Agent
@@ -21,15 +17,17 @@ except ImportError:
     def colored(x, *args, **kwargs):
         return x
 
+
 logger = logging.getLogger(__name__)
+
 
 class GPTAssistantAgent(Agent):
     """(Experimental) A class for agents based on OpenAI Assistant API which can be configured as assistant.
-    It differs from other agents like ConversableAgent by relying solely on the OpenAI Assistant framework. 
+    It differs from other agents like ConversableAgent by relying solely on the OpenAI Assistant framework.
 
-    It allows for the configurations during the initialization of the agent. 
+    It allows for the configurations during the initialization of the agent.
     - Function calls
-    - OpenAI's built-in tools (such as code_interpreter and retrieval) 
+    - OpenAI's built-in tools (such as code_interpreter and retrieval)
     - File IDs from the OpenAI files platform.
 
     After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
@@ -40,7 +38,7 @@ class GPTAssistantAgent(Agent):
         "model": "gpt-4-1106-preview",
         # check thread run status interval
         "check_every_ms": 1000,
-        # Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval, 
+        # Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
         # or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
         "tools": [],
         # files used by retrieval tools in run
@@ -48,13 +46,12 @@ class GPTAssistantAgent(Agent):
         # assistant id used to retrieve the existing assistant
         "assistant_id": None,
     }
-    MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
     def __init__(
         self,
         name: str,
         system_message: Optional[str] = "You are a helpful AI Assistant.",
-        max_consecutive_auto_reply: Optional[int] = None,
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         function_map: Optional[Dict[str, Callable]] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
@@ -86,7 +83,11 @@ class GPTAssistantAgent(Agent):
         self.llm_config = self.DEFAULT_CONFIG.copy()
         if isinstance(llm_config, dict):
             self.llm_config.update(llm_config)
-        
+
+        self._is_termination_msg = (
+            is_termination_msg if is_termination_msg is not None else (lambda x: x.get("content") == "TERMINATE")
+        )
+
         self._openai_client = openai.OpenAI()
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
@@ -100,11 +101,7 @@ class GPTAssistantAgent(Agent):
             self._openai_assistant = self._openai_client.beta.assistants.retrieve(openai_assistant_id)
 
         # lazly create thread
-        self._openai_thread_id = None
-
-        self._max_consecutive_auto_reply = (
-            max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
-        )
+        self._openai_thread = None
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._system_message = system_message
         self._function_map = {} if function_map is None else function_map
@@ -150,7 +147,6 @@ class GPTAssistantAgent(Agent):
         Args:
             message (dict or str): message to be appended to the ChatCompletion conversation.
             role (str): role of the message, can be "assistant" or "function".
-            conversation_id (Agent): id of the conversation, should be the recipient or sender.
 
         Returns:
             bool: whether the message is appended to the ChatCompletion conversation.
@@ -213,6 +209,7 @@ class GPTAssistantAgent(Agent):
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant")
+        self._oai_messages_handled_index = len(self._oai_messages)
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
@@ -305,7 +302,7 @@ class GPTAssistantAgent(Agent):
     def _process_received_message(self, message, sender, silent):
         message = self._message_to_dict(message)
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
-        valid = self._append_oai_message(message, sender.name)
+        valid = self._append_oai_message(message, "user")
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -345,9 +342,13 @@ class GPTAssistantAgent(Agent):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
+
         replys = self.generate_reply(sender=sender)
-        for reply in replys:
-            self.send(reply, sender, silent=silent)
+        for reply in replys[:-1]:
+            self.send(reply, sender, False, silent=silent)
+        if len(replys) > 0:
+            reply = replys[-1]
+            self.send(reply, sender, True, silent=silent)
 
     async def a_receive(
         self,
@@ -390,8 +391,8 @@ class GPTAssistantAgent(Agent):
         self.clear_history()
         self.reset_consecutive_auto_reply_counter()
         self.stop_reply_at_receive()
-        self._openai_client.beta.threads.delete(self._openai_thread_id)
-        self._openai_thread_id = None
+        self._openai_client.beta.threads.delete(self._openai_thread.id)
+        self._openai_thread = None
 
     def stop_reply_at_receive(self, sender: Optional[Agent] = None):
         """Reset the reply_at_receive of the sender."""
@@ -402,12 +403,9 @@ class GPTAssistantAgent(Agent):
 
     def reset_consecutive_auto_reply_counter(self, sender: Optional[Agent] = None):
         """Reset the consecutive_auto_reply_counter of the sender."""
-        if sender is None:
-            self._consecutive_auto_reply_counter.clear()
-        else:
-            self._consecutive_auto_reply_counter[sender] = 0
+        pass
 
-    def clear_history(self):
+    def clear_history(self, agent: Optional[Agent] = None):
         """Clear the chat history of the agent.
 
         Args:
@@ -435,79 +433,37 @@ class GPTAssistantAgent(Agent):
             raise AssertionError(error_msg)
 
         if messages is None:
-            messages = self._oai_messages[self._oai_messages_handled_index:]
+            messages = self._oai_messages[self._oai_messages_handled_index :]
 
-        # Starting a new thread and a new run.
-        if self._openai_thread_id is None:
-            run = self._openai_client.beta.threads.create_and_run(
-                assistant_id = self._openai_assistant.id,
-                thread={
-                    "messages": [
-                        {
-                            "role": message["role"],
-                            "content": message["content"],
-                        } for message in messages
-                    ],
-                },
+        if self._is_termination_msg(messages[-1]):
+            return None
+
+        # Starting a new thread
+        if self._openai_thread is None:
+            self._openai_thread = self._openai_client.beta.threads.create(
+                messages=[],
             )
         # Starting a new run in an existing thread.
-        else:
-            for message in messages:
-                self._openai_client.beta.threads.messages.create(
-                    thread_id = self._openai_thread_id,
-                    content=message["content"],
-                    role=message["role"],
-                )
-            run = self._openai_client.beta.threads.runs.create(
-                thread_id = self._openai_thread_id,
-                assistant_i = self._openai_assistant.id,
+        for message in messages:
+            self._openai_client.beta.threads.messages.create(
+                thread_id=self._openai_thread.id,
+                content=message["content"],
+                role=message["role"],
             )
 
-        response_messages = []
+        run = self._openai_client.beta.threads.runs.create(
+            thread_id=self._openai_thread.id,
+            assistant_id=self._openai_assistant.id,
+        )
 
-        run, run_response_messages = self._get_run_response(run)
+        response_messages = []
+        run, status, run_response_messages = self._get_run_response(run)
         response_messages.extend(run_response_messages)
-        while run.status == "requires_action":
-            run, run_response_messages = self._get_run_response(run)
+        while status == "requires_action":
+            run, status, run_response_messages = self._get_run_response(run)
             response_messages.extend(run_response_messages)
 
         return response_messages
-    
-    def _get_run_response(self, run):
-        run = self._wait_for_run(run.id, self._openai_thread_id)
-        if run.status == "completed":
-            response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread_id, order="asc")
-            response_messages =  [msg for msg in response_messages if msg.run_id == run.id]
-            return run, response_messages
-        elif run.status == "requires_action":
-            actions = []
-            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
-                function = tool_call.function
-                _, tool_response = self.execute_function(function)
-                tool_response['metadata'] = {
-                    "tool_call_id": tool_call.id,
-                    "run_id": run.id,
-                    "thread_id": self._openai_thread_id,
-                }
-
-                actions.append(tool_response)
-
-            submit_tool_outputs = {
-                "tool_outputs": [
-                    {"output": action["content"], "tool_call_id": action["metadata"]["tool_call_id"]}
-                    for action in actions
-                ],
-                "run_id": run.id,
-                "thread_id": self._openai_thread_id,
-            }
-            run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
-            return run, actions
-        else:
-            run_info = json.dumps(run.dict(), indent=2)
-            raise ValueError(
-                f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})"
-            )
-        
 
     async def a_generate_reply(
         self,
@@ -548,7 +504,7 @@ class GPTAssistantAgent(Agent):
                 char = "\\t"
             result.append(char)
         return "".join(result)
-    
+
     def execute_function(self, func_call):
         """Execute a function call and return the result.
 
@@ -587,6 +543,7 @@ class GPTAssistantAgent(Agent):
                 except Exception as e:
                     content = f"Error: {e}"
         else:
+            print()
             content = f"Error: Function {func_name} not found."
 
         return is_exec_success, {
@@ -644,6 +601,7 @@ class GPTAssistantAgent(Agent):
             "name": func_name,
             "role": "function",
             "content": str(content),
+            "function_call": func_call,
         }
 
     def register_function(self, function_map: Dict[str, Callable]):
@@ -662,7 +620,45 @@ class GPTAssistantAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
-    
+
+    def _get_run_response(self, run):
+        run = self._wait_for_run(run.id, self._openai_thread.id)
+        if run.status == "completed":
+            response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread.id, order="asc")
+            response_messages = [
+                {"role": msg.role, "content": self._format_assistant_message(msg.content[0].text)}
+                for msg in response_messages
+                if msg.run_id == run.id
+            ]
+            return run, "completed", response_messages
+        elif run.status == "requires_action":
+            actions = []
+            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
+                function = tool_call.function
+                _, tool_response = self.execute_function(function.dict())
+                tool_response["metadata"] = {
+                    "tool_call_id": tool_call.id,
+                    "run_id": run.id,
+                    "thread_id": self._openai_thread.id,
+                }
+
+                actions.append(tool_response)
+
+            submit_tool_outputs = {
+                "tool_outputs": [
+                    {"output": action["content"], "tool_call_id": action["metadata"]["tool_call_id"]}
+                    for action in actions
+                ],
+                "run_id": run.id,
+                "thread_id": self._openai_thread.id,
+            }
+
+            run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
+            return run, "requires_action", actions
+        else:
+            run_info = json.dumps(run.dict(), indent=2)
+            raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
+
     def _wait_for_run(self, run_id: str, thread_id: str) -> Any:
         in_progress = True
         while in_progress:
@@ -671,3 +667,31 @@ class GPTAssistantAgent(Agent):
             if in_progress:
                 time.sleep(self.llm_config.get("check_every_ms", 1000) / 1000)
         return run
+
+    def _format_assistant_message(self, message_content):
+        annotations = message_content.annotations
+        citations = []
+
+        # Iterate over the annotations and add footnotes
+        for index, annotation in enumerate(annotations):
+            # Replace the text with a footnote
+            message_content.value = message_content.value.replace(annotation.text, f" [{index}]")
+
+            # Gather citations based on annotation attributes
+            if file_citation := getattr(annotation, "file_citation", None):
+                try:
+                    cited_file = self._openai_client.files.retrieve(file_citation.file_id)
+                    citations.append(f"[{index}] {cited_file.filename}: {file_citation.quote}")
+                except Exception as e:
+                    logger.error(f"Error retrieving file citation: {e}")
+            elif file_path := getattr(annotation, "file_path", None):
+                try:
+                    cited_file = self._openai_client.files.retrieve(file_path.file_id)
+                    citations.append(f"[{index}] Click <here> to download {cited_file.filename}")
+                except Exception as e:
+                    logger.error(f"Error retrieving file citation: {e}")
+                # Note: File download functionality not implemented above for brevity
+
+        # Add footnotes to the end of the message before displaying to user
+        message_content.value += "\n" + "\n".join(citations)
+        return message_content.value
