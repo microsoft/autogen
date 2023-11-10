@@ -12,20 +12,8 @@ class AgentCreator:
     """
     Descriptions
     """
-    open_ports: List[str] = []
-    agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
     openai_server_name: str = 'openai'
-    agent_procs_assign: Dict[str, Tuple[autogen.AssistantAgent, str]] = {}
     max_tokens: int = 945
-
-    user_proxy: autogen.UserProxyAgent = None
-    group_chat_manager_config: dict = None
-    initiate_agent_name: str = 'user'
-    manager_system_message: str = 'Group chat manager.'
-    agent_configs: List[Dict] = None
-    coding: bool = None
-    default_llm_config: Dict = None
-    building_task: str = None
 
     CODING_PROMPT: str = '''Does the following task need programming 
     (i.e., access external API or tool by coding) to solve?
@@ -47,6 +35,19 @@ class AgentCreator:
             config_path: path of the OpenAI api configs.
             endpoint_building_timeout: timeout for building up an endpoint server.
         """
+        self.user_proxy: autogen.UserProxyAgent = None
+        self.group_chat_manager_config: dict = None
+        self.initiate_agent_name: str = 'user'
+        self.manager_system_message: str = 'Group chat manager.'
+        self.agent_configs: List[Dict] = None
+        self.coding: bool = None
+        self.default_llm_config: Dict = None
+        self.building_task: str = None
+
+        self.open_ports: List[str] = []
+        self.agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
+        self.agent_procs_assign: Dict[str, Tuple[autogen.AssistantAgent, str]] = {}
+
         self.endpoint_building_timeout = endpoint_building_timeout
         self.config_path = config_path
         self.host = host
