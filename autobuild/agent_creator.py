@@ -15,7 +15,6 @@ class AgentCreator:
     open_ports: List[str] = []
     agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
     openai_server_name: str = 'openai'
-    endpoint_building_timeout: Optional[int]
     agent_procs_assign: Dict[str, Tuple[autogen.AssistantAgent, str]] = {}
     max_tokens: int = 945
 
@@ -23,6 +22,10 @@ class AgentCreator:
     group_chat_manager_config: dict = None
     initiate_agent_name: str = 'user'
     manager_system_message: str = 'Group chat manager.'
+    agent_configs: List[Dict] = None
+    coding: bool = None
+    default_llm_config: Dict = None
+    building_task: str = None
 
     CODING_PROMPT: str = '''Does the following task need programming 
     (i.e., access external API or tool by coding) to solve?
@@ -36,22 +39,17 @@ class AgentCreator:
             self,
             host: str = 'localhost',
             config_path: str = 'OAI_CONFIG_LIST',
-            build_config_path: Optional[str] = './.build_cache',
             endpoint_building_timeout: Optional[int] = 180
     ):
         """
         Args:
-            endpoint_building_timeout: timeout for building up an endpoint server.
-            config_path: path of the OpenAI api configs.
-            build_config_path: path of the build configs.
             host: endpoint host.
+            config_path: path of the OpenAI api configs.
+            endpoint_building_timeout: timeout for building up an endpoint server.
         """
         self.endpoint_building_timeout = endpoint_building_timeout
         self.config_path = config_path
         self.host = host
-        self.build_config_path = build_config_path
-        if not os.path.exists(build_config_path):
-            os.makedirs(build_config_path)
 
         print('Initializing usable port...')
         for port in range(8000, 65535):
@@ -61,7 +59,7 @@ class AgentCreator:
 
     @staticmethod
     def _is_port_open(host, port):
-        """Check if a port is open."""
+        """Check if a tcp port is open."""
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(10)
@@ -80,7 +78,10 @@ class AgentCreator:
             world_size: Optional[int] = 1
     ) -> autogen.AssistantAgent:
         """
-        Descriptions
+        Create a group chat agent.
+
+        If the agent rely on an open-source model, this function will automatically set up an endpoint for that agent.
+        The API address of that endpoint will be "localhost:{free port}".
 
         Args:
             agent_name: the name that identify the function of the agent (e.g., Coder, Product Manager,...)
@@ -157,7 +158,7 @@ class AgentCreator:
             recycle_endpoint: bool = True
     ):
         """
-        Descriptions
+        Clear a specific agent by name.
 
         Args:
             agent_name: the name of agent.
@@ -185,23 +186,24 @@ class AgentCreator:
 
     def build(
             self,
-            task: str,
-            default_llm_config: dict,
+            building_task: str = None,
+            default_llm_config: Dict = None,
             coding: bool = None,
-            use_cache: Optional[bool] = True
+            cache_configs: Optional[Dict] = None
     ):
         use_api = False
-        build_configs = {}
 
-        if use_cache:
-            build_configs = self._load_config(task)
-
-        if build_configs == {}:
+        if cache_configs is None:
             use_api = True
+            self.building_task = building_task
+            self.default_llm_config = default_llm_config.copy()
+            self.coding = coding
         else:
-            agent_configs = build_configs['agent_configs']
-            coding = build_configs['coding']
-            self.manager_system_message = build_configs['manager_system_message']
+            self.building_task = cache_configs['building_task']
+            self.default_llm_config = cache_configs['default_llm_config']
+            self.coding = cache_configs['coding']
+            self.agent_configs = cache_configs['agent_configs']
+            self.manager_system_message = cache_configs['manager_system_message']
 
         config_list = autogen.config_list_from_json(
             self.config_path,
@@ -214,34 +216,34 @@ class AgentCreator:
         # TODO: use the build manager to decide what agent should be created,
         #  and generate system message for each agent and group chat manager.
         if use_api:
-            pass
+            # after this process completed, we should obtain a following list and a manager_system_config.
+            self.agent_configs = [
+                {
+                    'name': 'Coder_gpt_35',
+                    'model': 'gpt-3.5-turbo',
+                    'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                },
+                {
+                    'name': 'Product_manager',
+                    'model': 'gpt-3.5-turbo',
+                    'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                }
+            ]
+            self.manager_system_message = 'Group chat manager.'
 
-        agent_configs = [
-            {
-                'name': 'Coder_gpt_35',
-                'model': 'gpt-3.5-turbo',
-                'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-            },
-            {
-                'name': 'Product_manager',
-                'model': 'gpt-3.5-turbo',
-                'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-            }
-        ]
-
-        for agent_config in agent_configs:
+        for agent_config in self.agent_configs:
             self.create_agent(agent_config['name'],
                               agent_config['model'],
-                              default_llm_config,
+                              self.default_llm_config,
                               system_message=agent_config['system_message'])
 
-        if coding is None:
+        if self.coding is None:
             resp = build_manager.create(
-                messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=task)}]
+                messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=self.building_task)}]
             ).choices[0].message.content
-            coding = True if resp == 'YES' else False
+            self.coding = True if resp == 'YES' else False
 
-        if coding is True:
+        if self.coding is True:
             self.user_proxy = autogen.UserProxyAgent(
                 name="User_proxy",
                 system_message="A human admin.",
@@ -249,31 +251,53 @@ class AgentCreator:
                 human_input_mode="TERMINATE"
             )
         else:
-            self.initiate_agent_name = agent_configs[0]['name']
+            self.initiate_agent_name = self.agent_configs[0]['name']
 
-        self.group_chat_manager_config = default_llm_config.copy()
+        self.group_chat_manager_config = self.default_llm_config.copy()
         self.group_chat_manager_config['config_list'] = config_list
-        self.manager_system_message = 'Group chat manager.'
 
-        # TODO: save config.
-        save_config = {
-            'agent_configs': agent_configs,
+    def save(
+            self,
+            filepath: Optional[str] = None
+    ) -> str:
+        """
+        Save building configs. If the filepath is not specific, this function will create a filename by encrypt the
+        building_task string by md5 with "save_config_" prefix, and save config to the local path.
+
+        Args:
+            filepath: save path.
+
+        Return:
+            filepath: saved path.
+        """
+        if filepath is None:
+            filepath = f'./save_config_{hashlib.md5(self.building_task.encode("utf-8")).hexdigest()}.json'
+        json.dump({
+            'building_task': self.building_task,
+            'agent_configs': self.agent_configs,
             'manager_system_message': self.manager_system_message,
-            'coding': coding
-        }
-        self._save_config(task, save_config)
+            'coding': self.coding,
+            'default_llm_config': self.default_llm_config
+        }, open(filepath, 'w'), indent=4)
+        print(f'Building config saved to {filepath}')
 
-    def _save_config(self, task: str, config: dict):
-        filename = hashlib.md5(task.encode('utf-8')).hexdigest()
-        json.dump(config, open(f'{self.build_config_path}/{filename}.json', 'w'), indent=4)
+        return filepath
 
-    def _load_config(self, task: str):
-        filename = hashlib.md5(task.encode('utf-8')).hexdigest()
-        filepath = f'{self.build_config_path}/{filename}.json'
+    def load(
+            self,
+            filepath: str
+    ):
+        """
+        Load building configs and call the build function to complete building without calling online LLMs' api.
+
+        Args:
+            filepath: filepath for the save config.
+        """
         if os.path.isfile(filepath):
-            return json.load(open(filepath))
+            cache_configs = json.load(open(filepath))
+            self.build(cache_configs=cache_configs)
         else:
-            return {}
+            raise FileNotFoundError(f"Config file {filepath} does not exist.")
 
     def start(
             self,
@@ -282,7 +306,7 @@ class AgentCreator:
             init_messages: Optional[List[dict]] = []
     ):
         """
-        Descriptions
+        Start a group chat task solving process with built config.
 
         Args:
             task: description of a task.
@@ -318,6 +342,7 @@ if __name__ == '__main__':
         config_path=config_path
     )
     administrator.build(task, default_llm_config)
+    administrator.save()
     administrator.start(task)
     administrator.clear_all_agents()
 
