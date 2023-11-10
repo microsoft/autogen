@@ -10,6 +10,7 @@ from typing import Dict, Optional, Union, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
 
+
 class GPTAssistantAgent(ConversableAgent):
     """(Experimental) A class for agents based on OpenAI Assistant API which can be configured as an AutoGen Agent.
     It differs from other AutoGen agents (like ConversableAgent) by relying solely on the OpenAI Assistant which supports state management.
