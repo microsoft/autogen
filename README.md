@@ -20,7 +20,9 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 :fire: Heads-up: pyautogen v0.2 will switch to using openai v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
 
-:fire: Aug 16: [Paper about AutoGen](https://arxiv.org/pdf/2308.08155.pdf) on arxiv.
+:fire: Sep 19: Autogen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github.
+
+:fire: Aug 16 (updated on Oct 03): [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv.
 
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
