@@ -12,15 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class GPTAssistantAgent(ConversableAgent):
-    """(Experimental) A class for agents based on OpenAI Assistant API which can be configured as an AutoGen Agent.
-    It differs from other AutoGen agents (like ConversableAgent) by relying solely on the OpenAI Assistant which supports state management.
-
-    It allows for the configurations during the initialization of the agent.
-    - Function calls
-    - OpenAI's built-in tools (such as code_interpreter and retrieval)
-    - File IDs from the OpenAI files platform.
-
-    After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
+    """
+    An experimental AutoGen agent class that leverages the OpenAI Assistant API for conversational capabilities.
+    This agent is unique in its reliance on the OpenAI Assistant for state management, differing from other agents like ConversableAgent.
     """
 
     def __init__(
@@ -33,7 +27,6 @@ class GPTAssistantAgent(ConversableAgent):
         Args:
             name (str): name of the agent.
             instructions (str): instructions for the OpenAI assistant configuration.
-            function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions.
             llm_config (dict or False): llm inference configuration.
                 - model: Model to use for the assistant (gpt-4-1106-preview, gpt-3.5-turbo-1106).
                 - check_every_ms: check thread run status interval
@@ -68,10 +61,15 @@ class GPTAssistantAgent(ConversableAgent):
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
 
     def reset(self):
-        """Reset the agent."""
+        """
+        Resets the agent, clearing any existing conversation thread and unread message indices.
+        """
         super().reset()
-        self._openai_client.beta.threads.delete(self._openai_thread.id)
-        self._openai_thread = None
+        if self._openai_thread:
+            # Delete the existing thread to start fresh in the next conversation
+            self._openai_client.beta.threads.delete(self._openai_thread.id)
+            self._openai_thread = None
+        # Clear the record of unread messages
         self._unread_index.clear()
 
     def _invoke_assistant(
@@ -80,14 +78,16 @@ class GPTAssistantAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
-        """Send messages to OpenAI assistant and generate a reply.
+        """
+        Invokes the OpenAI assistant to generate a reply based on the given messages.
 
         Args:
-            messages: a list of messages in the conversation history.
-            sender: sender of an Agent instance.
+            messages: A list of messages in the conversation history with the sender.
+            sender: The agent instance that sent the message.
+            config: Optional configuration for message processing.
 
         Returns:
-            str or dict or List[message] or None: reply. None if no reply is generated.
+            A tuple containing a boolean indicating success and the assistant's reply.
         """
 
         if messages is None:
@@ -95,12 +95,12 @@ class GPTAssistantAgent(ConversableAgent):
         unread_index = self._unread_index[sender] or 0
         pending_messages = messages[unread_index:]
 
-        # Starting a new thread
+        # Check and initiate a new thread if necessary
         if self._openai_thread is None:
             self._openai_thread = self._openai_client.beta.threads.create(
                 messages=[],
             )
-        # Starting a new run in an existing thread.
+        # Process each unread message
         for message in pending_messages:
             self._openai_client.beta.threads.messages.create(
                 thread_id=self._openai_thread.id,
@@ -108,6 +108,7 @@ class GPTAssistantAgent(ConversableAgent):
                 role=message["role"],
             )
 
+        # Create a new run to get responses from the assistant
         run = self._openai_client.beta.threads.runs.create(
             thread_id=self._openai_thread.id,
             assistant_id=self._openai_assistant.id,
@@ -123,12 +124,22 @@ class GPTAssistantAgent(ConversableAgent):
         # merge a response
         if len(intermediate_messages) > 1:
             for message in intermediate_messages:
-                logger.info(f"Intermediate message: {message}")
+                # just logging or do something with the intermediate messages?
+                logger.info("Intermediate message: %s", message)
 
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
         return True, intermediate_messages[-1]
 
     def _get_run_response(self, run):
+        """
+        Waits for and processes the response of a run from the OpenAI assistant.
+
+        Args:
+            run: The run object initiated with the OpenAI assistant.
+
+        Returns:
+            Updated run object, status of the run, and response messages.
+        """
         run = self._wait_for_run(run.id, self._openai_thread.id)
         if run.status == "completed":
             response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread.id, order="asc")
@@ -167,6 +178,16 @@ class GPTAssistantAgent(ConversableAgent):
             raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
 
     def _wait_for_run(self, run_id: str, thread_id: str) -> Any:
+        """
+        Waits for a run to complete or reach a final state.
+
+        Args:
+            run_id: The ID of the run.
+            thread_id: The ID of the thread associated with the run.
+
+        Returns:
+            The updated run object after completion or reaching a final state.
+        """
         in_progress = True
         while in_progress:
             run = self._openai_client.beta.threads.runs.retrieve(run_id, thread_id=thread_id)
@@ -176,6 +197,10 @@ class GPTAssistantAgent(ConversableAgent):
         return run
 
     def _format_assistant_message(self, message_content):
+        """
+        Formats the assistant's message to include annotations and citations.
+        """
+
         annotations = message_content.annotations
         citations = []
 
