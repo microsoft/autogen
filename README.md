@@ -12,7 +12,7 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
-:fire: Nov 11: AutoGen now supports OpenAI's Assistants!
+:fire: Nov 11: AutoGen experimentally supports OpenAI's Assistants!
 
 :fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 40 days after release.
 
@@ -21,6 +21,10 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 :fire: Nov 1: AutoGen is the top trending repo on GitHub in October 2023.
 
 :fire: Heads-up: pyautogen v0.2 will switch to using openai v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
+
+:tada: **Oct 03**: Autogen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github and has a major paper update.
+
+:tada: Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv.
 
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
