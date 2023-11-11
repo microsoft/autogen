@@ -72,14 +72,9 @@ def test_chat_functions_stream():
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_completion_stream():
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo-instruct"]},
-    )
-
+    config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(prompt="1+1=", seed=None, stream=True)
+    response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct", seed=None, stream=True)
     print(response)
     print(client.extract_text_or_function_call(response))
 
