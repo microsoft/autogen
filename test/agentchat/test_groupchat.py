@@ -122,7 +122,7 @@ def test_plugin():
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
-def test_group_chat_with_llm():
+def test_group_chat_with_lmm():
     # This is a bug report to show that a group chat with two MultimodalConversable Agents is not controlled by max_round of GroupChat.
 
     # A test that initiates two MultimodalConversable Agents to describe one image in different styles.
@@ -132,7 +132,7 @@ def test_group_chat_with_llm():
         filter_dict={
             "model": ["gpt-4-vision-preview"],
         },
-        # file_location=KEY_LOC
+        file_location=KEY_LOC
     )
 
     llm_config_gpt4v = {"config_list": config_list_gpt4v, "seed": 42}
