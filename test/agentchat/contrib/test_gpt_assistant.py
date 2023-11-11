@@ -38,9 +38,10 @@ def test_gpt_assistant_chat():
         "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the realted and structured data.",
     }
 
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     analyst = GPTAssistantAgent(
         name="Open_Source_Project_Analyst",
-        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}]},
+        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": config_list},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
     analyst.register_function(
@@ -62,5 +63,29 @@ def test_gpt_assistant_chat():
     assert len(analyst._openai_threads) == 0
 
 
+def test_get_assistant_instructions():
+    """
+    Create a new assistant
+    Set its instructions
+    Retrieve the instructions
+    assert that the retrieved instructions match the set instructions
+    """
+
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
+    assistant = GPTAssistantAgent(
+        "assistant",
+        instructions="This is a test",
+        llm_config={
+            "config_list": config_list,
+        },
+    )
+
+    instruction_match = assistant.get_assistant_instructions() == "This is a test"
+    assistant.delete_assistant()
+
+    assert instruction_match is True
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
+    test_get_assistant_instructions()

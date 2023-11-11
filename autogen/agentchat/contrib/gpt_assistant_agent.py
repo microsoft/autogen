@@ -335,6 +335,15 @@ class GPTAssistantAgent(ConversableAgent):
         """Return the threads of the agent."""
         return self._openai_threads
 
+    @property
+    def assistant_id(self):
+        """Return the assistant id"""
+        return self._openai_assistant.id
+
     def get_assistant_instructions(self):
         """Return the assistant instructions from OAI assistant API"""
         return self._openai_assistant.instructions
+
+    def delete_assistant(self):
+        """Delete the assistant from OAI assistant API"""
+        self._openai_client.beta.assistants.delete(self.assistant_id)
