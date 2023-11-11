@@ -139,7 +139,7 @@ Reply "TERMINATE" in the end when everything is done.
             if compress_config.get("mode", "TERMINATE") not in allowed_modes:
                 raise ValueError(f"Invalid compression mode. Allowed values are: {', '.join(allowed_modes)}")
 
-            self.compress_config = self.DEFAULT_COMPRESS_CONFIG
+            self.compress_config = self.DEFAULT_COMPRESS_CONFIG.copy()
             self.compress_config.update(compress_config)
 
             if not isinstance(self.compress_config["leave_last_n"], int) or self.compress_config["leave_last_n"] < 0:
