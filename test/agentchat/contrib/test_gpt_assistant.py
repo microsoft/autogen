@@ -65,10 +65,8 @@ def test_gpt_assistant_chat():
 
 def test_get_assistant_instructions():
     """
-    Create a new assistant
-    Set its instructions
-    Retrieve the instructions
-    assert that the retrieved instructions match the set instructions
+    Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
+    and assert that the retrieved instructions match the set instructions.
     """
 
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
@@ -86,6 +84,48 @@ def test_get_assistant_instructions():
     assert instruction_match is True
 
 
+def test_gpt_assistant_instructions_overwrite():
+    """
+    Test that the instructions of a GPTAssistantAgent can be overwritten or not depending on the value of the
+    `overwrite_instructions` parameter when creating a new assistant with the same ID.
+
+    Steps:
+    1. Create a new GPTAssistantAgent with some instructions.
+    2. Get the ID of the assistant.
+    3. Create a new GPTAssistantAgent with the same ID but different instructions and `overwrite_instructions=True`.
+    4. Check that the instructions of the assistant have been overwritten with the new ones.
+    """
+
+    instructions1 = "This is a test #1"
+    instructions2 = "This is a test #2"
+
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
+    assistant = GPTAssistantAgent(
+        "assistant",
+        instructions=instructions1,
+        llm_config={
+            "config_list": config_list,
+        },
+    )
+
+    assistant_id = assistant.assistant_id
+    assistant = GPTAssistantAgent(
+        "assistant",
+        instructions=instructions2,
+        llm_config={
+            "config_list": config_list,
+            "assistant_id": assistant_id,
+        },
+        overwrite_instructions=True,
+    )
+
+    instruction_match = assistant.get_assistant_instructions() == instructions2
+    assistant.delete_assistant()
+
+    assert instruction_match is True
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
+    test_gpt_assistant_instructions_overwrite()
