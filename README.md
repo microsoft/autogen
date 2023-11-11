@@ -14,7 +14,7 @@
 </p> -->
 :fire: Nov 11: AutoGen experimentally supports OpenAI's Assistants! Checkout the [GPT Assistant Agent](autogen/agentchat/contrib/gpt_assistant_agent.py).
 
-:fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after release.
+:fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff.
 
 :fire: Nov 6: AutoGen is mentioned by Satya Nadella in a [fireside chat](https://youtu.be/0pLBvgYtv6U) around 13:20.
 
