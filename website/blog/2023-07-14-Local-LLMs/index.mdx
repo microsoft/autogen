@@ -64,7 +64,7 @@ class CompletionResponseStreamChoice(BaseModel):
 ```
 
 
-## Interact with model using `oai.Completion`
+## Interact with model using `oai.Completion` (requires openai<1)
 
 Now the models can be directly accessed through openai-python library as well as `autogen.oai.Completion` and `autogen.oai.ChatCompletion`.
 
@@ -77,7 +77,7 @@ response = oai.Completion.create(
     config_list=[
         {
             "model": "chatglm2-6b",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL", # just a placeholder
         }
@@ -91,7 +91,7 @@ response = oai.ChatCompletion.create(
     config_list=[
         {
             "model": "chatglm2-6b",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL",
         }
@@ -125,13 +125,13 @@ response = oai.ChatCompletion.create(
     config_list=[
         {
             "model": "chatglm2-6b",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL",
         },
         {
             "model": "vicuna-7b-v1.3",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL",
         }
