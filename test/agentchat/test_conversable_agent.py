@@ -206,6 +206,10 @@ def test_conversable_agent():
     dummy_agent_1.update_system_message("new system message")
     assert dummy_agent_1.system_message == "new system message"
 
+    dummy_agent_3 = ConversableAgent(name="dummy_agent_3", llm_config=False, human_input_mode="TERMINATE")
+    with pytest.raises(KeyError):
+        dummy_agent_1.last_message(dummy_agent_3)
+
 
 def test_generate_reply():
     def add_num(num_to_be_added):
@@ -242,7 +246,7 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 
 
 if __name__ == "__main__":
-    test_trigger()
+    # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
-    # test_conversable_agent(pytest.monkeypatch)
+    test_conversable_agent()
