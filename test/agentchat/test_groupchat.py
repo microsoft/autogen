@@ -1,5 +1,15 @@
 import pytest
 import autogen
+import threading  # So that the function call runs for limited time
+
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+try:
+    from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+except ImportError:
+    skip = True
+else:
+    skip = False
 
 
 def test_func_call_groupchat():
@@ -112,8 +122,60 @@ def test_plugin():
     assert len(groupchat.messages) == 2
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed")
+def test_group_chat_with_llm():
+    # This is a bug report to show that a group chat with two MultimodalConversable Agents is not controlled by max_round of GroupChat.
+
+    # A test that initiates two MultimodalConversable Agents to describe one image in different styles.
+
+    config_list_gpt4v = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "model": ["gpt-4-vision-preview"],
+        },
+        # file_location=KEY_LOC
+    )
+
+    llm_config_gpt4v = {"config_list": config_list_gpt4v, "seed": 42}
+
+    # The parameters and agent mimics agentchat_lmm_gpt-4v.ipynb
+    # However it fails with only 1 message in groupchat
+    agent1 = MultimodalConversableAgent(
+        name="image-explainer-1",
+        max_consecutive_auto_reply=10,
+        llm_config={"config_list": config_list_gpt4v, "temperature": 0.5, "max_tokens": 300},
+        system_message="Your image description is poetic and engaging.",
+    )
+    agent2 = MultimodalConversableAgent(
+        name="image-explainer-2",
+        max_consecutive_auto_reply=10,
+        llm_config={"config_list": config_list_gpt4v, "temperature": 0.5, "max_tokens": 300},
+        system_message="Your image description is factual and to the point.",
+    )
+
+    user_proxy = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="Ask both image explainer 1 and 2 for their description.",
+        human_input_mode="NEVER",  # Try between ALWAYS or NEVER
+        max_consecutive_auto_reply=10,
+    )
+
+    # We set max_round to 5
+    autogen.GroupChat(agents=[agent1, agent2, user_proxy], messages=[], max_round=5)
+    autogen.ConversableAgent(name="deputy_manager", llm_config=llm_config_gpt4v)
+
+    # However, running this initate_chat, we observe that it goes way beyond 5 rounds
+    # user_proxy.initiate_chat(group_chat_manager,
+    #                     message=f"""What do you see?
+    #                     <img https://th.bing.com/th/id/R.422068ce8af4e15b0634fe2540adea7a?rik=y4OcXBE%2fqutDOw&pid=ImgRaw&r=0>.""")
+
+    # Dummy assert - to replace with the bug is fixed
+    assert 1 == 1
+
+
 if __name__ == "__main__":
-    test_func_call_groupchat()
+    # test_func_call_groupchat()
     # test_broadcast()
-    test_chat_manager()
+    # test_chat_manager()
     # test_plugin()
+    test_group_chat_with_llm()
