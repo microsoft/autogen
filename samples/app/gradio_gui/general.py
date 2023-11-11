@@ -1,5 +1,5 @@
 from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate
-from autogen.gradio_gui.utils.pipe import PluginMultiprocessManager, PipeCom
+from samples.app.gradio_gui.pipe import PluginMultiprocessManager, PipeCom
 import time
 
 
@@ -70,7 +70,7 @@ class AutoGenGroupChat(AutoGenGeneral):
         # ⭐⭐ run in subprocess
         import autogen
         from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate
-        from autogen.gradio_gui.utils.pipe import PipeCom
+        from samples.app.gradio_gui.pipe import PipeCom
 
         input = input.content
         with ProxyNetworkActivate("AutoGen"):

@@ -25,16 +25,12 @@ def install_dependencies():
         import void_terminal
     except Exception:
         try_install_deps(deps=["void-terminal>=0.0.9"])
-        try_install_deps(
-            deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"]
-        )
+        try_install_deps(deps=["gradio-stable-fork>=3.32.6"])
         return True
 
     if gr.__version__ not in ["3.32.6"]:
         # this is a special version of gradio, which is not available on pypi.org
-        try_install_deps(
-            deps=["https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl"]
-        )
+        try_install_deps(deps=["gradio-stable-fork>=3.32.6"])
     return True
 
 
@@ -50,7 +46,7 @@ OAI_CONFIG_LIST path is not set.
 Please run with
     `export OAI_CONFIG_LIST='/path/to/OAI_CONFIG_LIST'`
 to set the path to config list file, and then run
-    `python -m autogen.launch_gui`
+    `python -m samples.app.launch_gradio_gui`
 to start the GUI.
 """
         )
@@ -85,14 +81,14 @@ def init_config():
     # void_terminal.set_conf(key="LLM_MODEL", value="gpt-3.5-turbo-16k")
     if llm_config["config_list"][0].get("api_type", "") == "azure":
         model = "azure-" + llm_config["config_list"][0]["model"]
-        api_base = llm_config["config_list"][0]["api_base"]
-        if api_base.endswith("/"):
-            api_base = api_base[:-1]
+        base_url = llm_config["config_list"][0]["base_url"]
+        AZURE_ENDPOINT = base_url.split("openai/deployments/")[0]
+        AZURE_ENGINE = base_url.split("openai/deployments/")[-1].split("/chat/completions")[0]
         AZURE_CFG_ARRAY = {
             model: {
-                "AZURE_ENDPOINT": llm_config["config_list"][0]["api_base"] + "/",
+                "AZURE_ENDPOINT": AZURE_ENDPOINT,
                 "AZURE_API_KEY": llm_config["config_list"][0]["api_key"],
-                "AZURE_ENGINE": llm_config["config_list"][0]["deployment_id"],
+                "AZURE_ENGINE": AZURE_ENGINE,
                 "AZURE_MODEL_MAX_TOKEN": 8192,
             },
         }

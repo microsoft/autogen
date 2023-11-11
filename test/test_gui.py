@@ -1,7 +1,7 @@
-from autogen.gradio_gui import init_config
-from autogen.gradio_gui.utils.general import AutoGenGroupChat
-from autogen.gradio_gui.plugin import autogen_terminal
-from autogen.gradio_gui.gradio_service import main
+from samples.app.gradio_gui import init_config
+from samples.app.gradio_gui.general import AutoGenGroupChat
+from samples.app.gradio_gui.plugin import autogen_terminal
+from samples.app.gradio_gui.gradio_service import main
 import os
 
 llm_config = init_config()

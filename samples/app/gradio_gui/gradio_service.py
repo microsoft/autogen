@@ -3,7 +3,6 @@ import pickle
 import importlib
 import base64
 import gradio as gr
-from void_terminal.check_proxy import get_current_version
 from void_terminal.themes.theme import adjust_theme, advanced_css, theme_declaration, load_dynamic_theme
 from void_terminal.request_llms.bridge_all import predict
 from void_terminal.core_functional import get_core_functions
@@ -29,7 +28,7 @@ def main(plugins):
         # this is a special version of gradio, which is not available on pypi.org
         raise ModuleNotFoundError(
             "Use the built-in Gradio for the best experience!"
-            + "Please run `pip install -r https://github.com/binary-husky/gpt_academic/raw/master/docs/gradio-3.32.6-py3-none-any.whl` Command to install built-in Gradio and other dependencies, See details in requirements.txt."
+            + "Please run `pip uninstall gradio` and `pip install gradio-stable-fork>=3.32.6` Command to install built-in Gradio."
         )
 
     proxies, WEB_PORT, LLM_MODEL, CONCURRENT_COUNT, AUTHENTICATION = get_conf(
