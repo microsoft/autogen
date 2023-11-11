@@ -35,7 +35,7 @@ def test_mode_compress():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 43,
             "config_list": config_list,
         },
@@ -73,7 +73,7 @@ def test_mode_customized():
         assistant = CompressibleAgent(
             name="assistant",
             llm_config={
-                "request_timeout": 600,
+                "timeout": 600,
                 "seed": 43,
                 "config_list": config_list,
             },
@@ -142,7 +142,7 @@ def test_compress_messsage():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 43,
             "config_list": config_list,
         },
@@ -173,7 +173,7 @@ def test_mode_terminate():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
-            "request_timeout": 600,
+            "timeout": 600,
             "seed": 43,
             "config_list": config_list,
         },
