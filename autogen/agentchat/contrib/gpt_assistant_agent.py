@@ -7,6 +7,7 @@ import logging
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
+from autogen.agentchat.assistant_agent import AssistantAgent
 from typing import Dict, Optional, Union, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
@@ -29,9 +30,14 @@ class GPTAssistantAgent(ConversableAgent):
         Args:
             name (str): name of the agent.
             instructions (str): instructions for the OpenAI assistant configuration.
-            the system message of the agent will be set to the instructions and used in the assistant run.
-            (irrespective of the overwrite_instructions flag)
+            When instructions is not None, the system message of the agent will be
+            set to the provided instructions and used in the assistant run, irrespective
+            of the overwrite_instructions flag. But when instructions is None,
+            and the assistant does not exist, the system message will be set to
+            AssistantAgent.DEFAULT_SYSTEM_MESSAGE. If the assistant exists, the
+            system message will be set to the existing assistant instructions.
             llm_config (dict or False): llm inference configuration.
+                - assistant_id: ID of the assistant to use. If None, a new assistant will be created.
                 - model: Model to use for the assistant (gpt-4-1106-preview, gpt-3.5-turbo-1106).
                 - check_every_ms: check thread run status interval
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
@@ -47,11 +53,16 @@ class GPTAssistantAgent(ConversableAgent):
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
             # create a new assistant
+            if instructions is None:
+                logger.warning(
+                    "No instructions were provided for new assistant. Using default instructions from AssistantAgent.DEFAULT_SYSTEM_MESSAGE."
+                )
+                instructions = AssistantAgent.DEFAULT_SYSTEM_MESSAGE
             self._openai_assistant = self._openai_client.beta.assistants.create(
                 name=name,
                 instructions=instructions,
-                tools=self.llm_config.get("tools", []),
-                model=self.llm_config.get("model", "gpt-4-1106-preview"),
+                tools=llm_config.get("tools", []),
+                model=llm_config.get("model", "gpt-4-1106-preview"),
             )
         else:
             # retrieve an existing assistant
@@ -62,7 +73,7 @@ class GPTAssistantAgent(ConversableAgent):
                     "No instructions were provided for given assistant. Using existing instructions from assistant API."
                 )
                 instructions = self.get_assistant_instructions()
-            elif instructions is not None and overwrite_instructions:
+            elif overwrite_instructions is True:
                 logger.warning(
                     "overwrite_instructions is True. Provided instructions will be used and will modify the assistant in the API"
                 )
