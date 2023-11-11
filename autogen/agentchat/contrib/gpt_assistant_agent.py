@@ -271,6 +271,7 @@ class GPTAssistantAgent(ConversableAgent):
             self._unread_index.clear()
 
     def pretty_print_thread(self, thread):
+        """Pretty print the thread."""
         if thread is None:
             print("No thread to print")
             return
@@ -295,5 +296,5 @@ class GPTAssistantAgent(ConversableAgent):
 
     @property
     def oai_threads(self) -> Dict[Agent, List[Dict]]:
-        """A dictionary of conversations from agent to list of messages."""
+        """Return the threads of the agent."""
         return self._openai_thread
