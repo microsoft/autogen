@@ -62,21 +62,9 @@ class GPTAssistantAgent(ConversableAgent):
             self._openai_assistant = self._openai_client.beta.assistants.retrieve(openai_assistant_id)
 
         # lazly create thread
-        self._openai_thread = None
+        self._openai_threads = {}
         self._unread_index = defaultdict(int)
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
-
-    def reset(self):
-        """
-        Resets the agent, clearing any existing conversation thread and unread message indices.
-        """
-        super().reset()
-        if self._openai_thread:
-            # Delete the existing thread to start fresh in the next conversation
-            self._openai_client.beta.threads.delete(self._openai_thread.id)
-            self._openai_thread = None
-        # Clear the record of unread messages
-        self._unread_index.clear()
 
     def _invoke_assistant(
         self,
@@ -102,25 +90,26 @@ class GPTAssistantAgent(ConversableAgent):
         pending_messages = messages[unread_index:]
 
         # Check and initiate a new thread if necessary
-        if self._openai_thread is None:
-            self._openai_thread = self._openai_client.beta.threads.create(
+        if self._openai_threads.get(sender, None) is None:
+            self._openai_threads[sender] = self._openai_client.beta.threads.create(
                 messages=[],
             )
+        assistant_thread = self._openai_threads[sender]
         # Process each unread message
         for message in pending_messages:
             self._openai_client.beta.threads.messages.create(
-                thread_id=self._openai_thread.id,
+                thread_id=assistant_thread.id,
                 content=message["content"],
                 role=message["role"],
             )
 
         # Create a new run to get responses from the assistant
         run = self._openai_client.beta.threads.runs.create(
-            thread_id=self._openai_thread.id,
+            thread_id=assistant_thread.id,
             assistant_id=self._openai_assistant.id,
         )
 
-        run_response_messages = self._get_run_response(run)
+        run_response_messages = self._get_run_response(assistant_thread, run)
         assert len(run_response_messages) > 0, "No response from the assistant."
 
         response = {
@@ -137,7 +126,7 @@ class GPTAssistantAgent(ConversableAgent):
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
         return True, response
 
-    def _get_run_response(self, run):
+    def _get_run_response(self, thread, run):
         """
         Waits for and processes the response of a run from the OpenAI assistant.
 
@@ -148,9 +137,9 @@ class GPTAssistantAgent(ConversableAgent):
             Updated run object, status of the run, and response messages.
         """
         while True:
-            run = self._wait_for_run(run.id, self._openai_thread.id)
+            run = self._wait_for_run(run.id, thread.id)
             if run.status == "completed":
-                response_messages = self._openai_client.beta.threads.messages.list(self._openai_thread.id, order="asc")
+                response_messages = self._openai_client.beta.threads.messages.list(thread.id, order="asc")
 
                 new_messages = []
                 for msg in response_messages:
@@ -176,7 +165,7 @@ class GPTAssistantAgent(ConversableAgent):
                     tool_response["metadata"] = {
                         "tool_call_id": tool_call.id,
                         "run_id": run.id,
-                        "thread_id": self._openai_thread.id,
+                        "thread_id": thread.id,
                     }
 
                     logger.info(
@@ -193,7 +182,7 @@ class GPTAssistantAgent(ConversableAgent):
                         for action in actions
                     ],
                     "run_id": run.id,
-                    "thread_id": self._openai_thread.id,
+                    "thread_id": thread.id,
                 }
 
                 run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
@@ -256,6 +245,18 @@ class GPTAssistantAgent(ConversableAgent):
         """Whether the agent can execute the function."""
         return False
 
+    def reset(self):
+        """
+        Resets the agent, clearing any existing conversation thread and unread message indices.
+        """
+        super().reset()
+        for thread in self._openai_threads.values():
+            # Delete the existing thread to start fresh in the next conversation
+            self._openai_client.beta.threads.delete(thread.id)
+        self._openai_threads = {}
+        # Clear the record of unread messages
+        self._unread_index.clear()
+
     def clear_history(self, agent: Optional[Agent] = None):
         """Clear the chat history of the agent.
 
@@ -263,12 +264,13 @@ class GPTAssistantAgent(ConversableAgent):
             agent: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
         """
         super().clear_history(agent)
-        if self._openai_thread:
+        if self._openai_threads.get(agent, None) is not None:
             # Delete the existing thread to start fresh in the next conversation
-            logger.info("Clearing thread %s", self._openai_thread.id)
-            self._openai_client.beta.threads.delete(self._openai_thread.id)
-            self._openai_thread = None
-            self._unread_index.clear()
+            thread = self._openai_threads[agent]
+            logger.info("Clearing thread %s", thread.id)
+            self._openai_client.beta.threads.delete(thread.id)
+            self._openai_threads[agent] = None
+            self._unread_index[agent] = 0
 
     def pretty_print_thread(self, thread):
         """Pretty print the thread."""
@@ -295,6 +297,6 @@ class GPTAssistantAgent(ConversableAgent):
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     @property
-    def oai_threads(self) -> Dict[Agent, List[Dict]]:
+    def oai_threads(self) -> Dict[Agent, Any]:
         """Return the threads of the agent."""
-        return self._openai_thread
+        return self._openai_threads
