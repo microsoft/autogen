@@ -269,7 +269,7 @@ class GPTAssistantAgent(ConversableAgent):
             thread = self._openai_threads[agent]
             logger.info("Clearing thread %s", thread.id)
             self._openai_client.beta.threads.delete(thread.id)
-            self._openai_threads[agent] = None
+            self._openai_threads.pop(agent)
             self._unread_index[agent] = 0
 
     def pretty_print_thread(self, thread):

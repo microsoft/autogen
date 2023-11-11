@@ -59,7 +59,7 @@ def test_gpt_assistant_chat():
     assert analyst.can_execute_function("ossinsight_data_api") is False
 
     analyst.reset()
-    assert analyst._openai_thread is None
+    assert len(analyst._openai_threads) == 0
 
 
 if __name__ == "__main__":
