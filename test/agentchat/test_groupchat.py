@@ -1,6 +1,5 @@
 import pytest
 import autogen
-import threading  # So that the function call runs for limited time
 
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
