@@ -1,8 +1,8 @@
 from .agent import Agent
-from .conversable_agent import ConversableAgent
 from .assistant_agent import AssistantAgent
-from .user_proxy_agent import UserProxyAgent
+from .conversable_agent import ConversableAgent
 from .groupchat import GroupChat, GroupChatManager
+from .user_proxy_agent import UserProxyAgent
 
 __all__ = [
     "Agent",

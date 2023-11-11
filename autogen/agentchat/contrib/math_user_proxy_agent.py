@@ -1,7 +1,7 @@
 import re
 import os
 from pydantic import BaseModel, Extra, root_validator
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 from time import sleep
 
 from autogen.agentchat import Agent, UserProxyAgent
@@ -402,7 +402,7 @@ class WolframAlphaAPIWrapper(BaseModel):
 
         return values
 
-    def run(self, query: str) -> str:
+    def run(self, query: str) -> Tuple[str, bool]:
         """Run query through WolframAlpha and parse result."""
         from urllib.error import HTTPError
 
