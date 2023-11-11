@@ -210,6 +210,7 @@ def test_conversable_agent():
     with pytest.raises(KeyError):
         dummy_agent_1.last_message(dummy_agent_3)
 
+
 def test_generate_reply():
     def add_num(num_to_be_added):
         given_num = 10
