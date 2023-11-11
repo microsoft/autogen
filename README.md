@@ -12,7 +12,9 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
-:fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff.
+:fire: Nov 11: AutoGen experimentally supports OpenAI's Assistants! Checkout the [GPT Assistant Agent](autogen/agentchat/contrib/gpt_assistant_agent.py).
+
+:fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 40 days after release.
 
 :fire: Nov 6: AutoGen is mentioned by Satya Nadella in a [fireside chat](https://youtu.be/0pLBvgYtv6U) around 13:20.
 
