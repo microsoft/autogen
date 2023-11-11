@@ -132,7 +132,7 @@ def test_group_chat_with_lmm():
         filter_dict={
             "model": ["gpt-4-vision-preview"],
         },
-        file_location=KEY_LOC
+        file_location=KEY_LOC,
     )
 
     llm_config_gpt4v = {"config_list": config_list_gpt4v, "seed": 42}
@@ -160,8 +160,8 @@ def test_group_chat_with_lmm():
     )
 
     # We set max_round to 5
-    autogen.GroupChat(agents=[agent1, agent2, user_proxy], messages=[], max_round=5)
-    autogen.ConversableAgent(name="deputy_manager", llm_config=llm_config_gpt4v)
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, user_proxy], messages=[], max_round=5)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_gpt4v)
 
     # However, running this initate_chat, we observe that it goes way beyond 5 rounds
     # user_proxy.initiate_chat(group_chat_manager,
@@ -170,6 +170,8 @@ def test_group_chat_with_lmm():
 
     # Dummy assert - to replace with the bug is fixed
     assert 1 == 1
+    # Dummy do somthing with group_chat_manager so that it is not removed in pre-commit
+    print(group_chat_manager)
 
 
 if __name__ == "__main__":
@@ -177,4 +179,4 @@ if __name__ == "__main__":
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    test_group_chat_with_llm()
+    test_group_chat_with_lmm()
