@@ -59,7 +59,7 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def prepare_agents_subset(self) -> Tuple[Optional[Agent], List[Agent]]:
+    def _prepare_agents_subset(self) -> Tuple[Optional[Agent], List[Agent]]:
         """Returns list of agents to be picked from and in some special cases returns next speaker directly."""
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
             # find agents with the right function_map which contains the function name
@@ -91,7 +91,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
-        next_speaker, agents = self.prepare_agents_subset()
+        next_speaker, agents = self._prepare_agents_subset()
         if next_speaker:
             return next_speaker
 
@@ -118,7 +118,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker asynchronously."""
-        next_speaker, agents = self.prepare_agents_subset()
+        next_speaker, agents = self._prepare_agents_subset()
         if next_speaker:
             return next_speaker
 
