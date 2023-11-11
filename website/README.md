@@ -19,7 +19,7 @@ cd website
 yarn install
 ```
 
-## Local Development
+###### Local Development
 
 Navigate to the website folder and run:
 

@@ -3,7 +3,7 @@ const math = require('remark-math');
 const katex = require('rehype-katex');
 
 module.exports = {
-  title: 'AutoGen',
+  title: 'AutoGen11',
   tagline: 'Enable Next-Gen Large Language Model Applications',
   url: 'https://microsoft.github.io',
   baseUrl: '/autogen/',
