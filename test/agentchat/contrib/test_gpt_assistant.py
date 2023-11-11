@@ -125,7 +125,40 @@ def test_gpt_assistant_instructions_overwrite():
     assert instruction_match is True
 
 
+def test_gpt_assistant_existing_no_instructions():
+    """
+    Test function to check if the GPTAssistantAgent can retrieve instructions for an existing assistant
+    even if the assistant was created with no instructions initially.
+    """
+    instructions = "This is a test #1"
+
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
+    assistant = GPTAssistantAgent(
+        "assistant",
+        instructions=instructions,
+        llm_config={
+            "config_list": config_list,
+        },
+    )
+
+    assistant_id = assistant.assistant_id
+
+    # create a new assistant with the same ID but no instructions
+    assistant = GPTAssistantAgent(
+        "assistant",
+        llm_config={
+            "config_list": config_list,
+            "assistant_id": assistant_id,
+        },
+    )
+
+    instruction_match = assistant.get_assistant_instructions() == instructions
+    assistant.delete_assistant()
+    assert instruction_match is True
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
     test_gpt_assistant_instructions_overwrite()
+    test_gpt_assistant_existing_no_instructions()
