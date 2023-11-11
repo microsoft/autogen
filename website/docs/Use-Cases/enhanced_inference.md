@@ -137,19 +137,23 @@ For local LLMs, one can spin up an endpoint using a package like [FastChat](http
 
 ## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "cache_seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
 
 ```python
-client = OpenAIWrapper(seed=...)
+client = OpenAIWrapper(cache_seed=...)
 client.create(...)
 ```
 
 ```python
 client = OpenAIWrapper()
-client.create(seed=..., ...)
+client.create(cache_seed=..., ...)
 ```
 
-Caching is enabled by default with seed 41. To disable it please set `seed` to None.
+Caching is enabled by default with cache_seed 41. To disable it please set `cache_seed` to None.
+
+_NOTE_. openai v1.1 introduces a new param `seed`. The difference between autogen's `cache_seed` and openai's `seed` is that:
+* autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
+* openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
 
 ## Error handling
 

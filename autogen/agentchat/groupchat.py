@@ -38,7 +38,7 @@ class GroupChat:
         self.messages.clear()
 
     def agent_by_name(self, name: str) -> Agent:
-        """Find the next speaker based on the message."""
+        """Returns the agent with a given name."""
         return self.agents[self.agent_names.index(name)]
 
     def next_agent(self, agent: Agent, agents: List[Agent]) -> Agent:
@@ -103,10 +103,20 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         try:
             return self.agent_by_name(name)
         except ValueError:
+            logger.warning(
+                f"GroupChat select_speaker failed to resolve the next speaker's name. Speaker selection will default to the next speaker in the list. This is because the speaker selection OAI call returned:\n{name}"
+            )
             return self.next_agent(last_speaker, agents)
 
     def _participant_roles(self):
-        return "\n".join([f"{agent.name}: {agent.system_message}" for agent in self.agents])
+        roles = []
+        for agent in self.agents:
+            if agent.system_message.strip() == "":
+                logger.warning(
+                    f"The agent '{agent.name}' has an empty system_message, and may not work well with GroupChat."
+                )
+            roles.append(f"{agent.name}: {agent.system_message}")
+        return "\n".join(roles)
 
 
 class GroupChatManager(ConversableAgent):
@@ -120,7 +130,6 @@ class GroupChatManager(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[str] = "Group chat manager.",
-        # seed: Optional[int] = 4,
         **kwargs,
     ):
         super().__init__(
@@ -135,8 +144,6 @@ class GroupChatManager(ConversableAgent):
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # Allow async chat if initiated using a_initiate_chat
         self.register_reply(Agent, GroupChatManager.a_run_chat, config=groupchat, reset_config=GroupChat.reset)
-
-        # self._random = random.Random(seed)
 
     def run_chat(
         self,
