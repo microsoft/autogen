@@ -36,7 +36,7 @@ def test_mode_compress():
         name="assistant",
         llm_config={
             "timeout": 600,
-            "seed": 43,
+            "cache_seed": 43,
             "config_list": config_list,
         },
         compress_config={
@@ -74,7 +74,7 @@ def test_mode_customized():
             name="assistant",
             llm_config={
                 "timeout": 600,
-                "seed": 43,
+                "cache_seed": 43,
                 "config_list": config_list,
             },
             compress_config={
@@ -105,7 +105,7 @@ def test_mode_customized():
         name="assistant",
         llm_config={
             "timeout": 600,
-            "seed": 43,
+            "cache_seed": 43,
             "config_list": config_list,
             "model": "gpt-3.5-turbo",
         },
@@ -143,7 +143,7 @@ def test_compress_messsage():
         name="assistant",
         llm_config={
             "timeout": 600,
-            "seed": 43,
+            "cache_seed": 43,
             "config_list": config_list,
         },
         compress_config={
@@ -166,7 +166,7 @@ def test_compress_messsage():
             {"content": "Can you tell me a joke about programming?", "role": "assistant"},
         ]
     )
-    assert is_success, "Compression should be successful"
+    assert is_success, "Compression failed."
 
 
 def test_mode_terminate():
@@ -174,7 +174,7 @@ def test_mode_terminate():
         name="assistant",
         llm_config={
             "timeout": 600,
-            "seed": 43,
+            "cache_seed": 43,
             "config_list": config_list,
         },
         compress_config=True,
