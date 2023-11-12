@@ -7,6 +7,7 @@ import logging
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
+from autogen.agentchat.assistant_agent import AssistantAgent
 from typing import Dict, Optional, Union, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
@@ -21,45 +22,76 @@ class GPTAssistantAgent(ConversableAgent):
     def __init__(
         self,
         name="GPT Assistant",
-        instructions: Optional[str] = "You are a helpful GPT Assistant.",
+        instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
+        overwrite_instructions: bool = False,
     ):
         """
         Args:
             name (str): name of the agent.
             instructions (str): instructions for the OpenAI assistant configuration.
+            When instructions is not None, the system message of the agent will be
+            set to the provided instructions and used in the assistant run, irrespective
+            of the overwrite_instructions flag. But when instructions is None,
+            and the assistant does not exist, the system message will be set to
+            AssistantAgent.DEFAULT_SYSTEM_MESSAGE. If the assistant exists, the
+            system message will be set to the existing assistant instructions.
             llm_config (dict or False): llm inference configuration.
+                - assistant_id: ID of the assistant to use. If None, a new assistant will be created.
                 - model: Model to use for the assistant (gpt-4-1106-preview, gpt-3.5-turbo-1106).
                 - check_every_ms: check thread run status interval
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
+            overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
         """
+        # Use AutoGen OpenAIWrapper to create a client
+        oai_wrapper = OpenAIWrapper(**llm_config)
+        if len(oai_wrapper._clients) > 1:
+            logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
+        self._openai_client = oai_wrapper._clients[0]
+        openai_assistant_id = llm_config.get("assistant_id", None)
+        if openai_assistant_id is None:
+            # create a new assistant
+            if instructions is None:
+                logger.warning(
+                    "No instructions were provided for new assistant. Using default instructions from AssistantAgent.DEFAULT_SYSTEM_MESSAGE."
+                )
+                instructions = AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            self._openai_assistant = self._openai_client.beta.assistants.create(
+                name=name,
+                instructions=instructions,
+                tools=llm_config.get("tools", []),
+                model=llm_config.get("model", "gpt-4-1106-preview"),
+            )
+        else:
+            # retrieve an existing assistant
+            self._openai_assistant = self._openai_client.beta.assistants.retrieve(openai_assistant_id)
+            # if no instructions are provided, set the instructions to the existing instructions
+            if instructions is None:
+                logger.warning(
+                    "No instructions were provided for given assistant. Using existing instructions from assistant API."
+                )
+                instructions = self.get_assistant_instructions()
+            elif overwrite_instructions is True:
+                logger.warning(
+                    "overwrite_instructions is True. Provided instructions will be used and will modify the assistant in the API"
+                )
+                self._openai_assistant = self._openai_client.beta.assistants.update(
+                    assistant_id=openai_assistant_id,
+                    instructions=instructions,
+                )
+            else:
+                logger.warning(
+                    "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
+                )
+
         super().__init__(
             name=name,
             system_message=instructions,
             human_input_mode="NEVER",
             llm_config=llm_config,
         )
-
-        # Use AutoGen OpenAIWrapper to create a client
-        oai_wrapper = OpenAIWrapper(**self.llm_config)
-        if len(oai_wrapper._clients) > 1:
-            logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
-        self._openai_client = oai_wrapper._clients[0]
-
-        openai_assistant_id = llm_config.get("assistant_id", None)
-        if openai_assistant_id is None:
-            # create a new assistant
-            self._openai_assistant = self._openai_client.beta.assistants.create(
-                name=name,
-                instructions=instructions,
-                tools=self.llm_config.get("tools", []),
-                model=self.llm_config.get("model", "gpt-4-1106-preview"),
-            )
-        else:
-            # retrieve an existing assistant
-            self._openai_assistant = self._openai_client.beta.assistants.retrieve(openai_assistant_id)
 
         # lazly create thread
         self._openai_threads = {}
@@ -107,6 +139,8 @@ class GPTAssistantAgent(ConversableAgent):
         run = self._openai_client.beta.threads.runs.create(
             thread_id=assistant_thread.id,
             assistant_id=self._openai_assistant.id,
+            # pass the latest system message as instructions
+            instructions=self.system_message,
         )
 
         run_response_messages = self._get_run_response(assistant_thread, run)
@@ -300,3 +334,16 @@ class GPTAssistantAgent(ConversableAgent):
     def oai_threads(self) -> Dict[Agent, Any]:
         """Return the threads of the agent."""
         return self._openai_threads
+
+    @property
+    def assistant_id(self):
+        """Return the assistant id"""
+        return self._openai_assistant.id
+
+    def get_assistant_instructions(self):
+        """Return the assistant instructions from OAI assistant API"""
+        return self._openai_assistant.instructions
+
+    def delete_assistant(self):
+        """Delete the assistant from OAI assistant API"""
+        self._openai_client.beta.assistants.delete(self.assistant_id)
