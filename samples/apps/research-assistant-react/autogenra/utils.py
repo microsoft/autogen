@@ -67,24 +67,42 @@ def delete_message(user_id: str, msg_id: str, dbmanager: DBManager, delete_all: 
         return messages 
 
 
-def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str ) -> List[str]:
+def get_modified_files(start_timestamp: float, 
+                       end_timestamp: float,
+                       source_dir: str) -> List[str]:
     """
-    Get a list of files that were modified within the specified timestamp range 
+    Get a list of files that were modified within the specified timestamp range,
+    excluding specific file extensions and names.
 
-    :param start_timestamp: The start timestamp to filter modified files
-    :param end_timestamp: The end timestamp to filter modified files
-    :param source_dir: The directory to search for modified files
+    :param start_timestamp: The start timestamp to filter modified files.
+    :param end_timestamp: The end timestamp to filter modified files.
+    :param source_dir: The directory to search for modified files.
      
-    :return: A list of file paths that were modified within the timestamp range
+    :return: A list of file paths that were modified within the timestamp range,
+             ignoring files with extensions "__pycache__", "*.pyc", "__init__.py",
+             and "*.cache".
     """
     modified_files = []
+    ignore_extensions = {".pyc", ".cache"}
+    ignore_files = {"__pycache__", "__init__.py"}
+    
     for root, dirs, files in os.walk(source_dir):
+        # Excluding the directory "__pycache__" if present
+        dirs[:] = [d for d in dirs if d not in ignore_files]
+        
         for file in files:
             file_path = os.path.join(root, file)
+            file_ext = os.path.splitext(file)[1]
+            file_name = os.path.basename(file)
+            
+            if file_ext in ignore_extensions or file_name in ignore_files:
+                continue
+            
             file_mtime = os.path.getmtime(file_path)
             if start_timestamp < file_mtime < end_timestamp:
                 uid = source_dir.split("/")[-1]
-                modified_files.append(f"files/user/{uid}/{file}")  
+                modified_files.append(f"files/user/{uid}/{file}")
+                
     return modified_files
 
 
