@@ -70,9 +70,9 @@ const Header = ({ meta, link }: any) => {
                   <a className="block  " href="/#">
                     <span className=" bg-primary  inline-block pt-2 absolute">
                       {" "}
-                      <span className="inline-block -mt-2 text-accent bordepr bg-primary pb-2 mr-1">
-                        <Icon icon="app" size={12} />
-                      </span>
+                      <div className="inline-block  text-accent   bg-primary pb-2 mr-1">
+                        <Icon icon="app" size={10} />
+                      </div>{" "}
                     </span>
                     <div className="pt-1 text-lg ml-14     inline-block">
                       <div className=" flex flex-col">

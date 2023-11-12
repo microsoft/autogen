@@ -3,10 +3,22 @@ import {
   ChevronUpIcon,
   Cog8ToothIcon,
   XMarkIcon,
+  ClipboardIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactChildren, ReactChild, useRef } from "react";
 import Icon from "./icons";
 import { Modal } from "antd";
+import remarkGfm from "remark-gfm";
+import ReactMarkdown from "react-markdown";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+
+interface CodeProps {
+  node?: any;
+  inline?: any;
+  className?: any;
+  children?: React.ReactNode;
+}
 
 interface IProps {
   children?: ReactChild | ReactChildren;
@@ -245,7 +257,7 @@ export const MessageBox = ({ title, children, className }: IProps) => {
 export const ExpandView = ({ children, className = "" }: any) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
-    <div className={`border rounded mb-6  border-secondary ${className}`}>
+    <div className={`  rounded mb-6  border-secondary ${className}`}>
       <div
         role="button"
         onClick={() => {
@@ -265,6 +277,152 @@ export const ExpandView = ({ children, className = "" }: any) => {
           {children}
         </Modal>
       )}
+    </div>
+  );
+};
+
+export const MarkdownView = ({
+  data,
+  className = "",
+}: {
+  data: string;
+  className?: string;
+}) => {
+  function processString(inputString: string): string {
+    inputString = inputString.replace(/\n/g, "  \n");
+    const markdownPattern = /```markdown\s+([\s\S]*?)\s+```/g;
+    return inputString?.replace(markdownPattern, (match, content) => content);
+  }
+  const [showCopied, setShowCopied] = React.useState(false);
+
+  return (
+    <div
+      className={`   w-full chatbox prose dark:prose-invert text-primary rounded p-2 ${className}`}
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code({ node, inline, className, children, ...props }: CodeProps) {
+            const match = /language-(\w+)/.exec(className || "");
+            const language = match ? match[1] : "text";
+            return !inline && match ? (
+              <div>
+                <div className="p-2 text-right">
+                  {showCopied && (
+                    <div className="inline-block text-sm       text-white">
+                      {" "}
+                      🎉 Copied!{" "}
+                    </div>
+                  )}
+                  <ClipboardIcon
+                    role={"button"}
+                    onClick={() => {
+                      navigator.clipboard.writeText(data);
+                      // message.success("Code copied to clipboard");
+                      setShowCopied(true);
+                      setTimeout(() => {
+                        setShowCopied(false);
+                      }, 3000);
+                    }}
+                    className=" inline-block duration-300 text-white hover:text-accent w-5 h-5"
+                  />
+                </div>
+                <SyntaxHighlighter
+                  {...props}
+                  style={atomDark}
+                  language={language}
+                  className="rounded"
+                  PreTag="div"
+                  wrapLongLines={true}
+                >
+                  {String(children).replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              </div>
+            ) : (
+              <code {...props} className={className}>
+                {children}
+              </code>
+            );
+          },
+        }}
+      >
+        {processString(data)}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
+interface ICodeProps {
+  code: string;
+  language: string;
+  title?: string;
+  showLineNumbers?: boolean;
+  className?: string | undefined;
+  wrapLines?: boolean;
+  maxWidth?: string;
+  maxHeight?: string;
+  minHeight?: string;
+}
+
+export const CodeBlock = ({
+  code,
+  language = "python",
+  showLineNumbers = false,
+  className = " ",
+  wrapLines = false,
+  maxHeight = "400px",
+  minHeight = "auto",
+}: ICodeProps) => {
+  const codeString = code;
+
+  const [showCopied, setShowCopied] = React.useState(false);
+  return (
+    <div className="relative">
+      <div className="  rounded absolute right-5 top-4 z-10 ">
+        <div className="relative border border-transparent w-full h-full">
+          <div
+            style={{ zIndex: -1 }}
+            className="w-full absolute top-0 h-full bg-gray-900 hover:bg-opacity-0 duration-300 bg-opacity-50 rounded"
+          ></div>
+          <div className="   ">
+            {showCopied && (
+              <div className="inline-block px-2 pl-3 text-white">
+                {" "}
+                🎉 Copied!{" "}
+              </div>
+            )}
+            <ClipboardIcon
+              role={"button"}
+              onClick={() => {
+                navigator.clipboard.writeText(codeString);
+                // message.success("Code copied to clipboard");
+                setShowCopied(true);
+                setTimeout(() => {
+                  setShowCopied(false);
+                }, 6000);
+              }}
+              className="m-2  inline-block duration-300 text-white hover:text-accent w-5 h-5"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        id="codeDivBox"
+        className={`rounded w-full overflow-auto overflow-y-scroll   scroll ${className}`}
+        style={{ maxHeight: maxHeight, minHeight: minHeight }}
+      >
+        <SyntaxHighlighter
+          id="codeDiv"
+          className="rounded-sm h-full break-all"
+          language={language}
+          showLineNumbers={showLineNumbers}
+          style={atomDark}
+          wrapLines={wrapLines}
+          wrapLongLines={wrapLines}
+        >
+          {codeString}
+        </SyntaxHighlighter>
+      </div>
     </div>
   );
 };

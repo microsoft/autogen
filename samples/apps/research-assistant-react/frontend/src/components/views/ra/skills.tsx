@@ -156,7 +156,7 @@ const SkillsView = ({ setMessages, skillup, config, setMetadata }: any) => {
   const showSkillRows = (
     skills: any[],
     title: string,
-    open: boolean = true
+    open: boolean = false
   ) => {
     const skillrows = (skills || []).map((skill: any, i: number) => {
       return (
@@ -175,7 +175,7 @@ const SkillsView = ({ setMessages, skillup, config, setMetadata }: any) => {
     });
 
     return (
-      <div className="mb-4">
+      <div className="mb-2">
         <CollapseBox
           open={open}
           title={

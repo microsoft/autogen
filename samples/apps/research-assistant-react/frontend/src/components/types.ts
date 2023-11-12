@@ -55,7 +55,7 @@ export interface IChatMessage {
   text: string;
   sender: "user" | "bot";
   metadata?: any;
-  msgId?: number;
+  msgId: string;
 }
 export interface IContext {
   source: string;

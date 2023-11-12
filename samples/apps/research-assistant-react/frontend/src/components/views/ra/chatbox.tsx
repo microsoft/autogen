@@ -4,27 +4,17 @@ import {
   DocumentChartBarIcon,
   ExclamationTriangleIcon,
   PaperAirplaneIcon,
-  PuzzlePieceIcon,
   TrashIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, Space, message } from "antd";
+import { Button, Dropdown, MenuProps, message } from "antd";
 import * as React from "react";
-import remarkGfm from "remark-gfm";
-import ReactMarkdown from "react-markdown";
-import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import {
-  IChatMessage,
-  IContextItem,
-  IGenConfig,
-  IMessage,
-  IStatus,
-} from "../../types";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { IChatMessage, IContextItem, IMessage, IStatus } from "../../types";
 import { fetchJSON, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import Icon from "../../icons";
-import { parse } from "path";
+import MetaDataView from "./metadata";
+import { MarkdownView } from "../../atoms";
 
 const ChatBox = ({
   context,
@@ -89,7 +79,7 @@ const ChatBox = ({
     return inputString?.replace(markdownPattern, (match, content) => content);
   }
 
-  const deleteMessage = (messageId: number) => {
+  const deleteMessage = (messageId: string) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -149,14 +139,14 @@ const ChatBox = ({
     //   prompt:
     //     "Write a python script to print out a cat in ASCII art. Save the output to a file named cat.txt",
     // },
-    {
-      title: "@execute",
-      prompt: "@execute",
-    },
-    {
-      title: "@memorize",
-      prompt: "@memorize",
-    },
+    // {
+    //   title: "@execute",
+    //   prompt: "@execute",
+    // },
+    // {
+    //   title: "@memorize",
+    //   prompt: "@memorize",
+    // },
   ];
 
   const promptButtons = examplePrompts.map((prompt, i) => {
@@ -219,29 +209,29 @@ const ChatBox = ({
       });
     }
 
-    if (hasMeta) {
-      items.push({
-        label: (
-          <div
-            onClick={() => {
-              setMetadata(message.metadata);
-            }}
-          >
-            <DocumentChartBarIcon
-              title={"View Metadata"}
-              className="h-4 w-4 mr-1 inline-block"
-            />
-            View Metadata
-          </div>
-        ),
-        key: "metadata",
-      });
-    }
+    // if (hasMeta) {
+    //   items.push({
+    //     label: (
+    //       <div
+    //         onClick={() => {
+    //           setMetadata(message.metadata);
+    //         }}
+    //       >
+    //         <DocumentChartBarIcon
+    //           title={"View Metadata"}
+    //           className="h-4 w-4 mr-1 inline-block"
+    //         />
+    //         View Metadata
+    //       </div>
+    //     ),
+    //     key: "metadata",
+    //   });
+    // }
 
     if (messages.length - 1 === i) {
-      items.push({
-        type: "divider",
-      });
+      // items.push({
+      //   type: "divider",
+      // });
 
       items.push({
         label: (
@@ -316,31 +306,12 @@ const ChatBox = ({
               <div
                 className={`   w-full chatbox prose dark:prose-invert text-primary rounded p-2 `}
               >
-                <ReactMarkdown
-                  children={processString(message.text)}
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    code({ node, inline, className, children, ...props }) {
-                      let match = /language-(\w+)/.exec(className || "");
-                      match = match ? match : "text";
-                      return !inline && match ? (
-                        <SyntaxHighlighter
-                          {...props}
-                          children={String(children).replace(/\n$/, "")}
-                          style={atomDark}
-                          language={match[1]}
-                          className="rounded"
-                          PreTag="div"
-                          wrapLongLines={true}
-                        />
-                      ) : (
-                        <code {...props} className={className}>
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                />
+                <MarkdownView data={message.text} />
+              </div>
+            )}
+            {message.metadata && (
+              <div>
+                <MetaDataView metadata={message.metadata} />
               </div>
             )}
           </div>
@@ -351,7 +322,10 @@ const ChatBox = ({
 
   React.useEffect(() => {
     // console.log("messages updated, scrolling");
-    scrollChatBox();
+
+    setTimeout(() => {
+      scrollChatBox();
+    }, 300);
   }, [messages]);
 
   // clear text box if loading has just changed to false and there is no error
@@ -400,6 +374,7 @@ const ChatBox = ({
     const userMessage: IChatMessage = {
       text: query,
       sender: "user",
+      msgId: guid(),
     };
     messageHolder.push(userMessage);
     setMessages(messageHolder);
@@ -407,7 +382,7 @@ const ChatBox = ({
     const payload: IMessage = {
       role: "user",
       content: query,
-      msgId: guid(),
+      msgId: userMessage.msgId,
       userId: user?.email || "",
       rootMsgId: "0",
       personalize: config.get.personalize,
@@ -441,9 +416,9 @@ const ChatBox = ({
                 msgId: data.msgId,
               };
               checkIsSkill(data.message);
-              if (data.metadata) {
-                setMetadata(data.metadata);
-              }
+              // if (data.metadata) {
+              //   setMetadata(data.metadata);
+              // }
               messageHolder.push(botMesage);
               messageHolder = Object.assign([], messageHolder);
               setMessages(messageHolder);

@@ -201,3 +201,30 @@ export const guid = () => {
   };
   return `${w()}${w()}-${w()}-${w()}-${w()}-${w()}${w()}${w()}`;
 };
+
+/**
+ * Converts a number of seconds into a human-readable string representing the duration in days, hours, minutes, and seconds.
+ * @param {number} seconds - The number of seconds to convert.
+ * @returns {string} A well-formatted duration string.
+ */
+export const formatDuration = (seconds: number) => {
+  const units = [
+    { label: "day", seconds: 86400 },
+    { label: "hr", seconds: 3600 },
+    { label: "min", seconds: 60 },
+    { label: "sec", seconds: 1 },
+  ];
+
+  let remainingSeconds = seconds;
+  const parts = [];
+
+  for (const { label, seconds: unitSeconds } of units) {
+    const count = Math.floor(remainingSeconds / unitSeconds);
+    if (count > 0) {
+      parts.push(count + (count > 1 ? label + "s" : label));
+      remainingSeconds -= count * unitSeconds;
+    }
+  }
+
+  return parts.length > 0 ? parts.join(" ") : "0 sec";
+};

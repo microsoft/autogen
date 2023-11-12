@@ -127,7 +127,7 @@ const RAView = () => {
         </div>
         <div style={{ maxWidth: "400px" }} className="  rounded     ">
           <div className="h-full w-full ml-2  align-bottom    ">
-            <MetaDataView metadata={metadata} setMetadata={setMetadata} />
+            <MetaDataView metadata={metadata} />
           </div>
         </div>
       </div>

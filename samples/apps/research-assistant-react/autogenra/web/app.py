@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from ..db import DBManager
 from ..datamodel import Message, DeleteMessageModel,ClearDBModel
-from ..chat import ChatManager
+from ..autogenchat import ChatManager
 from ..utils import get_all_skills, load_messages, md5_hash, save_message, delete_message, init_webserver_folders, get_skills_prompt
 
 app = FastAPI()
