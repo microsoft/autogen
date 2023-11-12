@@ -1,5 +1,7 @@
 from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate
 from samples.apps.gradio_gui.pipe import PluginMultiprocessManager, PipeCom
+from autogen import Agent
+from multiprocessing import Pipe
 import time
 
 
@@ -14,11 +16,11 @@ class AutoGenGeneral(PluginMultiprocessManager):
 
     """
 
-    def gpt_academic_print_override(self, user_proxy, message, sender):
+    def gpt_academic_print_override(self, user_proxy: Agent, message: str, sender: Agent):
         # ⭐⭐ run in subprocess
         self.child_conn.send(PipeCom("show", sender.name + "\n\n---\n\n" + message["content"]))
 
-    def gpt_academic_get_human_input(self, user_proxy, message):
+    def gpt_academic_get_human_input(self, user_proxy: Agent, message: str):
         # ⭐⭐ run in subprocess
         patience = 300
         begin_waiting_time = time.time()
@@ -40,7 +42,7 @@ class AutoGenGeneral(PluginMultiprocessManager):
     def define_agents(self):
         raise NotImplementedError
 
-    def exe_autogen(self, input):
+    def exe_autogen(self, input: PipeCom):
         # ⭐⭐ run in subprocess
         input = input.content
         with ProxyNetworkActivate("AutoGen"):
@@ -67,7 +69,7 @@ class AutoGenGeneral(PluginMultiprocessManager):
                 tb_str = "```\n" + trimmed_format_exc() + "```"
                 self.child_conn.send(PipeCom("done", "AutoGen exe failed: \n\n" + tb_str))
 
-    def subprocess_worker(self, child_conn):
+    def subprocess_worker(self, child_conn: Pipe):
         # ⭐⭐ run in subprocess
         self.child_conn = child_conn
         while True:
@@ -86,7 +88,7 @@ class AutoGenGroupChat(AutoGenGeneral):
         None
     """
 
-    def exe_autogen(self, input):
+    def exe_autogen(self, input: str):
         # ⭐⭐ run in subprocess
         import autogen
         from void_terminal.toolbox import trimmed_format_exc, ProxyNetworkActivate

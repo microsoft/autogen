@@ -3,6 +3,7 @@ from void_terminal.toolbox import update_ui
 from void_terminal.toolbox import gen_time_str
 from void_terminal.toolbox import get_conf
 from void_terminal.toolbox import promote_file_to_downloadzone
+from void_terminal.toolbox import ChatBotWithCookies
 from void_terminal.crazy_functions.agent_fns.watchdog import WatchDog
 import time
 import os
@@ -43,7 +44,15 @@ class PluginMultiprocessManager:
 
     """
 
-    def __init__(self, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
+    def __init__(
+        self,
+        llm_kwargs: dict,
+        plugin_kwargs: dict,
+        chatbot: ChatBotWithCookies,
+        history: list,
+        system_prompt: str,
+        web_port,
+    ):
         # ⭐ run in main process
         self.autogen_work_dir = os.path.join(get_log_folder("autogen"), gen_time_str())
         self.previous_work_dir_files = {}
@@ -90,7 +99,7 @@ class PluginMultiprocessManager:
         # ⭐ run in main process
         self.parent_conn.send(PipeCom("user_input", cmd))
 
-    def immediate_showoff_when_possible(self, fp):
+    def immediate_showoff_when_possible(self, fp: str):
         # ⭐ run in main process
         # get the extension name of file fp
         file_type = fp.split(".")[-1]
@@ -133,7 +142,7 @@ class PluginMultiprocessManager:
             yield from update_ui(chatbot=self.chatbot, history=self.history)
         return change_list
 
-    def main_process_ui_control(self, txt, create_or_resume) -> str:
+    def main_process_ui_control(self, txt: str, create_or_resume: str) -> str:
         # ⭐ run in main process
         if create_or_resume == "create":
             self.cnt = 1

@@ -23,7 +23,7 @@ from void_terminal.toolbox import (
 os.environ["no_proxy"] = "*"
 
 
-def main(plugins):
+def main(plugins: dict):
     if gr.__version__ not in ["3.32.6"]:
         # this is a special version of gradio, which is not available on pypi.org
         raise ModuleNotFoundError(

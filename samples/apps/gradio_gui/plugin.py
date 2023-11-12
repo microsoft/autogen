@@ -1,4 +1,4 @@
-from void_terminal.toolbox import CatchException, update_ui
+from void_terminal.toolbox import ChatBotWithCookies, update_ui
 from void_terminal.toolbox import get_conf, select_api_key
 from void_terminal.toolbox import Singleton
 
@@ -31,7 +31,17 @@ class GradioMultiuserManagerForPersistentClasses:
         return self.mapping[key]
 
 
-def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port, AutoGenFn, Callback):
+def autogen_terminal(
+    txt,
+    llm_kwargs: dict,
+    plugin_kwargs: dict,
+    chatbot: ChatBotWithCookies,
+    history: list,
+    system_prompt: str,
+    web_port,
+    AutoGenFn: callable,
+    Callback: str,
+):
     """
     Function for handling inputs and executing autogen_terminal module.
 
