@@ -36,7 +36,7 @@ python -m pip install pyautogen[gui]
         export WEB_PORT=12345
         # for more environment variables options, please refer to the void terminal project
 
-        python -m samples.app.launch_gradio_gui
+        python -m samples.apps.launch_gradio_gui
         ```
 
     - Windows CMD
@@ -48,7 +48,7 @@ python -m pip install pyautogen[gui]
         set WEB_PORT=12345
         # for more environment variables options, please refer to the void terminal project
 
-        python -m samples.app.launch_gradio_gui
+        python -m samples.apps.launch_gradio_gui
         ```
 
 
@@ -64,11 +64,11 @@ python -m pip install pyautogen[gui]
 
     ```python
 
-    from samples.app.gradio_gui import init_config  # do not remove this line.
+    from samples.apps.gradio_gui import init_config  # do not remove this line.
     llm_config = init_config()                      # do not remove this line.
-    from samples.app.gradio_gui.general import AutoGenGroupChat
-    from samples.app.gradio_gui.plugin import autogen_terminal
-    from samples.app.gradio_gui.gradio_service import main
+    from samples.apps.gradio_gui.general import AutoGenGroupChat
+    from samples.apps.gradio_gui.plugin import autogen_terminal
+    from samples.apps.gradio_gui.gradio_service import main
     import os
 
     # <-------------------  define autogen agents (group chat)  ------------------->

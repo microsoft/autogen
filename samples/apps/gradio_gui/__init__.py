@@ -46,7 +46,7 @@ OAI_CONFIG_LIST path is not set.
 Please run with
     `export OAI_CONFIG_LIST='/path/to/OAI_CONFIG_LIST'`
 to set the path to config list file, and then run
-    `python -m samples.app.launch_gradio_gui`
+    `python -m samples.apps.launch_gradio_gui`
 to start the GUI.
 """
         )

@@ -1,10 +1,10 @@
-from samples.app.gradio_gui import install_dependencies, init_config  # do not move this line
+from samples.apps.gradio_gui import install_dependencies, init_config  # do not move this line
 
 if install_dependencies():  # do not move this line
     llm_config = init_config()  # do not move this line
-    from samples.app.gradio_gui.general import AutoGenGeneral, AutoGenGroupChat
-    from samples.app.gradio_gui.plugin import autogen_terminal
-    from samples.app.gradio_gui.gradio_service import main
+    from samples.apps.gradio_gui.general import AutoGenGeneral, AutoGenGroupChat
+    from samples.apps.gradio_gui.plugin import autogen_terminal
+    from samples.apps.gradio_gui.gradio_service import main
     from void_terminal.toolbox import CatchException
 
 
@@ -89,14 +89,14 @@ class AutoGenGroupChat(AutoGenGroupChat):
 @CatchException
 def autogen_terminal_fn_01(*args, **kwargs):
     return autogen_terminal(
-        *args, AutoGenFn=AutoGenAskHuman, Callback="samples.app.launch_gradio_gui->autogen_terminal_fn_01", **kwargs
+        *args, AutoGenFn=AutoGenAskHuman, Callback="samples.apps.launch_gradio_gui->autogen_terminal_fn_01", **kwargs
     )
 
 
 @CatchException
 def autogen_terminal_fn_02(*args, **kwargs):
     return autogen_terminal(
-        *args, AutoGenFn=AutoGenGroupChat, Callback="samples.app.launch_gradio_gui->autogen_terminal_fn_02", **kwargs
+        *args, AutoGenFn=AutoGenGroupChat, Callback="samples.apps.launch_gradio_gui->autogen_terminal_fn_02", **kwargs
     )
 
 
