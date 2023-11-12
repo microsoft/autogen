@@ -3,7 +3,11 @@
 AutoGen offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. This framework allows tool use and human participation via multi-agent conversation.
 Please find documentation about this feature [here](/docs/Use-Cases/agent_chat).
 
-Links to notebook examples:
+For further practical learing, please refer to the below notebooks:
+
+1. **Agent Chat with Multimodal Models: GPT -4V** - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb)
+
+2. **Agent Chat with Multimodal Models: LLaVA** - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
 
 
 1. **Code Generation, Execution, and Debugging**

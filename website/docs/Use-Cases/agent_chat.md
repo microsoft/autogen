@@ -78,6 +78,12 @@ By adopting the conversation-driven control with both programming language and n
 
 ### Diverse Applications Implemented with AutoGen
 
+For further practical learing, please refer to the below notebooks:
+
+1. **Agent Chat with Multimodal Models: GPT -4V** - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb)
+
+2. **Agent Chat with Multimodal Models: LLaVA** - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
+
 The figure below shows six examples of applications built using AutoGen.
 ![Applications](images/app.png)
 
