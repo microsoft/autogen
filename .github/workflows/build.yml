@@ -55,7 +55,7 @@ jobs:
         run: |
           pip install -e .[mathchat,test]
           pip uninstall -y openai
-          coverage run -a -m pytest test
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

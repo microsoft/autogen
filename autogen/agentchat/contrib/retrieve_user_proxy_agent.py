@@ -175,9 +175,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
-        self._get_or_create = (
-            self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else False
-        )
+        self._get_or_create = self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else True
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", count_token)
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._context_max_tokens = self._max_tokens * 0.8
@@ -353,7 +351,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             n_results (int): the number of results to be retrieved.
             search_string (str): only docs containing this string will be retrieved.
         """
-        if not self._collection or self._get_or_create:
+        if not self._collection or not self._get_or_create:
             print("Trying to create collection.")
             retriever_class = get_retriever(self._retriever_type)
             self.retriever = retriever_class(
