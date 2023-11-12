@@ -9,12 +9,40 @@ import os
 
 
 class PipeCom:
+    """
+    Represents a command and content for piped communication.
+
+    Args:
+        cmd (str): The command to be executed.
+        content (str): The content to be passed to the command.
+
+    Attributes:
+        cmd (str): The command to be executed.
+        content (str): The content to be passed to the command.
+    """
+
     def __init__(self, cmd, content) -> None:
         self.cmd = cmd
         self.content = content
 
 
 class PluginMultiprocessManager:
+    """A class for managing and controlling subprocesses through inter-process communication.
+    ⭐ Please keep in mind that some of the class method runs in subprocess, which is distinguished by method comments.
+       - (⭐ run in main process) means a method runs in main process.
+       - (⭐⭐ run in subprocess) means a method runs in subprocess.
+    Additionally, heartbeat_watchdog is a watch dog that kill the instance when user leaving the web page for a long time.
+
+    Attributes:
+        llm_kwargs (dict): The keyword arguments for llm.
+        plugin_kwargs (dict): The keyword arguments for the plugin.
+        chatbot (Chatbot): The chatbot instance.
+        history (History): The history instance.
+        system_prompt (Prompt): The system prompt instance.
+        web_port (int): The web port number for communication.
+
+    """
+
     def __init__(self, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
         # ⭐ run in main process
         self.autogen_work_dir = os.path.join(get_log_folder("autogen"), gen_time_str())

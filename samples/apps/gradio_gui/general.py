@@ -4,6 +4,16 @@ import time
 
 
 class AutoGenGeneral(PluginMultiprocessManager):
+    """This AutoGenGeneral class is for managing AutoGen functionality (inherit from PluginMultiprocessManager).
+
+    gpt_academic_print_override: Override the print function for gpt.
+    gpt_academic_get_human_input: Override the get_human_input function for gpt.
+    define_agents: Define agents for autogen.
+    exe_autogen: Execute autogen.
+    subprocess_worker: initialize subprocess worker.
+
+    """
+
     def gpt_academic_print_override(self, user_proxy, message, sender):
         # ⭐⭐ run in subprocess
         self.child_conn.send(PipeCom("show", sender.name + "\n\n---\n\n" + message["content"]))
@@ -66,6 +76,16 @@ class AutoGenGeneral(PluginMultiprocessManager):
 
 
 class AutoGenGroupChat(AutoGenGeneral):
+    """
+    This class defines `exe_autogen` for GroupChat functionality. (while inherit from AutoGenGeneral above).
+
+    Raises:
+        Exception: If user_proxy is not defined.
+
+    Returns:
+        None
+    """
+
     def exe_autogen(self, input):
         # ⭐⭐ run in subprocess
         import autogen

@@ -5,6 +5,18 @@ from void_terminal.toolbox import Singleton
 
 @Singleton
 class GradioMultiuserManagerForPersistentClasses:
+    """
+    A class for managing multiple instances of persistent classes as singletons.
+
+    This class allows storing and accessing multiple instances of persistent classes
+    and ensures that only one instance exists for each class. It provides methods for
+    checking if an instance with a certain key already exists, setting a new instance,
+    and getting an existing instance.
+
+    Attributes:
+        mapping (dict): A dictionary to store the mapping between keys and instances.
+    """
+
     def __init__(self):
         self.mapping = {}
 
@@ -21,13 +33,21 @@ class GradioMultiuserManagerForPersistentClasses:
 
 def autogen_terminal(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port, AutoGenFn, Callback):
     """
-    txt             Text entered by the user in the input field, for example, a paragraph to be translated or a file path containing files to be processed
-    llm_kwargs      Parameters for the gpt model, such as temperature and top_p, typically passed as is
-    plugin_kwargs   Parameters for the plugin model
-    chatbot         Handle for the chat display box, used to display output to the user
-    history         Chat history, context
-    system_prompt   Silent reminder for the gpt
-    web_port        Port number on which the software is running
+    Function for handling inputs and executing autogen_terminal module.
+
+    Parameters:
+        txt (str): Text entered by the user in the input field, for example, a paragraph to be translated or a file path containing files to be processed
+        llm_kwargs (dict): Parameters for the gpt model, such as temperature and top_p, typically passed as is
+        plugin_kwargs (dict): Parameters for the plugin model
+        chatbot (object): Handle for the chat display box, used to display output to the user
+        history (object): Chat history, context
+        system_prompt (str): Silent reminder for the gpt
+        web_port (int): Port number on which the software is running
+        AutoGenFn (function): Function for autogeneration
+        Callback (function): Callback function for plugin
+
+    Returns:
+        None
     """
     # Check if the current model meets the requirements
     supported_llms = [

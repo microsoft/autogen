@@ -105,7 +105,6 @@ def main(plugins):
     set_theme = adjust_theme()
 
     # Proxy and automatic update
-
     proxy_info = check_proxy(proxies)
 
     if LAYOUT == "TOP-DOWN":
