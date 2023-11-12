@@ -65,19 +65,19 @@ We found that this utilization of past successful query-code pairs improves the 
 
 
 ### Assistant Hierarchy
-LLMs usually have different prices and performance, for example, GPT-3.5-turbo is much cheaper than GPT-4 but also less accurate. 
+LLMs usually have different prices and performance, for example, GPT-3.5-turbo is much cheaper than GPT-4 but also less accurate.
 Thus, we propose the **Assistant Hierarchy** to reduce the cost of using LLMs.
 The core idea is that we use the cheaper LLMs first and only use the more expensive LLMs when necessary.
 By this way, we are able to reduce the reliance on expensive LLMs and thus reduce the cost.
-In particular, given multiple LLMs, we initiate one assistant agent for each and start the conversation with the most cost-effective LLM assistant. 
-If the conversation between the current LLM assistant and the code executor concludes without successfully resolving the query, **EcoAssistant** would then restart the conversation with the next more expensive LLM assistant in the hierarchy. 
+In particular, given multiple LLMs, we initiate one assistant agent for each and start the conversation with the most cost-effective LLM assistant.
+If the conversation between the current LLM assistant and the code executor concludes without successfully resolving the query, **EcoAssistant** would then restart the conversation with the next more expensive LLM assistant in the hierarchy.
 We found that this strategy significantly reduces costs while still effectively addressing queries.
 
 ### A Synergistic Effect
 We found that the **Assistant Hierarchy** and **Solution Demonstration** of **EcoAssistant** have a synergistic effect.
 Because the query-code database is shared by all LLM assistants, even without specialized design,
 the solution from more powerful LLM assistant (e.g., GPT-4) could be later retrieved to guide weaker LLM assistant (e.g., GPT-3.5-turbo).
-Such a synergistic effect further improves the performance and reduce the cost of **EcoAssistant**.
+Such a synergistic effect further improves the performance and reduces the cost of **EcoAssistant**.
 
 ### Experimental Results
 
