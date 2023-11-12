@@ -6,8 +6,8 @@ import time
 class AutoGenGeneral(PluginMultiprocessManager):
     """This AutoGenGeneral class is for managing AutoGen functionality (inherit from PluginMultiprocessManager).
 
-    gpt_academic_print_override: Override the print function for gpt.
-    gpt_academic_get_human_input: Override the get_human_input function for gpt.
+    gpt_academic_print_override: Override the print function for autogen.
+    gpt_academic_get_human_input: Override the get_human_input function for autogen.
     define_agents: Define agents for autogen.
     exe_autogen: Execute autogen.
     subprocess_worker: initialize subprocess worker.
