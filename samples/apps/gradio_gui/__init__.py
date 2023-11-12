@@ -24,7 +24,7 @@ def install_dependencies():
         import gradio as gr
         import void_terminal
     except Exception:
-        try_install_deps(deps=["void-terminal>=0.0.9"])
+        try_install_deps(deps=["void-terminal>=0.0.11"])
         try_install_deps(deps=["gradio-stable-fork>=3.32.6"])
         return True
 
