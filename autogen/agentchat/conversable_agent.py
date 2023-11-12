@@ -240,6 +240,10 @@ class ConversableAgent(Agent):
                 for conversation in self._oai_messages.values():
                     return conversation[-1]
             raise ValueError("More than one conversation is found. Please specify the sender to get the last message.")
+        if agent not in self._oai_messages.keys():
+            raise KeyError(
+                f"The agent '{agent.name}' is not present in any conversation. No history available for this agent."
+            )
         return self._oai_messages[agent][-1]
 
     @property
