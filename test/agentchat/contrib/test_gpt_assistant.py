@@ -63,6 +63,10 @@ def test_gpt_assistant_chat():
     assert len(analyst._openai_threads) == 0
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_get_assistant_instructions():
     """
     Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
@@ -84,6 +88,10 @@ def test_get_assistant_instructions():
     assert instruction_match is True
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_gpt_assistant_instructions_overwrite():
     """
     Test that the instructions of a GPTAssistantAgent can be overwritten or not depending on the value of the
@@ -125,6 +133,10 @@ def test_gpt_assistant_instructions_overwrite():
     assert instruction_match is True
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_gpt_assistant_existing_no_instructions():
     """
     Test function to check if the GPTAssistantAgent can retrieve instructions for an existing assistant
