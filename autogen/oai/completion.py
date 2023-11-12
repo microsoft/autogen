@@ -13,6 +13,8 @@ from collections import defaultdict
 
 try:
     import openai
+
+    assert openai.__version__ < "1"
     from openai import (
         RateLimitError,
         APIError,
@@ -25,11 +27,9 @@ try:
     import diskcache
 
     ERROR = None
-except ImportError:
-    ERROR = ImportError(
-        "(Deprecated) The autogen.Completion class requires openai<1 and diskcache. "
-        "Please switch to autogen.OpenAIWrapper for openai>=1."
-    )
+except AssertionError:
+    # The autogen.Completion class requires openai<1
+    ERROR = AssertionError("(Deprecated) The autogen.Completion class requires openai<1 and diskcache. ")
     openai_Completion = object
 logger = logging.getLogger(__name__)
 if not logger.handlers:
