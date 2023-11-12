@@ -13,10 +13,6 @@ from collections import defaultdict
 
 try:
     import openai
-except ImportError:
-    ERROR = ImportError("openai is required.")
-
-try:
     from openai import (
         RateLimitError,
         APIError,
@@ -30,7 +26,7 @@ try:
 
     ERROR = None
     assert openai.__version__ < "1"
-except AssertionError or ImportError:
+except (AssertionError, ImportError):
     openai_Completion = object
     # The autogen.Completion class requires openai<1
     ERROR = AssertionError("(Deprecated) The autogen.Completion class requires openai<1 and diskcache. ")
