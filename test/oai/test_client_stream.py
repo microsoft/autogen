@@ -18,7 +18,7 @@ def test_aoai_chat_completion_stream():
         filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(messages=[{"role": "user", "content": "2+2="}], seed=None, stream=True)
+    response = client.create(messages=[{"role": "user", "content": "2+2="}], stream=True)
     print(response)
     print(client.extract_text_or_function_call(response))
 
@@ -31,7 +31,7 @@ def test_chat_completion_stream():
         filter_dict={"model": ["gpt-3.5-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(messages=[{"role": "user", "content": "1+1="}], seed=None, stream=True)
+    response = client.create(messages=[{"role": "user", "content": "1+1="}], stream=True)
     print(response)
     print(client.extract_text_or_function_call(response))
 
@@ -63,7 +63,6 @@ def test_chat_functions_stream():
     response = client.create(
         messages=[{"role": "user", "content": "What's the weather like today in San Francisco?"}],
         functions=functions,
-        seed=None,
         stream=True,
     )
     print(response)
@@ -74,7 +73,7 @@ def test_chat_functions_stream():
 def test_completion_stream():
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct", seed=None, stream=True)
+    response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct", stream=True)
     print(response)
     print(client.extract_text_or_function_call(response))
 
