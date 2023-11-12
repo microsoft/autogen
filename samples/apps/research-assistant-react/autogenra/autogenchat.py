@@ -10,7 +10,7 @@ class ChatManager():
     def __init__(self) -> None:
         pass 
  
-
+    
     def chat(self, message: Message, history: List, **kwargs) -> None:
         message_text = message.content.strip()
         execute_code = "@execute" in message_text 
@@ -28,10 +28,12 @@ class ChatManager():
             "config_list": config_list,
             "temperature": 0,
         }
-
+        USER_PROXY_INSTRUCTIONS = """If the request has been addressed sufficiently, summarize the answer and end with the word TERMINATE. Otherwise, ask a follow-up question.
+        """
         user_proxy = autogen.UserProxyAgent(
             name="user_proxy",
             human_input_mode=human_input_mode,
+            system_message= USER_PROXY_INSTRUCTIONS,
             code_execution_config={
                 "work_dir": work_dir,
                 "use_docker": False,
@@ -62,33 +64,40 @@ class ChatManager():
                     user_proxy,
                     request_reply=False, 
                 )
-        output = ""
-
+        output = "" 
         start_time = time.time()
          
         metadata = {}
-        if execute_code and len(history) > 0:
-            # if history[-1]["role"] == "assistant":
-            primary_assistant.initiate_chat(
-                user_proxy,
-                message = history[-1]["content"],
-                clear_history=False,
-            ) 
+        user_proxy.initiate_chat(
+            recipient=primary_assistant,
+            message=message_text, 
+            clear_history=False,
+        )
+        output = user_proxy.last_message()["content"]
+        metadata["messages"] = primary_assistant.chat_messages[user_proxy][len(history):]
+        # if execute_code and len(history) > 0:
+        #     # if history[-1]["role"] == "assistant":
+        #     primary_assistant.initiate_chat(
+        #         user_proxy,
+        #         message = history[-1]["content"],
+        #         clear_history=False,
+        #     ) 
              
-            output = user_proxy.last_message()["content"]
-            metadata["messages"] = primary_assistant.chat_messages[user_proxy][len(history):]
+        #     output = user_proxy.last_message()["content"]
+        #     metadata["messages"] = primary_assistant.chat_messages[user_proxy][len(history):]
              
-        else:
-            user_proxy.send(
-                message_text,
-                primary_assistant,
-                request_reply=True, 
-            ) 
-            output = user_proxy.last_message()["content"]
-            metadata["messages"] = primary_assistant.chat_messages[user_proxy][len(history):]
+        # else:
+        #     user_proxy.send(
+        #         message_text,
+        #         primary_assistant,
+        #         request_reply=True, 
+        #     ) 
+        #     output = user_proxy.last_message()["content"]
+        #     metadata["messages"] = primary_assistant.chat_messages[user_proxy][len(history):]
              
-        metadata["code"] = ""
+        metadata["code"] = "" 
         end_time = time.time()
+        metadata["time"] = end_time - start_time
         modified_files = get_modified_files(start_time, end_time, work_dir)
         metadata["files"] = modified_files
 
