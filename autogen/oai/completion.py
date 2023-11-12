@@ -10,10 +10,9 @@ from flaml.tune.space import is_constant
 from flaml.automl.logger import logger_formatter
 from .openai_utils import get_key
 from collections import defaultdict
+import openai
 
 try:
-    import openai
-
     from openai import (
         RateLimitError,
         APIError,
