@@ -141,7 +141,7 @@ class GPTAssistantAgent(ConversableAgent):
             self._openai_client.beta.threads.messages.create(
                 thread_id=assistant_thread.id,
                 content=message["content"],
-                role=message["role"],
+                role="user",
             )
 
         # Create a new run to get responses from the assistant
