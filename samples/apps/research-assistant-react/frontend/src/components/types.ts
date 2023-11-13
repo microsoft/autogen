@@ -37,7 +37,7 @@ export interface IAgentConfig {
   llm_config: ILLMConfig;
   human_input_mode: string;
   max_consecutive_auto_reply: number;
-  system_message: string | null;
+  system_message: string | "";
   is_termination_msg?: boolean | string;
   code_execution_config?: boolean | string | { [key: string]: any } | null;
 }
@@ -50,6 +50,6 @@ export interface IAgentFlowSpec {
 export interface IFlowConfig {
   name: string;
   sender: IAgentFlowSpec;
-  receiver: IAgentFlowSpec | Array<IAgentFlowSpec>;
+  receiver: IAgentFlowSpec;
   type: "default" | "groupchat";
 }

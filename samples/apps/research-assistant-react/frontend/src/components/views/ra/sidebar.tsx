@@ -14,7 +14,7 @@ const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
     >
       <div className="flex-1 ">
         <div className={`${isOpen ? "" : "hidden"}`}>
-          {/* <AgentsView /> */}
+          <AgentsView />
           <SkillsView
             notify={notify}
             setMessages={setMessages}

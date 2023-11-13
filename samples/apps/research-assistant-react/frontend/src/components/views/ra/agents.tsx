@@ -1,5 +1,5 @@
 import { AdjustmentsVerticalIcon } from "@heroicons/react/24/outline";
-import { Modal, Select, Slider } from "antd";
+import { Input, Modal, Select, Slider } from "antd";
 import * as React from "react";
 import { GroupView } from "../../atoms";
 import {
@@ -8,6 +8,7 @@ import {
   IFlowConfig,
   ILLMConfig,
 } from "../../types";
+import TextArea from "antd/es/input/TextArea";
 
 const AgentsControlView = () => {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -77,11 +78,103 @@ const AgentsControlView = () => {
     type: "default",
   };
 
-  const [configs, setConfigs] = React.useState([
+  const [configs, setConfigs] = React.useState<IFlowConfig[]>([
     GeneralFlowConfig,
     GroupChatFlowConfig,
   ]);
   const [selectedConfig, setSelectedConfig] = React.useState<number>(0);
+
+  const FlowView = ({ flowSpec }: { flowSpec: IAgentFlowSpec }) => {
+    return (
+      <>
+        <GroupView title={flowSpec.config.name} className="mb-4">
+          <ControlRowView
+            title="Agent Type"
+            description="Defines agent behavior"
+            value={flowSpec.type}
+            control={
+              <Select
+                className="mt-2 w-full"
+                defaultValue={flowSpec.type}
+                onChange={(value: any) => {}}
+                options={
+                  [
+                    { label: "userproxy", value: "userproxy" },
+                    { label: "assistant", value: "assistant" },
+                  ] as any
+                }
+              />
+            }
+          />
+
+          <ControlRowView
+            title="Max Consecutive Auto Reply"
+            className="mt-4"
+            description="Max consecutive auto reply messages before termination."
+            value={flowSpec.config.max_consecutive_auto_reply}
+            control={
+              <Slider
+                min={2}
+                max={30}
+                defaultValue={10}
+                step={1}
+                onAfterChange={(value: any) => {}}
+              />
+            }
+          />
+
+          <ControlRowView
+            title="Human Input Mode"
+            description="Defines when to request human input"
+            value={flowSpec.config.human_input_mode}
+            control={
+              <Select
+                className="mt-2 w-full"
+                defaultValue={flowSpec.config.human_input_mode}
+                onChange={(value: any) => {}}
+                options={
+                  [
+                    { label: "NEVER", value: "NEVER" },
+                    { label: "TERMINATE", value: "TERMINATE" },
+                    { label: "ALWAYS", value: "ALWAYS" },
+                  ] as any
+                }
+              />
+            }
+          />
+
+          <ControlRowView
+            title="System Message"
+            className="mt-4"
+            description="Free text to control agent behavior"
+            value={flowSpec.config.system_message}
+            control={
+              <TextArea
+                className="mt-2 w-full"
+                defaultValue={flowSpec.config.system_message}
+                rows={3}
+                onChange={(value: any) => {}}
+              />
+            }
+          />
+        </GroupView>
+      </>
+    );
+  };
+  const FlowConfigViewer = ({ flowConfig }: { flowConfig: IFlowConfig }) => {
+    return (
+      <div className="flex gap-3 ">
+        <div className="w-1/2">
+          <div className="">
+            <FlowView flowSpec={flowConfig.sender} />
+          </div>
+        </div>
+        <div className="w-1/2">
+          <FlowView flowSpec={flowConfig.receiver} />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="text-secondary rounded p">
@@ -122,86 +215,7 @@ const AgentsControlView = () => {
           }
         />
 
-        <div className="flex gap-3 ">
-          <div className="w-1/2">
-            <div className="">
-              <GroupView title={"Sender"} className="mb-4">
-                <ControlRowView
-                  title="Agent Type"
-                  description="Defines agent behavior"
-                  value={"userproxy"}
-                  control={
-                    <Select
-                      className="mt-2 w-full"
-                      defaultValue={"userproxy"}
-                      onChange={(value: any) => {}}
-                      options={
-                        [
-                          { label: "userproxy", value: "userproxy" },
-                          { label: "assistant", value: "assistant" },
-                        ] as any
-                      }
-                    />
-                  }
-                />
-
-                <ControlRowView
-                  title="Max Consecutive Auto Reply"
-                  className="mt-4"
-                  description="Max consecutive auto reply messages before termination."
-                  value={10}
-                  control={
-                    <Slider
-                      min={2}
-                      max={30}
-                      defaultValue={10}
-                      step={1}
-                      onAfterChange={(value: any) => {}}
-                    />
-                  }
-                />
-              </GroupView>
-            </div>
-          </div>
-          <div className="w-1/2">
-            <GroupView title={"Receiver"} className="mb-4">
-              <ControlRowView
-                title="Agent Type"
-                description="Defines agent behavior"
-                value={"userproxy"}
-                control={
-                  <Select
-                    className="mt-2 w-full"
-                    defaultValue={"assistant"}
-                    onChange={(value: any) => {}}
-                    options={
-                      [
-                        { label: "userproxy", value: "userproxy" },
-                        { label: "assistant", value: "assistant" },
-                      ] as any
-                    }
-                  />
-                }
-              />
-
-              <ControlRowView
-                title="Max Consecutive Auto Reply"
-                className="mt-4"
-                description="Max consecutive auto reply messages before termination."
-                value={10}
-                control={
-                  <Slider
-                    min={2}
-                    max={30}
-                    defaultValue={10}
-                    step={1}
-                    onAfterChange={(value: any) => {}}
-                  />
-                }
-              />
-            </GroupView>
-          </div>
-        </div>
+        <FlowConfigViewer flowConfig={configs[selectedConfig]} />
 
         <p className="mt-4 text-xs text-secondary">
           {" "}
