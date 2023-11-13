@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "autogenra" 
+name = "autogenra"
 authors = [
   { name="Autogen Team", email="autogen@microsoft.com" },
 ]
@@ -19,7 +19,7 @@ classifiers = [
 
 
 dependencies = [
-    "pydantic",  
+    "pydantic",
     "fastapi",
     "typer",
     "uvicorn",
@@ -38,10 +38,10 @@ include-package-data = true
 version = {attr = "autogenra.version.VERSION"}
 readme = {file = ["README.md"]}
 
-[tool.setuptools.packages.find]  
-include = ["autogenra*"]  
-exclude = ["*.tests*"]  
-namespaces = false  
+[tool.setuptools.packages.find]
+include = ["autogenra*"]
+exclude = ["*.tests*"]
+namespaces = false
 
 [tool.setuptools.package-data]
 "autogenra" = ["*.*"]
@@ -58,4 +58,4 @@ filterwarnings = [
 "Bug Tracker" = "https://github.com/microsoft/autogen/issues"
 
 [project.scripts]
-autogenra = "autogenra.cli:run" 
+autogenra = "autogenra.cli:run"

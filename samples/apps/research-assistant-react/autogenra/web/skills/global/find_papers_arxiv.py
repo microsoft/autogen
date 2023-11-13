@@ -22,9 +22,7 @@ def search_arxiv(query, max_results=10):
 
     import arxiv
 
-    key = hashlib.md5(
-        ("search_arxiv(" + str(max_results) + ")" + query).encode("utf-8")
-    ).hexdigest()
+    key = hashlib.md5(("search_arxiv(" + str(max_results) + ")" + query).encode("utf-8")).hexdigest()
     # Create the cache if it doesn't exist
     cache_dir = ".cache"
     if not os.path.isdir(cache_dir):
@@ -45,9 +43,7 @@ def search_arxiv(query, max_results=10):
     query = re.sub(r"[^\s\w]", " ", query.lower())
     query = re.sub(r"\s+", " ", query).strip()
 
-    search = arxiv.Search(
-        query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance
-    )
+    search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)
 
     jresults = list()
     for result in search.results():

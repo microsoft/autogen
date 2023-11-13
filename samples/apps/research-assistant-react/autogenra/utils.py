@@ -1,9 +1,10 @@
-import hashlib 
-from .datamodel import Message 
-from .db import DBManager 
+import hashlib
+from .datamodel import Message
+from .db import DBManager
 import os
 from shutil import copy2
 from typing import List, Dict
+
 
 def md5_hash(text: str) -> str:
     """
@@ -23,7 +24,15 @@ def save_message(message: Message, dbmanager: DBManager) -> None:
     :param dbmanager: The DBManager instance used to interact with the database
     """
     query = "INSERT INTO messages (userId, rootMsgId, msgId, role, content, metadata, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    args = (message.userId, message.rootMsgId, message.msgId, message.role, message.content, message.metadata, message.timestamp) 
+    args = (
+        message.userId,
+        message.rootMsgId,
+        message.msgId,
+        message.role,
+        message.content,
+        message.metadata,
+        message.timestamp,
+    )
     dbmanager.query(query=query, args=args)
 
 
@@ -61,15 +70,13 @@ def delete_message(user_id: str, msg_id: str, dbmanager: DBManager, delete_all: 
     else:
         query = "DELETE FROM messages WHERE userId = ? AND msgId = ?"
         args = (user_id, msg_id)
-        dbmanager.query(query=query, args=args)  
-        messages = load_messages(user_id=user_id, dbmanager=dbmanager) 
+        dbmanager.query(query=query, args=args)
+        messages = load_messages(user_id=user_id, dbmanager=dbmanager)
 
-        return messages 
+        return messages
 
 
-def get_modified_files(start_timestamp: float, 
-                       end_timestamp: float,
-                       source_dir: str) -> List[str]:
+def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str) -> List[str]:
     """
     Get a list of files that were modified within the specified timestamp range,
     excluding specific file extensions and names.
@@ -77,7 +84,7 @@ def get_modified_files(start_timestamp: float,
     :param start_timestamp: The start timestamp to filter modified files.
     :param end_timestamp: The end timestamp to filter modified files.
     :param source_dir: The directory to search for modified files.
-     
+
     :return: A list of file paths that were modified within the timestamp range,
              ignoring files with extensions "__pycache__", "*.pyc", "__init__.py",
              and "*.cache".
@@ -85,24 +92,24 @@ def get_modified_files(start_timestamp: float,
     modified_files = []
     ignore_extensions = {".pyc", ".cache"}
     ignore_files = {"__pycache__", "__init__.py"}
-    
+
     for root, dirs, files in os.walk(source_dir):
         # Excluding the directory "__pycache__" if present
         dirs[:] = [d for d in dirs if d not in ignore_files]
-        
+
         for file in files:
             file_path = os.path.join(root, file)
             file_ext = os.path.splitext(file)[1]
             file_name = os.path.basename(file)
-            
+
             if file_ext in ignore_extensions or file_name in ignore_files:
                 continue
-            
+
             file_mtime = os.path.getmtime(file_path)
             if start_timestamp < file_mtime < end_timestamp:
                 uid = source_dir.split("/")[-1]
                 modified_files.append(f"files/user/{uid}/{file}")
-                
+
     return modified_files
 
 
@@ -142,7 +149,7 @@ def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
 
 def skill_from_folder(folder: str) -> List[Dict[str, str]]:
     """
-    Given a folder, return a dict of the skill (name, python file content). Only python files are considered. 
+    Given a folder, return a dict of the skill (name, python file content). Only python files are considered.
 
     :param folder: The folder to search for skills
     :return: A list of dictionaries, each representing a skill
@@ -156,10 +163,11 @@ def skill_from_folder(folder: str) -> List[Dict[str, str]]:
                 skill_file_path = os.path.join(root, file)
                 with open(skill_file_path, "r", encoding="utf-8") as f:
                     skill_content = f.read()
-                skills.append({"name": skill_name, "content": skill_content, "file_name":file})
+                skills.append({"name": skill_name, "content": skill_content, "file_name": file})
     return skills
 
-def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir:str =None) -> List[Dict[str, str]]:
+
+def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir: str = None) -> List[Dict[str, str]]:
     """
     Get all skills from the user and global skills directories. If dest_dir, copy all skills to dest_dir.
 
@@ -170,20 +178,21 @@ def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir:str 
     """
     user_skills = skill_from_folder(user_skills_path)
     os.makedirs(user_skills_path, exist_ok=True)
-    global_skills = skill_from_folder(global_skills_path) 
+    global_skills = skill_from_folder(global_skills_path)
     skills = {
         "user": user_skills,
         "global": global_skills,
     }
 
     if dest_dir:
-        # check 
+        # check
         for skill in user_skills + global_skills:
             skill_file_path = os.path.join(dest_dir, skill["file_name"])
             with open(skill_file_path, "w", encoding="utf-8") as f:
                 f.write(skill["content"])
 
-    return skills 
+    return skills
+
 
 def get_skills_prompt(skills: List[Dict[str, str]]) -> str:
     """
@@ -197,11 +206,11 @@ def get_skills_prompt(skills: List[Dict[str, str]]) -> str:
     all_skills = user_skills + global_skills
 
     prompt = """
-    
+
 While solving the task you may use functions in the files below.
 To use a function from a file in code, import the file and then use the function.
 If you need to install python packages, write shell code to
-install via pip and use --quiet option. 
+install via pip and use --quiet option.
 
          """
     for skill in all_skills:

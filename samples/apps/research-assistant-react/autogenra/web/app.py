@@ -5,9 +5,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from ..db import DBManager
-from ..datamodel import Message, DeleteMessageModel,ClearDBModel
+from ..datamodel import Message, DeleteMessageModel, ClearDBModel
 from ..autogenchat import ChatManager
-from ..utils import get_all_skills, load_messages, md5_hash, save_message, delete_message, init_webserver_folders, get_skills_prompt
+from ..utils import (
+    get_all_skills,
+    load_messages,
+    md5_hash,
+    save_message,
+    delete_message,
+    init_webserver_folders,
+    get_skills_prompt,
+)
 
 app = FastAPI()
 
@@ -27,12 +35,11 @@ app.add_middleware(
 )
 
 
-
 root_file_path = os.path.dirname(os.path.abspath(__file__))
-folders = init_webserver_folders(root_file_path) # init folders skills, workdir, static, files etc
+folders = init_webserver_folders(root_file_path)  # init folders skills, workdir, static, files etc
 
 api = FastAPI(root_path="/api")
-# mount an api route such that the main route serves the ui and the /api 
+# mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
 app.mount("/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
@@ -40,36 +47,40 @@ api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=Tru
 
 
 db_path = os.path.join(root_file_path, "database.sqlite")
-dbmanager = DBManager(path=db_path) # manage database operations
-chatmanager = ChatManager() # manage calls to autogen
-
-
+dbmanager = DBManager(path=db_path)  # manage database operations
+chatmanager = ChatManager()  # manage calls to autogen
 
 
 @api.post("/messages")
 async def add_message(message: Message):
-    message  = Message(**message.dict()) 
-    user_history = load_messages(user_id=message.userId, dbmanager=dbmanager)  
+    message = Message(**message.dict())
+    user_history = load_messages(user_id=message.userId, dbmanager=dbmanager)
 
     # save incoming message to db
     save_message(message=message, dbmanager=dbmanager)
     user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.userId))
-    os.makedirs(user_dir, exist_ok=True) 
+    os.makedirs(user_dir, exist_ok=True)
 
-    # load skills 
-    skills = get_all_skills(os.path.join(folders["user_skills_dir"], md5_hash(message.userId)), folders["global_skills_dir"], dest_dir=user_dir)  
+    # load skills
+    skills = get_all_skills(
+        os.path.join(folders["user_skills_dir"], md5_hash(message.userId)),
+        folders["global_skills_dir"],
+        dest_dir=user_dir,
+    )
     skills_prompt = get_skills_prompt(skills)
 
-    try: 
-        response_message:Message = chatmanager.chat(message=message, history=user_history, work_dir=user_dir, skills_prompt=skills_prompt)  
- 
+    try:
+        response_message: Message = chatmanager.chat(
+            message=message, history=user_history, work_dir=user_dir, skills_prompt=skills_prompt
+        )
+
         # save assistant response to db
-        save_message(message=response_message, dbmanager=dbmanager) 
+        save_message(message=response_message, dbmanager=dbmanager)
         response = {
             "status": True,
             "message": response_message.content,
             "metadata": json.loads(response_message.metadata),
-            }
+        }
         return response
     except Exception as ex_error:
         print(ex_error)
@@ -77,6 +88,7 @@ async def add_message(message: Message):
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),
         }
+
 
 @api.get("/messages")
 def get_messages(user_id: str = None):
@@ -90,8 +102,9 @@ def get_messages(user_id: str = None):
         "message": "Messages retrieved successfully",
     }
 
+
 @api.post("/messages/delete")
-async def remove_message(req: DeleteMessageModel): 
+async def remove_message(req: DeleteMessageModel):
     """Delete a message from the database"""
     print(req)
     try:
@@ -114,8 +127,7 @@ async def clear_db(req: ClearDBModel):
     """Clear user conversation history database"""
 
     try:
-
-        delete_message(user_id=req.userId, msg_id=None, dbmanager=dbmanager, delete_all=True) 
+        delete_message(user_id=req.userId, msg_id=None, dbmanager=dbmanager, delete_all=True)
         return {
             "status": True,
             "message": "Messages and files cleared successfully",
@@ -126,11 +138,11 @@ async def clear_db(req: ClearDBModel):
             "status": False,
             "message": "Error occurred while deleting message: " + str(ex_error),
         }
-    
+
 
 @api.get("/skills")
-def get_skills(user_id: str):  
-    skills = get_all_skills(os.path.join(folders["user_skills_dir"], md5_hash(user_id)), folders["global_skills_dir"] ) 
+def get_skills(user_id: str):
+    skills = get_all_skills(os.path.join(folders["user_skills_dir"], md5_hash(user_id)), folders["global_skills_dir"])
 
     return {
         "status": True,

@@ -35,13 +35,14 @@ def ui(
 def version():
     """
     Print the version of the Autogen RA UI CLI.
-    """ 
+    """
 
     typer.echo(f"Autogen RA UI CLI version: {VERSION}")
 
 
 def run():
     app()
+
 
 if __name__ == "__main__":
     app()
