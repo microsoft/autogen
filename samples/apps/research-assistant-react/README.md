@@ -1,6 +1,6 @@
-# ARA - AutoGen Research Assistant
+# AutoGen Research Assistant
 
-ARA is an Autogen-powered AI research assistant that can converse with you to help you conduct research, write and execute code, run saved skills, learn new skills by demonstration, and adapt in response to your interactions.
+AutoGen Research Assistant is an Autogen-powered AI research assistant that can converse with you to help you conduct research, write and execute code, run saved skills, learn new skills by demonstration, and adapt in response to your interactions.
 
 Project Structure:
 
