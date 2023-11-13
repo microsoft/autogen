@@ -341,6 +341,10 @@ class GPTAssistantAgent(ConversableAgent):
         """Return the assistant id"""
         return self._openai_assistant.id
 
+    @property
+    def openai_client(self):
+        return self._openai_client
+
     def get_assistant_instructions(self):
         """Return the assistant instructions from OAI assistant API"""
         return self._openai_assistant.instructions
