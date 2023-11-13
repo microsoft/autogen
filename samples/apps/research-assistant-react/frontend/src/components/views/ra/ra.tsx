@@ -1,21 +1,13 @@
 import * as React from "react";
-import {
-  IContextItem,
-  IGenConfig,
-  IMessage,
-  IStatus,
-  ITextGeneratorConfig,
-} from "../../types";
+import { IMessage, IStatus } from "../../types";
 import { fetchJSON, setLocalStorage } from "../../utils";
 import ChatBox from "./chatbox";
-import MetaDataView from "./metadata";
 import { appContext } from "../../../hooks/provider";
 import { message } from "antd";
 import SideBarView from "./sidebar";
 
 const RAView = () => {
   const [loading, setLoading] = React.useState(false);
-  const [context, setContext] = React.useState<IContextItem | null>(null);
   const [messages, setMessages] = React.useState<IMessage[]>([]);
   const [skillUpdated, setSkillUpdated] = React.useState("default");
 
@@ -24,32 +16,7 @@ const RAView = () => {
     set: setSkillUpdated,
   };
 
-  const initMetaData = {};
-  const [metadata, setMetadata] = React.useState(initMetaData);
-
-  const initTextGenerationConfig: ITextGeneratorConfig = {
-    temperature: 0,
-    n: 1,
-    model: "gpt-3.5-turbo-0301",
-    max_tokens: 2048,
-    messages: [],
-  };
-
-  const initMetadata = {
-    ranker: "default",
-    prompter: "default",
-    top_k: 25,
-  };
-
-  const initConfig: IGenConfig = {
-    metadata: initMetadata,
-    textgen_config: initTextGenerationConfig,
-    use_cache: false,
-    personalize: false,
-    ra: "TwoAgents",
-  };
-
-  const [config, setConfig] = React.useState(initConfig);
+  const [config, setConfig] = React.useState(null);
 
   React.useEffect(() => {
     setLocalStorage("ara_config", config);
@@ -103,32 +70,21 @@ const RAView = () => {
 
   return (
     <div className="h-full   ">
-      {/* <div className="border mt-2 rounded p-2 mb-2">
-        <ClearDBView setMessages={setMessages} />
-      </div> */}
       <div className="flex h-full   ">
-        <div className="border  mr-2 rounded">
+        <div className="  mr-2  rounded">
           <SideBarView
             setMessages={setMessages}
             skillup={skillup}
             config={{ get: config, set: setConfig }}
-            setMetadata={setMetadata}
           />
         </div>
         <div className=" flex-1  ">
           {" "}
           <ChatBox
-            context={context}
             config={{ get: config, set: setConfig }}
-            setMetadata={setMetadata}
             initMessages={messages}
             skillup={skillup}
           />
-        </div>
-        <div style={{ maxWidth: "400px" }} className="  rounded     ">
-          <div className="h-full w-full ml-2  align-bottom    ">
-            <MetaDataView metadata={metadata} />
-          </div>
         </div>
       </div>
     </div>

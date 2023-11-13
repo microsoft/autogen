@@ -70,7 +70,7 @@ const Header = ({ meta, link }: any) => {
                   <a className="block  " href="/#">
                     <span className=" bg-primary  inline-block pt-2 absolute">
                       {" "}
-                      <div className="inline-block  text-accent   bg-primary pb-2 mr-1">
+                      <div className="inline-block w-10  text-accent   bg-primary pb-2 mr-1">
                         <Icon icon="app" size={10} />
                       </div>{" "}
                     </span>

@@ -1,11 +1,9 @@
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
-import { Tabs } from "antd";
 import * as React from "react";
 import { CollapseBox, ExpandView, MarkdownView } from "../../atoms";
 import { formatDuration } from "../../utils";
 
 const MetaDataView = ({ metadata }: { metadata: any | null }) => {
-  let items = [];
   const serverUrl = process.env.GATSBY_API_URL;
 
   const renderFile = (file: string, i: number) => {
@@ -18,7 +16,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     if (is_image) {
       return (
         <div key={"metafilesrow" + i} className="text-primary ">
-          <ExpandView className="lg:w-1/2  mb-1">
+          <ExpandView className="lg:w-3/4  xl:w-1/2 2xl:w-1/4 mb-1">
             <div className="mb-2">
               <DocumentTextIcon className="h-4 mr-1 inline-block" /> {file_name}
             </div>

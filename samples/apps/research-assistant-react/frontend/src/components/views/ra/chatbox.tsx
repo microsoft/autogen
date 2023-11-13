@@ -1,31 +1,24 @@
 import {
   ArrowPathIcon,
   Cog6ToothIcon,
-  DocumentChartBarIcon,
   ExclamationTriangleIcon,
   PaperAirplaneIcon,
   TrashIcon,
-  UserIcon,
 } from "@heroicons/react/24/outline";
 import { Button, Dropdown, MenuProps, message } from "antd";
 import * as React from "react";
-import { IChatMessage, IContextItem, IMessage, IStatus } from "../../types";
+import { IChatMessage, IMessage, IStatus } from "../../types";
 import { fetchJSON, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
-import Icon from "../../icons";
 import MetaDataView from "./metadata";
 import { MarkdownView } from "../../atoms";
 
 const ChatBox = ({
-  context,
   config,
-  setMetadata,
   initMessages,
   skillup,
 }: {
-  context: IContextItem | null;
   config: any;
-  setMetadata: any;
   initMessages: any[];
   skillup: any;
 }) => {
@@ -209,25 +202,6 @@ const ChatBox = ({
       });
     }
 
-    // if (hasMeta) {
-    //   items.push({
-    //     label: (
-    //       <div
-    //         onClick={() => {
-    //           setMetadata(message.metadata);
-    //         }}
-    //       >
-    //         <DocumentChartBarIcon
-    //           title={"View Metadata"}
-    //           className="h-4 w-4 mr-1 inline-block"
-    //         />
-    //         View Metadata
-    //       </div>
-    //     ),
-    //     key: "metadata",
-    //   });
-    // }
-
     if (messages.length - 1 === i) {
       // items.push({
       //   type: "divider",
@@ -265,20 +239,23 @@ const ChatBox = ({
 
     return (
       <div
-        className={`align-right ${isUser ? "text-right" : ""}  mb-2 `}
+        className={`align-right ${isUser ? "text-righpt" : ""}  mb-2 border-b`}
         key={"message" + i}
       >
         {" "}
         <div className={`  ${isUser ? "" : " w-full"} inline-flex gap-2`}>
           <div className="">
             {" "}
-            {isUser && <UserIcon className="inline-block h-6 " />}
+            {/* {isUser && <UserIcon className="inline-block h-6 " />}
             {!isUser && (
               <span className="inline-block  text-accent  bg-primary pb-2 ml-1">
                 <Icon icon="app" size={8} />
               </span>
-            )}
+            )} */}
           </div>
+          <div className="font-semibold text-secondary text-sm w-14">{`${
+            isUser ? "USER" : "AGENT"
+          }`}</div>
           <div
             // style={{ minWidth: "70%" }}
             className={`inline-block ${
@@ -289,22 +266,12 @@ const ChatBox = ({
             {items.length > 0 && menu}
             {isUser && (
               <>
-                <div className="inline-block">
-                  {message.text}
-                  <ArrowPathIcon
-                    role={"button"}
-                    title={"Retry"}
-                    className="h-4 w-4 hidden ml-1 inline-block"
-                    onClick={() => {
-                      getCompletion(message.text);
-                    }}
-                  />
-                </div>
+                <div className="inline-block">{message.text}</div>
               </>
             )}
             {!isUser && (
               <div
-                className={`   w-full chatbox prose dark:prose-invert text-primary rounded p-2 `}
+                className={` w-full chatbox prose dark:prose-invert text-primary rounded p-2 `}
               >
                 <MarkdownView data={message.text} />
               </div>
@@ -325,7 +292,7 @@ const ChatBox = ({
 
     setTimeout(() => {
       scrollChatBox();
-    }, 300);
+    }, 200);
   }, [messages]);
 
   // clear text box if loading has just changed to false and there is no error
@@ -385,9 +352,7 @@ const ChatBox = ({
       msgId: userMessage.msgId,
       userId: user?.email || "",
       rootMsgId: "0",
-      personalize: config.get.personalize,
-      use_cache: config.get.use_cache,
-      ra: config.get.ra,
+      use_cache: true,
     };
 
     console.log("payload", payload);
@@ -445,10 +410,10 @@ const ChatBox = ({
   };
 
   return (
-    <div className="text-primary   relative  h-full rounded  ">
+    <div className="text-primary    relative  h-full rounded  ">
       <div
         ref={messageBoxInputRef}
-        className="flex h-max    flex-col rounded  scroll pr-2 overflow-auto  "
+        className="flex h-full     flex-col rounded  scroll pr-2 overflow-auto  "
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
       >
         <div className="flex-1  boder mt-4"></div>

@@ -1,12 +1,5 @@
 export type NotificationType = "success" | "info" | "warning" | "error";
 
-export interface IImageGeneratorConfig {
-  prompt: string;
-  n: number;
-  width: number;
-  height: number;
-}
-
 export interface IMessage {
   userId: string;
   rootMsgId: string;
@@ -16,32 +9,6 @@ export interface IMessage {
   timestamp?: string;
   personalize?: boolean;
   use_cache?: boolean;
-  ra?: string;
-}
-
-export interface ITextGeneratorConfig {
-  prompt?: string;
-  max_tokens?: number;
-  temperature: number;
-  messages: any[];
-  n: number;
-  model?: string;
-  suffix?: string;
-  presence_penalty?: number;
-  frequency_penalty?: number;
-  input?: string;
-  instruction?: string;
-}
-export interface IMetaDataConfig {
-  ranker: string;
-  prompter: string;
-  top_k: number;
-}
-export interface IGenConfig {
-  metadata: IMetaDataConfig;
-  textgen_config: ITextGeneratorConfig;
-  use_cache?: boolean;
-  personalize?: boolean;
   ra?: string;
 }
 
@@ -57,43 +24,32 @@ export interface IChatMessage {
   metadata?: any;
   msgId: string;
 }
-export interface IContext {
-  source: string;
-  content: string;
-}
-export interface IContextProps {
-  context: IContextItem | null;
-  setContext: React.Dispatch<React.SetStateAction<IContextItem | null>>;
-}
-export interface IBlock {
-  id: string;
-  tag: string;
-  html: string;
+
+export interface ILLMConfig {
+  seed: number;
+  config_list: Array<{ [key: string]: any }>;
+  temperature: number;
+  use_cache: boolean;
 }
 
-// Context interfaces
-
-export interface IContextItem {
-  id: number;
-  title: string;
-  user_guid: number;
-  guid: string;
-  index_path: string;
-  created_at: string;
-  updated_at: string;
+export interface IAgentConfig {
+  name: string;
+  llm_config: ILLMConfig;
+  human_input_mode: string;
+  max_consecutive_auto_reply: number;
+  system_message: string | null;
+  is_termination_msg?: boolean | string;
+  code_execution_config?: boolean | string | { [key: string]: any } | null;
 }
 
-export interface IContextDocumentItem {
-  id?: number;
-  title: string;
-  source: string;
-  content: string;
-  document_type: string;
-  context_guid?: string;
-  guid?: string;
-  url?: string;
-  created_at?: string;
-  updated_at?: string;
-  status?: string;
-  num_passages?: number;
+export interface IAgentFlowSpec {
+  type: "assistant" | "user_proxy" | "group_chat";
+  config: IAgentConfig;
+}
+
+export interface IFlowConfig {
+  name: string;
+  sender: IAgentFlowSpec;
+  receiver: IAgentFlowSpec | Array<IAgentFlowSpec>;
+  type: Literal;
 }

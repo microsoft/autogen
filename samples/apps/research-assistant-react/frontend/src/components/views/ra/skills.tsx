@@ -6,7 +6,7 @@ import { appContext } from "../../../hooks/provider";
 import { fetchJSON, truncateText } from "../../utils";
 import { CollapseBox, LoadBox } from "../../atoms";
 
-const SkillsView = ({ setMessages, skillup, config, setMetadata }: any) => {
+const SkillsView = ({ setMessages, skillup, config }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
     status: true,
@@ -45,7 +45,6 @@ const SkillsView = ({ setMessages, skillup, config, setMetadata }: any) => {
       if (data && data.status) {
         message.success(data.message);
         setMessages([]);
-        setMetadata({});
       } else {
         message.error(data.message);
       }
@@ -231,6 +230,10 @@ const SkillsView = ({ setMessages, skillup, config, setMetadata }: any) => {
           className="overflow-x-hidden scroll     rounded  "
         >
           <div className="font-semibold mb-2 pb-1 border-b"> Skills </div>
+          <div className="text-xs mb-2 pb-1  ">
+            {" "}
+            Skills are python functions that agents can use to solve tasks.{" "}
+          </div>
           {userSkills && <>{showSkillRows(userSkills, "User Skills")}</>}
 
           {globalSkills && globalSkills.length > 0 && (

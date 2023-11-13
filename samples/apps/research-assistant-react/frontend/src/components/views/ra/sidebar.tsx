@@ -1,14 +1,9 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import * as React from "react";
 import SkillsView from "./skills";
+import AgentsView from "./agents";
 
-const SideBarView = ({
-  setMessages,
-  notify,
-  skillup,
-  config,
-  setMetadata,
-}: any) => {
+const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
   const [isOpen, setIsOpen] = React.useState(true);
   const minWidth = isOpen ? "270px" : "50px";
 
@@ -17,14 +12,14 @@ const SideBarView = ({
       style={{ minWidth: minWidth, maxWidth: minWidth }}
       className="transition overflow-hidden duration-300  flex flex-col    h-full p-2 "
     >
-      <div className="flex-1    ">
+      <div className="flex-1 ">
         <div className={`${isOpen ? "" : "hidden"}`}>
+          {/* <AgentsView /> */}
           <SkillsView
             notify={notify}
             setMessages={setMessages}
             skillup={skillup}
             config={config}
-            setMetadata={setMetadata}
           />
         </div>
       </div>

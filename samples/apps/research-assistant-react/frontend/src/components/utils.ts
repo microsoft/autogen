@@ -1,5 +1,4 @@
-import { orderBy } from "lodash";
-import { IContextDocumentItem, IStatus } from "./types";
+import { IStatus } from "./types";
 
 export function setCookie(name: string, value: any, days: number) {
   let expires = "";
@@ -88,23 +87,6 @@ export function fetchJSON(
 export const capitalize = (s: string) => {
   if (typeof s !== "string") return "";
   return s.charAt(0).toUpperCase() + s.slice(1);
-};
-
-export const postDocument = (
-  doc: IContextDocumentItem,
-  onSuccess: (data: any) => void,
-  onError: (error: IStatus) => void
-) => {
-  const serverUrl = process.env.GATSBY_API_URL;
-  const postDocumentUrl = `${serverUrl}/context/document/add`;
-  const payLoad = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(doc),
-  };
-  fetchJSON(postDocumentUrl, payLoad, onSuccess, onError);
 };
 
 export function eraseCookie(name: string) {
@@ -209,10 +191,10 @@ export const guid = () => {
  */
 export const formatDuration = (seconds: number) => {
   const units = [
-    { label: "day", seconds: 86400 },
-    { label: "hr", seconds: 3600 },
-    { label: "min", seconds: 60 },
-    { label: "sec", seconds: 1 },
+    { label: " day", seconds: 86400 },
+    { label: " hr", seconds: 3600 },
+    { label: " min", seconds: 60 },
+    { label: " sec", seconds: 1 },
   ];
 
   let remainingSeconds = seconds;

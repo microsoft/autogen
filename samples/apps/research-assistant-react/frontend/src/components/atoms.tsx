@@ -254,6 +254,19 @@ export const MessageBox = ({ title, children, className }: IProps) => {
   );
 };
 
+export const GroupView = ({ children, title, className = "" }: any) => {
+  return (
+    <div className={`rounded mt-4  border-secondary   ${className}`}>
+      <div className="mt-4 p-2 rounded border relative">
+        <div className="absolute  -top-5   bg-primary p-2 inline-block">
+          {title}
+        </div>
+        <div className="mt-2"> {children}</div>
+      </div>
+    </div>
+  );
+};
+
 export const ExpandView = ({ children, className = "" }: any) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
