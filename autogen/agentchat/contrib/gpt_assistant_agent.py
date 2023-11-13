@@ -52,6 +52,7 @@ class GPTAssistantAgent(ConversableAgent):
         self._openai_client = oai_wrapper._clients[0]
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
+            logger.warning("assistant_id was None, creating a new assistant")
             # create a new assistant
             if instructions is None:
                 logger.warning(
@@ -340,10 +341,15 @@ class GPTAssistantAgent(ConversableAgent):
         """Return the assistant id"""
         return self._openai_assistant.id
 
+    @property
+    def openai_client(self):
+        return self._openai_client
+
     def get_assistant_instructions(self):
         """Return the assistant instructions from OAI assistant API"""
         return self._openai_assistant.instructions
 
     def delete_assistant(self):
         """Delete the assistant from OAI assistant API"""
+        logger.warning("Permanently deleting assistant...")
         self._openai_client.beta.assistants.delete(self.assistant_id)
