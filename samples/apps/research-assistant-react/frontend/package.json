@@ -57,8 +57,8 @@
   },
   "devDependencies": {
     "@types/node": "^18.7.13",
-    "@types/react": "^17.0.44",
-    "@types/react-dom": "^17.0.16",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
     "@types/react-inner-image-zoom": "^3.0.0",
     "@types/react-resizable": "^3.0.2",
     "gh-pages": "^4.0.0",

@@ -51,5 +51,5 @@ export interface IFlowConfig {
   name: string;
   sender: IAgentFlowSpec;
   receiver: IAgentFlowSpec | Array<IAgentFlowSpec>;
-  type: Literal;
+  type: "default" | "groupchat";
 }

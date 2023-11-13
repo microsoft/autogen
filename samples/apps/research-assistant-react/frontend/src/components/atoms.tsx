@@ -5,7 +5,7 @@ import {
   XMarkIcon,
   ClipboardIcon,
 } from "@heroicons/react/24/outline";
-import React, { ReactChildren, ReactChild, useRef } from "react";
+import React, { ReactNode, useRef } from "react";
 import Icon from "./icons";
 import { Modal } from "antd";
 import remarkGfm from "remark-gfm";
@@ -21,13 +21,13 @@ interface CodeProps {
 }
 
 interface IProps {
-  children?: ReactChild | ReactChildren;
-  title?: string | ReactChild;
-  subtitle?: string | ReactChild | ReactChildren;
+  children?: ReactNode;
+  title?: string | ReactNode;
+  subtitle?: string | ReactNode;
   count?: number;
   active?: boolean;
   cursor?: string;
-  icon?: ReactChild;
+  icon?: ReactNode;
   padding?: string;
   className?: string;
   open?: boolean;

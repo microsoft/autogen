@@ -1,10 +1,7 @@
-import {
-  AdjustmentsVerticalIcon,
-  Cog6ToothIcon,
-} from "@heroicons/react/24/outline";
+import { AdjustmentsVerticalIcon } from "@heroicons/react/24/outline";
 import { Modal, Select, Slider } from "antd";
 import * as React from "react";
-import { GroupView, SecondaryButton } from "../../atoms";
+import { GroupView } from "../../atoms";
 import {
   IAgentConfig,
   IAgentFlowSpec,
@@ -85,13 +82,6 @@ const AgentsControlView = () => {
     GroupChatFlowConfig,
   ]);
   const [selectedConfig, setSelectedConfig] = React.useState<number>(0);
-
-  const textgen_config: ITextGeneratorConfig = {
-    messages: [],
-    n: 1,
-    model: "gpt-3.5-turbo-0301",
-    temperature: 0.1,
-  };
 
   return (
     <div className="text-secondary rounded p">
