@@ -71,7 +71,7 @@ const Header = ({ meta, link }: any) => {
                     <span className=" bg-primary  inline-block pt-2 absolute">
                       {" "}
                       <div className="inline-block w-10  text-accent   bg-primary pb-2 mr-1">
-                        <Icon icon="app" size={10} />
+                        <Icon icon="app" size={8} />
                       </div>{" "}
                     </span>
                     <div className="pt-1 text-lg ml-14     inline-block">
