@@ -44,9 +44,9 @@ This demo focuses on the research assistant use case with some generalizations:
 
 - **Skills**: The agent is provided with a list of skills that it can leverage while attempting to address a user's query. Each skill is a python function that may be in any file in a folder made availabe to the agents. We separate the concept of global skills available to all agents `backend/files/global_utlis_dir` and user level skills `backend/files/user/<user_hash>/utils_dir`, relevant in a multi user environment. Agents are aware skills as they are appended to the system message. A list of example skills is available in the `backend/global_utlis_dir` folder. Modify the file or create a new file with a function in the same directory to create new global skills.
 
--**Conversation Persistence**: Conversation history is persisted in an sqlite database `database.sqlite`.
+- **Conversation Persistence**: Conversation history is persisted in an sqlite database `database.sqlite`.
 
--**Two Agent Workflow**: The default sample supports a two agent workflow where a user proxy agent and an assistant agent communicate to address user requests.
+- **Two Agent Workflow**: The default sample supports a two agent workflow where a user proxy agent and an assistant agent communicate to address user requests.
 
 ## Example Usage
 
