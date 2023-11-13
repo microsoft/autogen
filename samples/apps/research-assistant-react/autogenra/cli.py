@@ -1,13 +1,15 @@
+import os
 from typing_extensions import Annotated
 import typer
 import uvicorn
-import os
 
-app = typer.Typer(invoke_without_command=True)
+from .version import VERSION
+
+app = typer.Typer()
 
 
-@app.callback()
-def main(
+@app.command()
+def ui(
     host: str = "127.0.0.1",
     port: int = 8081,
     workers: int = 1,
@@ -30,13 +32,16 @@ def main(
 
 
 @app.command()
-def models():
-    print("A list of supported providers:")
+def version():
+    """
+    Print the version of the Autogen RA UI CLI.
+    """ 
+
+    typer.echo(f"Autogen RA UI CLI version: {VERSION}")
 
 
 def run():
     app()
-
 
 if __name__ == "__main__":
     app()

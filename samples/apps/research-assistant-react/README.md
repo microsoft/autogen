@@ -31,7 +31,7 @@ The command above will build the frontend ui and copy the build artifacts to the
 Run the web ui:
 
 ```bash
-autogenra --port 8081
+autogenra ui --port 8081
 ```
 
 Navigate to <http://localhost:8081/> to view the web ui.
