@@ -32,7 +32,7 @@ def search_arxiv(query, max_results=10):
 
     # Cache hit
     if os.path.isfile(fname):
-        fh = open(fname, "r")
+        fh = open(fname, "r", encoding="utf-8")
         data = json.loads(fh.read())
         fh.close()
         return data
@@ -59,7 +59,7 @@ def search_arxiv(query, max_results=10):
         r["doi"] = result.doi
         r["primary_category"] = result.primary_category
         r["categories"] = result.categories
-        r["links"] = [str(l) for l in result.links]
+        r["links"] = [str(link) for link in result.links]
         r["pdf_url"] = result.pdf_url
         jresults.append(r)
 
