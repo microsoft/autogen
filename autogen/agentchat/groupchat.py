@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import sys
 from typing import Dict, List, Optional, Union
+import re
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 import logging
@@ -100,6 +101,20 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if not final:
             # i = self._random.randint(0, len(self._agent_names) - 1)  # randomly pick an id
             return self.next_agent(last_speaker, agents)
+
+        # Find mentions of any agents
+        mentions = dict()
+        for agent in self.agents:
+            regex = r"\b" + re.escape(agent.name) + r"\b"  # Finds agent mentions, taking word boundaries into account
+            count = len(re.findall(regex, name))
+            if count > 0:
+                mentions[agent.name] = count
+
+        # If exactly one agent is found, use it. Otherwise, leave the OAI response unmodified
+        if len(mentions) == 1:
+            name = next(iter(mentions))
+
+        # Return the result
         try:
             return self.agent_by_name(name)
         except ValueError:
