@@ -7,6 +7,7 @@ scratch/
 autogenra/web/workdir/*
 autogenra/web/ui/*
 autogenra/web/skills/user/*
+.release.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

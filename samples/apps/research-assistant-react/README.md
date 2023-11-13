@@ -12,7 +12,6 @@ Project Structure:
 Install requirements:
 
 ```bash
-cd autogenra
 pip install -e .
 ```
 
