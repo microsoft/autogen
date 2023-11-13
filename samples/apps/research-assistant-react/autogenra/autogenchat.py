@@ -1,7 +1,7 @@
 import json
 import time
 from typing import List
-from .datamodel import AgentConfig, AgentFlowSpec, LLMConfig, Message
+from .datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig, Message
 import autogen
 from .utils import get_modified_files
 from .autogenflow import AutoGenFlow
@@ -51,7 +51,14 @@ class ChatManager():
                     )
         ) 
 
-        flow = AutoGenFlow(sender=userproxy_spec, receiver=assistant_spec, history=history)
+        flow_config = FlowConfig(
+            name="default",
+            sender=userproxy_spec,
+            receiver=assistant_spec,
+            type="default",
+        )
+
+        flow = AutoGenFlow(config=flow_config, history=history)
         message_text = message.content.strip()   
     
 

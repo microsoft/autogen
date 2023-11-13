@@ -1,13 +1,13 @@
-from typing import Union, List 
+from typing import List 
 from dataclasses import asdict
 import autogen  
-from .datamodel import AgentFlowSpec, AgentConfig, Message
+from .datamodel import AgentFlowSpec, FlowConfig, Message
 
 
 class AutoGenFlow(object):
-    def __init__(self, sender: AgentConfig, receiver:  Union[AgentConfig, List[AgentConfig]], history: List[Message] = None):
-        self.sender = self.load(sender)
-        self.receiver = self.load(receiver)
+    def __init__(self, config: FlowConfig, history: List[Message] = None):
+        self.sender = self.load(config.sender)
+        self.receiver = self.load(config.receiver)
 
         if history:
             # populate the agent message history 
