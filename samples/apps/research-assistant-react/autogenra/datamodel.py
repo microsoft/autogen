@@ -56,9 +56,9 @@ class ModelConfig:
     """Data model for Model Config item in LLMConfig for Autogen"""
 
     model: str
-    api_key: str
-    api_version: str
-    api_base: str
+    api_key: Optional[str] = None
+    api_version: Optional[str] = None
+    api_base: Optional[str] = None
 
 @dataclass
 class LLMConfig:

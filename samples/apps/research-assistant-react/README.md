@@ -19,10 +19,13 @@ AutoGen requires access to an LLM. Please see the [AutoGen docs](https://microso
 
 ### Build and Run Frontend UI
 
+Note that your Gatsby requires node > 14.15.0 . You may need to [upgrade your node](https://stackoverflow.com/questions/10075990/upgrading-node-js-to-latest-version) version as needed.
+
 ```bash
+npm install --global yarn
 cd frontend
-npm install
-npm run build
+yarn install
+yarn build
 ```
 
 The command above will build the frontend ui and copy the build artifacts to the `autogenra` web ui folder. Note that you may have to run `npm install --force` to force resolve some peer dependencies.

@@ -6,6 +6,10 @@ import {
   IStatus,
 } from "./types";
 
+export const getServerUrl = () => {
+  return process.env.GATSBY_API_URL || "/api";
+};
+
 export function setCookie(name: string, value: any, days: number) {
   let expires = "";
   if (days) {

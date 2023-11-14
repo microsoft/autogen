@@ -1,10 +1,10 @@
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import * as React from "react";
 import { CollapseBox, ExpandView, MarkdownView } from "../../atoms";
-import { formatDuration } from "../../utils";
+import { formatDuration, getServerUrl } from "../../utils";
 
 const MetaDataView = ({ metadata }: { metadata: any | null }) => {
-  const serverUrl = process.env.GATSBY_API_URL;
+  const serverUrl = getServerUrl();
 
   const renderFile = (file: string, i: number) => {
     const file_type = file.split(".").pop() || "";

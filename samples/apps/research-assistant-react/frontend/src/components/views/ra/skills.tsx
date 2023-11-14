@@ -3,8 +3,9 @@ import { message } from "antd";
 import * as React from "react";
 import { IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import { fetchJSON, truncateText } from "../../utils";
+import { fetchJSON, getServerUrl, truncateText } from "../../utils";
 import { CollapseBox, LoadBox } from "../../atoms";
+import { get } from "http";
 
 const SkillsView = ({ setMessages, skillup, config }: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -14,7 +15,7 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
   });
 
   const { user } = React.useContext(appContext);
-  const serverUrl = process.env.GATSBY_API_URL;
+  const serverUrl = getServerUrl();
   const clearDbUrl = `${serverUrl}/cleardb`;
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
   const clearSkillsUrl = `${serverUrl}/skills/clear?user_id=${user?.email}`;

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { IMessage, IStatus } from "../../types";
-import { fetchJSON, setLocalStorage } from "../../utils";
+import { fetchJSON, getServerUrl, setLocalStorage } from "../../utils";
 import ChatBox from "./chatbox";
 import { appContext } from "../../../hooks/provider";
 import { message } from "antd";
@@ -28,7 +28,7 @@ const RAView = () => {
   });
 
   const { user } = React.useContext(appContext);
-  const serverUrl = process.env.GATSBY_API_URL;
+  const serverUrl = getServerUrl();
   const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}`;
 
   const fetchMessages = () => {

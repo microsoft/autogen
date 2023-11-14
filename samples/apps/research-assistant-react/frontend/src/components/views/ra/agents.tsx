@@ -257,7 +257,7 @@ const AgentsView = () => {
 
   return (
     <div className="h-full  mb-4 ">
-      <div className="font-semibold pb-2 border-b">Agents view</div>
+      <div className="font-semibold pb-2 border-b">Agents </div>
       <div className="text-xs mt-2 mb-2 pb-1  ">
         {" "}
         Select or create an agent workflow.{" "}

@@ -8,7 +8,7 @@ import {
 import { Button, Dropdown, MenuProps, message } from "antd";
 import * as React from "react";
 import { IChatMessage, IMessage, IStatus } from "../../types";
-import { fetchJSON, guid } from "../../utils";
+import { fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
 import { MarkdownView } from "../../atoms";
@@ -26,7 +26,7 @@ const ChatBox = ({
   const messageBoxInputRef = React.useRef<HTMLDivElement>(null);
   const { user } = React.useContext(appContext);
 
-  const serverUrl = process.env.GATSBY_API_URL;
+  const serverUrl = getServerUrl();
   const deleteMsgUrl = `${serverUrl}/messages/delete`;
 
   const [loading, setLoading] = React.useState(false);
