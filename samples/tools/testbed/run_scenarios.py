@@ -9,6 +9,9 @@ import pathlib
 import argparse
 from autogen import config_list_from_json
 
+# What platform are we running?
+IS_WIN32 = sys.platform == "win32"
+
 # Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
 INCLUDES_DIR = "includes"
 
@@ -186,7 +189,7 @@ def run_scenario_in_docker(work_dir, timeout=600):
             print("Failed to pull image", image_name)
 
     # Prepare the run script
-    with open(os.path.join(work_dir, "run.sh"), "wt") as f:
+    with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
         f.write(
             """#
 . ./ENV
@@ -219,7 +222,7 @@ echo SCENARIO COMPLETE !#!#
     if container.status != "exited":
         container.stop()
 
-        logs = container.logs().decode("utf-8").rstrip() + "\nDocker timed out."
+        logs = container.logs().decode("utf-8").rstrip() + "\nDocker timed out.\n"
         print(logs)
         with open(os.path.join(work_dir, "console_log.txt"), "wt") as f:
             f.write(logs)
@@ -228,7 +231,7 @@ echo SCENARIO COMPLETE !#!#
         return
 
     # get the container logs
-    logs = container.logs().decode("utf-8").rstrip()
+    logs = container.logs().decode("utf-8").rstrip() + "\n"
     container.remove()
 
     print(logs)
@@ -274,12 +277,15 @@ if __name__ == "__main__":
 
     # Warn if running natively
     if args.native:
+        if IS_WIN32:
+            sys.exit("Running scenarios with --native is not supported in Windows. Exiting.")
+
         choice = input(
             'WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\nAre you absolutely sure you want to continue with native execution? Type "Yes" exactly, and in full, to proceed: '
         )
 
         if choice.strip().lower() != "yes":
-            print("Received '" + choice + "'. Exiting.")
+            sys.exit("Received '" + choice + "'. Exiting.")
 
     # Import docker if needed
     is_native = True if args.native else False
