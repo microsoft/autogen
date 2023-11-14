@@ -3,8 +3,8 @@
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue)
 [![Downloads](https://static.pepy.tech/badge/pyautogen/week)](https://pepy.tech/project/pyautogen)
 [![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
+[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen)
 
-This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
 
 # AutoGen
 
@@ -12,8 +12,19 @@ This project is a spinoff from [FLAML](https://github.com/microsoft/FLAML).
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
+:fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples.
 
-:fire: Heads-up: pyautogen v0.2 will switch to using openai v1.
+:fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff.
+
+:fire: Nov 6: AutoGen is mentioned by Satya Nadella in a [fireside chat](https://youtu.be/0pLBvgYtv6U) around 13:20.
+
+:fire: Nov 1: AutoGen is the top trending repo on GitHub in October 2023.
+
+:fire: Heads-up: pyautogen v0.2 will switch to using openai v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
+
+:tada: **Oct 03**: Autogen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github and has a major paper update.
+
+:tada: Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv.
 
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
@@ -28,28 +39,28 @@ AutoGen is a framework that enables the development of LLM applications using mu
 
 ![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
-- AutoGen enables building next-gen LLM applications based on **multi-agent conversations** with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
-- It supports **diverse conversation patterns** for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
+- AutoGen enables building next-gen LLM applications based on [multi-agent conversations](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) with minimal effort. It simplifies the orchestration, automation, and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses.
+- It supports [diverse conversation patterns](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#supporting-diverse-conversation-patterns) for complex workflows. With customizable and conversable agents, developers can use AutoGen to build a wide range of conversation patterns concerning conversation autonomy,
   the number of agents, and agent conversation topology.
-- It provides a collection of working systems with different complexities. These systems span a **wide range of applications** from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
-- AutoGen provides **enhanced LLM inference**. It offers easy performance tuning, plus utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
+- It provides a collection of working systems with different complexities. These systems span a [wide range of applications](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat#diverse-applications-implemented-with-autogen) from various domains and complexities. This demonstrates how AutoGen can easily support diverse conversation patterns.
+- AutoGen provides [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification). It offers utilities like API unification and caching, and advanced usage patterns, such as error handling, multi-config inference, context programming, etc.
 
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
 ## Quickstart
 The easiest way to start playing is
-1. Click below to use the Github Codespace
+1. Click below to use the GitHub Codespace
 
     [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
 
- 2. Copy OAI_CONFIG_LIST_sample to /notebook folder, name to OAI_CONFIG_LIST, and set the correct config.
+ 2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
 
 
 ## Installation
 
-AutoGen requires **Python version >= 3.8**. It can be installed from pip:
+AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
 
 ```bash
 pip install pyautogen
@@ -66,13 +77,13 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
-For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the python docker package, and using docker.
+For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the Python docker package and using docker.
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
 ## Multi-Agent Conversation Framework
 
-Autogen enables the next-gen LLM applications with a generic multi-agent conversation framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
+Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
 Features of this use case include:
@@ -106,14 +117,16 @@ After the repo is cloned.
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
 
-Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-AgentChat) for this feature.
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AgentChat) for this feature.
 
 ## Enhanced LLM Inferences
 
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalities like tuning, caching, error handling, and templating. For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers [enhanced LLM inference](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference#api-unification) with powerful functionalities like caching, error handling, multi-config inference and templating.
+
+<!-- For example, you can optimize generations by LLM with your own tuning data, success metrics, and budgets.
 
 ```python
-# perform tuning
+# perform tuning for openai<1
 config, analysis = autogen.Completion.tune(
     data=tune_data,
     metric="success",
@@ -127,7 +140,7 @@ config, analysis = autogen.Completion.tune(
 response = autogen.Completion.create(context=test_instance, **config)
 ```
 
-Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AutoGen-Inference) for this feature.
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/Inference) for this feature. -->
 
 ## Documentation
 

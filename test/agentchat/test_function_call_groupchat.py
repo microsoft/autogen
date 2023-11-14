@@ -1,13 +1,14 @@
 import autogen
 import pytest
 import sys
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
-    import openai
-
-    skip = False
+    from openai import OpenAI
 except ImportError:
     skip = True
+else:
+    skip = False
 
 
 @pytest.mark.skipif(
@@ -21,14 +22,15 @@ def test_function_call_groupchat():
         return random.randint(0, 100)
 
     config_list_gpt4 = autogen.config_list_from_json(
-        "OAI_CONFIG_LIST",
+        OAI_CONFIG_LIST,
         filter_dict={
             "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
+        file_location=KEY_LOC,
     )
     llm_config = {
         "config_list": config_list_gpt4,
-        "seed": 42,
+        "cache_seed": 42,
         "functions": [
             {
                 "name": "get_random_number",

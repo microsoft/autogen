@@ -4,7 +4,7 @@ import copy
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
-from autogen import oai
+from autogen import OpenAIWrapper
 from .agent import Agent
 from autogen.code_utils import (
     DEFAULT_MODEL,
@@ -93,7 +93,7 @@ class ConversableAgent(Agent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
@@ -107,10 +107,12 @@ class ConversableAgent(Agent):
         )
         if llm_config is False:
             self.llm_config = False
+            self.client = None
         else:
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
+            self.client = OpenAIWrapper(**self.llm_config)
 
         self._code_execution_config = {} if code_execution_config is None else code_execution_config
         self.human_input_mode = human_input_mode
@@ -238,6 +240,10 @@ class ConversableAgent(Agent):
                 for conversation in self._oai_messages.values():
                     return conversation[-1]
             raise ValueError("More than one conversation is found. Please specify the sender to get the last message.")
+        if agent not in self._oai_messages.keys():
+            raise KeyError(
+                f"The agent '{agent.name}' is not present in any conversation. No history available for this agent."
+            )
         return self._oai_messages[agent][-1]
 
     @property
@@ -255,8 +261,10 @@ class ConversableAgent(Agent):
         """
         if isinstance(message, str):
             return {"content": message}
-        else:
+        elif isinstance(message, dict):
             return message
+        else:
+            return dict(message)
 
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
@@ -286,6 +294,7 @@ class ConversableAgent(Agent):
         oai_message["role"] = "function" if message.get("role") == "function" else role
         if "function_call" in oai_message:
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
+            oai_message["function_call"] = dict(oai_message["function_call"])
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
@@ -307,7 +316,7 @@ class ConversableAgent(Agent):
                 - role (str): the role of the message, any role that is not "function"
                     will be modified to "assistant".
                 - context (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
                     For example, one agent can send a message A as:
         ```python
         {
@@ -356,7 +365,7 @@ class ConversableAgent(Agent):
                 - role (str): the role of the message, any role that is not "function"
                     will be modified to "assistant".
                 - context (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
                     For example, one agent can send a message A as:
         ```python
         {
@@ -399,18 +408,21 @@ class ConversableAgent(Agent):
             content = message.get("content")
             if content is not None:
                 if "context" in message:
-                    content = oai.ChatCompletion.instantiate(
+                    content = OpenAIWrapper.instantiate(
                         content,
                         message["context"],
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
                 print(content, flush=True)
             if "function_call" in message:
-                func_print = f"***** Suggested function Call: {message['function_call'].get('name', '(No function name found)')} *****"
+                function_call = dict(message["function_call"])
+                func_print = (
+                    f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
+                )
                 print(colored(func_print, "green"), flush=True)
                 print(
                     "Arguments: \n",
-                    message["function_call"].get("arguments", "(No arguments found)"),
+                    function_call.get("arguments", "(No arguments found)"),
                     flush=True,
                     sep="",
                 )
@@ -448,7 +460,7 @@ class ConversableAgent(Agent):
                     This field is only needed to distinguish between "function" or "assistant"/"user".
                 4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                 5. "context" (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
@@ -484,7 +496,7 @@ class ConversableAgent(Agent):
                     This field is only needed to distinguish between "function" or "assistant"/"user".
                 4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                 5. "context" (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
@@ -597,17 +609,17 @@ class ConversableAgent(Agent):
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai."""
-        llm_config = self.llm_config if config is None else config
-        if llm_config is False:
+        client = self.client if config is None else config
+        if client is None:
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
         # TODO: #1143 handle token limit exceeded error
-        response = oai.ChatCompletion.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages, **llm_config
+        response = client.create(
+            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
-        return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        return True, client.extract_text_or_function_call(response)[0]
 
     def generate_code_execution_reply(
         self,
@@ -726,6 +738,77 @@ class ConversableAgent(Agent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = self.get_human_input(
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                    )
+                    no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+                    # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+                    reply = reply or "exit"
+
+        # print the no_human_input_msg
+        if no_human_input_msg:
+            print(colored(f"\n>>>>>>>> {no_human_input_msg}", "red"), flush=True)
+
+        # stop the conversation
+        if reply == "exit":
+            # reset the consecutive_auto_reply_counter
+            self._consecutive_auto_reply_counter[sender] = 0
+            return True, None
+
+        # send the human reply
+        if reply or self._max_consecutive_auto_reply_dict[sender] == 0:
+            # reset the consecutive_auto_reply_counter
+            self._consecutive_auto_reply_counter[sender] = 0
+            return True, reply
+
+        # increment the consecutive_auto_reply_counter
+        self._consecutive_auto_reply_counter[sender] += 1
+        if self.human_input_mode != "NEVER":
+            print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
+
+        return False, None
+
+    async def a_check_termination_and_human_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ) -> Tuple[bool, Union[str, Dict, None]]:
+        """(async) Check if the conversation should be terminated, and if human reply is provided."""
+        if config is None:
+            config = self
+        if messages is None:
+            messages = self._oai_messages[sender]
+        message = messages[-1]
+        reply = ""
+        no_human_input_msg = ""
+        if self.human_input_mode == "ALWAYS":
+            reply = await self.a_get_human_input(
+                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+            )
+            no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+            # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+            reply = reply if reply or not self._is_termination_msg(message) else "exit"
+        else:
+            if self._consecutive_auto_reply_counter[sender] >= self._max_consecutive_auto_reply_dict[sender]:
+                if self.human_input_mode == "NEVER":
+                    reply = "exit"
+                else:
+                    # self.human_input_mode == "TERMINATE":
+                    terminate = self._is_termination_msg(message)
+                    reply = await self.a_get_human_input(
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        if terminate
+                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                    )
+                    no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
+                    # if the human input is empty, and the message is a termination message, then we will terminate the conversation
+                    reply = reply if reply or not terminate else "exit"
+            elif self._is_termination_msg(message):
+                if self.human_input_mode == "NEVER":
+                    reply = "exit"
+                else:
+                    # self.human_input_mode == "TERMINATE":
+                    reply = await self.a_get_human_input(
                         f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
@@ -879,6 +962,20 @@ class ConversableAgent(Agent):
 
     def get_human_input(self, prompt: str) -> str:
         """Get human input.
+
+        Override this method to customize the way to get human input.
+
+        Args:
+            prompt (str): prompt for the human input.
+
+        Returns:
+            str: human input.
+        """
+        reply = input(prompt)
+        return reply
+
+    async def a_get_human_input(self, prompt: str) -> str:
+        """(Async) Get human input.
 
         Override this method to customize the way to get human input.
 

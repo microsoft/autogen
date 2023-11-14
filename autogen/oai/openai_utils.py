@@ -7,7 +7,7 @@ import logging
 from dotenv import find_dotenv, load_dotenv
 
 
-NON_CACHE_KEY = ["api_key", "api_base", "api_type", "api_version"]
+NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 
 
 def get_key(config):
@@ -33,13 +33,13 @@ def get_key(config):
 
 
 def get_config_list(
-    api_keys: List, api_bases: Optional[List] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
+    api_keys: List, base_urls: Optional[List] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
 ) -> List[Dict]:
     """Get a list of configs for openai api calls.
 
     Args:
         api_keys (list): The api keys for openai api calls.
-        api_bases (list, optional): The api bases for openai api calls.
+        base_urls (list, optional): The api bases for openai api calls.
         api_type (str, optional): The api type for openai api calls.
         api_version (str, optional): The api version for openai api calls.
     """
@@ -48,8 +48,8 @@ def get_config_list(
         if not api_key.strip():
             continue
         config = {"api_key": api_key}
-        if api_bases:
-            config["api_base"] = api_bases[i]
+        if base_urls:
+            config["base_url"] = base_urls[i]
         if api_type:
             config["api_type"] = api_type
         if api_version:
@@ -83,8 +83,8 @@ def config_list_openai_aoai(
                 os.environ["OPENAI_API_KEY"] = key_file.read().strip()
         except FileNotFoundError:
             logging.info(
-                "To use OpenAI API, please set OPENAI_API_KEY in os.environ "
-                "or create key_openai.txt in the specified path, or specify the api_key in config_list."
+                "OPENAI_API_KEY is not found in os.environ "
+                "and key_openai.txt is not found in the specified path. You can specify the api_key in the config_list."
             )
     if "AZURE_OPENAI_API_KEY" not in os.environ and exclude != "aoai":
         try:
@@ -92,8 +92,8 @@ def config_list_openai_aoai(
                 os.environ["AZURE_OPENAI_API_KEY"] = key_file.read().strip()
         except FileNotFoundError:
             logging.info(
-                "To use Azure OpenAI API, please set AZURE_OPENAI_API_KEY in os.environ "
-                "or create key_aoai.txt in the specified path, or specify the api_key in config_list."
+                "AZURE_OPENAI_API_KEY is not found in os.environ "
+                "and key_aoai.txt is not found in the specified path. You can specify the api_key in the config_list."
             )
     if "AZURE_OPENAI_API_BASE" not in os.environ and exclude != "aoai":
         try:
@@ -101,17 +101,17 @@ def config_list_openai_aoai(
                 os.environ["AZURE_OPENAI_API_BASE"] = key_file.read().strip()
         except FileNotFoundError:
             logging.info(
-                "To use Azure OpenAI API, please set AZURE_OPENAI_API_BASE in os.environ "
-                "or create base_aoai.txt in the specified path, or specify the api_base in config_list."
+                "AZURE_OPENAI_API_BASE is not found in os.environ "
+                "and base_aoai.txt is not found in the specified path. You can specify the base_url in the config_list."
             )
     aoai_config = (
         get_config_list(
             # Assuming Azure OpenAI api keys in os.environ["AZURE_OPENAI_API_KEY"], in separated lines
             api_keys=os.environ.get("AZURE_OPENAI_API_KEY", "").split("\n"),
             # Assuming Azure OpenAI api bases in os.environ["AZURE_OPENAI_API_BASE"], in separated lines
-            api_bases=os.environ.get("AZURE_OPENAI_API_BASE", "").split("\n"),
+            base_urls=os.environ.get("AZURE_OPENAI_API_BASE", "").split("\n"),
             api_type="azure",
-            api_version="2023-07-01-preview",  # change if necessary
+            api_version="2023-08-01-preview",  # change if necessary
         )
         if exclude != "aoai"
         else []
@@ -121,7 +121,7 @@ def config_list_openai_aoai(
             # Assuming OpenAI API_KEY in os.environ["OPENAI_API_KEY"]
             api_keys=os.environ.get("OPENAI_API_KEY", "").split("\n"),
             # "api_type": "open_ai",
-            # "api_base": "https://api.openai.com/v1",
+            # "base_url": "https://api.openai.com/v1",
         )
         if exclude != "openai"
         else []
@@ -248,7 +248,7 @@ def config_list_from_json(
 
 
 def get_config(
-    api_key: str, api_base: Optional[str] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
+    api_key: str, base_url: Optional[str] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
 ) -> Dict:
     """
     Construct a configuration dictionary with the provided API configurations.
@@ -261,12 +261,12 @@ def get_config(
             "api_key_env_var": "ANOTHER_API_KEY",
             "api_type": "aoai",
             "api_version": "v2",
-            "api_base": "https://api.someotherapi.com"
+            "base_url": "https://api.someotherapi.com"
         }
     }
     Args:
         api_key (str): The API key used for authenticating API requests.
-        api_base (str, optional): The base URL of the API. Defaults to None.
+        base_url (str, optional): The base URL of the API. Defaults to None.
         api_type (str, optional): The type or kind of API. Defaults to None.
         api_version (str, optional): The API version. Defaults to None.
 
@@ -274,8 +274,8 @@ def get_config(
         Dict: A dictionary containing the API configurations.
     """
     config = {"api_key": api_key}
-    if api_base:
-        config["api_base"] = api_base
+    if base_url:
+        config["base_url"] = base_url
     if api_type:
         config["api_type"] = api_type
     if api_version:
@@ -302,7 +302,7 @@ def config_list_from_dotenv(
                                            If a string is provided as configuration, it is considered as an environment
                                            variable name storing the API key.
                                            If a dict is provided, it should contain at least 'api_key_env_var' key,
-                                           and optionally other API configurations like 'api_base', 'api_type', and 'api_version'.
+                                           and optionally other API configurations like 'base_url', 'api_type', and 'api_version'.
                                            Defaults to a basic map with 'gpt-4' and 'gpt-3.5-turbo' mapped to 'OPENAI_API_KEY'.
         filter_dict (dict, optional): A dictionary containing the models to be loaded.
                                       Containing a 'model' key mapped to a set of model names to be loaded.
