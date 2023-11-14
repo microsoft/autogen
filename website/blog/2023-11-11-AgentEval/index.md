@@ -1,8 +1,8 @@
 
 ---
-title:  AgentEval: Assessing Task Utility for LLM-powered Applications
+title:  AgentEval: Assessing Task Utility for LLM Applications
 authors: julianakiseleva, Narabzad
-tags: [LLM, GPT, evaluation, task utitility]
+tags: [LLM, GPT, evaluation, task utility]
 ---
 
 ![Fig.1: An verification Framework](img/agenteval-CQ.png)
@@ -11,7 +11,7 @@ tags: [LLM, GPT, evaluation, task utitility]
 * We introduce `AgentEval` — the first version of the framework to automatically assess task utility for an arbitrary application. It suggests criteria to explain task utility and then quantifies these criteria for logs of your system.
 * We demonstrate the usage of our framework with the [Math Problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat)
 
-## Run it yourself:
+## Run it yourself
 
 Use the Jupyter notebook for a demonstration of `AgentEval` for [Math Problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat) -- [agenteval_cq_math.ipynb](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb)
 
@@ -20,21 +20,21 @@ Use the Jupyter notebook for a demonstration of `AgentEval` for [Math Problems d
 
 The goal of AutoGen is to make it straightforward and easy to develop LLM-based multi-agent systems for an arbitrary application that helps the end users with their tasks. The next big step forward is what we all want to know: how the developed systems are performing, if they bring utility to our users, and, even more importantly, how we can improve them. Directly evaluating the multi-agent systems is tricky since current approaches mainly rely on success metrics, basically if the agent can accomplish the tasks. Moreover, the definition of success for a particular task is not always given. Introductions of LLMs bring us a lot of abilities that we are eager to convert into actual utilities for end users. In this blog post, we introduce `AgentEval` — the first version of the framework for assessing task utility in LLM-based applications.
 
-![Fig.2: An overview of the tasks taxonomy](img/tasks-taxonomy.png)
+![Fig.2: An overview of the tasks taxonomy](img/tasks-taxonomy-v2.png)
 
 Let's first look into an overview of the suggested task taxonomy that a multi-agent system can be designed for. In general, the tasks can be split into two types, namely:
 * _Assistive Tasks_ - refer to instances when users utilize a system in an assistive manner, seeking suggestions rather than expecting the system to solve the task. For example, a user might request the system to generate an email. In many cases, this generated content serves as a template that the user will later edit. However, defining success precisely for such tasks is relatively complex.
-*refer to instances where we can clearly define whether a system solved the task or not. Consider agents that assist in accomplishing household tasks, where the definition of success is clear and measurable. This category can be further divided into two separate subcategories:
+* _Executable Tasks_ -refer to instances where we can clearly define whether a system solved the task or not. Consider agents that assist in accomplishing household tasks, where the definition of success is clear and measurable. This category can be further divided into two separate subcategories:
    * _The optimal solution exits_ -  there are tasks where only one solution is possible. For example, if you ask your assistant to turn on the light, the success of this task is clearly defined, and there is only one way to accomplish it.
-   * _Multiple solutions exist_ - "Increasingly, we observe situations where multiple trajectories of agent behavior can lead to either success or failure. In such cases, it is crucial to differentiate between the various successful and unsuccessful trajectories.
+   * _Multiple solutions exist_ - "Increasingly, we observe situations where multiple trajectories of agent behavior can lead to either success or failure. In such cases, it is crucial to differentiate between the various successful and unsuccessful trajectories. For example, when you ask the agent to suggest you a food recipe or tell you a joke.
 
 In our AgentEval framework, we are currently focusing on  _Executable Tasks_.    
 
 ## AgentEval Framework
 
-Our previous research on assistive agents in Minecraft suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. Interestingly, according to our earlier work, humans can develop criteria to explain why they prefer one agent over another. For example, 'the first agent was faster in execution,' or 'the second agent moves more naturally.' With this idea in mind, we designed AgentEval (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess the task *utility* for the multi-agent system. Namely:
+Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. Interestingly, according to our earlier work, humans can develop criteria to explain why they prefer one agent over another. For example, 'the first agent was faster in execution,' or 'the second agent moves more naturally.' With this idea in mind, we designed AgentEval (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess the task *utility* for the multi-agent system. Namely:
 
-* The goal of `CriticAgent` is to suggest the list of criteria $(c_1,\dots, c_n)$, that can be used to assess task utility. This is an example of how `CriticAgent` is defined:
+* The goal of `CriticAgent` is to suggest the list of criteria $(c_1,\dots, c_n)$, that can be used to assess task utility. This is an example of how `CriticAgent` is defined using `Autogen`:
 
 
 ```python
@@ -45,27 +45,29 @@ critic = autogen.AssistantAgent(
     Convert the evaluation criteria into a dictionary where the keys are the criteria.
     The value of each key is a dictionary as follows {"description": criteria description, "accepted_values": possible accepted inputs for this key}
     Make sure the keys are criteria for assessing the given task. "accepted_values" include the acceptable inputs for each key that are fine-grained and preferably multi-graded levels. "description" includes the criterion description.
-    Return the dictionary."""
+    Return only the dictionary."""
 )
 ```
 
-* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task -- $U(t_i)$. Here is an example of how it can be defined:
+* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task. Here is an example of how it can be defined:
 
 ```python
 quantifier = autogen.AssistantAgent(
     name="quantifier",
     llm_config={"config_list": config_list},
-    system_message="""You are a helpful assistant. You quantify the output of different tasks based on the given criteria.
+    system_message = """You are a helpful assistant. You quantify the output of different tasks based on the given criteria.
     The criterion is given in a dictionary format where each key is a distinct criteria.
-    The value of each key is a dictionary as follows {"description": criteria description, "accepted_values": possible accepted inputs for this key}
-    You are going to quantify each of the criteria for a given task based on the task description. Return a dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
-    Return the dictionary."""
+    The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}
+    You are going to quantify each of the criteria for a given task based on the task description.
+    Return a dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
+    Return only the dictionary."""
+
 )
 ```
 
 ## `AgentEval` Results based on math problems dataset
 
- First, after running CriticAgent, we obtained the following criteria to verify the results for math problem dataset:
+ As an example, after running CriticAgent, we obtained the following criteria to verify the results for math problem dataset:
 
 | Criteria      | Description | Accepted Values|
 |-----------|-----|----------------|
@@ -86,18 +88,13 @@ Lighter colors represent estimates for failed cases, and brighter colors show ho
 
 ![Fig.3: Results based on overall mathproblems datase `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
 
-Based on our analysis above, it's clear that the primary advantage of `AgentChat` is its ability to generate code. However, you might want to delve deeper into the suggestions. For example, Explanation Clarity turned out to be correlated with the length of the solution. Worth noting is that all models master _Task Understanding_ criteria. It's important not only to identify what is not working but also to recognize what actually went well.
-
-## Limitations and future work
-The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
-* The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is importnat for your domain. 
-* The results of the `QuantifierAgent` can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
-
-To mitigate the limitations mentioned above, we are working on VerifierAgent, whose goal is to stabilize the results and provide additional explanations.
-  
+We note that while applying agentEval to math problems, the agent was not exposed to any ground truth information about the problem. As such, this figure illustrates an estimated performance of the three different agents, namely, Sutogen (blue), Gpt-4 (red), and ReAct (green). We observe that by comparing the performance of any of the three agents in successful cases (dark bars of any color) versus unsuccessful cases (lighter version of the same bar), we note that AgentEval was able to more accurately estimate the performance of successful cases than that of failed ones. This observation verifies AgentEval's ability for task utility prediction. Additionally, AgentEval allows us to go beyond just a binary definition of success, enabling a more in-depth comparison between successful and failed cases.
+<!---
+ Based on our analysis above, it's clear that the primary advantage of AgentChat is its ability to generate chat. However, you might want to delve deeper into the suggestions. For example, Explanation Clarity turned out to be correlated with the length of the solution. 
+-->
 
 ## Summary
-`CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, providing you with an in-depth understanding of the utility your model brings to the user. The framework is in its early stages of investigation, so we would greatly benefit from your feedback. If you could please share your experience with us on Discord—such as how useful it was for you to understand what is working and what is not for your application, and where you see improvements could be made—it would be fantastic. We are fully committed to improving `AgentEval` and value your feedback.
+`CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, giving you an in-depth understanding of the utility your model brings to the user.
 
 
 ## Previous Research
