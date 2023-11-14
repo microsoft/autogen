@@ -49,7 +49,7 @@ critic = autogen.AssistantAgent(
 )
 ```
 
-* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task. Here is an example of how it can be defined:
+* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task -- $U(t_i)$. Here is an example of how it can be defined:
 
 ```python
 quantifier = autogen.AssistantAgent(
@@ -91,7 +91,7 @@ Based on our analysis above, it's clear that the primary advantage of `AgentChat
 ## Limitations and future work
 The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
 * The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is importnat for your domain. 
-* The results of the QuantifierAgent can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
+* The results of the `QuantifierAgent` can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
 
 To mitigate the limitations mentioned above, we are working on VerifierAgent, whose goal is to stabilize the results and provide additional explanations.
   
