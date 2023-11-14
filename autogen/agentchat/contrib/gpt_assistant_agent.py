@@ -183,25 +183,26 @@ class GPTAssistantAgent(ConversableAgent):
             run = self._wait_for_run(run.id, thread.id)
             if run.status == "failed":
                 new_messages = []
-                logger.info(f'Run: {run.id} Thread: {thread.id}: failed...')
+                logger.error(f'Run: {run.id} Thread: {thread.id}: failed...')
                 if run.last_error:
                     new_messages.append(
                         {
                             "role": "assistant",
-                            "content": f'Last error: {run.last_error}',
+                            "content": str(run.last_error),
                         }
                     )
-                new_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": 'Failed',
-                    }
-                )
+                else:
+                    new_messages.append(
+                        {
+                            "role": "assistant",
+                            "content": 'Failed',
+                        }
+                    )
                 return new_messages
             elif run.status == "cancelling":
-                logger.info(f'Run: {run.id} Thread: {thread.id}: cancelling...')
+                logger.warn(f'Run: {run.id} Thread: {thread.id}: cancelling...')
             elif run.status == "expired":
-                logger.info(f'Run: {run.id} Thread: {thread.id}: expired...')
+                logger.warn(f'Run: {run.id} Thread: {thread.id}: expired...')
                 new_messages = []
                 new_messages.append(
                     {
@@ -211,7 +212,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
                 return new_messages
             elif run.status == "cancelled":
-                logger.info(f'Run: {run.id} Thread: {thread.id}: cancelled...')
+                logger.warn(f'Run: {run.id} Thread: {thread.id}: cancelled...')
                 new_messages = []
                 new_messages.append(
                     {
@@ -228,13 +229,6 @@ class GPTAssistantAgent(ConversableAgent):
                 logger.info(f'Run: {run.id} Thread: {thread.id}: completed...')
                 response_messages = self._openai_client.beta.threads.messages.list(thread.id, order="asc")
                 new_messages = []
-                if run.last_error:
-                    new_messages.append(
-                        {
-                            "role": "assistant",
-                            "content": f'Last error: {run.last_error}',
-                        }
-                    )
                 for msg in response_messages:
                     if msg.run_id == run.id:
                         for content in msg.content:
