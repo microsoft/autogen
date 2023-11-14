@@ -182,55 +182,55 @@ class GPTAssistantAgent(ConversableAgent):
             run = self._wait_for_run(run.id, thread.id)
             if run.status == "failed":
                 new_messages = []
-                print(f'Run: {run.id} Thread: {thread.id}: failed...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: failed...')
                 if run.last_error:
                     new_messages.append(
                         {
-                            "role": msg.role,
+                            "role": "assistant",
                             "content": f'Last error: {run.last_error}',
                         }
                     )
                 new_messages.append(
                     {
-                        "role": msg.role,
+                        "role": "assistant",
                         "content": 'Failed',
                     }
                 )
                 return new_messages
             elif run.status == "cancelling":
-                print(f'Run: {run.id} Thread: {thread.id}: cancelling...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: cancelling...')
             elif run.status == "expired":
-                print(f'Run: {run.id} Thread: {thread.id}: expired...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: expired...')
                 new_messages = []
                 new_messages.append(
                     {
-                        "role": msg.role,
+                        "role": "assistant",
                         "content": 'Expired',
                     }
                 )
                 return new_messages
             elif run.status == "cancelled":
-                print(f'Run: {run.id} Thread: {thread.id}: cancelled...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: cancelled...')
                 new_messages = []
                 new_messages.append(
                     {
-                        "role": msg.role,
+                        "role": "assistant",
                         "content": 'Cancelled',
                     }
                 )
                 return new_messages
             elif run.status == "in_progress":
-                print(f'Run: {run.id} Thread: {thread.id}: in progress...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: in progress...')
             elif run.status == "queued":
-                print(f'Run: {run.id} Thread: {thread.id}: queued...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: queued...')
             elif run.status == "completed":
-                print(f'Run: {run.id} Thread: {thread.id}: completed...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: completed...')
                 response_messages = self._openai_client.beta.threads.messages.list(thread.id, order="asc")
                 new_messages = []
                 if run.last_error:
                     new_messages.append(
                         {
-                            "role": msg.role,
+                            "role": "assistant",
                             "content": f'Last error: {run.last_error}',
                         }
                     )
@@ -250,7 +250,7 @@ class GPTAssistantAgent(ConversableAgent):
                                 )
                 return new_messages
             elif run.status == "requires_action":
-                print(f'Run: {run.id} Thread: {thread.id}: required action...')
+                logger.info(f'Run: {run.id} Thread: {thread.id}: required action...')
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function
@@ -262,7 +262,7 @@ class GPTAssistantAgent(ConversableAgent):
                     }
 
                     logger.info(
-                        "Intermediate executing(%s, Sucess: %s) : %s",
+                        "Intermediate executing(%s, Success: %s) : %s",
                         tool_response["name"],
                         is_exec_success,
                         tool_response["content"],
@@ -282,7 +282,7 @@ class GPTAssistantAgent(ConversableAgent):
             else:
                 run_info = json.dumps(run.dict(), indent=2)
                 raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
-        return []
+
     def _wait_for_run(self, run_id: str, thread_id: str) -> Any:
         """
         Waits for a run to complete or reach a final state.
