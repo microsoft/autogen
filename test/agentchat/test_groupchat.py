@@ -193,7 +193,8 @@ def test_group_chat_math_class():
     manager = autogen.GroupChatManager(
         groupchat=groupchat,
         llm_config=gpt3_5_config,
-        is_termination_msg=lambda message: message['content'] is not None and message["content"].startswith("[GROUPCHAT_TERMINATE]"),
+        is_termination_msg=lambda message: message["content"] is not None
+        and message["content"].startswith("[GROUPCHAT_TERMINATE]"),
     )
     user_proxy.send(
         "welcome to the class. I'm admin here. Teacher, you create 3 math questions for student to answer. Let me know when student resolve all questions.",
@@ -212,16 +213,22 @@ def test_group_chat_math_class():
 
     # verify if admin says [GROUPCHAT_TERMINATE]
     terminate_message = filter(
-        lambda message: message["content"] is not None and message["content"].startswith("[GROUPCHAT_TERMINATE]"), groupchat.messages
+        lambda message: message["content"] is not None and message["content"].startswith("[GROUPCHAT_TERMINATE]"),
+        groupchat.messages,
     )
     assert len(list(terminate_message)) == 1
 
     # verify if teacher gives 3 questions
-    question_message = filter(lambda message: message["content"] is not None and message["content"].startswith("[QUESTION]"), groupchat.messages)
+    question_message = filter(
+        lambda message: message["content"] is not None and message["content"].startswith("[QUESTION]"),
+        groupchat.messages,
+    )
     assert len(list(question_message)) == 3
 
     # verify if student gives more than 3 answers (student might give more than 3 answers if student's answer is not correct)
-    answer_message = filter(lambda message: message["content"] is not None and message["content"].startswith("[ANSWER]"), groupchat.messages)
+    answer_message = filter(
+        lambda message: message["content"] is not None and message["content"].startswith("[ANSWER]"), groupchat.messages
+    )
     assert len(list(answer_message)) >= 3
 
 
