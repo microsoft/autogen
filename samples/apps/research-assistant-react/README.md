@@ -32,7 +32,7 @@ yarn install
 yarn build
 ```
 
-The command above will build the frontend ui and copy the build artifacts to the `autogenra` web ui folder. Note that you may have to run `npm install --force` to force resolve some peer dependencies.
+The command above will build the frontend ui and copy the build artifacts to the `autogenra` web ui folder. Note that you may have to run `npm install  --force --legacy-peer-deps` to force resolve some peer dependencies.
 
 Run the web ui:
 

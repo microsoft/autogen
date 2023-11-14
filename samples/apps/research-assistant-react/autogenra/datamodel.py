@@ -66,8 +66,7 @@ class LLMConfig:
 
     seed: int = 42
     config_list: List[ModelConfig] = field(default_factory=List)   
-    temperature: float = 0 
-    request_timeout: Optional[int] = None
+    temperature: float = 0  
 
 
 @dataclass
