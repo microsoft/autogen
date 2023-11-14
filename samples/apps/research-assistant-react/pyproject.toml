@@ -24,7 +24,7 @@ dependencies = [
     "typer",
     "uvicorn",
     "arxiv",
-    "pyautogen=0.1.14"
+    "pyautogen==0.1.14"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"]}
 
