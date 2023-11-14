@@ -1,6 +1,6 @@
 
 ---
-title:  AgentEval: Assessing Task Utility for LLM Applications
+title:  AgentEval: Assessing Task Utility for LLM-powered Applications
 authors: julianakiseleva, Narabzad
 tags: [LLM, GPT, evaluation, task utitility]
 ---
@@ -86,11 +86,18 @@ Lighter colors represent estimates for failed cases, and brighter colors show ho
 
 ![Fig.3: Results based on overall mathproblems datase `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
 
-Based on our analysis above, it's clear that the primary advantage of AgentChat is its ability to generate chat. However, you might want to delve deeper into the suggestions. For example, Explanation Clarity turned out to be correlated with the length of the solution.
+Based on our analysis above, it's clear that the primary advantage of `AgentChat` is its ability to generate code. However, you might want to delve deeper into the suggestions. For example, Explanation Clarity turned out to be correlated with the length of the solution. Worth noting is that all models master _Task Understanding_ criteria. It's important not only to identify what is not working but also to recognize what actually went well.
+
+## Limitations and future work
+The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
+* The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is importnat for your domain. 
+* The results of the QuantifierAgent can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
+
+To mitigate the limitations mentioned above, we are working on VerifierAgent, whose goal is to stabilize the results and provide additional explanations.
   
 
 ## Summary
-`CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, giving you an in-depth understanding of the utility your model brings to the user.
+`CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, providing you with an in-depth understanding of the utility your model brings to the user. The framework is in its early stages of investigation, so we would greatly benefit from your feedback. If you could please share your experience with us on Discord—such as how useful it was for you to understand what is working and what is not for your application, and where you see improvements could be made—it would be fantastic. We are fully committed to improving `AgentEval` and value your feedback.
 
 
 ## Previous Research
