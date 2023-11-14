@@ -189,10 +189,14 @@ def run_scenario_in_docker(work_dir, requirements, timeout=600):
     with open(os.path.join(work_dir, "run.sh"), "wt") as f:
         f.write(
             f"""#
+umask 000
 . ./ENV
 pip install -r {requirements}
 python scenario.py
 rm ENV
+if [ -d .cache ] ; then
+    chmod -R a+rw .cache
+fi
 echo SCENARIO COMPLETE !#!#
 """
         )
