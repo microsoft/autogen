@@ -29,6 +29,10 @@ You can also explicitly specify that by:
 assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
 
+### Unexpected keyword argument 'base_url'
+
+In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for older versions, use `api_base` but for newer versions use `base_url`.
+
 ### Can I use non-OpenAI models?
 
 Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
