@@ -252,6 +252,21 @@ export const getDefaultConfigFlows = () => {
     max_consecutive_auto_reply: 8,
     system_message: "",
   };
+
+  const visualizationAssistantConfig: IAgentConfig = {
+    name: "visualization_assistant",
+    llm_config: llm_config,
+    human_input_mode: "NEVER",
+    max_consecutive_auto_reply: 4,
+    system_message:
+      "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices.",
+  };
+
+  const visualizationAssistantFlowSpec: IAgentFlowSpec = {
+    type: "assistant",
+    config: visualizationAssistantConfig,
+  };
+
   const assistantFlowSpec: IAgentFlowSpec = {
     type: "assistant",
     config: assistantConfig,
@@ -263,12 +278,12 @@ export const getDefaultConfigFlows = () => {
     receiver: assistantFlowSpec,
     type: "default",
   };
-  const GroupChatFlowConfig: IFlowConfig = {
-    name: "Group Travel Assistant",
+  const VisualizationChatFlowConfig: IFlowConfig = {
+    name: "Visualization Assistant",
     sender: userProxyFlowSpec,
-    receiver: assistantFlowSpec,
+    receiver: visualizationAssistantFlowSpec,
     type: "default",
   };
 
-  return [GeneralFlowConfig, GroupChatFlowConfig];
+  return [GeneralFlowConfig, VisualizationChatFlowConfig];
 };

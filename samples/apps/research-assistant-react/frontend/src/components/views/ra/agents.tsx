@@ -31,6 +31,8 @@ const AgentsControlView = () => {
         </div>
         <div className="text-secondary text-xs"> {description} </div>
         {control}
+
+        <div className="border-b border-dashed mt-2 mx-2"></div>
       </div>
     );
   };
@@ -161,6 +163,7 @@ const AgentsControlView = () => {
               defaultValue={configs[selectedConfig].name}
               onChange={(value: any) => {
                 console.log(value);
+                setSelectedConfig(value);
               }}
               options={
                 configs.map((config, index) => {
@@ -206,6 +209,10 @@ const AgentsControlView = () => {
 };
 
 const AgentsView = () => {
+  const defaultFlowConfigs = getDefaultConfigFlows();
+
+  const [flowConfigs, setFlowConfigs] =
+    React.useState<IFlowConfig[]>(defaultFlowConfigs);
   const handleChange = (value: string) => {
     console.log(`selected ${value}`);
   };
@@ -226,12 +233,13 @@ const AgentsView = () => {
 
       <Select
         className="mt-2 w-full"
-        defaultValue="default"
+        defaultValue={"General Assistant"}
         onChange={handleChange}
-        options={[
-          { value: "default", label: "General Assistant" },
-          { value: "travelgroupchat", label: "Travel Group Chat" },
-        ]}
+        options={
+          flowConfigs.map((config, index) => {
+            return { label: config.name, value: index };
+          }) as any
+        }
       />
     </div>
   );

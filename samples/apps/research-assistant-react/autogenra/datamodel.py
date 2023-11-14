@@ -12,7 +12,7 @@ class Message(object):
     content: str
     root_msg_id: Optional[str] = None
     msg_id: Optional[str] = None
-    timestamp: Optional[datetime] = None 
+    timestamp: Optional[datetime] = None
     personalize: Optional[bool] = False
     ra: Optional[str] = None
     code: Optional[str] = None
@@ -31,14 +31,16 @@ class Message(object):
             "content": self.content,
             "root_msg_id": self.root_msg_id,
             "msg_id": self.msg_id,
-            "timestamp": self.timestamp, 
+            "timestamp": self.timestamp,
             "personalize": self.personalize,
             "ra": self.ra,
             "code": self.code,
             "metadata": self.metadata,
         }
 
+
 # web api data models
+
 
 @dataclass
 class DeleteMessageModel(object):
@@ -50,6 +52,7 @@ class DeleteMessageModel(object):
 class ClearDBModel(object):
     user_id: str
 
+
 # autogenflow data models
 @dataclass
 class ModelConfig:
@@ -60,13 +63,14 @@ class ModelConfig:
     api_version: Optional[str] = None
     api_base: Optional[str] = None
 
+
 @dataclass
 class LLMConfig:
     """Data model for LLM Config for Autogen"""
 
     seed: int = 42
-    config_list: List[ModelConfig] = field(default_factory=List)   
-    temperature: float = 0  
+    config_list: List[ModelConfig] = field(default_factory=List)
+    temperature: float = 0
 
 
 @dataclass
@@ -98,6 +102,3 @@ class FlowConfig:
     sender: AgentFlowSpec
     receiver: Union[AgentFlowSpec, List[AgentFlowSpec]]
     type: Literal["default", "groupchat"] = "default"
-
-
-

@@ -21,7 +21,7 @@ class ChatManager:
         llm_config = LLMConfig(
             seed=42,
             config_list=[{"model": "gpt-4"}],
-            temperature=0, 
+            temperature=0,
         )
 
         userproxy_spec = AgentFlowSpec(

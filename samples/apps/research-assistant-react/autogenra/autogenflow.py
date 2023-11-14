@@ -1,7 +1,7 @@
 from typing import List, Optional
 from dataclasses import asdict
 import autogen
-from .datamodel import AgentFlowSpec, FlowConfig, Message 
+from .datamodel import AgentFlowSpec, FlowConfig, Message
 
 
 class AutoGenFlow:
