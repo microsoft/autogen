@@ -189,6 +189,7 @@ def run_scenario_in_docker(work_dir, timeout=600):
     with open(os.path.join(work_dir, "run.sh"), "wt") as f:
         f.write(
             """#
+umask 000
 . ./ENV
 pip install pyautogen
 python scenario.py
