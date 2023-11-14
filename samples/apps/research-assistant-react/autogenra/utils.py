@@ -23,11 +23,11 @@ def save_message(message: Message, dbmanager: DBManager) -> None:
     :param message: The Message object containing message data
     :param dbmanager: The DBManager instance used to interact with the database
     """
-    query = "INSERT INTO messages (userId, rootMsgId, msgId, role, content, metadata, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    query = "INSERT INTO messages (user_id, root_msg_id, msg_id, role, content, metadata, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
     args = (
-        message.userId,
-        message.rootMsgId,
-        message.msgId,
+        message.user_id,
+        message.root_msg_id,
+        message.msg_id,
         message.role,
         message.content,
         message.metadata,
@@ -44,7 +44,7 @@ def load_messages(user_id: str, dbmanager: DBManager) -> List[dict]:
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a message
     """
-    query = "SELECT * FROM messages WHERE userId = ?"
+    query = "SELECT * FROM messages WHERE user_id = ?"
     args = (user_id,)
     result = dbmanager.query(query=query, args=args, json=True)
     # Sort by timestamp ascending
@@ -63,12 +63,12 @@ def delete_message(user_id: str, msg_id: str, dbmanager: DBManager, delete_all: 
     :return: A list of the remaining messages if not all were deleted, otherwise an empty list
     """
     if delete_all:
-        query = "DELETE FROM messages WHERE userId = ?"
+        query = "DELETE FROM messages WHERE user_id = ?"
         args = (user_id,)
         dbmanager.query(query=query, args=args)
         return []
     else:
-        query = "DELETE FROM messages WHERE userId = ? AND msgId = ?"
+        query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ?"
         args = (user_id, msg_id)
         dbmanager.query(query=query, args=args)
         messages = load_messages(user_id=user_id, dbmanager=dbmanager)

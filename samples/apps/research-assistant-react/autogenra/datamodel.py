@@ -7,59 +7,66 @@ from dataclasses import field
 
 @dataclass
 class Message(object):
-    userId: str
+    user_id: str
     role: str
     content: str
-    rootMsgId: Optional[str] = None
-    msgId: Optional[str] = None
-    timestamp: Optional[datetime] = None
-    use_cache: Optional[bool] = False
+    root_msg_id: Optional[str] = None
+    msg_id: Optional[str] = None
+    timestamp: Optional[datetime] = None 
     personalize: Optional[bool] = False
     ra: Optional[str] = None
     code: Optional[str] = None
     metadata: Optional[Any] = None
 
     def __post_init__(self):
-        if self.msgId is None:
-            self.msgId = str(uuid.uuid4())
+        if self.msg_id is None:
+            self.msg_id = str(uuid.uuid4())
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
     def dict(self):
         return {
-            "userId": self.userId,
+            "user_id": self.user_id,
             "role": self.role,
             "content": self.content,
-            "rootMsgId": self.rootMsgId,
-            "msgId": self.msgId,
-            "timestamp": self.timestamp,
-            "use_cache": self.use_cache,
+            "root_msg_id": self.root_msg_id,
+            "msg_id": self.msg_id,
+            "timestamp": self.timestamp, 
             "personalize": self.personalize,
             "ra": self.ra,
             "code": self.code,
             "metadata": self.metadata,
         }
 
+# web api data models
 
 @dataclass
 class DeleteMessageModel(object):
-    userId: str
-    msgId: str
+    user_id: str
+    msg_id: str
 
 
 @dataclass
 class ClearDBModel(object):
-    userId: str
+    user_id: str
 
+# autogenflow data models
+@dataclass
+class ModelConfig:
+    """Data model for Model Config item in LLMConfig for Autogen"""
+
+    model: str
+    api_key: str
+    api_version: str
+    api_base: str
 
 @dataclass
 class LLMConfig:
     """Data model for LLM Config for Autogen"""
 
     seed: int = 42
-    config_list: List[Dict[str, Any]] = field(default_factory=list)  # a list of OpenAI API configurations
-    temperature: float = 0
-    use_cache: bool = True
+    config_list: List[ModelConfig] = field(default_factory=List)   
+    temperature: float = 0 
     request_timeout: Optional[int] = None
 
 
@@ -92,3 +99,6 @@ class FlowConfig:
     sender: AgentFlowSpec
     receiver: Union[AgentFlowSpec, List[AgentFlowSpec]]
     type: Literal["default", "groupchat"] = "default"
+
+
+

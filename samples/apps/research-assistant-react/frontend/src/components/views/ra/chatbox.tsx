@@ -54,7 +54,7 @@ const ChatBox = ({
         text: message.content,
         sender: message.role === "user" ? "user" : "bot",
         metadata: meta,
-        msgId: message.msgId,
+        msg_id: message.msg_id,
       };
       return msg;
     });
@@ -81,7 +81,7 @@ const ChatBox = ({
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ userId: user?.email, msgId: messageId }),
+      body: JSON.stringify({ user_id: user?.email, msg_id: messageId }),
     };
 
     const onSuccess = (data: any) => {
@@ -212,7 +212,7 @@ const ChatBox = ({
           <div
             onClick={() => {
               console.log("deleting", message);
-              deleteMessage(message.msgId);
+              deleteMessage(message.msg_id);
             }}
           >
             <TrashIcon
@@ -341,7 +341,7 @@ const ChatBox = ({
     const userMessage: IChatMessage = {
       text: query,
       sender: "user",
-      msgId: guid(),
+      msg_id: guid(),
     };
     messageHolder.push(userMessage);
     setMessages(messageHolder);
@@ -349,10 +349,9 @@ const ChatBox = ({
     const payload: IMessage = {
       role: "user",
       content: query,
-      msgId: userMessage.msgId,
-      userId: user?.email || "",
-      rootMsgId: "0",
-      use_cache: true,
+      msg_id: userMessage.msg_id,
+      user_id: user?.email || "",
+      root_msg_id: "0",
     };
 
     console.log("payload", payload);
@@ -378,7 +377,7 @@ const ChatBox = ({
                 text: data.message,
                 sender: "bot",
                 metadata: data.metadata,
-                msgId: data.msgId,
+                msg_id: data.msg_id,
               };
               checkIsSkill(data.message);
               // if (data.metadata) {

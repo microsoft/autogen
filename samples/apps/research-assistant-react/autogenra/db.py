@@ -46,18 +46,18 @@ class DBManager:
         self.conn = sqlite3.connect(path, check_same_thread=False, **kwargs)
         self.cursor = self.conn.cursor()
 
-        # Create the table with the specified columns, appropriate data types, and a UNIQUE constraint on (rootMsgId, msgId)
+        # Create the table with the specified columns, appropriate data types, and a UNIQUE constraint on (root_msg_id, msg_id)
         self.cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS messages (
-                userId TEXT NOT NULL,
-                rootMsgId TEXT NOT NULL,
-                msgId TEXT,
+                user_id TEXT NOT NULL,
+                root_msg_id TEXT NOT NULL,
+                msg_id TEXT,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 metadata TEXT,
                 timestamp DATETIME,
-                UNIQUE (userId, rootMsgId, msgId)
+                UNIQUE (user_id, root_msg_id, msg_id)
             )
             """
         )
@@ -66,10 +66,10 @@ class DBManager:
         self.cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS personalization_profiles (
-                userId INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
                 profile TEXT,
                 timestamp DATETIME NOT NULL,
-                UNIQUE (userId)
+                UNIQUE (user_id)
             )
             """
         )

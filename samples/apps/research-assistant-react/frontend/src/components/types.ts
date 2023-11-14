@@ -1,14 +1,13 @@
 export type NotificationType = "success" | "info" | "warning" | "error";
 
 export interface IMessage {
-  userId: string;
-  rootMsgId: string;
-  msgId?: string;
+  user_id: string;
+  root_msg_id: string;
+  msg_id?: string;
   role: string;
   content: string;
   timestamp?: string;
   personalize?: boolean;
-  use_cache?: boolean;
   ra?: string;
 }
 
@@ -22,14 +21,13 @@ export interface IChatMessage {
   text: string;
   sender: "user" | "bot";
   metadata?: any;
-  msgId: string;
+  msg_id: string;
 }
 
 export interface ILLMConfig {
   seed: number;
   config_list: Array<{ [key: string]: any }>;
   temperature: number;
-  use_cache: boolean;
 }
 
 export interface IAgentConfig {
@@ -52,4 +50,11 @@ export interface IFlowConfig {
   sender: IAgentFlowSpec;
   receiver: IAgentFlowSpec;
   type: "default" | "groupchat";
+}
+
+export interface IModelConfig {
+  model: string;
+  api_key: string;
+  api_version: string;
+  api_base: string;
 }

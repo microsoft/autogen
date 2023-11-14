@@ -9,6 +9,7 @@ import {
   ILLMConfig,
 } from "../../types";
 import TextArea from "antd/es/input/TextArea";
+import { truncateText } from "../../utils";
 
 const AgentsControlView = () => {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -25,7 +26,7 @@ const AgentsControlView = () => {
         <div>
           <span className="text-primary inline-block">{title} </span>
           <span className="text-xs ml-1 text-accent -mt-2 inline-block">
-            {value}
+            {truncateText(value, 20)}
           </span>
         </div>
         <div className="text-secondary text-xs"> {description} </div>
@@ -38,15 +39,15 @@ const AgentsControlView = () => {
     seed: 42,
     config_list: [{ model: "gpt-4" }],
     temperature: 0.1,
-    use_cache: true,
   };
 
   const userProxyConfig: IAgentConfig = {
     name: "user_proxy",
     llm_config: llm_config,
     human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 10,
-    system_message: null,
+    max_consecutive_auto_reply: 5,
+    system_message:
+      "If the request has been addressed sufficiently, summarize the answer and end with the word TERMINATE. Otherwise, ask a follow-up question.",
   };
   const userProxyFlowSpec: IAgentFlowSpec = {
     type: "user_proxy",
@@ -57,8 +58,8 @@ const AgentsControlView = () => {
     name: "primary_assistant",
     llm_config: llm_config,
     human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 10,
-    system_message: null,
+    max_consecutive_auto_reply: 8,
+    system_message: "",
   };
   const assistantFlowSpec: IAgentFlowSpec = {
     type: "assistant",

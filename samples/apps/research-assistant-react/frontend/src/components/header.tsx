@@ -20,7 +20,7 @@ const Header = ({ meta, link }: any) => {
   const { user, logout } = React.useContext(appContext);
   const userName = user ? user.name : "Unknown";
   const userAvatarUrl = user ? user.avatar_url : "";
-  const userID = user ? user.username : "unknown";
+  const user_id = user ? user.username : "unknown";
 
   const links: any[] = [
     // { name: "Pictionary", href: "/" },
@@ -132,7 +132,7 @@ const Header = ({ meta, link }: any) => {
                     <>
                       <div className="ml-3">
                         <div className="text-sm text-primary">{userName}</div>
-                        <div className="text-xs  text-secondary">{userID}</div>
+                        <div className="text-xs  text-secondary">{user_id}</div>
                       </div>
 
                       {/* Profile dropdown */}
@@ -240,7 +240,7 @@ const Header = ({ meta, link }: any) => {
                   </div>
                   <div className="ml-3">
                     <div className="text-sm text-primary">{userName}</div>
-                    <div className="text-xs   text-secondary">{userID}</div>
+                    <div className="text-xs   text-secondary">{user_id}</div>
                   </div>
                   <button
                     type="button"

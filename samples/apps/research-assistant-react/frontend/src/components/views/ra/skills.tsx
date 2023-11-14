@@ -36,7 +36,7 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        userId: user?.email,
+        user_id: user?.email,
       }),
     };
     console.log("payload", payLoad);

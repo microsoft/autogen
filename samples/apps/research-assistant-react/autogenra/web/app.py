@@ -54,16 +54,16 @@ chatmanager = ChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(message: Message):
     message = Message(**message.dict())
-    user_history = load_messages(user_id=message.userId, dbmanager=dbmanager)
+    user_history = load_messages(user_id=message.user_id, dbmanager=dbmanager)
 
     # save incoming message to db
     save_message(message=message, dbmanager=dbmanager)
-    user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.userId))
+    user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
     os.makedirs(user_dir, exist_ok=True)
 
     # load skills
     skills = get_all_skills(
-        os.path.join(folders["user_skills_dir"], md5_hash(message.userId)),
+        os.path.join(folders["user_skills_dir"], md5_hash(message.user_id)),
         folders["global_skills_dir"],
         dest_dir=user_dir,
     )
@@ -108,7 +108,7 @@ async def remove_message(req: DeleteMessageModel):
     """Delete a message from the database"""
     print(req)
     try:
-        messages = delete_message(user_id=req.userId, msg_id=req.msgId, dbmanager=dbmanager)
+        messages = delete_message(user_id=req.user_id, msg_id=req.msg_id, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Message deleted successfully",
@@ -127,7 +127,7 @@ async def clear_db(req: ClearDBModel):
     """Clear user conversation history database"""
 
     try:
-        delete_message(user_id=req.userId, msg_id=None, dbmanager=dbmanager, delete_all=True)
+        delete_message(user_id=req.user_id, msg_id=None, dbmanager=dbmanager, delete_all=True)
         return {
             "status": True,
             "message": "Messages and files cleared successfully",

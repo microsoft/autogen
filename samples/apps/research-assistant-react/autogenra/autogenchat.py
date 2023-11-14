@@ -1,8 +1,8 @@
 import json
 import time
 from typing import List
-from .datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig, Message
 import autogen
+from .datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig, Message
 from .utils import get_modified_files
 from .autogenflow import AutoGenFlow
 
@@ -21,8 +21,7 @@ class ChatManager:
         llm_config = LLMConfig(
             seed=42,
             config_list=[{"model": "gpt-4"}],
-            temperature=0,
-            use_cache=True,
+            temperature=0, 
         )
 
         userproxy_spec = AgentFlowSpec(
@@ -78,8 +77,8 @@ class ChatManager:
         print("Modified files: ", modified_files)
 
         output_message = Message(
-            userId=message.userId,
-            rootMsgId=message.rootMsgId,
+            user_id=message.user_id,
+            root_msg_id=message.root_msg_id,
             role="assistant",
             content=output,
             metadata=json.dumps(metadata),
