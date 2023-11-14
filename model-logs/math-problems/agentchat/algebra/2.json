@@ -1,0 +1,144 @@
+{
+  "problem": "Tina the tourist goes on a trip. She starts at the origin and drives north (in the positive $y$ direction) for $10$ units. Then she turns east (the positive $x$ direction) and as she's turning her camera flies out the window and lands exactly at $(0,10)$. She then drives $9$ units east, turns and drives $8$ units north.  She continues this pattern of turning and driving one unit less than after the previous turn, until stopping after driving $1$ unit east. She reaches for her camera only to find it missing! She activates the GPS homing device on her camera and drives back to it in a straight line. What is the equation of this line? Express your answer as $ax+by=c$, where $a$, $b$, and $c$ are integers, $a>0$, and $a$ is as small as possible.",
+  "level": "Level 5",
+  "type": "Algebra",
+  "solution": "We know one point on the line: the camera is at $(0,10)$. To find another point on the line we can determine where Tina was when she noticed her camera was missing. She travels a total of $10+8+6+4+2$ units north from the origin, so her ending $y$-coordinate is $30$. She travels $9+7+5+3+1$ units east, so her ending $x$-coordinate is $25$. So we must find the equation of the line through $(0,10)$ and $(25,30)$. The slope of the line is $\\frac{30-10}{25-0}=\\frac{20}{25}=\\frac{4}{5}$. We can use point-slope form to find that the equation of the line is $(y-10)=\\frac{4}{5}(x-0)$, or $5(y-10)=4x$. Simplifying this gives $5y-50=4x$, so in the form requested, $\\boxed{4x-5y=-50}$.",
+  "correct_ans": "4x-5y=-50",
+  "problem_id": "2",
+  "response_with_ans": "",
+  "round": 15,
+  "messages": [
+    {
+      "content": "Tina the tourist goes on a trip. She starts at the origin and drives north (in the positive $y$ direction) for $10$ units. Then she turns east (the positive $x$ direction) and as she's turning her camera flies out the window and lands exactly at $(0,10)$. She then drives $9$ units east, turns and drives $8$ units north.  She continues this pattern of turning and driving one unit less than after the previous turn, until stopping after driving $1$ unit east. She reaches for her camera only to find it missing! She activates the GPS homing device on her camera and drives back to it in a straight line. What is the equation of this line? Express your answer as $ax+by=c$, where $a$, $b$, and $c$ are integers, $a>0$, and $a$ is as small as possible.",
+      "role": "user"
+    },
+    {
+      "content": "First, let's find the coordinates of Tina's final position before she drives back to the camera. She drives in a pattern where she turns and drives one unit less after each turn, starting at 10 units north, 9 units east, 8 units north, and so on. Let's use code to compute her final position.\n\n",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    }
+  ],
+  "time": 50.86360836029053,
+  "check_result": "reply: tina drives back to her camera in a straight line. the equation of this line is 4x - 5y = -50. \n\nthe answer is 4x-5y=-50.\n\nthe answer is correct.",
+  "is_correct": true,
+  "trial": -1
+}

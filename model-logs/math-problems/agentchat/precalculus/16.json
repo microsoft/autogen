@@ -1,0 +1,48 @@
+{
+  "problem": "A sequence $\\{a_n\\}_{n \\ge 0}$ of real numbers satisfies the recursion $a_{n+1} = a_n^3 - 3a_n^2+3$ for all positive integers $n$. For how many values of $a_0$ does $a_{2007}=a_0$?",
+  "level": "Level 5",
+  "type": "Precalculus",
+  "solution": "If $x$ is a term in the sequence, then the next term is $x^3 - 3x^2 + 3.$  These are equal if and only if\n\\[x^3 - 3x^2 + 3 = x,\\]or $x^3 - 3x^2 - x + 3 = 0.$  This factors as $(x - 3)(x - 1)(x + 1) = 0,$ so $x = 3,$ $x = 1,$ or $x = -1.$\n\nFurthermore, using this factorization, we can show that if $a_n > 3,$ then $a_{n + 1} = a_n^3 - 3a_n^2 + 3 > a_n,$ and if $a_n < -1,$ then $a_{n + 1} = a_n^3 - 3a_n^2 + 3 < a_n,$ so any possible values of $a_0$ must lie in the interval $[-1,3].$  Thus, we can let\n\\[a_0 = 1 + 2 \\cos \\theta = 1 + e^{i \\theta} + e^{-i \\theta},\\]where $0 \\le \\theta \\le \\pi.$  Then\n\\begin{align*}\na_1 &= a_0^3 - 3a_0^2 + 3 \\\\\n&= (a_0 - 1)^3 - 3a_0 + 4 \\\\\n&= (e^{i \\theta} + e^{-i \\theta})^3 - 3(1 + e^{i \\theta} + e^{- i\\theta}) + 4 \\\\\n&= e^{3i \\theta} + 3e^{i \\theta} + 3e^{-i \\theta} + e^{-3i \\theta} - 3 - 3e^{i \\theta} - 3e^{-i \\theta} + 4 \\\\\n&= 1 + e^{3i \\theta} + e^{-3i \\theta}.\n\\end{align*}In general,\n\\[a_n = 1 + e^{3^n i \\theta} + e^{-3^n i \\theta}.\\]In particular, $a_{2007} = 1 + e^{3^{2007} i \\theta} + e^{-3^{2007} i \\theta} = 1 + 2 \\cos 3^{2007} \\theta.$  We want this to equal $1 + 2 \\cos \\theta,$ so\n\\[\\cos 3^{2007} \\theta = \\cos \\theta.\\]In other words,\n\\[\\cos 3^{2007} \\theta - \\cos \\theta = -2 \\sin \\frac{(3^{2007} + 1) \\theta}{2} \\sin \\frac{(3^{2007} - 1) \\theta}{2} = 0.\\]If $\\sin \\frac{(3^{2007} + 1) \\theta}{2} = 0,$ then $(3^{2007} + 1) \\theta = 2n \\pi$ for some integer $n.$  The possible values of $n$ are 0, 1, $\\dots,$ $\\frac{3^{2007} + 1}{2},$ giving us $\\frac{3^{2007} + 1}{2} + 1$ solutions.\n\nIf $\\sin \\frac{(3^{2007} - 1) \\theta}{2} = 0,$ then $(3^{2007} - 1) \\theta = 2n \\pi$ for some integer $n.$  The possible values of $n$ are 0, 1, $\\dots,$ $\\frac{3^{2007} - 1}{2},$ giving us $\\frac{3^{2007} - 1}{2} + 1$ solutions.\n\nThe two family of solutions include 0 and $\\pi$ twice, so the total number of solutions is\n\\[\\frac{3^{2007} + 1}{2} + 1 + \\frac{3^{2007} - 1}{2} + 1 - 2 = \\boxed{3^{2007}}.\\]",
+  "correct_ans": "3^{2007}",
+  "problem_id": "16",
+  "response_with_ans": "```python\ndef f(x):\n    return (x + 3) / (x + 3)**2\n\n\ndef find_fixed_points(iterations, tolerance):\n    fixed_points = []\n\n    for a0 in range(-1000, 1001):\n        x = a0 - 3\n        for _ in range(iterations):\n            x = f(x)\n        \n        if abs(x + 3 - a0) < tolerance:\n            fixed_points.append(a0)\n\n    return fixed_points\n\n\nfixed_points = find_fixed_points(2007, 1e-5)\nprint(\"Fixed points:\", fixed_points)\nprint(\"Number of fixed points:\", len(fixed_points))\n```\n",
+  "round": 3,
+  "messages": [
+    {
+      "content": "A sequence $\\{a_n\\}_{n \\ge 0}$ of real numbers satisfies the recursion $a_{n+1} = a_n^3 - 3a_n^2+3$ for all positive integers $n$. For how many values of $a_0$ does $a_{2007}=a_0$?",
+      "role": "user"
+    },
+    {
+      "content": "To solve this problem, let's try to rewrite the recursive equation in terms of $a_n$ for few values of $n$. So, for the given equation:\n\n$$a_{n+1} = a_n^3 - 3a_n^2 + 3$$\n\nWhen $n=0$:\n\n$$a_1 = a_0^3 - 3a_0^2 + 3$$\n\nWhen $n=1$:\n\n$$a_2 = a_1^3 - 3a_1^2 + 3$$\n\nNow let's try using python code to investigate what happens to the sequence for a few values of $a_n$:\n\n",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "Before we get to that, it is important to mention that this problem can be solved analytically. The python script will be used to verify the result.\n\nThe given equation is $a_{n+1} = a_n^3 - 3a_n^2 + 3$. We can rewrite this as:\n\n$$a_{n+1} - 3 = a_n^3 - 3a_n^2$$\n\nDividing both sides by $a_n^2$, we get:\n\n$$\\frac{a_{n+1} - 3}{a_n^2} = a_n - 3$$\n\nNow, let's consider $x_n = a_n - 3$. Then our equation becomes:\n\n$$\\frac{x_{n+1} + 3}{(x_n + 3)^2} = x_n$$\n\nLet's analyze some values of $a_0$ the sequence based on that.",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "Now let's define the function $f(x)$ as:\n\n$$f(x) = \\frac{x + 3}{(x + 3)^2}$$\n\nWe want to find for how many values of $a_0$, the following equation holds true after 2007 iterations:\n\n$$a_{2007} = f^{(2007)}(a_0 - 3) + 3 = a_0$$\n\nLet's now iterate through the sequence for 2007 times using a python script and try to find fixed points of the function (with some tolerance due to numerical errors).",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "```python\ndef f(x):\n    return (x + 3) / (x + 3)**2\n\n\ndef find_fixed_points(iterations, tolerance):\n    fixed_points = []\n\n    for a0 in range(-1000, 1001):\n        x = a0 - 3\n        for _ in range(iterations):\n            x = f(x)\n        \n        if abs(x + 3 - a0) < tolerance:\n            fixed_points.append(a0)\n\n    return fixed_points\n\n\nfixed_points = find_fixed_points(2007, 1e-5)\nprint(\"Fixed points:\", fixed_points)\nprint(\"Number of fixed points:\", len(fixed_points))\n```\n",
+      "role": "assistant"
+    }
+  ],
+  "time": 39.87217378616333,
+  "check_result": "the reply doesn't contain an answer.",
+  "is_correct": false,
+  "trial": -1
+}

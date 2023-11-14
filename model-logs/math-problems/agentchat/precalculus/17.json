@@ -1,0 +1,144 @@
+{
+  "problem": "Find the equation of the plane which bisects the angle between the planes $3x - 6y + 2z + 5 = 0$ and $4x - 12y + 3z - 3 = 0,$ and which contains the point $(-5,-1,-5).$  Enter your answer in the form\n\\[Ax + By + Cz + D = 0,\\]where $A,$ $B,$ $C,$ $D$ are integers such that $A > 0$ and $\\gcd(|A|,|B|,|C|,|D|) = 1.$",
+  "level": "Level 5",
+  "type": "Precalculus",
+  "solution": "Suppose $P = (x,y,z)$ is a point that lies on a plane that bisects the angle between the planes $3x - 6y + 2z + 5 = 0$ and $4x - 12y + 3z - 3 = 0.$  (Note that there are two such bisecting planes.)  Then the distance from $P$ to both planes must be equal, so\n\\[\\frac{|3x - 6y + 2z + 5|}{\\sqrt{3^2 + (-6)^2 + 2^2}} = \\frac{|4x - 12y + 3z - 3|}{\\sqrt{4^2 + (-12)^2 + 3^2}}.\\]Then\n\\[\\frac{|3x - 6y + 2z + 5|}{7} = \\frac{|4x - 12y + 3z - 3|}{13}.\\]We want to remove the absolute value signs, in order to obtain the equation of a plane.  Checking the sign of both sides when $(x,y,z) = (-5,-1,-5)$ leads us to\n\\[\\frac{3x - 6y + 2z + 5}{7} = \\frac{4x - 12y + 3z - 3}{13}.\\]This simplifies to $\\boxed{11x + 6y + 5z + 86 = 0}.$",
+  "correct_ans": "11x + 6y + 5z + 86 = 0",
+  "problem_id": "17",
+  "response_with_ans": "",
+  "round": 15,
+  "messages": [
+    {
+      "content": "Find the equation of the plane which bisects the angle between the planes $3x - 6y + 2z + 5 = 0$ and $4x - 12y + 3z - 3 = 0,$ and which contains the point $(-5,-1,-5).$  Enter your answer in the form\n\\[Ax + By + Cz + D = 0,\\]where $A,$ $B,$ $C,$ $D$ are integers such that $A > 0$ and $\\gcd(|A|,|B|,|C|,|D|) = 1.$",
+      "role": "user"
+    },
+    {
+      "content": "We will find the intersection line of the given planes first. Let's get the direction ratios of the normal vectors for these planes:\n\nPlane 1: $3x - 6y + 2z + 5 = 0$ has normal vector $\\mathbf{N_1} = (3, -6, 2)$\nPlane 2: $4x - 12y + 3z - 3 = 0$ has normal vector $\\mathbf{N_2} = (4, -12, 3)$\n\nThe direction vector of the intersection line is parallel to the cross product of $\\mathbf{N_1}$ and $\\mathbf{N_2}$. Let's find the cross product of these normal vectors.\n",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "",
+      "role": "assistant"
+    }
+  ],
+  "time": 54.55294394493103,
+  "check_result": "the reply doesn't contain an answer.",
+  "is_correct": false,
+  "trial": -1
+}

@@ -1,0 +1,32 @@
+{
+  "problem": "Find the smallest positive integer solution to $\\tan{19x^{\\circ}}=\\dfrac{\\cos{96^{\\circ}}+\\sin{96^{\\circ}}}{\\cos{96^{\\circ}}-\\sin{96^{\\circ}}}$.",
+  "level": "Level 5",
+  "type": "Precalculus",
+  "solution": "By the tangent addition formula,\n\\begin{align*}\n\\frac{\\cos 96^\\circ + \\sin 96^\\circ}{\\cos 96^\\circ - \\sin 96^\\circ} &= \\frac{1 + \\tan 96^\\circ}{1 - \\tan 96^\\circ} \\\\\n&= \\frac{\\tan 45^\\circ + \\tan 96^\\circ}{1 - \\tan 45^\\circ \\tan 96^\\circ} \\\\\n&= \\tan (45^\\circ + 96^\\circ) \\\\\n&= \\tan 141^\\circ.\n\\end{align*}Thus, we seek the smallest positive integer solution to\n\\[\\tan 19x^\\circ = \\tan 141^\\circ.\\]This means $19x - 141 = 180n$ for some integer $n,$ or $19x - 180n = 141.$  We can use the Extended Euclidean Algorithm to find the smallest positive integer solution.\n\nRunning the Euclidean Algorithm on 180 and 19, we get\n\\begin{align*}\n180 &= 9 \\cdot 19 + 9, \\\\\n19 &= 2 \\cdot 9 + 1, \\\\\n9 &= 9 \\cdot 1.\n\\end{align*}Then\n\\begin{align*}\n1 &= 19 - 2 \\cdot 9 \\\\\n&= 19 - 2 \\cdot (180 - 9 \\cdot 19) \\\\\n&= 19 \\cdot 19 - 2 \\cdot 180.\n\\end{align*}Multiplying both sides by 141, we get\n\\[2679 \\cdot 19 - 282 \\cdot 180 = 141.\\]Note that if $(x,n)$ is a solution to $19x - 180n = 141,$ then so is $(x - 180,n + 19).$  Thus, we reduce 2679 modulo 180, to get $x = \\boxed{159}.$\n\nAlternatively, we want to solve\n\\[19x \\equiv 141 \\pmod{180}.\\]Multiplying both sides by 19, we get\n\\[361x \\equiv 2679 \\pmod{180},\\]which reduces to $x \\equiv \\boxed{159} \\pmod{180}.$",
+  "correct_ans": "159",
+  "problem_id": "2",
+  "response_with_ans": "```python\nk = 0\nfound_x = False\nx = 1\n\nwhile not found_x:\n    angle = 45 + 51 + 180 * k\n    x = angle / 19\n    if angle % 19 == 0 and int(x) == x:\n        found_x = True\n        x = int(x)\n    else:\n        k += 1\n\nprint(x)\n```\nPlease run the above Python script to find the smallest positive integer solution for $x$.",
+  "round": 1,
+  "messages": [
+    {
+      "content": "Find the smallest positive integer solution to $\\tan{19x^{\\circ}}=\\dfrac{\\cos{96^{\\circ}}+\\sin{96^{\\circ}}}{\\cos{96^{\\circ}}-\\sin{96^{\\circ}}}$.",
+      "role": "user"
+    },
+    {
+      "content": "First, let's simplify the given equation. We have:\n\n$$\\tan{19x^{\\circ}}=\\dfrac{\\cos{96^{\\circ}}+\\sin{96^{\\circ}}}{\\cos{96^{\\circ}}-\\sin{96^{\\circ}}}$$\n\nUsing the tangent addition formula, $\\tan{(\\alpha + \\beta)} = \\dfrac{\\tan{\\alpha} + \\tan{\\beta}}{1 - \\tan{\\alpha}\\tan{\\beta}}$, we can rewrite the right side of the equation as:\n\n$$\\tan{19x^{\\circ}} = \\tan{(45^{\\circ} + 51^{\\circ})}$$\n\nNow the equation becomes:\n\n$$\\tan{19x^{\\circ}} = \\tan{(45^{\\circ} + 51^{\\circ})}$$\n\nSince the tangent function is periodic with a period of $180^{\\circ}$, the equation is satisfied when:\n\n$$19x^{\\circ} = 45^{\\circ} + 51^{\\circ} + 180^{\\circ}k$$\n\nLet's write a Python script to find the smallest positive integer solution for $x$:\n",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "```python\nk = 0\nfound_x = False\nx = 1\n\nwhile not found_x:\n    angle = 45 + 51 + 180 * k\n    x = angle / 19\n    if angle % 19 == 0 and int(x) == x:\n        found_x = True\n        x = int(x)\n    else:\n        k += 1\n\nprint(x)\n```\nPlease run the above Python script to find the smallest positive integer solution for $x$.",
+      "role": "assistant"
+    }
+  ],
+  "time": 23.24642539024353,
+  "check_result": "the answer needs manual check.",
+  "is_correct": false,
+  "trial": -1
+}

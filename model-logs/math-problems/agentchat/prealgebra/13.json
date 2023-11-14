@@ -1,0 +1,32 @@
+{
+  "problem": "In isosceles right triangle $ABC$, point $D$ is on hypotenuse $\\overline{BC}$ such that $\\overline{AD}$ is an altitude of $\\triangle ABC$ and $DC = 5$. What is the area of triangle $ABC$?",
+  "level": "Level 5",
+  "type": "Prealgebra",
+  "solution": "In isosceles right triangle $\\triangle ABC$ below, $\\overline{AD}$ is the altitude to the hypotenuse.\n\n[asy]\nimport olympiad;\nunitsize(0.8inch);\npair A,B,C,D;\nA = (0,1);\nB= (1,0);\nC = -B;\nD = (0,0);\ndraw(A--B--C--A,linewidth(1));\ndraw(A--D,linewidth(0.8));\ndraw(rightanglemark(C,A,B,s=4));\ndraw(rightanglemark(C,D,A,s=4));\nlabel(\"$A$\",A,N);\nlabel(\"$B$\",B,S);\nlabel(\"$C$\",C,S);\nlabel(\"$D$\",D,S);\n[/asy]\n\nBecause $\\triangle ABC$ is an isosceles right triangle, $\\angle ABC = 45^\\circ$.  Since $\\angle ADB = 90^\\circ$, we know that $\\angle DAB = 45^\\circ$, so $\\triangle ABD$ is also a 45-45-90 triangle.  Similarly, $\\triangle ACD$ is a 45-45-90 triangle.  Therefore, $DA=DB = DC = 5$, so $BC = BD+DC = 10$, and  \\[[ABC] = \\frac{(AD)(BC)}{2} = \\frac{(5)({10})}{2} = \\boxed{25}.\\]",
+  "correct_ans": "25",
+  "problem_id": "13",
+  "response_with_ans": "```python\nfrom sympy import Eq, solve, symbols\r\n\r\n# Step 1: Find the length of side AC using the Pythagorean theorem\r\na, b, c = symbols(\"a b c\")\r\nPythagorean = Eq(a**2 + b**2, c**2)\r\n\r\n# We know BD = 5 and it's an isosceles right triangle so:\r\nBD = 5\r\nBC = BD * 2\r\nside_A = BD  # Side A is equal to BD\r\n\r\nisosceles_triangle = Pythagorean.subs({a: side_A, b: side_A, c: BC})  # Substitute values into the equation\r\nlength_AC = solve(isosceles_triangle, side_A)[0]  # Solve for side_AC\r\n\r\n# Step 2: Find the length of side AD\r\nlength_AD = (BD * length_AC) / BC  # Using the proportion\r\n\r\n# Step 3: Find the area of triangle ABC\r\narea_triangle_ABC = 0.5 * (length_AD * length_AC)\r\n\r\nlength_AC, length_AD, area_triangle_ABC\r\n```",
+  "round": 1,
+  "messages": [
+    {
+      "content": "In isosceles right triangle $ABC$, point $D$ is on hypotenuse $\\overline{BC}$ such that $\\overline{AD}$ is an altitude of $\\triangle ABC$ and $DC = 5$. What is the area of triangle $ABC$?",
+      "role": "user"
+    },
+    {
+      "content": "Let's first analyze the problem and draw a plan to solve it.\n\nPlan:\n1. Use the Pythagorean theorem to find the length of side AC.\n2. Since right triangle ADC is similar to triangle ABC, we can set up a proportion to find the length of side AD.\n3. Use the area formula of a triangle to find the area of triangle ABC.\n\nNow, let's execute the plan using code to calculate side AC, then side AD, and finally the area of triangle ABC.\n\n",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "```python\nfrom sympy import Eq, solve, symbols\r\n\r\n# Step 1: Find the length of side AC using the Pythagorean theorem\r\na, b, c = symbols(\"a b c\")\r\nPythagorean = Eq(a**2 + b**2, c**2)\r\n\r\n# We know BD = 5 and it's an isosceles right triangle so:\r\nBD = 5\r\nBC = BD * 2\r\nside_A = BD  # Side A is equal to BD\r\n\r\nisosceles_triangle = Pythagorean.subs({a: side_A, b: side_A, c: BC})  # Substitute values into the equation\r\nlength_AC = solve(isosceles_triangle, side_A)[0]  # Solve for side_AC\r\n\r\n# Step 2: Find the length of side AD\r\nlength_AD = (BD * length_AC) / BC  # Using the proportion\r\n\r\n# Step 3: Find the area of triangle ABC\r\narea_triangle_ABC = 0.5 * (length_AD * length_AC)\r\n\r\nlength_AC, length_AD, area_triangle_ABC\r\n```",
+      "role": "assistant"
+    }
+  ],
+  "time": 22.85700249671936,
+  "check_result": "the answer needs manual check.",
+  "is_correct": false,
+  "trial": -1
+}
