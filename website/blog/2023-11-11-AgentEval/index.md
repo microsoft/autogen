@@ -1,6 +1,6 @@
 
 ---
-title:  AgentEval: Assessing Task Utility for LLM Applications
+title:  AgentEval: Assessing Task Utility for LLM-powered Applications
 authors: julianakiseleva, Narabzad
 tags: [LLM, GPT, evaluation, task utility]
 ---
@@ -20,7 +20,7 @@ Use the Jupyter notebook for a demonstration of `AgentEval` for [Math Problems d
 
 The goal of AutoGen is to make it straightforward and easy to develop LLM-based multi-agent systems for an arbitrary application that helps the end users with their tasks. The next big step forward is what we all want to know: how the developed systems are performing, if they bring utility to our users, and, even more importantly, how we can improve them. Directly evaluating the multi-agent systems is tricky since current approaches mainly rely on success metrics, basically if the agent can accomplish the tasks. Moreover, the definition of success for a particular task is not always given. Introductions of LLMs bring us a lot of abilities that we are eager to convert into actual utilities for end users. In this blog post, we introduce `AgentEval` — the first version of the framework for assessing task utility in LLM-based applications.
 
-![Fig.2: An overview of the tasks taxonomy](img/tasks-taxonomy-v2.png)
+![Fig.2: An overview of the tasks taxonomy](img/tasks-taxonomy.png)
 
 Let's first look into an overview of the suggested task taxonomy that a multi-agent system can be designed for. In general, the tasks can be split into two types, namely:
 * _Assistive Tasks_ - refer to instances when users utilize a system in an assistive manner, seeking suggestions rather than expecting the system to solve the task. For example, a user might request the system to generate an email. In many cases, this generated content serves as a template that the user will later edit. However, defining success precisely for such tasks is relatively complex.
@@ -49,7 +49,7 @@ critic = autogen.AssistantAgent(
 )
 ```
 
-* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task. Here is an example of how it can be defined:
+* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task -- $U(t_i)$. Here is an example of how it can be defined:
 
 ```python
 quantifier = autogen.AssistantAgent(
@@ -89,9 +89,15 @@ Lighter colors represent estimates for failed cases, and brighter colors show ho
 ![Fig.3: Results based on overall mathproblems datase `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
 
 We note that while applying agentEval to math problems, the agent was not exposed to any ground truth information about the problem. As such, this figure illustrates an estimated performance of the three different agents, namely, Sutogen (blue), Gpt-4 (red), and ReAct (green). We observe that by comparing the performance of any of the three agents in successful cases (dark bars of any color) versus unsuccessful cases (lighter version of the same bar), we note that AgentEval was able to more accurately estimate the performance of successful cases than that of failed ones. This observation verifies AgentEval's ability for task utility prediction. Additionally, AgentEval allows us to go beyond just a binary definition of success, enabling a more in-depth comparison between successful and failed cases.
-<!---
- Based on our analysis above, it's clear that the primary advantage of AgentChat is its ability to generate chat. However, you might want to delve deeper into the suggestions. For example, Explanation Clarity turned out to be correlated with the length of the solution. 
--->
+
+It's important not only to identify what is not working but also to recognize what and why actually went well.For example, Explanation Clarity turned out to be correlated with the length of the solution and  all models master _Task Understanding_ criteria.
+
+## Limitations and future work
+The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
+* The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is important for your domain. 
+* The results of the `QuantifierAgent` can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
+
+To mitigate the limitations mentioned above, we are working on VerifierAgent, whose goal is to stabilize the results and provide additional explanations.
 
 ## Summary
 `CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, giving you an in-depth understanding of the utility your model brings to the user.
