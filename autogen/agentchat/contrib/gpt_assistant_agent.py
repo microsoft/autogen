@@ -141,6 +141,7 @@ class GPTAssistantAgent(ConversableAgent):
             self._openai_client.beta.threads.messages.create(
                 thread_id=assistant_thread.id,
                 content=message["content"],
+                # https://platform.openai.com/docs/api-reference/messages/createMessage - only user role accepted to create message in thread
                 role="user",
             )
 
