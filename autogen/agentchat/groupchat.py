@@ -198,6 +198,7 @@ class GroupChatManager(ConversableAgent):
                 or isinstance(reply, str)
                 and self._is_termination_msg({"content": reply})
             ):
+                groupchat.messages.append(reply)
                 break
 
             message = self.last_message(speaker)
@@ -245,5 +246,15 @@ class GroupChatManager(ConversableAgent):
                 break
             # The speaker sends the message without requesting a reply
             await speaker.a_send(reply, self, request_reply=False)
+
+            if (
+                isinstance(reply, dict)
+                and self._is_termination_msg(reply)
+                or isinstance(reply, str)
+                and self._is_termination_msg({"content": reply})
+            ):
+                groupchat.messages.append(reply)
+                break
+
             message = self.last_message(speaker)
         return True, None
