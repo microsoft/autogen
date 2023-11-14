@@ -54,7 +54,7 @@ export interface IFlowConfig {
 
 export interface IModelConfig {
   model: string;
-  api_key: string;
-  api_version: string;
-  api_base: string;
+  api_key?: string;
+  api_version?: string;
+  api_base?: string;
 }

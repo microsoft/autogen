@@ -3,6 +3,7 @@ import {
   IAgentFlowSpec,
   IFlowConfig,
   ILLMConfig,
+  IModelConfig,
   IStatus,
 } from "./types";
 
@@ -221,10 +222,13 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
-export const defaultConfigFlows = () => {
+export const getDefaultConfigFlows = () => {
+  const llm_model_config: IModelConfig = {
+    model: "gpt-4",
+  };
   const llm_config: ILLMConfig = {
     seed: 42,
-    config_list: [{ model: "gpt-4" }],
+    config_list: [llm_model_config],
     temperature: 0.1,
   };
 
@@ -265,4 +269,6 @@ export const defaultConfigFlows = () => {
     receiver: assistantFlowSpec,
     type: "default",
   };
+
+  return [GeneralFlowConfig, GroupChatFlowConfig];
 };

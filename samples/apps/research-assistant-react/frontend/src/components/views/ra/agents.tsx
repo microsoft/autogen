@@ -9,7 +9,7 @@ import {
   ILLMConfig,
 } from "../../types";
 import TextArea from "antd/es/input/TextArea";
-import { truncateText } from "../../utils";
+import { getDefaultConfigFlows, truncateText } from "../../utils";
 
 const AgentsControlView = () => {
   const [isModalVisible, setIsModalVisible] = React.useState(false);
@@ -35,54 +35,9 @@ const AgentsControlView = () => {
     );
   };
 
-  const llm_config: ILLMConfig = {
-    seed: 42,
-    config_list: [{ model: "gpt-4" }],
-    temperature: 0.1,
-  };
+  const defaultConfigs = getDefaultConfigFlows();
 
-  const userProxyConfig: IAgentConfig = {
-    name: "user_proxy",
-    llm_config: llm_config,
-    human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 5,
-    system_message:
-      "If the request has been addressed sufficiently, summarize the answer and end with the word TERMINATE. Otherwise, ask a follow-up question.",
-  };
-  const userProxyFlowSpec: IAgentFlowSpec = {
-    type: "user_proxy",
-    config: userProxyConfig,
-  };
-
-  const assistantConfig: IAgentConfig = {
-    name: "primary_assistant",
-    llm_config: llm_config,
-    human_input_mode: "NEVER",
-    max_consecutive_auto_reply: 8,
-    system_message: "",
-  };
-  const assistantFlowSpec: IAgentFlowSpec = {
-    type: "assistant",
-    config: assistantConfig,
-  };
-
-  const GeneralFlowConfig: IFlowConfig = {
-    name: "General Assistant",
-    sender: userProxyFlowSpec,
-    receiver: assistantFlowSpec,
-    type: "default",
-  };
-  const GroupChatFlowConfig: IFlowConfig = {
-    name: "Group Travel Assistant",
-    sender: userProxyFlowSpec,
-    receiver: assistantFlowSpec,
-    type: "default",
-  };
-
-  const [configs, setConfigs] = React.useState<IFlowConfig[]>([
-    GeneralFlowConfig,
-    GroupChatFlowConfig,
-  ]);
+  const [configs, setConfigs] = React.useState<IFlowConfig[]>(defaultConfigs);
   const [selectedConfig, setSelectedConfig] = React.useState<number>(0);
 
   const FlowView = ({ flowSpec }: { flowSpec: IAgentFlowSpec }) => {

@@ -15,7 +15,11 @@ Install requirements:
 pip install -e .
 ```
 
-AutoGen requires access to an LLM. Please see the [AutoGen docs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints) on how to configure access to your LLM. We recommend setting the `OAI_CONFIG_LIST` environment variable to contain a list of OpenAI model configurations.
+AutoGen requires access to an LLM. Please see the [AutoGen docs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints) on how to configure access to your LLM. We recommend setting up your `OPENAI_API_KEY` environment variable first and `OAI_CONFIG_LIST` environment variable to contain a list of OpenAI model configurations.
+
+```bash
+export OPENAI_API_KEY=<your_api_key>
+```
 
 ### Build and Run Frontend UI
 
