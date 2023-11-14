@@ -1,0 +1,32 @@
+{
+  "problem": "What is the distance between the two intersections of $y=x^2$ and $x+y=1$?",
+  "level": "Level 5",
+  "type": "Algebra",
+  "solution": "To find the $x$-coordinates of the intersections, substitute $x^2$ for $y$ in $x+y=1$ and solve for $x$, resulting in  \\begin{align*}\nx+x^2&=1 \\\\\n\\Rightarrow \\qquad x^2+x-1&=0 \\\\\n\\Rightarrow \\qquad x&=\\frac{-1\\pm\\sqrt{1+4}}2=\\frac{-1\\pm\\sqrt5}2\\\\\n\\end{align*}Using each of these coordinates to solve for $y$ gives us the intersections at $\\left(\\frac{-1+\\sqrt5}2,\\frac{3-\\sqrt5}2\\right)$ and $\\left(\\frac{-1-\\sqrt5}2,\\frac{3+\\sqrt5}2\\right)$.  Using the distance formula, we have \\begin{align*}\n&\\sqrt{ \\left(\\frac{-1+\\sqrt5}{2}-\\frac{-1-\\sqrt5}{2}\\right)^2 + \\left(\\frac{3-\\sqrt5}2-\\frac{3+\\sqrt5}2\\right)^2 }\\\\\n&\\qquad=\\sqrt{\\left(\\frac{2\\sqrt5}2\\right)^2 + \\left(-\\frac{2\\sqrt5}2\\right)^2}\\\\\n&\\qquad=\\sqrt{ 2\\sqrt5^2 }\\\\\n&\\qquad=\\boxed{\\sqrt{10}}.\n\\end{align*}",
+  "correct_ans": "\\sqrt{10}",
+  "problem_id": "18",
+  "response_with_ans": "```python\nfrom sympy import symbols, Eq, solve\n\nx = symbols(\"x\")\nquadratic_eq = Eq(x**2 + x - 1, 0)\nx_values = solve(quadratic_eq, x)\nprint(x_values)\n```\n",
+  "round": 1,
+  "messages": [
+    {
+      "content": "What is the distance between the two intersections of $y=x^2$ and $x+y=1$?",
+      "role": "user"
+    },
+    {
+      "content": "First, let's find the points of intersection of the two curves. We can do this by solving the system of equations:\n\n1) $y = x^2$\n2) $x + y = 1$\n\nFrom equation (2), we can derive $y = 1 - x$. Now we can substitute this expression into equation (1) and solve for $x$:\n\n$x^2 = 1 - x$\n\nTo find the $x$ values of the intersection points, we can solve the quadratic equation $x^2 + x - 1 = 0$. Let's find the roots of this equation using Python.",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "```python\nfrom sympy import symbols, Eq, solve\n\nx = symbols(\"x\")\nquadratic_eq = Eq(x**2 + x - 1, 0)\nx_values = solve(quadratic_eq, x)\nprint(x_values)\n```\n",
+      "role": "assistant"
+    }
+  ],
+  "time": 13.667665958404541,
+  "check_result": "the answer needs manual check.",
+  "is_correct": false,
+  "trial": -1
+}
