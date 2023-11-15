@@ -160,14 +160,10 @@ class GroupChatManager(ConversableAgent):
         groupchat = config
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
-            print("message before change name")
-            print(message)
             if message["role"] != "function":
                 message["name"] = speaker.name
             groupchat.messages.append(message)
             # broadcast the message to all agents except the speaker
-            print("message to be appended")
-            print(message)
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)

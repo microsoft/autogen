@@ -76,6 +76,7 @@ class CompressibleGroupChatManager(CompressibleAgent):
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
 
+            # the only part changed from vanilla GroupChatManager
             # check if the groupchat is over the limit, and compress if needed
             is_terminte = self.on_groupchat_limit(groupchat)
             if is_terminte:
@@ -115,11 +116,10 @@ class CompressibleGroupChatManager(CompressibleAgent):
         self.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
         init_token_count = self._compute_init_token_count()
         token_used = init_token_count + count_token(groupchat.messages + groupchat.selector_end_msg(), model)
-        max_token = max(get_max_token_limit(model), self.llm_config.get("max_token", 0))
 
         # check if the token used is over the limit
         final, compressed_messages = self._manage_history_on_token_limit(
-            groupchat.messages, token_used, max_token, model
+            groupchat.messages, token_used, get_max_token_limit(model), model
         )
         # False, None -> no compression is needed
         # False, compressed_messages -> compress success
@@ -146,7 +146,7 @@ class CompressibleGroupChatManager(CompressibleAgent):
         for cmsg in tmp_messages:
             if cmsg["role"] == "function" or cmsg["role"] == "system":
                 pass  # do nothing
-            elif cmsg["name"] == agent.name:
+            elif cmsg.get("name", "") == agent.name:
                 del cmsg["name"]
                 cmsg["role"] = "assistant"
             else:

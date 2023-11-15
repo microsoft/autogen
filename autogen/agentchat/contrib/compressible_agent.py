@@ -218,6 +218,12 @@ Reply "TERMINATE" in the end when everything is done.
 
     def _manage_history_on_token_limit(self, messages, token_used, max_token_allowed, model):
         """Manage the message history with different modes when token limit is reached.
+        Args:
+            messages (List[Dict]): the messages to be compressed.
+            token_used (int): the number of tokens used by the messages and any previous system messages / function descriptions.
+            max_token_allowed (int): the maximum number of tokens allowed by the model (not the trigger count set by user).
+            model (str): the model used by the agent.
+
         Return:
             final (bool): whether to terminate the agent.
             compressed_messages (List[Dict]): the compressed messages. None if no compression or compression failed.

@@ -81,7 +81,7 @@ jobs:
       - name: Test Compression
         if: matrix.python-version != '3.10'
         run: |
-          pytest test/agentchat/contrib/test_compressible_agent.py
+          pytest test/agentchat/contrib/test_compressible_agent.py test/agentchat/contrib/test_compressible_groupchat.py
 
   GPTAssistantAgent:
     runs-on: ${{ matrix.os }}
