@@ -159,14 +159,7 @@ def test_generate_code_execution_reply():
 
     # scenario 6: if last_n_messages is set to 'auto' and code is found, then we execute it correctly
     dummy_messages_for_auto = []
-    for i in range(3):
-        dummy_messages_for_auto.append(
-            {
-                "content": "no code block",
-                "role": "user",
-            }
-        )
-
+    for i in range(4):
         # Without an assistant present
         agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
         assert agent.generate_code_execution_reply([code_message] + dummy_messages_for_auto) == (
@@ -181,6 +174,13 @@ def test_generate_code_execution_reply():
         ) == (
             True,
             "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+        )
+
+        dummy_messages_for_auto.append(
+            {
+                "content": "no code block",
+                "role": "user",
+            }
         )
 
     # scenario 7: if last_n_messages is set to 'auto' and code is present, but not before an assistant message, then nothing happens
