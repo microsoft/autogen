@@ -28,7 +28,7 @@ Let's first look into an overview of the suggested task taxonomy that a multi-ag
    * _The optimal solution exits_ -  there are tasks where only one solution is possible. For example, if you ask your assistant to turn on the light, the success of this task is clearly defined, and there is only one way to accomplish it.
    * _Multiple solutions exist_ - "Increasingly, we observe situations where multiple trajectories of agent behavior can lead to either success or failure. In such cases, it is crucial to differentiate between the various successful and unsuccessful trajectories. For example, when you ask the agent to suggest you a food recipe or tell you a joke.
 
-In our AgentEval framework, we are currently focusing on  _Executable Tasks_.    
+In our AgentEval framework, we are currently focusing on  _Executable Tasks_.
 
 ## AgentEval Framework
 
@@ -79,9 +79,9 @@ quantifier = autogen.AssistantAgent(
 | Code Correctness      | Correctness of the provided code  |  ["completely incorrect", "mostly incorrect", "partly correct", "mostly correct", "completely correct"]
   |
 
-Then, after running QuantifierAgent, we obtained the results presented in Fig. 3, where you can see three models: 
-* AgentChat 
-* ReAct 
+Then, after running QuantifierAgent, we obtained the results presented in Fig. 3, where you can see three models:
+* AgentChat
+* ReAct
 * GPT-4 Vanilla Solver
 
 Lighter colors represent estimates for failed cases, and brighter colors show how discovered criteria were quantified.
@@ -94,7 +94,7 @@ It's important not only to identify what is not working but also to recognize wh
 
 ## Limitations and future work
 The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
-* The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is important for your domain. 
+* The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is important for your domain.
 * The results of the `QuantifierAgent` can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
 
 To mitigate the limitations mentioned above, we are working on VerifierAgent, whose goal is to stabilize the results and provide additional explanations.

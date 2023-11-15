@@ -81,7 +81,7 @@ now we will check if the answer matches the ground truth answer.
 
 ground truth answer: 12
 
-the answer extracted from the reply matches the ground truth answer. 
+the answer extracted from the reply matches the ground truth answer.
 
 the answer is correct.
 ********************************************************************************
@@ -223,7 +223,7 @@ Reply: We have found the distance between the two vertices that the triangles do
 
 x = √(252 + 72√3)
 
-This is the simplest radical form for the required distance. 
+This is the simplest radical form for the required distance.
 
 TERMINATE
 %%%%%%%
@@ -467,7 +467,7 @@ print(sides)
 %%%%%%%
 Check: the answer is 36.
 
-now let's check if the answer in the reply matches the ground truth answer. as a helpful ai, i can confirm that both answers are the same. 
+now let's check if the answer in the reply matches the ground truth answer. as a helpful ai, i can confirm that both answers are the same.
 
 the answer is correct.
 ********************************************************************************
@@ -564,7 +564,7 @@ Check: the answer needs manual check.
 ********************************************************************************
 Problem 19 | Is_correct False | Correct Answer: m+2
 
-Reply: 
+Reply:
 %%%%%%%
 Check: i will first extract the answer from the reply.
 
@@ -573,4 +573,3 @@ the reply is empty, so there is no answer to extract. therefore, the reply doesn
 
  Accuracy: 13/20 = 0.65
 ------------------------------------------------------------
-
