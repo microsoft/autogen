@@ -26,7 +26,7 @@ class GroupChat:
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion.
-    - allow_same_speaker: whether to allow the same speaker to speak consecutively. Default is True.
+    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True.
     """
 
     agents: List[Agent]
@@ -35,7 +35,7 @@ class GroupChat:
     admin_name: str = "Admin"
     func_call_filter: bool = True
     speaker_selection_method: str = "auto"
-    allow_same_speaker: bool = True
+    allow_repeat_speaker: bool = True
 
     @property
     def agent_names(self) -> List[str]:
@@ -97,8 +97,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                         "Please check the function_map of the agents."
                     )
 
-        # remove the last speaker from the list to avoid selecting the same speaker if allow_same_speaker is False
-        agents = agents if self.allow_same_speaker else [agent for agent in agents if agent != last_speaker]
+        # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
+        agents = agents if self.allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
+
         if self.speaker_selection_method == "manual":
             print("Please select the next speaker from the following list:")
             _n_agents = len(agents)
