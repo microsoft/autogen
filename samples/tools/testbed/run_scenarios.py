@@ -13,7 +13,7 @@ from autogen import config_list_from_json
 INCLUDES_DIR = "includes"
 
 
-def run_scenarios(scenario, n_repeats, is_native, config_list, results_dir="results"):
+def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, results_dir="results"):
     """
     Run a set testbed scenarios a given number of times.
 
@@ -107,7 +107,7 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, results_dir="resu
                     if is_native:
                         run_scenario_natively(results_repetition)
                     else:
-                        run_scenario_in_docker(results_repetition)
+                        run_scenario_in_docker(results_repetition, requirements)
 
 
 def expand_scenario(scenario_dir, scenario, output_file):
@@ -161,7 +161,7 @@ echo SCENARIO COMPLETE !#!#
     return
 
 
-def run_scenario_in_docker(work_dir, timeout=600):
+def run_scenario_in_docker(work_dir, requirements, timeout=600):
     """
     Run a scenario in a Docker environment.
 
@@ -188,11 +188,15 @@ def run_scenario_in_docker(work_dir, timeout=600):
     # Prepare the run script
     with open(os.path.join(work_dir, "run.sh"), "wt") as f:
         f.write(
-            """#
+            f"""#
+umask 000
 . ./ENV
-pip install pyautogen
+pip install -r {requirements}
 python scenario.py
 rm ENV
+if [ -d .cache ] ; then
+    chmod -R a+rw .cache
+fi
 echo SCENARIO COMPLETE !#!#
 """
         )
@@ -257,7 +261,15 @@ if __name__ == "__main__":
         default="OAI_CONFIG_LIST",
     )
     parser.add_argument(
-        "-r", "--repeat", type=int, help="The number of repetitions to run for each scenario (default: 10).", default=10
+        "-r", "--repeat", type=int, help="The number of repetitions to run for each scenario (default: 1).", default=1
+    )
+    parser.add_argument(
+        "--requirements",
+        type=str,
+        help="The requirements file to pip install before running the scenario. This file must be found in the '"
+        + INCLUDES_DIR
+        + "' directory. (default: requirements.txt)",
+        default=None,
     )
     parser.add_argument(
         "--native",
@@ -274,17 +286,30 @@ if __name__ == "__main__":
 
     # Warn if running natively
     if args.native:
+        if args.requirements is not None:
+            sys.exit("--requirements is not compatible with --native. Exiting.")
+
         choice = input(
             'WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\nAre you absolutely sure you want to continue with native execution? Type "Yes" exactly, and in full, to proceed: '
         )
 
         if choice.strip().lower() != "yes":
-            print("Received '" + choice + "'. Exiting.")
+            sys.exit("Received '" + choice + "'. Exiting.")
 
-    # Import docker if needed
+    # What requirements file are we working with?
+    requirements = "requirements.txt"
+    if args.requirements is not None:
+        requirements = args.requirements
+
     is_native = True if args.native else False
     if not is_native:
+        # Import docker
         import docker
+
+        # Make sure the requirements file exists
+        req_file = os.path.join(INCLUDES_DIR, requirements)
+        if not os.path.isfile(req_file):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), req_file)
 
     # Warn aboit a common error
     env_file = os.path.join(INCLUDES_DIR, "ENV")
@@ -295,4 +320,4 @@ if __name__ == "__main__":
             f"The environment file '{env_file}' does not exist (perhaps this is your first time setting up the testbed). A default environment file has been provided, but you may want to edit it to include your API keys and configurations.\n"
         )
 
-    run_scenarios(args.scenario, args.repeat, is_native, config_list)
+    run_scenarios(args.scenario, args.repeat, is_native, config_list, requirements)
