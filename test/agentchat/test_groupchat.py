@@ -1,4 +1,6 @@
 import pytest
+import mock
+import builtins
 import autogen
 
 
@@ -121,6 +123,34 @@ def test_speaker_selection_method():
         "This is bob speaking.",
         "This is charlie speaking.",
     ] * 2
+
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3],
+        messages=[],
+        max_round=2,
+        speaker_selection_method="random",
+        allow_repeat_speaker=True,
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent1.initiate_chat(group_chat_manager, message="This is alice sepaking.")
+    assert len(agent1.chat_messages[group_chat_manager]) == 2
+
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="manual",
+        allow_repeat_speaker=False,
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    with mock.patch.object(builtins, "input", lambda _: "1"):
+        agent1.initiate_chat(group_chat_manager, message="This is alice sepaking.")
+        assert len(agent1.chat_messages[group_chat_manager]) == 5
+        assert len(groupchat.messages) == 5
+        assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
+            "This is alice sepaking.",
+            "This is bob speaking.",
+        ] * 2 + ["This is alice sepaking."]
 
 
 def test_plugin():
