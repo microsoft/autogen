@@ -37,10 +37,14 @@ options:
   -h, --help    show this help message and exit
 
   -r REPEAT, --repeat REPEAT
-                The number of repetitions to run for each scenario (default: 10).
+                The number of repetitions to run for each scenario (default: 1).
 
   -c CONFIG, --config CONFIG
                 The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
+
+  --requirements REQUIREMENTS
+                The requirements file to pip install before running the scenario. This file must be found in
+                the 'includes' directory. (default: requirements.txt)
 
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
