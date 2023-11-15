@@ -91,7 +91,7 @@ class ConversableAgent(Agent):
                     When set to True, a default list will be used.
                     We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
-                - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
+                - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. Default to 1. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke (typically this is the last time execution was attempted).
             llm_config (dict or False): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
@@ -635,10 +635,23 @@ class ConversableAgent(Agent):
             messages = self._oai_messages[sender]
         last_n_messages = code_execution_config.pop("last_n_messages", 1)
 
+        messages_to_scan = last_n_messages
+        if last_n_messages == "auto":
+            # Find when the agent last spoke
+            messages_to_scan = 0
+            for i in range(len(messages)):
+                message = messages[-(i + 1)]
+                if "role" not in message:
+                    break
+                elif message["role"] != "user":
+                    break
+                else:
+                    messages_to_scan += 1
+
         # iterate through the last n messages reversly
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
-        for i in range(min(len(messages), last_n_messages)):
+        for i in range(min(len(messages), messages_to_scan)):
             message = messages[-(i + 1)]
             if not message["content"]:
                 continue
