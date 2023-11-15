@@ -82,6 +82,47 @@ def test_chat_manager():
         agent2.initiate_chat(group_chat_manager, message={"function_call": {"name": "func", "arguments": '{"x": 1}'}})
 
 
+def test_speaker_selection_method():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice sepaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "charlie",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is charlie speaking.",
+    )
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker=False,
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent1.initiate_chat(group_chat_manager, message="This is alice sepaking.")
+
+    assert len(agent1.chat_messages[group_chat_manager]) == 6
+    assert len(groupchat.messages) == 6
+    assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
+        "This is alice sepaking.",
+        "This is bob speaking.",
+        "This is charlie speaking.",
+    ] * 2
+
+
 def test_plugin():
     # Give another Agent class ability to manage group chat
     agent1 = autogen.ConversableAgent(
@@ -113,7 +154,8 @@ def test_plugin():
 
 
 if __name__ == "__main__":
-    test_func_call_groupchat()
+    # test_func_call_groupchat()
     # test_broadcast()
-    test_chat_manager()
+    # test_chat_manager()
     # test_plugin()
+    test_speaker_selection_method()
