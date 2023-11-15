@@ -164,6 +164,7 @@ key_openai.txt
 key_aoai.txt
 base_aoai.txt
 wolfram.txt
+notebook/OAI_CONFIG_LIST
 
 # DB on disk for TeachableAgent
 tmp/

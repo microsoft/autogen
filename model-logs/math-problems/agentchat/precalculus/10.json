@@ -1,0 +1,24 @@
+{
+  "problem": "Find the smallest positive integer $x$ (measured in degrees) such that\n\\[\\tan (x - 160^{\\circ}) = \\frac{\\cos50^{\\circ}}{1 - \\sin50^{\\circ}}.\\]",
+  "level": "Level 5",
+  "type": "Precalculus",
+  "solution": "We can write $\\frac{\\cos 50^\\circ}{1 - \\sin 50^\\circ} = \\frac{\\sin 40^\\circ}{1 - \\cos 40^\\circ}.$  By the half-angle formula,\n\\[\\frac{\\sin 40^\\circ}{1 - \\cos 40^\\circ} = \\frac{1}{\\tan 20^\\circ} = \\tan 70^\\circ.\\]We want\n\\[\\tan (x - 160^\\circ) = \\tan 70^\\circ,\\]so $x - 160^\\circ - 70^\\circ = 180^\\circ n$ for some integer $n,$ or\n\\[x = 180^\\circ n + 230^\\circ.\\]Taking $n = -1$ to get the smallest positive value, we get $x = \\boxed{50^\\circ}.$",
+  "correct_ans": "50^\\circ",
+  "problem_id": "10",
+  "response_with_ans": "First, we'll find the value of $\\frac{\\cos50^{\\circ}}{1 - \\sin50^{\\circ}}$.\n\n```python\nimport math\n\ncos_50 = math.cos(math.radians(50))\nsin_50 = math.sin(math.radians(50))\n\nresult = cos_50 / (1 - sin_50)\nresult\n```",
+  "round": 0,
+  "messages": [
+    {
+      "content": "Find the smallest positive integer $x$ (measured in degrees) such that\n\\[\\tan (x - 160^{\\circ}) = \\frac{\\cos50^{\\circ}}{1 - \\sin50^{\\circ}}.\\]",
+      "role": "user"
+    },
+    {
+      "content": "First, we'll find the value of $\\frac{\\cos50^{\\circ}}{1 - \\sin50^{\\circ}}$.\n\n```python\nimport math\n\ncos_50 = math.cos(math.radians(50))\nsin_50 = math.sin(math.radians(50))\n\nresult = cos_50 / (1 - sin_50)\nresult\n```",
+      "role": "assistant"
+    }
+  ],
+  "time": 5.489969730377197,
+  "check_result": "the answer needs manual check.",
+  "is_correct": false,
+  "trial": -1
+}

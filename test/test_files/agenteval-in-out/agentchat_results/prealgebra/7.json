@@ -1,0 +1,48 @@
+{
+  "problem": "A $30^\\circ$-$60^\\circ$-$90^\\circ$ triangle is drawn on the exterior of an equilateral triangle so the hypotenuse of the right triangle is one side of the equilateral triangle. If the shorter leg of the right triangle is 6 units, what is the distance between the two vertices that the triangles do not have in common? Express your answer in simplest radical form. [asy]\ndraw((2,0)--(0,0)--(1,1.732)--(2,1.732)--(2,0)--(1,1.732));\ndraw((2,1.632)--(1.9,1.632)--(1.9,1.732));\nlabel(\"$60^\\circ$\",(1,1.732),2SE+E);\nlabel(\"$30^\\circ$\",(2,0),5NNW+4N);\nlabel(\"6\",(1.5,1.732),N);\n[/asy]",
+  "level": "Level 5",
+  "type": "Prealgebra",
+  "solution": "Multiply the short leg of the right triangle by $\\sqrt{3}$ to find that the length of the longer leg is $6\\sqrt{3}$ units.  Double the short leg of the right triangle to find that the length of the hypotenuse of the right triangle is 12 units.  Since the hypotenuse of the right triangle is a side of the equilateral triangle, the side length of the equilateral triangle is also 12 units.  By the Pythagorean theorem, the distance between the two vertices that the two triangles do not have in common is $\\sqrt{(6\\sqrt{3})^2+12^2}=\\sqrt{252}=\\boxed{6\\sqrt{7}}$ units. [asy]\ndraw((2,0)--(0,0)--(1,sqrt(3))--(2,sqrt(3))--(2,0)--(1,sqrt(3)));\ndraw((2,sqrt(3)-0.1)--(1.9,sqrt(3)-0.1)--(1.9,sqrt(3)));\ndraw((0,0)--(2,sqrt(3)));\nlabel(\"$60^\\circ$\",(1,sqrt(3)),2SE+E);\nlabel(\"$30^\\circ$\",(2,0),5NNW+4N);\nlabel(\"6\",(1.5,sqrt(3)),N);\nlabel(\"$6\\sqrt{3}$\",(2,sqrt(3)/2),E);\nlabel(\"12\",(1.5,sqrt(3)/2),SW);\nlabel(\"12\",(1,0),S);\n[/asy]",
+  "correct_ans": "6\\sqrt{7}",
+  "problem_id": "7",
+  "response_with_ans": "We have found the distance between the two vertices that the triangles do not have in common (C and D):\n\nx = \u221a(252 + 72\u221a3)\n\nThis is the simplest radical form for the required distance. \n\nTERMINATE",
+  "round": 3,
+  "messages": [
+    {
+      "content": "A $30^\\circ$-$60^\\circ$-$90^\\circ$ triangle is drawn on the exterior of an equilateral triangle so the hypotenuse of the right triangle is one side of the equilateral triangle. If the shorter leg of the right triangle is 6 units, what is the distance between the two vertices that the triangles do not have in common? Express your answer in simplest radical form. [asy]\ndraw((2,0)--(0,0)--(1,1.732)--(2,1.732)--(2,0)--(1,1.732));\ndraw((2,1.632)--(1.9,1.632)--(1.9,1.732));\nlabel(\"$60^\\circ$\",(1,1.732),2SE+E);\nlabel(\"$30^\\circ$\",(2,0),5NNW+4N);\nlabel(\"6\",(1.5,1.732),N);\n[/asy]",
+      "role": "user"
+    },
+    {
+      "content": "Let's denote the vertices of the equilateral triangle as A, B, and C, where A is the right angle of the $30^\\circ$-$60^\\circ$-$90^\\circ$ triangle, B is adjacent to the $30^\\circ$ angle, and C is adjacent to the $60^\\circ$ angle. Let D be the vertex of the right triangle that is not a part of the equilateral triangle (the $60^\\circ$ angle).\n\nSince the shorter leg of the right triangle is 6 units (AD) and it is a $30^\\circ$-$60^\\circ$-$90^\\circ$ triangle, we know that:\n1. The longer leg (BD) has a length equal to the shorter leg times $\\sqrt{3}$ ($6\\sqrt{3}$ units).\n2. The hypotenuse (AB) has a length twice the size of the shorter leg (12 units).\n\nNow, we are trying to find the distance between vertices C and D. Let's call this distance x.\n\nTo calculate x, we can use the law of cosines on triangle $\\bigtriangleup BCD$. Here, the angle at vertex B is $180^\\circ - 60^\\circ = 120^\\circ$. We have the lengths of sides BC and BD, so we can calculate x using the law of cosines and then simplify the result.\n\nThe law of cosines formula is:\nx^2 = (BC^2) + (BD^2) - 2(BC)(BD)cos(120^\\circ)",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "First, we need the length of side BC, which is equal to the length of side AB (since it is an equilateral triangle). Thus, BC = 12 units. Now we can use the law of cosines formula to find the value of x^2:\n\nx^2 = (12^2) + (6\u221a3)^2 - 2(12)(6\u221a3)cos(120\u00ba)\n\nThe cosine of 120\u00ba is -1/2, so:\n\nx^2 = 144 + 108 - 2(12)(6\u221a3)(-1/2)\n",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "Let's simplify the expression for x^2:\n\nx^2 = 144 + 108 + (12)(6\u221a3)\n\nNow we will calculate the result:\n\nx^2 = 144 + 108 + 72\u221a3\n\nx^2 = 252 + 72\u221a3\n\nNow, to find the value of x, we'll take the square root of both sides:\n\nx = \u221a(252 + 72\u221a3)",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "We have found the distance between the two vertices that the triangles do not have in common (C and D):\n\nx = \u221a(252 + 72\u221a3)\n\nThis is the simplest radical form for the required distance. \n\nTERMINATE",
+      "role": "assistant"
+    }
+  ],
+  "time": 35.88237428665161,
+  "check_result": "the answer is x = \u221a(252 + 72\u221a3).\n\nto verify if the extracted answer matches the ground truth answer, let's compare them in the simplest radical form:\n\nimport math\nimport sympy\n\nextracted_answer = sympy.sqrt(252 + 72 * sympy.sqrt(3))\nground_truth_answer = 6 * sympy.sqrt(7)\n\nif extracted_answer.equals(ground_truth_answer):\n    response = \"the answer is correct.\"\nelse:\n    response = f\"the answer is incorrect. correct answer: 6\u221a7 | answer extracted: \u221a(252 + 72\u221a3).\"\n\nresponse",
+  "is_correct": true,
+  "trial": -1
+}

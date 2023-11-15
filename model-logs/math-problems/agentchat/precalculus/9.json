@@ -1,0 +1,40 @@
+{
+  "problem": "In triangle $ABC,$\n\\[\\tan \\left( \\frac{B - C}{2} \\right) \\tan \\frac{A}{2} = \\frac{1}{29} \\quad \\text{and} \\quad \\tan \\left( \\frac{C - A}{2} \\right) \\tan \\frac{B}{2} = \\frac{1}{27}.\\]Find $\\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2}.$",
+  "level": "Level 5",
+  "type": "Precalculus",
+  "solution": "We can write\n\\begin{align*}\n\\tan \\left( \\frac{B - C}{2} \\right) \\tan \\frac{A}{2} &= \\frac{\\sin (\\frac{B - C}{2}) \\sin \\frac{A}{2}}{\\cos (\\frac{B - C}{2}) \\cos \\frac{A}{2}} \\\\\n&= \\frac{\\cos (\\frac{A + C - B}{2}) - \\cos (\\frac{A + B - C}{2})}{\\cos (\\frac{A + B - C}{2}) + \\cos (\\frac{A + C - B}{2})} \\\\\n&= \\frac{\\cos (90^\\circ - B) - \\cos (90^\\circ - C)}{\\cos (90^\\circ - C) + \\cos (90^\\circ - B)} \\\\\n&= \\frac{\\sin B - \\sin C}{\\sin C + \\sin B}.\n\\end{align*}As usual, let $a = BC,$ $b = AC,$ and $c = AB.$  By the Law of Sines, $\\frac{b}{\\sin B} = \\frac{c}{\\sin C},$ so\n\\[\\frac{\\sin B - \\sin C}{\\sin C + \\sin B} = \\frac{b - c}{b + c} = \\frac{1}{29}.\\]Then $29b - 29c = b + c,$ so $28b = 30c,$ or $\\frac{b}{15} = \\frac{c}{14}.$\n\nSimilarly, we can show that\n\\[\\tan \\left( \\frac{C - A}{2} \\right) \\tan \\frac{B}{2} = \\frac{c - a}{c + a},\\]so $\\frac{c - a}{c + a} = \\frac{1}{27}.$  Then $27c - 27a = c + a,$ so $26c = 28a,$ or $\\frac{a}{13} = \\frac{c}{14}.$\n\nFinally,\n\\[\\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2} = \\frac{a - b}{a + b} = \\frac{13 - 15}{13 + 15} = \\frac{-2}{28} = \\boxed{-\\frac{1}{14}}.\\]",
+  "correct_ans": "-\\frac{1}{14}",
+  "problem_id": "9",
+  "response_with_ans": "To solve this equation, we simplify and solve for $x$:\n\n$x = (1 + x) \\left(\\frac{1}{27} - \\frac{1}{29}\\right)$\n\n$x = (1 + x) \\left(\\frac{29 - 27}{27 \\cdot 29}\\right)$\n\n$x = (1 + x) \\left(\\frac{2}{783}\\right)$\n\nNow, we isolate $x$:\n\n$x \\left(1 - \\frac{2}{783}\\right) = \\frac{2}{783}$\n\n$x \\left(\\frac{781}{783}\\right) = \\frac{2}{783}$\n\nNow, we divide both sides by $\\frac{781}{783}$:\n\n$x = \\frac{\\frac{2}{783}}{\\frac{781}{783}}$\n\n$x = \\frac{2}{781}$\n\nSo the value of $\\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2}$ is $\\frac{2}{781}$.\n\nTERMINATE",
+  "round": 2,
+  "messages": [
+    {
+      "content": "In triangle $ABC,$\n\\[\\tan \\left( \\frac{B - C}{2} \\right) \\tan \\frac{A}{2} = \\frac{1}{29} \\quad \\text{and} \\quad \\tan \\left( \\frac{C - A}{2} \\right) \\tan \\frac{B}{2} = \\frac{1}{27}.\\]Find $\\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2}.$",
+      "role": "user"
+    },
+    {
+      "content": "Let $x = \\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2}$, $y = \\tan \\left( \\frac{B - C}{2} \\right) \\tan \\frac{A}{2}$, and $z = \\tan \\left( \\frac{C - A}{2} \\right) \\tan \\frac{B}{2}$. Then from the problem statement, we know that $y = \\frac{1}{29}$ and $z = \\frac{1}{27}$. We will use the tangent addition formula to find an expression involving $x$, $y$, and $z$.\n\nFrom the tangent addition formula, we know that:\n\n$\\tan \\left( D + E \\right) = \\frac{\\tan D + \\tan E}{1 - \\tan D \\tan E}$.\n\nUsing this, we get that:\n\n1. $\\tan \\frac{A - B}{2} = \\frac{\\tan \\frac{A}{2} - \\tan \\frac{B}{2}}{1 + \\tan \\frac{A}{2} \\tan \\frac{B}{2}} = \\frac{z - y}{1 + x}$.\n2. $\\tan \\frac{B - C}{2} = \\frac{\\tan \\frac{B}{2} - \\tan \\frac{C}{2}}{1 + \\tan \\frac{B}{2} \\tan \\frac{C}{2}} = \\frac{z - x}{1 + y}$.\n3. $\\tan \\frac{C - A}{2} = \\frac{\\tan \\frac{C}{2} - \\tan \\frac{A}{2}}{1 + \\tan \\frac{C}{2} \\tan \\frac{A}{2}} = \\frac{y - x}{1 + z}$.\n\nNow we have a system of equations to solve:\n\n(1) $x = (1 + x)(z - y)$\n(2) $y = \\frac{z - x}{1 + y}\\quad \\Rightarrow \\quad y^2 = yz - xy$\n(3) $z = \\frac{y - x}{1 + z}\\quad \\Rightarrow \\quad z^2 = yz - xz$\n\nWe have the values of $y$ and $z$. Let's first solve for $x$ by substituting the values of $y$ and $z$ into equation (1).",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "Let's substitute the values of $y$ and $z$ into equation (1) to solve for $x$:\n\n$\\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2} = x = (1 + x)(\\frac{1}{27} - \\frac{1}{29})$\n\nNow, let's solve this equation for $x$.",
+      "role": "assistant"
+    },
+    {
+      "content": "",
+      "role": "user"
+    },
+    {
+      "content": "To solve this equation, we simplify and solve for $x$:\n\n$x = (1 + x) \\left(\\frac{1}{27} - \\frac{1}{29}\\right)$\n\n$x = (1 + x) \\left(\\frac{29 - 27}{27 \\cdot 29}\\right)$\n\n$x = (1 + x) \\left(\\frac{2}{783}\\right)$\n\nNow, we isolate $x$:\n\n$x \\left(1 - \\frac{2}{783}\\right) = \\frac{2}{783}$\n\n$x \\left(\\frac{781}{783}\\right) = \\frac{2}{783}$\n\nNow, we divide both sides by $\\frac{781}{783}$:\n\n$x = \\frac{\\frac{2}{783}}{\\frac{781}{783}}$\n\n$x = \\frac{2}{781}$\n\nSo the value of $\\tan \\left( \\frac{A - B}{2} \\right) \\tan \\frac{C}{2}$ is $\\frac{2}{781}$.\n\nTERMINATE",
+      "role": "assistant"
+    }
+  ],
+  "time": 55.740800857543945,
+  "check_result": "the answer is \\(\\frac{2}{781}\\).\n\nthe answer is incorrect. correct answer: \\(-\\frac{1}{14}\\) | answer extracted: \\(\\frac{2}{781}\\).",
+  "is_correct": false,
+  "trial": -1
+}
