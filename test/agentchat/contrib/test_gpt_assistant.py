@@ -2,6 +2,7 @@ import pytest
 import os
 import sys
 import autogen
+from autogen import OpenAIWrapper
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -169,8 +170,42 @@ def test_gpt_assistant_existing_no_instructions():
     assert instruction_match is True
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_get_assistant_files():
+    """
+    Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
+    and assert that the retrieved instructions match the set instructions.
+    """
+    current_file_path = os.path.abspath(__file__)
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+
+    assistant = GPTAssistantAgent(
+        "assistant",
+        instructions="This is a test",
+        llm_config={
+            "config_list": config_list,
+            "tools": [{"type": "retrieval"}],
+            "file_ids": [file.id],
+        },
+    )
+
+    files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
+    retrived_file_ids = [fild.id for fild in files]
+    expected_file_id = file.id
+
+    assistant.delete_assistant()
+    openai_client.files.delete(file.id)
+
+    assert expected_file_id in retrived_file_ids
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
     test_gpt_assistant_instructions_overwrite()
     test_gpt_assistant_existing_no_instructions()
+    test_get_assistant_files()
