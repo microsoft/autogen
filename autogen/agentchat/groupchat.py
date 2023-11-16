@@ -25,7 +25,7 @@ class GroupChat:
         - "auto": the next speaker is selected automatically by LLM.
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
-        - "round_robin": the next speaker is selected in a round robin fashion.
+        - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True.
     """
 
