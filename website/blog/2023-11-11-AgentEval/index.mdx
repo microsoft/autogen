@@ -1,14 +1,15 @@
 
 ---
 title:  AgentEval: Assessing Task Utility for LLM-powered Applications
-authors: julianakiseleva, Narabzad
+authors: julianakiseleva, narabzad
 tags: [LLM, GPT, evaluation, task utility]
 ---
 
-![Fig.1: An verification Framework](img/agenteval-CQ.png)
+![Fig.1: An verification framework](img/agenteval-CQ.png)
 
 **TL;DR:**
-* We introduce `AgentEval` — the first version of the framework to automatically assess task utility for an arbitrary application. It suggests criteria to explain task utility and then quantifies these criteria for logs of your system.
+* We introduce a notion of what is task utility in LLM-powered applications
+* We introduce `AgentEval` — the first version of the framework to assess task utility for an arbitrary application. It automaticaly suggests criteria to explain task utility and then quantifies these criteria for logs of your application.
 * We demonstrate the usage of our framework with the [Math Problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat)
 
 ## Run it yourself
@@ -32,7 +33,7 @@ In our AgentEval framework, we are currently focusing on  _Executable Tasks_.
 
 ## AgentEval Framework
 
-Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. Interestingly, according to our earlier work, humans can develop criteria to explain why they prefer one agent over another. For example, 'the first agent was faster in execution,' or 'the second agent moves more naturally.' With this idea in mind, we designed AgentEval (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess the task *utility* for the multi-agent system. Namely:
+Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. Interestingly, according to our earlier work, humans can develop criteria to explain why they prefer one agent over another in the setup of pair-wise comparison. For example, 'the first agent was faster in execution,' or 'the second agent moves more naturally.' So, the comparative nature led humans to come up with a list of criteria that helps to infer the utility of the task. With this idea in mind, we designed AgentEval (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess the task *utility* for the multi-agent system. Namely:
 
 * The goal of `CriticAgent` is to suggest the list of criteria $(c_1,\dots, c_n)$, that can be used to assess task utility. This is an example of how `CriticAgent` is defined using `Autogen`:
 
@@ -100,7 +101,9 @@ The current implementation of `AgentEval` has a number of limitations which are 
 To mitigate the limitations mentioned above, we are working on VerifierAgent, whose goal is to stabilize the results and provide additional explanations.
 
 ## Summary
-`CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, giving you an in-depth understanding of the utility your model brings to the user.
+`CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, giving you an in-depth understanding of the utility your model brings to the user. 
+
+We would love to hear about how AgentEval works for your application. Any feedback would be useful for future development. Please contact us on our(Discord)[http://aka.ms/autogen-dc]. 
 
 
 ## Previous Research
