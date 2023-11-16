@@ -2,7 +2,6 @@ from dataclasses import dataclass
 import sys
 from typing import Dict, List, Optional, Tuple, Union
 from .agent import Agent
-from .conversable_agent import ConversableAgent
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ class GroupChat:
         in its `function_map`.
     """
 
-    agents: List[ConversableAgent]
+    agents: List[Agent]
     messages: List[Dict]
     max_round: int = 10
     admin_name: str = "Admin"
@@ -37,11 +36,11 @@ class GroupChat:
         """Reset the group chat."""
         self.messages.clear()
 
-    def agent_by_name(self, name: str) -> ConversableAgent:
+    def agent_by_name(self, name: str) -> Agent:
         """Returns the agent with a given name."""
         return self.agents[self.agent_names.index(name)]
 
-    def next_agent(self, agent: Agent, agents: List[ConversableAgent]) -> ConversableAgent:
+    def next_agent(self, agent: Agent, agents: List[Agent]) -> Agent:
         """Return the next agent in the list."""
         if agents == self.agents:
             return agents[(self.agent_names.index(agent.name) + 1) % len(agents)]
@@ -51,7 +50,7 @@ class GroupChat:
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
 
-    def select_speaker_msg(self, agents: List[ConversableAgent]):
+    def select_speaker_msg(self, agents: List[Agent]):
         """Return the message for selecting the next speaker."""
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles()}.
@@ -59,7 +58,7 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+    def select_speaker(self, last_speaker: Agent, selector: Agent):
         """Select the next speaker."""
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
             # find agents with the right function_map which contains the function name
@@ -119,7 +118,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return "\n".join(roles)
 
 
-class GroupChatManager(ConversableAgent):
+class GroupChatManager(Agent):
     """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
 
     def __init__(
