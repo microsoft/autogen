@@ -1,12 +1,13 @@
+import ast
 import hashlib
 from typing import List, Dict, Union
 import os
 import shutil
 import re
+import uuid
+import autogen
 from .datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig, Message
 from .db import DBManager
-
-import autogen
 
 
 def md5_hash(text: str) -> str:
@@ -279,9 +280,9 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
                 print(f"Failed to delete {path}. Reason: {e}")
 
 
-def get_default_flow_config(work_dir: str, skills_suffix: str = "") -> FlowConfig:
+def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> FlowConfig:
     """
-    Get a default flow config .
+    Get a default agent flow config .
     """
 
     llm_config = LLMConfig(
@@ -352,3 +353,55 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
                 successful_code_blocks.extend(code_blocks)  # Add the code blocks with backticks
 
     return successful_code_blocks
+
+
+def create_skills_from_code(dest_dir: str, skills: Union[str, List[str]]) -> None:
+    """
+    Create skills from a list of code blocks.
+    Parameters:
+    dest_dir (str): The destination directory to copy all skills to.
+    skills (Union[str, List[str]]): A list of strings containing code blocks.
+    """
+
+    # Ensure skills is a list
+    if isinstance(skills, str):
+        skills = [skills]
+
+    # Check if dest_dir exists
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+
+    for skill in skills:
+        # Attempt to parse the code and extract the top-level function name
+        try:
+            parsed = ast.parse(skill)
+            function_name = None
+            for node in parsed.body:
+                if isinstance(node, ast.FunctionDef):
+                    function_name = node.name
+                    break
+
+            if function_name is None:
+                raise ValueError("No top-level function definition found.")
+
+            # Sanitize the function name for use as a file name
+            function_name = "".join(ch for ch in function_name if ch.isalnum() or ch == "_")
+            skill_file_name = f"{function_name}.py"
+
+        except (ValueError, SyntaxError):
+            skill_file_name = "new_skill.py"
+
+        # If the generated/sanitized name already exists, append an index
+        skill_file_path = os.path.join(dest_dir, skill_file_name)
+        index = 1
+        while os.path.exists(skill_file_path):
+            base, ext = os.path.splitext(skill_file_name)
+            if base.endswith(f"_{index - 1}"):
+                base = base.rsplit("_", 1)[0]
+
+            skill_file_path = os.path.join(dest_dir, f"{base}_{index}{ext}")
+            index += 1
+
+        # Write the skill to the file
+        with open(skill_file_path, "w", encoding="utf-8") as f:
+            f.write(skill)

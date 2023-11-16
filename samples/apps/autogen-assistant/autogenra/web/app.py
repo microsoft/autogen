@@ -6,9 +6,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from ..db import DBManager
-from ..datamodel import ChatWebRequestModel, ClearDBWebRequestModel, DeleteMessageWebRequestModel, Message
+from ..datamodel import (
+    ChatWebRequestModel,
+    ClearDBWebRequestModel,
+    CreateSkillWebRequestModel,
+    DeleteMessageWebRequestModel,
+    Message,
+)
 from ..autogenchat import ChatManager
 from ..utils import (
+    create_skills_from_code,
     delete_files_in_folder,
     get_all_skills,
     load_messages,
@@ -160,3 +167,38 @@ def get_skills(user_id: str):
         "message": "Skills retrieved successfully",
         "skills": skills,
     }
+
+
+@api.post("/skills")
+def create_user_skills(req: CreateSkillWebRequestModel):
+    """_summary_
+
+    Args:
+        user_id (str): the user id
+        code (str):  code that represents the skill to be created
+
+    Returns:
+        _type_: dict
+    """
+
+    user_skills_dir = os.path.join(folders["user_skills_dir"], md5_hash(req.user_id))
+
+    try:
+        create_skills_from_code(dest_dir=user_skills_dir, skills=req.skills)
+
+        skills = get_all_skills(
+            os.path.join(folders["user_skills_dir"], md5_hash(req.user_id)), folders["global_skills_dir"]
+        )
+
+        return {
+            "status": True,
+            "message": "Skills retrieved successfully",
+            "skills": skills,
+        }
+
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while creating skills: " + str(ex_error),
+        }

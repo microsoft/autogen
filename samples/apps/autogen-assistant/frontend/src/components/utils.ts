@@ -224,8 +224,18 @@ export const formatDuration = (seconds: number) => {
 
 export const getDefaultConfigFlows = () => {
   const llm_model_config: IModelConfig = {
-    model: "gpt-4",
+    model: "gpt-4-1106-preview",
   };
+
+  const llm_model_config_35turbo: IModelConfig = {
+    model: "gpt-3.5-turbo-16k",
+  };
+
+  const llm_config_35turbo = {
+    config_list: [llm_model_config_35turbo],
+    temperature: 0.1,
+  };
+
   const llm_config: ILLMConfig = {
     config_list: [llm_model_config],
     temperature: 0.1,
@@ -237,7 +247,7 @@ export const getDefaultConfigFlows = () => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
     system_message:
-      "You are a helpful assistant that can respond with a summary. Your summary should include RECENT code blocks that address recent <user_request> in markdown format e.g. ```python ``` where appropriate. The summary must be written as a coherent helpful response to <user_request> e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE ",
+      "You are a helpful assistant that can respond with a summary. Your summary should include RECENT code blocks that address recent <user_request> in markdown format e.g. ```python ``` where appropriate. The summary must be written as a coherent helpful response to <user_request> e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
     code_execution_config: {
       work_dir: null,
       use_docker: false,
@@ -250,7 +260,7 @@ export const getDefaultConfigFlows = () => {
 
   const assistantConfig: IAgentConfig = {
     name: "primary_assistant",
-    llm_config: llm_config,
+    llm_config: llm_config_35turbo,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 8,
     system_message: "",
@@ -261,8 +271,7 @@ export const getDefaultConfigFlows = () => {
     llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 4,
-    system_message:
-      "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The title must be bold. Importantly, if there are lines in the chart, you MUST add a line of best fit and also text on the slope of each line.",
+    system_message: `Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The visualization should have an APPROPRIATE ASPECT RATIO e..g rectangular for time series data. The title must be bold. Importantly, if THE CHART IS A LINE CHART, you MUST ADD ALINE OF BEST FIT and ADD TEXT ON THE SLOPE OF EACH LINE. Note that today's date is ${new Date().toLocaleDateString()}. YOUR RESPONSE MUST NOT CONTAIN THE WORD TERMINATE.`,
   };
 
   const visualizationAssistantFlowSpec: IAgentFlowSpec = {

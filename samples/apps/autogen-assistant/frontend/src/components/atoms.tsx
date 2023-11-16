@@ -78,11 +78,15 @@ export const IconButton = ({
   );
 };
 
-export const LaunchButton = ({ children, onClick }: any) => {
+export const LaunchButton = ({
+  children,
+  onClick,
+  className = "p-3 px-5 ",
+}: any) => {
   return (
     <button
       role={"button"}
-      className={`    focus:ring ring-accent  ring-l-none  p-3 px-5 rounded  cursor-pointer hover:brightness-110 bg-accent transition duration-500    text-white`}
+      className={` focus:ring ring-accent  ring-l-none  rounded  cursor-pointer hover:brightness-110 bg-accent transition duration-500    text-white ${className} `}
       onClick={onClick}
     >
       {children}

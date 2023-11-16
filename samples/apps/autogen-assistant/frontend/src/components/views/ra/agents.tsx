@@ -2,9 +2,8 @@ import { AdjustmentsVerticalIcon } from "@heroicons/react/24/outline";
 import { Modal, Select, Slider } from "antd";
 import * as React from "react";
 import { ControlRowView, GroupView } from "../../atoms";
-import { IAgentConfig, IAgentFlowSpec, IFlowConfig } from "../../types";
+import { IAgentFlowSpec, IFlowConfig } from "../../types";
 import TextArea from "antd/es/input/TextArea";
-import { getDefaultConfigFlows, truncateText } from "../../utils";
 import { useConfigStore } from "../../../hooks/store";
 import debounce from "lodash.debounce";
 
@@ -100,35 +99,41 @@ const FlowView = ({
           }
         />
 
-        <ControlRowView
-          title="Model"
-          description="Defines which model to use"
-          value={flowSpec.config.llm_config.config_list[0].model}
-          control={
-            <Select
-              className="mt-2 w-full"
-              defaultValue={flowSpec.config.llm_config.config_list[0].model}
-              onChange={(value: any) => {
-                const llm_config = {
-                  ...flowSpec.config.llm_config,
-                  config_list: [
+        {flowSpec.config.llm_config && (
+          <ControlRowView
+            title="Model"
+            description="Defines which model to use"
+            value={flowSpec.config.llm_config?.config_list[0].model}
+            control={
+              <Select
+                className="mt-2 w-full"
+                defaultValue={flowSpec.config.llm_config.config_list[0].model}
+                onChange={(value: any) => {
+                  const llm_config = {
+                    ...flowSpec.config.llm_config,
+                    config_list: [
+                      {
+                        ...flowSpec.config.llm_config?.config_list[0],
+                        model: value,
+                      },
+                    ],
+                  };
+                  onControlChange(llm_config, "llm_config");
+                }}
+                options={
+                  [
+                    { label: "gpt-4", value: "gpt-4" },
+                    { label: "gpt-3.5-turbo-16k", value: "gpt-3.5-turbo-16k" },
                     {
-                      ...flowSpec.config.llm_config.config_list[0],
-                      model: value,
+                      label: "gpt-4-1106-preview",
+                      value: "gpt-4-1106-preview",
                     },
-                  ],
-                };
-                onControlChange(llm_config, "llm_config");
-              }}
-              options={
-                [
-                  { label: "gpt-4", value: "gpt-4" },
-                  { label: "gpt-3.5-turbo-16k", value: "gpt-3.5-turbo-16k" },
-                ] as any
-              }
-            />
-          }
-        />
+                  ] as any
+                }
+              />
+            }
+          />
+        )}
       </GroupView>
     </>
   );

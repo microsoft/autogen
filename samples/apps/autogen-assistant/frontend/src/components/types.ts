@@ -32,7 +32,7 @@ export interface ILLMConfig {
 
 export interface IAgentConfig {
   name: string;
-  llm_config: ILLMConfig;
+  llm_config?: ILLMConfig;
   human_input_mode: string;
   max_consecutive_auto_reply: number;
   system_message: string | "";

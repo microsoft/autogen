@@ -1,9 +1,9 @@
 {
-  "name": "Research_Assistant",
+  "name": "AutoGen_Assistant",
   "version": "1.0.0",
   "private": true,
-  "description": "app",
-  "author": "Hax Team",
+  "description": "AutoGen Assistant - Build LLM Enabled Agents",
+  "author": "SPIRAL Team",
   "keywords": [
     "gatsby"
   ],
@@ -17,8 +17,6 @@
   },
   "dependencies": {
     "@ant-design/charts": "^1.3.6",
-    "@azure/msal-browser": "^2.38.0",
-    "@azure/msal-react": "^1.5.9",
     "@headlessui/react": "^1.7.16",
     "@heroicons/react": "^2.0.18",
     "@mdx-js/mdx": "^1.6.22",
