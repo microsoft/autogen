@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+import logging
 import sys
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 import re
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return self.next_agent(last_speaker, agents)
 
         # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
-        mentions = _mentioned_agents(name, agents)
+        mentions = self._mentioned_agents(name, agents)
         if len(mentions) == 1:
             name = next(iter(mentions))
 
@@ -134,8 +134,10 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         """
         mentions = dict()
         for agent in agents:
-            regex = r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"  # Finds agent mentions, taking word boundaries into account
-            count = len(re.findall(regex, " " + message_content + " ")) # Pad the message to help with matching
+            regex = (
+                r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
+            )  # Finds agent mentions, taking word boundaries into account
+            count = len(re.findall(regex, " " + message_content + " "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
         return mentions
