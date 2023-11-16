@@ -102,15 +102,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             # i = self._random.randint(0, len(self._agent_names) - 1)  # randomly pick an id
             return self.next_agent(last_speaker, agents)
 
-        # Find mentions of any agents
-        mentions = dict()
-        for agent in self.agents:
-            regex = r"\b" + re.escape(agent.name) + r"\b"  # Finds agent mentions, taking word boundaries into account
-            count = len(re.findall(regex, name))
-            if count > 0:
-                mentions[agent.name] = count
-
-        # If exactly one agent is found, use it. Otherwise, leave the OAI response unmodified
+        # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
+        mentions = _mentioned_agents(name, agents)
         if len(mentions) == 1:
             name = next(iter(mentions))
 
@@ -132,6 +125,20 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 )
             roles.append(f"{agent.name}: {agent.system_message}")
         return "\n".join(roles)
+
+    def _mentioned_agents(self, message_content: str, agents: List[Agent]) -> Dict:
+        """
+        Finds and counts agent mentions in the string message_content, taking word boundaries into account.
+
+        Returns: A dictionary mapping agent names to mention counts (to be included, at least one mention must occur)
+        """
+        mentions = dict()
+        for agent in agents:
+            regex = r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"  # Finds agent mentions, taking word boundaries into account
+            count = len(re.findall(regex, " " + message_content + " ")) # Pad the message to help with matching
+            if count > 0:
+                mentions[agent.name] = count
+        return mentions
 
 
 class GroupChatManager(ConversableAgent):
