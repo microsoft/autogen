@@ -112,6 +112,7 @@ def test_plugin():
     assert len(agent1.chat_messages[group_chat_manager]) == 2
     assert len(groupchat.messages) == 2
 
+
 def test_agent_mentions():
     agent1 = autogen.ConversableAgent(
         "alice",
@@ -135,19 +136,34 @@ def test_agent_mentions():
         default_auto_reply="This is sam speaking.",
     )
     groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=2)
- 
+
     # Basic counting
     assert json.dumps(groupchat._mentioned_agents("", [agent1, agent2, agent3]), sort_keys=True) == "{}"
     assert json.dumps(groupchat._mentioned_agents("alice", [agent1, agent2, agent3]), sort_keys=True) == '{"alice": 1}'
-    assert json.dumps(groupchat._mentioned_agents("alice bob alice", [agent1, agent2, agent3]), sort_keys=True) == '{"alice": 2, "bob": 1}'
-    assert json.dumps(groupchat._mentioned_agents("alice bob alice sam", [agent1, agent2, agent3]), sort_keys=True) == '{"alice": 2, "bob": 1, "sam": 1}'
-    assert json.dumps(groupchat._mentioned_agents("alice bob alice sam robert", [agent1, agent2, agent3]), sort_keys=True) == '{"alice": 2, "bob": 1, "sam": 1}'
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice bob alice", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 2, "bob": 1}'
+    )
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice bob alice sam", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 2, "bob": 1, "sam": 1}'
+    )
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice bob alice sam robert", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 2, "bob": 1, "sam": 1}'
+    )
 
     # Substring
-    assert json.dumps(groupchat._mentioned_agents("sam samantha basam asami", [agent1, agent2, agent3]), sort_keys=True) == '{"sam": 1}'
+    assert (
+        json.dumps(groupchat._mentioned_agents("sam samantha basam asami", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"sam": 1}'
+    )
 
     # Word boundaries
-    assert json.dumps(groupchat._mentioned_agents("alice! .alice. .alice", [agent1, agent2, agent3]), sort_keys=True) == '{"alice": 3}'
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice! .alice. .alice", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 3}'
+    )
 
     # Special characters in agent names
     agent4 = autogen.ConversableAgent(
@@ -159,8 +175,13 @@ def test_agent_mentions():
     )
 
     groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3, agent4], messages=[], max_round=2)
-    assert json.dumps(groupchat._mentioned_agents("alice bob alice sam robert .*", [agent1, agent2, agent3, agent4]), sort_keys=True) == '{".*": 1, "alice": 2, "bob": 1, "sam": 1}'
- 
+    assert (
+        json.dumps(
+            groupchat._mentioned_agents("alice bob alice sam robert .*", [agent1, agent2, agent3, agent4]),
+            sort_keys=True,
+        )
+        == '{".*": 1, "alice": 2, "bob": 1, "sam": 1}'
+    )
 
 
 if __name__ == "__main__":
