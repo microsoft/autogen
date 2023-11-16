@@ -1,20 +1,20 @@
 
 ---
-title:  AgentEval: Assessing Task Utility for LLM-powered Applications
-authors: julianakiseleva, narabzad
+title: How to Assess Utility of LLM-powered Applications?
+authors: 
+  - julianakiseleva
+  - narabzad
 tags: [LLM, GPT, evaluation, task utility]
 ---
 
 ![Fig.1: An verification framework](img/agenteval-CQ.png)
 
+<p align="center"><em>Fig.1 illustrates the general flow of AgentEval</em></p>
+
 **TL;DR:**
-* We introduce a notion of what is task utility in LLM-powered applications
-* We introduce `AgentEval` — the first version of the framework to assess task utility for an arbitrary application. It automaticaly suggests criteria to explain task utility and then quantifies these criteria for logs of your application.
-* We demonstrate the usage of our framework with the [Math Problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat)
-
-## Run it yourself
-
-Use the Jupyter notebook for a demonstration of `AgentEval` for [Math Problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat) -- [agenteval_cq_math.ipynb](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb)
+* As a developer of an LLM-powered application, how can you assess the utility it brings to end users while helping them with their tasks?
+* To shed light on the question above, we introduce `AgentEval` — the first version of the framework to assess the utility of any LLM-powered application crafted to assist users in specific tasks.  AgentEval aims to simplify the evaluation process by automatically proposing a set of criteria tailored to the unique purpose of your application. This allows for a comprehensive assessment, quantifying the utility of your application against the suggested criteria.
+* We demonstrate how `AgentEval` work using [math problems dataset](https://microsoft.github.io/autogen/blog/2023/06/28/MathChat) as an example in the [following notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb). Any feedback would be useful for future development. Please contact us on our [Discord](http://aka.ms/autogen-dc).  
 
 
 ## Introduction
@@ -22,6 +22,8 @@ Use the Jupyter notebook for a demonstration of `AgentEval` for [Math Problems d
 The goal of AutoGen is to make it straightforward and easy to develop LLM-based multi-agent systems for an arbitrary application that helps the end users with their tasks. The next big step forward is what we all want to know: how the developed systems are performing, if they bring utility to our users, and, even more importantly, how we can improve them. Directly evaluating the multi-agent systems is tricky since current approaches mainly rely on success metrics, basically if the agent can accomplish the tasks. Moreover, the definition of success for a particular task is not always given. Introductions of LLMs bring us a lot of abilities that we are eager to convert into actual utilities for end users. In this blog post, we introduce `AgentEval` — the first version of the framework for assessing task utility in LLM-based applications.
 
 ![Fig.2: An overview of the tasks taxonomy](img/tasks-taxonomy.png)
+<p align="center"><em>Fig. 2 provides  an overview of the tasks taxonomy</em></p>
+
 
 Let's first look into an overview of the suggested task taxonomy that a multi-agent system can be designed for. In general, the tasks can be split into two types, namely:
 * _Assistive Tasks_ - refer to instances when users utilize a system in an assistive manner, seeking suggestions rather than expecting the system to solve the task. For example, a user might request the system to generate an email. In many cases, this generated content serves as a template that the user will later edit. However, defining success precisely for such tasks is relatively complex.
@@ -78,7 +80,7 @@ quantifier = autogen.AssistantAgent(
 | Explanation Clarity       | Clarity and comprehensibility of explanations, including language use and structure  | ["not at all clear", "slightly clear", "moderately clear", "very clear", "completely clear"] |
 | Code Efficiency       |  Quality of code in terms of efficiency and elegance |["not at all efficient", "slightly efficient", "moderately efficient", "very efficient", "extremely efficient"] |
 | Code Correctness      | Correctness of the provided code  |  ["completely incorrect", "mostly incorrect", "partly correct", "mostly correct", "completely correct"]
-  |
+
 
 Then, after running QuantifierAgent, we obtained the results presented in Fig. 3, where you can see three models:
 * AgentChat
@@ -87,7 +89,8 @@ Then, after running QuantifierAgent, we obtained the results presented in Fig. 3
 
 Lighter colors represent estimates for failed cases, and brighter colors show how discovered criteria were quantified.
 
-![Fig.3: Results based on overall mathproblems datase `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
+![Fig.3: Results based on overall mathp roblems dataset `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
+<p align="center"><em>Fig.3 presents results based on overall mathproblems datase `_s` stands for successful cases, `_f` - stands for failed cases</em></p>
 
 We note that while applying agentEval to math problems, the agent was not exposed to any ground truth information about the problem. As such, this figure illustrates an estimated performance of the three different agents, namely, Sutogen (blue), Gpt-4 (red), and ReAct (green). We observe that by comparing the performance of any of the three agents in successful cases (dark bars of any color) versus unsuccessful cases (lighter version of the same bar), we note that AgentEval was able to more accurately estimate the performance of successful cases than that of failed ones. This observation verifies AgentEval's ability for task utility prediction. Additionally, AgentEval allows us to go beyond just a binary definition of success, enabling a more in-depth comparison between successful and failed cases.
 
@@ -103,7 +106,7 @@ To mitigate the limitations mentioned above, we are working on VerifierAgent, wh
 ## Summary
 `CriticAgent` and `QuantifierAgent` can be applied to the logs of any type of application, giving you an in-depth understanding of the utility your model brings to the user. 
 
-We would love to hear about how AgentEval works for your application. Any feedback would be useful for future development. Please contact us on our (Discord)[http://aka.ms/autogen-dc]. 
+We would love to hear about how AgentEval works for your application. Any feedback would be useful for future development. Please contact us on our (Discord) [http://aka.ms/autogen-dc]. 
 
 
 ## Previous Research
