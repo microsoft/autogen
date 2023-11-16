@@ -7,7 +7,7 @@
         "context": "8192",
         "release": "2023",
         "benchmark": {},
-        "description": "A set of models that improve on GPT-3.5 and can understand as well as generate natural language or code."
+        "description": "(High cost) A set of models that improve on GPT-3.5 and can understand as well as generate natural language or code."
     },
     "gpt-3.5-turbo": {
         "base": "GPT",
@@ -17,7 +17,7 @@
         "context": "4096",
         "release": "2023",
         "benchmark": {},
-        "description": "A set of models that improve on GPT-3 and can understand as well as generate natural language or code."
+        "description": "(High cost) A set of models that improve on GPT-3 and can understand as well as generate natural language or code."
     },
     "meta-llama/Llama-2-7b-chat-hf": {
         "base": "LLAMA",

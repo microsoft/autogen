@@ -12,15 +12,36 @@ class AgentCreator:
     """
     Descriptions
     """
-    openai_server_name: str = 'openai'
-    max_tokens: int = 945
+    openai_server_name = 'openai'
+    max_tokens = 945
+    num_of_pos = 5
 
-    CODING_PROMPT: str = '''Does the following task need programming 
-    (i.e., access external API or tool by coding) to solve?
+    CODING_PROMPT = '''Does the following task need programming (i.e., access external API or tool by coding) to solve?
 
     TASK: {task}
 
     Answer only YES or NO.
+    '''
+
+    AGENT_NAME_PROMPT = '''To complete the following task, what positions/jobs should be set to maximize the efficiency?
+
+    TASK: {task}
+    
+    Considering the effort, the position in this task should be no more then {num_of_pos}, less is better.
+    Answer the name of those positions/jobs, separated by comma and use "_" instead of space. 
+    For example: Product_manager,Programmer
+    '''
+
+    AGENT_SYS_MSG_PROMPT = '''Considering the following position and corresponding task:
+    
+    TASK: {task}
+    POSITION: {position}
+    
+    Modify the following position requirement, let it more suitable for the above task and position:
+    
+    REQUIREMENT: {default_sys_msg}
+    
+    Your answer should omit the word "REQUIREMENT" and include the description of behavior when the task complete.
     '''
 
     def __init__(
@@ -37,9 +58,9 @@ class AgentCreator:
         """
         self.user_proxy: autogen.UserProxyAgent = None
         self.group_chat_manager_config: dict = None
-        self.initiate_agent_name: str = 'user'
+        self.initiate_agent_name: str = 'Code_interpreter'
         self.manager_system_message: str = 'Group chat manager.'
-        self.agent_configs: List[Dict] = None
+        self.agent_configs: List[Dict] = []
         self.coding: bool = None
         self.default_llm_config: Dict = None
         self.building_task: str = None
@@ -214,22 +235,53 @@ class AgentCreator:
         )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
-        # TODO: use the build manager to decide what agent should be created,
-        #  and generate system message for each agent and group chat manager.
         if use_api:
-            # after this process completed, we should obtain a following list and a manager_system_config.
-            self.agent_configs = [
-                {
-                    'name': 'Coder_gpt_35',
-                    'model': 'gpt-3.5-turbo',
-                    'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-                },
-                {
-                    'name': 'Product_manager',
-                    'model': 'gpt-3.5-turbo',
-                    'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-                }
-            ]
+            # after this process completed, we should obtain a following list and a manager_system_message.
+            # self.agent_configs = [
+            #     {
+            #         'name': 'Coder_gpt_35',
+            #         'model': 'gpt-3.5-turbo',
+            #         'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            #     },
+            #     {
+            #         'name': 'Product_manager',
+            #         'model': 'gpt-3.5-turbo',
+            #         'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            #     }
+            # ]
+            resp_agent_name = build_manager.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": self.AGENT_NAME_PROMPT.format(task=self.building_task, num_of_pos=self.num_of_pos)
+                    }
+                ]
+            ).choices[0].message.content
+            agent_name_list = resp_agent_name.split(',')
+
+            agent_sys_msg_list = []
+            for name in agent_name_list:
+                resp_agent_sys_msg = build_manager.create(
+                                         messages=[
+                                             {
+                                                 "role": "user",
+                                                 "content": self.AGENT_SYS_MSG_PROMPT.format(
+                                                     task=self.building_task,
+                                                     position=name,
+                                                     default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                                                 )
+                                             }
+                                         ]
+                                     ).choices[0].message.content
+                agent_sys_msg_list.append(resp_agent_sys_msg)
+
+            for i in range(len(agent_name_list)):
+                self.agent_configs.append({
+                    'name': agent_name_list[i],
+                    'model': 'gpt-3.5-turbo',  # TODO: prompt gpt-4 to select opensource model
+                    'system_message': agent_sys_msg_list[i]
+                })
+
             self.manager_system_message = 'Group chat manager.'
 
         for agent_config in self.agent_configs:
@@ -246,10 +298,10 @@ class AgentCreator:
 
         if self.coding is True:
             self.user_proxy = autogen.UserProxyAgent(
-                name="User_proxy",
-                system_message="A human admin.",
+                name="Code_interpreter",
+                system_message="A code interpreter interface.",
                 code_execution_config={"last_n_messages": 2, "work_dir": "groupchat"},
-                human_input_mode="TERMINATE"
+                human_input_mode="NEVER"
             )
         else:
             self.initiate_agent_name = self.agent_configs[0]['name']
@@ -328,7 +380,7 @@ class AgentCreator:
             self.user_proxy.initiate_chat(manager, message=task)
         else:
             for agent in agent_list:
-                if self.initiate_agent_name == agent.name():
+                if self.initiate_agent_name == agent.name:
                     agent.initiate_chat(manager, message=task)
 
 
@@ -338,12 +390,10 @@ if __name__ == '__main__':
         'temperature': 0
     }
     task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
+    building_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 
-    administrator = AgentCreator(
-        config_path=config_path
-    )
-    administrator.build(task, default_llm_config)
-    administrator.save()
-    administrator.start(task)
-    administrator.clear_all_agents()
+    builder = AgentCreator(config_path=config_path)
+    builder.build(building_task, default_llm_config)
+    builder.start(task)
+    builder.clear_all_agents()
 
