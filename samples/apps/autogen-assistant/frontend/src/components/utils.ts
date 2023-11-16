@@ -227,21 +227,24 @@ export const getDefaultConfigFlows = () => {
     model: "gpt-4",
   };
   const llm_config: ILLMConfig = {
-    seed: 42,
     config_list: [llm_model_config],
     temperature: 0.1,
   };
 
   const userProxyConfig: IAgentConfig = {
-    name: "user_proxy",
+    name: "userproxy",
     llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
     system_message:
-      "If the request has been addressed sufficiently, summarize the answer and end with the word TERMINATE. Otherwise, ask a follow-up question.",
+      "You are a helpful assistant that can respond with a summary. Your summary should include RECENT code blocks that address recent <user_request> in markdown format e.g. ```python ``` where appropriate. The summary must be written as a coherent helpful response to <user_request> e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE ",
+    code_execution_config: {
+      work_dir: null,
+      use_docker: false,
+    },
   };
   const userProxyFlowSpec: IAgentFlowSpec = {
-    type: "user_proxy",
+    type: "userproxy",
     config: userProxyConfig,
   };
 
@@ -259,7 +262,7 @@ export const getDefaultConfigFlows = () => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 4,
     system_message:
-      "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices.",
+      "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The title must be bold. Importantly, if there are lines in the chart, you MUST add a line of best fit and also text on the slope of each line.",
   };
 
   const visualizationAssistantFlowSpec: IAgentFlowSpec = {

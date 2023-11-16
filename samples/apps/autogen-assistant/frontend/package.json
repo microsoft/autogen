@@ -25,6 +25,7 @@
     "@mdx-js/react": "^1.6.22",
     "@tailwindcss/line-clamp": "^0.4.0",
     "@tailwindcss/typography": "^0.5.9",
+    "@types/lodash.debounce": "^4.0.9",
     "@types/react-syntax-highlighter": "^15.5.10",
     "antd": "^5.1.0",
     "autoprefixer": "^10.4.7",
@@ -39,6 +40,7 @@
     "gatsby-source-filesystem": "^4.14.0",
     "gatsby-transformer-sharp": "^4.14.0",
     "jszip": "^3.10.1",
+    "lodash.debounce": "^4.0.8",
     "postcss": "^8.4.13",
     "react": "^18.2.0",
     "react-contenteditable": "^3.3.6",
@@ -50,7 +52,8 @@
     "react-syntax-highlighter": "^15.5.0",
     "remark-gfm": "^3.0.1",
     "sass": "^1.51.0",
-    "tailwindcss": "^3.0.24"
+    "tailwindcss": "^3.0.24",
+    "zustand": "^4.4.6"
   },
   "devDependencies": {
     "@types/node": "^18.7.13",

@@ -1,9 +1,12 @@
 import hashlib
-from .datamodel import Message
-from .db import DBManager
+from typing import List, Dict, Union
 import os
-from shutil import copy2
-from typing import List, Dict
+import shutil
+import re
+from .datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig, Message
+from .db import DBManager
+
+import autogen
 
 
 def md5_hash(text: str) -> str:
@@ -76,18 +79,20 @@ def delete_message(user_id: str, msg_id: str, dbmanager: DBManager, delete_all: 
         return messages
 
 
-def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str) -> List[str]:
+def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str) -> List[str]:
     """
-    Get a list of files that were modified within the specified timestamp range,
-    excluding specific file extensions and names.
+    Copy files from source_dir that were modified within a specified timestamp range
+    to dest_dir, renaming files if they already exist there. The function excludes
+    files with certain file extensions and names.
 
     :param start_timestamp: The start timestamp to filter modified files.
     :param end_timestamp: The end timestamp to filter modified files.
     :param source_dir: The directory to search for modified files.
+    :param dest_dir: The destination directory to copy modified files to.
 
-    :return: A list of file paths that were modified within the timestamp range,
-             ignoring files with extensions "__pycache__", "*.pyc", "__init__.py",
-             and "*.cache".
+    :return: A list of file paths in dest_dir that were modified and copied over.
+             Files with extensions "__pycache__", "*.pyc", "__init__.py", and "*.cache"
+             are ignored.
     """
     modified_files = []
     ignore_extensions = {".pyc", ".cache"}
@@ -107,8 +112,20 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
 
             file_mtime = os.path.getmtime(file_path)
             if start_timestamp < file_mtime < end_timestamp:
-                uid = source_dir.split("/")[-1]
-                modified_files.append(f"files/user/{uid}/{file}")
+                dest_file_path = os.path.join(dest_dir, file)
+                copy_idx = 1
+                while os.path.exists(dest_file_path):
+                    base, extension = os.path.splitext(file)
+                    # Handling potential name conflicts by appending a number
+                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
+                    copy_idx += 1
+
+                # Copying the modified file to the destination directory
+                shutil.copy2(file_path, dest_file_path)
+                uid = dest_dir.split("/")[-1]
+                print("******", uid)
+                file_path = f"files/user/{uid}/{dest_file_path.split('/')[-1]}"
+                modified_files.append(file_path)
 
     return modified_files
 
@@ -185,7 +202,10 @@ def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir: str
     }
 
     if dest_dir:
-        # check
+        # chcek if dest_dir exists
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+        # copy all skills to dest_dir
         for skill in user_skills + global_skills:
             skill_file_path = os.path.join(dest_dir, skill["file_name"])
             with open(skill_file_path, "w", encoding="utf-8") as f:
@@ -225,3 +245,110 @@ install via pip and use --quiet option.
         """
 
     return prompt
+
+
+def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
+    """
+    Delete all files and directories in the specified folders.
+
+    :param folders: A list of folders or a single folder string
+    """
+
+    if isinstance(folders, str):
+        folders = [folders]
+
+    for folder in folders:
+        # Check if the folder exists
+        if not os.path.isdir(folder):
+            print(f"The folder {folder} does not exist.")
+            continue
+
+        # List all the entries in the directory
+        for entry in os.listdir(folder):
+            # Get the full path
+            path = os.path.join(folder, entry)
+            try:
+                if os.path.isfile(path) or os.path.islink(path):
+                    # Remove the file or link
+                    os.remove(path)
+                elif os.path.isdir(path):
+                    # Remove the directory and all its content
+                    shutil.rmtree(path)
+            except Exception as e:
+                # Print the error message and skip
+                print(f"Failed to delete {path}. Reason: {e}")
+
+
+def get_default_flow_config(work_dir: str, skills_suffix: str = "") -> FlowConfig:
+    """
+    Get a default flow config .
+    """
+
+    llm_config = LLMConfig(
+        seed=42,
+        config_list=[{"model": "gpt-4"}],
+        temperature=0,
+    )
+
+    USER_PROXY_INSTRUCTIONS = """If the request has been addressed sufficiently, summarize the answer and end with the word TERMINATE. Otherwise, ask a follow-up question.
+        """
+
+    userproxy_spec = AgentFlowSpec(
+        type="userproxy",
+        config=AgentConfig(
+            name="user_proxy",
+            human_input_mode="NEVER",
+            system_message=USER_PROXY_INSTRUCTIONS,
+            code_execution_config={
+                "work_dir": work_dir,
+                "use_docker": False,
+            },
+            max_consecutive_auto_reply=10,
+            llm_config=llm_config,
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+        ),
+    )
+
+    assistant_spec = AgentFlowSpec(
+        type="assistant",
+        config=AgentConfig(
+            name="primary_assistant",
+            system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE + skills_suffix,
+            llm_config=llm_config,
+        ),
+    )
+
+    flow_config = FlowConfig(
+        name="default",
+        sender=userproxy_spec,
+        receiver=assistant_spec,
+        type="default",
+    )
+
+    return flow_config
+
+
+def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
+    """
+    Parses through a list of messages containing code blocks and execution statuses,
+    returning the array of code blocks that executed successfully and retains
+    the backticks for Markdown rendering.
+
+    Parameters:
+    messages (List[Dict[str, str]]): A list of message dictionaries containing 'content' and 'role' keys.
+
+    Returns:
+    List[str]: A list containing the code blocks that were successfully executed, including backticks.
+    """
+    successful_code_blocks = []
+    code_block_regex = r"```[\s\S]*?```"  # Regex pattern to capture code blocks enclosed in triple backticks.
+
+    for i, message in enumerate(messages):
+        if message["role"] == "user" and "execution succeeded" in message["content"]:
+            if i > 0 and messages[i - 1]["role"] == "assistant":
+                prev_content = messages[i - 1]["content"]
+                # Find all matches for code blocks
+                code_blocks = re.findall(code_block_regex, prev_content)
+                successful_code_blocks.extend(code_blocks)  # Add the code blocks with backticks
+
+    return successful_code_blocks

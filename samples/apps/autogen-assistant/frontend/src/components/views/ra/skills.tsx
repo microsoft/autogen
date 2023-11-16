@@ -6,6 +6,8 @@ import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, truncateText } from "../../utils";
 import { CollapseBox, LoadBox } from "../../atoms";
 import { get } from "http";
+import { useStore } from "zustand";
+import { useConfigStore } from "../../../hooks/store";
 
 const SkillsView = ({ setMessages, skillup, config }: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -14,6 +16,7 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
     message: "All good",
   });
 
+  const messages = useConfigStore((state) => state.messages);
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const clearDbUrl = `${serverUrl}/cleardb`;
@@ -257,6 +260,7 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
         )}
         {loading && <LoadBox subtitle={"clearing db .."} />}
       </div>
+      <div></div>
     </div>
   );
 };

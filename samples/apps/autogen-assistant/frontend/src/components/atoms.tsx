@@ -12,6 +12,7 @@ import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { truncateText } from "./utils";
 
 interface CodeProps {
   node?: any;
@@ -297,9 +298,11 @@ export const ExpandView = ({ children, className = "" }: any) => {
 export const MarkdownView = ({
   data,
   className = "",
+  showCode = true,
 }: {
   data: string;
   className?: string;
+  showCode?: boolean;
 }) => {
   function processString(inputString: string): string {
     inputString = inputString.replace(/\n/g, "  \n");
@@ -308,49 +311,83 @@ export const MarkdownView = ({
   }
   const [showCopied, setShowCopied] = React.useState(false);
 
+  const CodeView = ({ props, children, language }: any) => {
+    const [codeVisible, setCodeVisible] = React.useState(showCode);
+    return (
+      <div>
+        <div className="  flex  ">
+          <div
+            role="button"
+            onClick={() => {
+              setCodeVisible(!codeVisible);
+            }}
+          >
+            {!codeVisible && (
+              <div className=" text-white hover:text-accent duration-300">
+                <ChevronDownIcon className="inline-block  w-5 h-5" />
+                <span className="text-xs"> show</span>
+              </div>
+            )}
+
+            {codeVisible && (
+              <div className=" text-white hover:text-accent duration-300">
+                {" "}
+                <ChevronUpIcon className="inline-block  w-5 h-5" />
+                <span className="text-xs"> hide</span>
+              </div>
+            )}
+          </div>
+          <div className="flex-1"></div>
+          <div>
+            {showCopied && (
+              <div className="inline-block text-sm       text-white">
+                {" "}
+                🎉 Copied!{" "}
+              </div>
+            )}
+            <ClipboardIcon
+              role={"button"}
+              onClick={() => {
+                navigator.clipboard.writeText(data);
+                // message.success("Code copied to clipboard");
+                setShowCopied(true);
+                setTimeout(() => {
+                  setShowCopied(false);
+                }, 3000);
+              }}
+              className=" inline-block duration-300 text-white hover:text-accent w-5 h-5"
+            />
+          </div>
+        </div>
+        {codeVisible && (
+          <SyntaxHighlighter
+            {...props}
+            style={atomDark}
+            language={language}
+            className="rounded w-full"
+            PreTag="div"
+            wrapLongLines={true}
+          >
+            {String(children).replace(/\n$/, "")}
+          </SyntaxHighlighter>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
-      className={`   w-full chatbox prose dark:prose-invert text-primary rounded p-2 ${className}`}
+      className={` w-full   chatbox prose dark:prose-invert text-primary rounded p-2 ${className}`}
     >
       <ReactMarkdown
+        className="  w-full"
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, inline, className, children, ...props }: CodeProps) {
             const match = /language-(\w+)/.exec(className || "");
             const language = match ? match[1] : "text";
             return !inline && match ? (
-              <div>
-                <div className="p-2 text-right">
-                  {showCopied && (
-                    <div className="inline-block text-sm       text-white">
-                      {" "}
-                      🎉 Copied!{" "}
-                    </div>
-                  )}
-                  <ClipboardIcon
-                    role={"button"}
-                    onClick={() => {
-                      navigator.clipboard.writeText(data);
-                      // message.success("Code copied to clipboard");
-                      setShowCopied(true);
-                      setTimeout(() => {
-                        setShowCopied(false);
-                      }, 3000);
-                    }}
-                    className=" inline-block duration-300 text-white hover:text-accent w-5 h-5"
-                  />
-                </div>
-                <SyntaxHighlighter
-                  {...props}
-                  style={atomDark}
-                  language={language}
-                  className="rounded"
-                  PreTag="div"
-                  wrapLongLines={true}
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
-              </div>
+              <CodeView props={props} children={children} language={language} />
             ) : (
               <code {...props} className={className}>
                 {children}
@@ -436,6 +473,36 @@ export const CodeBlock = ({
           {codeString}
         </SyntaxHighlighter>
       </div>
+    </div>
+  );
+};
+
+// Controls Row
+export const ControlRowView = ({
+  title,
+  description,
+  value,
+  control,
+  className,
+}: {
+  title: string;
+  description: string;
+  value: string | number;
+  control: any;
+  className?: string;
+}) => {
+  return (
+    <div className={`${className}`}>
+      <div>
+        <span className="text-primary inline-block">{title} </span>
+        <span className="text-xs ml-1 text-accent -mt-2 inline-block">
+          {truncateText(value + "", 20)}
+        </span>
+      </div>
+      <div className="text-secondary text-xs"> {description} </div>
+      {control}
+
+      <div className="border-b border-dashed mt-2 mx-2"></div>
     </div>
   );
 };

@@ -1,13 +1,15 @@
 import json
 import os
+import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from ..db import DBManager
-from ..datamodel import Message, DeleteMessageModel, ClearDBModel
+from ..datamodel import ChatWebRequestModel, ClearDBWebRequestModel, DeleteMessageWebRequestModel, Message
 from ..autogenchat import ChatManager
 from ..utils import (
+    delete_files_in_folder,
     get_all_skills,
     load_messages,
     md5_hash,
@@ -52,8 +54,8 @@ chatmanager = ChatManager()  # manage calls to autogen
 
 
 @api.post("/messages")
-async def add_message(message: Message):
-    message = Message(**message.dict())
+async def add_message(req: ChatWebRequestModel):
+    message = Message(**req.message.dict())
     user_history = load_messages(user_id=message.user_id, dbmanager=dbmanager)
 
     # save incoming message to db
@@ -61,17 +63,21 @@ async def add_message(message: Message):
     user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
     os.makedirs(user_dir, exist_ok=True)
 
-    # load skills
+    # load skills, append to chat
     skills = get_all_skills(
         os.path.join(folders["user_skills_dir"], md5_hash(message.user_id)),
         folders["global_skills_dir"],
-        dest_dir=user_dir,
+        dest_dir=os.path.join(user_dir, "scratch"),
     )
     skills_prompt = get_skills_prompt(skills)
 
     try:
         response_message: Message = chatmanager.chat(
-            message=message, history=user_history, work_dir=user_dir, skills_prompt=skills_prompt
+            message=message,
+            history=user_history,
+            work_dir=user_dir,
+            skills_prompt=skills_prompt,
+            flow_config=req.flow_config,
         )
 
         # save assistant response to db
@@ -83,7 +89,7 @@ async def add_message(message: Message):
         }
         return response
     except Exception as ex_error:
-        print(ex_error)
+        print(traceback.format_exc())
         return {
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),
@@ -104,9 +110,9 @@ def get_messages(user_id: str = None):
 
 
 @api.post("/messages/delete")
-async def remove_message(req: DeleteMessageModel):
+async def remove_message(req: DeleteMessageWebRequestModel):
     """Delete a message from the database"""
-    print(req)
+
     try:
         messages = delete_message(user_id=req.user_id, msg_id=req.msg_id, dbmanager=dbmanager)
         return {
@@ -123,8 +129,13 @@ async def remove_message(req: DeleteMessageModel):
 
 
 @api.post("/cleardb")
-async def clear_db(req: ClearDBModel):
-    """Clear user conversation history database"""
+async def clear_db(req: ClearDBWebRequestModel):
+    """Clear user conversation history database and files"""
+
+    user_files_dir = os.path.join(folders["files_static_root"], "user", md5_hash(req.user_id))
+    # user_skills_dir = os.path.join(folders["user_skills_dir"], md5_hash(req.user_id))
+
+    delete_files_in_folder([user_files_dir])
 
     try:
         delete_message(user_id=req.user_id, msg_id=None, dbmanager=dbmanager, delete_all=True)

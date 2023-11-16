@@ -25,8 +25,8 @@ export interface IChatMessage {
 }
 
 export interface ILLMConfig {
-  seed: number;
   config_list: Array<{ [key: string]: any }>;
+  seed?: number;
   temperature: number;
 }
 
@@ -41,7 +41,7 @@ export interface IAgentConfig {
 }
 
 export interface IAgentFlowSpec {
-  type: "assistant" | "user_proxy" | "group_chat";
+  type: "assistant" | "userproxy" | "groupchat";
   config: IAgentConfig;
 }
 

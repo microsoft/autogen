@@ -42,17 +42,6 @@ class Message(object):
 # web api data models
 
 
-@dataclass
-class DeleteMessageModel(object):
-    user_id: str
-    msg_id: str
-
-
-@dataclass
-class ClearDBModel(object):
-    user_id: str
-
-
 # autogenflow data models
 @dataclass
 class ModelConfig:
@@ -102,3 +91,22 @@ class FlowConfig:
     sender: AgentFlowSpec
     receiver: Union[AgentFlowSpec, List[AgentFlowSpec]]
     type: Literal["default", "groupchat"] = "default"
+
+
+@dataclass
+class ChatWebRequestModel(object):
+    """Data model for Chat Web Request for Web End"""
+
+    message: Message
+    flow_config: FlowConfig
+
+
+@dataclass
+class DeleteMessageWebRequestModel(object):
+    user_id: str
+    msg_id: str
+
+
+@dataclass
+class ClearDBWebRequestModel(object):
+    user_id: str

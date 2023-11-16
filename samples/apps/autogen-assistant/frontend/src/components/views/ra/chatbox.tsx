@@ -7,11 +7,12 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button, Dropdown, MenuProps, message } from "antd";
 import * as React from "react";
-import { IChatMessage, IMessage, IStatus } from "../../types";
+import { IChatMessage, IFlowConfig, IMessage, IStatus } from "../../types";
 import { fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
 import { MarkdownView } from "../../atoms";
+import { useConfigStore } from "../../../hooks/store";
 
 const ChatBox = ({
   config,
@@ -34,7 +35,10 @@ const ChatBox = ({
     status: true,
     message: "All good",
   });
-  const [messages, setMessages] = React.useState<IChatMessage[]>([]);
+
+  const messages = useConfigStore((state) => state.messages);
+  const setMessages = useConfigStore((state) => state.setMessages);
+  const flowConfig: IFlowConfig = useConfigStore((state) => state.flowConfig);
 
   let pageHeight, chatMaxHeight;
   if (typeof window !== "undefined") {
@@ -122,24 +126,6 @@ const ChatBox = ({
       prompt:
         "List out the top 5 rivers in africa and their length and return that as a markdown table. Do not try to write any code, just write the table",
     },
-    // {
-    //   title: "Haiku",
-    //   prompt:
-    //     "Write me haiku about flowers in markdown format. do not try to write any code, just write the haiku",
-    // },
-    // {
-    //   title: "ASCII",
-    //   prompt:
-    //     "Write a python script to print out a cat in ASCII art. Save the output to a file named cat.txt",
-    // },
-    // {
-    //   title: "@execute",
-    //   prompt: "@execute",
-    // },
-    // {
-    //   title: "@memorize",
-    //   prompt: "@memorize",
-    // },
   ];
 
   const promptButtons = examplePrompts.map((prompt, i) => {
@@ -258,12 +244,12 @@ const ChatBox = ({
           }`}</div>
           <div
             // style={{ minWidth: "70%" }}
-            className={`inline-block ${
+            className={`inline-block relative ${
               isUser ? "" : " w-full "
             } p-2 rounded  ${css}`}
           >
             {" "}
-            {items.length > 0 && menu}
+            {items.length > 0 && <div className="   ">{menu}</div>}
             {isUser && (
               <>
                 <div className="inline-block">{message.text}</div>
@@ -271,9 +257,13 @@ const ChatBox = ({
             )}
             {!isUser && (
               <div
-                className={` w-full chatbox prose dark:prose-invert text-primary rounded p-2 `}
+                className={` w-full chatbox prose dark:prose-invert text-primary rounded `}
               >
-                <MarkdownView data={message.text} />
+                <MarkdownView
+                  className="text-sm"
+                  data={message.text}
+                  showCode={false}
+                />
               </div>
             )}
             {message.metadata && (
@@ -346,15 +336,13 @@ const ChatBox = ({
     messageHolder.push(userMessage);
     setMessages(messageHolder);
 
-    const payload: IMessage = {
+    const messagePayload: IMessage = {
       role: "user",
       content: query,
       msg_id: userMessage.msg_id,
       user_id: user?.email || "",
       root_msg_id: "0",
     };
-
-    console.log("payload", payload);
 
     const textUrl = `${serverUrl}/messages`;
     const postData = {
@@ -363,7 +351,10 @@ const ChatBox = ({
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        message: messagePayload,
+        flow_config: flowConfig,
+      }),
     };
     setLoading(true);
     fetch(textUrl, postData)

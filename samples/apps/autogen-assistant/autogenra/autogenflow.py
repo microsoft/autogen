@@ -6,11 +6,12 @@ from .datamodel import AgentFlowSpec, FlowConfig, Message
 
 class AutoGenFlow:
     """
-    AutoGenFlow class to handle the interaction between a sender and a receiver agent
-    based on the provided configuration and history of messages.
+    AutoGenFlow class to load agents from a provided configuration and run a chat between them
     """
 
-    def __init__(self, config: FlowConfig, history: Optional[List[Message]] = None) -> None:
+    def __init__(
+        self, config: FlowConfig, history: Optional[List[Message]] = None, work_dir: str = None, asst_prompt: str = None
+    ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
         message history.
@@ -18,12 +19,30 @@ class AutoGenFlow:
         Args:
             config: The configuration settings for the sender and receiver agents.
             history: An optional list of previous messages to populate the agents' history.
+
         """
+        self.work_dir = work_dir
+        self.asst_prompt = asst_prompt
         self.sender = self.load(config.sender)
         self.receiver = self.load(config.receiver)
 
         if history:
             self.populate_history(history)
+
+    def _sanitize_history_message(self, message: str) -> str:
+        """
+        Sanitizes the message e.g. remove references to execution completed
+
+        Args:
+            message: The message to be sanitized.
+
+        Returns:
+            The sanitized message.
+        """
+        to_replace = ["execution succeeded", "exitcode"]
+        for replace in to_replace:
+            message = message.replace(replace, "")
+        return message
 
     def populate_history(self, history: List[Message]) -> None:
         """
@@ -48,6 +67,36 @@ class AutoGenFlow:
                     request_reply=False,
                 )
 
+    def sanitize_agent_spec(self, agent_spec: AgentFlowSpec) -> AgentFlowSpec:
+        """
+        Sanitizes the agent spec by setting loading defaults
+
+        Args:
+            config: The agent configuration to be sanitized.
+            agent_type: The type of the agent.
+
+        Returns:
+            The sanitized agent configuration.
+        """
+
+        agent_spec.config.is_termination_msg = agent_spec.config.is_termination_msg or (
+            lambda x: "TERMINATE" in x.get("content", "").rstrip()
+        )
+
+        if agent_spec.type == "userproxy":
+            code_execution_config = agent_spec.config.code_execution_config or {}
+            code_execution_config["work_dir"] = self.work_dir
+            agent_spec.config.code_execution_config = code_execution_config
+        if agent_spec.type == "assistant":
+            agent_spec.config.system_message = (
+                autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                + "\n\n"
+                + agent_spec.config.system_message
+                + "\n\n"
+                + self.asst_prompt
+            )
+        return agent_spec
+
     def load(self, agent_spec: AgentFlowSpec) -> autogen.Agent:
         """
         Loads an agent based on the provided agent specification.
@@ -59,6 +108,7 @@ class AutoGenFlow:
             An instance of the loaded agent.
         """
         agent: autogen.Agent
+        agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "assistant":
             agent = autogen.AssistantAgent(**asdict(agent_spec.config))
         elif agent_spec.type == "userproxy":
