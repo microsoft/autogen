@@ -155,10 +155,13 @@ def _test_selection_method(method: str):
                 else:
                     assert len(agent1.chat_messages[group_chat_manager]) == 6
                     assert len(groupchat.messages) == 6
+    elif method == "wrong":
+        with pytest.raises(ValueError):
+            agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
 
 def test_speaker_selection_method():
-    for method in ["auto", "round_robin", "random", "manual"]:
+    for method in ["auto", "round_robin", "random", "manual", "wrong"]:
         _test_selection_method(method)
 
 

@@ -22,6 +22,7 @@ class GroupChat:
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
+        Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
@@ -36,6 +37,8 @@ class GroupChat:
     func_call_filter: bool = True
     speaker_selection_method: str = "auto"
     allow_repeat_speaker: bool = True
+
+    _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
 
     @property
     def agent_names(self) -> List[str]:
@@ -70,6 +73,12 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
+        if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
+            raise ValueError(
+                f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
+                f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
+            )
+
         agents = self.agents
         # Warn if GroupChat is underpopulated
         n_agents = len(agents)
