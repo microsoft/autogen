@@ -202,8 +202,10 @@ def test_get_assistant_files():
 
     assert expected_file_id in retrived_file_ids
 
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
     test_gpt_assistant_instructions_overwrite()
     test_gpt_assistant_existing_no_instructions()
+    test_get_assistant_files()
