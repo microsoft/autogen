@@ -105,9 +105,17 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             _n_agents = len(agents)
             for i in range(_n_agents):
                 print(f"{i+1}: {agents[i].name}")
-            while True:
+            try_count = 0
+            while try_count <= 3:
+                try_count += 1
+                if try_count >= 3:
+                    print(f"You have tried {try_count} times. The next speaker will be selected automatically.")
+                    break
                 try:
-                    i = int(input("Enter the number of the next speaker: "))
+                    i = input("Enter the number of the next speaker (enter nothing or `q` to use auto selection): ")
+                    if i == "" or i == "q":
+                        break
+                    i = int(i)
                     if i > 0 and i <= _n_agents:
                         return agents[i - 1]
                     else:
@@ -119,17 +127,19 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         elif self.speaker_selection_method == "random":
             return random.choice(agents)
         else:
-            # auto speaker selection
-            selector.update_system_message(self.select_speaker_msg(agents))
-            final, name = selector.generate_oai_reply(
-                self.messages
-                + [
-                    {
-                        "role": "system",
-                        "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
-                    }
-                ]
-            )
+            pass
+
+        # auto speaker selection
+        selector.update_system_message(self.select_speaker_msg(agents))
+        final, name = selector.generate_oai_reply(
+            self.messages
+            + [
+                {
+                    "role": "system",
+                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
+                }
+            ]
+        )
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
