@@ -1,8 +1,10 @@
-from dataclasses import dataclass
-import sys
-from typing import Dict, List, Optional, Tuple, Union
-from .agent import Agent
 import logging
+import sys
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Union
+
+from .agent import Agent
+from .conversable_agent import ConversableAgent
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +60,7 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def select_speaker(self, last_speaker: Agent, selector: Agent):
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
             # find agents with the right function_map which contains the function name
@@ -118,13 +120,13 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return "\n".join(roles)
 
 
-class GroupChatManager(Agent):
+class GroupChatManager(ConversableAgent):
     """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
 
     def __init__(
         self,
         groupchat: GroupChat,
-        name: str = "chat_manager",
+        name: Optional[str] = "chat_manager",
         # unlimited consecutive auto reply by default
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
@@ -149,7 +151,7 @@ class GroupChatManager(Agent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[GroupChat] = None,
-    ) -> Tuple[bool, Union[str, Dict, None]]:
+    ) -> Union[str, Dict, None]:
         """Run a group chat."""
         if messages is None:
             messages = self._oai_messages[sender]
