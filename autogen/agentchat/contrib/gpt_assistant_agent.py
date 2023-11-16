@@ -64,6 +64,7 @@ class GPTAssistantAgent(ConversableAgent):
                 instructions=instructions,
                 tools=llm_config.get("tools", []),
                 model=llm_config.get("model", "gpt-4-1106-preview"),
+                file_ids=llm_config.get("file_ids", []),
             )
         else:
             # retrieve an existing assistant
@@ -340,6 +341,10 @@ class GPTAssistantAgent(ConversableAgent):
     def assistant_id(self):
         """Return the assistant id"""
         return self._openai_assistant.id
+
+    @property
+    def openai_client(self):
+        return self._openai_client
 
     def get_assistant_instructions(self):
         """Return the assistant instructions from OAI assistant API"""

@@ -1,8 +1,38 @@
-from importlib.metadata import version as lib_version
+from pkg_resources import packaging
 from datetime import datetime
 import os
 import autogen
 import json
+
+
+def default_llm_config(config_list, timeout=180):
+    """Return a default config list with a given timeout, and with caching disabled.
+    The formatting depends on the version of Autogen installed.
+
+    Args:
+        config_list (list): the OAI config list to include in the final llm_config
+        timeout (int): the timeout for calls to the LLM
+
+    Returns:
+        None
+    """
+    llm_config = {
+        "config_list": config_list,
+    }
+
+    # Add options depending on the version
+    version = packaging.version.parse(autogen.__version__)
+    if version < packaging.version.parse("0.2.0b1"):
+        llm_config["request_timeout"] = timeout
+        llm_config["use_cache"] = False
+    elif version < packaging.version.parse("0.2.0b4"):
+        llm_config["timeout"] = timeout
+        llm_config["cache"] = None
+    else:
+        llm_config["timeout"] = timeout
+        llm_config["cache_seed"] = None
+
+    return llm_config
 
 
 def init():
@@ -20,7 +50,7 @@ def init():
     # Print some information about the run
     with open("timestamp.txt", "wt") as f:
         f.write("Timestamp: " + datetime.now().isoformat() + "\n")
-        f.write("pyautogen version: " + lib_version("pyautogen") + "\n")
+        f.write("pyautogen version: " + str(autogen.__version__) + "\n")
 
 
 def finalize(agents):
