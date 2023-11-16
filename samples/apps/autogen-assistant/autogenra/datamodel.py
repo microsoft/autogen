@@ -67,7 +67,7 @@ class AgentConfig:
     """Data model for Agent Config for Autogen"""
 
     name: str
-    llm_config: LLMConfig
+    llm_config: Optional[LLMConfig] = None
     human_input_mode: str = "NEVER"
     max_consecutive_auto_reply: int = 10
     system_message: Optional[str] = None
@@ -110,3 +110,9 @@ class DeleteMessageWebRequestModel(object):
 @dataclass
 class ClearDBWebRequestModel(object):
     user_id: str
+
+
+@dataclass
+class CreateSkillWebRequestModel(object):
+    user_id: str
+    skills: Union[str, List[str]]

@@ -1,32 +1,41 @@
-import { TrashIcon } from "@heroicons/react/24/outline";
-import { message } from "antd";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Modal, message } from "antd";
 import * as React from "react";
 import { IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, truncateText } from "../../utils";
-import { CollapseBox, LoadBox } from "../../atoms";
-import { get } from "http";
-import { useStore } from "zustand";
+import {
+  CodeBlock,
+  CollapseBox,
+  LaunchButton,
+  LoadBox,
+  MarkdownView,
+} from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
+import TextArea from "antd/es/input/TextArea";
 
-const SkillsView = ({ setMessages, skillup, config }: any) => {
+const SkillsView = ({ setMessages, skillup }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
     status: true,
     message: "All good",
   });
 
-  const messages = useConfigStore((state) => state.messages);
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const clearDbUrl = `${serverUrl}/cleardb`;
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
+  const saveSkillsUrl = `${serverUrl}/skills/`;
   const clearSkillsUrl = `${serverUrl}/skills/clear?user_id=${user?.email}`;
 
   const [skills, setSkills] = React.useState<any>({});
   const [skillsLoading, setSkillsLoading] = React.useState(false);
+  const [selectedSkill, setSelectedSkill] = React.useState<any>(null);
 
-  const [skillsModalOpen, setSkillsModalOpen] = React.useState(false);
+  const [showSkillModal, setShowSkillModal] = React.useState(false);
+  const [showNewSkillModal, setShowNewSkillModal] = React.useState(false);
+
+  const [skillCode, setSkillCode] = React.useState("");
 
   // console.log("skukkup", skillup);
 
@@ -60,35 +69,6 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
       setLoading(false);
     };
     fetchJSON(clearDbUrl, payLoad, onSuccess, onError);
-  };
-
-  const clearSkills = () => {
-    setError(null);
-    setSkillsLoading(true);
-    // const fetch;
-    const payLoad = {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-
-    const onSuccess = (data: any) => {
-      console.log(data);
-      if (data && data.status) {
-        message.success(data.message);
-        setSkills(data.skills);
-      } else {
-        message.error(data.message);
-      }
-      setSkillsLoading(false);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setSkillsLoading(false);
-    };
-    fetchJSON(clearSkillsUrl, payLoad, onSuccess, onError);
   };
 
   React.useEffect(() => {
@@ -131,6 +111,49 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
     fetchJSON(listSkillsUrl, payLoad, onSuccess, onError);
   };
 
+  const saveSkill = () => {
+    // check if skillTextAreaRef.current is not null or ""
+
+    if (!skillCode || skillCode == "") {
+      message.error("Please provide code for the skill");
+      return;
+    }
+
+    setError(null);
+    setSkillsLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user?.email,
+        skills: skillCode,
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      console.log(data);
+      if (data && data.status) {
+        message.success(data.message);
+        console.log("skills", data.skills);
+        setSkills(data.skills);
+      } else {
+        message.error(data.message);
+      }
+      setSkillsLoading(false);
+      setSkillCode("");
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setSkillsLoading(false);
+    };
+    fetchJSON(saveSkillsUrl, payLoad, onSuccess, onError);
+  };
+
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
@@ -138,23 +161,12 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
     }
   }, []);
 
-  const handleOk = () => {
-    setSkillsModalOpen(false);
-  };
-
-  const handleCancel = () => {
-    setSkillsModalOpen(false);
-  };
-
   let userSkills: any[] = [];
   let globalSkills: any[] = [];
   if (skills) {
     userSkills = skills.user;
     globalSkills = skills.global;
   }
-
-  // userSkills = userSkills.reverse();
-  // globalSkills = globalSkills.reverse();
 
   const showSkillRows = (
     skills: any[],
@@ -164,8 +176,13 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
     const skillrows = (skills || []).map((skill: any, i: number) => {
       return (
         <div
+          role="button"
+          onClick={() => {
+            setSelectedSkill(skill);
+            setShowSkillModal(true);
+          }}
           key={"skillrow" + i}
-          className="text-primary text-sm border-b border-dashed py-1 break-all gap-2  "
+          className="hover:bg-primary rounded p-2 rounded-b-none duration-300 text-primary text-sm border-b border-dashed py-1 break-all gap-2  "
           title={skill?.docstring}
         >
           {" "}
@@ -210,21 +227,54 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
 
   return (
     <div className="  ">
-      {/* <Modal
-        title={`(${skills && allSkills.length}) Available Skill${
-          skills.length > 1 ? "s" : ""
-        }`}
+      <Modal
+        title={selectedSkill?.name}
         width={800}
-        open={skillsModalOpen}
-        onOk={handleOk}
-        onCancel={handleCancel}
+        open={showSkillModal}
+        onOk={() => {
+          setShowSkillModal(false);
+        }}
+        onCancel={() => {
+          setShowSkillModal(false);
+        }}
       >
-        {skills && (
+        {selectedSkill && (
           <div>
-            <SkillsView skills={skills} />
+            <div className="mb-2">{selectedSkill.file_name}</div>
+            <CodeBlock code={selectedSkill?.content} language="python" />
           </div>
         )}
-      </Modal> */}
+      </Modal>
+
+      <Modal
+        title={
+          <div>
+            <PlusIcon className="w-5 h-5 inline-block mr-1" /> Create New Skill
+          </div>
+        }
+        width={800}
+        open={showNewSkillModal}
+        onOk={() => {
+          saveSkill();
+          setShowNewSkillModal(false);
+        }}
+        onCancel={() => {
+          setShowNewSkillModal(false);
+        }}
+      >
+        <>
+          <div className="mb-2">
+            Provide code for a new skill or create from current conversation.
+          </div>
+          <TextArea
+            value={skillCode}
+            onChange={(e) => {
+              setSkillCode(e.target.value);
+            }}
+            rows={10}
+          />
+        </>
+      </Modal>
 
       <div className="mb-2">
         <div
@@ -244,6 +294,20 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
             <>{showSkillRows(globalSkills, "Global Skills")}</>
           )}
         </div>
+
+        <div className="flex">
+          <div className="flex-1"></div>
+          <LaunchButton
+            className="text-sm p-2 px-3"
+            onClick={() => {
+              setShowNewSkillModal(true);
+            }}
+          >
+            {" "}
+            <PlusIcon className="w-5 h-5 inline-block mr-1" />
+            New Skill
+          </LaunchButton>
+        </div>
       </div>
 
       <hr className="mb-2" />
@@ -260,7 +324,6 @@ const SkillsView = ({ setMessages, skillup, config }: any) => {
         )}
         {loading && <LoadBox subtitle={"clearing db .."} />}
       </div>
-      <div></div>
     </div>
   );
 };

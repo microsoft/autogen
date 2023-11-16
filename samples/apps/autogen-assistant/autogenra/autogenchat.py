@@ -2,7 +2,7 @@ import json
 import time
 from typing import List
 from .datamodel import FlowConfig, Message
-from .utils import extract_successful_code_blocks, get_default_flow_config, get_modified_files
+from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
 from .autogenflow import AutoGenFlow
 import os
 
@@ -18,7 +18,7 @@ class ChatManager:
 
         # if no flow config is provided, use the default
         if flow_config is None:
-            flow_config = get_default_flow_config(scratch_dir, skills_suffix=skills_suffix)
+            flow_config = get_default_agent_config(scratch_dir, skills_suffix=skills_suffix)
 
         # print("Flow config: ", flow_config)
         flow = AutoGenFlow(config=flow_config, history=history, work_dir=scratch_dir, asst_prompt=skills_suffix)
@@ -36,9 +36,13 @@ class ChatManager:
         successful_code_blocks = extract_successful_code_blocks(agent_chat_messages)
         successful_code_blocks = "\n\n".join(successful_code_blocks)
         output = (
-            flow.sender.last_message()["content"]
-            + "\n The following code snippets were used: \n"
-            + successful_code_blocks
+            (
+                flow.sender.last_message()["content"]
+                + "\n The following code snippets were used: \n"
+                + successful_code_blocks
+            )
+            if successful_code_blocks
+            else flow.sender.last_message()["content"]
         )
 
         metadata["code"] = ""
