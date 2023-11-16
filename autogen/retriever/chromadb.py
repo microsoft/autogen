@@ -1,6 +1,6 @@
-from typing import Callable, List
+from typing import List
 from .base import Retriever
-from autogen.retrieve_utils import (
+from autogen.retriever.retrieve_utils import (
         split_text_to_chunks,
         extract_text_from_pdf,
         split_files_to_chunks,
