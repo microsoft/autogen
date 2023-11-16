@@ -1,0 +1,110 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: ContribTests
+
+on:
+  pull_request:
+    branches: ['main', 'dev/v0.2']
+    paths:
+      - 'autogen/**'
+      - 'test/agentchat/contrib/**'
+      - '.github/workflows/contrib-tests.yml'
+      - 'setup.py'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  RetrieveChatTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install qdrant_client when python-version is 3.10
+        if: matrix.python-version == '3.10' || matrix.python-version == '3.8'
+        run: |
+          pip install qdrant_client[fastembed]
+      - name: Install packages and dependencies for RetrieveChat
+        run: |
+          pip install -e .[retrievechat]
+          pip uninstall -y openai
+      - name: Test RetrieveChat
+        run: |
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+      - name: Coverage
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+  CompressionTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for Compression
+        run: |
+          pip install -e .
+          pip uninstall -y openai
+      - name: Test Compression
+        if: matrix.python-version != '3.10'
+        run: |
+          pytest test/agentchat/contrib/test_compressible_agent.py
+
+  GPTAssistantAgent:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for GPTAssistantAgent
+        run: |
+          pip install -e .
+          pip uninstall -y openai
+      - name: Test GPTAssistantAgent
+        if: matrix.python-version != '3.10'
+        run: |
+          pytest test/agentchat/contrib/test_gpt_assistant.py

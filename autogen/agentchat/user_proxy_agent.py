@@ -63,7 +63,7 @@ class UserProxyAgent(ConversableAgent):
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 Default to false, which disables llm-based auto reply.
             system_message (str): system message for ChatCompletion inference.

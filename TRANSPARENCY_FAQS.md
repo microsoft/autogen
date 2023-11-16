@@ -1,4 +1,4 @@
-# AutoGen: Responsible AI FAQ
+# AutoGen: Responsible AI FAQs
 
 ## What is AutoGen?
 AutoGen is a framework for simplifying the orchestration, optimization, and automation of LLM workflows. It offers customizable and conversable agents that leverage the strongest capabilities of the most advanced LLMs, like GPT-4, while addressing their limitations by integrating with humans and tools and having conversations between multiple agents via automated chat.

@@ -1,14 +1,15 @@
 try:
-    import openai
-
-    skip = False
+    from openai import OpenAI
+    from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 except ImportError:
     skip = True
+else:
+    skip = False
+
 import pytest
 import sys
 from autogen import ConversableAgent, config_list_from_json
-from autogen.agentchat.contrib.teachable_agent import TeachableAgent
-
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC
 
 try:
     from termcolor import colored
@@ -24,7 +25,8 @@ skill_verbosity = 3  # 0 for basic info, 1 to add memory operations, 2 for analy
 
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-use_cache = False  # If True, cached LLM calls will be skipped and responses pulled from cache. False exposes LLM non-determinism.
+cache_seed = None
+# If int, cached LLM calls will be skipped and responses pulled from cache. None exposes LLM non-determinism.
 
 # Specify the model to use by uncommenting one of the following lines.
 # filter_dict={"model": ["gpt-4-0613"]}
@@ -38,10 +40,10 @@ def create_teachable_agent(reset_db=False, verbosity=0):
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
-    config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
+    config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC)
     teachable_agent = TeachableAgent(
         name="teachableagent",
-        llm_config={"config_list": config_list, "request_timeout": 120, "use_cache": use_cache},
+        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
         teach_config={
             "verbosity": verbosity,
             "reset_db": reset_db,
@@ -137,8 +139,8 @@ def use_task_advice_pair_phrasing():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.9"),
-    reason="do not run if openai is not installed or py!=3.9",
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if dependency is not installed or py!=3.11",
 )
 def test_all():
     """Runs this file's unit tests."""

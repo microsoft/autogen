@@ -1,4 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# This workflow will install Python dependencies and run tests with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
 name: OpenAI
@@ -11,9 +11,6 @@ on:
       - 'test/**'
       - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
       - 'notebook/agentchat_function_call.ipynb'
-      - 'notebook/agentchat_MathChat.ipynb'
-      - 'notebook/oai_completion.ipynb'
-      - 'notebook/oai_chatgpt_gpt4.ipynb'
       - '.github/workflows/openai.yml'
 
 jobs:
@@ -23,7 +20,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.os }}
-    environment: openai
+    environment: openai1
     steps:
       # checkout to pr branch
       - name: Checkout
@@ -38,28 +35,17 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e.[blendsearch]
+          pip install -e.
           python -c "import autogen"
-          pip install coverage pytest-asyncio datasets
+          pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         if: matrix.python-version == '3.9'
         run: |
           pip install docker
-      - name: Install packages for MathChat when needed
-        if: matrix.python-version != '3.11'
+      - name: Install dependencies for test when needed
+        if: matrix.python-version == '3.10'  # test_agentchat_function_call
         run: |
-          pip install -e .[mathchat]
-      - name: Install packages for RetrieveChat when needed
-        if: matrix.python-version == '3.9'
-        run: |
-          pip install -e .[retrievechat]
-      - name: Install packages for Teachable when needed
-        run: |
-          pip install -e .[teachable]
-      - name: Install packages for RetrieveChat with QDrant when needed
-        if: matrix.python-version == '3.11'
-        run: |
-          pip install -e .[retrievechat] qdrant_client[fastembed]
+          pip install -e.[mathchat]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
@@ -68,7 +54,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib
           coverage xml
       - name: Coverage and check notebook outputs
         if: matrix.python-version != '3.9'
@@ -80,8 +66,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/agentchat/test_qdrant_retrievechat.py
-          coverage run -a -m pytest test/test_with_openai.py
+          coverage run -a -m pytest test/agentchat/test_function_call_groupchat.py
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
