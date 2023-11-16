@@ -9,7 +9,7 @@ def test_func_call_groupchat():
         "alice",
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -57,7 +57,7 @@ def test_chat_manager():
         max_consecutive_auto_reply=2,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -90,7 +90,7 @@ def test_speaker_selection_method():
         max_consecutive_auto_reply=2,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -114,12 +114,12 @@ def test_speaker_selection_method():
         allow_repeat_speaker=False,
     )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-    agent1.initiate_chat(group_chat_manager, message="This is alice sepaking.")
+    agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
     assert len(agent1.chat_messages[group_chat_manager]) == 6
     assert len(groupchat.messages) == 6
     assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
-        "This is alice sepaking.",
+        "This is alice speaking.",
         "This is bob speaking.",
         "This is charlie speaking.",
     ] * 2
@@ -132,7 +132,7 @@ def test_speaker_selection_method():
         allow_repeat_speaker=True,
     )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-    agent1.initiate_chat(group_chat_manager, message="This is alice sepaking.")
+    agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
     assert len(agent1.chat_messages[group_chat_manager]) == 2
 
     groupchat = autogen.GroupChat(
@@ -144,13 +144,13 @@ def test_speaker_selection_method():
     )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
     with mock.patch.object(builtins, "input", lambda _: "1"):
-        agent1.initiate_chat(group_chat_manager, message="This is alice sepaking.")
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
         assert len(agent1.chat_messages[group_chat_manager]) == 5
         assert len(groupchat.messages) == 5
         assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
-            "This is alice sepaking.",
+            "This is alice speaking.",
             "This is bob speaking.",
-        ] * 2 + ["This is alice sepaking."]
+        ] * 2 + ["This is alice speaking."]
 
 
 def test_plugin():
@@ -160,7 +160,7 @@ def test_plugin():
         max_consecutive_auto_reply=2,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
