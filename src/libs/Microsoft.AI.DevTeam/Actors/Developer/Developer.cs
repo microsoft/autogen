@@ -16,7 +16,7 @@ public class Dev : SemanticPersona, IDevelopCode
 
     protected override string MemorySegment => "dev-memory";
 
-    public Dev([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state,IKernel kernel,ISemanticTextMemory memory, ILogger<Dev> logger) : base(state)
+    public Dev([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
@@ -51,7 +51,7 @@ public class Dev : SemanticPersona, IDevelopCode
 
             return resultMessage;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating code");
             return default;
@@ -65,8 +65,28 @@ public class Dev : SemanticPersona, IDevelopCode
         throw new NotImplementedException();
     }
 
-    public Task<string> BuildUnderstanding(string content)
+    public async Task<UnderstandingResult> BuildUnderstanding(string content)
     {
-        throw new NotImplementedException();
+        var explainFunction = _kernel.CreateSemanticFunction(Developer.Explain, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
+        var consolidateFunction = _kernel.CreateSemanticFunction(Developer.ConsolidateUnderstanding, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
+        var explainContext = new ContextVariables();
+        explainContext.Set("input", content);
+        var explainResult = await _kernel.RunAsync(explainContext, explainFunction);
+        var explainMesage = explainResult.ToString();
+
+        var consolidateContext = new ContextVariables();
+        consolidateContext.Set("input", _state.State.Understanding);
+        consolidateContext.Set("newUnderstanding", explainMesage);
+
+        var consolidateResult = await _kernel.RunAsync(consolidateContext, consolidateFunction);
+        var consolidateMessage = consolidateResult.ToString();
+        
+        _state.State.Understanding = consolidateMessage;
+        await _state.WriteStateAsync();
+
+        return new UnderstandingResult {
+            NewUnderstanding = consolidateMessage,
+            Explanation = explainMesage
+        };
     }
 }

@@ -41,9 +41,16 @@ public interface IChatHistory
 
 public interface IUnderstand
 {
-    Task<string> BuildUnderstanding(string content);
+    Task<UnderstandingResult> BuildUnderstanding(string content);
 }
 
+[GenerateSerializer]
+public class UnderstandingResult {
+    [Id(0)]
+    public string NewUnderstanding { get; set; }
+    [Id(1)]
+    public string Explanation { get; set; }
+}
 
 [Serializable]
 public class ChatHistoryItem

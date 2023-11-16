@@ -34,6 +34,7 @@ public class Ingester : SemanticPersona, IIngestRepo
             codeAnalysis.ToList().ForEach(async c =>
                 await _memory.SaveInformationAsync(MemorySegment, c.CodeBlock, Guid.NewGuid().ToString(), c.Meaning));
 
+            // TODO: do something with the result
             await dev.BuildUnderstanding(file.Content);
         }
     }
