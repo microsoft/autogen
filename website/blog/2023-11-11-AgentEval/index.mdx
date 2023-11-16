@@ -19,7 +19,10 @@ tags: [LLM, GPT, evaluation, task utility]
 
 ## Introduction
 
-The goal of AutoGen is to make it straightforward and easy to develop LLM-based multi-agent systems for an arbitrary application that helps the end users with their tasks. The next big step forward is what we all want to know: how the developed systems are performing, if they bring utility to our users, and, even more importantly, how we can improve them. Directly evaluating the multi-agent systems is tricky since current approaches mainly rely on success metrics, basically if the agent can accomplish the tasks. Moreover, the definition of success for a particular task is not always given. Introductions of LLMs bring us a lot of abilities that we are eager to convert into actual utilities for end users. In this blog post, we introduce `AgentEval` — the first version of the framework for assessing task utility in LLM-based applications.
+ AutoGen aims to simplify the development of LLM-powered multi-agent systems for various applications, ultimately making end users' lives easier by assisting with their tasks. Next, we all yearn to understand how our developed systems perform, their utility for users, and, perhaps most crucially, how we can enhance them. Directly evaluating multi-agent systems poses challenges as current approaches predominantly rely on success metrics – essentially, whether the agent accomplishes tasks. However, comprehending user interaction with a system involves far more than success alone. Take math problems, for instance; it's not merely about the agent solving the problem. Equally significant is its ability to convey solutions based on various criteria, including completeness, conciseness, and the clarity of the provided explanation. Furthermore, success isn't always clearly defined for every task. 
+
+ Rapid advances in LLMs and multi-agent systems have brought forth many emerging capabilities that we're keen on translating into tangible utilities for end users. We introduce the first version of `AgentEval` framework - a tool crafted to empower developers in swiftly gauging the utility of LLM-powered applications designed to help end users accomplish the desired task.
+
 
 ![Fig.2: An overview of the tasks taxonomy](img/tasks-taxonomy.png)
 <p align="center"><em>Fig. 2 provides  an overview of the tasks taxonomy</em></p>
