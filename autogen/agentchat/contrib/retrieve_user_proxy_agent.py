@@ -4,7 +4,7 @@ from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
-from autogen.retriever import get_retriever
+from autogen.agentchat.contrib.retriever import get_retriever
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 from IPython import get_ipython

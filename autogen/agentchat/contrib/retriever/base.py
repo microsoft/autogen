@@ -10,7 +10,7 @@ class Retriever(ABC):
                  chunk_mode: str = "multi_lines",
                  must_break_at_empty_line: bool = True,
                  custom_text_split_function: Callable = None,
-                 use_existing=True,
+                 use_existing=False,
                  client=None
                 ):
         """

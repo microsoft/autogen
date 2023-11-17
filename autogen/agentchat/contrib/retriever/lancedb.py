@@ -11,7 +11,8 @@ except ImportError:
 
 from typing import List
 from .base import Retriever
-from autogen.retriever.retrieve_utils import (
+from autogen import logger
+from .retrieve_utils import (
         split_text_to_chunks,
         extract_text_from_pdf,
         split_files_to_chunks,
@@ -31,7 +32,9 @@ class LanceDB(Retriever):
         )
         if self.use_existing and self.name in self.db.table_names():
             self.table = self.db.open_table(self.name)
+            logger.info(f"Reusing existing table {self.name}")
         else:
+            logger.info(f"Creating new table {self.name}")
             schema = self._get_schema(self.embedding_function)
             self.table = self.db.create_table(self.name, schema=schema)
     
@@ -69,7 +72,10 @@ class LanceDB(Retriever):
         for text in texts:
             query = self.embedding_function(text) if isinstance(self.embedding_function, Callable) else text
             print("query: ", query)
-            result = self.table.search(query).where(f"documents LIKE '%{filter}%'").limit(top_k).to_arrow().to_pydict()
+            result = self.table.search(query)
+            if filter is not None:
+                result = result.where(f"documents LIKE '%{filter}%'")
+            result = result.limit(top_k).to_arrow().to_pydict()
             for k, v in result.items():
                 results[k].append(v)
     

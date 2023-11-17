@@ -1,6 +1,6 @@
 from typing import List
 from .base import Retriever
-from autogen.retriever.retrieve_utils import (
+from .retrieve_utils import (
         split_text_to_chunks,
         extract_text_from_pdf,
         split_files_to_chunks,
@@ -28,7 +28,7 @@ class ChromaDB(Retriever):
         )
         self.collection = self.client.create_collection(
             self.name,
-            get_or_create=not self.use_existing,
+            get_or_create=self.use_existing,
             embedding_function=embedding_function,
             # https://github.com/nmslib/hnswlib#supported-distances
             # https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184

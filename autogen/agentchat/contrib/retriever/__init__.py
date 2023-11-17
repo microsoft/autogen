@@ -2,6 +2,7 @@ from typing import Optional
 from .chromadb import ChromaDB
 from .lancedb import LanceDB
 
+AVILABLE_RETRIEVERS = ["lanchedb", "chromadb"]
 DEFAULT_RETRIEVER = "lancedb"
 
 def get_retriever(type: Optional[str]=None):
