@@ -2,7 +2,7 @@ import json
 from typing import Callable, Dict, Optional, Union, List
 import yaml
 import numpy as np
-from autogen.agentchat import ConversableAgent
+from autogen.agentchat import ConversableAgent, AssistantAgent
 from alfworld.agents.environment.alfred_tw_env import AlfredTWEnv
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 
@@ -41,16 +41,11 @@ def load_task_prompt(path="src/tasks/task_desc.json"):
 
 def process_action(action, choices, limit=0.01, to_print=False):
     if "ACTION: " in action:
-        action = action[action.find("ACTION: ") + 8:]
+        action = action.split("ACTION:")[-1].strip()
     
     if to_print:
         print("preprocess action: ", action)
-    action = action.strip().lower()
-    action_splits = action.split(".")
-    if len(action_splits[0].strip()) < 3 and len(action_splits) > 1:
-        action = action_splits[1].strip()
-    else:
-        action = action_splits[0].strip()
+    action = action.split(".")[0].strip()
     if not choices:
         return action
     bleus = [bleu_score(choice, action) for choice in choices]
@@ -78,6 +73,20 @@ class ContextManager(object):
         last_message["content"] = content
         self.assistant._oai_messages[self.user_proxy].append(last_message)
 
+class AssistantAgentAlf(AssistantAgent):
+    
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.register_reply(ALFAgent, AssistantAgentAlf._check_terminate)
+    
+    def _check_terminate(self, messages, sender, config=None):
+        message = messages[-1]['content']
+        if "now reply TERMINATE" in message:
+            return True, "TERMINATE"
+        return False, None        
 
 class ALFAgent(ConversableAgent):
     
@@ -127,8 +136,8 @@ class ALFAgent(ConversableAgent):
         self.action_counter = 0
         self.last_action = None
         self.task_prompt = load_task_prompt()
-        self.task_description = None
-        self.register_auto_reply(ConversableAgent, ALFAgent._generate_reply_for_assistant)
+        self.manager = None
+        self.register_reply(ConversableAgent, ALFAgent._generate_reply_for_assistant)
         
     
     def get_prompt(self, filename: str = None):
@@ -166,11 +175,14 @@ class ALFAgent(ConversableAgent):
         self.observation, reward, done, self.info = self.env.step([action])
         self.observation, reward, done = process_ob(self.observation[0]), self.info['won'][0], done[0]
         
-        self.manager.set_message(action)
+        # self.manager.set_message(action)
         reply = self.observation
         
         if done:
-            reply += "Task success, now reply TERMINATE\n"
+            if reward:
+                reply = "Task success, now reply TERMINATE\n"
+            else:
+                reply = "Task failed, now reply TERMINATE.\n"
             return True, reply
         
         if self.last_action == action:
@@ -183,16 +195,12 @@ class ALFAgent(ConversableAgent):
             self.invalid_counter += 1
         else:
             self.invalid_counter = 0
-            
-        if self.invalid_counter == 3 or self.action_counter == 3:
-            reply = "Task failed. Reply TERMINATE."
+        
+        # end the conversation early if agent outputs too many invalid actions
+        if self.invalid_counter == 4 or self.action_counter == 3:
+            reply = "Task failed, now reply TERMINATE."
         
         return True, reply
-    
-    def initiate_chat(self, recipient: ConversableAgent, **kwargs):
-        self.manager = ContextManager(self, recipient)
-        super().initiate_chat(recipient,**kwargs)
-        
     
 
 def set_context(message, user: ALFAgent, assistant: ConversableAgent):
@@ -202,6 +210,7 @@ def set_context(message, user: ALFAgent, assistant: ConversableAgent):
         user._append_oai_message(his, current_role, assistant)
         assistant._append_oai_message(his, current_role, user)
         current_role = traverse[current_role]
+    user.manager = ContextManager(user, assistant)
         
 
 class SingleAlfredTWEnv(AlfredTWEnv):

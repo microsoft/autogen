@@ -1,6 +1,6 @@
 import json
 from typing import Callable, Dict, Optional, Union, List
-from autogen.agentchat import ConversableAgent
+from autogen.agentchat import ConversableAgent, AssistantAgent
 import yaml
 import numpy as np
 from alfworld.agents.environment.alfred_tw_env import AlfredTWEnv
@@ -41,16 +41,11 @@ def load_task_prompt(path="src/tasks/task_desc.json"):
 
 def process_action(action, choices, limit=0.01, to_print=False):
     if "ACTION: " in action:
-        action = action[action.find("ACTION: ") + 7:]
+        action = action.split("ACTION:")[-1].strip()
     
     if to_print:
         print("preprocess action: ", action)
-    action = action.strip().lower()
-    action_splits = action.split(".")
-    if len(action_splits[0].strip()) < 3 and len(action_splits) > 1:
-        action = action_splits[1].strip()
-    else:
-        action = action_splits[0].strip()
+    action = action.split(".")[0].strip()
     if not choices:
         return action
     bleus = [bleu_score(choice, action) for choice in choices]
@@ -78,6 +73,21 @@ class ContextManager(object):
         last_message["content"] = content
         self.assistant._oai_messages[self.user_proxy].append(last_message)
 
+
+class AssistantAgentAlf(AssistantAgent):
+    
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.register_reply(ALFAgent, AssistantAgentAlf._check_terminate)
+    
+    def _check_terminate(self, messages, sender, config=None):
+        message = messages[-1]['content']
+        if "now reply TERMINATE" in message:
+            return True, "TERMINATE"
+        return False, None        
 
 class GroundingAgent(ConversableAgent):
     MAX_CONSECUTIVE_AUTO_REPLY = (
@@ -144,13 +154,13 @@ class ALFAgent(ConversableAgent):
         self.base_prompt = load_base_prompts(base_prompts_path)
         self.observation, self.info = self.env.reset()
         self.invalid_counter, self.stuck_counter = 0, 0
-        self.last_action = None
-        self.task_prompt = load_task_prompt()
-        self.task_description = None
+        self.recipient = None
+        self.manager = None
+        self.actions = []
         self.gamefile = '/'.join(self.info['extra.gamefile'][0].split('/')[-3:-1])
-        self.register_auto_reply(ConversableAgent, ALFAgent._generate_reply_for_assistant, config=grounding_agent)
-        self.register_auto_reply(GroundingAgent, ALFAgent._generate_reply_for_grounding, config=None)
-        self.init = True
+        self.register_reply(ConversableAgent, ALFAgent._generate_reply_for_assistant, config=grounding_agent)
+        self.register_reply(GroundingAgent, ALFAgent._generate_reply_for_grounding, config=None)
+        self.ground_counter = 0
     
     def get_prompt(self, filename: str = None):
         if filename is None:
@@ -175,7 +185,6 @@ class ALFAgent(ConversableAgent):
             message = "Your task now begins. " + '\n'.join(self.observation[0].split('\n\n')[1:])
             self.initiate_chat(agent, silent=True, to_assistant=False)
             last_message = self._oai_messages[agent][-1]["content"]
-            print("Last message: ", last_message)
             message += last_message
             return message
         else:
@@ -201,38 +210,36 @@ class ALFAgent(ConversableAgent):
         action = process_action(message, self.info.get('admissible_commands', [[]])[0])
         self.observation, reward, done, self.info = self.env.step([action])
         self.observation, reward, done = process_ob(self.observation[0]), self.info['won'][0], done[0]
-        
         self.manager.set_message(action)
+        self.actions.append(action)
         reply = self.observation
         
         if done:
-            reply += "Task success, now reply TERMINATE\n"
+            if reward:
+                reply = "Task success, now reply TERMINATE.\n"
+            else:
+                reply = "Task failed, now reply TERMINATE.\n"
             return True, reply
         
-        if self.last_action == action:
-            self.stuck_counter += 1
-        else:
-            self.stuck_counter = 0
-            self.last_action = action
+        stuck = len(self.actions) >= 4 and len(set(self.actions[-4:])) <= 2
             
         if "Nothing happens" in self.observation:
             self.invalid_counter += 1
         else:
             self.invalid_counter = 0
             
-        if self.invalid_counter == 3 or self.stuck_counter == 3:
+        if self.invalid_counter == 3 or stuck:
             self.initiate_chat(grounding_agent, silent=True, to_assistant=False)
             last_message = self._oai_messages[grounding_agent][-1]["content"]
             reply += last_message
             self.invalid_counter = 0
+            self.ground_counter += 1
+        
+        if self.ground_counter == 10:
+            return True, "Task failed, now reply TERMINATE.\n"
         
         return True, reply
         
-    
-    def initiate_chat(self, recipient: ConversableAgent, **kwargs):
-        self.manager = ContextManager(self, recipient)
-        super().initiate_chat(recipient, **kwargs)
-
 
 def set_context(message, user: ALFAgent, assistant: ConversableAgent):
     current_role = "user"
@@ -241,6 +248,8 @@ def set_context(message, user: ALFAgent, assistant: ConversableAgent):
         user._append_oai_message(his, current_role, assistant)
         assistant._append_oai_message(his, current_role, user)
         current_role = traverse[current_role]
+    user.manager = ContextManager(user, assistant)
+    user.recipient = assistant
         
 
 class SingleAlfredTWEnv(AlfredTWEnv):
@@ -274,8 +283,8 @@ def get_config(path="src/tasks/base_config.yaml"):
     return config
 
 def add_auto_reply(agent, config):
-    agent.register_auto_reply(ConversableAgent, GroundingAgent._generate_grounding_reply, config=config)
-
+    agent.register_reply(ConversableAgent, GroundingAgent._generate_grounding_reply, config=config)
+    
 def get_all_game_files(config, split="eval_out_of_distribution"):
     config = get_config(config)
     env = AlfredTWEnv(config, train_eval=split)
