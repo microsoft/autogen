@@ -47,7 +47,7 @@ def infer_lang(code):
     """infer the language for the code.
     TODO: make it robust.
     """
-    if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
+    if code.startswith(("python ", "pip ", "python3 ", "npm ", "node ", "yarn ", "tsc ")):
         return "sh"
 
     # check if code is a valid python code
@@ -179,12 +179,17 @@ def timeout_handler(signum, frame):
 
 
 def _cmd(lang):
+    lang = lang.lower()
     if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
         return lang
     if lang in ["shell"]:
         return "sh"
     if lang in ["ps1"]:
         return "powershell"
+    if lang in ["javascript", "js"]:
+        return "node"
+    if lang in ["typescript", "ts"]:
+        return "tsc"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
@@ -256,7 +261,13 @@ def execute_code(
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()
         # create a file with a automatically generated name
-        filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
+        filename = (f"tmp_code_{code_hash}.py"
+                        if lang.startswith('python')
+                        else f"tmp_code_{code_hash}.js"
+                        if lang in ('JavaScript', 'javascript', 'js')
+                        else f"tmp_code_{code_hash}.ts"
+                        if lang in ('TypeScript', 'typescript', 'ts')
+                        else f"tmp_code_{code_hash}.{lang}")
     if work_dir is None:
         work_dir = WORKING_DIR
     filepath = os.path.join(work_dir, filename)
@@ -269,10 +280,37 @@ def execute_code(
     in_docker_container = os.path.exists("/.dockerenv")
     if not use_docker or in_docker_container:
         # already running in a docker container
-        cmd = [
-            sys.executable if lang.startswith("python") else _cmd(lang),
-            f".\\{filename}" if WIN32 else filename,
-        ]
+        cmd_lang = _cmd(lang)
+        if cmd_lang == 'tsc':
+            # TypeScript file
+            cmd = ['tsc', filename]
+            compile_result = subprocess.run(
+                cmd,
+                cwd=work_dir,
+                capture_output=True,
+                text=True,
+            )
+            # If compilation is successful, run the JavaScript file
+            if compile_result.returncode == 0:
+                js_filename = filename.replace('.ts', '.js')
+                run_cmd = ['node', js_filename]
+                try:
+                    result = subprocess.run(
+                        run_cmd,
+                        cwd=work_dir,
+                        capture_output=True,
+                        text=True,
+                    )
+                except Exception as e:
+                    result = (1, str(e), None)
+            else:
+                print('TypeScript compilation failed.')
+        else:
+            # Other file types
+            cmd = [
+                sys.executable if lang.startswith("python") else _cmd(lang),
+                f".\\{filename}" if WIN32 else filename,
+            ]
         if WIN32:
             logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
             result = subprocess.run(
@@ -281,7 +319,7 @@ def execute_code(
                 capture_output=True,
                 text=True,
             )
-        else:
+        elif cmd_lang != 'tsc':
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(
                     subprocess.run,
@@ -312,13 +350,25 @@ def execute_code(
 
     # create a docker client
     client = docker.from_env()
-    image_list = (
-        ["python:3-alpine", "python:3", "python:3-windowsservercore"]
-        if use_docker is True
-        else [use_docker]
-        if isinstance(use_docker, str)
-        else use_docker
-    )
+    # Prepare image_list based on language and use_docker preference
+    if use_docker is True:
+        lang = lang.lower()  # Convert to lowercase for case-insensitive comparison
+        if lang in ["javascript", "js", "typescript", "ts"]:
+            # Prefer Node.js alpine image for its small size, fallback to latest version
+            # Since TypeScript needs to be transpiled to JavaScript, Node.js images are also appropriate
+            image_list = ["node:alpine", "node:latest"]
+        elif lang in ["python", "py"]:
+            # Choose smaller alpine image if possible, otherwise latest Python images
+            image_list = ["python:3-alpine", "python:3", "python:3-windowsservercore"]
+        else:
+            # Add more languages or a default image list if needed
+            image_list = []
+    elif isinstance(use_docker, str):
+        # If use_docker is a string, it's assumed to be the name of a specific Docker image
+        image_list = [use_docker]
+    else:
+        # If use_docker is already a list, it's assumed to contain the desired images
+        image_list = use_docker
     for image in image_list:
         # check if the image exists
         try:
@@ -381,7 +431,7 @@ def execute_code(
     if exit_code:
         logs = logs.replace(f"/workspace/{filename if original_filename is None else ''}", "")
     # return the exit code, logs and image
-    return exit_code, logs, f"python:{tag}"
+    return exit_code, logs, f"{cmd_lang}:{tag}" if use_docker else None
 
 
 _GENERATE_ASSERTIONS_CONFIG = {

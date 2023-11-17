@@ -665,6 +665,7 @@ class ConversableAgent(Agent):
             if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
                 continue
 
+            code_blocks = [block for block in code_blocks if not (block[0] == '' or any(block[1].startswith(prefix) for prefix in ('node ', 'tsc ', 'ts-node ')))]
             # found code blocks, execute code and push "last_n_messages" back
             exitcode, logs = self.execute_code_blocks(code_blocks)
             code_execution_config["last_n_messages"] = last_n_messages
@@ -1026,10 +1027,12 @@ class ConversableAgent(Agent):
     def execute_code_blocks(self, code_blocks):
         """Execute the code blocks and return the result."""
         logs_all = ""
+        exitcode = 0
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block
             if not lang:
                 lang = infer_lang(code)
+            lang = lang.lower()
             print(
                 colored(
                     f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
@@ -1037,11 +1040,17 @@ class ConversableAgent(Agent):
                 ),
                 flush=True,
             )
-            if lang in ["bash", "shell", "sh"]:
-                exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
-            elif lang in ["python", "Python"]:
+            supported_langs = {
+                "bash": "bash", "shell": "shell", "sh": "sh",
+                "python": "python",
+                "js": "javascript", "javascript": "javascript",
+                "ts": "typescript", "typescript": "typescript"
+            }
+            if lang in supported_langs:
                 if code.startswith("# filename: "):
-                    filename = code[11 : code.find("\n")].strip()
+                    filename = code[11: code.find("\n")].strip()
+                elif code.startswith("// filename: "):
+                    filename = code[12: code.find("\n")].strip() 
                 else:
                     filename = None
                 exitcode, logs, image = self.run_code(
