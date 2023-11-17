@@ -41,11 +41,9 @@ TEXT_FORMATS = [
     "pdf",
 ]
 UNSTRUCTURED_FORMATS = [
-    "csv",
     "doc",
     "docx",
     "epub",
-    "md",
     "msg",
     "odt",
     "org",
@@ -54,7 +52,6 @@ UNSTRUCTURED_FORMATS = [
     "pptx",
     "rtf",
     "rst",
-    "tsv",
     "xlsx",
 ]
 if HAS_UNSTRUCTURED:
