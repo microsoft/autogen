@@ -82,12 +82,14 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
         # Warn if GroupChat is underpopulated
         if n_agents < 2:
             raise ValueError(
-                f"GroupChat is underpopulated with {n_agents} agents. " "Please add more agents to the GroupChat."
+                f"GroupChat is underpopulated with {n_agents} agents. "
+                "Please add more agents to the GroupChat or use direct communication instead."
             )
         elif n_agents == 2 and self.speaker_selection_method.lower() != "round_robin" and self.allow_repeat_speaker:
             logger.warning(
                 f"GroupChat is underpopulated with {n_agents} agents. "
-                "It is recommended to set speaker_selection_method to 'round_robin' and allow_repeat_speaker to False."
+                "It is recommended to set speaker_selection_method to 'round_robin' or allow_repeat_speaker to False."
+                "Or, use direct communication instead."
             )
 
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
