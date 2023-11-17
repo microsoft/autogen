@@ -57,9 +57,10 @@ class ModelConfig:
 class LLMConfig:
     """Data model for LLM Config for Autogen"""
 
-    seed: int = 42
     config_list: List[ModelConfig] = field(default_factory=List)
     temperature: float = 0
+    seed: Optional[Union[int, bool]] = False
+    use_cache: Optional[bool] = False
 
 
 @dataclass
