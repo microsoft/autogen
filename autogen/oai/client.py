@@ -227,6 +227,8 @@ class OpenAIWrapper:
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
+            print(f"Cache: {self.cache_path_root}/{cache_seed}")
+
             # Try to load the response from cache
             if cache_seed is not None:
                 with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
