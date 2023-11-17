@@ -69,6 +69,33 @@ class GroupChat:
         return f"""You are in a role play game. Read the following conversation.
 Then select the next role from [{[agent.name for agent in agents]}] to play. Only return the role."""
 
+    def manual_select_speaker(self, agents: List[Agent]) -> Agent:
+        """Manually select the next speaker."""
+
+        print("Please select the next speaker from the following list:")
+        _n_agents = len(agents)
+        for i in range(_n_agents):
+            print(f"{i+1}: {agents[i].name}")
+        try_count = 0
+        # Assume the user will enter a valid number within 3 tries, otherwise use auto selection to avoid blocking.
+        while try_count <= 3:
+            try_count += 1
+            if try_count >= 3:
+                print(f"You have tried {try_count} times. The next speaker will be selected automatically.")
+                break
+            try:
+                i = input("Enter the number of the next speaker (enter nothing or `q` to use auto selection): ")
+                if i == "" or i == "q":
+                    break
+                i = int(i)
+                if i > 0 and i <= _n_agents:
+                    return agents[i - 1]
+                else:
+                    raise ValueError
+            except ValueError:
+                print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
+        return None
+
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
@@ -115,28 +142,9 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
         agents = agents if self.allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
         if self.speaker_selection_method.lower() == "manual":
-            print("Please select the next speaker from the following list:")
-            _n_agents = len(agents)
-            for i in range(_n_agents):
-                print(f"{i+1}: {agents[i].name}")
-            try_count = 0
-            # Assume the user will enter a valid number within 3 tries, otherwise use auto selection to avoid blocking.
-            while try_count <= 3:
-                try_count += 1
-                if try_count >= 3:
-                    print(f"You have tried {try_count} times. The next speaker will be selected automatically.")
-                    break
-                try:
-                    i = input("Enter the number of the next speaker (enter nothing or `q` to use auto selection): ")
-                    if i == "" or i == "q":
-                        break
-                    i = int(i)
-                    if i > 0 and i <= _n_agents:
-                        return agents[i - 1]
-                    else:
-                        raise ValueError
-                except ValueError:
-                    print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
+            selected_agent = self.manual_select_speaker(agents)
+            if selected_agent:
+                return selected_agent
         elif self.speaker_selection_method.lower() == "round_robin":
             return self.next_agent(last_speaker, agents)
         elif self.speaker_selection_method.lower() == "random":
