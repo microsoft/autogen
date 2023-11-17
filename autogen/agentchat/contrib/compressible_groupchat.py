@@ -139,7 +139,7 @@ class CompressibleGroupChatManager(CompressibleAgent):
 
         return False
 
-    def _convert_agent_messages(self, compressed_messages, agent):
+    def _convert_agent_messages(self, compressed_messages: List[Dict], agent: Agent) -> List[Dict]:
         """Convert messages to a corresponding agent's view."""
         converted_messages = []
         tmp_messages = copy.deepcopy(compressed_messages)

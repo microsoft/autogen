@@ -80,12 +80,12 @@ Reply "TERMINATE" in the end when everything is done.
                 The limit only plays a role when human_input_mode is not "ALWAYS".
             compress_config (dict or True/False): config for compression before oai_reply. Default to False.
                 You should contain the following keys:
-                - "mode" (Optional, str, default to "TERMINATE"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
+                - "mode" (Optional, str, default to "TERMINATE"): Choose from ["COMPRESS", "TERMINATE", "CUSTOM"].
                     "TERMINATE": terminate the conversation ONLY when token count exceeds the max limit of current model.
                         `trigger_count` is NOT used in this mode.
                     "COMPRESS": compress the messages when the token count exceeds the limit.
-                    "CUSTOMIZED": pass in a customized function to compress the messages.
-                - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOMIZED".
+                    "CUSTOM": pass in a customized function to compress the messages.
+                - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOM".
                     The function should takes a list of messages and returns a tuple of (is_compress_success: bool, compressed_messages: List[Dict]).
                 - "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression.
                     If a float between (0, 1], it is the percentage of token used. if a int, it is the number of tokens used.
@@ -135,7 +135,7 @@ Reply "TERMINATE" in the end when everything is done.
             if not isinstance(compress_config, dict):
                 raise ValueError("compress_config must be a dict or True/False.")
 
-            allowed_modes = ["COMPRESS", "TERMINATE", "CUSTOMIZED"]
+            allowed_modes = ["COMPRESS", "TERMINATE", "CUSTOM"]
             if compress_config.get("mode", "TERMINATE") not in allowed_modes:
                 raise ValueError(f"Invalid compression mode. Allowed values are: {', '.join(allowed_modes)}")
 
@@ -161,10 +161,10 @@ Reply "TERMINATE" in the end when everything is done.
                 )
                 self.compress_config = False
 
-            if self.compress_config["mode"] == "CUSTOMIZED" and self.compress_config["compress_function"] is None:
-                raise ValueError("compress_function must be provided when mode is CUSTOMIZED.")
-            if self.compress_config["mode"] != "CUSTOMIZED" and self.compress_config["compress_function"] is not None:
-                print("Warning: compress_function is provided but mode is not 'CUSTOMIZED'.")
+            if self.compress_config["mode"] == "CUSTOM" and self.compress_config["compress_function"] is None:
+                raise ValueError("compress_function must be provided when mode is CUSTOM.")
+            if self.compress_config["mode"] != "CUSTOM" and self.compress_config["compress_function"] is not None:
+                print("Warning: compress_function is provided but mode is not 'CUSTOM'.")
 
         else:
             self.compress_config = False
@@ -216,7 +216,9 @@ Reply "TERMINATE" in the end when everything is done.
 
         return func_count + count_token(self._oai_system_message, self.llm_config["model"])
 
-    def _manage_history_on_token_limit(self, messages, token_used, max_token_allowed, model):
+    def _manage_history_on_token_limit(
+        self, messages: List[Dict], token_used: int, max_token_allowed: int, model: str
+    ) -> Tuple[bool, Union[List[Dict], None]]:
         """Manage the message history with different modes when token limit is reached.
         Args:
             messages (List[Dict]): the messages to be compressed.
@@ -226,7 +228,7 @@ Reply "TERMINATE" in the end when everything is done.
 
         Return:
             final (bool): whether to terminate the agent.
-            compressed_messages (List[Dict]): the compressed messages. None if no compression or compression failed.
+            compressed_messages (List[Dict] or None): the compressed messages. None if no compression or compression failed.
         """
         # 1. mode = "TERMINATE", terminate the agent if no token left.
         if self.compress_config["mode"] == "TERMINATE":
@@ -246,11 +248,11 @@ Reply "TERMINATE" in the end when everything is done.
         if token_used < self.compress_config["trigger_count"]:
             return False, None
 
-        # 2. mode = "COMPRESS" or mode = "CUSTOMIZED", compress the messages
+        # 2. mode = "COMPRESS" or mode = "CUSTOM", compress the messages
         copied_messages = copy.deepcopy(messages)
         if self.compress_config["mode"] == "COMPRESS":
             _, compress_messages = self.compress_messages(copied_messages)
-        elif self.compress_config["mode"] == "CUSTOMIZED":
+        elif self.compress_config["mode"] == "CUSTOM":
             _, compress_messages = self.compress_config["compress_function"](copied_messages)
         else:
             raise ValueError(f"Unknown compression mode: {self.compress_config['mode']}")
@@ -260,7 +262,7 @@ Reply "TERMINATE" in the end when everything is done.
                 compress_messages[i] = self._get_valid_oai_message(compress_messages[i])
         return False, compress_messages
 
-    def _get_valid_oai_message(self, message):
+    def _get_valid_oai_message(self, message: Dict) -> Dict:
         """Convert a message into a valid OpenAI ChatCompletion message."""
         oai_message = {k: message[k] for k in ("content", "function_call", "name", "context", "role") if k in message}
         if "content" not in oai_message:
@@ -275,7 +277,7 @@ Reply "TERMINATE" in the end when everything is done.
             oai_message["function_call"] = dict(oai_message["function_call"])
         return oai_message
 
-    def _print_compress_info(self, init_token_count, token_used, token_after_compression):
+    def _print_compress_info(self, init_token_count: int, token_used: int, token_after_compression: int):
         to_print = "Token Count (including {} tokens from system msg and function descriptions). Before compression : {} | After: {}".format(
             init_token_count,
             token_used,

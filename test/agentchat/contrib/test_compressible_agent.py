@@ -68,7 +68,7 @@ def test_mode_compress():
     sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
-def test_mode_customized():
+def test_mode_custom():
     try:
         assistant = CompressibleAgent(
             name="assistant",
@@ -78,7 +78,7 @@ def test_mode_customized():
                 "config_list": config_list,
             },
             compress_config={
-                "mode": "CUSTOMIZED",
+                "mode": "CUSTOM",
             },
         )
     except ValueError:
@@ -201,6 +201,6 @@ def test_mode_terminate():
 
 if __name__ == "__main__":
     test_mode_compress()
-    test_mode_customized()
+    test_mode_custom()
     test_compress_messsage()
     test_mode_terminate()

@@ -93,7 +93,7 @@ def test_hierarchy_flow_using_select_speaker(save=False):
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
+    skip or not sys.version.startswith("3.11"),
     reason="do not run if openai is not installed or py!=3.10",
 )
 def test_groupchat_compression(save=False):
