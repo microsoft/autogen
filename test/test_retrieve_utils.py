@@ -78,7 +78,7 @@ class TestRetrieveUtils:
 
         db_path = "/tmp/test_retrieve_utils"
         retriever = Retriever(path=db_path, name="mytestcollection", custom_text_split_function=custom_text_split_function, use_existing=False)
-        retriever.ingest_data( os.path.join(test_dir, "example.txt"))
+        retriever.ingest_data(os.path.join(test_dir, "example.txt"))
         results = retriever.query(["autogen"], top_k=1)
         assert (
             "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities"

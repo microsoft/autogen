@@ -36,7 +36,7 @@ class LanceDB(Retriever):
         else:
             logger.info(f"Creating new table {self.name}")
             schema = self._get_schema(self.embedding_function)
-            self.table = self.db.create_table(self.name, schema=schema)
+            self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
     
     def ingest_data(self, data_dir):
         """
@@ -44,7 +44,7 @@ class LanceDB(Retriever):
         Args:
             data_dir: path to the directory containing the text files
         """
-        if self.client is None:
+        if self.db is None:
             self.init_db()
         if self.custom_text_split_function is not None:
             chunks = split_files_to_chunks(
@@ -65,7 +65,7 @@ class LanceDB(Retriever):
 
 
     def query(self, texts: List[str], top_k: int = 10, filter: str = None):
-        if self.client is None:
+        if self.db is None:
             self.init_db()
         texts = [texts] if isinstance(texts, str) else texts
         results = defaultdict(list)
