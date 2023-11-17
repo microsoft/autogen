@@ -1,9 +1,7 @@
 from collections import defaultdict
-import openai
 import json
 import time
 import logging
-import threading
 
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
