@@ -113,6 +113,7 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
             for i in range(_n_agents):
                 print(f"{i+1}: {agents[i].name}")
             try_count = 0
+            # Assume the user will enter a valid number within 3 tries, otherwise use auto selection to avoid blocking.
             while try_count <= 3:
                 try_count += 1
                 if try_count >= 3:
