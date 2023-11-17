@@ -40,7 +40,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install -e. pytest
+          pip install -e. pytest mock
           pip uninstall -y openai
       - name: Install unstructured if not windows
         if: matrix.os != 'windows-2019'
