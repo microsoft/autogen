@@ -6,9 +6,6 @@ authors:
 tags: [LLM, GPT, evaluation, task utility]
 ---
 
-<script type="text/javascript" async
-  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
-</script>
 
 ![Fig.1: An verification framework](img/agenteval-CQ.png)
 
@@ -39,11 +36,11 @@ Let's first look into an overview of the suggested task taxonomy that a multi-ag
 
 In our `AgentEval` framework, we are currently focusing on tasks where _Success is clearly defined_. Next, we will introduce the suggeted framework.
 
-## `AgentEval` Framework
+## `AgentEval` framework
 
 Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. In this setup of pairwise comparison, humans can develop criteria to explain why they prefer the behavior of one agent over another. For instance, _'the first agent was faster in execution,'_ or _'the second agent moves more naturally.'_ So, the comparative nature led humans to come up with a list of criteria that helps to infer the utility of the task. With this idea in mind, we designed `AgentEval` (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess task *utility* for the multi-agent system. Namely:
 
-* The goal of `CriticAgent` is to suggest the list of criteria $(c_1,\dots, c_n)$, that can be used to assess task utility. This is an example of how `CriticAgent` is defined using `Autogen`:
+* The goal of `CriticAgent` is to suggest the list of criteria (Fig. 1), that can be used to assess task utility. This is an example of how `CriticAgent` is defined using `Autogen`:
 
 ```python
 critic = autogen.AssistantAgent(
@@ -57,7 +54,7 @@ critic = autogen.AssistantAgent(
 )
 ```
 
-* The goal of `QuantifierAgent` is to quantify each of the suggested criteria in the following way: $(c_1=a_1, \dots, c_n=a_n)$, providing us with an idea of the utility of this system for the given task -- $U(t_i)$. Here is an example of how it can be defined:
+* The goal of `QuantifierAgent` is to quantify each of the suggested criteria (Fig. 1), providing us with an idea of the utility of this system for the given task. Here is an example of how it can be defined:
 
 ```python
 quantifier = autogen.AssistantAgent(
@@ -73,7 +70,7 @@ quantifier = autogen.AssistantAgent(
 )
 ```
 
-## `AgentEval` Results based on math problems dataset
+## `AgentEval` results based on math problems dataset
 
  As an example, after running CriticAgent, we obtained the following criteria to verify the results for math problem dataset:
 
