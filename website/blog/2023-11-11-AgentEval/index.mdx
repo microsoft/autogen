@@ -54,6 +54,8 @@ critic = autogen.AssistantAgent(
 )
 ```
 
+Next, the critic is given successful and failed examples of the task execution; then, it is able to return a list of criteria (Fig. 1). For reference, use the [following notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb). 
+
 * The goal of `QuantifierAgent` is to quantify each of the suggested criteria (Fig. 1), providing us with an idea of the utility of this system for the given task. Here is an example of how it can be defined:
 
 ```python
