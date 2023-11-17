@@ -194,6 +194,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
+        self._search_string = ""  # the search string used in the current query
         # update the termination message function
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
@@ -327,7 +328,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 if not doc_contents:
                     for _tmp_retrieve_count in range(1, 5):
                         self._reset(intermediate=True)
-                        self.retrieve_docs(self.problem, self.n_results * (2 * _tmp_retrieve_count + 1))
+                        self.retrieve_docs(
+                            self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
+                        )
                         doc_contents = self._get_context(self._results)
                         if doc_contents:
                             break
@@ -336,7 +339,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 # docs in the retrieved doc results to the context.
                 for _tmp_retrieve_count in range(5):
                     self._reset(intermediate=True)
-                    self.retrieve_docs(_intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1))
+                    self.retrieve_docs(
+                        _intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
+                    )
                     self._get_context(self._results)
                     doc_contents = "\n".join(self._doc_contents)  # + "\n" + "\n".join(self._intermediate_answers)
                     if doc_contents:
@@ -393,6 +398,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             embedding_model=self._embedding_model,
             embedding_function=self._embedding_function,
         )
+        self._search_string = search_string
         self._results = results
         print("doc_ids: ", results["ids"])
 
