@@ -226,8 +226,10 @@ class OpenAIWrapper:
             cache_seed = extra_kwargs.get("cache_seed", 41)
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
-            with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
-                if cache_seed is not None:
+
+            # Try to load the response from cache
+            if cache_seed is not None:
+                with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
@@ -240,17 +242,18 @@ class OpenAIWrapper:
                             response.pass_filter = pass_filter
                             # TODO: add response.cost
                             return response
-                try:
-                    response = self._completions_create(client, params)
-                except APIError:
-                    logger.debug(f"config {i} failed", exc_info=1)
-                    if i == last:
-                        raise
-                else:
-                    if cache_seed is not None:
-                        # Cache the response
+            try:
+                response = self._completions_create(client, params)
+            except APIError:
+                logger.debug(f"config {i} failed", exc_info=1)
+                if i == last:
+                    raise
+            else:
+                if cache_seed is not None:
+                    # Cache the response
+                    with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                         cache.set(key, response)
-                    return response
+                return response
 
     def _completions_create(self, client, params):
         completions = client.chat.completions if "messages" in params else client.completions
