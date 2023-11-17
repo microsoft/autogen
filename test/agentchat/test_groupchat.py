@@ -161,7 +161,7 @@ def _test_selection_method(method: str):
 
 
 def test_speaker_selection_method():
-    for method in ["auto", "round_robin", "random", "manual", "wrong"]:
+    for method in ["auto", "round_robin", "random", "manual", "wrong", "RounD_roBin"]:
         _test_selection_method(method)
 
 

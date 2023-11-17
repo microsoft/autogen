@@ -107,7 +107,7 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
         agents = agents if self.allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
-        if self.speaker_selection_method == "manual":
+        if self.speaker_selection_method.lower() == "manual":
             print("Please select the next speaker from the following list:")
             _n_agents = len(agents)
             for i in range(_n_agents):
@@ -129,9 +129,9 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
                         raise ValueError
                 except ValueError:
                     print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
-        elif self.speaker_selection_method == "round_robin":
+        elif self.speaker_selection_method.lower() == "round_robin":
             return self.next_agent(last_speaker, agents)
-        elif self.speaker_selection_method == "random":
+        elif self.speaker_selection_method.lower() == "random":
             return random.choice(agents)
         else:
             pass
