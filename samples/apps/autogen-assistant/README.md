@@ -11,7 +11,20 @@ Project Structure:
 
 ## Getting Started
 
-AutoGen requires access to an LLM. Please see the [AutoGen docs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints) on how to configure access to your LLM provider. In this sample, We recommend setting up your `OPENAI_API_KEY` environment variable and then specifying the exact model names to be used in the `llm_config` that is passed to each agent specification. See the `get_default_agent_config()` method in `utils.py` to see an example of setting up `llm_config`.
+AutoGen requires access to an LLM. Please see the [AutoGen docs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints) on how to configure access to your LLM provider. In this sample, We recommend setting up your `OPENAI_API_KEY` or `AZURE_OPENAI_API_KEY` environment variable and then specifying the exact model parameters to be used in the `llm_config` that is passed to each agent specification. See the `get_default_agent_config()` method in `utils.py` to see an example of setting up `llm_config`. The example below shows how to configure access to an Azure OPENAI LLM.
+
+```python
+llm_config = LLMConfig(
+        config_list=[{
+                "model": "gpt-4",
+                "api_key": "<azure_api_key>",
+                "api_base": "<azure api base>",
+                "api_type": "azure",
+                "api_version": "2023-06-01-preview"
+        }],
+        temperature=0,
+    )
+```
 
 ```bash
 export OPENAI_API_KEY=<your_api_key>
