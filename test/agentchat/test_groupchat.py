@@ -165,6 +165,69 @@ def test_speaker_selection_method():
         _test_selection_method(method)
 
 
+def _test_n_agents_less_than_3(method):
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    # test two agents
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        max_round=6,
+        speaker_selection_method=method,
+        allow_repeat_speaker=True if method == "random" else False,
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+    assert len(agent1.chat_messages[group_chat_manager]) == 6
+    assert len(groupchat.messages) == 6
+    if method != "random" or method.lower() == "round_robin":
+        assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
+            "This is alice speaking.",
+            "This is bob speaking.",
+        ] * 3
+
+    # test one agent
+    groupchat = autogen.GroupChat(
+        agents=[agent1],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker=False,
+    )
+    with pytest.raises(ValueError):
+        group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+
+    # test zero agent
+    groupchat = autogen.GroupChat(
+        agents=[],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker=False,
+    )
+    with pytest.raises(ValueError):
+        group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+
+
+def test_n_agents_less_than_3():
+    for method in ["auto", "round_robin", "random", "RounD_roBin"]:
+        _test_n_agents_less_than_3(method)
+
+
 def test_plugin():
     # Give another Agent class ability to manage group chat
     agent1 = autogen.ConversableAgent(
@@ -201,3 +264,4 @@ if __name__ == "__main__":
     # test_chat_manager()
     # test_plugin()
     test_speaker_selection_method()
+    test_n_agents_less_than_3()
