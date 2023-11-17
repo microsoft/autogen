@@ -1,3 +1,6 @@
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
 
 ---
 title: How to Assess Utility of LLM-powered Applications?
@@ -28,20 +31,19 @@ tags: [LLM, GPT, evaluation, task utility]
 <p align="center"><em>Fig. 2 provides  an overview of the tasks taxonomy</em></p>
 
 
-Let's first look into an overview of the suggested task taxonomy that a multi-agent system can be designed for. In general, the tasks can be split into two types, namely:
-* _Assistive Tasks_ - refer to instances when users utilize a system in an assistive manner, seeking suggestions rather than expecting the system to solve the task. For example, a user might request the system to generate an email. In many cases, this generated content serves as a template that the user will later edit. However, defining success precisely for such tasks is relatively complex.
-* _Executable Tasks_ -refer to instances where we can clearly define whether a system solved the task or not. Consider agents that assist in accomplishing household tasks, where the definition of success is clear and measurable. This category can be further divided into two separate subcategories:
-   * _The optimal solution exits_ -  there are tasks where only one solution is possible. For example, if you ask your assistant to turn on the light, the success of this task is clearly defined, and there is only one way to accomplish it.
-   * _Multiple solutions exist_ - "Increasingly, we observe situations where multiple trajectories of agent behavior can lead to either success or failure. In such cases, it is crucial to differentiate between the various successful and unsuccessful trajectories. For example, when you ask the agent to suggest you a food recipe or tell you a joke.
+Let's first look into an overview of the suggested task taxonomy that a multi-agent system can be designed for. In general, the tasks can be split into two types, where:
+* _Success is not clearly defined_ - refer to instances when users utilize a system in an assistive manner, seeking suggestions rather than expecting the system to solve the task. For example, a user might request the system to generate an email. In many cases, this generated content serves as a template that the user will later edit. However, defining success precisely for such tasks is relatively complex.
+* _Success is clearly defined_ - refer to instances where we can clearly define whether a system solved the task or not. Consider agents that assist in accomplishing household tasks, where the definition of success is clear and measurable. This category can be further divided into two separate subcategories:
+   * _The optimal solution exits_ - these are tasks where only one solution is possible. For example, if you ask your assistant to turn on the light, the success of this task is clearly defined, and there is only one way to accomplish it.
+   * _Multiple solutions exist_ - increasingly, we observe situations where multiple trajectories of agent behavior can lead to either success or failure. In such cases, it is crucial to differentiate between the various successful and unsuccessful trajectories. For example, when you ask the agent to suggest you a food recipe or tell you a joke.
 
-In our AgentEval framework, we are currently focusing on  _Executable Tasks_.
+In our `AgentEval` framework, we are currently focusing on tasks where _Success is clearly defined_. Next, we will introduce the suggeted framework.
 
-## AgentEval Framework
+## `AgentEval` Framework
 
-Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. Interestingly, according to our earlier work, humans can develop criteria to explain why they prefer one agent over another in the setup of pair-wise comparison. For example, 'the first agent was faster in execution,' or 'the second agent moves more naturally.' So, the comparative nature led humans to come up with a list of criteria that helps to infer the utility of the task. With this idea in mind, we designed AgentEval (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess the task *utility* for the multi-agent system. Namely:
+Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. In this setup of pairwise comparison, humans can develop criteria to explain why they prefer the behavior of one agent over another. For instance, _'the first agent was faster in execution,'_ or _'the second agent moves more naturally.'_ So, the comparative nature led humans to come up with a list of criteria that helps to infer the utility of the task. With this idea in mind, we designed `AgentEval` (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess task *utility* for the multi-agent system. Namely:
 
 * The goal of `CriticAgent` is to suggest the list of criteria $(c_1,\dots, c_n)$, that can be used to assess task utility. This is an example of how `CriticAgent` is defined using `Autogen`:
-
 
 ```python
 critic = autogen.AssistantAgent(
