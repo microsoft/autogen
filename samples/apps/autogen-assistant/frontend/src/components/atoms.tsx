@@ -319,7 +319,7 @@ export const MarkdownView = ({
     const [codeVisible, setCodeVisible] = React.useState(showCode);
     return (
       <div>
-        <div className="  flex  ">
+        <div className=" flex  ">
           <div
             role="button"
             onClick={() => {
@@ -381,10 +381,10 @@ export const MarkdownView = ({
 
   return (
     <div
-      className={` w-full   chatbox prose dark:prose-invert text-primary rounded p-2 ${className}`}
+      className={` w-full   chatbox prose dark:prose-invert text-primary rounded   ${className}`}
     >
       <ReactMarkdown
-        className="  w-full"
+        className="   w-full"
         remarkPlugins={[remarkGfm]}
         components={{
           code({ node, inline, className, children, ...props }: CodeProps) {

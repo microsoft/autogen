@@ -49,7 +49,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
 
   const messages = (metadata.messages || []).map((message: any, i: number) => {
     return (
-      <div className="border-b py-2 border-dashed" key={"messagerow" + i}>
+      <div className="border-b  border-dashed" key={"messagerow" + i}>
         <MarkdownView data={message?.content} className="text-sm" />
       </div>
     );
@@ -69,7 +69,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
           >
             <div
               // style={{ maxHeight: "300px" }}
-              className="mt-2  "
+              className=" "
             >
               {messages}
             </div>

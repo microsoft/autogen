@@ -285,8 +285,7 @@ def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> FlowConf
     Get a default agent flow config .
     """
 
-    llm_config = LLMConfig(
-        seed=42,
+    llm_config = LLMConfig( 
         config_list=[{"model": "gpt-4"}],
         temperature=0,
     )

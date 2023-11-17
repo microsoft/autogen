@@ -267,7 +267,7 @@ const ChatBox = ({
               </div>
             )}
             {message.metadata && (
-              <div>
+              <div className="">
                 <MetaDataView metadata={message.metadata} />
               </div>
             )}
