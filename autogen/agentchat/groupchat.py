@@ -66,8 +66,11 @@ class GroupChat:
 
     def select_speaker_msg(self, agents: List[Agent]):
         """Return the message for selecting the next speaker."""
-        return f"""You are in a role play game. Read the following conversation.
-Then select the next role from [{[agent.name for agent in agents]}] to play. Only return the role."""
+        return f"""You are in a role play game. The following roles are available:
+{self._participant_roles(agents)}.
+
+Read the following conversation.
+Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
     def manual_select_speaker(self, agents: List[Agent]) -> Agent:
         """Manually select the next speaker."""
@@ -169,19 +172,24 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
         mentions = self._mentioned_agents(name, agents)
         if len(mentions) == 1:
             name = next(iter(mentions))
+        else:
+            logger.warning(
+                f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
+            )
 
         # Return the result
         try:
             return self.agent_by_name(name)
         except ValueError:
-            logger.warning(
-                f"GroupChat select_speaker failed to resolve the next speaker's name. Speaker selection will default to the next speaker in the list. This is because the speaker selection OAI call returned:\n{name}"
-            )
             return self.next_agent(last_speaker, agents)
 
-    def _participant_roles(self):
+    def _participant_roles(self, agents: List[Agent] = None) -> str:
+        # Default to all agents registered
+        if agents is None:
+            agents = self.agents
+
         roles = []
-        for agent in self.agents:
+        for agent in agents:
             if agent.system_message.strip() == "":
                 logger.warning(
                     f"The agent '{agent.name}' has an empty system_message, and may not work well with GroupChat."
