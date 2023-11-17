@@ -1,18 +1,21 @@
 from abc import ABC, abstractmethod
 from typing import List, Union, Callable, Any
 
+
 class Retriever(ABC):
-    def __init__(self, path="./db",
-                 name="vectorstore",
-                 embedding_model_name="all-MiniLM-L6-v2", 
-                 embedding_function=None, 
-                 max_tokens: int = 4000,
-                 chunk_mode: str = "multi_lines",
-                 must_break_at_empty_line: bool = True,
-                 custom_text_split_function: Callable = None,
-                 use_existing=False,
-                 client=None
-                ):
+    def __init__(
+        self,
+        path="./db",
+        name="vectorstore",
+        embedding_model_name="all-MiniLM-L6-v2",
+        embedding_function=None,
+        max_tokens: int = 4000,
+        chunk_mode: str = "multi_lines",
+        must_break_at_empty_line: bool = True,
+        custom_text_split_function: Callable = None,
+        use_existing=False,
+        client=None,
+    ):
         """
         Args:
             path: path to the folder where the database is stored
@@ -37,7 +40,6 @@ class Retriever(ABC):
 
         self.init_db()
 
-
     @abstractmethod
     def ingest_data(self, data_dir):
         """
@@ -46,9 +48,9 @@ class Retriever(ABC):
             data_dir: path to the directory containing the text files
         """
         pass
-    
+
     @abstractmethod
-    def query(self, texts: List[str], top_k: int = 10, filter: Any=None):
+    def query(self, texts: List[str], top_k: int = 10, filter: Any = None):
         """
         Query the database.
         Args:
@@ -56,7 +58,7 @@ class Retriever(ABC):
             top_k: number of results to return
         """
         pass
-    
+
     @abstractmethod
     def init_db(self):
         """

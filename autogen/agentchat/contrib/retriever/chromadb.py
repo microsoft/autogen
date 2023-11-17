@@ -1,13 +1,10 @@
 from typing import List
 from .base import Retriever
-from .retrieve_utils import (
-        split_text_to_chunks,
-        extract_text_from_pdf,
-        split_files_to_chunks,
-        get_files_from_dir
-)
+from .retrieve_utils import split_text_to_chunks, extract_text_from_pdf, split_files_to_chunks, get_files_from_dir
+
 try:
     import chromadb
+
     if chromadb.__version__ < "0.4.15":
         from chromadb.api import API
     else:
@@ -16,6 +13,7 @@ try:
     import chromadb.utils.embedding_functions as ef
 except ImportError:
     raise ImportError("Please install chromadb: pip install chromadb")
+
 
 class ChromaDB(Retriever):
     def init_db(self):
@@ -35,7 +33,7 @@ class ChromaDB(Retriever):
             # https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
             metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
         )
-    
+
     def ingest_data(self, data_dir):
         """
         Create a vector database from a directory of files.
@@ -52,14 +50,14 @@ class ChromaDB(Retriever):
             chunks = split_files_to_chunks(
                 get_files_from_dir(data_dir), self.max_tokens, self.chunk_mode, self.must_break_at_empty_line
             )
-        print(f"Found {len(chunks)} chunks.") # 
+        print(f"Found {len(chunks)} chunks.")  #
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
         for i in range(0, len(chunks), min(40000, len(chunks))):
             end_idx = i + min(40000, len(chunks) - i)
             self.collection.upsert(
                 documents=chunks[i:end_idx],
                 ids=[f"doc_{j}" for j in range(i, end_idx)],  # unique for each doc
-            )    
+            )
 
     def query(self, texts: List[str], top_k: int = 10, filter: str = None):
         if self.client is None:
@@ -67,7 +65,9 @@ class ChromaDB(Retriever):
         # the collection's embedding function is always the default one, but we want to use the one we used to create the
         # collection. So we compute the embeddings ourselves and pass it to the query function.
         embedding_function = (
-            ef.SentenceTransformerEmbeddingFunction(self.embedding_model_name) if self.embedding_function is None else self.embedding_function
+            ef.SentenceTransformerEmbeddingFunction(self.embedding_model_name)
+            if self.embedding_function is None
+            else self.embedding_function
         )
         query_embeddings = embedding_function(texts)
         # Query/search n most similar results. You can also .get by id

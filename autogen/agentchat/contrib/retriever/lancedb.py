@@ -1,6 +1,7 @@
 from typing import Callable, List
 from collections import defaultdict
 from .base import Retriever
+
 try:
     import lancedb
     from lancedb.embeddings import get_registry, EmbeddingFunction, with_embeddings
@@ -12,16 +13,12 @@ except ImportError:
 from typing import List
 from .base import Retriever
 from autogen import logger
-from .retrieve_utils import (
-        split_text_to_chunks,
-        extract_text_from_pdf,
-        split_files_to_chunks,
-        get_files_from_dir
-)
+from .retrieve_utils import split_text_to_chunks, extract_text_from_pdf, split_files_to_chunks, get_files_from_dir
 
 
 class LanceDB(Retriever):
     db = None
+
     def init_db(self):
         if self.db is None:
             self.db = lancedb.connect(self.path)
@@ -37,7 +34,7 @@ class LanceDB(Retriever):
             logger.info(f"Creating new table {self.name}")
             schema = self._get_schema(self.embedding_function)
             self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
-    
+
     def ingest_data(self, data_dir):
         """
         Create a vector database from a directory of files.
@@ -54,15 +51,14 @@ class LanceDB(Retriever):
             chunks = split_files_to_chunks(
                 get_files_from_dir(data_dir), self.max_tokens, self.chunk_mode, self.must_break_at_empty_line
             )
-        print(f"Found {len(chunks)} chunks.") # 
-        data = [ {"documents": docs, "ids": idx } for idx, docs in enumerate(chunks) ]
-        if isinstance(self.embedding_function, EmbeddingFunction): # this means we are using embedding API
+        print(f"Found {len(chunks)} chunks.")  #
+        data = [{"documents": docs, "ids": idx} for idx, docs in enumerate(chunks)]
+        if isinstance(self.embedding_function, EmbeddingFunction):  # this means we are using embedding API
             self.table.add(data)
         elif isinstance(self.embedding_function, Callable):
             pa_table = pa.Table.from_pylist(data)
             data = with_embeddings(self.embedding_function, pa_table)
             self.table.add(data)
-
 
     def query(self, texts: List[str], top_k: int = 10, filter: str = None):
         if self.db is None:
@@ -78,11 +74,12 @@ class LanceDB(Retriever):
             result = result.limit(top_k).to_arrow().to_pydict()
             for k, v in result.items():
                 results[k].append(v)
-    
+
         return results
 
     def _get_schema(self, embedding_function):
         if isinstance(embedding_function, EmbeddingFunction):
+
             class Schema(LanceModel):
                 vector: Vector(embedding_function.ndims()) = embedding_function.VectorField()
                 documents: str = embedding_function.SourceField()
@@ -90,7 +87,7 @@ class LanceDB(Retriever):
 
             return Schema
         elif isinstance(embedding_function, Callable):
-            dim = embedding_function("test").shape[0] # TODO: check this
+            dim = embedding_function("test").shape[0]  # TODO: check this
             schema = pa.schema(
                 [
                     pa.field("Vector", pa.list_(pa.float32(), dim)),
@@ -100,8 +97,4 @@ class LanceDB(Retriever):
             )
             return schema
         else:
-            raise ValueError(
-                "embedding_function should be a callable or an EmbeddingFunction instance"
-            )
-    
-
+            raise ValueError("embedding_function should be a callable or an EmbeddingFunction instance")

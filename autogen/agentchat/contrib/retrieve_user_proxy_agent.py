@@ -341,7 +341,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         """Retrieve docs based on the given problem and assign the results to the class property `_results`.
 
         Type of the results: Dict[str, List[List[Any]]], should have keys "ids" and "documents", "ids" for the ids of
-        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional. 
+        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional.
             ids: List[string]
             documents: List[List[string]]
 
@@ -354,16 +354,16 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             print("Trying to create collection.")
             retriever_class = get_retriever(self._retriever_type)
             self.retriever = retriever_class(
-                 name=self._collection_name,
-                 embedding_model_name=self._embedding_model, 
-                 embedding_function=self._embedding_function, 
-                 max_tokens= self._chunk_token_size,
-                 chunk_mode = self._chunk_mode,
-                 must_break_at_empty_line = self._must_break_at_empty_line,
-                 custom_text_split_function = self.custom_text_split_function,
-                 use_existing=not self._get_or_create,
-                 client=self._client
-                 )
+                name=self._collection_name,
+                embedding_model_name=self._embedding_model,
+                embedding_function=self._embedding_function,
+                max_tokens=self._chunk_token_size,
+                chunk_mode=self._chunk_mode,
+                must_break_at_empty_line=self._must_break_at_empty_line,
+                custom_text_split_function=self.custom_text_split_function,
+                use_existing=not self._get_or_create,
+                client=self._client,
+            )
             self._collection = True
             self._get_or_create = False
         self.retriever.ingest_data(self._docs_path)
