@@ -169,7 +169,7 @@ def split_files_to_chunks(
 
 
 def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
-    """Return a list of all the files in a given directory."""
+    """Return a list of all the files in a given directory, a url, a file path or a list of them."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
     types = [t[1:].lower() if t.startswith(".") else t.lower() for t in set(types)]
@@ -183,6 +183,11 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
                 files.append(item)
             elif is_url(item):
                 files.append(get_file_from_url(item))
+            elif os.path.exists(item):
+                try:
+                    files.extend(get_files_from_dir(item, types, recursive))
+                except ValueError:
+                    logger.warning(f"Directory {item} does not exist. Skipping.")
             else:
                 logger.warning(f"File {item} does not exist. Skipping.")
         return files
@@ -232,7 +237,7 @@ def is_url(string: str):
 
 
 def create_vector_db_from_dir(
-    dir_path: str,
+    dir_path: Union[str, List[str]],
     max_tokens: int = 4000,
     client: API = None,
     db_path: str = "/tmp/chromadb.db",
@@ -251,7 +256,7 @@ def create_vector_db_from_dir(
         you prepared your own vector db.
 
     Args:
-        dir_path (str): the path to the directory, file or url.
+        dir_path (Union[str, List[str]]): the path to the directory, file, url or a list of them.
         max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
         client (Optional, API): the chromadb client. Default is None.
         db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".

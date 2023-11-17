@@ -97,8 +97,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
                 - client (Optional, chromadb.Client): the chromadb client. If key not provided, a default client `chromadb.Client()`
                     will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
-                - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
-                    or the url to a single file. Default is None, which works only if the collection is already created.
+                - docs_path (Optional, Union[str, List[str]]): the path to the docs directory. It can also be the path to a single file,
+                    the url to a single file or a list of directories, files and urls. Default is None, which works only if the collection is already created.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
