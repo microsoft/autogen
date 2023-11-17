@@ -1,5 +1,5 @@
 from .conversable_agent import ConversableAgent
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, Literal, Optional, Union
 
 
 class AssistantAgent(ConversableAgent):
@@ -30,11 +30,11 @@ Reply "TERMINATE" in the end when everything is done.
         self,
         name: str,
         system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
-        llm_config: Optional[Union[Dict, bool]] = None,
+        llm_config: Optional[Union[Dict, Literal[False]]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
-        code_execution_config: Optional[Union[Dict, bool]] = False,
+        code_execution_config: Optional[Union[Dict, Literal[False]]] = False,
         **kwargs,
     ):
         """

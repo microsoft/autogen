@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+import logging
 import sys
 import random
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
+
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-import logging
 
 logger = logging.getLogger(__name__)
 
