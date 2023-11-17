@@ -2,6 +2,7 @@ import pytest
 import os
 import sys
 import autogen
+from autogen import OpenAIWrapper
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -12,6 +13,10 @@ try:
     skip_test = False
 except ImportError:
     skip_test = True
+
+config_list = autogen.config_list_from_json(
+    OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+)
 
 
 def ask_ossinsight(question):
@@ -38,7 +43,6 @@ def test_gpt_assistant_chat():
         "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the realted and structured data.",
     }
 
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     analyst = GPTAssistantAgent(
         name="Open_Source_Project_Analyst",
         llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": config_list},
@@ -73,7 +77,6 @@ def test_get_assistant_instructions():
     and assert that the retrieved instructions match the set instructions.
     """
 
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     assistant = GPTAssistantAgent(
         "assistant",
         instructions="This is a test",
@@ -107,7 +110,6 @@ def test_gpt_assistant_instructions_overwrite():
     instructions1 = "This is a test #1"
     instructions2 = "This is a test #2"
 
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     assistant = GPTAssistantAgent(
         "assistant",
         instructions=instructions1,
@@ -144,7 +146,6 @@ def test_gpt_assistant_existing_no_instructions():
     """
     instructions = "This is a test #1"
 
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     assistant = GPTAssistantAgent(
         "assistant",
         instructions=instructions,
@@ -169,8 +170,42 @@ def test_gpt_assistant_existing_no_instructions():
     assert instruction_match is True
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_get_assistant_files():
+    """
+    Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
+    and assert that the retrieved instructions match the set instructions.
+    """
+    current_file_path = os.path.abspath(__file__)
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+
+    assistant = GPTAssistantAgent(
+        "assistant",
+        instructions="This is a test",
+        llm_config={
+            "config_list": config_list,
+            "tools": [{"type": "retrieval"}],
+            "file_ids": [file.id],
+        },
+    )
+
+    files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
+    retrived_file_ids = [fild.id for fild in files]
+    expected_file_id = file.id
+
+    assistant.delete_assistant()
+    openai_client.files.delete(file.id)
+
+    assert expected_file_id in retrived_file_ids
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
     test_gpt_assistant_instructions_overwrite()
     test_gpt_assistant_existing_no_instructions()
+    test_get_assistant_files()

@@ -25,12 +25,12 @@ try:
     import diskcache
 
     ERROR = None
-except ImportError:
-    ERROR = ImportError(
-        "(Deprecated) The autogen.Completion class requires openai<1 and diskcache. "
-        "Please switch to autogen.OpenAIWrapper for openai>=1."
-    )
+    assert openai.__version__ < "1"
+except (AssertionError, ImportError):
     openai_Completion = object
+    # The autogen.Completion class requires openai<1
+    ERROR = AssertionError("(Deprecated) The autogen.Completion class requires openai<1 and diskcache. ")
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
