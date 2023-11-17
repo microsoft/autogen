@@ -1,0 +1,167 @@
+<mxfile host="65bd71144e">
+    <diagram id="PrQ4sstvGAnfPO9DAXyB" name="Page-1">
+        <mxGraphModel dx="3685" dy="1163" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="55" value="" style="whiteSpace=wrap;html=1;fontSize=24;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="143" y="1371" width="416" height="171" as="geometry"/>
+                </mxCell>
+                <mxCell id="54" value="" style="whiteSpace=wrap;html=1;fontSize=24;fillColor=#B3FF66;" vertex="1" parent="1">
+                    <mxGeometry x="855" y="2" width="1005" height="879" as="geometry"/>
+                </mxCell>
+                <mxCell id="53" value="" style="whiteSpace=wrap;html=1;fontSize=24;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="-1478" y="114" width="1005" height="879" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="1" source="2" target="3">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="1" source="2" target="5">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;GPTAssistant &amp;amp; UserProxy Agent&lt;br&gt;Building Block of Agents Explained&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="40" y="-378" width="572" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="30" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="1" source="24" target="23">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" style="edgeStyle=none;html=1;fontSize=36;fillColor=#FF6666;shape=flexArrow;" edge="1" parent="1" source="23" target="26">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="32" style="edgeStyle=none;html=1;fontSize=36;shape=flexArrow;fillColor=#FF3333;" edge="1" parent="1" source="23" target="28">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="38" value="" style="group" vertex="1" connectable="0" parent="1">
+                    <mxGeometry x="1016" y="310" width="814" height="255" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;AutoGen UserProxy Agent&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="38">
+                    <mxGeometry x="191" width="440" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;send()&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="38">
+                    <mxGeometry y="200" width="120" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="38" source="5" target="24">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;recieve()&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="38">
+                    <mxGeometry x="253" y="200" width="158" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="27" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="38" source="5" target="26">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;process_message()&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="38">
+                    <mxGeometry x="480" y="200" width="334" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="29" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="38" source="5" target="28">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="39" value="" style="group" vertex="1" connectable="0" parent="1">
+                    <mxGeometry x="-1415" y="343" width="843" height="593" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="" style="whiteSpace=wrap;html=1;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry x="75" y="209" width="768" height="135" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;OpenAI Assistant&lt;br&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry x="415" width="294" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="Create&amp;nbsp;&lt;br&gt;Thread" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry x="306" y="221" width="136" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="39" source="3" target="11">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="411" y="162" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="15" value="Create&amp;nbsp;&lt;br&gt;Assistant" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry x="93" y="221" width="164" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="39" source="3" target="15">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="Attach&lt;br&gt;Message" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry x="478" y="221" width="164" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="39" source="3" target="16">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" value="Run&lt;br&gt;Thread" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry x="694" y="221" width="132" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" style="edgeStyle=none;html=1;fontSize=36;" edge="1" parent="39" source="3" target="19">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="37" value="All created&amp;nbsp;&lt;br&gt;using OpenAI Client" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="39">
+                    <mxGeometry y="495" width="338" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="36" value="" style="edgeStyle=none;shape=flexArrow;html=1;fontSize=36;fillColor=#6666FF;" edge="1" parent="39" source="21" target="37">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="258.57581227436776" y="486" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="40" value="" style="group" vertex="1" connectable="0" parent="1">
+                    <mxGeometry x="-46" y="1403" width="808" height="614" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="Automated in single&amp;nbsp;&lt;br&gt;Object. GPTAssistant" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="40">
+                    <mxGeometry x="215" width="359" height="98" as="geometry"/>
+                </mxCell>
+                <mxCell id="33" value="- Acts as a wrapper around the Assistant Creation&lt;br&gt;workflow&lt;br&gt;&lt;br&gt;- Provides interface to send and recieve the&amp;nbsp;&lt;br&gt;messages to OpenAI Assistants" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="40">
+                    <mxGeometry y="386" width="808" height="228" as="geometry"/>
+                </mxCell>
+                <mxCell id="34" value="" style="edgeStyle=none;shape=flexArrow;html=1;fontSize=36;fillColor=#99FF33;" edge="1" parent="40" source="23" target="33">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="46" style="edgeStyle=none;shape=flexArrow;html=1;fontSize=36;fillColor=#6666FF;" edge="1" parent="1" source="41" target="45">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="41" value="Objective of the Series of Video&lt;br&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="1">
+                    <mxGeometry x="3521" y="-372" width="522" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="42" value="What is Autogen?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="1">
+                    <mxGeometry x="3643" y="123" width="300" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="43" value="Objective of this Video" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="1">
+                    <mxGeometry x="3598" y="533" width="376" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="50" value="" style="edgeStyle=none;shape=flexArrow;html=1;fontSize=18;fillColor=#6666FF;" edge="1" parent="1" source="44" target="49">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="52" style="edgeStyle=none;shape=flexArrow;html=1;entryX=0.43;entryY=0.045;entryDx=0;entryDy=0;entryPerimeter=0;fontSize=18;fillColor=#6666FF;" edge="1" parent="1" source="44" target="51">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="44" value="Demo &amp;amp; Walkthrough" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="1">
+                    <mxGeometry x="3668" y="961" width="359" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="45" value="Deep Dive into Autogen &amp;amp;&amp;nbsp; LLM Assistants" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="1">
+                    <mxGeometry x="3434" y="-237" width="692" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="48" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;presented by Insight Builder&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=36;" vertex="1" parent="1">
+                    <mxGeometry x="503" y="-306" width="241" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="49" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Walk Through of&amp;nbsp;&lt;br&gt;Assistant Playground&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=18;" vertex="1" parent="1">
+                    <mxGeometry x="3421" y="1185" width="243" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="51" value="&lt;font style=&quot;font-size: 24px;&quot;&gt;Walk Through of&amp;nbsp;&lt;br&gt;Single Agent Notebook&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=#66FF66;fontSize=18;" vertex="1" parent="1">
+                    <mxGeometry x="4015" y="1174" width="262" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="56" value="" style="edgeStyle=none;html=1;fontSize=36;endArrow=none;" edge="1" parent="1" source="21" target="55">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="271.71861861861817" y="1403" as="targetPoint"/>
+                        <mxPoint x="-850.22972972973" y="687" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="57" value="What are Assistants?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="4329" y="16" width="243" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="58" value="How they are linked to Autogen?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="4298" y="154" width="364" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="59" value="How to develop with Autogen?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="4298" y="233" width="341" height="41" as="geometry"/>
+                </mxCell>
+                <mxCell id="60" value="What are Agents?" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=24;" vertex="1" parent="1">
+                    <mxGeometry x="4340" y="82" width="209" height="41" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
