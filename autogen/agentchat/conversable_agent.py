@@ -1055,7 +1055,7 @@ class ConversableAgent(Agent):
                     filename = None
                 exitcode, logs, image = self.run_code(
                     code,
-                    lang="python",
+                    lang=supported_langs[lang],
                     filename=filename,
                     **self._code_execution_config,
                 )
