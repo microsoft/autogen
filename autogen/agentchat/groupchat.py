@@ -78,11 +78,16 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
             )
 
         agents = self.agents
-        # Warn if GroupChat is underpopulated
         n_agents = len(agents)
-        if n_agents < 3:
+        # Warn if GroupChat is underpopulated
+        if n_agents < 2:
+            raise ValueError(
+                f"GroupChat is underpopulated with {n_agents} agents. " "Please add more agents to the GroupChat."
+            )
+        elif n_agents == 2 and self.speaker_selection_method.lower() != "round_robin" and self.allow_repeat_speaker:
             logger.warning(
-                f"GroupChat is underpopulated with {n_agents} agents. Direct communication would be more efficient."
+                f"GroupChat is underpopulated with {n_agents} agents. "
+                "It is recommended to set speaker_selection_method to 'round_robin' and allow_repeat_speaker to False."
             )
 
         if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
@@ -134,8 +139,6 @@ Then select the next role from [{[agent.name for agent in agents]}] to play. Onl
             return self.next_agent(last_speaker, agents)
         elif self.speaker_selection_method.lower() == "random":
             return random.choice(agents)
-        else:
-            pass
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
