@@ -66,11 +66,8 @@ class GroupChat:
 
     def select_speaker_msg(self, agents: List[Agent]):
         """Return the message for selecting the next speaker."""
-        return f"""You are in a role play game. The following roles are available:
-{self._participant_roles()}.
-
-Read the following conversation.
-Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+        return f"""You are in a role play game. Read the following conversation.
+Then select the next role from [{[agent.name for agent in agents]}] to play. Only return the role."""
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
