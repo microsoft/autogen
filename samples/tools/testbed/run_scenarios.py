@@ -13,7 +13,7 @@ from autogen import config_list_from_json
 IS_WIN32 = sys.platform == "win32"
 
 # Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
-INCLUDES_DIR = "includes"
+GLOBAL_INCLUDES_DIR = "includes"
 
 
 def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, results_dir="results"):
@@ -61,10 +61,7 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
             for line in fh:
                 instance = json.loads(line)
 
-                scenario_name + "_" + instance["id"]
-
                 # Create a folder to store the results
-
                 # Results base
                 if not os.path.isdir(results_dir):
                     os.mkdir(results_dir)
@@ -74,7 +71,7 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                 if not os.path.isdir(results_scenario):
                     os.mkdir(results_scenario)
 
-                # Results fot the instance
+                # Results for the instance
                 results_instance = os.path.join(results_scenario, instance["id"])
                 if not os.path.isdir(results_instance):
                     os.mkdir(results_instance)
@@ -89,22 +86,16 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                         continue
                     print(f"Running scenario {results_repetition}")
 
-                    # Create the folder, and copy the script to a standard name
-                    os.mkdir(results_repetition)
-                    expand_scenario(scenario_dir, instance, os.path.join(results_repetition, "scenario.py"))
-
-                    # Also copy the contents of INCLUDES_DIR
-                    for item in os.listdir(INCLUDES_DIR):
-                        if item.endswith(".example"):
-                            continue
-                        item_path = os.path.join(INCLUDES_DIR, item)
-                        if os.path.isfile(item_path):
-                            shutil.copyfile(item_path, os.path.join(results_repetition, item))
+                    # Copy the contents of GLOBAL_INCLUDES_DIR to the result_repetition dir
+                    shutil.copytree(GLOBAL_INCLUDES_DIR, results_repetition, ignore=shutil.ignore_patterns("*.example"))
 
                     # Append the config list to the ENV file
                     config_list_json = json.dumps(config_list)
                     with open(os.path.join(results_repetition, "ENV"), "at") as fh:
                         fh.write(f"export OAI_CONFIG_LIST='{config_list_json}'\n")
+
+                    # Expand the scenario
+                    expand_scenario(scenario_dir, instance, results_repetition)
 
                     # Run the scenario
                     if is_native:
@@ -113,14 +104,40 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                         run_scenario_in_docker(results_repetition, requirements)
 
 
-def expand_scenario(scenario_dir, scenario, output_file):
-    template_fh = open(os.path.join(scenario_dir, scenario["template"]), "rt")
+def expand_scenario(scenario_dir, scenario, output_dir):
+    """
+    Expand a scenario into a folder.
+    """
+
+    template_path = os.path.join(scenario_dir, scenario["template"])
+
+    # Either key works for finding the substiturions list. "values" may be deprecated in the future
+    substitutions = scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
+
+    # If the template is a folder, copy the tree, and treat the substitutions dictionary
+    # as nested [file]->[find_str]->[replace_str].
+    if os.path.isdir(template_path):
+        shutil.copytree(template_path, output_dir, dirs_exist_ok=True)
+        for templated_file in substitutions.keys():  # Keys are relative file paths
+            expand_file(
+                os.path.join(template_path, templated_file),
+                os.path.join(output_dir, templated_file),
+                substitutions[templated_file],
+            )
+    else:
+        expand_file(template_path, os.path.join(output_dir, "scenario.py"), substitutions)
+
+
+def expand_file(template_file, output_file, values):
+    """
+    Expands a template to a file.
+    """
+    template_fh = open(template_file, "rt")
     output_fh = open(output_file, "wt")
 
     for line in template_fh:
-        if "values" in scenario:
-            for k, v in scenario["values"].items():
-                line = line.replace(k, v)
+        for k, v in values.items():
+            line = line.replace(k, v)
         output_fh.write(line)
 
     template_fh.close()
@@ -146,8 +163,40 @@ def run_scenario_natively(work_dir):
     with open(os.path.join("run.sh"), "wt") as f:
         f.write(
             """#
+export AUTOGEN_TESTBED_SETTING="Native"
+
+# Read the environment variables
 . ./ENV
+
+# Run the global init script if it exists
+if [ -f global_init.sh ] ; then
+    . ./global_init.sh
+fi
+
+# Run the scenario init script if it exists
+if [ -f scenario_init.sh ] ; then
+    . ./scenario_init.sh
+fi
+
+# Run the scenario
 python scenario.py
+
+# Clean up
+rm ENV
+if [ -d .cache ] ; then
+    rm -Rf .cache
+fi
+
+# Run the scenario finalize script if it exists
+if [ -f scenario_init.sh ] ; then
+    . ./scenario_finalize.sh
+fi
+
+# Run the global finalize script if it exists
+if [ -f scenario_init.sh ] ; then
+    . ./global_finalize.sh
+fi
+
 echo SCENARIO COMPLETE !#!#
 """
         )
@@ -192,14 +241,42 @@ def run_scenario_in_docker(work_dir, requirements, timeout=600):
     with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
         f.write(
             f"""#
+export AUTOGEN_TESTBED_SETTING="Docker"
 umask 000
+
+# Read the environment variables
 . ./ENV
+
+# Run the global init script if it exists
+if [ -f global_init.sh ] ; then
+    . ./global_init.sh
+fi
+
+# Run the scenario init script if it exists
+if [ -f scenario_init.sh ] ; then
+    . ./scenario_init.sh
+fi
+
+# Run the scenario
 pip install -r {requirements}
 python scenario.py
+
+# Clean up
 rm ENV
 if [ -d .cache ] ; then
-    chmod -R a+rw .cache
+    rm -Rf .cache
 fi
+
+# Run the scenario finalize script if it exists
+if [ -f scenario_init.sh ] ; then
+    . ./scenario_finalize.sh
+fi
+
+# Run the global finalize script if it exists
+if [ -f scenario_init.sh ] ; then
+    . ./global_finalize.sh
+fi
+
 echo SCENARIO COMPLETE !#!#
 """
         )
@@ -270,7 +347,7 @@ if __name__ == "__main__":
         "--requirements",
         type=str,
         help="The requirements file to pip install before running the scenario. This file must be found in the '"
-        + INCLUDES_DIR
+        + GLOBAL_INCLUDES_DIR
         + "' directory. (default: requirements.txt)",
         default=None,
     )
@@ -313,13 +390,13 @@ if __name__ == "__main__":
         import docker
 
         # Make sure the requirements file exists
-        req_file = os.path.join(INCLUDES_DIR, requirements)
+        req_file = os.path.join(GLOBAL_INCLUDES_DIR, requirements)
         if not os.path.isfile(req_file):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), req_file)
 
     # Warn aboit a common error
-    env_file = os.path.join(INCLUDES_DIR, "ENV")
-    example_file = os.path.join(INCLUDES_DIR, "ENV.example")
+    env_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV")
+    example_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV.example")
     if not os.path.isfile(env_file):
         shutil.copyfile(example_file, env_file)
         sys.stderr.write(

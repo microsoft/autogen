@@ -77,17 +77,18 @@ Within each folder, you will find the following files:
 
 ## Scenario Templating
 
-All scenarios are stored in JSONL files in the ``./scenarios'' directory. Each line of a scenario file is a JSON object with the following schema:
+All scenarios are stored in JSONL files in the ``./scenarios'' directory. Each line of a scenario file is a JSON object. The schema varies slightly based on if "template" specifies a _file_ or a _directory_.
 
+If "template" points to a _file_, the format is:
 ```
 {
    "id": string,
    "template": filename,
-   "values" {
-       "field_name1": string,
-       "field_name2": string,
+   "substitutions" {
+       "find_string1": replace_string1,
+       "find_string2": replace_string2,
        ...
-       "field_nameN": string
+       "find_stringN": replace_stringN
    }
 }
 ```
@@ -98,47 +99,87 @@ For example:
 {
     "id": "two_agent_stocks_gpt4",
     "template": "default_two_agents.py",
-    "values": {
+    "substitutions": {
         "\__MODEL\__": "gpt-4",
         "\__PROMPT\__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
     }
 }
 ```
 
-Where the ``id`` is the instance id used when saving results, ``template`` points to a python file that contains the scenario logic, and ``values`` contains a set of strings to find and replace when expanding the template.
 
-An example templated python file is:
+If "template" points to a _directory_, the format is:
 
 ```
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-import os
-import json
-import testbed_utils
-
-testbed_utils.init()
-##############################
-
-config_list = config_list_from_json(
-        "OAI_CONFIG_LIST", filter_dict={"model": ["\__MODEL\__"]},
-)
-
-assistant = AssistantAgent("assistant", llm_config={
-    "request_timeout": 180,
-    "config_list": config_list}
-)
-user_proxy = UserProxyAgent("user_proxy",
-            human_input_mode="NEVER",
-            code_execution_config={
-                "work_dir": "coding",
-                "use_docker": False,
-            },
-            max_consecutive_auto_reply=10)
-user_proxy.initiate_chat(assistant, message="\__PROMPT\__")
-
-
-##############################
-testbed_utils.finalize(assistant, user_proxy)
+{
+   "id": string,
+   "template": dirname,
+   "substitutions" {
+       "filename1": {
+       	   "find_string1_1": replace_string1_1,
+           "find_string1_2": replace_string1_2,
+           ...
+           "find_string1_M": replace_string1_N
+       }
+       "filename2": {
+       	   "find_string2_1": replace_string2_1,
+           "find_string2_2": replace_string2_2,
+           ...
+           "find_string2_N": replace_string2_N
+       }
+   }
+}
 ```
+
+For example:
+
+```
+{
+    "id": "two_agent_stocks_gpt4",
+    "template": "default_two_agents",
+    "substitutions": {
+	"scenario.py": {
+            "\__MODEL\__": "gpt-4",
+	},
+	"prompt.txt": {
+            "\__PROMPT\__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
+        }
+    }
+}
+```
+
+In this example, the string `__MODEL__` will be replaced in the file `scenarios.py`, while the string `__PROMPT__` will be replaced in the `prompt.txt` file.
+
+
+## Scenario Expansion Algorithm
+
+When the Testbed runs a scenario, it creates a local folder to share with Docker. As noted above, each instance and repetition gets its own folder along the path: ``./results/[scenario]/[instance_id]/[repetition]``
+
+For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
+
+The algorithm for populating the `DEST_FOLDER` is as follows:
+
+1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
+2. Append the OAI_CONFIG_LIST to the ENV file so that autogen may access these secrets.
+3. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
+4. Apply any templating, as outlined in the prior section.
+5. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
+
+
+## Scenario Execution Algorithm
+
+Once the scenario has been expanded it is run (via run.sh). This script will execute the following steps:
+
+1. Read and set the ENV environment variables
+2. If a file named `global_init.sh` is present, run it.
+3. If a file named `scenario_init.sh` is present, run it.
+4. Install the requirements file (if running in Docker)
+5. Run the Autogen scenario via `python scenario.py`
+6. Clean up (delete cache, etc.)
+7. If a file named `scenario_finalize.sh` is present, run it.
+8. If a file named `global_finalize.sh` is present, run it.
+9. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
+
+Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
 
 
 ## (Example) Running HumanEval
