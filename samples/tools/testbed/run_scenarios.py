@@ -9,6 +9,9 @@ import pathlib
 import argparse
 from autogen import config_list_from_json
 
+# What platform are we running?
+IS_WIN32 = sys.platform == "win32"
+
 # Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
 INCLUDES_DIR = "includes"
 
@@ -186,7 +189,7 @@ def run_scenario_in_docker(work_dir, requirements, timeout=600):
             print("Failed to pull image", image_name)
 
     # Prepare the run script
-    with open(os.path.join(work_dir, "run.sh"), "wt") as f:
+    with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
         f.write(
             f"""#
 umask 000
@@ -223,7 +226,7 @@ echo SCENARIO COMPLETE !#!#
     if container.status != "exited":
         container.stop()
 
-        logs = container.logs().decode("utf-8").rstrip() + "\nDocker timed out."
+        logs = container.logs().decode("utf-8").rstrip() + "\nDocker timed out.\n"
         print(logs)
         with open(os.path.join(work_dir, "console_log.txt"), "wt") as f:
             f.write(logs)
@@ -232,7 +235,7 @@ echo SCENARIO COMPLETE !#!#
         return
 
     # get the container logs
-    logs = container.logs().decode("utf-8").rstrip()
+    logs = container.logs().decode("utf-8").rstrip() + "\n"
     container.remove()
 
     print(logs)
@@ -286,6 +289,9 @@ if __name__ == "__main__":
 
     # Warn if running natively
     if args.native:
+        if IS_WIN32:
+            sys.exit("Running scenarios with --native is not supported in Windows. Exiting.")
+
         if args.requirements is not None:
             sys.exit("--requirements is not compatible with --native. Exiting.")
 
