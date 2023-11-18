@@ -1,5 +1,5 @@
 import pytest
-import mock
+from unittest import mock
 import builtins
 import autogen
 import json
