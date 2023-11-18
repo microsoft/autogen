@@ -30,7 +30,9 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
-def content_str(content: Union[str, List]) -> str:
+def content_str(content: Union[str, List, None]) -> str:
+    if content is None:
+        return ""
     if type(content) is str:
         return content
     rst = ""
