@@ -13,11 +13,7 @@ config_list = config_list_from_json(env_or_file="llm_config")
 
 class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def query_vector_db(
-        self,
-        query_texts: List[str],
-        n_results: int = 10,
-        search_string: str = "",
-        **kwargs,
+        self, query_texts: List[str], n_results: int = 10, search_string: str = "", **kwargs,
     ) -> Dict[str, Union[List[str], List[List[str]]]]:
         # Concatenate all strings in query_texts into one string
         concatenated_text = " ".join(query_texts)
@@ -28,10 +24,9 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         # Find similar documents in MongoDB
         documents = self.find_similar_documents(embedding)
         ids = [str(idx) for idx in range(1, len(documents) + 1)]
-        document_contents = [document.get(
-            "text_chunks", "") for document in documents]
+        document_contents = [document.get("text_chunks", "") for document in documents]
         return {
-            "ids": [ids],       # Wrap ids in a list
+            "ids": [ids],  # Wrap ids in a list
             # Wrap document_contents in a list
             "documents": [document_contents],
         }
@@ -39,10 +34,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = "", **kwargs):
         # Query for similar documents
         results = self.query_vector_db(
-            query_texts=[problem],
-            n_results=n_results,
-            search_string=search_string,
-            **kwargs,
+            query_texts=[problem], n_results=n_results, search_string=search_string, **kwargs,
         )
         self._results = results
 
@@ -53,8 +45,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 # Accessing the "documents" key in the results dictionary
                 for idx, document in enumerate(results["documents"]):
                     if isinstance(document, dict):
-                        print(
-                            f"Document {idx + 1}: {document.get('text_chunks', '')}")
+                        print(f"Document {idx + 1}: {document.get('text_chunks', '')}")
                     else:
                         print(f"Document {idx + 1}: {document}")
             else:
@@ -65,7 +56,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         Get the embedding for a given text using OpenAI's API.
         """
         text = text.replace("\n", " ")
-        return openai.Embedding.create(input=[text], model=model)['data'][0]['embedding']
+        return openai.Embedding.create(input=[text], model=model)["data"][0]["embedding"]
 
     def connect_mongodb(self):
         """
@@ -96,36 +87,32 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         This will allow you to effectively find similar documents based on your specific embedding.
         """
         collection = self.connect_mongodb()
-        documents = list(collection.aggregate([
-
-            {
-                "$vectorSearch": {
-                    "index": "<your_vector_index>",
-                    "path": "<your_embedding_field-to-search>",
-                    "queryVector": embedding,
-                    "numCandidates": 50,
-                    "limit": 10
-                }
-            }
-        ]))
+        documents = list(
+            collection.aggregate(
+                [
+                    {
+                        "$vectorSearch": {
+                            "index": "<your_vector_index>",
+                            "path": "<your_embedding_field-to-search>",
+                            "queryVector": embedding,
+                            "numCandidates": 50,
+                            "limit": 10,
+                        }
+                    }
+                ]
+            )
+        )
         return documents
 
 
 # Instantiate the Assistant Agent with provided configuration
 assistant = RetrieveAssistantAgent(
-    name="assistant",
-    system_message="You are a helpful assistant.",
-    llm_config=config_list,
+    name="assistant", system_message="You are a helpful assistant.", llm_config=config_list,
 )
 
 # Instantiate the User Proxy Agent with MongoDB functionality
 ragproxyagent = MongoDBRetrieveUserProxyAgent(
-    name="MongoDB_RAG_Agent",
-    human_input_mode="NEVER",
-    max_consecutive_auto_reply=2,
-    retrieve_config={
-        "task": "qa",
-    },
+    name="MongoDB_RAG_Agent", human_input_mode="NEVER", max_consecutive_auto_reply=2, retrieve_config={"task": "qa",},
 )
 
 # Reset the assistant and retrieve documents for a specific problem
