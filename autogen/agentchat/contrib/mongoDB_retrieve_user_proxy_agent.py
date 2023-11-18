@@ -73,7 +73,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
 
         Initiate your connection to a MongoDB Atlas server and access your desired collection directly. 
         I recommend getting started with an M0 tier of MongoDB which is free of charge and fully managed. You can sign up here: <https://www.mongodb.com/cloud/atlas/register>.
-        
+
         Using a managed MongoDB with Autogen brings significant benefits:
         1. It's fully managed, which means local installation is not required.
         2. It's cloud-agnostic, as it's available on multiple platforms including AWS, Azure, and GCP. 
@@ -131,5 +131,6 @@ ragproxyagent = MongoDBRetrieveUserProxyAgent(
 
 # Reset the assistant and retrieve documents for a specific problem
 assistant.reset()
-ragproxyagent.initiate_chat(assistant, problem="What is the average price of client A's expense based on his purchase history provided?")
-# ragproxyagent.retrieve_docs("When mifid2 is created?", n_results=10, search_string="autogen")
+ragproxyagent.initiate_chat(
+    assistant, problem="What is the average price of client A's expense based on his purchase history provided?"
+)
