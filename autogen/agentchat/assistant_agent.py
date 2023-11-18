@@ -1,5 +1,6 @@
+from typing import Callable, Dict, List, Literal, Optional, Union
+
 from .conversable_agent import ConversableAgent
-from typing import Callable, Dict, Literal, Optional, Union
 
 
 class AssistantAgent(ConversableAgent):
@@ -29,7 +30,7 @@ Reply "TERMINATE" in the end when everything is done.
     def __init__(
         self,
         name: str,
-        system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
+        system_message: Optional[Union[str, List]] = DEFAULT_SYSTEM_MESSAGE,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -40,7 +41,7 @@ Reply "TERMINATE" in the end when everything is done.
         """
         Args:
             name (str): agent name.
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str or List): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
             llm_config (dict): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)

@@ -1,9 +1,11 @@
 import logging
-import sys
 import random
+import re
+import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
-import re
+
+from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 
@@ -190,19 +192,26 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         roles = []
         for agent in agents:
-            if agent.system_message.strip() == "":
+            if content_str(agent.system_message).strip() == "":
                 logger.warning(
                     f"The agent '{agent.name}' has an empty system_message, and may not work well with GroupChat."
                 )
             roles.append(f"{agent.name}: {agent.system_message}")
         return "\n".join(roles)
 
-    def _mentioned_agents(self, message_content: str, agents: List[Agent]) -> Dict:
-        """
-        Finds and counts agent mentions in the string message_content, taking word boundaries into account.
+    def _mentioned_agents(self, message_content: Union[str, List], agents: List[Agent]) -> Dict:
+        """Counts the number of times each agent is mentioned in the provided message content.
 
-        Returns: A dictionary mapping agent names to mention counts (to be included, at least one mention must occur)
+        Args:
+            message_content (Union[str, List]): The content of the message, either as a single string or a list of strings.
+            agents (List[Agent]): A list of Agent objects, each having a 'name' attribute to be searched in the message content.
+
+        Returns:
+            Dict: a counter for mentioned agents.
         """
+        # Cast message content to str
+        message_content = content_str(message_content)
+
         mentions = dict()
         for agent in agents:
             regex = (
@@ -224,7 +233,7 @@ class GroupChatManager(ConversableAgent):
         # unlimited consecutive auto reply by default
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
-        system_message: Optional[str] = "Group chat manager.",
+        system_message: Optional[Union[str, List]] = "Group chat manager.",
         **kwargs,
     ):
         super().__init__(

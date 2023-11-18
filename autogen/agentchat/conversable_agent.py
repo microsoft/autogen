@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 from autogen import OpenAIWrapper
-from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, execute_code, extract_code, infer_lang
+from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from .agent import Agent
 
@@ -101,7 +101,9 @@ class ConversableAgent(Agent):
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._is_termination_msg = (
-            is_termination_msg if is_termination_msg is not None else (lambda x: x.get("content") == "TERMINATE")
+            is_termination_msg
+            if is_termination_msg is not None
+            else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
         if llm_config is False:
             self.llm_config = False
@@ -415,7 +417,7 @@ class ConversableAgent(Agent):
                         message["context"],
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
-                print(content, flush=True)
+                print(content_str(content), flush=True)
             if "function_call" in message:
                 function_call = dict(message["function_call"])
                 func_print = (
