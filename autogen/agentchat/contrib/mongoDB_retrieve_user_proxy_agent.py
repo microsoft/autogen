@@ -45,11 +45,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         self._results = results
 
         # Check if results is a dictionary and "documents" is a list
-        if (
-            isinstance(results["ids"], list)
-            and len(results["ids"]) > 0
-            and isinstance(results["ids"][0], str)
-        ):
+        if isinstance(results["ids"], list) and len(results["ids"]) > 0 and isinstance(results["ids"][0], str):
             doc_id = results["ids"][0]
             if doc_id in self._doc_ids:
                 # Accessing the "documents" key in the results dictionary
