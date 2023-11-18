@@ -106,8 +106,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                     "numCandidates": 50,
                     "limit": 10
                 }
-            },
-            {"$project": {"_id": 1, "text_chunks": 1}}
+            }
         ]))
         return documents
 
