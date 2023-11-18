@@ -48,6 +48,7 @@ setuptools.setup(
             "pytest>=6.1.1",
             "mock",
         ],
+        "oaitest": ["mock"],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
