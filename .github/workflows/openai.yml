@@ -35,7 +35,7 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e.[oaitest]
+          pip install -e.
           python -c "import autogen"
           pip install coverage pytest-asyncio mock
       - name: Install packages for test when needed
