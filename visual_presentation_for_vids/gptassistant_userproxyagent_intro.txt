@@ -1,0 +1,24 @@
+0:00 Introducing Overall Objectives
+1:10 What is Autogen
+2:20 Overview of Agent Assistant Interaction
+2:50 Code Walkthrough Vs Documentation
+5:50 Config List Explained
+9:50 Introducing GPT Assistant Agent
+13:20 What are OpenAI Assistants
+14:20 Initialising GPT Assistant Object
+16:15 Introducing UserProxyAgent
+17:40 Conversation between UserProxyAgent with GPTAssistant  
+20:30 How to Create Assistant in OpenAI Platform
+21:20 Assistant Creation using GPT Assistant Class
+23:20 Assistant Instruction Explained
+25:40 Assistant creation using OpenAI Client 
+28:40 Assistant creation in GPTAssistant
+30:40 How UserProxyAgent Communicates
+31:45 UserProxyAgent Class 
+34:15 Using OpenAI client to get Assistant Logs 
+38:00 Recap
+38:50 Whats Next
+39:25 Outro
+
+
+
