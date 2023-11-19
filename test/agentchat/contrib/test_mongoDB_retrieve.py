@@ -52,12 +52,15 @@ ragproxyagent = MongoDBRetrieveUserProxyAgent(
     name="MongoDB_RAG_Agent",
     human_input_mode="NEVER",
     max_consecutive_auto_reply=2,
-    retrieve_config={"task": "qa",},
+    retrieve_config={
+        "task": "qa",
+        },
     mongo_config=mongo_config,
 )
 
 # Reset the assistant and retrieve documents for a specific problem
 assistant.reset()
 ragproxyagent.initiate_chat(
-    assistant, problem="when mifid was created?",
+    assistant, 
+    problem="when mifid was created?",
 )

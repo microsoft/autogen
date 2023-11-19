@@ -1,10 +1,11 @@
-from typing import List, Dict, Union,Optional,Callable
+from typing import List, Dict, Union, Optional, Callable
 from pymongo import MongoClient
 import pymongo
 import openai
 
 from typing import List, Dict, Union
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
+
 
 class MongoDBConfig:
     def __init__(self, mongo_url, database, vector_collection, vector_index, embedding_field):
@@ -13,6 +14,7 @@ class MongoDBConfig:
         self.vector_collection = vector_collection
         self.vector_index = vector_index
         self.embedding_field = embedding_field
+
 
 # Define MongoDB configuration
 mongo_config = MongoDBConfig(
@@ -23,9 +25,10 @@ mongo_config = MongoDBConfig(
     embedding_field="<your_embedding_field-to-search>",
 )
 
+
 class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def __init__(
-        self, 
+        self,
         mongo_config,
         name="RetrieveChatAgent",  # default set to RetrieveChatAgent
         human_input_mode: Optional[str] = "ALWAYS",
@@ -57,10 +60,7 @@ class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
 
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = "", **kwargs):
         results = self.query_vector_db(
-            query_texts=[problem],
-            n_results=n_results,
-            search_string=search_string,
-            **kwargs,
+            query_texts=[problem], n_results=n_results, search_string=search_string, **kwargs,
         )
         self._results = results
         if isinstance(results["ids"], list) and len(results["ids"]) > 0 and isinstance(results["ids"][0], str):
