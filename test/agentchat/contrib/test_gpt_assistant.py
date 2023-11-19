@@ -203,9 +203,32 @@ def test_get_assistant_files():
     assert expected_file_id in retrived_file_ids
 
 
+def test_max_consecutive_auto_reply():
+    agent = GPTAssistantAgent(
+        "a0",
+        max_consecutive_auto_reply=2,
+        llm_config={
+            "config_list": config_list,
+        },
+        human_input_mode="NEVER",
+    )
+    agent1 = GPTAssistantAgent(
+        "a1",
+        max_consecutive_auto_reply=0,
+        llm_config={
+            "config_list": config_list,
+        },
+        human_input_mode="NEVER",
+    )
+    assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 2
+    agent.update_max_consecutive_auto_reply(1)
+    assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
     test_gpt_assistant_instructions_overwrite()
     test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
+    test_max_consecutive_auto_reply()
