@@ -9,6 +9,7 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+    from autogen.oai.openai_utils import retrieval_assistants_by_name
 
     skip_test = False
 except ImportError:
@@ -57,14 +58,16 @@ def test_gpt_assistant_chat():
     ok, response = analyst._invoke_assistant(
         [{"role": "user", "content": "What is the most popular open source project on GitHub?"}]
     )
+    executable = analyst.can_execute_function("ossinsight_data_api")
+    analyst.reset()
+    threads_count = len(analyst._openai_threads)
+    analyst.delete_assistant()
+
     assert ok is True
     assert response.get("role", "") == "assistant"
     assert len(response.get("content", "")) > 0
-
-    assert analyst.can_execute_function("ossinsight_data_api") is False
-
-    analyst.reset()
-    assert len(analyst._openai_threads) == 0
+    assert executable is False
+    assert threads_count == 0
 
 
 @pytest.mark.skipif(
@@ -201,6 +204,31 @@ def test_get_assistant_files():
     openai_client.files.delete(file.id)
 
     assert expected_file_id in retrived_file_ids
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_assistant_retrieval():
+    name = "For GPTAssistantAgent retrieval testing"
+
+    assistant = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config={"config_list": config_list},
+    )
+    candidate_first = retrieval_assistants_by_name(assistant.openai_client, name)
+
+    assistant = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config={"config_list": config_list},
+    )
+    candidate_second = retrieval_assistants_by_name(assistant.openai_client, name)
+
+    assistant.delete_assistant()
+    assert candidate_first == candidate_second
 
 
 if __name__ == "__main__":
