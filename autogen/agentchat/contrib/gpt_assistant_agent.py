@@ -25,6 +25,7 @@ class GPTAssistantAgent(ConversableAgent):
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         overwrite_instructions: bool = False,
+        agent_config: Optional[Dict] = None,
     ):
         """
         Args:
@@ -44,6 +45,8 @@ class GPTAssistantAgent(ConversableAgent):
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
+            agent_config (dict): agent configuration.
+                - verbose (bool): whether to print out more assistant thread content
         """
         # Use AutoGen OpenAIWrapper to create a client
         oai_wrapper = OpenAIWrapper(**llm_config)
@@ -96,6 +99,7 @@ class GPTAssistantAgent(ConversableAgent):
         )
 
         # lazly create thread
+        self._agent_config = agent_config or {}
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
@@ -197,7 +201,9 @@ class GPTAssistantAgent(ConversableAgent):
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function
-                    is_exec_success, tool_response = self.execute_function(function.dict())
+                    is_exec_success, tool_response = self.execute_function(
+                        function.dict(), self._agent_config.get("verbose", False)
+                    )
                     tool_response["metadata"] = {
                         "tool_call_id": tool_call.id,
                         "run_id": run.id,
