@@ -25,6 +25,7 @@ class GPTAssistantAgent(ConversableAgent):
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         overwrite_instructions: bool = False,
+        **kwargs,
     ):
         """
         Args:
@@ -44,6 +45,7 @@ class GPTAssistantAgent(ConversableAgent):
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
+            **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
         """
         # Use AutoGen OpenAIWrapper to create a client
         oai_wrapper = OpenAIWrapper(**llm_config)
@@ -89,10 +91,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
 
         super().__init__(
-            name=name,
-            system_message=instructions,
-            human_input_mode="NEVER",
-            llm_config=llm_config,
+            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
         )
 
         # lazly create thread
