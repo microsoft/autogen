@@ -54,7 +54,7 @@ ragproxyagent = MongoDBRetrieveUserProxyAgent(
     max_consecutive_auto_reply=2,
     retrieve_config={
         "task": "qa",
-        },
+    },
     mongo_config=mongo_config,
 )
 
