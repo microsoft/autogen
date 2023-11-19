@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable
+from typing import Union, Optional, Callable, Dict, List
 from pymongo import MongoClient
 import pymongo
 import openai
