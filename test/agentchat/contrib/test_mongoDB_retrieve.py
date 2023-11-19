@@ -2,26 +2,16 @@ import os
 import sys
 import pytest
 import sys
-print(sys.path)
-sys.path.append('/Users/han.heloir/Library/CloudStorage/GoogleDrive-han.heloir@mongodb.com/My Drive/03 Demos_jaime/AIDEMOS/autogen/autogen/')
 
-#from retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
-#from mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent
 
 from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent
 
 # Import the classes and functions from the refactored code
-#from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent, MongoDBConfig
 try:
-    from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import (
-        MongoDBRetrieveUserProxyAgent, 
-        MongoDBConfig
-    )
-    
+    from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import (MongoDBRetrieveUserProxyAgent, MongoDBConfig)
     import pymongo
-
     MONGODB_INSTALLED = True
 except ImportError:
     MONGODB_INSTALLED = False
