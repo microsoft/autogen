@@ -1,9 +1,8 @@
-from typing import List, Dict, Union, Optional, Callable
+from typing import Union, Optional, Callable
 from pymongo import MongoClient
 import pymongo
 import openai
 
-from typing import List, Dict, Union
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
 
