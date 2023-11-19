@@ -7,21 +7,13 @@ from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistant
 from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent, MongoDBConfig
 
 # Define MongoDB configuration (replace with your own configuration)
-""" mongo_config = MongoDBConfig(
+mongo_config = MongoDBConfig(
     mongo_url="mongodb+srv://your_login:your_password@your_cluster?retryWrites=true&w=majority",
     database="your_database",
     vector_collection="your_vector_collection",
     vector_index="<your_vector_index>",
     embedding_field="<your_embedding_field-to-search>",
-) """
-
-mongo_config = MongoDBConfig(
-    mongo_url="mongodb+srv://han:han@cluster0.bofm7.mongodb.net/?retryWrites=true&w=majority",
-    database="AIRegulation",
-    vector_collection="mifid2",
-    vector_index="default",
-    embedding_field="ada_embedding",
-)
+) 
 
 assistant = RetrieveAssistantAgent(
     name="assistant",
