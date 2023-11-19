@@ -1,18 +1,12 @@
 import os
 import sys
 import pytest
+import pymongo
 
 from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
-
-# Import the classes and functions from the refactored code
-try:
-    from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent, MongoDBConfig
-    import pymongo
-
-    MONGODB_INSTALLED = True
-except ImportError:
-    MONGODB_INSTALLED = False
+from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent, MongoDBConfig
+    
 
 # Define MongoDB configuration (replace with your own configuration)
 """ mongo_config = MongoDBConfig(
