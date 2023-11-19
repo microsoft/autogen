@@ -61,6 +61,6 @@ ragproxyagent = MongoDBRetrieveUserProxyAgent(
 # Reset the assistant and retrieve documents for a specific problem
 assistant.reset()
 ragproxyagent.initiate_chat(
-    assistant, 
+    assistant,
     problem="when mifid was created?",
 )
