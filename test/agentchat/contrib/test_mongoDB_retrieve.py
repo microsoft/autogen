@@ -1,12 +1,10 @@
 import os
 import sys
 import pytest
-import pymongo
 
 from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent, MongoDBConfig
-    
 
 # Define MongoDB configuration (replace with your own configuration)
 """ mongo_config = MongoDBConfig(
