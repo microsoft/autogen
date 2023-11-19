@@ -15,13 +15,13 @@ except ImportError:
     MONGODB_INSTALLED = False
 
 # Define MongoDB configuration (replace with your own configuration)
-# mongo_config = MongoDBConfig(
-#     mongo_url="mongodb+srv://your_login:your_password@your_cluster?retryWrites=true&w=majority",
-#     database="your_database",
-#     vector_collection="your_vector_collection",
-#     vector_index="<your_vector_index>",
-#     embedding_field="<your_embedding_field-to-search>",
-# )
+""" mongo_config = MongoDBConfig(
+    mongo_url="mongodb+srv://your_login:your_password@your_cluster?retryWrites=true&w=majority",
+    database="your_database",
+    vector_collection="your_vector_collection",
+    vector_index="<your_vector_index>",
+    embedding_field="<your_embedding_field-to-search>",
+) """
 
 mongo_config = MongoDBConfig(
     mongo_url="mongodb+srv://han:han@cluster0.bofm7.mongodb.net/?retryWrites=true&w=majority",
@@ -30,13 +30,6 @@ mongo_config = MongoDBConfig(
     vector_index="default",
     embedding_field="ada_embedding",
 )
-
-# Create an instance of MongoDBRetrieveUserProxyAgent with MongoDB configuration
-mongo_agent = MongoDBRetrieveUserProxyAgent(mongo_config)
-
-# Test the retrieve_docs method
-problem_to_search = "When mifi2 was created"
-results = mongo_agent.retrieve_docs(problem_to_search, n_results=5)
 
 assistant = RetrieveAssistantAgent(
     name="assistant",
