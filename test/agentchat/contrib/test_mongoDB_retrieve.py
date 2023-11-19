@@ -10,8 +10,9 @@ from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBR
 
 # Import the classes and functions from the refactored code
 try:
-    from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import (MongoDBRetrieveUserProxyAgent, MongoDBConfig)
+    from autogen.agentchat.contrib.mongoDB_retrieve_user_proxy_agent import MongoDBRetrieveUserProxyAgent, MongoDBConfig
     import pymongo
+
     MONGODB_INSTALLED = True
 except ImportError:
     MONGODB_INSTALLED = False
@@ -43,7 +44,7 @@ results = mongo_agent.retrieve_docs(problem_to_search, n_results=5)
 assistant = RetrieveAssistantAgent(
     name="assistant",
     system_message="You are a helpful assistant.",
-    #llm_config=config_list,
+    # llm_config=config_list,
 )
 
 # Instantiate the User Proxy Agent with MongoDB functionality
@@ -51,16 +52,12 @@ ragproxyagent = MongoDBRetrieveUserProxyAgent(
     name="MongoDB_RAG_Agent",
     human_input_mode="NEVER",
     max_consecutive_auto_reply=2,
-    retrieve_config={
-        "task": "qa",
-    },
-    mongo_config = mongo_config,
+    retrieve_config={"task": "qa",},
+    mongo_config=mongo_config,
 )
 
 # Reset the assistant and retrieve documents for a specific problem
 assistant.reset()
 ragproxyagent.initiate_chat(
-    assistant,
-    #problem="What is the average price of client A's expense based on his purchase history provided?",
-    problem="when mifid was created?",
+    assistant, problem="when mifid was created?",
 )
