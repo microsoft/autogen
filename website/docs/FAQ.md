@@ -22,12 +22,16 @@ assistant = autogen.AssistantAgent(
 )
 ```
 
-The `llm_config` is used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
+The `llm_config` is used in the [`create`](/docs/reference/oai/client#create) function for LLM inference.
 When `llm_config` is not provided, the agent will rely on other openai settings such as `openai.api_key` or the environment variable `OPENAI_API_KEY`, which can also work when you'd like to use a single endpoint.
 You can also explicitly specify that by:
 ```python
 assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
+
+### Unexpected keyword argument 'base_url'
+
+In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for older versions, use `api_base` but for newer versions use `base_url`.
 
 ### Can I use non-OpenAI models?
 
@@ -35,11 +39,10 @@ Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs
 
 ## Handle Rate Limit Error and Timeout Error
 
-You can set `retry_wait_time` and `max_retry_period` to handle rate limit error. And you can set `request_timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the [`create`](/docs/reference/oai/completion#create) function for LLM inference.
+You can set `max_retries` to handle rate limit error. And you can set `timeout` to handle timeout error. They can all be specified in `llm_config` for an agent, which will be used in the OpenAI client for LLM inference. They can be set differently for different clients if they are set in the `config_list`.
 
-- `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
-- `max_retry_period` (int): the total timeout (in seconds) allowed for retrying failed requests.
-- `request_timeout` (int): the timeout (in seconds) sent with a single request.
+- `max_retries` (int): the total number of times allowed for retrying failed requests for a single client.
+- `timeout` (int): the timeout (in seconds) for a single client.
 
 Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-error) for more info.
 
@@ -128,3 +131,11 @@ Workaround:
 2. `mkdir /home/vscode/.local/lib/python3.10/site-packages/google/colab`
 
 Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a44271061cc8e272f3c300?permalink_comment_id=4711478#gistcomment-4711478), linked from the official [chromadb docs](https://docs.trychroma.com/troubleshooting#sqlite), adding this folder triggers chromadb to use pysqlite3 instead of the default.
+
+## How to get last message ?
+
+Refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#last_message
+
+## How to get each agent message ?
+
+Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#chat_messages

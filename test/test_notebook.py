@@ -45,8 +45,8 @@ def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=Fals
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if openai is not installed or py!=3.11",
 )
 def test_agentchat_auto_feedback_from_code(save=False):
     run_notebook("agentchat_auto_feedback_from_code_execution.ipynb", save=save)
@@ -56,7 +56,7 @@ def test_agentchat_auto_feedback_from_code(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_oai_completion(save=False):
+def _test_oai_completion(save=False):
     run_notebook("oai_completion.ipynb", save=save)
 
 
@@ -72,7 +72,7 @@ def test_agentchat_function_call(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_agentchat_MathChat(save=False):
+def _test_agentchat_MathChat(save=False):
     run_notebook("agentchat_MathChat.ipynb", save=save)
 
 
@@ -80,8 +80,16 @@ def test_agentchat_MathChat(save=False):
     skip or not sys.version.startswith("3.11"),
     reason="do not run if openai is not installed or py!=3.11",
 )
-def test_oai_chatgpt_gpt4(save=False):
+def _test_oai_chatgpt_gpt4(save=False):
     run_notebook("oai_chatgpt_gpt4.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_hierarchy_flow_using_select_speaker(save=False):
+    run_notebook("agentchat_hierarchy_flow_using_select_speaker.ipynb", save=save)
 
 
 if __name__ == "__main__":

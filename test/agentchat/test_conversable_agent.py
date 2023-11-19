@@ -15,7 +15,7 @@ def conversable_agent():
 
 def test_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent.register_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello"
@@ -53,7 +53,7 @@ def test_trigger():
 
 def test_context():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1.send(
         {
             "content": "hello {name}",
@@ -128,10 +128,75 @@ def test_generate_code_execution_reply():
     )
     assert agent._code_execution_config["last_n_messages"] == 3
 
+    # scenario 5: if last_n_messages is set to 'auto' and no code is found, then nothing breaks both when an assistant message is and isn't present
+    assistant_message_for_auto = {
+        "content": "This is me! The assistant!",
+        "role": "assistant",
+    }
+
+    dummy_messages_for_auto = []
+    for i in range(3):
+        dummy_messages_for_auto.append(
+            {
+                "content": "no code block",
+                "role": "user",
+            }
+        )
+
+        # Without an assistant present
+        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        assert agent.generate_code_execution_reply(dummy_messages_for_auto) == (
+            False,
+            None,
+        )
+
+        # With an assistant message present
+        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        assert agent.generate_code_execution_reply([assistant_message_for_auto] + dummy_messages_for_auto) == (
+            False,
+            None,
+        )
+
+    # scenario 6: if last_n_messages is set to 'auto' and code is found, then we execute it correctly
+    dummy_messages_for_auto = []
+    for i in range(4):
+        # Without an assistant present
+        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        assert agent.generate_code_execution_reply([code_message] + dummy_messages_for_auto) == (
+            True,
+            "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+        )
+
+        # With an assistant message present
+        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        assert agent.generate_code_execution_reply(
+            [assistant_message_for_auto] + [code_message] + dummy_messages_for_auto
+        ) == (
+            True,
+            "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+        )
+
+        dummy_messages_for_auto.append(
+            {
+                "content": "no code block",
+                "role": "user",
+            }
+        )
+
+    # scenario 7: if last_n_messages is set to 'auto' and code is present, but not before an assistant message, then nothing happens
+    agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+    assert agent.generate_code_execution_reply(
+        [code_message] + [assistant_message_for_auto] + dummy_messages_for_auto
+    ) == (
+        False,
+        None,
+    )
+    assert agent._code_execution_config["last_n_messages"] == "auto"
+
 
 def test_max_consecutive_auto_reply():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
-    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 2
     agent.update_max_consecutive_auto_reply(1)
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
@@ -159,8 +224,8 @@ def test_max_consecutive_auto_reply():
 
 
 def test_conversable_agent():
-    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
-    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", human_input_mode="TERMINATE")
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="ALWAYS")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="TERMINATE")
 
     # monkeypatch.setattr(sys, "stdin", StringIO("exit"))
     dummy_agent_1.receive("hello", dummy_agent_2)  # receive a str
@@ -206,13 +271,19 @@ def test_conversable_agent():
     dummy_agent_1.update_system_message("new system message")
     assert dummy_agent_1.system_message == "new system message"
 
+    dummy_agent_3 = ConversableAgent(name="dummy_agent_3", llm_config=False, human_input_mode="TERMINATE")
+    with pytest.raises(KeyError):
+        dummy_agent_1.last_message(dummy_agent_3)
+
 
 def test_generate_reply():
     def add_num(num_to_be_added):
         given_num = 10
         return num_to_be_added + given_num
 
-    dummy_agent_2 = ConversableAgent(name="user_proxy", human_input_mode="TERMINATE", function_map={"add_num": add_num})
+    dummy_agent_2 = ConversableAgent(
+        name="user_proxy", llm_config=False, human_input_mode="TERMINATE", function_map={"add_num": add_num}
+    )
     messsages = [{"function_call": {"name": "add_num", "arguments": '{ "num_to_be_added": 5 }'}, "role": "assistant"}]
 
     # when sender is None, messages is provided
@@ -221,7 +292,7 @@ def test_generate_reply():
     ), "generate_reply not working when sender is None"
 
     # when sender is provided, messages is None
-    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", human_input_mode="ALWAYS")
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="ALWAYS")
     dummy_agent_2._oai_messages[dummy_agent_1] = messsages
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
@@ -240,7 +311,8 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 
 
 if __name__ == "__main__":
-    test_trigger()
+    # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
-    # test_conversable_agent(pytest.monkeypatch)
+    # test_generate_code_execution_reply()
+    test_conversable_agent()

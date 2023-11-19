@@ -1,7 +1,7 @@
-import tiktoken
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Dict
 import logging
 import json
+import tiktoken
 
 
 logger = logging.getLogger(__name__)
