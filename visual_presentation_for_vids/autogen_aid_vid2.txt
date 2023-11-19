@@ -1,0 +1,22 @@
+0:00 Intro to World Of Agents 
+0:55 Basics of Agents 
+1:20 User Proxy Agents Explained
+1:55 Assistant Agent Explained
+3:45 How To Initiate Assistant Agents
+5:00 Assistant Agent with Function Call
+6:10 How To Initiate UserProxyAgent
+7:50 UserProxyAgent with One AutoReply
+8:50 Communication Messages between Agents 
+10:20 User Proxy Agent with Human Reply
+12:00 Two Agent Pairs Explained 
+14:15 Communication Flow between Agents
+19:20 Communication Flow Recap
+20:50 Prompt Design Reviewed
+22:40 Cost of Generation
+23:30 Practice Strategy
+24:20 Conversable Agent Methods review
+27:30 Generate_reply  Method 
+29:40 Recap
+30:20 Task that doesn't need plan
+31:40 Outro
+ 
