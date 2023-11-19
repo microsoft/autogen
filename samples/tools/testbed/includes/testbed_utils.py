@@ -4,6 +4,8 @@ import os
 import autogen
 import json
 
+AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
+
 
 def default_llm_config(config_list, timeout=180):
     """Return a default config list with a given timeout, and with caching disabled.
@@ -21,11 +23,10 @@ def default_llm_config(config_list, timeout=180):
     }
 
     # Add options depending on the version
-    version = packaging.version.parse(autogen.__version__)
-    if version < packaging.version.parse("0.2.0b1"):
+    if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
         llm_config["request_timeout"] = timeout
         llm_config["use_cache"] = False
-    elif version < packaging.version.parse("0.2.0b4"):
+    elif AUTOGEN_VERSION < packaging.version.parse("0.2.0b4"):
         llm_config["timeout"] = timeout
         llm_config["cache"] = None
     else:
@@ -51,6 +52,10 @@ def init():
     with open("timestamp.txt", "wt") as f:
         f.write("Timestamp: " + datetime.now().isoformat() + "\n")
         f.write("pyautogen version: " + str(autogen.__version__) + "\n")
+
+    # Start logging
+    if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
+        autogen.Completion.start_logging(compact=False)
 
 
 def finalize(agents):
@@ -78,3 +83,9 @@ def finalize(agents):
         fname = agent.name + "_messages.json"
         with open(os.path.join(script_dir, fname), "wt") as fh:
             fh.write(messages_to_json(agent))
+
+    # Stop logging, and write logs to disk
+    if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
+        with open(os.path.join(script_dir, "completion_log.json"), "wt") as fh:
+            fh.write(json.dumps(autogen.Completion.logged_history, indent=4))
+        autogen.Completion.stop_logging()
