@@ -330,7 +330,9 @@ export const getModels = () => {
 };
 
 export const getSampleSkill = () => {
-  const catSkill = `import numpy as np
+  const catSkill = `
+  # this is a sample skill. Replace with your own skill function
+  import numpy as np
   import matplotlib.pyplot as plt
   from matplotlib import font_manager as fm
 
