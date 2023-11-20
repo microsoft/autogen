@@ -46,7 +46,6 @@ setuptools.setup(
             "pre-commit",
             "pytest-asyncio",
             "pytest>=6.1.1",
-            "mock",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
