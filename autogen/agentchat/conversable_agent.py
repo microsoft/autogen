@@ -3,10 +3,12 @@ import copy
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Type,
+                    Union)
 
 from autogen import OpenAIWrapper
-from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from autogen.code_utils import (DEFAULT_MODEL, UNKNOWN, content_str,
+                                execute_code, extract_code, infer_lang)
 
 from .agent import Agent
 
