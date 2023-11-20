@@ -98,7 +98,7 @@ Lighter colors represent estimates for failed cases, and brighter colors show ho
 
 We note that while applying agentEval to math problems, the agent was not exposed to any ground truth information about the problem. As such, this figure illustrates an estimated performance of the three different agents, namely, Autogen (blue), Gpt-4 (red), and ReAct (green). We observe that by comparing the performance of any of the three agents in successful cases (dark bars of any color) versus unsuccessful cases (lighter version of the same bar), we note that AgentEval was able to assign higher quantification to successful cases than that of failed ones. This observation verifies AgentEval's ability for task utility prediction. Additionally, AgentEval allows us to go beyond just a binary definition of success, enabling a more in-depth comparison between successful and failed cases.
 
-It's important not only to identify what is not working but also to recognize what and why actually went well.For example, Explanation Clarity turned out to be correlated with the length of the solution and all solutions master _Task Understanding_ criteria.
+It's important not only to identify what is not working but also to recognize what and why actually went well.
 
 ## Limitations and future work
 The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
