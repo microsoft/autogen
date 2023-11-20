@@ -5,7 +5,7 @@ import time
 import logging
 
 from autogen import OpenAIWrapper
-from autogen.oai.openai_utils import retrieval_assistants_by_name
+from autogen.oai.openai_utils import retrieve_assistants_by_name
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.assistant_agent import AssistantAgent
@@ -29,7 +29,7 @@ class GPTAssistantAgent(ConversableAgent):
     ):
         """
         Args:
-            name (str): name of the agent.
+            name (str): name of the agent. It will be used to find the existing assistant by name.
             instructions (str): instructions for the OpenAI assistant configuration.
             When instructions is not None, the system message of the agent will be
             set to the provided instructions and used in the assistant run, irrespective
@@ -54,7 +54,7 @@ class GPTAssistantAgent(ConversableAgent):
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
             # try to find assistant by name first
-            candidate_assistants = retrieval_assistants_by_name(self._openai_client, name)
+            candidate_assistants = retrieve_assistants_by_name(self._openai_client, name)
 
             if len(candidate_assistants) == 0:
                 logger.warning(f"assistant {name} does not exist, creating a new assistant")

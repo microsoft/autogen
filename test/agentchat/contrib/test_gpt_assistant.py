@@ -9,7 +9,7 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-    from autogen.oai.openai_utils import retrieval_assistants_by_name
+    from autogen.oai.openai_utils import retrieve_assistants_by_name
 
     skip_test = False
 except ImportError:
@@ -213,21 +213,25 @@ def test_get_assistant_files():
 def test_assistant_retrieval():
     name = "For GPTAssistantAgent retrieval testing"
 
-    assistant = GPTAssistantAgent(
+    assistant_first = GPTAssistantAgent(
         name,
         instructions="This is a test",
         llm_config={"config_list": config_list},
     )
-    candidate_first = retrieval_assistants_by_name(assistant.openai_client, name)
+    candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
 
-    assistant = GPTAssistantAgent(
+    assistant_second = GPTAssistantAgent(
         name,
         instructions="This is a test",
         llm_config={"config_list": config_list},
     )
-    candidate_second = retrieval_assistants_by_name(assistant.openai_client, name)
+    candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
 
-    assistant.delete_assistant()
+    try:
+        assistant_first.delete_assistant()
+        assistant_second.delete_assistant()
+    except Exception:
+        pass
     assert candidate_first == candidate_second
 
 
