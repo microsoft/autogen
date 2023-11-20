@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import OpenAIWrapper
@@ -63,11 +64,17 @@ class MultimodalConversableAgent(ConversableAgent):
         """Convert a message to a dictionary. This implementation
         handles the GPT-4V formatting for easier prompts.
 
-        The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
+        The message can be a string or a dictionary. The string will be put in
+        the "content" field of the new dictionary.
         """
+        message = copy.deepcopy(message)
         if isinstance(message, str):
             return {"content": gpt4v_formatter(message)}
         if isinstance(message, list):
             return {"content": message}
-        else:
+        if isinstance(message, dict):
+            # Ensure the content field is a formatted List rather than str.
+            if isinstance(message["content"], str):
+                message["content"] = gpt4v_formatter(message["content"])
             return message
+        raise ValueError(f"Unsupported message type: {type(message)}")

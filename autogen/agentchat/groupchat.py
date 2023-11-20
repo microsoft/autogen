@@ -52,6 +52,14 @@ class GroupChat:
         """Reset the group chat."""
         self.messages.clear()
 
+    def append(self, message: Dict):
+        """Append a message to the group chat.
+        We cast the content to str here so that it can be managed by text-based
+        model.
+        """
+        message["content"] = content_str(message["content"])
+        self.messages.append(message)
+
     def agent_by_name(self, name: str) -> Agent:
         """Returns the agent with a given name."""
         return self.agents[self.agent_names.index(name)]
@@ -66,7 +74,7 @@ class GroupChat:
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
 
-    def select_speaker_msg(self, agents: List[Agent]):
+    def select_speaker_msg(self, agents: List[Agent]) -> str:
         """Return the message for selecting the next speaker."""
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles(agents)}.
@@ -74,7 +82,7 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def manual_select_speaker(self, agents: List[Agent]) -> Agent:
+    def manual_select_speaker(self, agents: List[Agent]) -> Union[Agent, None]:
         """Manually select the next speaker."""
 
         print("Please select the next speaker from the following list:")
@@ -265,7 +273,7 @@ class GroupChatManager(ConversableAgent):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
                 message["name"] = speaker.name
-            groupchat.messages.append(message)
+            groupchat.append(message)
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
@@ -310,7 +318,7 @@ class GroupChatManager(ConversableAgent):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
                 message["name"] = speaker.name
-            groupchat.messages.append(message)
+            groupchat.append(message)
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
