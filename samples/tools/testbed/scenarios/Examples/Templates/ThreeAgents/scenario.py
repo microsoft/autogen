@@ -20,13 +20,14 @@ assistant = autogen.AssistantAgent(
 user_proxy = autogen.UserProxyAgent(
     "user_proxy",
     human_input_mode="NEVER",
+    system_message="A human who can run code at a terminal and report back the results.",
     is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
     code_execution_config={
         "work_dir": "coding",
         "use_docker": False,
     },
     max_consecutive_auto_reply=10,
-    default_auto_reply="TERMINATE",
+    default_auto_reply="",
 )
 
 third_agent = autogen.AssistantAgent(
