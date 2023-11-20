@@ -1,5 +1,8 @@
 import pytest
+from unittest import mock
+import builtins
 import autogen
+import json
 
 
 def test_func_call_groupchat():
@@ -7,7 +10,7 @@ def test_func_call_groupchat():
         "alice",
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -55,7 +58,7 @@ def test_chat_manager():
         max_consecutive_auto_reply=2,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -82,6 +85,150 @@ def test_chat_manager():
         agent2.initiate_chat(group_chat_manager, message={"function_call": {"name": "func", "arguments": '{"x": 1}'}})
 
 
+def _test_selection_method(method: str):
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "charlie",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is charlie speaking.",
+    )
+
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3],
+        messages=[],
+        max_round=6,
+        speaker_selection_method=method,
+        allow_repeat_speaker=False if method == "manual" else True,
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    if method == "round_robin":
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+        assert len(agent1.chat_messages[group_chat_manager]) == 6
+        assert len(groupchat.messages) == 6
+        assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
+            "This is alice speaking.",
+            "This is bob speaking.",
+            "This is charlie speaking.",
+        ] * 2
+    elif method == "auto":
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+        assert len(agent1.chat_messages[group_chat_manager]) == 6
+        assert len(groupchat.messages) == 6
+    elif method == "random":
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+        assert len(agent1.chat_messages[group_chat_manager]) == 6
+        assert len(groupchat.messages) == 6
+    elif method == "manual":
+        for user_input in ["", "q", "x", "1", "10"]:
+            with mock.patch.object(builtins, "input", lambda _: user_input):
+                group_chat_manager.reset()
+                agent1.reset()
+                agent2.reset()
+                agent3.reset()
+                agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+                if user_input == "1":
+                    assert len(agent1.chat_messages[group_chat_manager]) == 6
+                    assert len(groupchat.messages) == 6
+                    assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
+                        "This is alice speaking.",
+                        "This is bob speaking.",
+                        "This is alice speaking.",
+                        "This is bob speaking.",
+                        "This is alice speaking.",
+                        "This is bob speaking.",
+                    ]
+                else:
+                    assert len(agent1.chat_messages[group_chat_manager]) == 6
+                    assert len(groupchat.messages) == 6
+    elif method == "wrong":
+        with pytest.raises(ValueError):
+            agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+
+
+def test_speaker_selection_method():
+    for method in ["auto", "round_robin", "random", "manual", "wrong", "RounD_roBin"]:
+        _test_selection_method(method)
+
+
+def _test_n_agents_less_than_3(method):
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    # test two agents
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        max_round=6,
+        speaker_selection_method=method,
+        allow_repeat_speaker=True if method == "random" else False,
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+    assert len(agent1.chat_messages[group_chat_manager]) == 6
+    assert len(groupchat.messages) == 6
+    if method != "random" or method.lower() == "round_robin":
+        assert [msg["content"] for msg in agent1.chat_messages[group_chat_manager]] == [
+            "This is alice speaking.",
+            "This is bob speaking.",
+        ] * 3
+
+    # test one agent
+    groupchat = autogen.GroupChat(
+        agents=[agent1],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker=False,
+    )
+    with pytest.raises(ValueError):
+        group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+
+    # test zero agent
+    groupchat = autogen.GroupChat(
+        agents=[],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker=False,
+    )
+    with pytest.raises(ValueError):
+        group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+
+
+def test_n_agents_less_than_3():
+    for method in ["auto", "round_robin", "random", "RounD_roBin"]:
+        _test_n_agents_less_than_3(method)
+
+
 def test_plugin():
     # Give another Agent class ability to manage group chat
     agent1 = autogen.ConversableAgent(
@@ -89,7 +236,7 @@ def test_plugin():
         max_consecutive_auto_reply=2,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -112,8 +259,82 @@ def test_plugin():
     assert len(groupchat.messages) == 2
 
 
+def test_agent_mentions():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice sepaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "sam",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is sam speaking.",
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=2)
+
+    # Basic counting
+    assert json.dumps(groupchat._mentioned_agents("", [agent1, agent2, agent3]), sort_keys=True) == "{}"
+    assert json.dumps(groupchat._mentioned_agents("alice", [agent1, agent2, agent3]), sort_keys=True) == '{"alice": 1}'
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice bob alice", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 2, "bob": 1}'
+    )
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice bob alice sam", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 2, "bob": 1, "sam": 1}'
+    )
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice bob alice sam robert", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 2, "bob": 1, "sam": 1}'
+    )
+
+    # Substring
+    assert (
+        json.dumps(groupchat._mentioned_agents("sam samantha basam asami", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"sam": 1}'
+    )
+
+    # Word boundaries
+    assert (
+        json.dumps(groupchat._mentioned_agents("alice! .alice. .alice", [agent1, agent2, agent3]), sort_keys=True)
+        == '{"alice": 3}'
+    )
+
+    # Special characters in agent names
+    agent4 = autogen.ConversableAgent(
+        ".*",
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="Match everything.",
+    )
+
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3, agent4], messages=[], max_round=2)
+    assert (
+        json.dumps(
+            groupchat._mentioned_agents("alice bob alice sam robert .*", [agent1, agent2, agent3, agent4]),
+            sort_keys=True,
+        )
+        == '{".*": 1, "alice": 2, "bob": 1, "sam": 1}'
+    )
+
+
 if __name__ == "__main__":
-    test_func_call_groupchat()
+    # test_func_call_groupchat()
     # test_broadcast()
-    test_chat_manager()
+    # test_chat_manager()
     # test_plugin()
+    test_speaker_selection_method()
+    test_n_agents_less_than_3()
+    # test_agent_mentions()
