@@ -254,7 +254,8 @@ Example:
        text = soup.find("div", {"id": "bodyContent"}).text
        return title, text
    ```
-""")
+"""
+    )
     print(codeblocks)
     assert len(codeblocks) == 1 and codeblocks[0][0] == "python"
 
@@ -272,10 +273,12 @@ def scrape(url):
    text = soup.find("div", {"id": "bodyContent"}).text
    return title, text
 ```
-""".replace("\n", "\r\n"))
+""".replace(
+            "\n", "\r\n"
+        )
+    )
     print(codeblocks)
     assert len(codeblocks) == 1 and codeblocks[0][0] == "python"
-
 
     codeblocks = extract_code("no code block")
     assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, "no code block")
@@ -416,6 +419,6 @@ class TestContentStr(unittest.TestCase):
 if __name__ == "__main__":
     # test_infer_lang()
     test_extract_code()
-    #test_execute_code()
+    # test_execute_code()
     # test_find_code()
-    #unittest.main()
+    # unittest.main()
