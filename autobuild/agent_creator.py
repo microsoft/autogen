@@ -6,6 +6,7 @@ import os
 import json
 import hashlib
 from typing import *
+from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 
 class AgentCreator:
@@ -16,7 +17,8 @@ class AgentCreator:
     max_tokens = 945
     num_of_pos = 5
 
-    CODING_PROMPT = '''Does the following task need programming (i.e., access external API or tool by coding) to solve?
+    CODING_PROMPT = '''Does the following task need programming (i.e., access external API or tool by coding) to solve, 
+    or use program may help the following task become easier?
 
     TASK: {task}
 
@@ -30,6 +32,7 @@ class AgentCreator:
     Considering the effort, the position in this task should be no more then {num_of_pos}, less is better.
     Answer the name of those positions/jobs, separated by comma and use "_" instead of space. 
     For example: Product_manager,Programmer
+    Only return the list of positions.
     '''
 
     AGENT_SYS_MSG_PROMPT = '''Considering the following position and corresponding task:
@@ -41,37 +44,43 @@ class AgentCreator:
     
     REQUIREMENT: {default_sys_msg}
     
-    Your answer should omit the word "REQUIREMENT" and include the description of behavior when the task complete.
+    Hint:
+    # The modified requirement should not contain the code interpreter skill.
+    # Coding skill is limited to Python.
+    # Your answer should omit the word "REQUIREMENT".
+    # Your answer should include the description of the behavior when the task complete (user's need has been satisfied).
     '''
 
     def __init__(
             self,
             host: str = 'localhost',
             config_path: str = 'OAI_CONFIG_LIST',
+            builder_model: str = 'gpt-4-1106-preview',
             endpoint_building_timeout: Optional[int] = 180
     ):
         """
         Args:
             host: endpoint host.
             config_path: path of the OpenAI api configs.
+            builder_model: specify a model as the backbone of build manager.
             endpoint_building_timeout: timeout for building up an endpoint server.
         """
+        self.host = host
+        self.builder_model = builder_model
+        self.config_path = config_path
+        self.endpoint_building_timeout = endpoint_building_timeout
+
         self.user_proxy: autogen.UserProxyAgent = None
         self.group_chat_manager_config: dict = None
-        self.initiate_agent_name: str = 'Code_interpreter'
+        self.initiate_agent_name: str = 'User_console_and_Python_code_interpreter'
         self.manager_system_message: str = 'Group chat manager.'
         self.agent_configs: List[Dict] = []
         self.coding: bool = None
         self.default_llm_config: Dict = None
         self.building_task: str = None
-
         self.open_ports: List[str] = []
         self.agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
         self.agent_procs_assign: Dict[str, Tuple[autogen.AssistantAgent, str]] = {}
-
-        self.endpoint_building_timeout = endpoint_building_timeout
-        self.config_path = config_path
-        self.host = host
 
         print('Initializing usable port...')
         for port in range(8000, 65535):
@@ -97,6 +106,7 @@ class AgentCreator:
             model_name_or_hf_repo: str,
             llm_config: dict,
             system_message: Optional[str] = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+            enable_assistant: Optional[bool] = False,
             world_size: Optional[int] = 1
     ) -> autogen.AssistantAgent:
         """
@@ -110,6 +120,7 @@ class AgentCreator:
             model_name_or_hf_repo:
             llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             system_message: system prompt use to format an agent's behavior.
+            enable_assistant: use OpenAI GPTs api instead on self-construct agent.
             world_size: the max size of parallel tensors (in most of the cases, this is identical to the amount of GPUs).
 
         Returns:
@@ -168,9 +179,20 @@ class AgentCreator:
             'model': model_name_or_hf_repo,
             'max_tokens': self.max_tokens
         })
-        agent = autogen.AssistantAgent(name=agent_name,
-                                       llm_config=current_config.copy(),
-                                       system_message=system_message)
+        if enable_assistant:
+            # TODO: use new prompt to generate instruction.
+            agent = GPTAssistantAgent(
+                name=agent_name,
+                llm_config={
+                    **current_config,
+                    "assistant_id": None  # TODO: use previous assistant_id to reuse a previous assistant.
+                },
+                instructions=system_message
+            )
+        else:
+            agent = autogen.AssistantAgent(name=agent_name,
+                                           llm_config=current_config.copy(),
+                                           system_message=system_message)
         self.agent_procs_assign[agent_name] = (agent, server_id)
         return agent
 
@@ -211,7 +233,8 @@ class AgentCreator:
             building_task: str = None,
             default_llm_config: Dict = None,
             coding: bool = None,
-            cache_configs: Optional[Dict] = None
+            cache_configs: Optional[Dict] = None,
+            enable_assistant: Optional[bool] = False
     ):
         use_api = False
 
@@ -230,25 +253,26 @@ class AgentCreator:
         config_list = autogen.config_list_from_json(
             self.config_path,
             filter_dict={
-                'model': ['gpt-4']
+                'model': [self.builder_model]
             }
         )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
         if use_api:
-            # after this process completed, we should obtain a following list and a manager_system_message.
+            # after this process completed, we should obtain a following list.
             # self.agent_configs = [
             #     {
             #         'name': 'Coder_gpt_35',
             #         'model': 'gpt-3.5-turbo',
-            #         'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            #         'system_message': 'system message for coder'
             #     },
             #     {
             #         'name': 'Product_manager',
             #         'model': 'gpt-3.5-turbo',
-            #         'system_message': autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+            #         'system_message': 'system message for pm'
             #     }
             # ]
+            print('Generating agent...')
             resp_agent_name = build_manager.create(
                 messages=[
                     {
@@ -258,9 +282,11 @@ class AgentCreator:
                 ]
             ).choices[0].message.content
             agent_name_list = resp_agent_name.split(',')
+            print(f'{resp_agent_name} are generated.')
 
             agent_sys_msg_list = []
             for name in agent_name_list:
+                print(f'Preparing configuration for {name}...')
                 resp_agent_sys_msg = build_manager.create(
                                          messages=[
                                              {
@@ -278,17 +304,17 @@ class AgentCreator:
             for i in range(len(agent_name_list)):
                 self.agent_configs.append({
                     'name': agent_name_list[i],
-                    'model': 'gpt-3.5-turbo',  # TODO: prompt gpt-4 to select opensource model
+                    'model': 'gpt-4-1106-preview',  # TODO: prompt gpt-4 to select opensource model
                     'system_message': agent_sys_msg_list[i]
                 })
-
             self.manager_system_message = 'Group chat manager.'
 
         for agent_config in self.agent_configs:
             self.create_agent(agent_config['name'],
                               agent_config['model'],
                               self.default_llm_config,
-                              system_message=agent_config['system_message'])
+                              system_message=agent_config['system_message'],
+                              enable_assistant=enable_assistant)
 
         if self.coding is None:
             resp = build_manager.create(
@@ -298,8 +324,8 @@ class AgentCreator:
 
         if self.coding is True:
             self.user_proxy = autogen.UserProxyAgent(
-                name="Code_interpreter",
-                system_message="A code interpreter interface.",
+                name="User_console_and_Python_code_interpreter",
+                system_message="User console with a python code interpreter interface.",
                 code_execution_config={"last_n_messages": 2, "work_dir": "groupchat"},
                 human_input_mode="NEVER"
             )
@@ -321,7 +347,7 @@ class AgentCreator:
             filepath: save path.
 
         Return:
-            filepath: saved path.
+            filepath: path save.
         """
         if filepath is None:
             filepath = f'./save_config_{hashlib.md5(self.building_task.encode("utf-8")).hexdigest()}.json'
@@ -376,7 +402,7 @@ class AgentCreator:
                                            llm_config=self.group_chat_manager_config,
                                            system_message=self.manager_system_message)
 
-        if self.initiate_agent_name == "user" and self.user_proxy is not None:
+        if self.initiate_agent_name == "User_console_and_Python_code_interpreter" and self.user_proxy is not None:
             self.user_proxy.initiate_chat(manager, message=task)
         else:
             for agent in agent_list:
@@ -393,7 +419,7 @@ if __name__ == '__main__':
     building_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 
     builder = AgentCreator(config_path=config_path)
-    builder.build(building_task, default_llm_config)
+    builder.build(building_task, default_llm_config, enable_assistant=True)
     builder.start(task)
     builder.clear_all_agents()
 
