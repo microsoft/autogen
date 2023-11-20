@@ -223,22 +223,35 @@ export const formatDuration = (seconds: number) => {
 };
 
 export const getDefaultConfigFlows = () => {
-  const llm_model_config: IModelConfig = {
-    model: "gpt-4-1106-preview",
-  };
+  const llm_model_config: IModelConfig[] = [
+    {
+      model: "gpt-4-1106-preview",
+    },
+    {
+      model: "gpt-3.5-turbo-16k",
+    },
+    {
+      model: "TheBloke/zephyr-7B-alpha-AWQ",
+      base_url: "http://localhost:8000/v1",
+    },
+  ];
 
   const llm_model_config_35turbo: IModelConfig = {
     model: "gpt-3.5-turbo-16k",
   };
 
-  const llm_config_35turbo = {
+  const llm_config_35turbo: ILLMConfig = {
     config_list: [llm_model_config_35turbo],
     temperature: 0.1,
+    timeout: 600,
+    cache_seed: null,
   };
 
   const llm_config: ILLMConfig = {
-    config_list: [llm_model_config],
+    config_list: llm_model_config,
     temperature: 0.1,
+    timeout: 600,
+    cache_seed: null,
   };
 
   const userProxyConfig: IAgentConfig = {
@@ -247,7 +260,7 @@ export const getDefaultConfigFlows = () => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
     system_message:
-      "You are a helpful assistant that can respond with a summary. Your summary should include RECENT code blocks that address recent <user_request> in markdown format e.g. ```python ``` where appropriate. The summary must be written as a coherent helpful response to <user_request> e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
+      "You are a helpful assistant that can respond with a conscise summary of the previous conversation. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
     code_execution_config: {
       work_dir: null,
       use_docker: false,
@@ -298,4 +311,62 @@ export const getDefaultConfigFlows = () => {
   };
 
   return [GeneralFlowConfig, VisualizationChatFlowConfig];
+};
+
+export const getModels = () => {
+  const models = [
+    {
+      model: "gpt-4-1106-preview",
+    },
+    {
+      model: "gpt-3.5-turbo-16k",
+    },
+    {
+      model: "TheBloke/zephyr-7B-alpha-AWQ",
+      base_url: "http://localhost:8000/v1",
+    },
+  ];
+  return models;
+};
+
+export const getSampleSkill = () => {
+  const catSkill = `import numpy as np
+  import matplotlib.pyplot as plt
+  from matplotlib import font_manager as fm
+  
+  def save_cat_ascii_art_to_png(filename='ascii_cat.png'):
+      """
+      Creates ASCII art of a cat and saves it to a PNG file.
+      
+      :param filename: str, the name of the PNG file to save the ASCII art.
+      """
+      # ASCII art string
+      cat_art = [
+          "  /\_/\  ",
+          " ( o.o ) ",
+          " > ^ <  "
+      ]
+      
+      # Determine shape of output array
+      height = len(cat_art)
+      width = max(len(line) for line in cat_art)
+  
+      # Create a figure and axis to display ASCII art
+      fig, ax = plt.subplots(figsize=(width, height))
+      ax.axis('off')  # Hide axes
+  
+      # Get a monospace font
+      prop = fm.FontProperties(family='monospace')
+  
+      # Display ASCII art using text
+      for y, line in enumerate(cat_art):
+          ax.text(0, height-y-1, line, fontproperties=prop, fontsize=12)
+  
+      # Adjust layout
+      plt.tight_layout()
+  
+      # Save figure to file
+      plt.savefig(filename, dpi=120, bbox_inches='tight', pad_inches=0.1)
+      plt.close(fig)`;
+  return catSkill;
 };

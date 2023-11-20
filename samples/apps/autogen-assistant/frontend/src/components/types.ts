@@ -25,8 +25,9 @@ export interface IChatMessage {
 }
 
 export interface ILLMConfig {
-  config_list: Array<{ [key: string]: any }>;
-  seed?: number;
+  config_list: Array<IModelConfig>;
+  timeout?: number;
+  cache_seed?: number | null;
   temperature: number;
 }
 
@@ -56,5 +57,6 @@ export interface IModelConfig {
   model: string;
   api_key?: string;
   api_version?: string;
-  api_base?: string;
+  base_url?: string;
+  api_type?: string;
 }

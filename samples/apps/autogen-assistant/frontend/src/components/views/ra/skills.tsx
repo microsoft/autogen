@@ -3,7 +3,12 @@ import { Modal, message } from "antd";
 import * as React from "react";
 import { IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import { fetchJSON, getServerUrl, truncateText } from "../../utils";
+import {
+  fetchJSON,
+  getSampleSkill,
+  getServerUrl,
+  truncateText,
+} from "../../utils";
 import {
   CodeBlock,
   CollapseBox,
@@ -35,7 +40,8 @@ const SkillsView = ({ setMessages, skillup }: any) => {
   const [showSkillModal, setShowSkillModal] = React.useState(false);
   const [showNewSkillModal, setShowNewSkillModal] = React.useState(false);
 
-  const [skillCode, setSkillCode] = React.useState("");
+  const sampleSkill = getSampleSkill();
+  const [skillCode, setSkillCode] = React.useState(sampleSkill);
 
   // console.log("skukkup", skillup);
 
@@ -114,7 +120,7 @@ const SkillsView = ({ setMessages, skillup }: any) => {
   const saveSkill = () => {
     // check if skillTextAreaRef.current is not null or ""
 
-    if (!skillCode || skillCode == "") {
+    if (!skillCode || skillCode == "" || skillCode == sampleSkill) {
       message.error("Please provide code for the skill");
       return;
     }

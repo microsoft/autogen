@@ -4,15 +4,17 @@ import {
   Cog8ToothIcon,
   XMarkIcon,
   ClipboardIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
-import React, { ReactNode, useRef } from "react";
+import React, { ReactNode, useRef, useState } from "react";
 import Icon from "./icons";
-import { Modal } from "antd";
+import { Button, Input, Modal, Tooltip, message } from "antd";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { truncateText } from "./utils";
+import { IModelConfig } from "./types";
 
 interface CodeProps {
   node?: any;
@@ -507,6 +509,166 @@ export const ControlRowView = ({
       {control}
 
       <div className="border-b border-dashed mt-2 mx-2"></div>
+    </div>
+  );
+};
+
+export const ModelSelector = ({
+  configs,
+  setConfigs,
+  className,
+}: {
+  configs: IModelConfig[];
+  setConfigs: (configs: IModelConfig[]) => void;
+  className?: string;
+}) => {
+  // const [configs, setConfigs] = useState<IModelConfig[]>(modelConfigs);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newModelConfig, setNewModelConfig] = useState<IModelConfig | null>(
+    null
+  );
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+
+  const sanitizeModelConfig = (config: IModelConfig) => {
+    const sanitizedConfig: IModelConfig = { model: config.model };
+    if (config.api_key) sanitizedConfig.api_key = config.api_key;
+    if (config.base_url) sanitizedConfig.base_url = config.base_url;
+    if (config.api_type) sanitizedConfig.api_type = config.api_type;
+    return sanitizedConfig;
+  };
+
+  const handleRemoveConfig = (index: number) => {
+    const updatedConfigs = configs.filter((_, i) => i !== index);
+    setConfigs(updatedConfigs);
+  };
+
+  const showModal = (config: IModelConfig | null, index: number | null) => {
+    setNewModelConfig(config);
+    setEditIndex(index);
+    setIsModalVisible(true);
+  };
+
+  const handleOk = () => {
+    if (newModelConfig?.model.trim()) {
+      const sanitizedConfig = sanitizeModelConfig(newModelConfig);
+
+      if (editIndex !== null) {
+        // Edit existing model
+        const updatedConfigs = [...configs];
+        updatedConfigs[editIndex] = sanitizedConfig;
+        setConfigs(updatedConfigs);
+      } else {
+        // Add new model
+        setConfigs([...configs, sanitizedConfig]);
+      }
+      setIsModalVisible(false);
+      setNewModelConfig(null);
+      setEditIndex(null);
+    } else {
+      // Handle case where 'model' field is empty
+      // Could provide user feedback here (e.g., input validation error)
+      message.error("Model name cannot be empty");
+    }
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setNewModelConfig(null);
+    setEditIndex(null);
+  };
+
+  const updateNewModelConfig = (field: keyof IModelConfig, value: string) => {
+    setNewModelConfig((prevState) =>
+      prevState ? { ...prevState, [field]: value } : null
+    );
+  };
+
+  const modelButtons = configs.map((config, i) => {
+    const tooltipText = `${config.model} \n ${config.base_url || ""} \n ${
+      config.api_type || ""
+    }`;
+    return (
+      <div
+        key={"modelrow_" + i}
+        className="mr-1 mb-1 p-1 px-2 rounded border"
+        onClick={() => showModal(config, i)}
+      >
+        <div className="inline-flex">
+          {" "}
+          <Tooltip title={tooltipText}>
+            <div>{config.model}</div>{" "}
+          </Tooltip>
+          <div
+            role="button"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent opening the modal to edit
+              handleRemoveConfig(i);
+            }}
+            className="ml-1 text-primary hover:text-accent duration-300"
+          >
+            <XMarkIcon className="w-4 h-4 inline-block" />
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  return (
+    <div className={`${className}`}>
+      <div className="flex flex-wrap">
+        {modelButtons}
+        <div
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+          role="button"
+          onClick={() =>
+            showModal(
+              { model: "", api_key: "", base_url: "", api_type: "" },
+              null
+            )
+          }
+        >
+          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+        </div>
+      </div>
+      <Modal
+        title={`${editIndex !== null ? "Edit" : "Add"} Model Configuration`}
+        open={isModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="back" onClick={handleCancel}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleOk}>
+            {editIndex !== null ? "Save Changes" : "Add Model"}
+          </Button>,
+        ]}
+      >
+        <div className="text-sm my-2">Enter parameters for your model.</div>
+        <Input
+          placeholder="Model Name"
+          value={newModelConfig?.model}
+          onChange={(e) => updateNewModelConfig("model", e.target.value)}
+        />
+        <Input.Password
+          className="mt-2"
+          placeholder="API Key"
+          value={newModelConfig?.api_key}
+          onChange={(e) => updateNewModelConfig("api_key", e.target.value)}
+        />
+        <Input
+          className="mt-2"
+          placeholder="Base URL"
+          value={newModelConfig?.base_url}
+          onChange={(e) => updateNewModelConfig("base_url", e.target.value)}
+        />
+        <Input
+          className="mt-2"
+          placeholder="Model Type (optional)"
+          value={newModelConfig?.api_type}
+          onChange={(e) => updateNewModelConfig("api_type", e.target.value)}
+        />
+      </Modal>
     </div>
   );
 };

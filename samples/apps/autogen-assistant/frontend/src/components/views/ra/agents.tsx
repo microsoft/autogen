@@ -1,11 +1,12 @@
 import { AdjustmentsVerticalIcon } from "@heroicons/react/24/outline";
 import { Modal, Select, Slider } from "antd";
 import * as React from "react";
-import { ControlRowView, GroupView } from "../../atoms";
-import { IAgentFlowSpec, IFlowConfig } from "../../types";
+import { ControlRowView, GroupView, ModelSelector } from "../../atoms";
+import { IAgentFlowSpec, IFlowConfig, IModelConfig } from "../../types";
 import TextArea from "antd/es/input/TextArea";
 import { useConfigStore } from "../../../hooks/store";
 import debounce from "lodash.debounce";
+import { getModels } from "../../utils";
 
 const FlowView = ({
   title,
@@ -37,7 +38,7 @@ const FlowView = ({
     }, 3000),
     [onControlChange]
   );
-
+  const modelConfigs = getModels();
   return (
     <>
       <div className="text-accent">{title}</div>
@@ -102,34 +103,20 @@ const FlowView = ({
         {flowSpec.config.llm_config && (
           <ControlRowView
             title="Model"
-            description="Defines which model to use"
-            value={flowSpec.config.llm_config?.config_list[0].model}
+            className="mt-4"
+            description="Defines which models are used for the agent."
+            value={flowSpec.config.llm_config?.config_list?.[0]?.model}
             control={
-              <Select
+              <ModelSelector
                 className="mt-2 w-full"
-                defaultValue={flowSpec.config.llm_config.config_list[0].model}
-                onChange={(value: any) => {
+                configs={flowSpec.config.llm_config.config_list || []}
+                setConfigs={(config_list: IModelConfig[]) => {
                   const llm_config = {
                     ...flowSpec.config.llm_config,
-                    config_list: [
-                      {
-                        ...flowSpec.config.llm_config?.config_list[0],
-                        model: value,
-                      },
-                    ],
+                    config_list,
                   };
                   onControlChange(llm_config, "llm_config");
                 }}
-                options={
-                  [
-                    { label: "gpt-4", value: "gpt-4" },
-                    { label: "gpt-3.5-turbo-16k", value: "gpt-3.5-turbo-16k" },
-                    {
-                      label: "gpt-4-1106-preview",
-                      value: "gpt-4-1106-preview",
-                    },
-                  ] as any
-                }
               />
             }
           />
