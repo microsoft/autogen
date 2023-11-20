@@ -15,6 +15,7 @@ try:
     )
     from autogen.agentchat.contrib.retriever import DEFAULT_RETRIEVER, get_retriever
     from autogen.token_count_utils import count_token
+
     Retriever = get_retriever(DEFAULT_RETRIEVER)
 except ImportError:
     skip = True
@@ -71,13 +72,17 @@ class TestRetrieveUtils:
         assert is_url("https://www.example.com")
         assert not is_url("not_a_url")
 
-
     def test_custom_text_split_function(self):
         def custom_text_split_function(text):
             return [text[: len(text) // 2], text[len(text) // 2 :]]
 
         db_path = "/tmp/test_retrieve_utils"
-        retriever = Retriever(path=db_path, name="mytestcollection", custom_text_split_function=custom_text_split_function, use_existing=False)
+        retriever = Retriever(
+            path=db_path,
+            name="mytestcollection",
+            custom_text_split_function=custom_text_split_function,
+            use_existing=False,
+        )
         retriever.ingest_data(os.path.join(test_dir, "example.txt"))
         results = retriever.query(["autogen"], top_k=1)
         assert (
@@ -105,7 +110,7 @@ class TestRetrieveUtils:
             isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
             for chunk in chunks
         )
-    
+
 
 if __name__ == "__main__":
     pytest.main()
