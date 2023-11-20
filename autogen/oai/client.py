@@ -242,6 +242,7 @@ class OpenAIWrapper:
                             response.pass_filter = pass_filter
                             # TODO: add response.cost
                             return response
+                        continue  # filter is not passed; try the next config
             try:
                 response = self._completions_create(client, params)
             except APIError:
