@@ -4,7 +4,6 @@ import requests
 from urllib.parse import urlparse
 import glob
 import logging
-import pypdf
 from autogen.token_count_utils import count_token
 
 try:
@@ -91,6 +90,8 @@ def split_text_to_chunks(
 
 def extract_text_from_pdf(file: str) -> str:
     """Extract text from PDF files"""
+    import pypdf # optional dependency
+
     text = ""
     with open(file, "rb") as f:
         reader = pypdf.PdfReader(f)
