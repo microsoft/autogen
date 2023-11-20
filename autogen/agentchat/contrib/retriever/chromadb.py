@@ -22,7 +22,7 @@ class ChromaDB(Retriever):
         embedding_function = (
             ef.SentenceTransformerEmbeddingFunction(self.embedding_model_name)
             if self.embedding_function is None
-            else embedding_function
+            else self.embedding_function
         )
         self.collection = self.client.create_collection(
             self.name,

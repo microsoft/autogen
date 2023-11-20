@@ -1,6 +1,7 @@
 from typing import Callable, List
 from collections import defaultdict
 from .base import Retriever
+from .retrieve_utils import split_text_to_chunks, extract_text_from_pdf, split_files_to_chunks, get_files_from_dir
 
 try:
     import lancedb
@@ -9,10 +10,6 @@ try:
     import pyarrow as pa
 except ImportError:
     raise ImportError("Please install lancedb: pip install lancedb")
-
-from typing import List
-from .base import Retriever
-from .retrieve_utils import split_text_to_chunks, extract_text_from_pdf, split_files_to_chunks, get_files_from_dir
 
 
 class LanceDB(Retriever):
