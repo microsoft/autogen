@@ -254,7 +254,16 @@ class OpenAIWrapper:
                     # Cache the response
                     with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                         cache.set(key, response)
-                return response
+
+                # check the filter
+                pass_filter = filter_func is None or filter_func(context=context, response=response)
+                if pass_filter or i == last:
+                    # Return the response if it passes the filter or it is the last client
+                    response.config_id = i
+                    response.pass_filter = pass_filter
+                    # TODO: add response.cost
+                    return response
+                continue  # filter is not passed; try the next config
 
     def _completions_create(self, client, params):
         completions = client.chat.completions if "messages" in params else client.completions
