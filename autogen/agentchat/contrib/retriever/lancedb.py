@@ -28,9 +28,9 @@ class LanceDB(Retriever):
         )
         if self.use_existing and self.name in self.db.table_names():
             self.table = self.db.open_table(self.name)
-            #logger.info(f"Reusing existing table {self.name}")
+            # logger.info(f"Reusing existing table {self.name}")
         else:
-            #logger.info(f"Creating new table {self.name}")
+            # logger.info(f"Creating new table {self.name}")
             schema = self._get_schema(self.embedding_function)
             self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
 

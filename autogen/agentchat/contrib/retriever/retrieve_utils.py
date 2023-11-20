@@ -90,7 +90,7 @@ def split_text_to_chunks(
 
 def extract_text_from_pdf(file: str) -> str:
     """Extract text from PDF files"""
-    import pypdf # optional dependency
+    import pypdf  # optional dependency
 
     text = ""
     with open(file, "rb") as f:
