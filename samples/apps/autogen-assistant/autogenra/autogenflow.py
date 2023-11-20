@@ -95,6 +95,7 @@ class AutoGenFlow:
                 + "\n\n"
                 + self.asst_prompt
             )
+
         return agent_spec
 
     def load(self, agent_spec: AgentFlowSpec) -> autogen.Agent:

@@ -48,19 +48,20 @@ class ModelConfig:
     """Data model for Model Config item in LLMConfig for Autogen"""
 
     model: str
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None 
+    base_url: Optional[str] = None
+    api_type: Optional[str] = None
     api_version: Optional[str] = None
-    api_base: Optional[str] = None
 
 
 @dataclass
 class LLMConfig:
     """Data model for LLM Config for Autogen"""
 
-    config_list: List[ModelConfig] = field(default_factory=List)
+    config_list: List[Any] = field(default_factory=List)
     temperature: float = 0
-    seed: Optional[Union[int, bool]] = False
-    use_cache: Optional[bool] = False
+    cache_seed: Optional[Union[int, None]] = None 
+    timeout: Optional[int] = None
 
 
 @dataclass
