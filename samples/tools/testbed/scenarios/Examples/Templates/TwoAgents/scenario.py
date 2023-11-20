@@ -27,7 +27,12 @@ user_proxy = autogen.UserProxyAgent(
     max_consecutive_auto_reply=10,
     default_auto_reply="TERMINATE",
 )
-user_proxy.initiate_chat(assistant, message="__PROMPT__")
+user_proxy.initiate_chat(
+    assistant,
+    message="""
+__PROMPT__
+""".strip(),
+)
 
 
 ##############################

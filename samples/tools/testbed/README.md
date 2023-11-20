@@ -2,7 +2,7 @@
 
 The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
-This Testbed sample has been tested in, and is known to work with, Autogen versions 0.1.14 and 0.2.0b5
+This Testbed sample has been tested in, and is known to work with, Autogen versions 0.1.14 and 0.2.0b6
 
 ## Setup
 
@@ -17,11 +17,10 @@ The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ l
 ## Running the Testbed
 
 To run the Testbed, simply execute
-``python run_scenarios.py``
+``python run_scenarios.py scenarios/Examples``
 
-The default it to repeat this scenario 10 times. This can be costly. To run each scenario only once, use:
-``python run_scenarios.py --repeat 1``
-
+The default it to run each scenario once time. To run each scenario 10 times, use:
+``python run_scenarios.py --repeat 10 scenarios/Examples ``
 
 The run_scenarios.py script also allows a number of command-line arguments to control various parameters of execution. Type ``python run_scenarios.py -h`` to explore these options:
 
@@ -58,26 +57,26 @@ By default, the Testbed stores results in a folder heirarchy with the following 
 
 For example, consider the following folders:
 
-``./results/default_two_agents/two_agent_stocks_gpt4/0``
-``./results/default_two_agents/two_agent_stocks_gpt4/1``
+``./results/default_two_agents_gpt35/two_agent_stocks/0``
+``./results/default_two_agents_gpt35/two_agent_stocks/1``
 
 ...
 
-``./results/default_two_agents/two_agent_stocks_gpt4/9``
+``./results/default_two_agents_gpt35/two_agent_stocks/9``
 
-This folder holds the results for the ``two_agent_stocks_gpt4`` instance of the ``default_two_agents`` scenario. The ``0`` folder contains the results of the first run. The ``1`` folder contains the results of the second run, and so on. You can think of the _instance_ as mapping to a prompt, or a unique set of parameters, while the _scenario_ defines the template in which those parameters are input.
+This folder holds the results for the ``two_agent_stocks`` instance of the ``default_two_agents_gpt35`` scenario. The ``0`` folder contains the results of the first run. The ``1`` folder contains the results of the second run, and so on. You can think of the _instance_ as mapping to a prompt, or a unique set of parameters, while the _scenario_ defines the template in which those parameters are input.
 
 Within each folder, you will find the following files:
 
 - *timestamp.txt*: records the date and time of the run, along with the version of the pyautogen library installed
 - *console_log.txt*: all console output produced by Docker when running autogen. Read this like you would a regular console.
-- *chat_completions.json*: a log of all OpenAI ChatCompletions, as logged by ``autogen.ChatCompletion.start_logging(compact=False)``
+- *chat_completions.json*: a log of all OpenAI ChatCompletions, as logged by `autogen.ChatCompletion.start_logging(compact=False)`
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
 - *./coding*: A directory containing all code written by Autogen, and all artifacts produced by that code.
 
 ## Scenario Templating
 
-All scenarios are stored in JSONL files in the ``./scenarios'' directory. Each line of a scenario file is a JSON object. The schema varies slightly based on if "template" specifies a _file_ or a _directory_.
+All scenarios are stored in JSONL files (in subdirectories under `./scenarios`). Each line of a scenario file is a JSON object. The schema varies slightly based on if "template" specifies a _file_ or a _directory_.
 
 If "template" points to a _file_, the format is:
 ```
@@ -190,7 +189,7 @@ Accessing this scenario-type requires downloading and converting the HumanEval d
 
 ```
 python utils/download_humaneval.py
-python ./run_scenarios.py --repeat 3 scenarios/human_eval_two_agents_gpt35.jsonl
+python ./run_scenarios.py scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
 python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
 cat human_eval_results_gpt35.csv
 ```
