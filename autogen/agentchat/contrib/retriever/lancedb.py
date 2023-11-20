@@ -12,7 +12,6 @@ except ImportError:
 
 from typing import List
 from .base import Retriever
-from autogen import logger
 from .retrieve_utils import split_text_to_chunks, extract_text_from_pdf, split_files_to_chunks, get_files_from_dir
 
 
@@ -23,15 +22,15 @@ class LanceDB(Retriever):
         if self.db is None:
             self.db = lancedb.connect(self.path)
         self.embedding_function = (
-            get_registry().get("sentence-transformers").create(name=self.embedding_model_name)
+            get_registry().get("sentence-transformers").create(name=self.embedding_model_name, show_progress_bar=True)
             if self.embedding_function is None
             else self.embedding_function
         )
         if self.use_existing and self.name in self.db.table_names():
             self.table = self.db.open_table(self.name)
-            logger.info(f"Reusing existing table {self.name}")
+            #logger.info(f"Reusing existing table {self.name}")
         else:
-            logger.info(f"Creating new table {self.name}")
+            #logger.info(f"Creating new table {self.name}")
             schema = self._get_schema(self.embedding_function)
             self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
 

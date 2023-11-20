@@ -7,8 +7,8 @@ from autogen.agentchat.contrib.retriever.retrieve_utils import (
     get_files_from_dir,
     is_url,
 )
-from autogen.agentchat.contrib.retriever.lancedb import LanceDB
 try:
+    from autogen.agentchat.contrib.retriever.lancedb import LanceDB
     import lancedb
 except ImportError:
     skip = True

@@ -7,8 +7,8 @@ from autogen.agentchat.contrib.retriever.retrieve_utils import (
     get_files_from_dir,
     is_url,
 )
-from autogen.agentchat.contrib.retriever.chromadb import ChromaDB
 try:
+    from autogen.agentchat.contrib.retriever.chromadb import ChromaDB
     import chromadb
 except ImportError:
     skip = True
