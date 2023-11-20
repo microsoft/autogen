@@ -9,7 +9,7 @@ from typing import *
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 
-class AgentCreator:
+class AgentBuilder:
     """
     Descriptions
     """
@@ -21,18 +21,19 @@ class AgentCreator:
     or use program may help the following task become easier?
 
     TASK: {task}
-
-    Answer only YES or NO.
+    
+    Hint:
+    # Answer only YES or NO.
     '''
 
     AGENT_NAME_PROMPT = '''To complete the following task, what positions/jobs should be set to maximize the efficiency?
 
     TASK: {task}
     
-    Considering the effort, the position in this task should be no more then {num_of_pos}, less is better.
-    Answer the name of those positions/jobs, separated by comma and use "_" instead of space. 
-    For example: Product_manager,Programmer
-    Only return the list of positions.
+    Hint:
+    # Considering the effort, the position in this task should be no more then {num_of_pos}, less is better.
+    # Answer the name of those positions/jobs, separated by comma and use "_" instead of space. For example: Product_manager,Programmer
+    # Only return the list of positions.
     '''
 
     AGENT_SYS_MSG_PROMPT = '''Considering the following position and corresponding task:
@@ -180,14 +181,15 @@ class AgentCreator:
             'max_tokens': self.max_tokens
         })
         if enable_assistant:
-            # TODO: use new prompt to generate instruction.
             agent = GPTAssistantAgent(
                 name=agent_name,
                 llm_config={
                     **current_config,
-                    "assistant_id": None  # TODO: use previous assistant_id to reuse a previous assistant.
+                    "assistant_id": None
                 },
-                instructions=system_message
+                instructions=system_message,
+                # TODO: use overwrite instructions to update the old instruction for an assistant.
+                overwrite_instructions=False
             )
         else:
             agent = autogen.AssistantAgent(name=agent_name,
@@ -418,7 +420,7 @@ if __name__ == '__main__':
     task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
     building_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 
-    builder = AgentCreator(config_path=config_path)
+    builder = AgentBuilder(config_path=config_path)
     builder.build(building_task, default_llm_config, enable_assistant=True)
     builder.start(task)
     builder.clear_all_agents()
