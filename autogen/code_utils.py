@@ -33,8 +33,11 @@ logger = logging.getLogger(__name__)
 def content_str(content: Union[str, List, None]) -> str:
     if content is None:
         return ""
-    if type(content) is str:
+    if isinstance(content, str):
         return content
+    if not isinstance(content, list):
+        raise TypeError(f"content must be None, str, or list, but got {type(content)}")
+
     rst = ""
     for item in content:
         if item["type"] == "text":
