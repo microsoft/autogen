@@ -155,6 +155,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
+        logger.warning("Speaker selector prompt:\n" + selector.system_message)
         final, name = selector.generate_oai_reply(
             self.messages
             + [
