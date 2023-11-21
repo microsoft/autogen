@@ -1,13 +1,6 @@
 from .conversable_agent import ConversableAgent
 from typing import Callable, Dict, Literal, Optional, Union
 
-# Default UserProxyAgent.description values, based on human_input_mode
-DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
-    "ALWAYS": "An attentive HUMAN user who can answer questions about the task, and can perform tasks such as running Python code or inputting command line commands at a Linux terminal and reporting back the execution results.",
-    "TERMINATE": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
-    "NEVER": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
-}
-
 
 class UserProxyAgent(ConversableAgent):
     """(In preview) A proxy agent for the user, that can execute code and provide feedback to the other agents.
@@ -21,6 +14,13 @@ class UserProxyAgent(ConversableAgent):
     `run_code`, and `execute_function` methods respectively.
     To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
+
+    # Default UserProxyAgent.description values, based on human_input_mode
+    DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
+        "ALWAYS": "An attentive HUMAN user who can answer questions about the task, and can perform tasks such as running Python code or inputting command line commands at a Linux terminal and reporting back the execution results.",
+        "TERMINATE": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
+        "NEVER": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
+    }
 
     def __init__(
         self,
@@ -89,5 +89,5 @@ class UserProxyAgent(ConversableAgent):
             default_auto_reply=default_auto_reply,
             description=description
             if description is not None
-            else DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
+            else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
         )
