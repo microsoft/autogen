@@ -36,7 +36,7 @@ Let's first look into an overview of the suggested task taxonomy that a multi-ag
 
 In our `AgentEval` framework, we are currently focusing on tasks where _Success is clearly defined_. Next, we will introduce the suggeted framework.
 
-## `AgentEval` framework
+## `AgentEval` Framework
 
 Our previous research on [assistive agents in Minecraft](https://github.com/microsoft/iglu-datasets) suggested that the most optimal way to obtain human judgments is to present humans with two agents side by side and ask for preferences. In this setup of pairwise comparison, humans can develop criteria to explain why they prefer the behavior of one agent over another. For instance, _'the first agent was faster in execution,'_ or _'the second agent moves more naturally.'_ So, the comparative nature led humans to come up with a list of criteria that helps to infer the utility of the task. With this idea in mind, we designed `AgentEval` (shown in Fig. 1), where we employ LLMs to help us understand, verify, and assess task *utility* for the multi-agent system. Namely:
 
@@ -72,7 +72,7 @@ quantifier = autogen.AssistantAgent(
 )
 ```
 
-## `AgentEval` results based on math problems dataset
+## `AgentEval` Results based on Math Problems Dataset
 
  As an example, after running CriticAgent, we obtained the following criteria to verify the results for math problem dataset:
 
@@ -100,7 +100,7 @@ We note that while applying agentEval to math problems, the agent was not expose
 
 It's important not only to identify what is not working but also to recognize what and why actually went well.
 
-## Limitations and future work
+## Limitations and Future Work
 The current implementation of `AgentEval` has a number of limitations which are planning to overcome in the future:
 * The list of criteria varies per run (unless you store a seed). We would recommend to run `CriticAgent` at least two times, and pick criteria you think is important for your domain.
 * The results of the `QuantifierAgent` can vary with each run, so we recommend conducting multiple runs to observe the extent of result variations.
