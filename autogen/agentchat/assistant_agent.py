@@ -35,6 +35,9 @@ Reply "TERMINATE" in the end when everything is done.
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
         code_execution_config: Optional[Union[Dict, Literal[False]]] = False,
+        description: Optional[
+            str
+        ] = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills.",
         **kwargs,
     ):
         """

@@ -192,9 +192,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         for agent in agents:
             if agent.system_message.strip() == "":
                 logger.warning(
-                    f"The agent '{agent.name}' has an empty system_message, and may not work well with GroupChat."
+                    f"The agent '{agent.name}' has an empty description, and may not work well with GroupChat."
                 )
-            roles.append(f"{agent.name}: {agent.system_message}")
+            roles.append(f"{agent.name}: {agent.description}")
         return "\n".join(roles)
 
     def _mentioned_agents(self, message_content: str, agents: List[Agent]) -> Dict:

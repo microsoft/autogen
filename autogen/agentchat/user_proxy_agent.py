@@ -1,6 +1,13 @@
 from .conversable_agent import ConversableAgent
 from typing import Callable, Dict, Literal, Optional, Union
 
+# Default UserProxyAgent.description values, based on human_input_mode
+DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
+    "ALWAYS": "An attentive HUMAN user who can answer questions about the task, and can perform tasks such as running Python code or inputting command line commands at a Linux terminal and reporting back the execution results.",
+    "TERMINATE": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
+    "NEVER": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
+}
+
 
 class UserProxyAgent(ConversableAgent):
     """(In preview) A proxy agent for the user, that can execute code and provide feedback to the other agents.
@@ -26,6 +33,7 @@ class UserProxyAgent(ConversableAgent):
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[str] = "",
+        description: Optional[str] = None,
     ):
         """
         Args:
@@ -70,13 +78,16 @@ class UserProxyAgent(ConversableAgent):
                 Only used when llm_config is not False. Use it to reprogram the agent.
         """
         super().__init__(
-            name,
-            system_message,
-            is_termination_msg,
-            max_consecutive_auto_reply,
-            human_input_mode,
-            function_map,
-            code_execution_config,
-            llm_config,
-            default_auto_reply,
+            name=name,
+            system_message=system_message,
+            is_termination_msg=is_termination_msg,
+            max_consecutive_auto_reply=max_consecutive_auto_reply,
+            human_input_mode=human_input_mode,
+            function_map=function_map,
+            code_execution_config=code_execution_config,
+            llm_config=llm_config,
+            default_auto_reply=default_auto_reply,
+            description=description
+            if description is not None
+            else DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
         )
