@@ -157,6 +157,8 @@ You must select only one speaker to go next, and you must only return their name
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
+        logger.warning("GroupChat selection prompt:\n" + selector.system_message)
+
         final, name = selector.generate_oai_reply(
             self.messages
             + [
@@ -166,6 +168,9 @@ You must select only one speaker to go next, and you must only return their name
                 }
             ]
         )
+
+        logger.warning("GroupChat selection result:" + name)
+
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
