@@ -67,7 +67,7 @@ class GroupChat:
     def select_speaker_msg(self, agents: List[Agent]):
         """Return the message for selecting the next speaker."""
         return f"""You are in a role play game. The following roles are available:
-{self._participant_roles(agents)}.
+{self._participant_roles(agents)}
 
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
@@ -155,7 +155,6 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        logger.warning("Speaker selector prompt:\n" + selector.system_message)
         final, name = selector.generate_oai_reply(
             self.messages
             + [
