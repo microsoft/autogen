@@ -34,6 +34,30 @@ rickyloynd-microsoft:
   url: https://github.com/rickyloynd-microsoft
   image_url: https://github.com/rickyloynd-microsoft.png
 
+samershi:
+  name: Saleema Amershi
+  title: Senior Principal Research Manager at Microsoft Research
+  url: https://github.com/samershi
+  image_url: https://github.com/samershi.png
+
+pcdeadeasy:
+  name: Piali Choudhury
+  title: Principal RSDE at Microsoft Research
+  url: https://github.com/pcdeadeasy
+  image_url: https://github.com/pcdeadeasy.png
+
+victordibia:
+  name: Victor Dibia
+  title: Principal RSDE at Microsoft Research
+  url: https://github.com/victordibia
+  image_url: https://github.com/victordibia.png
+
+afourney:
+  name: Adam Fourney
+  title: Principal Researcher Microsoft Research
+  url: https://github.com/afourney
+  image_url: https://github.com/afourney.png
+
 beibinli:
   name: Beibin Li
   title: Senior Research Engineer at Microsoft
