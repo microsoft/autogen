@@ -165,7 +165,7 @@ You must select only one speaker to go next, and you must only return their name
             + [
                 {
                     "role": "system",
-                    "content": f"Read the above conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task). Speakers do not need equal speaking time. You may even ignore non-relevant participants. Your focus is on efficiently driving progress toward task completion. Select the next speaker from {[agent.name for agent in agents]}. Only return the role.",
+                    "content": f"Read the above conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task). Speakers do not need equal speaking time. You may even ignore non-relevant participants. Your focus is on efficiently driving progress toward task completion. Select the next speaker from {[agent.name for agent in agents]}. Only return their name.",
                 }
             ]
         )
