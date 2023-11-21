@@ -2,6 +2,7 @@ import re
 
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
+from autogen.agentchat.contrib.retriever.retrieve_utils import create_vector_db_from_dir, query_vector_db, TEXT_FORMATS
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen.agentchat.contrib.retriever import get_retriever
@@ -122,8 +123,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
                     Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
-                - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
+                - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+                - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
+                    This only applies to files under the directories in `docs_path`. Explictly included files and urls will be chunked regardless of their types.
+                - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
@@ -177,6 +181,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._get_or_create = self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else True
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", count_token)
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
+        self._custom_text_types = self._retrieve_config.get("custom_text_types", TEXT_FORMATS)
+        self._recursive = self._retrieve_config.get("recursive", True)
         self._context_max_tokens = self._max_tokens * 0.8
         self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
@@ -185,6 +191,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
+        self._search_string = ""  # the search string used in the current query
         # update the termination message function
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
@@ -278,6 +285,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
     def _check_update_context(self, message):
         if isinstance(message, dict):
             message = message.get("content", "")
+        elif not isinstance(message, str):
+            message = ""
         update_context_case1 = "UPDATE CONTEXT" in message[-20:].upper() or "UPDATE CONTEXT" in message[:20].upper()
         update_context_case2 = self.customized_answer_prefix and self.customized_answer_prefix not in message.upper()
         return update_context_case1, update_context_case2
@@ -316,7 +325,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 if not doc_contents:
                     for _tmp_retrieve_count in range(1, 5):
                         self._reset(intermediate=True)
-                        self.retrieve_docs(self.problem, self.n_results * (2 * _tmp_retrieve_count + 1))
+                        self.retrieve_docs(
+                            self.problem, self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
+                        )
                         doc_contents = self._get_context(self._results)
                         if doc_contents:
                             break
@@ -325,7 +336,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 # docs in the retrieved doc results to the context.
                 for _tmp_retrieve_count in range(5):
                     self._reset(intermediate=True)
-                    self.retrieve_docs(_intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1))
+                    self.retrieve_docs(
+                        _intermediate_info[0], self.n_results * (2 * _tmp_retrieve_count + 1), self._search_string
+                    )
                     self._get_context(self._results)
                     doc_contents = "\n".join(self._doc_contents)  # + "\n" + "\n".join(self._intermediate_answers)
                     if doc_contents:
@@ -363,6 +376,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 custom_text_split_function=self.custom_text_split_function,
                 use_existing=not self._get_or_create,
                 client=self._client,
+                custom_text_types=self._custom_text_types,
+                recursive=self._recursive,
             )
             self._collection = True
             self._get_or_create = False
@@ -372,6 +387,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             top_k=n_results,
             filter=search_string,
         )
+        self._search_string = search_string
         self._results = results
         print("doc_ids: ", results["ids"])
 
