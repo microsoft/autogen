@@ -15,16 +15,6 @@ class MongoDBConfig:
         self.embedding_field = embedding_field
 
 
-# Define MongoDB configuration
-mongo_config = MongoDBConfig(
-    mongo_url="mongodb+srv://your_login:your_password@your_cluster?retryWrites=true&w=majority",
-    database="your_database",
-    vector_collection="your_vector_collection",
-    vector_index="<your_vector_index>",
-    embedding_field="<your_embedding_field-to-search>",
-)
-
-
 class MongoDBRetrieveUserProxyAgent(RetrieveUserProxyAgent):
     def __init__(
         self,
