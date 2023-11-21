@@ -104,7 +104,6 @@ class TestRetrieveUtils:
             name="mytestcollection",
             custom_text_split_function=custom_text_split_function,
             use_existing=False,
-            get_or_create=True,
             recursive=False,
         )
         retriever.ingest_data(os.path.join(test_dir, "example.txt"))
