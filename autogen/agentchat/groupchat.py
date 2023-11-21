@@ -66,11 +66,13 @@ class GroupChat:
 
     def select_speaker_msg(self, agents: List[Agent]):
         """Return the message for selecting the next speaker."""
-        return f"""You are in a role play game. The following roles are available:
+        return f"""You are moderating a conversation between the following people:
+
 {self._participant_roles(agents)}
 
-Read the following conversation.
-Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+Read the following conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task).
+You must select only one speaker to go next, and you must only return their name (i.e., from the set [{[agent.name for agent in agents]}])
+"""
 
     def manual_select_speaker(self, agents: List[Agent]) -> Agent:
         """Manually select the next speaker."""
@@ -160,7 +162,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             + [
                 {
                     "role": "system",
-                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
+                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to speak next. Only return the role.",
                 }
             ]
         )
@@ -194,7 +196,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 logger.warning(
                     f"The agent '{agent.name}' has an empty description, and may not work well with GroupChat."
                 )
-            roles.append(f"{agent.name}: {agent.description}")
+            roles.append(f"{agent.name}: {agent.description}".strip())
         return "\n".join(roles)
 
     def _mentioned_agents(self, message_content: str, agents: List[Agent]) -> Dict:
