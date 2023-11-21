@@ -70,7 +70,8 @@ class GroupChat:
 
 {self._participant_roles(agents)}
 
-Read the following conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task).
+Read the following conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task). Speakers do not need equal speaking time. You may even ignore non-relevant participants. Your focus is on efficiently driving progress toward task completion.
+
 You must select only one speaker to go next, and you must only return their name (i.e., from the set {[agent.name for agent in agents]})
 """
 
