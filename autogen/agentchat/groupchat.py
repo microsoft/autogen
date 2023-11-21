@@ -158,19 +158,19 @@ You must select only one speaker to go next, and you must only return their name
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        logger.warning("GroupChat selection prompt:\n" + selector.system_message)
+        # logger.warning("GroupChat selection prompt:\n" + selector.system_message)
 
         final, name = selector.generate_oai_reply(
             self.messages
             + [
                 {
                     "role": "system",
-                    "content": f"Read the above conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task). Speakers do not need equal speaking time. You may even ignore non-relevant participants. Your focus is on efficiently driving progress toward task completion. Select the next speaker from {[agent.name for agent in agents]}. Only return their name.",
+                    "content": f"Read the above conversation, then carefully consider who should speak next based on who's input would be most valued in this moment to make progress on the task. Select the next speaker from {[agent.name for agent in agents]}. Only return their name.",
                 }
             ]
         )
 
-        logger.warning("GroupChat selection result:" + name)
+        # logger.warning("GroupChat selection result: " + name)
 
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
