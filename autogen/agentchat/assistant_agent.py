@@ -37,7 +37,7 @@ Reply "TERMINATE" in the end when everything is done.
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
         code_execution_config: Optional[Union[Dict, Literal[False]]] = False,
-        description: Optional[str] = DEFAULT_DESCRIPTION,
+        description: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -68,3 +68,9 @@ Reply "TERMINATE" in the end when everything is done.
             description=description,
             **kwargs,
         )
+
+        # Update the provided desciption if None, and we are using the default system_message,
+        # then use the default description.
+        if description is None:
+            if system_message == self.DEFAULT_SYSTEM_MESSAGE:
+                self.description = self.DEFAULT_DESCRIPTION
