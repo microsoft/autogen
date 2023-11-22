@@ -30,7 +30,7 @@ Reply "TERMINATE" in the end when everything is done.
     def __init__(
         self,
         name: str,
-        system_message: Optional[Union[str, List]] = DEFAULT_SYSTEM_MESSAGE,
+        system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
