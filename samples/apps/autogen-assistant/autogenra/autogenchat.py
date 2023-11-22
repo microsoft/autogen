@@ -21,7 +21,7 @@ class ChatManager:
             flow_config = get_default_agent_config(scratch_dir, skills_suffix=skills_suffix)
 
         # print("Flow config: ", flow_config)
-        flow = AutoGenFlow(config=flow_config, history=history, work_dir=scratch_dir, asst_prompt=skills_suffix)
+        flow = AutoGenFlow(config=flow_config, history=history, work_dir=scratch_dir, assistant_prompt=skills_suffix)
         message_text = message.content.strip()
 
         output = ""
@@ -38,7 +38,7 @@ class ChatManager:
         output = (
             (
                 flow.sender.last_message()["content"]
-                + "\n The following code snippets were used: \n"
+                + "\n"
                 + successful_code_blocks
             )
             if successful_code_blocks
@@ -51,7 +51,7 @@ class ChatManager:
         modified_files = get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir)
         metadata["files"] = modified_files
 
-        print("Modified files: ", modified_files)
+        print("Modified files: ", len(modified_files))
 
         output_message = Message(
             user_id=message.user_id,

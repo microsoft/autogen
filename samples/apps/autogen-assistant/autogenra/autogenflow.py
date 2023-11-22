@@ -10,7 +10,7 @@ class AutoGenFlow:
     """
 
     def __init__(
-        self, config: FlowConfig, history: Optional[List[Message]] = None, work_dir: str = None, asst_prompt: str = None
+        self, config: FlowConfig, history: Optional[List[Message]] = None, work_dir: str = None, assistant_prompt: str = None
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
@@ -22,7 +22,7 @@ class AutoGenFlow:
 
         """
         self.work_dir = work_dir
-        self.asst_prompt = asst_prompt
+        self.assistant_prompt = assistant_prompt
         self.sender = self.load(config.sender)
         self.receiver = self.load(config.receiver)
 
@@ -87,13 +87,14 @@ class AutoGenFlow:
             code_execution_config = agent_spec.config.code_execution_config or {}
             code_execution_config["work_dir"] = self.work_dir
             agent_spec.config.code_execution_config = code_execution_config
+            print("user proxy", agent_spec)
         if agent_spec.type == "assistant":
             agent_spec.config.system_message = (
                 autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
                 + "\n\n"
                 + agent_spec.config.system_message
                 + "\n\n"
-                + self.asst_prompt
+                + self.assistant_prompt
             )
 
         return agent_spec
