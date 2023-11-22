@@ -256,11 +256,9 @@ export const getDefaultConfigFlows = () => {
 
   const userProxyConfig: IAgentConfig = {
     name: "userproxy",
-    llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
-    system_message:
-      "You are a helpful assistant that can respond with a conscise summary of the previous conversation. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
+    system_message: "",
     code_execution_config: {
       work_dir: null,
       use_docker: false,
@@ -273,10 +271,11 @@ export const getDefaultConfigFlows = () => {
 
   const assistantConfig: IAgentConfig = {
     name: "primary_assistant",
-    llm_config: llm_config_35turbo,
+    llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 8,
-    system_message: "",
+    system_message:
+      "You are a helpful assistant. At each point, do your best to determine if the user's request has been addressed and if so, respond with a summary. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
   };
 
   const visualizationAssistantConfig: IAgentConfig = {
@@ -284,7 +283,7 @@ export const getDefaultConfigFlows = () => {
     llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 4,
-    system_message: `Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The visualization should have an APPROPRIATE ASPECT RATIO e..g rectangular for time series data. The title must be bold. Importantly, if THE CHART IS A LINE CHART, you MUST ADD ALINE OF BEST FIT and ADD TEXT ON THE SLOPE OF EACH LINE. Note that today's date is ${new Date().toLocaleDateString()}. YOUR RESPONSE MUST NOT CONTAIN THE WORD TERMINATE.`,
+    system_message: `Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The visualization should have an APPROPRIATE ASPECT RATIO e..g rectangular for time series data. The title must be bold. Importantly, if THE CHART IS A LINE CHART, you MUST ADD ALINE OF BEST FIT and ADD TEXT ON THE SLOPE OF EACH LINE. Note that today's date is ${new Date().toLocaleDateString()}. At each point, do your best to determine if the user's request has been addressed and if so, respond with a summary. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request '. The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.`,
   };
 
   const visualizationAssistantFlowSpec: IAgentFlowSpec = {

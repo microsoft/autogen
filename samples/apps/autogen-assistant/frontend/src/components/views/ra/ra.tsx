@@ -8,7 +8,7 @@ import SideBarView from "./sidebar";
 
 const RAView = () => {
   const [loading, setLoading] = React.useState(false);
-  const [messages, setMessages] = React.useState<IMessage[]>([]);
+  const [messages, setMessages] = React.useState<IMessage[] | null>(null);
   const [skillUpdated, setSkillUpdated] = React.useState("default");
 
   const skillup = {

@@ -5,6 +5,7 @@ import {
   XMarkIcon,
   ClipboardIcon,
   PlusIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useRef, useState } from "react";
 import Icon from "./icons";
@@ -274,18 +275,23 @@ export const GroupView = ({ children, title, className = "" }: any) => {
   );
 };
 
-export const ExpandView = ({ children, className = "" }: any) => {
+export const ExpandView = ({ children, icon = null, className = "" }: any) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
-    <div className={`  rounded mb-6  border-secondary ${className}`}>
+    <div
+      style={{
+        minHeight: "100px",
+      }}
+      className={`h-full    rounded mb-6  border-secondary ${className}`}
+    >
       <div
         role="button"
         onClick={() => {
           setIsOpen(true);
         }}
-        className="text-xs mb-2 break-words"
+        className="text-xs mb-2 h-full w-full break-words"
       >
-        {children}
+        {icon ? icon : children}
       </div>
       {isOpen && (
         <Modal
@@ -669,6 +675,44 @@ export const ModelSelector = ({
           onChange={(e) => updateNewModelConfig("api_type", e.target.value)}
         />
       </Modal>
+    </div>
+  );
+};
+
+export const BounceLoader = ({ className }: { className?: string }) => {
+  return (
+    <div className="inline-flex gap-2">
+      <span className="  rounded-full bg-accent h-2 w-2  inline-block"></span>
+      <span className="animate-bounce rounded-full bg-accent h-3 w-3  inline-block"></span>
+      <span className=" rounded-full bg-accent h-2 w-2  inline-block"></span>
+    </div>
+  );
+};
+
+export const ImageLoader = ({
+  src,
+  className = "",
+}: {
+  src: string;
+  className?: string;
+}) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div className="w-full rounded relative">
+      {isLoading && (
+        <div className="absolute h-24 inset-0 flex items-center justify-center">
+          <BounceLoader />
+        </div>
+      )}
+      <img
+        alt="Dynamic content"
+        src={src}
+        className={`w-full rounded ${
+          isLoading ? "opacity-0" : "opacity-100"
+        } ${className}`}
+        onLoad={() => setIsLoading(false)}
+      />
     </div>
   );
 };

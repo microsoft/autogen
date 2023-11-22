@@ -11,7 +11,7 @@ import { IChatMessage, IFlowConfig, IMessage, IStatus } from "../../types";
 import { fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
-import { MarkdownView } from "../../atoms";
+import { BounceLoader, MarkdownView } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 
 const ChatBox = ({
@@ -47,7 +47,7 @@ const ChatBox = ({
   }
 
   const parseMessages = (messages: any) => {
-    return messages.map((message: any) => {
+    return messages?.map((message: any) => {
       let meta;
       try {
         meta = JSON.parse(message.metadata);
@@ -152,7 +152,7 @@ const ChatBox = ({
     }
   };
 
-  const messageListView = messages.map((message: IChatMessage, i: number) => {
+  const messageListView = messages?.map((message: IChatMessage, i: number) => {
     const isUser = message.sender === "user";
     const css = isUser ? "bg-accent text-white  " : "bg-light";
     // console.log("message", message);
@@ -407,15 +407,18 @@ const ChatBox = ({
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
       >
         <div className="flex-1  boder mt-4"></div>
+        {!messages && (
+          <div className="w-full text-center boder mt-4">
+            <div>
+              {" "}
+              <BounceLoader />
+            </div>
+            loading messages
+          </div>
+        )}
         <div className="ml-2"> {messageListView}</div>
         <div className="ml-2 h-6   mb-4 mt-2   ">
-          {loading && (
-            <div className="inline-flex gap-2">
-              <span className="  rounded-full bg-accent h-2 w-2  inline-block"></span>
-              <span className="animate-bounce rounded-full bg-accent h-3 w-3  inline-block"></span>
-              <span className=" rounded-full bg-accent h-2 w-2  inline-block"></span>
-            </div>
-          )}
+          {loading && <BounceLoader />}
         </div>
       </div>
       <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">

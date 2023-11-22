@@ -60,3 +60,11 @@ export interface IModelConfig {
   base_url?: string;
   api_type?: string;
 }
+
+export interface IMetadataFile {
+  name: string;
+  path: string;
+  extension: string;
+  content: string;
+  type: string;
+}
