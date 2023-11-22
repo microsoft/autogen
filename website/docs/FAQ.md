@@ -109,7 +109,7 @@ termination_notice = (
 prompt += termination_notice
 ```
 
-**Note**: This workaround gets the job done around 90% of the time, but there are occurences where the LLM still forgets to terminate the conversation.
+**Note**: This workaround gets the job done around 90% of the time, but there are occurrences where the LLM still forgets to terminate the conversation.
 
 ## ChromaDB fails in codespaces because of old version of sqlite3
 
