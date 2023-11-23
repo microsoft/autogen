@@ -43,7 +43,7 @@ def content_str(content: Union[str, List, None]) -> str:
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
     and converts it into a string. Text is directly appended to the result string, while image URLs are
-    represented by a placeholder "<image>". If the content is None, an empty string is returned.
+    represented by a placeholder image token. If the content is None, an empty string is returned.
 
     Args:
         - content (Union[str, List, None]): The content to be processed. Can be a string, a list of dictionaries
