@@ -51,7 +51,9 @@ autogenra ui --port 8081  # run the web ui on port 8081
 
 ### Install from Source
 
-To install the app from source, clone the repository and install the dependencies.
+> Note: Building the frontend assumes familiarity with nodejs and building react apps.
+
+To install the app from source, clone the repository and install the dependencies. A linux environment is recommended.
 
 ```bash
 pip install -e .
@@ -60,13 +62,21 @@ pip install -e .
 You will also need to build the app front end. Note that your Gatsby requires node > 14.15.0 . You may need to [upgrade your node](https://stackoverflow.com/questions/10075990/upgrading-node-js-to-latest-version) version as needed.
 
 ```bash
+npm install -g gatsby-cli
 npm install --global yarn
 cd frontend
 yarn install
 yarn build
 ```
 
-The command above will build the frontend ui and copy the build artifacts to the `autogenra` web ui folder. Note that you may have to run `npm install  --force --legacy-peer-deps` to force resolve some peer dependencies.
+The `yarn build` command above will build the frontend ui and copy the build artifacts (which is in `frontend/public`) to the `autogenra` web ui folder. Note that you may have to run `npm install  --force --legacy-peer-deps` to force resolve some peer dependencies.
+
+> **Windows Users**. If you are on windows machine, you may need to use the command below instead to build the frontend.
+
+```bash
+gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
+
+```
 
 Run the web ui:
 
