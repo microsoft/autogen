@@ -29,7 +29,7 @@ class GPTAssistantAgent(ConversableAgent):
     ):
         """
         Args:
-            name (str): name of the agent. It will be used to find the existing assistant by name.
+            name (str): name of the agent. It will be used to find the existing assistant by name. Please remember to delete an old assistant with the same name if you intend to create a new assistant with the same name.
             instructions (str): instructions for the OpenAI assistant configuration.
             When instructions is not None, the system message of the agent will be
             set to the provided instructions and used in the assistant run, irrespective
