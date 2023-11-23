@@ -25,8 +25,7 @@ skill_verbosity = 3  # 0 for basic info, 1 to add memory operations, 2 for analy
 
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-cache_seed = None
-# If int, cached LLM calls will be skipped and responses pulled from cache. None exposes LLM non-determinism.
+cache_seed = None  # Use an int to seed the response cache. Use None to disable caching.
 
 # Specify the model to use by uncommenting one of the following lines.
 # filter_dict={"model": ["gpt-4-0613"]}
