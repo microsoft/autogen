@@ -28,6 +28,7 @@ class GroupChat:
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
+        - "graph": the next speaker is selected based on a graph. The select_speaker method is overridden by GraphGroupChat.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True.
     """
 
@@ -39,7 +40,7 @@ class GroupChat:
     speaker_selection_method: str = "auto"
     allow_repeat_speaker: bool = True
 
-    _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
+    _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin", "graph"]
 
     @property
     def agent_names(self) -> List[str]:
@@ -99,6 +100,40 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
+    def auto_select_speaker(
+        self, agents: List[Agent], last_speaker: Agent, selector: ConversableAgent
+    ) -> (Agent, List[Agent], Agent, ConversableAgent):
+        # Encapsulating select_speaker_auto as a class method, so that it can be reused through inheritance in GraphGroupChat
+        # It returns the selected_agent, agents, last_speaker, and selector so as to preserve the states of the inputs from select_speaker
+        selector.update_system_message(self.select_speaker_msg(agents))
+        final, name = selector.generate_oai_reply(
+            self.messages
+            + [
+                {
+                    "role": "system",
+                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
+                }
+            ]
+        )
+        if not final:
+            # the LLM client is None, thus no reply is generated. Use round robin instead.
+            return self.next_agent(last_speaker, agents), agents, last_speaker, selector
+
+        # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
+        mentions = self._mentioned_agents(name, agents)
+        if len(mentions) == 1:
+            name = next(iter(mentions))
+        else:
+            logger.warning(
+                f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
+            )
+
+        # Return the result
+        try:
+            return self.agent_by_name(name), agents, last_speaker, selector
+        except ValueError:
+            return self.next_agent(last_speaker, agents), agents, last_speaker, selector
+
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
@@ -109,6 +144,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         agents = self.agents
         n_agents = len(agents)
+
         # Warn if GroupChat is underpopulated
         if n_agents < 2:
             raise ValueError(
@@ -148,40 +184,23 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = self.manual_select_speaker(agents)
             if selected_agent:
                 return selected_agent
+
         elif self.speaker_selection_method.lower() == "round_robin":
             return self.next_agent(last_speaker, agents)
+
         elif self.speaker_selection_method.lower() == "random":
             return random.choice(agents)
 
-        # auto speaker selection
-        selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = selector.generate_oai_reply(
-            self.messages
-            + [
-                {
-                    "role": "system",
-                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
-                }
-            ]
-        )
-        if not final:
-            # the LLM client is None, thus no reply is generated. Use round robin instead.
-            return self.next_agent(last_speaker, agents)
-
-        # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
-        mentions = self._mentioned_agents(name, agents)
-        if len(mentions) == 1:
-            name = next(iter(mentions))
-        else:
-            logger.warning(
-                f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
+        elif self.speaker_selection_method.lower() == "graph":
+            # This should not trigger because GraphGroupChat select_speaker overrides GroupChat select_speaker
+            raise ValueError(
+                f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
+                f"GraphGroupChat select_speaker overrides GroupChat select_speaker. "
             )
 
-        # Return the result
-        try:
-            return self.agent_by_name(name)
-        except ValueError:
-            return self.next_agent(last_speaker, agents)
+        # Since it is not manual nor round_robin nor random, it must be auto
+        auto_selected_speaker, agents, last_speaker, selector = self.auto_select_speaker(agents, last_speaker, selector)
+        return auto_selected_speaker
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered
