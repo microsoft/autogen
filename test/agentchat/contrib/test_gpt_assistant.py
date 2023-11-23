@@ -2,7 +2,6 @@ import pytest
 import os
 import sys
 import autogen
-import openai
 from autogen import OpenAIWrapper
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -11,6 +10,7 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 try:
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
     from autogen.oai.openai_utils import retrieve_assistants_by_name
+    import openai
 
     skip_test = False
 except ImportError:
