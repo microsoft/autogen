@@ -107,7 +107,7 @@ class GPTAssistantAgent(ConversableAgent):
             llm_config=llm_config,
         )
 
-        # lazly create threads
+        # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
