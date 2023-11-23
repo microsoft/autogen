@@ -42,11 +42,11 @@ def content_str(content: Union[str, List, None]) -> str:
                                       representing text and image URLs, or None.
 
     Returns:
-        str: A string representation of the input content. Image URLs are replaced with "<image>".
+        str: A string representation of the input content. Image URLs are replaced with an image token.
 
     Note:
     - The function expects each dictionary in the list to have a "type" key that is either "text" or "image_url".
-      For "text" type, the "text" key's value is appended to the result. For "image_url", "<image>" is appended.
+      For "text" type, the "text" key's value is appended to the result. For "image_url", an image token is appended.
     - This function is useful for handling content that may include both text and image references, especially
       in contexts where images need to be represented as placeholders.
     """

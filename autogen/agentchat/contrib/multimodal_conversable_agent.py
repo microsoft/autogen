@@ -64,8 +64,11 @@ class MultimodalConversableAgent(ConversableAgent):
         """Convert a message to a dictionary. This implementation
         handles the GPT-4V formatting for easier prompts.
 
-        The message can be a string or a dictionary. The string will be put in
-        the "content" field of the new dictionary.
+        The message can be a string, a dictionary, or a list of dictionaries:
+            - If it's a string, it will be cast into a list and placed in the 'content' field.
+            - If it's a list, it will be directly placed in the 'content' field.
+            - If it's a dictionary, it is already in message dict format. The 'content' field of this dictionary
+            will be processed using the gpt4v_formatter.
         """
         message = copy.deepcopy(message)
         if isinstance(message, str):
@@ -73,8 +76,13 @@ class MultimodalConversableAgent(ConversableAgent):
         if isinstance(message, list):
             return {"content": message}
         if isinstance(message, dict):
-            # Ensure the content field is a formatted List rather than str.
+            assert "content" in message, "The message dict must have a `content` field"
             if isinstance(message["content"], str):
                 message["content"] = gpt4v_formatter(message["content"])
+            try:
+                content_str(message["content"])
+            except Exception as e:
+                print("The `content` field should be compatible with the content_str function!")
+                raise e
             return message
         raise ValueError(f"Unsupported message type: {type(message)}")
