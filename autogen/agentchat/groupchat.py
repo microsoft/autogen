@@ -188,13 +188,22 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if agents is None:
             agents = self.agents
 
+        def extract_system_message(agent):
+            system_message = agent.system_message
+            # Check if system_message is a list of dictionaries
+            if isinstance(system_message, list) and len(system_message) > 0 and 'text' in system_message[0]:
+                return system_message[0]['text']
+            else:
+                return system_message
+
         roles = []
         for agent in agents:
-            if agent.system_message.strip() == "":
+            agent_message = extract_system_message(agent).strip()
+            if agent_message == "":
                 logger.warning(
                     f"The agent '{agent.name}' has an empty system_message, and may not work well with GroupChat."
                 )
-            roles.append(f"{agent.name}: {agent.system_message}")
+            roles.append(f"{agent.name}: {agent_message}")
         return "\n".join(roles)
 
     def _mentioned_agents(self, message_content: str, agents: List[Agent]) -> Dict:
