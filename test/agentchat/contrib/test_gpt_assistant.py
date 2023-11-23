@@ -2,6 +2,7 @@ import pytest
 import os
 import sys
 import autogen
+import openai
 from autogen import OpenAIWrapper
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -211,6 +212,10 @@ def test_get_assistant_files():
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_assistant_retrieval():
+    """
+    Test function to check if the GPTAssistantAgent can retrieve the same assistant
+    """
+
     name = "For GPTAssistantAgent retrieval testing"
 
     assistant_first = GPTAssistantAgent(
@@ -230,8 +235,10 @@ def test_assistant_retrieval():
     try:
         assistant_first.delete_assistant()
         assistant_second.delete_assistant()
-    except Exception:
+    except openai.NotFoundError:
+        # Not found error is expected because the same assistant can not be deleted twice
         pass
+
     assert candidate_first == candidate_second
 
 
