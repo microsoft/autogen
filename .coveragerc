@@ -3,3 +3,4 @@ branch = True
 source = autogen
 omit =
   *test*
+  *samples*
