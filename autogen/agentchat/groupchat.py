@@ -134,7 +134,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         except ValueError:
             return self.next_agent(last_speaker, agents), agents, last_speaker, selector
 
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
