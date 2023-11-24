@@ -1,13 +1,13 @@
 try:
     import networkx as nx
     import matplotlib.pyplot as plt
+    from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat
 
     skip_test = False
 except (ModuleNotFoundError, ImportError):
     skip_test = True
 
 
-from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat
 import autogen
 from io import StringIO
 import logging
