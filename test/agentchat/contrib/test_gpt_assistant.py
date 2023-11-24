@@ -45,8 +45,9 @@ def test_gpt_assistant_chat():
         "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the realted and structured data.",
     }
 
+    name = "For test_gpt_assistant_chat"
     analyst = GPTAssistantAgent(
-        name="Open_Source_Project_Analyst",
+        name=name,
         llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": config_list},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
@@ -80,9 +81,9 @@ def test_get_assistant_instructions():
     Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
     and assert that the retrieved instructions match the set instructions.
     """
-
+    name = "For test_get_assistant_instructions"
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions="This is a test",
         llm_config={
             "config_list": config_list,
@@ -111,11 +112,12 @@ def test_gpt_assistant_instructions_overwrite():
     4. Check that the instructions of the assistant have been overwritten with the new ones.
     """
 
+    name = "For test_gpt_assistant_instructions_overwrite"
     instructions1 = "This is a test #1"
     instructions2 = "This is a test #2"
 
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions=instructions1,
         llm_config={
             "config_list": config_list,
@@ -124,7 +126,7 @@ def test_gpt_assistant_instructions_overwrite():
 
     assistant_id = assistant.assistant_id
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions=instructions2,
         llm_config={
             "config_list": config_list,
@@ -148,10 +150,11 @@ def test_gpt_assistant_existing_no_instructions():
     Test function to check if the GPTAssistantAgent can retrieve instructions for an existing assistant
     even if the assistant was created with no instructions initially.
     """
+    name = "For test_gpt_assistant_existing_no_instructions"
     instructions = "This is a test #1"
 
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions=instructions,
         llm_config={
             "config_list": config_list,
@@ -162,7 +165,7 @@ def test_gpt_assistant_existing_no_instructions():
 
     # create a new assistant with the same ID but no instructions
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         llm_config={
             "config_list": config_list,
             "assistant_id": assistant_id,
@@ -186,9 +189,10 @@ def test_get_assistant_files():
     current_file_path = os.path.abspath(__file__)
     openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+    name = "For test_get_assistant_files"
 
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions="This is a test",
         llm_config={
             "config_list": config_list,
@@ -216,7 +220,7 @@ def test_assistant_retrieval():
     Test function to check if the GPTAssistantAgent can retrieve the same assistant
     """
 
-    name = "For GPTAssistantAgent retrieval testing"
+    name = "For test_assistant_retrieval"
 
     assistant_first = GPTAssistantAgent(
         name,
