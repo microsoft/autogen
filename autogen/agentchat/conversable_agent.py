@@ -54,7 +54,7 @@ class ConversableAgent(Agent):
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-    ) -> None:
+    ):
         """
         Args:
             name (str): name of the agent.
