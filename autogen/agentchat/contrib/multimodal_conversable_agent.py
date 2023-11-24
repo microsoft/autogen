@@ -70,7 +70,6 @@ class MultimodalConversableAgent(ConversableAgent):
             - If it's a dictionary, it is already in message dict format. The 'content' field of this dictionary
             will be processed using the gpt4v_formatter.
         """
-        message = copy.deepcopy(message)
         if isinstance(message, str):
             return {"content": gpt4v_formatter(message)}
         if isinstance(message, list):
@@ -78,10 +77,11 @@ class MultimodalConversableAgent(ConversableAgent):
         if isinstance(message, dict):
             assert "content" in message, "The message dict must have a `content` field"
             if isinstance(message["content"], str):
+                message = copy.deepcopy(message)
                 message["content"] = gpt4v_formatter(message["content"])
             try:
                 content_str(message["content"])
-            except Exception as e:
+            except (TypeError, ValueError) as e:
                 print("The `content` field should be compatible with the content_str function!")
                 raise e
             return message
