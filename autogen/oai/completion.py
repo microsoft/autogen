@@ -229,7 +229,8 @@ class Completion(openai_Completion):
                 sleep(retry_wait_time)
             except APIError as err:
                 error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
-                error_code = error_code and error_code.get("code")
+                if isinstance(error_code, dict):
+                    error_code = error_code.get("code")
                 if error_code == "content_filter":
                     raise
                 # transient error
