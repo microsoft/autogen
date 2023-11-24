@@ -8,7 +8,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
+    import openai
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+    from autogen.oai.openai_utils import retrieve_assistants_by_name
 
     skip_test = False
 except ImportError:
@@ -43,8 +45,9 @@ def test_gpt_assistant_chat():
         "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the realted and structured data.",
     }
 
+    name = "For test_gpt_assistant_chat"
     analyst = GPTAssistantAgent(
-        name="Open_Source_Project_Analyst",
+        name=name,
         llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": config_list},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
@@ -57,14 +60,16 @@ def test_gpt_assistant_chat():
     ok, response = analyst._invoke_assistant(
         [{"role": "user", "content": "What is the most popular open source project on GitHub?"}]
     )
+    executable = analyst.can_execute_function("ossinsight_data_api")
+    analyst.reset()
+    threads_count = len(analyst._openai_threads)
+    analyst.delete_assistant()
+
     assert ok is True
     assert response.get("role", "") == "assistant"
     assert len(response.get("content", "")) > 0
-
-    assert analyst.can_execute_function("ossinsight_data_api") is False
-
-    analyst.reset()
-    assert len(analyst._openai_threads) == 0
+    assert executable is False
+    assert threads_count == 0
 
 
 @pytest.mark.skipif(
@@ -76,9 +81,9 @@ def test_get_assistant_instructions():
     Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
     and assert that the retrieved instructions match the set instructions.
     """
-
+    name = "For test_get_assistant_instructions"
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions="This is a test",
         llm_config={
             "config_list": config_list,
@@ -107,11 +112,12 @@ def test_gpt_assistant_instructions_overwrite():
     4. Check that the instructions of the assistant have been overwritten with the new ones.
     """
 
+    name = "For test_gpt_assistant_instructions_overwrite"
     instructions1 = "This is a test #1"
     instructions2 = "This is a test #2"
 
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions=instructions1,
         llm_config={
             "config_list": config_list,
@@ -120,7 +126,7 @@ def test_gpt_assistant_instructions_overwrite():
 
     assistant_id = assistant.assistant_id
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions=instructions2,
         llm_config={
             "config_list": config_list,
@@ -144,10 +150,11 @@ def test_gpt_assistant_existing_no_instructions():
     Test function to check if the GPTAssistantAgent can retrieve instructions for an existing assistant
     even if the assistant was created with no instructions initially.
     """
+    name = "For test_gpt_assistant_existing_no_instructions"
     instructions = "This is a test #1"
 
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions=instructions,
         llm_config={
             "config_list": config_list,
@@ -158,7 +165,7 @@ def test_gpt_assistant_existing_no_instructions():
 
     # create a new assistant with the same ID but no instructions
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         llm_config={
             "config_list": config_list,
             "assistant_id": assistant_id,
@@ -182,9 +189,10 @@ def test_get_assistant_files():
     current_file_path = os.path.abspath(__file__)
     openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+    name = "For test_get_assistant_files"
 
     assistant = GPTAssistantAgent(
-        "assistant",
+        name,
         instructions="This is a test",
         llm_config={
             "config_list": config_list,
@@ -201,6 +209,41 @@ def test_get_assistant_files():
     openai_client.files.delete(file.id)
 
     assert expected_file_id in retrived_file_ids
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_assistant_retrieval():
+    """
+    Test function to check if the GPTAssistantAgent can retrieve the same assistant
+    """
+
+    name = "For test_assistant_retrieval"
+
+    assistant_first = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config={"config_list": config_list},
+    )
+    candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
+
+    assistant_second = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config={"config_list": config_list},
+    )
+    candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
+
+    try:
+        assistant_first.delete_assistant()
+        assistant_second.delete_assistant()
+    except openai.NotFoundError:
+        # Not found error is expected because the same assistant can not be deleted twice
+        pass
+
+    assert candidate_first == candidate_second
 
 
 if __name__ == "__main__":
