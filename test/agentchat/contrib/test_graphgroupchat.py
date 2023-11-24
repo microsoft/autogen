@@ -3,8 +3,9 @@ try:
     import matplotlib.pyplot as plt
 
     skip_test = False
-except ImportError:
+except (ModuleNotFoundError, ImportError):
     skip_test = True
+
 
 from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat
 import autogen
