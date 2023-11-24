@@ -20,6 +20,7 @@ install_requires = [
     "flaml",
     "python-dotenv",
     "tiktoken",
+    "pymongo"
 ]
 
 setuptools.setup(
