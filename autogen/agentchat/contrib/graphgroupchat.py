@@ -78,7 +78,11 @@ class GraphGroupChat(GroupChat):
                 raise ValueError("The graph has no edges.")
 
             # Check 3. The graph has at least one node with 'first_round_speaker' set to True
-            first_round_speakers = [agent for agent in self.agents if agent.name in self.graph.nodes and self.graph.nodes[agent.name].get("first_round_speaker", False)]
+            first_round_speakers = [
+                agent
+                for agent in self.agents
+                if agent.name in self.graph.nodes and self.graph.nodes[agent.name].get("first_round_speaker", False)
+            ]
             if not first_round_speakers:
                 raise ValueError("The graph has no nodes with 'first_round_speaker' set to True.")
 
@@ -87,20 +91,18 @@ class GraphGroupChat(GroupChat):
                 [self.graph.has_edge(agent.name, agent.name) for agent in self.agents]
             ):
                 raise ValueError("The graph has self-loops, but self.allow_repeat_speaker is False.")
-            
+
             # Check 5. Warning if there are isolated agent nodes
             if any([self.graph.degree(agent.name) == 0 for agent in self.agents]):
                 # Name the isolated agents
                 isolated_agents = [agent.name for agent in self.agents if self.graph.degree(agent.name) == 0]
                 logging.warning(f"The graph has isolated agents: {isolated_agents}")
-                
+
             # Check 6. Warning if there are any agents in self.agents not in graph
             if any([agent.name not in self.graph.nodes for agent in self.agents]):
                 # Name the agents not in the graph
                 agents_not_in_graph = [agent.name for agent in self.agents if agent.name not in self.graph.nodes]
                 logging.warning(f"The graph has agents not in self.agents: {agents_not_in_graph}")
-                
-                
 
         # Run graph check
         _check_graph_validity(self)
@@ -133,8 +135,6 @@ class GraphGroupChat(GroupChat):
         else:
             eligible_speakers = self.agents
 
-        
-
         # Three attempts at getting the next_speaker
         # 1. Using suggested_next if suggested_next is in the eligible_speakers.name
         # 2. Using LLM to pick from eligible_speakers, given that there is some context in self.message
@@ -147,7 +147,6 @@ class GraphGroupChat(GroupChat):
                 next_speaker = self.agent_by_name(suggested_next)
 
             else:
-                msgs_len = len(self.messages)
                 if len(self.messages) > 1:
                     # 2. Using LLM to pick from eligible_speakers, given that there is some context in self.message
                     next_speaker, self.agents, last_speaker, selector = self.auto_select_speaker(
@@ -157,7 +156,6 @@ class GraphGroupChat(GroupChat):
                 if next_speaker is None:
                     # 3. Random (catch-all)
                     next_speaker = random.choice(eligible_speakers)
-
 
             return next_speaker
         else:

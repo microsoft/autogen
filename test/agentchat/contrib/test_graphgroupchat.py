@@ -1,6 +1,7 @@
 try:
     import networkx as nx
     import matplotlib.pyplot as plt
+
     skip_test = False
 except ImportError:
     skip_test = True
@@ -78,7 +79,7 @@ class TestGraphGroupChatGraphValidity(unittest.TestCase):
         with pytest.raises(ValueError) as excinfo:
             GraphGroupChat(agents, messages, graph, allow_repeat_speaker=False)
         assert "The graph has self-loops, but self.allow_repeat_speaker is False." in str(excinfo.value)
-        
+
     def test_warning_isolated_agents(self):
         # Setup a graph with isolated nodes
         graph = nx.DiGraph()
@@ -96,12 +97,12 @@ class TestGraphGroupChatGraphValidity(unittest.TestCase):
         logging.getLogger().addHandler(ch)
 
         # Create GraphGroupChat instance
-        chat = GraphGroupChat(agents=agents, messages=[], graph=graph)
+        GraphGroupChat(agents=agents, messages=[], graph=graph)
 
         # Check if warning is logged
         log_contents = log_capture_string.getvalue()
         self.assertIn("isolated agents", log_contents)
-        
+
     def test_warning_agents_not_in_graph(self):
         # Setup a graph without all agents
         graph = nx.DiGraph()
@@ -120,13 +121,11 @@ class TestGraphGroupChatGraphValidity(unittest.TestCase):
         logging.getLogger().addHandler(ch)
 
         # Create GraphGroupChat instance
-        chat = GraphGroupChat(agents=agents, messages=[], graph=graph)
+        GraphGroupChat(agents=agents, messages=[], graph=graph)
 
         # Check if warning is logged
         log_contents = log_capture_string.getvalue()
         self.assertIn("agents not in self.agents", log_contents)
-
-
 
 
 @pytest.mark.skipif(
@@ -186,6 +185,7 @@ class TestGraphGroupChatSelectSpeakerThreeAssistantAgents:
             selected_speaker = chat.select_speaker(last_speaker=self.agent3, selector=self.selector)
         assert selected_speaker.name == "bob"
 
+
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip_test,
     reason="do not run on MacOS or windows or dependency is not installed",
@@ -198,6 +198,7 @@ class TestGraphGroupChatSelectSpeakerOneAssistantAgentOneUserProxy:
 
         # Mock Agents
         self.agent1 = AssistantAgent(name="alice", llm_config=self.llm_config)
+
         # Termination message detection
         def is_termination_msg(content) -> bool:
             have_content = content.get("content", None) is not None
@@ -207,17 +208,18 @@ class TestGraphGroupChatSelectSpeakerOneAssistantAgentOneUserProxy:
 
         # Terminates the conversation when TERMINATE is detected.
         self.user_proxy = autogen.UserProxyAgent(
-                name="User_proxy",
-                system_message="Terminator admin.",
-                code_execution_config=False,
-                is_termination_msg=is_termination_msg,
-                human_input_mode="NEVER")
+            name="User_proxy",
+            system_message="Terminator admin.",
+            code_execution_config=False,
+            is_termination_msg=is_termination_msg,
+            human_input_mode="NEVER",
+        )
 
         self.agents = [self.user_proxy, self.agent1]
-        
+
         # Create Graph
         self.graph = nx.DiGraph()
-        
+
         # Add nodes for all agents
         for agent in self.agents:
             self.graph.add_node(agent.name, first_round_speaker=True)
@@ -226,29 +228,25 @@ class TestGraphGroupChatSelectSpeakerOneAssistantAgentOneUserProxy:
             for agent2 in self.agents:
                 if agent1 != agent2:
                     self.graph.add_edge(agent1.name, agent2.name)
-                
+
     def test_interaction(self):
         graph_group_chat = GraphGroupChat(
-            agents=self.agents,  # Include all agents
-            messages=[],
-            max_round=20,
-            graph=self.graph
+            agents=self.agents, messages=[], max_round=20, graph=self.graph  # Include all agents
         )
-
 
         # Create the manager
         manager = autogen.GroupChatManager(groupchat=graph_group_chat, llm_config=self.llm_config)
 
-
         # Initiates the chat with Alice
-        self.agents[0].initiate_chat(manager, message="""
-                                Ask alice what is the largest single digit prime number.""")
-        
+        self.agents[0].initiate_chat(
+            manager,
+            message="""
+                                Ask alice what is the largest single digit prime number.""",
+        )
+
         # Assert the messages contain 7
-        # don't just check the last message        
+        # don't just check the last message
         assert any("7" in message["content"] for message in graph_group_chat.messages)
-        
+
         # Assert the messages contain alice
         assert any("alice" in message["name"] for message in graph_group_chat.messages)
-                
-        
