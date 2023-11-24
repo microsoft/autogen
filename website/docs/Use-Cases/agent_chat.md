@@ -76,6 +76,8 @@ By adopting the conversation-driven control with both programming language and n
 - LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call.
   By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls.
 
+- Graph-Based Group Chat. In this approach, a directed graph is input into GraphGroupChat, which inherits from GroupChat. AutoGen will then (1) look for a suggested next speaker by the previous speaker, saving one API call. (2) If there is no suggested spaeker, use the LLM API to suggest the next speaker. (3) Lastly, select a random speaker from the eligible speakers. Eligible speakers are successor nodes (agents) from the previous speaker (agent).
+
 ### Diverse Applications Implemented with AutoGen
 
 The figure below shows six examples of applications built using AutoGen.
