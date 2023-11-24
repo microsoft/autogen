@@ -30,7 +30,7 @@ config_list = autogen.config_list_from_json(
 
 # config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, filter_dict={"model": ["dev-oai-gpt4"]})
 
-assert len(config_list) > 0
+# assert len(config_list) > 0
 
 
 @pytest.mark.skipif(
