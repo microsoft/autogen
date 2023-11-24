@@ -132,7 +132,6 @@ jobs:
       - name: Install packages and dependencies for GraphGroupChat
         run: |
           pip install -e .[graphs]
-          pip uninstall -y openai
       - name: Test GraphGroupChat
         if: matrix.python-version != '3.10'
         run: |
