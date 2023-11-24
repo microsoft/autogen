@@ -1,4 +1,5 @@
-// Please modify the content, remove this comment and rename this file to OAI_CONFIG_LIST to run the sample code.
+// Please modify the content, remove these two lines of comment and rename this file to OAI_CONFIG_LIST to run the sample code.
+// if using pyautogen v0.1.x with Azure OpenAI, please replace "base_url" with "api_base" (line 11 and line 18 below). Use "pip list" to check version of pyautogen installed.
 [
     {
         "model": "gpt-4",
