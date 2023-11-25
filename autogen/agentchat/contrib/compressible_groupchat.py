@@ -106,7 +106,7 @@ class CompressibleGroupChatManager(CompressibleAgent):
             message = self.last_message(speaker)
         return True, None
 
-    def on_groupchat_limit(self, groupchat: GroupChat):
+    def on_groupchat_limit(self, groupchat: GroupChat) -> bool:
         # disabled if compress_config is False
         if self.compress_config is False:
             return False
