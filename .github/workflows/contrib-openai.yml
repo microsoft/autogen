@@ -159,6 +159,6 @@ jobs:
         run: |
           pip install -e .[graphs]
       - name: Test GraphGroupChat
-        if: matrix.python-version != '3.10'
+        if: matrix.python-version != '3.8'
         run: |
           pytest test/agentchat/contrib/test_graphgroupchat.py
