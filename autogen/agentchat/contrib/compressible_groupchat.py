@@ -58,7 +58,7 @@ class CompressibleGroupChatManager(CompressibleAgent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[GroupChat] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Tuple[bool, Optional[None]]:
         """Run a group chat."""
         if messages is None:
             messages = self._oai_messages[sender]
