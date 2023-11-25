@@ -1,6 +1,9 @@
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.teachable_agent import TeachableAgent
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC
+
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 
 try:

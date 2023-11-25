@@ -1,3 +1,11 @@
+import pytest
+import os
+import sys
+from autogen import ConversableAgent, config_list_from_json
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+
 try:
     from openai import OpenAI
     from autogen.agentchat.contrib.teachable_agent import TeachableAgent
@@ -5,11 +13,6 @@ except ImportError:
     skip = True
 else:
     skip = False
-
-import pytest
-import sys
-from autogen import ConversableAgent, config_list_from_json
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC
 
 try:
     from termcolor import colored
