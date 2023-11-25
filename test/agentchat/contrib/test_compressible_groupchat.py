@@ -2,7 +2,7 @@ import pytest
 import sys
 import autogen
 import os
-from autogen.agentchat.contrib.compressible_groupchat import CompressibleGroupChatManager
+from autogen.agentchat.contrib.compressible_groupchatmanager import CompressibleGroupChatManager
 
 here = os.path.abspath(os.path.dirname(__file__))
 KEY_LOC = "notebook"
@@ -26,8 +26,8 @@ except ImportError:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    not OPENAI_INSTALLED,
+    reason="do not run if dependency is not installed",
 )
 def test_compressible_groupchat():
     llm_config = {"config_list": config_list, "cache_seed": 42}

@@ -26,8 +26,8 @@ except ImportError:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    not OPENAI_INSTALLED,
+    reason="do not run if dependency is not installed",
 )
 def test_mode_compress():
     conversations = {}
@@ -65,8 +65,8 @@ def test_mode_compress():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    not OPENAI_INSTALLED,
+    reason="do not run if dependency is not installed",
 )
 def test_mode_custom():
     try:
@@ -135,8 +135,8 @@ def test_mode_custom():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    not OPENAI_INSTALLED,
+    reason="do not run if dependency is not installed",
 )
 def test_compress_messsage():
     assistant = CompressibleAgent(

@@ -128,7 +128,7 @@ Reply "TERMINATE" in the end when everything is done.
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
-    def _set_compress_config(self, compress_config: Optional[Dict] = False):
+    def _set_compress_config(self, compress_config: Optional[Union[Dict, bool]] = False):
         if compress_config:
             if compress_config is True:
                 compress_config = {}
