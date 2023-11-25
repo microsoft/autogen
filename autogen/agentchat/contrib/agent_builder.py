@@ -11,7 +11,13 @@ from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 class AgentBuilder:
     """
-    Descriptions
+    AgentBuilder can help user build an automatic task solving process powered by multi-agent system.
+    Specifically, our building pipeline include init(), build(), and start().
+    In build(), we prompt a gpt-4 model to create multiple participant agent and initialize a group chat, and specify
+        whether this task need programming to solve.
+    After that, user can call start() at a proper time to complete the task.
+    User can save the built agents' config by calling save(), and load the saved configs by load(), which can skip the
+        building process.
     """
 
     openai_server_name = "openai"
@@ -55,16 +61,16 @@ class AgentBuilder:
 
     def __init__(
         self,
-        host: str = "localhost",
-        config_path: str = "OAI_CONFIG_LIST",
-        builder_model: str = "gpt-4-1106-preview",
+        config_path: Optional[str] = "OAI_CONFIG_LIST",
+        builder_model: Optional[str] = "gpt-4-1106-preview",
+        host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 180,
     ):
         """
         Args:
-            host: endpoint host.
             config_path: path of the OpenAI api configs.
             builder_model: specify a model as the backbone of build manager.
+            host: endpoint host.
             endpoint_building_timeout: timeout for building up an endpoint server.
         """
         self.host = host
@@ -84,11 +90,9 @@ class AgentBuilder:
         self.agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
         self.agent_procs_assign: Dict[str, Tuple[autogen.AssistantAgent, str]] = {}
 
-        print("Initializing usable port...")
         for port in range(8000, 65535):
             if self._is_port_open(host, port):
                 self.open_ports.append(str(port))
-        print(f"{len(self.open_ports)} ports found.")
 
     @staticmethod
     def _is_port_open(host, port):
@@ -108,7 +112,7 @@ class AgentBuilder:
         model_name_or_hf_repo: str,
         llm_config: dict,
         system_message: Optional[str] = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-        enable_assistant: Optional[bool] = False,
+        use_gpts: Optional[bool] = False,
         world_size: Optional[int] = 1,
     ) -> autogen.AssistantAgent:
         """
@@ -122,7 +126,7 @@ class AgentBuilder:
             model_name_or_hf_repo:
             llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             system_message: system prompt use to format an agent's behavior.
-            enable_assistant: use OpenAI GPTs api instead on self-construct agent.
+            use_gpts: use OpenAI GPTs api instead on self-construct agent.
             world_size: the max size of parallel tensors (in most of the cases, this is identical to the amount of GPUs).
 
         Returns:
@@ -191,7 +195,7 @@ class AgentBuilder:
         current_config.update(
             {"config_list": config_list, "model": model_name_or_hf_repo, "max_tokens": self.max_tokens}
         )
-        if enable_assistant:
+        if use_gpts:
             agent = GPTAssistantAgent(
                 name=agent_name,
                 llm_config={**current_config, "assistant_id": None},
@@ -235,9 +239,9 @@ class AgentBuilder:
 
     def build(
         self,
-        building_task: str,
-        default_llm_config: Dict,
-        coding: bool,
+        building_task: Optional[str] = None,
+        default_llm_config: Optional[Dict] = None,
+        coding: Optional[bool] = None,
         cached_configs: Optional[Dict] = None,
         use_gpts: Optional[bool] = False,
     ):
@@ -282,7 +286,7 @@ class AgentBuilder:
             #         'system_message': 'system message for pm'
             #     }
             # ]
-            print("Generating agent...")
+            print("Generating agents...")
             resp_agent_name = (
                 build_manager.create(
                     messages=[
@@ -323,7 +327,7 @@ class AgentBuilder:
 
             for i in range(len(agent_name_list)):
                 self.agent_configs.append(
-                    {"name": agent_name_list[i], "model": "gpt-4-1106-preview", "system_message": agent_sys_msg_list[i]}
+                    {"name": agent_name_list[i], "model": self.builder_model, "system_message": agent_sys_msg_list[i]}
                 )
             self.manager_system_message = "Group chat manager."
 
@@ -395,10 +399,12 @@ class AgentBuilder:
             filepath: filepath for the save config.
         """
         if os.path.isfile(filepath):
-            cache_configs = json.load(open(filepath))
-            self.build(cache_configs=cache_configs)
+            cached_configs = json.load(open(filepath))
+            self.build(cached_configs=cached_configs)
         else:
             raise FileNotFoundError(f"Config file {filepath} does not exist.")
+
+        return self
 
     def start(self, task: str, max_round: Optional[int] = 12, init_messages: Optional[List[dict]] = []):
         """
