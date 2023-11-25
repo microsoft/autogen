@@ -141,8 +141,8 @@ def use_task_advice_pair_phrasing():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.11"),
-    reason="do not run if dependency is not installed or py!=3.11",
+    skip,
+    reason="do not run if dependency is not installed",
 )
 def test_teachability_code_paths():
     """Runs this file's unit tests."""
@@ -172,8 +172,8 @@ def test_teachability_code_paths():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.11"),
-    reason="do not run if dependency is not installed or py!=3.11",
+    skip,
+    reason="do not run if dependency is not installed",
 )
 def test_teachability_accuracy():
     """A very cheap and fast test of teachability accuracy."""
