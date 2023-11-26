@@ -38,7 +38,6 @@ Links to notebook examples:
    - In-depth Guide to OpenAI Utility Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_openai_utils.ipynb)
    - **DALLE** Agent Chat with Multimodal Models: DALLE  and GPT-4V - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_dalle_and_gpt4v.ipynb)
 
-
 5. **Agent Teaching and Learning**
    - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teaching.ipynb)
    - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
