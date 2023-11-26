@@ -48,7 +48,20 @@ def test_completion():
     print(client.extract_text_or_function_call(response))
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_cost():
+    config_list = config_list_openai_aoai(KEY_LOC)
+    client = OpenAIWrapper(config_list=config_list, cache_seed=None)
+    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct")
+    print(response.cost)
+
+    client = OpenAIWrapper(config_list=config_list, cache_seed=42)
+    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct")
+    print(response.cost)
+
+
 if __name__ == "__main__":
     test_aoai_chat_completion()
     test_chat_completion()
     test_completion()
+    test_cost()
