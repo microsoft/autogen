@@ -83,6 +83,11 @@ module.exports = {
     [
       '@docusaurus/preset-classic',
       {
+        blog: {
+          showReadingTime: true,
+          blogSidebarCount: "ALL",
+          // Adjust any other blog settings as needed
+        },
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.

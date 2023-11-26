@@ -29,6 +29,10 @@ You can also explicitly specify that by:
 assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
 ```
 
+### Unexpected keyword argument 'base_url'
+
+In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for older versions, use `api_base` but for newer versions use `base_url`.
+
 ### Can I use non-OpenAI models?
 
 Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
@@ -105,7 +109,7 @@ termination_notice = (
 prompt += termination_notice
 ```
 
-**Note**: This workaround gets the job done around 90% of the time, but there are occurences where the LLM still forgets to terminate the conversation.
+**Note**: This workaround gets the job done around 90% of the time, but there are occurrences where the LLM still forgets to terminate the conversation.
 
 ## ChromaDB fails in codespaces because of old version of sqlite3
 
@@ -133,3 +137,11 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 (from [issue #478](https://github.com/microsoft/autogen/issues/478))
 
 See here https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
+
+## How to get last message ?
+
+Refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#last_message
+
+## How to get each agent message ?
+
+Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#chat_messages

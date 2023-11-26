@@ -381,3 +381,15 @@ def config_list_from_dotenv(
 
     logging.info(f"Models available: {[config['model'] for config in config_list]}")
     return config_list
+
+
+def retrieve_assistants_by_name(client, name) -> str:
+    """
+    Return the assistants with the given name from OAI assistant API
+    """
+    assistants = client.beta.assistants.list()
+    candidate_assistants = []
+    for assistant in assistants.data:
+        if assistant.name == name:
+            candidate_assistants.append(assistant)
+    return candidate_assistants

@@ -47,7 +47,7 @@ Finally, launch the RESTful API server
 python -m fastchat.serve.openai_api_server --host localhost --port 8000
 ```
 
-Normally this will work. However, if you encounter error like [this](https://github.com/lm-sys/FastChat/issues/1641), commenting out all the lines containing `finish_reason` in `fastchat/protocol/api_protocal.py` and `fastchat/protocol/openai_api_protocol.py` will fix the problem. The modified code looks like:
+Normally this will work. However, if you encounter error like [this](https://github.com/lm-sys/FastChat/issues/1641), commenting out all the lines containing `finish_reason` in `fastchat/protocol/api_protocol.py` and `fastchat/protocol/openai_api_protocol.py` will fix the problem. The modified code looks like:
 
 ```python
 class CompletionResponseChoice(BaseModel):

@@ -25,12 +25,12 @@ try:
     import diskcache
 
     ERROR = None
-except ImportError:
-    ERROR = ImportError(
-        "(Deprecated) The autogen.Completion class requires openai<1 and diskcache. "
-        "Please switch to autogen.OpenAIWrapper for openai>=1."
-    )
+    assert openai.__version__ < "1"
+except (AssertionError, ImportError):
     openai_Completion = object
+    # The autogen.Completion class requires openai<1
+    ERROR = AssertionError("(Deprecated) The autogen.Completion class requires openai<1 and diskcache. ")
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -109,8 +109,8 @@ class Completion(openai_Completion):
         "prompt": "{prompt}",
     }
 
-    seed = 41
-    cache_path = f".cache/{seed}"
+    cache_seed = 41
+    cache_path = f".cache/{cache_seed}"
     # retry after this many seconds
     retry_wait_time = 10
     # fail a request after hitting RateLimitError for this many seconds
@@ -134,7 +134,7 @@ class Completion(openai_Completion):
             cache_path (str, Optional): The root path for the cache.
                 The complete cache path will be {cache_path}/{seed}.
         """
-        cls.seed = seed
+        cls.cache_seed = seed
         cls.cache_path = f"{cache_path_root}/{seed}"
 
     @classmethod
@@ -145,7 +145,7 @@ class Completion(openai_Completion):
             seed (int, Optional): The integer identifier for the pseudo seed.
                 If omitted, all caches under cache_path_root will be cleared.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{seed}.
+                The complete cache path will be {cache_path}/{cache_seed}.
         """
         if seed is None:
             shutil.rmtree(cache_path_root, ignore_errors=True)
@@ -229,7 +229,8 @@ class Completion(openai_Completion):
                 sleep(retry_wait_time)
             except APIError as err:
                 error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
-                error_code = error_code and error_code.get("code")
+                if isinstance(error_code, dict):
+                    error_code = error_code.get("code")
                 if error_code == "content_filter":
                     raise
                 # transient error
@@ -340,7 +341,7 @@ class Completion(openai_Completion):
             config (dict): Hyperparameter setting for the openai api call.
             prune (bool, optional): Whether to enable pruning. Defaults to True.
             eval_only (bool, optional): Whether to evaluate only
-              (ignore the inference budget and do not rasie error when a request fails).
+              (ignore the inference budget and do not raise error when a request fails).
               Defaults to False.
 
         Returns:
@@ -773,7 +774,7 @@ class Completion(openai_Completion):
                 Besides the parameters for the openai API call, it can also contain:
                 - `max_retry_period` (int): the total time (in seconds) allowed for retrying failed requests.
                 - `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
-                - `seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
+                - `cache_seed` (int) for the cache. This is useful when implementing "controlled randomness" for the completion.
 
         Returns:
             Responses from OpenAI API, with additional fields.
@@ -831,11 +832,11 @@ class Completion(openai_Completion):
             return cls._get_response(
                 params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout, use_cache=False
             )
-        seed = cls.seed
-        if "seed" in params:
-            cls.set_cache(params.pop("seed"))
+        cache_seed = cls.cache_seed
+        if "cache_seed" in params:
+            cls.set_cache(params.pop("cache_seed"))
         with diskcache.Cache(cls.cache_path) as cls._cache:
-            cls.set_cache(seed)
+            cls.set_cache(cache_seed)
             return cls._get_response(params, raise_on_ratelimit_or_timeout=raise_on_ratelimit_or_timeout)
 
     @classmethod
@@ -949,7 +950,7 @@ class Completion(openai_Completion):
             return_responses_and_per_instance_result (bool): Whether to also return responses
                 and per instance results in addition to the aggregated results.
             logging_level (optional): logging level. Defaults to logging.WARNING.
-            **config (dict): parametes passed to the openai api call `create()`.
+            **config (dict): parameters passed to the openai api call `create()`.
 
         Returns:
             None when no valid eval_func is provided in either test or tune;
