@@ -132,29 +132,4 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 
 (from [issue #478](https://github.com/microsoft/autogen/issues/478))
 
-You can hook in a function that is called whenever an agent receives a message
-
-Assuming you have two agents user_proxy and assistant, you can register a function with these agents that gets called with some parameters.
-
-```
-def print_messages(recipient, messages, sender, config):
-    if "callback" in config and  config["callback"] is not None:
-        callback = config["callback"]
-        callback(sender, recipient, messages[-1])
-    print(f"Messages sent to: {recipient.name} | num messages: {len(messages)}")
-    return False, None  # required to ensure the agent communication flow continues
-
-user_proxy.register_reply(
-    [autogen.Agent, None],
-    reply_func=print_messages,
-    config={"callback": None},
-)
-
-assistant.register_reply(
-    [autogen.Agent, None],
-    reply_func=print_messages,
-    config={"callback": None},
-)
-
-```
-In the above, we register a print_messages message that is called each time the agent receive a message.
+See here https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
