@@ -246,6 +246,7 @@ class AgentBuilder:
         coding: Optional[bool] = None,
         cached_configs: Optional[Dict] = None,
         use_gpts: Optional[bool] = False,
+        **kwargs,
     ):
         """
         Auto build agents based on the building task.
@@ -325,6 +326,7 @@ class AgentBuilder:
                     self.default_llm_config,
                     system_message=agent_sys_msg_list[i],
                     use_gpts=use_gpts,
+                    **kwargs,
                 )
             self.manager_system_message = "Group chat manager."
 
