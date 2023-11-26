@@ -14,22 +14,15 @@ except ImportError:
 
 class LanceDB(Retriever):
     db = None
+    table = None
 
     def init_db(self):
-        if self.db is None:
-            self.db = lancedb.connect(self.path)
+        self.db = lancedb.connect(self.path)
         self.embedding_function = (
             get_registry().get("sentence-transformers").create(name=self.embedding_model_name, show_progress_bar=True)
             if self.embedding_function is None
             else self.embedding_function
         )
-        if self.use_existing and self.name in self.db.table_names():
-            self.table = self.db.open_table(self.name)
-            # logger.info(f"Reusing existing table {self.name}")
-        else:
-            # logger.info(f"Creating new table {self.name}")
-            schema = self._get_schema(self.embedding_function)
-            self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
 
     def ingest_data(self, data_dir):
         """
@@ -37,8 +30,9 @@ class LanceDB(Retriever):
         Args:
             data_dir: path to the directory containing the text files
         """
-        if self.db is None:
-            self.init_db()
+        schema = self._get_schema(self.embedding_function)
+        self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
+
         if self.custom_text_split_function is not None:
             chunks = split_files_to_chunks(
                 get_files_from_dir(data_dir), custom_text_split_function=self.custom_text_split_function
@@ -56,6 +50,9 @@ class LanceDB(Retriever):
             data = with_embeddings(self.embedding_function, pa_table)
             self.table.add(data)
 
+    def use_existing_index(self):
+        self.table = self.db.open_table(self.name)
+
     def query(self, texts: List[str], top_k: int = 10, filter: str = None):
         if self.db is None:
             self.init_db()
@@ -72,6 +69,9 @@ class LanceDB(Retriever):
                 results[k].append(v)
 
         return results
+
+    def index_exists(self):
+        return self.name in self.db.table_names()
 
     def _get_schema(self, embedding_function):
         if isinstance(embedding_function, EmbeddingFunction):

@@ -2,7 +2,7 @@ import re
 
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
-from autogen.agentchat.contrib.retriever.retrieve_utils import create_vector_db_from_dir, query_vector_db, TEXT_FORMATS
+from autogen.agentchat.contrib.retriever.retrieve_utils import TEXT_FORMATS
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen.agentchat.contrib.retriever import get_retriever
@@ -161,9 +161,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             human_input_mode=human_input_mode,
             **kwargs,
         )
-
+        self.retriever = None
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
         self._retriever_type = self._retrieve_config.get("retriever_type")
+        self._retriever_path = self._retrieve_config.get("retriever_path", "~/autogen")
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", None)
         self._docs_path = self._retrieve_config.get("docs_path", None)
@@ -363,10 +364,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             n_results (int): the number of results to be retrieved.
             search_string (str): only docs containing this string will be retrieved.
         """
-        if not self._collection or not self._get_or_create:
-            print("Trying to create collection.")
+        if not self.retriever:
             retriever_class = get_retriever(self._retriever_type)
             self.retriever = retriever_class(
+                path=self._retriever_path,
                 name=self._collection_name,
                 embedding_model_name=self._embedding_model,
                 embedding_function=self._embedding_function,
@@ -374,14 +375,20 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 chunk_mode=self._chunk_mode,
                 must_break_at_empty_line=self._must_break_at_empty_line,
                 custom_text_split_function=self.custom_text_split_function,
-                use_existing=not self._get_or_create,
                 client=self._client,
                 custom_text_types=self._custom_text_types,
                 recursive=self._recursive,
             )
-            self._collection = True
-            self._get_or_create = False
-        self.retriever.ingest_data(self._docs_path)
+        if not self.retriever.index_exists() or not self._get_or_create:
+            print("Trying to create index.")  # TODO: logger
+            self.retriever.ingest_data(self._docs_path)
+        elif self._get_or_create:
+            if self.retriever.index_exists():
+                print("Trying to use existing collection.")  # TODO: logger
+                self.retriever.use_existing_index()
+            else:
+                raise Exception("Requested to use existing index but it is not found!")
+
         results = self.retriever.query(
             texts=[problem],
             top_k=n_results,

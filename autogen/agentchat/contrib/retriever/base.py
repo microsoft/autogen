@@ -13,8 +13,10 @@ class Retriever(ABC):
         chunk_mode: str = "multi_lines",
         must_break_at_empty_line: bool = True,
         custom_text_split_function: Callable = None,
-        use_existing=False,
         client=None,
+        # TODO: add support for custom text types and recurisive
+        custom_text_types: str = None,
+        recursive: bool = True,
     ):
         """
         Args:
@@ -35,7 +37,6 @@ class Retriever(ABC):
         self.chunk_mode = chunk_mode
         self.must_break_at_empty_line = must_break_at_empty_line
         self.custom_text_split_function = custom_text_split_function
-        self.use_existing = use_existing
         self.client = client
 
         self.init_db()
@@ -46,6 +47,13 @@ class Retriever(ABC):
         Create a vector database from a directory of files.
         Args:
             data_dir: path to the directory containing the text files
+        """
+        pass
+
+    @abstractmethod
+    def use_existing_index(self):
+        """
+        Open an existing index.
         """
         pass
 
@@ -63,5 +71,12 @@ class Retriever(ABC):
     def init_db(self):
         """
         Initialize the database.
+        """
+        pass
+
+    @abstractmethod
+    def index_exists(self):
+        """
+        Check if the index exists in the database.
         """
         pass

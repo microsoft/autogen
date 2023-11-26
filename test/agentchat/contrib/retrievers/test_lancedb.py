@@ -24,7 +24,7 @@ def test_lancedb():
     db_path = "/tmp/test_lancedb_store"
     db = lancedb.connect(db_path)
     if os.path.exists(db_path):
-        vectorstore = LanceDB(path=db_path, use_existing=True)
+        vectorstore = LanceDB(path=db_path)
     else:
         vectorstore = LanceDB(path=db_path)
     vectorstore.ingest_data(test_dir)
@@ -33,3 +33,12 @@ def test_lancedb():
 
     results = vectorstore.query(["autogen"])
     assert isinstance(results, dict) and any("autogen" in res[0].lower() for res in results.get("documents", []))
+
+    # Test index_exists()
+    vectorstore = LanceDB(path=db_path)
+    assert vectorstore.index_exists()
+
+    # Test use_existing_index()
+    assert vectorstore.table is None
+    vectorstore.use_existing_index()
+    assert vectorstore.table is not None
