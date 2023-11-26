@@ -22,7 +22,7 @@ class AgentBuilder:
 
     openai_server_name = "openai"
     max_tokens = 945
-    num_of_pos = 5
+    max_agents = 5  # maximum number of agents build manager can create.
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
     or use program may help the following task become easier?
@@ -38,7 +38,7 @@ class AgentBuilder:
     TASK: {task}
 
     Hint:
-    # Considering the effort, the position in this task should be no more then {num_of_pos}, less is better.
+    # Considering the effort, the position in this task should be no more then {max_agents}, less is better.
     # Answer the name of those positions/jobs, separated by comma and use "_" instead of space. For example: Product_manager,Programmer
     # Only return the list of positions.
     """
@@ -63,6 +63,7 @@ class AgentBuilder:
         self,
         config_path: Optional[str] = "OAI_CONFIG_LIST",
         builder_model: Optional[str] = "gpt-4-1106-preview",
+        agent_model: Optional[str] = "gpt-4-1106-preview",
         host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 180,
     ):
@@ -75,6 +76,7 @@ class AgentBuilder:
         """
         self.host = host
         self.builder_model = builder_model
+        self.agent_model = agent_model
         self.config_path = config_path
         self.endpoint_building_timeout = endpoint_building_timeout
 
@@ -88,7 +90,7 @@ class AgentBuilder:
         self.building_task: str = None
         self.open_ports: List[str] = []
         self.agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
-        self.agent_procs_assign: Dict[str, Tuple[autogen.AssistantAgent, str]] = {}
+        self.agent_procs_assign: Dict[str, Tuple[autogen.ConversableAgent, str]] = {}
 
         for port in range(8000, 65535):
             if self._is_port_open(host, port):
@@ -273,19 +275,6 @@ class AgentBuilder:
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
         if use_api:
-            # after this process completed, we should obtain a following list.
-            # self.agent_configs = [
-            #     {
-            #         'name': 'Coder_gpt_35',
-            #         'model': 'gpt-3.5-turbo',
-            #         'system_message': 'system message for coder'
-            #     },
-            #     {
-            #         'name': 'Product_manager',
-            #         'model': 'gpt-3.5-turbo',
-            #         'system_message': 'system message for pm'
-            #     }
-            # ]
             print("Generating agents...")
             resp_agent_name = (
                 build_manager.create(
@@ -293,7 +282,7 @@ class AgentBuilder:
                         {
                             "role": "user",
                             "content": self.AGENT_NAME_PROMPT.format(
-                                task=self.building_task, num_of_pos=self.num_of_pos
+                                task=self.building_task, max_agents=self.max_agents
                             ),
                         }
                     ]
@@ -327,18 +316,17 @@ class AgentBuilder:
 
             for i in range(len(agent_name_list)):
                 self.agent_configs.append(
-                    {"name": agent_name_list[i], "model": self.builder_model, "system_message": agent_sys_msg_list[i]}
+                    {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
+                )
+                print(f"Creating agent {agent_name_list[i]} with backbone {self.agent_model}...")
+                self.create_agent(
+                    agent_name_list[i],
+                    self.agent_model,
+                    self.default_llm_config,
+                    system_message=agent_sys_msg_list[i],
+                    use_gpts=use_gpts,
                 )
             self.manager_system_message = "Group chat manager."
-
-        for agent_config in self.agent_configs:
-            self.create_agent(
-                agent_config["name"],
-                agent_config["model"],
-                self.default_llm_config,
-                system_message=agent_config["system_message"],
-                use_gpts=use_gpts,
-            )
 
         if self.coding is None:
             resp = (
@@ -351,6 +339,7 @@ class AgentBuilder:
             self.coding = True if resp == "YES" else False
 
         if self.coding is True:
+            print("Adding user console proxy...")
             self.user_proxy = autogen.UserProxyAgent(
                 name="User_console_and_Python_code_interpreter",
                 system_message="User console with a python code interpreter interface.",
@@ -432,15 +421,3 @@ class AgentBuilder:
             for agent in agent_list:
                 if self.initiate_agent_name == agent.name:
                     agent.initiate_chat(manager, message=task)
-
-
-if __name__ == "__main__":
-    config_path = "/home/elpis_ubuntu/LLM/autogen/OAI_CONFIG_LIST"
-    default_llm_config = {"temperature": 0}
-    task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
-    building_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
-
-    builder = AgentBuilder(config_path=config_path)
-    builder.build(building_task, default_llm_config, use_gpts=True)
-    builder.start(task)
-    builder.clear_all_agents()
