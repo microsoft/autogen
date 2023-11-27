@@ -159,9 +159,8 @@ Reply "TERMINATE" in the end when everything is done.
             init_count = self._compute_init_token_count()
             if trigger_count < init_count:
                 print(
-                    f"Warning: trigger_count {trigger_count} is less than the initial token count {init_count} (system message + function description if passed), compression will be disabled. Please increase trigger_count if you want to enable compression."
+                    f"Warning: trigger_count {trigger_count} is less than the initial token count {init_count} (system message + function description if passed), Compression will be performed at each turn. Please increase trigger_count if this is not desired."
                 )
-                self.compress_config = False
 
             if self.compress_config["mode"] == "CUSTOM" and self.compress_config["compress_function"] is None:
                 raise ValueError("compress_function must be provided when mode is CUSTOM.")

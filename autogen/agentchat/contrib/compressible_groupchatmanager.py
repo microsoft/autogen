@@ -36,15 +36,9 @@ class CompressibleGroupChatManager(GroupChatManager):
         system_message: Optional[str] = "Group chat manager.",
         **kwargs,
     ):
-        # a proxy agent for compression
-        self.compress_agent = CompressibleAgent(
-            name=name,
-            max_consecutive_auto_reply=max_consecutive_auto_reply,
-            human_input_mode=human_input_mode,
-            system_message=system_message,
-            **kwargs,
-        )
+        compress_config = False
         if "compress_config" in kwargs:
+            compress_config = kwargs["compress_config"]
             del kwargs["compress_config"]
 
         super().__init__(
@@ -56,7 +50,21 @@ class CompressibleGroupChatManager(GroupChatManager):
             **kwargs,
         )
 
-        if self.compress_agent.compress_config:
+        if compress_config is not False and compress_config is not None:
+            # a proxy agent for compression
+            self.compress_agent = CompressibleAgent(
+                name=name,
+                max_consecutive_auto_reply=max_consecutive_auto_reply,
+                human_input_mode=human_input_mode,
+                system_message=system_message,
+                compress_config=compress_config,
+                **kwargs,
+            )
+
+            # register the check_groupchat_status_func function
+            self.check_groupchat_status_func = self.check_groupchat_status
+
+            # set init_token_count
             self.compress_agent.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
             self.init_token_count = self.compress_agent._compute_init_token_count() + count_token(
                 groupchat.selector_end_msg(), self.compress_agent.llm_config.get("model")
