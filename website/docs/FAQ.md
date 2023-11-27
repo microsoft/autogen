@@ -132,6 +132,35 @@ Workaround:
 
 Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a44271061cc8e272f3c300?permalink_comment_id=4711478#gistcomment-4711478), linked from the official [chromadb docs](https://docs.trychroma.com/troubleshooting#sqlite), adding this folder triggers chromadb to use pysqlite3 instead of the default.
 
+## How to register a reply function
+
+(from [issue #478](https://github.com/microsoft/autogen/issues/478))
+
+See here https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
+
+ For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
+```python
+def print_messages(recipient, messages, sender, config):
+    if "callback" in config and  config["callback"] is not None:
+        callback = config["callback"]
+        callback(sender, recipient, messages[-1])
+    print(f"Messages sent to: {recipient.name} | num messages: {len(messages)}")
+    return False, None  # required to ensure the agent communication flow continues
+
+user_proxy.register_reply(
+    [autogen.Agent, None],
+    reply_func=print_messages,
+    config={"callback": None},
+)
+
+assistant.register_reply(
+    [autogen.Agent, None],
+    reply_func=print_messages,
+    config={"callback": None},
+)
+```
+In the above, we register a `print_messages` function that is called each time the agent's `generate_reply` is triggered after receiving a message.
+
 ## How to get last message ?
 
 Refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#last_message
