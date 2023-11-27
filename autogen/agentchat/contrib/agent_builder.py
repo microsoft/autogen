@@ -191,7 +191,7 @@ class AgentBuilder:
             else:
                 port = self.agent_procs[server_id][1]
 
-            config_list[0]["api_base"] = f"http://{self.host}:{port}/v1"
+            config_list[0]["base_url"] = f"http://{self.host}:{port}/v1"
 
         current_config = llm_config.copy()
         current_config.update(
