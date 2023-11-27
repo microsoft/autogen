@@ -138,9 +138,7 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 
 See here https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
 
-For example,
-
- Assuming you have two agents user_proxy and assistant, you can register a function with these agents that gets called with some parameters. (The registered reply function is only called when `generate_reply` is called)
+ For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
 ```python
 def print_messages(recipient, messages, sender, config):
     if "callback" in config and  config["callback"] is not None:
@@ -161,7 +159,7 @@ assistant.register_reply(
     config={"callback": None},
 )
 ```
-In the above, we register a `print_messages` function that is called each time the agent receive a message.
+In the above, we register a `print_messages` function that is called each time the agent's `generate_reply` is triggered after receiving a message.
 
 ## How to get last message ?
 
