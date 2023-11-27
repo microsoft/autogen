@@ -274,6 +274,7 @@ class OpenAIWrapper:
         n_input_tokens = response.usage.prompt_tokens
         n_output_tokens = response.usage.completion_tokens
         tmp_price1K = oai_price1k[model]
+        # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
             return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
         return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
