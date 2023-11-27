@@ -211,7 +211,7 @@ class AgentBuilder:
         self.agent_procs_assign[agent_name] = (agent, server_id)
         return agent
 
-    def clear_agent(self, agent_name: str = None, recycle_endpoint: bool = True):
+    def clear_agent(self, agent_name: str, recycle_endpoint: Optional[bool] = True):
         """
         Clear a specific agent by name.
 
@@ -231,13 +231,15 @@ class AgentBuilder:
                         return
                 self.agent_procs[server_id][0].terminate()
                 self.open_ports.append(server_id.split("_")[-1])
+        print(f"Agent {agent_name} has been cleared.")
 
-    def clear_all_agents(self):
+    def clear_all_agents(self, recycle_endpoint: Optional[bool] = True):
         """
         Clear all cached agents.
         """
         for agent_name in [agent_name for agent_name in self.agent_procs_assign.keys()]:
-            self.clear_agent(agent_name)
+            self.clear_agent(agent_name, recycle_endpoint)
+        print("All agents have been cleared.")
 
     def build(
         self,
@@ -265,6 +267,7 @@ class AgentBuilder:
             self.building_task = building_task
             self.default_llm_config = default_llm_config.copy()
             self.coding = coding
+            self.agent_configs = []
         else:
             self.building_task = cached_configs["building_task"]
             self.default_llm_config = cached_configs["default_llm_config"]
