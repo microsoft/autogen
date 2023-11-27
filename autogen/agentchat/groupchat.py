@@ -241,6 +241,12 @@ class GroupChatManager(ConversableAgent):
         # Allow async chat if initiated using a_initiate_chat
         self.register_reply(Agent, GroupChatManager.a_run_chat, config=groupchat, reset_config=GroupChat.reset)
 
+    def check_groupchat_status(self, groupchat: GroupChat) -> bool:
+        """Check groupchat status and terminate if necessary.
+        Return True if the groupchat should be terminated.
+        Placeholder for contrib.compressible_groupchatmanager"""
+        return False
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
@@ -262,6 +268,8 @@ class GroupChatManager(ConversableAgent):
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
+            if self.check_groupchat_status(groupchat):
+                break
             if i == groupchat.max_round - 1:
                 # the last round
                 break

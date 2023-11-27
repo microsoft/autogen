@@ -114,6 +114,8 @@ Reply "TERMINATE" in the end when everything is done.
         if llm_config is False:
             self.llm_compress_config = False
             self.compress_client = None
+            if self.compress_config is not False and self.compress_config["mode"] == "COMPRESS":
+                print("Warning: Mode 'COMPRESS' is not available when no llm_config provided.")
         else:
             self.llm_compress_config = self.llm_config.copy()
             # remove functions
@@ -347,6 +349,9 @@ Reply "TERMINATE" in the end when everything is done.
         """
         # 1. use the compression client
         client = self.compress_client if config is None else config
+        if client is None:
+            logger.warning("Warning: Compression skipped due to no llm_config provided.")
+            return False, None
 
         # 2. stop if there is only one message in the list
         leave_last_n = self.compress_config.get("leave_last_n", 0)

@@ -14,11 +14,17 @@ except ImportError:
 
 
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
-from autogen.agentchat.groupchat import GroupChat
+from autogen.agentchat.groupchat import GroupChat, GroupChatManager
 
 
-class CompressibleGroupChatManager(CompressibleAgent):
-    """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
+class CompressibleGroupChatManager(GroupChatManager):
+    """(In preview) GroupChatManager with compression enabled.
+
+    Structure:
+    1. Inherit from GroupChatManager: override the function check_groupchat_status to
+        check if the tokens used in groupchat is over the limit, and compress if needed.
+    2. Composition with CompressibleAgent: use CompressibleAgent to manage the compression.
+    """
 
     def __init__(
         self,
@@ -28,118 +34,69 @@ class CompressibleGroupChatManager(CompressibleAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[str] = "Group chat manager.",
-        # seed: Optional[int] = 4,
         **kwargs,
     ):
-        super().__init__(
+        # a proxy agent for compression
+        self.compress_agent = CompressibleAgent(
             name=name,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
             system_message=system_message,
             **kwargs,
         )
-        self.register_reply(
-            Agent, CompressibleGroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset
-        )
-        # self._random = random.Random(seed)
+        if "compress_config" in kwargs:
+            del kwargs["compress_config"]
 
-        if self.compress_config:
-            init_count = count_token(
-                groupchat.select_speaker_msg(groupchat.agents), self.llm_config.get("model")
-            ) + count_token(groupchat.selector_end_msg(), self.llm_config.get("model"))
-            trigger_count = self.compress_config["trigger_count"]
-            if init_count >= trigger_count:
+        super().__init__(
+            groupchat=groupchat,
+            name=name,
+            max_consecutive_auto_reply=max_consecutive_auto_reply,
+            human_input_mode=human_input_mode,
+            system_message=system_message,
+            **kwargs,
+        )
+
+        if self.compress_agent.compress_config:
+            self.compress_agent.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
+            self.init_token_count = self.compress_agent._compute_init_token_count() + count_token(
+                groupchat.selector_end_msg(), self.compress_agent.llm_config.get("model")
+            )
+            trigger_count = self.compress_agent.compress_config["trigger_count"]
+            if self.init_token_count >= trigger_count:
                 print(
-                    f"Warning: trigger_count {trigger_count} is less than the initial token count to select speaker {init_count}. Compression will be performed at each turn. Please increase trigger_count if this is not desired."
+                    f"Warning: trigger_count {trigger_count} is less than the initial token count to select speaker {self.init_token_count}. Compression will be performed at each turn. Please increase trigger_count if this is not desired."
                 )
 
-    def run_chat(
-        self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        config: Optional[GroupChat] = None,
-    ) -> Tuple[bool, Optional[None]]:
-        """Run a group chat."""
-        if messages is None:
-            messages = self._oai_messages[sender]
-        message = messages[-1]
-        speaker = sender
-        groupchat = config
-        for i in range(groupchat.max_round):
-            # set the name to speaker's name if the role is not function
-            if message["role"] != "function":
-                message["name"] = speaker.name
-
-            groupchat.messages.append(message)
-            # broadcast the message to all agents except the speaker
-            for agent in groupchat.agents:
-                if agent != speaker:
-                    self.send(message, agent, request_reply=False, silent=True)
-
-            # the only part changed from vanilla GroupChatManager
-            # check if the groupchat is over the limit, and compress if needed
-            is_terminte = self.on_groupchat_limit(groupchat)
-            if is_terminte:
-                break
-
-            if i == groupchat.max_round - 1:
-                # the last round
-                break
-            try:
-                # select the next speaker
-                speaker = groupchat.select_speaker(speaker, self)
-                # let the speaker speak
-                reply = speaker.generate_reply(sender=self)
-            except KeyboardInterrupt:
-                # let the admin agent speak if interrupted
-                if groupchat.admin_name in groupchat.agent_names:
-                    # admin agent is one of the participants
-                    speaker = groupchat.agent_by_name(groupchat.admin_name)
-                    reply = speaker.generate_reply(sender=self)
-                else:
-                    # admin agent is not found in the participants
-                    raise
-            if reply is None:
-                break
-            # The speaker sends the message without requesting a reply
-            speaker.send(reply, self, request_reply=False)
-            message = self.last_message(speaker)
-        return True, None
-
-    def on_groupchat_limit(self, groupchat: GroupChat) -> bool:
+    def check_groupchat_status(self, groupchat: GroupChat) -> bool:
         # disabled if compress_config is False
-        if self.compress_config is False:
+        if self.compress_agent.compress_config is False:
             return False
 
         # we will only count the token used by groupmanager
-        model = self.llm_config.get("model")
-        self.update_system_message(groupchat.select_speaker_msg(groupchat.agents))
-        init_token_count = self._compute_init_token_count()
-        token_used = init_token_count + count_token(groupchat.messages + groupchat.selector_end_msg(), model)
+        model = self.compress_agent.llm_config.get("model")
+        token_used = self.init_token_count + count_token(groupchat.messages, model)
 
         # check if the token used is over the limit
-        final, compressed_messages = self._manage_history_on_token_limit(
+        final, compressed_messages = self.compress_agent._manage_history_on_token_limit(
             groupchat.messages, token_used, get_max_token_limit(model), model
         )
-        # False, None -> no compression is needed
-        # False, compressed_messages -> compress success
-        # True, None -> terminate
 
         # update the groupchat messages
         if final:
             return True  # terminate
         if compressed_messages is not None:
             groupchat.messages = copy.deepcopy(compressed_messages)
-            self._print_compress_info(
-                init_token_count, token_used, init_token_count + count_token(compressed_messages, model)
+            self.compress_agent._print_compress_info(
+                self.init_token_count, token_used, self.init_token_count + count_token(compressed_messages, model)
             )
             # update all agents' messages
             for agent in groupchat.agents:
                 agent._oai_messages[self] = self._convert_agent_messages(compressed_messages, agent)
 
-        return False
+        return False  # do not terminate
 
-    def _convert_agent_messages(self, compressed_messages: List[Dict], agent: Agent) -> List[Dict]:
+    @staticmethod
+    def _convert_agent_messages(compressed_messages: List[Dict], agent: Agent) -> List[Dict]:
         """Convert messages to a corresponding agent's view."""
         converted_messages = []
         tmp_messages = copy.deepcopy(compressed_messages)
