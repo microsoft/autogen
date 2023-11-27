@@ -161,7 +161,7 @@ assistant.register_reply(
     config={"callback": None},
 )
 ```
-In the above, we register a print_messages message that is called each time the agent receive a message.
+In the above, we register a `print_messages` function that is called each time the agent receive a message.
 
 ## How to get last message ?
 
