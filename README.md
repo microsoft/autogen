@@ -5,13 +5,13 @@
 [![](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen)
 
-
 # AutoGen
 
 <!-- <p align="center">
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
+
 :fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples.
 
 :fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff.
@@ -50,15 +50,15 @@ AutoGen is a framework that enables the development of LLM applications using mu
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
 ## Quickstart
+
 The easiest way to start playing is
+
 1. Click below to use the GitHub Codespace
 
-    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
+   [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/microsoft/autogen?quickstart=1)
 
- 2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
- 3. Start playing with the notebooks!
-
-
+2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration. (See [oai_openai_utils.ipynb](https://github.com/microsoft/autogen/blob/main/notebook/oai_openai_utils.ipynb) for details on model configurations.)
+3. Start playing with the notebooks!
 
 ## Installation
 
@@ -212,6 +212,7 @@ For more information, see the [Code of Conduct FAQ](https://opensource.microsoft
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## Contributors Wall
+
 <a href="https://github.com/microsoft/autogen/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=microsoft/autogen" />
 </a>
