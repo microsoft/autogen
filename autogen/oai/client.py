@@ -265,7 +265,7 @@ class OpenAIWrapper:
                     return response
                 continue  # filter is not passed; try the next config
 
-    def cost(self, response):
+    def cost(self, response: Union[ChatCompletion, Completion]) -> float:
         """Calculate the cost of the response."""
         model = response.model
         if model not in oai_price1k:
