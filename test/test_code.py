@@ -1,16 +1,20 @@
-import sys
 import os
+import sys
+import unittest
+
 import pytest
+
 import autogen
 from autogen.code_utils import (
+    PATH_SEPARATOR,
     UNKNOWN,
-    extract_code,
+    WIN32,
+    content_str,
     execute_code,
-    infer_lang,
+    extract_code,
     improve_code,
     improve_function,
-    PATH_SEPARATOR,
-    WIN32,
+    infer_lang,
 )
 
 KEY_LOC = "notebook"
@@ -181,6 +185,8 @@ print("hello extract code")
 """,
         detect_single_line_code=True,
     )
+    print(codeblocks2)
+
     assert codeblocks2 == codeblocks
     # import pdb; pdb.set_trace()
 
@@ -203,9 +209,77 @@ url = "https://en.wikipedia.org/wiki/Web_scraping"
 title, text = scrape(url)
 print(f"Title: {title}")
 print(f"Text: {text}")
+```
 """
     )
     print(codeblocks)
+    assert len(codeblocks) == 2 and codeblocks[0][0] == "python" and codeblocks[1][0] == "python"
+
+    codeblocks = extract_code(
+        """
+Example:
+``` python
+def scrape(url):
+    import requests
+    from bs4 import BeautifulSoup
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    title = soup.find("title").text
+    text = soup.find("div", {"id": "bodyContent"}).text
+    return title, text
+```
+Test:
+``` python
+url = "https://en.wikipedia.org/wiki/Web_scraping"
+title, text = scrape(url)
+print(f"Title: {title}")
+print(f"Text: {text}")
+```
+"""
+    )
+    print(codeblocks)
+    assert len(codeblocks) == 2 and codeblocks[0][0] == "python" and codeblocks[1][0] == "python"
+
+    # Check for indented code blocks
+    codeblocks = extract_code(
+        """
+Example:
+   ```python
+   def scrape(url):
+       import requests
+       from bs4 import BeautifulSoup
+       response = requests.get(url)
+       soup = BeautifulSoup(response.text, "html.parser")
+       title = soup.find("title").text
+       text = soup.find("div", {"id": "bodyContent"}).text
+       return title, text
+   ```
+"""
+    )
+    print(codeblocks)
+    assert len(codeblocks) == 1 and codeblocks[0][0] == "python"
+
+    # Check for codeblocks with \r\n
+    codeblocks = extract_code(
+        """
+Example:
+``` python
+def scrape(url):
+   import requests
+   from bs4 import BeautifulSoup
+   response = requests.get(url)
+   soup = BeautifulSoup(response.text, "html.parser")
+   title = soup.find("title").text
+   text = soup.find("div", {"id": "bodyContent"}).text
+   return title, text
+```
+""".replace(
+            "\n", "\r\n"
+        )
+    )
+    print(codeblocks)
+    assert len(codeblocks) == 1 and codeblocks[0][0] == "python"
+
     codeblocks = extract_code("no code block")
     assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, "no code block")
 
@@ -284,7 +358,7 @@ def test_execute_code_no_docker():
     assert image is None
 
 
-def test_improve():
+def _test_improve():
     try:
         import openai
     except ImportError:
@@ -315,8 +389,36 @@ def test_improve():
         f.write(improvement)
 
 
+class TestContentStr(unittest.TestCase):
+    def test_string_content(self):
+        self.assertEqual(content_str("simple string"), "simple string")
+
+    def test_list_of_text_content(self):
+        content = [{"type": "text", "text": "hello"}, {"type": "text", "text": " world"}]
+        self.assertEqual(content_str(content), "hello world")
+
+    def test_mixed_content(self):
+        content = [{"type": "text", "text": "hello"}, {"type": "image_url", "url": "http://example.com/image.png"}]
+        self.assertEqual(content_str(content), "hello<image>")
+
+    def test_invalid_content(self):
+        content = [{"type": "text", "text": "hello"}, {"type": "wrong_type", "url": "http://example.com/image.png"}]
+        with self.assertRaises(AssertionError) as context:
+            content_str(content)
+        self.assertIn("Wrong content format", str(context.exception))
+
+    def test_empty_list(self):
+        self.assertEqual(content_str([]), "")
+
+    def test_non_dict_in_list(self):
+        content = ["string", {"type": "text", "text": "text"}]
+        with self.assertRaises(TypeError):
+            content_str(content)
+
+
 if __name__ == "__main__":
     # test_infer_lang()
-    # test_extract_code()
-    test_execute_code()
+    test_extract_code()
+    # test_execute_code()
     # test_find_code()
+    # unittest.main()

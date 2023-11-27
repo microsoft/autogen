@@ -47,7 +47,7 @@ Finally, launch the RESTful API server
 python -m fastchat.serve.openai_api_server --host localhost --port 8000
 ```
 
-Normally this will work. However, if you encounter error like [this](https://github.com/lm-sys/FastChat/issues/1641), commenting out all the lines containing `finish_reason` in `fastchat/protocol/api_protocal.py` and `fastchat/protocol/openai_api_protocol.py` will fix the problem. The modified code looks like:
+Normally this will work. However, if you encounter error like [this](https://github.com/lm-sys/FastChat/issues/1641), commenting out all the lines containing `finish_reason` in `fastchat/protocol/api_protocol.py` and `fastchat/protocol/openai_api_protocol.py` will fix the problem. The modified code looks like:
 
 ```python
 class CompletionResponseChoice(BaseModel):
@@ -64,7 +64,7 @@ class CompletionResponseStreamChoice(BaseModel):
 ```
 
 
-## Interact with model using `oai.Completion`
+## Interact with model using `oai.Completion` (requires openai<1)
 
 Now the models can be directly accessed through openai-python library as well as `autogen.oai.Completion` and `autogen.oai.ChatCompletion`.
 
@@ -77,7 +77,7 @@ response = oai.Completion.create(
     config_list=[
         {
             "model": "chatglm2-6b",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL", # just a placeholder
         }
@@ -91,7 +91,7 @@ response = oai.ChatCompletion.create(
     config_list=[
         {
             "model": "chatglm2-6b",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL",
         }
@@ -125,13 +125,13 @@ response = oai.ChatCompletion.create(
     config_list=[
         {
             "model": "chatglm2-6b",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL",
         },
         {
             "model": "vicuna-7b-v1.3",
-            "api_base": "http://localhost:8000/v1",
+            "base_url": "http://localhost:8000/v1",
             "api_type": "open_ai",
             "api_key": "NULL",
         }

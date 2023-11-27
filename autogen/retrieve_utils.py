@@ -1,16 +1,26 @@
-from typing import List, Union, Dict, Tuple, Callable
+from typing import List, Union, Callable
 import os
 import requests
 from urllib.parse import urlparse
 import glob
-import tiktoken
 import chromadb
-from chromadb.api import API
+
+if chromadb.__version__ < "0.4.15":
+    from chromadb.api import API
+else:
+    from chromadb.api import ClientAPI as API
 from chromadb.api.types import QueryResult
 import chromadb.utils.embedding_functions as ef
 import logging
 import pypdf
+from autogen.token_count_utils import count_token
 
+try:
+    from unstructured.partition.auto import partition
+
+    HAS_UNSTRUCTURED = True
+except ImportError:
+    HAS_UNSTRUCTURED = False
 
 logger = logging.getLogger(__name__)
 TEXT_FORMATS = [
@@ -30,81 +40,24 @@ TEXT_FORMATS = [
     "yml",
     "pdf",
 ]
+UNSTRUCTURED_FORMATS = [
+    "doc",
+    "docx",
+    "epub",
+    "msg",
+    "odt",
+    "org",
+    "pdf",
+    "ppt",
+    "pptx",
+    "rtf",
+    "rst",
+    "xlsx",
+]
+if HAS_UNSTRUCTURED:
+    TEXT_FORMATS += UNSTRUCTURED_FORMATS
+    TEXT_FORMATS = list(set(TEXT_FORMATS))
 VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
-
-
-def num_tokens_from_text(
-    text: str,
-    model: str = "gpt-3.5-turbo-0613",
-    return_tokens_per_name_and_message: bool = False,
-    custom_token_count_function: Callable = None,
-) -> Union[int, Tuple[int, int, int]]:
-    """Return the number of tokens used by a text.
-
-    Args:
-        text (str): The text to count tokens for.
-        model (Optional, str): The model to use for tokenization. Default is "gpt-3.5-turbo-0613".
-        return_tokens_per_name_and_message (Optional, bool): Whether to return the number of tokens per name and per
-            message. Default is False.
-        custom_token_count_function (Optional, Callable): A custom function to count tokens. Default is None.
-
-    Returns:
-        int: The number of tokens used by the text.
-        int: The number of tokens per message. Only returned if return_tokens_per_name_and_message is True.
-        int: The number of tokens per name. Only returned if return_tokens_per_name_and_message is True.
-    """
-    if isinstance(custom_token_count_function, Callable):
-        token_count, tokens_per_message, tokens_per_name = custom_token_count_function(text)
-    else:
-        # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-        try:
-            encoding = tiktoken.encoding_for_model(model)
-        except KeyError:
-            logger.debug("Warning: model not found. Using cl100k_base encoding.")
-            encoding = tiktoken.get_encoding("cl100k_base")
-        known_models = {
-            "gpt-3.5-turbo": (3, 1),
-            "gpt-35-turbo": (3, 1),
-            "gpt-3.5-turbo-0613": (3, 1),
-            "gpt-3.5-turbo-16k-0613": (3, 1),
-            "gpt-3.5-turbo-0301": (4, -1),
-            "gpt-4": (3, 1),
-            "gpt-4-0314": (3, 1),
-            "gpt-4-32k-0314": (3, 1),
-            "gpt-4-0613": (3, 1),
-            "gpt-4-32k-0613": (3, 1),
-        }
-        tokens_per_message, tokens_per_name = known_models.get(model, (3, 1))
-        token_count = len(encoding.encode(text))
-
-    if return_tokens_per_name_and_message:
-        return token_count, tokens_per_message, tokens_per_name
-    else:
-        return token_count
-
-
-def num_tokens_from_messages(
-    messages: dict,
-    model: str = "gpt-3.5-turbo-0613",
-    custom_token_count_function: Callable = None,
-    custom_prime_count: int = 3,
-):
-    """Return the number of tokens used by a list of messages."""
-    num_tokens = 0
-    for message in messages:
-        for key, value in message.items():
-            _num_tokens, tokens_per_message, tokens_per_name = num_tokens_from_text(
-                value,
-                model=model,
-                return_tokens_per_name_and_message=True,
-                custom_token_count_function=custom_token_count_function,
-            )
-            num_tokens += _num_tokens
-            if key == "name":
-                num_tokens += tokens_per_name
-        num_tokens += tokens_per_message
-    num_tokens += custom_prime_count  # With ChatGPT, every reply is primed with <|start|>assistant<|message|>
-    return num_tokens
 
 
 def split_text_to_chunks(
@@ -121,7 +74,7 @@ def split_text_to_chunks(
         must_break_at_empty_line = False
     chunks = []
     lines = text.split("\n")
-    lines_tokens = [num_tokens_from_text(line) for line in lines]
+    lines_tokens = [count_token(line) for line in lines]
     sum_tokens = sum(lines_tokens)
     while sum_tokens > max_tokens:
         if chunk_mode == "one_line":
@@ -144,7 +97,7 @@ def split_text_to_chunks(
                 split_len = int(max_tokens / lines_tokens[0] * 0.9 * len(lines[0]))
                 prev = lines[0][:split_len]
                 lines[0] = lines[0][split_len:]
-                lines_tokens[0] = num_tokens_from_text(lines[0])
+                lines_tokens[0] = count_token(lines[0])
             else:
                 logger.warning("Failed to split docs with must_break_at_empty_line being True, set to False.")
                 must_break_at_empty_line = False
@@ -194,7 +147,10 @@ def split_files_to_chunks(
         _, file_extension = os.path.splitext(file)
         file_extension = file_extension.lower()
 
-        if file_extension == ".pdf":
+        if HAS_UNSTRUCTURED and file_extension[1:] in UNSTRUCTURED_FORMATS:
+            text = partition(file)
+            text = "\n".join([t.text for t in text]) if len(text) > 0 else ""
+        elif file_extension == ".pdf":
             text = extract_text_from_pdf(file)
         else:  # For non-PDF text-based files
             with open(file, "r", encoding="utf-8", errors="ignore") as f:
@@ -213,7 +169,7 @@ def split_files_to_chunks(
 
 
 def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
-    """Return a list of all the files in a given directory."""
+    """Return a list of all the files in a given directory, a url, a file path or a list of them."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
     types = [t[1:].lower() if t.startswith(".") else t.lower() for t in set(types)]
@@ -227,6 +183,11 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
                 files.append(item)
             elif is_url(item):
                 files.append(get_file_from_url(item))
+            elif os.path.exists(item):
+                try:
+                    files.extend(get_files_from_dir(item, types, recursive))
+                except ValueError:
+                    logger.warning(f"Directory {item} does not exist. Skipping.")
             else:
                 logger.warning(f"File {item} does not exist. Skipping.")
         return files
@@ -254,7 +215,10 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
 def get_file_from_url(url: str, save_path: str = None):
     """Download a file from a URL."""
     if save_path is None:
+        os.makedirs("/tmp/chromadb", exist_ok=True)
         save_path = os.path.join("/tmp/chromadb", os.path.basename(url))
+    else:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
         with open(save_path, "wb") as f:
@@ -273,7 +237,7 @@ def is_url(string: str):
 
 
 def create_vector_db_from_dir(
-    dir_path: str,
+    dir_path: Union[str, List[str]],
     max_tokens: int = 4000,
     client: API = None,
     db_path: str = "/tmp/chromadb.db",
@@ -284,19 +248,21 @@ def create_vector_db_from_dir(
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
     custom_text_split_function: Callable = None,
-):
+    custom_text_types: List[str] = TEXT_FORMATS,
+    recursive: bool = True,
+) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
         you prepared your own vector db.
 
     Args:
-        dir_path (str): the path to the directory, file or url.
+        dir_path (Union[str, List[str]]): the path to the directory, file, url or a list of them.
         max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
         client (Optional, API): the chromadb client. Default is None.
         db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
-            will be recreated if it already exists.
+            will be returned if it already exists. Will raise ValueError if the collection already exists and get_or_create is False.
         chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
         must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
         embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
@@ -304,6 +270,13 @@ def create_vector_db_from_dir(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+        custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
+            Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+        custom_text_types (Optional, List[str]): a list of file types to be processed. Default is TEXT_FORMATS.
+        recursive (Optional, bool): whether to search documents recursively in the dir_path. Default is True.
+
+    Returns:
+        API: the chromadb client.
     """
     if client is None:
         client = chromadb.PersistentClient(path=db_path)
@@ -325,11 +298,15 @@ def create_vector_db_from_dir(
 
         if custom_text_split_function is not None:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path), custom_text_split_function=custom_text_split_function
+                get_files_from_dir(dir_path, custom_text_types, recursive),
+                custom_text_split_function=custom_text_split_function,
             )
         else:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line
+                get_files_from_dir(dir_path, custom_text_types, recursive),
+                max_tokens,
+                chunk_mode,
+                must_break_at_empty_line,
             )
         logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
@@ -341,6 +318,7 @@ def create_vector_db_from_dir(
             )
     except ValueError as e:
         logger.warning(f"{e}")
+    return client
 
 
 def query_vector_db(
