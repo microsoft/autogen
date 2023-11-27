@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import List, Optional, Dict, Callable
+from typing import List, Optional, Dict, Callable, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
@@ -269,6 +269,7 @@ class OpenAIWrapper:
         """Calculate the cost of the response."""
         model = response.model
         if model not in oai_price1k:
+            # TODO: add logging to warn that the model is not found
             return 0
 
         n_input_tokens = response.usage.prompt_tokens

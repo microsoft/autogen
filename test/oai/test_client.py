@@ -49,14 +49,18 @@ def test_completion():
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_cost():
+@pytest.mark.parametrize(
+    "cache_seed, model",
+    [
+        (None, "gpt-3.5-turbo-instruct"),
+        (42, "gpt-3.5-turbo-instruct"),
+        (None, "text-ada-001"),
+    ],
+)
+def test_cost(cache_seed, model):
     config_list = config_list_openai_aoai(KEY_LOC)
-    client = OpenAIWrapper(config_list=config_list, cache_seed=None)
-    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct")
-    print(response.cost)
-
-    client = OpenAIWrapper(config_list=config_list, cache_seed=42)
-    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct")
+    client = OpenAIWrapper(config_list=config_list, cache_seed=cache_seed)
+    response = client.create(prompt="1+3=", model=model)
     print(response.cost)
 
 
