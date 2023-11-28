@@ -56,7 +56,7 @@ class AgentBuilder:
     # The modified requirement should not contain the code interpreter skill.
     # Coding skill is limited to Python.
     # Your answer should omit the word "REQUIREMENT".
-    # Your answer should include the description of the behavior when the task complete (user's need has been satisfied).
+    # Your should let them reply "TERMINATE" in the end when the task complete (user's need has been satisfied).
     """
 
     def __init__(
@@ -65,7 +65,7 @@ class AgentBuilder:
         builder_model: Optional[str] = "gpt-4-1106-preview",
         agent_model: Optional[str] = "gpt-4-1106-preview",
         host: Optional[str] = "localhost",
-        endpoint_building_timeout: Optional[int] = 180,
+        endpoint_building_timeout: Optional[int] = 600,
     ):
         """
         Args:
@@ -322,16 +322,18 @@ class AgentBuilder:
                 self.agent_configs.append(
                     {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
                 )
-                print(f"Creating agent {agent_name_list[i]} with backbone {self.agent_model}...")
-                self.create_agent(
-                    agent_name_list[i],
-                    self.agent_model,
-                    self.default_llm_config,
-                    system_message=agent_sys_msg_list[i],
-                    use_gpts=use_gpts,
-                    **kwargs,
-                )
             self.manager_system_message = "Group chat manager."
+
+        for config in self.agent_configs:
+            print(f"Creating agent {config['name']} with backbone {config['model']}...")
+            self.create_agent(
+                config["name"],
+                config["model"],
+                self.default_llm_config,
+                system_message=config["system_message"],
+                use_gpts=use_gpts,
+                **kwargs,
+            )
 
         if self.coding is None:
             resp = (
@@ -347,6 +349,7 @@ class AgentBuilder:
             print("Adding user console proxy...")
             self.user_proxy = autogen.UserProxyAgent(
                 name="User_console_and_Python_code_interpreter",
+                is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
                 system_message="User console with a python code interpreter interface.",
                 code_execution_config={"last_n_messages": 2, "work_dir": "groupchat"},
                 human_input_mode="NEVER",
@@ -385,22 +388,26 @@ class AgentBuilder:
 
         return filepath
 
-    def load(self, filepath: str):
+    def load(self, filepath: str, use_gpts: Optional[bool] = False):
         """
         Load building configs and call the build function to complete building without calling online LLMs' api.
 
         Args:
             filepath: filepath for the save config.
+            use_gpts: if true, build function will use GPTs api to build agents.
         """
         if os.path.isfile(filepath):
+            print(f"Loding config from {filepath}")
             cached_configs = json.load(open(filepath))
-            self.build(cached_configs=cached_configs)
+            self.build(cached_configs=cached_configs, use_gpts=use_gpts)
         else:
             raise FileNotFoundError(f"Config file {filepath} does not exist.")
 
         return self
 
-    def start(self, task: str, max_round: Optional[int] = 12, init_messages: Optional[List[dict]] = []):
+    def start(
+        self, task: str, max_round: Optional[int] = 12, init_messages: Optional[List[dict]] = []
+    ) -> Tuple[autogen.GroupChat, autogen.GroupChatManager]:
         """
         Start a group chat task solving process with built config.
 
@@ -426,3 +433,5 @@ class AgentBuilder:
             for agent in agent_list:
                 if self.initiate_agent_name == agent.name:
                     agent.initiate_chat(manager, message=task)
+
+        return group_chat, manager
