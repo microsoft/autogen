@@ -26,7 +26,8 @@ class Retriever(ABC):
             embedding_function: function to use to embed the text
             max_tokens: maximum number of tokens to embed
             chunk_mode: mode to chunk the text. Can be "multi_lines" or "single_line"
-            must_break_at_empty_line: whether to break the text at empty lines when chunking
+            must_break_at_empty_line: chunk will only break at empty line if True. Default is True.
+                    If chunk_mode is "one_line", this parameter will be ignored.
             custom_text_split_function: custom function to split the text into chunks
         """
         self.path = path
