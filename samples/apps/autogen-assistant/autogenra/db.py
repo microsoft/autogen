@@ -51,28 +51,43 @@ class DBManager:
             """
             CREATE TABLE IF NOT EXISTS messages (
                 user_id TEXT NOT NULL,
+                session_id TEXT,
                 root_msg_id TEXT NOT NULL,
                 msg_id TEXT,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 metadata TEXT,
-                timestamp DATETIME,
+                timestamp DATETIME, 
                 UNIQUE (user_id, root_msg_id, msg_id)
+            )
+            """
+        ) 
+
+        # Create a table for user sessions 
+        self.cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                user_id TEXT NOT NULL,
+                session_id TEXT,
+                timestamp DATETIME NOT NULL,
+                UNIQUE (user_id, session_id)
             )
             """
         )
 
-        # Create a table for personalization profiles
+        # Create a table for user skills
         self.cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS personalization_profiles (
+            CREATE TABLE IF NOT EXISTS skills (
                 user_id INTEGER NOT NULL,
-                profile TEXT,
+                skill TEXT,
                 timestamp DATETIME NOT NULL,
                 UNIQUE (user_id)
             )
             """
-        )
+        ) 
+
+
 
         # Commit the changes and close the connection
         self.conn.commit()
