@@ -1,4 +1,6 @@
 
+import json
+import sqlite3
 from typing import List
 from ..datamodel import Message, Session
 from ..db import DBManager
@@ -63,9 +65,11 @@ def get_sessions(user_id: str, dbmanager: DBManager) -> List[dict]:
     result = dbmanager.query(query=query, args=args, json=True)
     # Sort by timestamp ascending
     result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
+    for row in result:
+        row["flow_config"] = json.loads(row["flow_config"])
     return result
 
-def create_session(user_id: str, dbmanager: DBManager) -> List[dict]:
+def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List[dict]:
     """
     Create a new session for a specific user in the database.
 
@@ -73,10 +77,9 @@ def create_session(user_id: str, dbmanager: DBManager) -> List[dict]:
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a session
     """
-    
-    new_session = Session(user_id=user_id)  
-    query = "INSERT INTO sessions (user_id, session_id, timestamp) VALUES (?, ?, ?)" 
-    args = (new_session.user_id, new_session.session_id, new_session.timestamp) 
+  
+    query = "INSERT INTO sessions (user_id, session_id, timestamp, flow_config) VALUES (?, ?, ?,?)" 
+    args = (session.user_id, session.session_id, session.timestamp,  json.dumps(session.flow_config.dict()))
     dbmanager.query(query=query, args=args)
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 

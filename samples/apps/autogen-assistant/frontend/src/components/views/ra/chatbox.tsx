@@ -2,6 +2,7 @@ import {
   ArrowPathIcon,
   Cog6ToothIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
   PaperAirplaneIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
@@ -403,13 +404,20 @@ const ChatBox = ({
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
       >
         <div className="flex-1  boder mt-4"></div>
-        {!messages && (
+        {loading && !messages && (
           <div className="w-full text-center boder mt-4">
             <div>
               {" "}
               <BounceLoader />
             </div>
             loading messages
+          </div>
+        )}
+
+        {(!messages || messages?.length === 0) && (
+          <div className="ml-2 text-sm text-secondary ">
+            <InformationCircleIcon className="inline-block h-6 mr-2" />
+            No messages in the current session. Start a conversation to begin.
           </div>
         )}
         <div className="ml-2"> {messageListView}</div>

@@ -12,7 +12,8 @@ from ..datamodel import (
     DBWebRequestModel,
     CreateSkillWebRequestModel,
     DeleteMessageWebRequestModel,
-    Message, 
+    Message,
+    Session, 
 )
 from ..utils import (
     create_skills_from_code,
@@ -156,9 +157,11 @@ def get_user_sessions(user_id: str = None):
 @api.post("/sessions")
 async def create_user_session(req: DBWebRequestModel):
     """Create a new session for a user""" 
-
+    # print(req.session, "**********" )
+   
     try:
-        user_sessions = create_session(user_id=req.user_id,  dbmanager=dbmanager)
+        session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
+        user_sessions = create_session(user_id=req.user_id, session=session,  dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session created successfully",
@@ -206,8 +209,8 @@ async def clear_db(req: DBWebRequestModel):
     delete_files_in_folder([user_files_dir])
 
     try:
-        delete_message(user_id=req.user_id, msg_id=None, session_id=req.session_id, dbmanager=dbmanager, delete_all=True)
-        sessions = delete_user_sessions(user_id=req.user_id, session_id=req.session_id, dbmanager=dbmanager)
+        delete_message(user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True)
+        sessions = delete_user_sessions(user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": {

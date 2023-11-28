@@ -60,7 +60,7 @@ const SkillsView = ({ setMessages, skillup }: any) => {
       },
       body: JSON.stringify({
         user_id: user?.email,
-        session_id: session?.session_id,
+        session: session,
       }),
     };
     console.log("payload", payLoad);

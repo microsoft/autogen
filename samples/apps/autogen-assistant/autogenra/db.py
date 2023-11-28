@@ -1,3 +1,4 @@
+import json
 import logging
 import sqlite3
 import threading
@@ -70,11 +71,13 @@ class DBManager:
                 user_id TEXT NOT NULL,
                 session_id TEXT,
                 timestamp DATETIME NOT NULL,
+                flow_config TEXT,
                 UNIQUE (user_id, session_id)
             )
             """
         )
 
+         
         # Create a table for user skills
         self.cursor.execute(
             """

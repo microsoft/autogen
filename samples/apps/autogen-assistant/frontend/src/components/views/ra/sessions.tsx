@@ -34,6 +34,7 @@ const SessionsView = ({}: any) => {
   const createSessionUrl = `${serverUrl}/sessions/`;
 
   const sessions = useConfigStore((state) => state.sessions);
+  const flowConfig = useConfigStore((state) => state.flowConfig);
   const setSessions = useConfigStore((state) => state.setSessions);
   // const [session, setSession] =
   //   React.useState<IChatSession | null>(null);
@@ -79,17 +80,28 @@ const SessionsView = ({}: any) => {
   const createSession = () => {
     setError(null);
     setLoading(true);
+
+    const body = {
+      user_id: user?.email,
+      session:
+        session === null
+          ? {
+              user_id: user?.email,
+              flow_config: flowConfig,
+              session_id: null,
+            }
+          : session,
+    };
     // const fetch;
     const payLoad = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        user_id: user?.email,
-      }),
+      body: JSON.stringify(body),
     };
-    console.log("payload", payLoad);
+
+    console.log("payload", body);
     const onSuccess = (data: any) => {
       console.log(data);
       if (data && data.status) {

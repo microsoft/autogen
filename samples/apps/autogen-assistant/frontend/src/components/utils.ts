@@ -275,7 +275,7 @@ export const getDefaultConfigFlows = () => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 8,
     system_message:
-      "You are a helpful assistant. At each point, do your best to determine if the user's request has been addressed and if so, respond with a summary. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
+      "You are a helpful assistant. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
   };
 
   const visualizationAssistantConfig: IAgentConfig = {

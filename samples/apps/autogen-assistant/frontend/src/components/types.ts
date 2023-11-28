@@ -74,4 +74,5 @@ export interface IChatSession {
   session_id: string;
   timestamp: string;
   user_id: string;
+  flow_config: IFlowConfig;
 }

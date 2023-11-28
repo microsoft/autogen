@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
 from pydantic.dataclasses import dataclass
-from dataclasses import field
+from dataclasses import asdict, field
 
 
 @dataclass
@@ -26,38 +26,9 @@ class Message(object):
             self.timestamp = datetime.now()
 
     def dict(self):
-        return {
-            "user_id": self.user_id,
-            "role": self.role,
-            "content": self.content,
-            "root_msg_id": self.root_msg_id,
-            "msg_id": self.msg_id,
-            "timestamp": self.timestamp,
-            "personalize": self.personalize,
-            "ra": self.ra,
-            "code": self.code,
-            "metadata": self.metadata,
-            "session_id": self.session_id,
-        }
+        return asdict(self)
 
-@dataclass
-class Session(object):
-    user_id: str
-    session_id: Optional[str] = None
-    timestamp: Optional[datetime] = None
 
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = datetime.now()
-        if self.session_id is None:
-            self.session_id = str(uuid.uuid4())
-
-    def dict(self):
-        return {
-            "user_id": self.user_id,
-            "session_id": self.session_id,
-            "timestamp": self.timestamp,
-        }
 
 # web api data models
 
@@ -114,7 +85,25 @@ class FlowConfig:
     receiver: Union[AgentFlowSpec, List[AgentFlowSpec]]
     type: Literal["default", "groupchat"] = "default"
 
+    def dict(self):
+        return asdict(self)
 
+@dataclass
+class Session(object):
+    """Data model for AutoGen Chat Session"""
+    user_id: str
+    session_id: Optional[str] = None
+    timestamp: Optional[datetime] = None
+    flow_config: FlowConfig = None
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
+        if self.session_id is None:
+            self.session_id = str(uuid.uuid4())
+
+    def dict(self):
+        return asdict(self)
 @dataclass
 class ChatWebRequestModel(object):
     """Data model for Chat Web Request for Web End"""
@@ -140,5 +129,5 @@ class CreateSkillWebRequestModel(object):
 class DBWebRequestModel(object):
     user_id: str 
     msg_id: Optional[str] = None
-    session_id: Optional[str] = None
-    skills: Optional[Union[str, List[str]]] = None 
+    session: Optional[Session] = None
+    skills: Optional[Union[str, List[str]]] = None  
