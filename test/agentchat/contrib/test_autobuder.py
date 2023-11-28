@@ -26,7 +26,7 @@ except ImportError:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or OPENAI_INSTALLED,
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_build():
@@ -53,7 +53,7 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or OPENAI_INSTALLED,
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_save():
@@ -86,7 +86,7 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or OPENAI_INSTALLED,
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_load():
@@ -114,7 +114,7 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or OPENAI_INSTALLED,
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_clear_agent():
@@ -133,7 +133,7 @@ def test_clear_agent():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or OPENAI_INSTALLED,
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_start():
