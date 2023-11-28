@@ -4,7 +4,10 @@ import json
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 
-oai_config_path = "OAI_CONFIG_LIST"
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+here = os.path.abspath(os.path.dirname(__file__))
+oai_config_path = os.path.join(KEY_LOC, OAI_CONFIG_LIST)
 
 
 def test_build():
@@ -15,7 +18,12 @@ def test_build():
         "and find its potential applications in software."
     )
 
-    builder.build(building_task=building_task, default_llm_config={"temperature": 0})
+    builder.build(
+        building_task=building_task,
+        default_llm_config={"temperature": 0},
+        user_proxy_work_dir=f"{here}/test_agent_scripts",
+        docker="python:3",
+    )
 
     # check number of agents
     assert len(builder.agent_procs_assign.keys()) <= builder.max_agents
@@ -33,8 +41,13 @@ def test_save():
         "and find its potential applications in software."
     )
 
-    builder.build(building_task=building_task, default_llm_config={"temperature": 0})
-    saved_files = builder.save("../../test_files/save_config_test.json")
+    builder.build(
+        building_task=building_task,
+        default_llm_config={"temperature": 0},
+        user_proxy_work_dir=f"{here}/test_agent_scripts",
+        docker="python:3",
+    )
+    saved_files = builder.save(f"{here}/example_save_config.json")
 
     # check config file path
     assert os.path.isfile(saved_files)
@@ -52,13 +65,17 @@ def test_save():
 def test_load():
     builder = AgentBuilder(config_path=oai_config_path)
 
-    config_save_path = "../../test_files/save_config_eb1be857faa608aeb4c5af11fe4ab245.json"
+    config_save_path = f"{here}/example_test_config.json"
     configs = json.load(open(config_save_path))
     agent_configs = {
         e["name"]: {"model": e["model"], "system_message": e["system_message"]} for e in configs["agent_configs"]
     }
 
-    builder.load(config_save_path)
+    builder.load(
+        config_save_path,
+        user_proxy_work_dir=f"{here}/test_agent_scripts",
+        docker="python:3",
+    )
 
     # check config loading
     assert builder.coding == configs["coding"]
@@ -72,8 +89,12 @@ def test_load():
 def test_clear_agent():
     builder = AgentBuilder(config_path=oai_config_path)
 
-    config_save_path = "../../test_files/save_config_eb1be857faa608aeb4c5af11fe4ab245.json"
-    builder.load(config_save_path)
+    config_save_path = f"{here}/example_test_config.json"
+    builder.load(
+        config_save_path,
+        user_proxy_work_dir=f"{here}/test_agent_scripts",
+        docker="python:3",
+    )
     builder.clear_all_agents()
 
     # check if the agent cleared
@@ -82,7 +103,7 @@ def test_clear_agent():
 
 def test_start():
     builder = AgentBuilder(config_path=oai_config_path)
-    config_save_path = "../../test_files/save_config_eb1be857faa608aeb4c5af11fe4ab245.json"
+    config_save_path = f"{here}/example_test_config.json"
     builder.load(config_save_path)
     test_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 

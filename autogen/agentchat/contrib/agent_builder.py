@@ -5,8 +5,7 @@ import socket
 import os
 import json
 import hashlib
-from typing import Optional, List, Dict, Tuple
-from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from typing import Optional, List, Dict, Tuple, Union
 
 
 class AgentBuilder:
@@ -198,6 +197,8 @@ class AgentBuilder:
             {"config_list": config_list, "model": model_name_or_hf_repo, "max_tokens": self.max_tokens}
         )
         if use_gpts:
+            from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+
             agent = GPTAssistantAgent(
                 name=agent_name,
                 llm_config={**current_config, "assistant_id": None},
@@ -248,6 +249,8 @@ class AgentBuilder:
         coding: Optional[bool] = None,
         cached_configs: Optional[Dict] = None,
         use_gpts: Optional[bool] = False,
+        user_proxy_work_dir: Optional[str] = None,
+        docker: Optional[Union[list, bool, str]] = False,
         **kwargs,
     ):
         """
@@ -259,6 +262,8 @@ class AgentBuilder:
             coding: use to identify if the user proxy (a code interpreter) should be added.
             cached_configs: previously saved agent configs.
             use_gpts: if true, build function will use GPTs api to build agents.
+            user_proxy_work_dir: The working directory for the code execution.
+            docker (Optional, list, str or bool): The docker image to use for code execution.
         """
         use_api = False
 
@@ -351,7 +356,12 @@ class AgentBuilder:
                 name="User_console_and_Python_code_interpreter",
                 is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
                 system_message="User console with a python code interpreter interface.",
-                code_execution_config={"last_n_messages": 2, "work_dir": "groupchat"},
+                code_execution_config={
+                    "last_n_messages": 2,
+                    "work_dir": user_proxy_work_dir,
+                    "use_docker": docker,
+                    "timeout": 60,
+                },
                 human_input_mode="NEVER",
             )
         else:
@@ -388,18 +398,21 @@ class AgentBuilder:
 
         return filepath
 
-    def load(self, filepath: str, use_gpts: Optional[bool] = False):
+    def load(
+        self,
+        filepath: str,
+        **kwargs,
+    ):
         """
         Load building configs and call the build function to complete building without calling online LLMs' api.
 
         Args:
             filepath: filepath for the save config.
-            use_gpts: if true, build function will use GPTs api to build agents.
         """
         if os.path.isfile(filepath):
             print(f"Loding config from {filepath}")
             cached_configs = json.load(open(filepath))
-            self.build(cached_configs=cached_configs, use_gpts=use_gpts)
+            self.build(cached_configs=cached_configs, **kwargs)
         else:
             raise FileNotFoundError(f"Config file {filepath} does not exist.")
 
