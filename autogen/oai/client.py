@@ -10,6 +10,7 @@ from flaml.automl.logger import logger_formatter
 from autogen.oai.openai_utils import get_key
 from autogen.token_count_utils import count_token
 
+TOOL_ENABLED = False
 try:
     import openai
     from openai import OpenAI, APIError
@@ -19,6 +20,8 @@ try:
     from openai.types.completion_usage import CompletionUsage
     import diskcache
 
+    if openai.__version__ >= "1.1.0":
+        TOOL_ENABLED = True
     ERROR = None
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
@@ -29,11 +32,6 @@ if not logger.handlers:
     _ch = logging.StreamHandler(stream=sys.stdout)
     _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
-
-if openai.__version__ >= "1.1.0":
-    TOOL_ENABLED = True
-else:
-    TOOL_ENABLED = False
 
 
 class OpenAIWrapper:
