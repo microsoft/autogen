@@ -2,6 +2,7 @@ import pytest
 import os
 import json
 import sys
+from packaging.requirements import Requirement
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -10,16 +11,17 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 here = os.path.abspath(os.path.dirname(__file__))
 oai_config_path = os.path.join(KEY_LOC, OAI_CONFIG_LIST)
 
+# openai>=1 required
 try:
-    import pkg_resources
-
-    pkg_resources.require("openai>=1")
-    import openai
+    from openai import OpenAI, APIError
+    from openai.types.chat import ChatCompletion
+    from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
+    from openai.types.completion import Completion
+    from openai.types.completion_usage import CompletionUsage
+    import diskcache
 
     OPENAI_INSTALLED = True
 except ImportError:
-    OPENAI_INSTALLED = False
-except pkg_resources.DistributionNotFound:
     OPENAI_INSTALLED = False
 
 
