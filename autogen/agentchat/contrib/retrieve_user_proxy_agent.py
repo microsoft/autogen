@@ -120,7 +120,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
                 - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in retriever. Default is False. Will be set to False if docs_path is None.
-                - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
+                - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
                     Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
                 - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
