@@ -7,8 +7,14 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button, Dropdown, MenuProps, message } from "antd";
 import * as React from "react";
-import { IChatMessage, IFlowConfig, IMessage, IStatus } from "../../types";
-import { fetchJSON, getServerUrl, guid } from "../../utils";
+import {
+  IChatMessage,
+  IChatSession,
+  IFlowConfig,
+  IMessage,
+  IStatus,
+} from "../../types";
+import { examplePrompts, fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
 import { BounceLoader, MarkdownView } from "../../atoms";
@@ -20,9 +26,10 @@ const ChatBox = ({
   skillup,
 }: {
   config: any;
-  initMessages: any[];
+  initMessages: IMessage[] | null;
   skillup: any;
 }) => {
+  const session: IChatSession | null = useConfigStore((state) => state.session);
   const queryInputRef = React.useRef<HTMLInputElement>(null);
   const messageBoxInputRef = React.useRef<HTMLDivElement>(null);
   const { user } = React.useContext(appContext);
@@ -85,7 +92,11 @@ const ChatBox = ({
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ user_id: user?.email, msg_id: messageId }),
+      body: JSON.stringify({
+        user_id: user?.email,
+        msg_id: messageId,
+        session_id: session?.session_id,
+      }),
     };
 
     const onSuccess = (data: any) => {
@@ -109,24 +120,6 @@ const ChatBox = ({
     };
     fetchJSON(deleteMsgUrl, payLoad, onSuccess, onError);
   };
-
-  const examplePrompts = [
-    {
-      title: "Stock Price",
-      prompt:
-        "Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png",
-    },
-    {
-      title: "Sine Wave",
-      prompt:
-        "Write a python script to plot a sine wave and save it to disc as a png file sine_wave.png",
-    },
-    {
-      title: "Markdown",
-      prompt:
-        "List out the top 5 rivers in africa and their length and return that as a markdown table. Do not try to write any code, just write the table",
-    },
-  ];
 
   const promptButtons = examplePrompts.map((prompt, i) => {
     return (
@@ -342,7 +335,10 @@ const ChatBox = ({
       msg_id: userMessage.msg_id,
       user_id: user?.email || "",
       root_msg_id: "0",
+      session_id: session?.session_id || "",
     };
+
+    console.log("messagePayload", messagePayload);
 
     const textUrl = `${serverUrl}/messages`;
     const postData = {

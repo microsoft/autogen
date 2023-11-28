@@ -37,6 +37,7 @@ interface IProps {
   open?: boolean;
   hoverable?: boolean;
   onClick?: () => void;
+  loading?: boolean;
 }
 
 export const SectionHeader = ({
@@ -307,6 +308,31 @@ export const ExpandView = ({ children, icon = null, className = "" }: any) => {
   );
 };
 
+export const LoadingOverlay = ({ children, loading }: IProps) => {
+  return (
+    <>
+      {loading && (
+        <>
+          <div
+            className="absolute inset-0 bg-secondary flex"
+            style={{ opacity: 0.5 }}
+          >
+            {/* Overlay background */}
+          </div>
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ pointerEvents: "none" }}
+          >
+            {/* Center BounceLoader without inheriting the opacity */}
+            <BounceLoader />
+          </div>
+        </>
+      )}
+      <div className="relative">{children}</div>
+    </>
+  );
+};
+
 export const MarkdownView = ({
   data,
   className = "",
@@ -333,6 +359,7 @@ export const MarkdownView = ({
             onClick={() => {
               setCodeVisible(!codeVisible);
             }}
+            className="  flex-1 mr-4  "
           >
             {!codeVisible && (
               <div className=" text-white hover:text-accent duration-300">
@@ -349,7 +376,7 @@ export const MarkdownView = ({
               </div>
             )}
           </div>
-          <div className="flex-1"></div>
+          {/* <div className="flex-1"></div> */}
           <div>
             {showCopied && (
               <div className="inline-block text-sm       text-white">

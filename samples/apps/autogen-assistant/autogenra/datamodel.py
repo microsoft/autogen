@@ -17,6 +17,7 @@ class Message(object):
     ra: Optional[str] = None
     code: Optional[str] = None
     metadata: Optional[Any] = None
+    session_id: Optional[str] = None
 
     def __post_init__(self):
         if self.msg_id is None:
@@ -36,8 +37,27 @@ class Message(object):
             "ra": self.ra,
             "code": self.code,
             "metadata": self.metadata,
+            "session_id": self.session_id,
         }
 
+@dataclass
+class Session(object):
+    user_id: str
+    session_id: Optional[str] = None
+    timestamp: Optional[datetime] = None
+
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
+        if self.session_id is None:
+            self.session_id = str(uuid.uuid4())
+
+    def dict(self):
+        return {
+            "user_id": self.user_id,
+            "session_id": self.session_id,
+            "timestamp": self.timestamp,
+        }
 
 # web api data models
 
@@ -100,21 +120,25 @@ class ChatWebRequestModel(object):
     """Data model for Chat Web Request for Web End"""
 
     message: Message
-    flow_config: FlowConfig
+    flow_config: FlowConfig 
 
 
 @dataclass
 class DeleteMessageWebRequestModel(object):
     user_id: str
     msg_id: str
+    session_id: Optional[str] = None
 
-
-@dataclass
-class ClearDBWebRequestModel(object):
-    user_id: str
 
 
 @dataclass
 class CreateSkillWebRequestModel(object):
     user_id: str
     skills: Union[str, List[str]]
+
+@dataclass
+class DBWebRequestModel(object):
+    user_id: str 
+    msg_id: Optional[str] = None
+    session_id: Optional[str] = None
+    skills: Optional[Union[str, List[str]]] = None 

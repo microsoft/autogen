@@ -5,15 +5,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
+ 
 from ..db import DBManager
 from ..datamodel import (
     ChatWebRequestModel,
-    ClearDBWebRequestModel,
+    DBWebRequestModel,
     CreateSkillWebRequestModel,
     DeleteMessageWebRequestModel,
-    Message,
+    Message, 
 )
-from ..autogenchat import ChatManager
 from ..utils import (
     create_skills_from_code,
     delete_files_in_folder,
@@ -24,7 +24,13 @@ from ..utils import (
     delete_message,
     init_webserver_folders,
     get_skills_prompt,
+    get_sessions,
+    create_session,
+    delete_user_sessions
 )
+
+from ..autogenchat import ChatManager
+ 
 
 app = FastAPI()
 
@@ -63,7 +69,9 @@ chatmanager = ChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
-    user_history = load_messages(user_id=message.user_id, dbmanager=dbmanager)
+    user_history = load_messages(user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
+
+    print(message)
 
     # save incoming message to db
     save_message(message=message, dbmanager=dbmanager)
@@ -101,19 +109,72 @@ async def add_message(req: ChatWebRequestModel):
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),
         }
-
+ 
 
 @api.get("/messages")
-def get_messages(user_id: str = None):
+def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
-    user_history = load_messages(user_id=user_id, dbmanager=dbmanager)
+    try:
+        user_history = load_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
 
-    return {
-        "status": True,
-        "data": user_history,
-        "message": "Messages retrieved successfully",
-    }
+        return {
+            "status": True,
+            "data": user_history,
+            "message": "Messages retrieved successfully",
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while retrieving messages: " + str(ex_error),
+        }
+
+
+
+@api.get("/sessions")
+def get_user_sessions(user_id: str = None):
+    """ Return a list of all sessions for a user"""
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="user_id is required")
+    
+    try:
+        user_sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "data": user_sessions,
+            "message": "Sessions retrieved successfully",
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while retrieving sessions: " + str(ex_error),
+        }
+
+@api.post("/sessions")
+async def create_user_session(req: DBWebRequestModel):
+    """Create a new session for a user""" 
+
+    try:
+        user_sessions = create_session(user_id=req.user_id,  dbmanager=dbmanager)
+        return {
+            "status": True,
+            "message": "Session created successfully",
+            "data": user_sessions,
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while creating session: " + str(ex_error),
+        }
+
+
+
+
+
 
 
 @api.post("/messages/delete")
@@ -121,7 +182,7 @@ async def remove_message(req: DeleteMessageWebRequestModel):
     """Delete a message from the database"""
 
     try:
-        messages = delete_message(user_id=req.user_id, msg_id=req.msg_id, dbmanager=dbmanager)
+        messages = delete_message(user_id=req.user_id, msg_id=req.msg_id, session_id=req.session_id, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Message deleted successfully",
@@ -136,7 +197,7 @@ async def remove_message(req: DeleteMessageWebRequestModel):
 
 
 @api.post("/cleardb")
-async def clear_db(req: ClearDBWebRequestModel):
+async def clear_db(req: DBWebRequestModel):
     """Clear user conversation history database and files"""
 
     user_files_dir = os.path.join(folders["files_static_root"], "user", md5_hash(req.user_id))
@@ -145,9 +206,13 @@ async def clear_db(req: ClearDBWebRequestModel):
     delete_files_in_folder([user_files_dir])
 
     try:
-        delete_message(user_id=req.user_id, msg_id=None, dbmanager=dbmanager, delete_all=True)
+        delete_message(user_id=req.user_id, msg_id=None, session_id=req.session_id, dbmanager=dbmanager, delete_all=True)
+        sessions = delete_user_sessions(user_id=req.user_id, session_id=req.session_id, dbmanager=dbmanager)
         return {
             "status": True,
+            "data": {
+                "sessions": sessions,
+            },
             "message": "Messages and files cleared successfully",
         }
     except Exception as ex_error:
@@ -165,7 +230,7 @@ def get_skills(user_id: str):
     return {
         "status": True,
         "message": "Skills retrieved successfully",
-        "skills": skills,
+        "data": skills,
     }
 
 
@@ -193,7 +258,7 @@ def create_user_skills(req: CreateSkillWebRequestModel):
         return {
             "status": True,
             "message": "Skills retrieved successfully",
-            "skills": skills,
+            "data": skills,
         }
 
     except Exception as ex_error:

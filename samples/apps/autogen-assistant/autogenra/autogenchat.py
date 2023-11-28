@@ -59,6 +59,7 @@ class ChatManager:
             role="assistant",
             content=output,
             metadata=json.dumps(metadata),
+            session_id=message.session_id,
         )
 
         return output_message

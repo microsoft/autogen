@@ -9,6 +9,7 @@ export interface IMessage {
   timestamp?: string;
   personalize?: boolean;
   ra?: string;
+  session_id?: string;
 }
 
 export interface IStatus {
@@ -67,4 +68,10 @@ export interface IMetadataFile {
   extension: string;
   content: string;
   type: string;
+}
+
+export interface IChatSession {
+  session_id: string;
+  timestamp: string;
+  user_id: string;
 }

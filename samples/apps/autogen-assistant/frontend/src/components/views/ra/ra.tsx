@@ -1,12 +1,14 @@
 import * as React from "react";
-import { IMessage, IStatus } from "../../types";
+import { IChatSession, IMessage, IStatus } from "../../types";
 import { fetchJSON, getServerUrl, setLocalStorage } from "../../utils";
 import ChatBox from "./chatbox";
 import { appContext } from "../../../hooks/provider";
 import { message } from "antd";
 import SideBarView from "./sidebar";
+import { useConfigStore } from "../../../hooks/store";
 
 const RAView = () => {
+  const session: IChatSession | null = useConfigStore((state) => state.session);
   const [loading, setLoading] = React.useState(false);
   const [messages, setMessages] = React.useState<IMessage[] | null>(null);
   const [skillUpdated, setSkillUpdated] = React.useState("default");
@@ -29,7 +31,7 @@ const RAView = () => {
 
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
-  const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}`;
+  const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${session?.session_id}`;
 
   const fetchMessages = () => {
     setError(null);
@@ -62,11 +64,11 @@ const RAView = () => {
   };
 
   React.useEffect(() => {
-    if (user) {
+    if (user && session) {
       // console.log("fetching messages", messages);
       fetchMessages();
     }
-  }, []);
+  }, [session]);
 
   return (
     <div className="h-full   ">

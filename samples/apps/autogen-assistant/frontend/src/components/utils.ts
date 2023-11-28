@@ -371,3 +371,63 @@ export const getSampleSkill = () => {
       plt.close(fig)`;
   return catSkill;
 };
+
+export const timeAgo = (dateString: string): string => {
+  // Parse the date string into a Date object
+  const timestamp = new Date(dateString);
+
+  // Check for invalid date
+  if (isNaN(timestamp.getTime())) {
+    throw new Error("Invalid date string provided.");
+  }
+
+  // Get the current time
+  const now = new Date();
+
+  // Calculate the difference in milliseconds
+  const timeDifference = now.getTime() - timestamp.getTime();
+
+  // Convert time difference to minutes and hours
+  const minutesAgo = Math.floor(timeDifference / (1000 * 60));
+  const hoursAgo = Math.floor(minutesAgo / 60);
+
+  // Format the date into a readable format e.g. "November 27"
+  const options: Intl.DateTimeFormatOptions = { month: "long", day: "numeric" };
+  const formattedDate = timestamp.toLocaleDateString(undefined, options);
+
+  // Determine the time difference string
+  let timeAgoStr: string;
+  if (minutesAgo < 1) {
+    timeAgoStr = "just now";
+  } else if (minutesAgo < 60) {
+    // Less than an hour ago, display minutes
+    timeAgoStr = `${minutesAgo} ${minutesAgo === 1 ? "minute" : "minutes"} ago`;
+  } else if (hoursAgo < 24) {
+    // Less than a day ago, display hours
+    timeAgoStr = `${hoursAgo} ${hoursAgo === 1 ? "hour" : "hours"} ago`;
+  } else {
+    // More than a day ago, display the formatted date
+    timeAgoStr = formattedDate;
+  }
+
+  // Return the final readable string
+  return timeAgoStr;
+};
+
+export const examplePrompts = [
+  {
+    title: "Stock Price",
+    prompt:
+      "Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png",
+  },
+  {
+    title: "Sine Wave",
+    prompt:
+      "Write a python script to plot a sine wave and save it to disc as a png file sine_wave.png",
+  },
+  {
+    title: "Markdown",
+    prompt:
+      "List out the top 5 rivers in africa and their length and return that as a markdown table. Do not try to write any code, just write the table",
+  },
+];

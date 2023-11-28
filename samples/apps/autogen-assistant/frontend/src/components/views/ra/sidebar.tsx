@@ -2,6 +2,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import * as React from "react";
 import SkillsView from "./skills";
 import AgentsView from "./agents";
+import SessionsView from "./sessions";
 
 const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
   const [isOpen, setIsOpen] = React.useState(true);
@@ -15,6 +16,7 @@ const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
       <div className="flex-1 ">
         <div className={`${isOpen ? "" : "hidden"}`}>
           <AgentsView />
+          <SessionsView config={config} />
           <SkillsView
             notify={notify}
             setMessages={setMessages}
