@@ -50,7 +50,7 @@ setuptools.setup(
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["lancedb", "sentence_transformers", "pypdf", "ipython"],
-        "teachable": ["lancedb"],
+        "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
     },
