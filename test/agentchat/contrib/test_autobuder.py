@@ -1,11 +1,12 @@
 import pytest
 import os
 import json
+import sys
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
-KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 oai_config_path = os.path.join(KEY_LOC, OAI_CONFIG_LIST)
 
