@@ -11,6 +11,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 oai_config_path = os.path.join(KEY_LOC, OAI_CONFIG_LIST)
 
 try:
+    import pkg_resources
+
+    pkg_resources.require("openai>=1")
     import openai
 
     OPENAI_INSTALLED = True
