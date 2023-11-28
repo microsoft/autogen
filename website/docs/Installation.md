@@ -95,9 +95,9 @@ Example notebooks:
 
 - #### retrievechat
 
-`pyautogen<0.2` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
 ```bash
-pip install "pyautogen[retrievechat]<0.2"
+pip install "pyautogen[retrievechat]"
 ```
 
 RetrieveChat can handle various types of documents. By default, it can process
