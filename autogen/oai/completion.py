@@ -229,7 +229,8 @@ class Completion(openai_Completion):
                 sleep(retry_wait_time)
             except APIError as err:
                 error_code = err and err.json_body and isinstance(err.json_body, dict) and err.json_body.get("error")
-                error_code = error_code and error_code.get("code")
+                if isinstance(error_code, dict):
+                    error_code = error_code.get("code")
                 if error_code == "content_filter":
                     raise
                 # transient error
@@ -340,7 +341,7 @@ class Completion(openai_Completion):
             config (dict): Hyperparameter setting for the openai api call.
             prune (bool, optional): Whether to enable pruning. Defaults to True.
             eval_only (bool, optional): Whether to evaluate only
-              (ignore the inference budget and do not rasie error when a request fails).
+              (ignore the inference budget and do not raise error when a request fails).
               Defaults to False.
 
         Returns:
@@ -949,7 +950,7 @@ class Completion(openai_Completion):
             return_responses_and_per_instance_result (bool): Whether to also return responses
                 and per instance results in addition to the aggregated results.
             logging_level (optional): logging level. Defaults to logging.WARNING.
-            **config (dict): parametes passed to the openai api call `create()`.
+            **config (dict): parameters passed to the openai api call `create()`.
 
         Returns:
             None when no valid eval_func is provided in either test or tune;

@@ -1,3 +1,11 @@
+import pytest
+import os
+import sys
+from autogen import ConversableAgent, config_list_from_json
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+
 try:
     from openai import OpenAI
     from autogen.agentchat.contrib.teachable_agent import TeachableAgent
@@ -5,11 +13,6 @@ except ImportError:
     skip = True
 else:
     skip = False
-
-import pytest
-import sys
-from autogen import ConversableAgent, config_list_from_json
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC
 
 try:
     from termcolor import colored
@@ -25,8 +28,7 @@ skill_verbosity = 3  # 0 for basic info, 1 to add memory operations, 2 for analy
 
 assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
 recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-cache_seed = None
-# If int, cached LLM calls will be skipped and responses pulled from cache. None exposes LLM non-determinism.
+cache_seed = None  # Use an int to seed the response cache. Use None to disable caching.
 
 # Specify the model to use by uncommenting one of the following lines.
 # filter_dict={"model": ["gpt-4-0613"]}
@@ -139,10 +141,10 @@ def use_task_advice_pair_phrasing():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.11"),
-    reason="do not run if dependency is not installed or py!=3.11",
+    skip,
+    reason="do not run if dependency is not installed",
 )
-def test_all():
+def test_teachability_code_paths():
     """Runs this file's unit tests."""
     total_num_errors, total_num_tests = 0, 0
 
@@ -169,6 +171,49 @@ def test_all():
         )
 
 
+@pytest.mark.skipif(
+    skip,
+    reason="do not run if dependency is not installed",
+)
+def test_teachability_accuracy():
+    """A very cheap and fast test of teachability accuracy."""
+    print(colored("\nTEST TEACHABILITY ACCURACY", "light_cyan"))
+
+    num_trials = 10  # The expected probability of failure is about 0.3 on each trial.
+    for trial in range(num_trials):
+        teachable_agent = create_teachable_agent(
+            reset_db=True, verbosity=0
+        )  # For a clean test, clear the agent's memory.
+        user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+        # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
+        teachable_agent.prepopulate_db()
+
+        # Tell the teachable agent something it wouldn't already know.
+        user.initiate_chat(recipient=teachable_agent, message="My favorite color is teal.")
+
+        # Let the teachable agent remember things that should be learned from this chat.
+        teachable_agent.learn_from_user_feedback()
+
+        # Now start a new chat to clear the context, and ask the teachable agent about the new information.
+        print(colored("\nSTARTING A NEW CHAT WITH EMPTY CONTEXT", "light_cyan"))
+        user.initiate_chat(recipient=teachable_agent, message="What's my favorite color?")
+        num_errors = check_agent_response(teachable_agent, user, "teal")
+
+        print(colored(f"\nTRIAL {trial + 1} OF {num_trials} FINISHED", "light_cyan"))
+
+        # Wrap up.
+        teachable_agent.close_db()
+
+        # Exit on the first success.
+        if num_errors == 0:
+            return
+
+    # All trials failed.
+    assert False, "test_teachability_accuracy() failed on all {} trials.".format(num_trials)
+
+
 if __name__ == "__main__":
     """Runs this file's unit tests from the command line."""
-    test_all()
+    test_teachability_code_paths()
+    test_teachability_accuracy()

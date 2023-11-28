@@ -19,7 +19,15 @@ except ImportError:
 DEFAULT_MODEL = "gpt-4"
 FAST_MODEL = "gpt-3.5-turbo"
 # Regular expression for finding a code block
-CODE_BLOCK_PATTERN = r"```(\w*)\n(.*?)\n```"
+# ```[ \t]*(\w+)?[ \t]*\r?\n(.*?)[ \t]*\r?\n``` Matches multi-line code blocks.
+#   The [ \t]* matches the potential spaces before language name.
+#   The (\w+)? matches the language, where the ? indicates it is optional.
+#   The [ \t]* matches the potential spaces (not newlines) after language name.
+#   The \r?\n makes sure there is a linebreak after ```.
+#   The (.*?) matches the code itself (non-greedy).
+#   The \r?\n makes sure there is a linebreak before ```.
+#   The [ \t]* matches the potential spaces before closing ``` (the spec allows indentation).
+CODE_BLOCK_PATTERN = r"```[ \t]*(\w+)?[ \t]*\r?\n(.*?)\r?\n[ \t]*```"
 WORKING_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "extensions")
 UNKNOWN = "unknown"
 TIMEOUT_MSG = "Timeout"
@@ -59,6 +67,8 @@ def infer_lang(code):
         return UNKNOWN
 
 
+# TODO: In the future move, to better support https://spec.commonmark.org/0.30/#fenced-code-blocks
+#       perhaps by using a full Markdown parser.
 def extract_code(
     text: Union[str, List], pattern: str = CODE_BLOCK_PATTERN, detect_single_line_code: bool = False
 ) -> List[Tuple[str, str]]:
@@ -83,10 +93,8 @@ def extract_code(
         return match if match else [(UNKNOWN, text)]
 
     # Extract both multi-line and single-line code block, separated by the | operator
-    # `{3}(\w+)?\s*([\s\S]*?)`{3}: Matches multi-line code blocks.
-    #    The (\w+)? matches the language, where the ? indicates it is optional.
     # `([^`]+)`: Matches inline code.
-    code_pattern = re.compile(r"`{3}(\w+)?\s*([\s\S]*?)`{3}|`([^`]+)`")
+    code_pattern = re.compile(CODE_BLOCK_PATTERN + r"|`([^`]+)`")
     code_blocks = code_pattern.findall(text)
 
     # Extract the individual code blocks and languages from the matched groups
