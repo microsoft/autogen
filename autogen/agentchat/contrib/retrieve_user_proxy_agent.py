@@ -379,15 +379,16 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 custom_text_types=self._custom_text_types,
                 recursive=self._recursive,
             )
-        if not self.retriever.index_exists() or not self._get_or_create:
-            print("Trying to create index.")  # TODO: logger
-            self.retriever.ingest_data(self._docs_path)
-        elif self._get_or_create:
-            if self.retriever.index_exists():
-                print("Trying to use existing collection.")  # TODO: logger
-                self.retriever.use_existing_index()
+        if not self.retriever.index_exists() or self._get_or_create:
+            if not self.retriever.index_exists():
+                print("Trying to create index.")  # TODO: logger
+                self.retriever.ingest_data(self._docs_path, overwrite=False)
             else:
-                raise Exception("Requested to use existing index but it is not found!")
+                print("Trying to recreate index.")  # TODO: logger
+                self.retriever.ingest_data(self._docs_path, overwrite=True)
+        else:
+            print("Trying to use existing collection.")  # TODO: logger
+            self.retriever.use_existing_index()
 
         results = self.retriever.query(
             texts=[problem],
