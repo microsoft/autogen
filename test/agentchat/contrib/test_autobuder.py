@@ -11,7 +11,7 @@ oai_config_path = os.path.join(KEY_LOC, OAI_CONFIG_LIST)
 
 
 def test_build():
-    builder = AgentBuilder(config_path=oai_config_path)
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analysis its application in some domain. "
         "For example, find a latest paper about gpt-4 on arxiv "
@@ -34,7 +34,7 @@ def test_build():
 
 
 def test_save():
-    builder = AgentBuilder(config_path=oai_config_path)
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analysis its application in some domain. "
         "For example, find a latest paper about gpt-4 on arxiv "
@@ -63,7 +63,7 @@ def test_save():
 
 
 def test_load():
-    builder = AgentBuilder(config_path=oai_config_path)
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_config.json"
     configs = json.load(open(config_save_path))
@@ -87,7 +87,7 @@ def test_load():
 
 
 def test_clear_agent():
-    builder = AgentBuilder(config_path=oai_config_path)
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_config.json"
     builder.load(
@@ -102,7 +102,7 @@ def test_clear_agent():
 
 
 def test_start():
-    builder = AgentBuilder(config_path=oai_config_path)
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     config_save_path = f"{here}/example_test_config.json"
     builder.load(config_save_path)
     test_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
