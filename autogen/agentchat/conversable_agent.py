@@ -625,7 +625,7 @@ class ConversableAgent(Agent):
         response = client.create(
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
-        return True, client.extract_text_or_function_call(response)[0]
+        return True, client.extract_text_or_completion_object(response)[0]
 
     def generate_code_execution_reply(
         self,

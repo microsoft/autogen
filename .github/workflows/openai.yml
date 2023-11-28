@@ -70,6 +70,17 @@ jobs:
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"
+      - name: Test tool usage with openai > 1.1.0
+        if: matrix.python-version == '3.9'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
+        run: |
+          pip install openai==1.3.5
+          coverage run -a -m pytest test/oai/test_client.py
+          coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

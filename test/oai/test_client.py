@@ -2,12 +2,17 @@ import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
 from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
+TOOL_ENABLED = False
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
     skip = False
+    import openai
+
+    if openai.__version__ >= "1.1.0":
+        TOOL_ENABLED = True
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -24,7 +29,44 @@ def test_aoai_chat_completion():
     #     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
+
+
+@pytest.mark.skipif(skip and not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+def test_aoai_tool_calling_extraction():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+    )
+    client = OpenAIWrapper(config_list=config_list)
+    response = client.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "What is the weather in San Francisco?",
+            },
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "getCurrentWeather",
+                    "description": "Get the weather in location",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
+                            "unit": {"type": "string", "enum": ["c", "f"]},
+                        },
+                        "required": ["location"],
+                    },
+                },
+            }
+        ],
+    )
+    print(response)
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -36,7 +78,7 @@ def test_chat_completion():
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "1+1="}])
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -45,7 +87,7 @@ def test_completion():
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct")
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 if __name__ == "__main__":
