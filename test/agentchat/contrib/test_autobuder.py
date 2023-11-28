@@ -19,6 +19,8 @@ try:
     OPENAI_INSTALLED = True
 except ImportError:
     OPENAI_INSTALLED = False
+except pkg_resources.DistributionNotFound:
+    OPENAI_INSTALLED = False
 
 
 @pytest.mark.skipif(
