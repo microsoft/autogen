@@ -70,7 +70,7 @@ def test_save():
         user_proxy_work_dir=f"{here}/test_agent_scripts",
         docker="python:3",
     )
-    saved_files = builder.save(f"{here}/example_save_config.json")
+    saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
 
     # check config file path
     assert os.path.isfile(saved_files)
@@ -92,7 +92,7 @@ def test_save():
 def test_load():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
-    config_save_path = f"{here}/example_test_config.json"
+    config_save_path = f"{here}/example_test_agent_builder_config.json"
     configs = json.load(open(config_save_path))
     agent_configs = {
         e["name"]: {"model": e["model"], "system_message": e["system_message"]} for e in configs["agent_configs"]
@@ -120,7 +120,7 @@ def test_load():
 def test_clear_agent():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
-    config_save_path = f"{here}/example_test_config.json"
+    config_save_path = f"{here}/example_test_agent_builder_config.json"
     builder.load(
         config_save_path,
         user_proxy_work_dir=f"{here}/test_agent_scripts",
@@ -138,7 +138,7 @@ def test_clear_agent():
 )
 def test_start():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
-    config_save_path = f"{here}/example_test_config.json"
+    config_save_path = f"{here}/example_test_agent_builder_config.json"
     builder.load(config_save_path)
     test_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 
