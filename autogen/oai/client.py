@@ -269,7 +269,7 @@ class OpenAIWrapper:
         completions = client.chat.completions if "messages" in params else client.completions
         # If streaming is enabled, has messages, and does not have functions, then
         # iterate over the chunks of the response
-        if params.get("stream", False) and "messages" in params and "functions" not in params:
+        if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
             finish_reasons = [""] * params.get("n", 1)
             completion_tokens = 0
@@ -281,6 +281,11 @@ class OpenAIWrapper:
             for chunk in completions.create(**params):
                 if chunk.choices:
                     for choice in chunk.choices:
+                        if choice.delta.function_call and not choice.delta.content:
+                            params = params.copy()
+                            params["stream"] = False
+                            response = completions.create(**params)
+                            return response
                         content = choice.delta.content
                         finish_reasons[choice.index] = choice.finish_reason
                         # If content is present, print it to the terminal and update response variables
@@ -319,13 +324,7 @@ class OpenAIWrapper:
                         ),
                     )
                 )
-        else:
-            # If streaming is not enabled or using functions, send a regular chat completion request
-            # Functions are not supported, so ensure streaming is disabled
-            params = params.copy()
-            params["stream"] = False
-            response = completions.create(**params)
-        return response
+            return response
 
     @classmethod
     def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
