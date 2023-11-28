@@ -3,11 +3,28 @@ title: Agent AutoBuild - Automatically Building Multi-agent Systems
 authors:
   - LinxinS97
   - jieyuz2
-tags: [LLM]
+tags: [LLM, research]
 ---
 
 ![system](img/system.png)
 
 **TL;DR:**
+Introducing **AutoBuild**, building multi-agent system automatically, fast, and easily for complex tasks with minimal
+user prompt required, powered by a new designed class **AgentBuilder**. AgentBuilder also support open-source LLMs by
+leveraging [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
+Checkout example notebooks and file for reference:
 
+- [AutoBuild Examples](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_autobuild.ipynb)
+- [AgentBuilder](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/agent_builder.py)
 
+## Introduction
+In this blog, we introduce **AutoBuild**, a pipeline that can automatically build multi-agent system for complex task.
+Specifically, we design a new class called **AgentBuilder**, which will complete the generation of participant expert agents
+and the construction of group chat automatically after the user provide descriptions of a building task and a execution task.
+
+AgentBuilder support open-source models on Hugging Face powered by [vLLM](https://docs.vllm.ai/en/latest/index.html)
+and [FastChat](https://github.com/lm-sys/FastChat). Once the user choose to use open-source LLM, AgentBuilder will set
+up an endpoint server automatically without any user participant.
+
+### Pipeline
+The pipeline of AutoBuild can be separated as: initialize, build, and start, with corresponding function.
