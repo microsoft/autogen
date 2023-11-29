@@ -105,6 +105,7 @@ class ConversableAgent(Agent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+
         if llm_config is False:
             self.llm_config = False
             self.client = None

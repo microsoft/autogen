@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, Literal, Optional, Union
 
 from .conversable_agent import ConversableAgent
 
