@@ -208,7 +208,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             regex = (
                 r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
             )  # Finds agent mentions, taking word boundaries into account
-            count = len(re.findall(regex, " " + message_content + " "))  # Pad the message to help with matching
+            count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
         return mentions
