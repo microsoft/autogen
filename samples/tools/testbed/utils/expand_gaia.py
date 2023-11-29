@@ -50,7 +50,9 @@ def create_jsonl(name, tasks, template, model):
 ###############################################################################
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit(f"SYNTAX: python {SCRIPT_NAME} [path to GIA repository]")
+        sys.exit(
+            f"SYNTAX: python {SCRIPT_NAME} [path to GIA repository]\n\nNote: to clone the GAIA repository, do 'git clone https://huggingface.co/datasets/gaia-benchmark/GAIA'"
+        )
 
     # Copy the relevant GAIA files
     gaia_path = os.path.realpath(sys.argv[1])
