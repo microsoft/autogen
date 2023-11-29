@@ -96,13 +96,13 @@ config_list_memgpt = [
 `config_list_memgpt` is used by MemGPT agents. Currently, MemGPT interfaces with the LLM backend by exporting `OPENAI_API_BASE` and `BACKEND_TYPE` as described above. Note that MemGPT does not use the OpenAI-compatible API (it uses the direct API).
 
 If you're using WebUI and want to run the non-MemGPT agents with a local LLM instead of OpenAI, enable the [openai extension](https://github.com/oobabooga/text-generation-webui/tree/main/extensions/openai) and point `config_list`'s `api_base` to the appropriate URL (usually port 5001).
-Then, for MemGPT agents, export `OPENAI_API_BASE` and `BACKEND_TYPE` as described in [Local LLM support](../local_llm) (usually port 5000).
+Then, for MemGPT agents, export `OPENAI_API_BASE` and `BACKEND_TYPE` as described in [Local LLM support](https://memgpt.readthedocs.io/en/latest/local_llm/) (usually port 5000).
 
 
 ## Loading documents
 [examples/agent_docs.py](https://github.com/cpacker/MemGPT/blob/main/memgpt/autogen/examples/agent_docs.py) contains an example of a groupchat where the MemGPT autogen agent has access to documents.
 
-First, follow the instructions in [Example - chat with your data - Creating an external data source](../example_data/#creating-an-external-data-source):
+First, follow the instructions in [Example - chat with your data - Creating an external data source](https://memgpt.readthedocs.io/en/latest/example_data/#creating-an-external-data-source):
 
 To download the MemGPT research paper we'll use `curl` (you can also just download the PDF from your browser):
 ```sh
