@@ -86,16 +86,13 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                         continue
                     print(f"Running scenario {results_repetition}")
 
-                    # Copy the contents of GLOBAL_INCLUDES_DIR to the result_repetition dir
-                    shutil.copytree(GLOBAL_INCLUDES_DIR, results_repetition, ignore=shutil.ignore_patterns("*.example"))
+                    # Expand the scenario
+                    expand_scenario(scenario_dir, instance, results_repetition)
 
                     # Append the config list to the ENV file
                     config_list_json = json.dumps(config_list)
                     with open(os.path.join(results_repetition, "ENV"), "at") as fh:
                         fh.write(f"export OAI_CONFIG_LIST='{config_list_json}'\n")
-
-                    # Expand the scenario
-                    expand_scenario(scenario_dir, instance, results_repetition)
 
                     # Run the scenario
                     if is_native:
@@ -107,41 +104,70 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
 def expand_scenario(scenario_dir, scenario, output_dir):
     """
     Expand a scenario into a folder.
+    Despite some awkwardness created by backwards compatibility and notational conveniences, expansion is conceptually simple.
+    It is a series of copy commands (similar to `cp -R`), followed by a series of in-place fine and replace operations.
     """
 
-    template_path = os.path.join(scenario_dir, scenario["template"])
+    template = scenario["template"]
 
     # Either key works for finding the substiturions list. "values" may be deprecated in the future
     substitutions = scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
 
-    # If the template is a folder, copy the tree, and treat the substitutions dictionary
-    # as nested [file]->[find_str]->[replace_str].
-    if os.path.isdir(template_path):
-        shutil.copytree(template_path, output_dir, dirs_exist_ok=True)
-        for templated_file in substitutions.keys():  # Keys are relative file paths
-            expand_file(
-                os.path.join(template_path, templated_file),
-                os.path.join(output_dir, templated_file),
-                substitutions[templated_file],
-            )
+    # Older versions are only one-level deep. Convert them,
+    if len(substitutions) > 0 and isinstance(substitutions[next(iter(substitutions))], str):
+        substitutions = {"scenario.py": substitutions}
+
+    copy_operations = []
+
+    # Handle file (str), folder (str), or mapping (List) templates
+    if isinstance(template, str):
+        template_path = os.path.join(scenario_dir, template)
+        if os.path.isdir(template_path):
+            copy_operations.append((template, ""))
+        else:
+            copy_operations.append((template, "scenario.py"))
+    elif isinstance(template, list):
+        for elm in template:
+            if isinstance(elm, list):
+                copy_operations.append((elm[0], elm[1]))
+            else:
+                copy_operations.append((elm, ""))
     else:
-        expand_file(template_path, os.path.join(output_dir, "scenario.py"), substitutions)
+        raise ValueError("expand_scenario expects an str or list for 'template'")
 
+    # The global includes folder is always copied
+    shutil.copytree(GLOBAL_INCLUDES_DIR, output_dir, ignore=shutil.ignore_patterns("*.example"), dirs_exist_ok=False)
 
-def expand_file(template_file, output_file, values):
-    """
-    Expands a template to a file.
-    """
-    template_fh = open(template_file, "rt")
-    output_fh = open(output_file, "wt")
+    # Expand other folders
+    for items in copy_operations:
+        src_path = pathlib.Path(os.path.join(scenario_dir, items[0])).absolute()
+        dest_path = pathlib.Path(os.path.join(output_dir, items[1])).absolute()
 
-    for line in template_fh:
-        for k, v in values.items():
-            line = line.replace(k, v)
-        output_fh.write(line)
+        if os.path.isdir(src_path):
+            shutil.copytree(src_path, dest_path, dirs_exist_ok=True)
+        else:
+            if os.path.isdir(dest_path):
+                # If the destination is a directory, use the same filename
+                shutil.copyfile(src_path, os.path.join(dest_path, os.path.basename(src_path)))
+            else:
+                # Otherwuse use the filename provided
+                shutil.copyfile(src_path, dest_path)
 
-    template_fh.close()
-    output_fh.close()
+    # Expand templated files
+    for templated_file in substitutions.keys():  # Keys are relative file paths
+        # Read the templated file into memory
+        template_contents = list()
+        with open(os.path.join(output_dir, templated_file), "rt") as fh:
+            for line in fh:
+                template_contents.append(line)
+
+        # Rewrite the templated file with substitutions
+        values = substitutions[templated_file]
+        with open(os.path.join(output_dir, templated_file), "wt") as fh:
+            for line in template_contents:
+                for k, v in values.items():
+                    line = line.replace(k, v)
+                fh.write(line)
 
 
 def run_scenario_natively(work_dir):
@@ -188,12 +214,12 @@ if [ -d .cache ] ; then
 fi
 
 # Run the scenario finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
 fi
 
 # Run the global finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
@@ -268,12 +294,12 @@ if [ -d .cache ] ; then
 fi
 
 # Run the scenario finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
 fi
 
 # Run the global finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
