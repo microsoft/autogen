@@ -188,12 +188,12 @@ if [ -d .cache ] ; then
 fi
 
 # Run the scenario finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
 fi
 
 # Run the global finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
@@ -268,12 +268,12 @@ if [ -d .cache ] ; then
 fi
 
 # Run the scenario finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
 fi
 
 # Run the global finalize script if it exists
-if [ -f scenario_init.sh ] ; then
+if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
