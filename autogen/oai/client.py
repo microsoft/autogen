@@ -29,13 +29,94 @@ if not logger.handlers:
     _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
 
+def template_formatter(
+        template: str | Callable | None,
+        context: Optional[Dict] = None,
+        allow_format_str_template: Optional[bool] = False,
+    ):
+        if not context or template is None:
+            return template
+        if isinstance(template, str):
+            return template.format(**context) if allow_format_str_template else template
+        return template(context)
+
+class ResponseCreator:
+    cache_path_root: str = ".cache"
+    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context"}
+
+    def construct_create_params(self, create_config: Dict, extra_kwargs: Dict) -> Dict:
+        """Prime the create_config with additional_kwargs."""
+        # Validate the config
+        prompt = create_config.get("prompt")
+        messages = create_config.get("messages")
+        if (prompt is None) == (messages is None):
+            raise ValueError("Either prompt or messages should be in create config but not both.")
+        context = extra_kwargs.get("context")
+        if context is None:
+            # No need to instantiate if no context is provided.
+            return create_config
+        # Instantiate the prompt or messages
+        allow_format_str_template = extra_kwargs.get("allow_format_str_template", False)
+        # Make a copy of the config
+        params = create_config.copy()
+        if prompt is not None:
+            # Instantiate the prompt
+            params["prompt"] = self.instantiate(prompt, context, allow_format_str_template)
+        elif context:
+            # Instantiate the messages
+            params["messages"] = [
+                {
+                    **m,
+                    "content": self.instantiate(m["content"], context, allow_format_str_template),
+                }
+                if m.get("content")
+                else m
+                for m in messages
+            ]
+        return params
+
+    def create(self, client, completions_create, is_last, create_config: Dict, extra_kwargs: Dict):
+        # construct the create params
+        params = self.construct_create_params(create_config, extra_kwargs)
+        # get the cache_seed, filter_func and context
+        cache_seed = extra_kwargs.get("cache_seed", 41)
+        filter_func = extra_kwargs.get("filter_func")
+        context = extra_kwargs.get("context")
+        with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
+            if cache_seed is not None:
+                # Try to get the response from cache
+                key = get_key(params)
+                response = cache.get(key, None)
+                if response is not None:
+                    # check the filter
+                    pass_filter = filter_func is None or filter_func(context=context, response=response)
+                    if pass_filter or is_last:
+                        # Return the response if it passes the filter or it is the last client
+                        response.pass_filter = pass_filter
+                        # TODO: add response.cost
+                        return response
+
+            response = completions_create(client, params)
+
+            if cache_seed is not None:
+                # Cache the response
+                with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
+                    cache.set(key, response)
+
+            # check the filter
+            pass_filter = filter_func is None or filter_func(context=context, response=response)
+            if pass_filter or is_last:
+                # Return the response if it passes the filter or it is the last client
+                response.pass_filter = pass_filter
+                return response
+            return None
+
 
 class OpenAIWrapper:
     """A wrapper class for openai client."""
 
-    cache_path_root: str = ".cache"
-    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
+    extra_kwargs = {"api_version"}
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
         """
@@ -69,6 +150,8 @@ class OpenAIWrapper:
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
         """
+        self.response_creator = ResponseCreator()
+        self.extra_kwargs.update(self.response_creator.extra_kwargs)
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
@@ -145,42 +228,7 @@ class OpenAIWrapper:
         context: Optional[Dict] = None,
         allow_format_str_template: Optional[bool] = False,
     ):
-        if not context or template is None:
-            return template
-        if isinstance(template, str):
-            return template.format(**context) if allow_format_str_template else template
-        return template(context)
-
-    def _construct_create_params(self, create_config: Dict, extra_kwargs: Dict) -> Dict:
-        """Prime the create_config with additional_kwargs."""
-        # Validate the config
-        prompt = create_config.get("prompt")
-        messages = create_config.get("messages")
-        if (prompt is None) == (messages is None):
-            raise ValueError("Either prompt or messages should be in create config but not both.")
-        context = extra_kwargs.get("context")
-        if context is None:
-            # No need to instantiate if no context is provided.
-            return create_config
-        # Instantiate the prompt or messages
-        allow_format_str_template = extra_kwargs.get("allow_format_str_template", False)
-        # Make a copy of the config
-        params = create_config.copy()
-        if prompt is not None:
-            # Instantiate the prompt
-            params["prompt"] = self.instantiate(prompt, context, allow_format_str_template)
-        elif context:
-            # Instantiate the messages
-            params["messages"] = [
-                {
-                    **m,
-                    "content": self.instantiate(m["content"], context, allow_format_str_template),
-                }
-                if m.get("content")
-                else m
-                for m in messages
-            ]
-        return params
+        return template_formatter(template, context, allow_format_str_template)
 
     def create(self, **config):
         """Make a completion for a given config using openai's clients.
@@ -220,50 +268,23 @@ class OpenAIWrapper:
             create_config, extra_kwargs = self._separate_create_config(full_config)
             # process for azure
             self._process_for_azure(create_config, extra_kwargs, "extra")
-            # construct the create params
-            params = self._construct_create_params(create_config, extra_kwargs)
-            # get the cache_seed, filter_func and context
-            cache_seed = extra_kwargs.get("cache_seed", 41)
-            filter_func = extra_kwargs.get("filter_func")
-            context = extra_kwargs.get("context")
-
-            # Try to load the response from cache
-            if cache_seed is not None:
-                with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
-                    # Try to get the response from cache
-                    key = get_key(params)
-                    response = cache.get(key, None)
-                    if response is not None:
-                        # check the filter
-                        pass_filter = filter_func is None or filter_func(context=context, response=response)
-                        if pass_filter or i == last:
-                            # Return the response if it passes the filter or it is the last client
-                            response.config_id = i
-                            response.pass_filter = pass_filter
-                            response.cost = self.cost(response)
-                            return response
-                        continue  # filter is not passed; try the next config
             try:
-                response = self._completions_create(client, params)
+                response = self.response_creator.create(
+                    client=client,
+                    is_last=(i == last),
+                    completions_create=self._completions_create,
+                    create_config=create_config,
+                    extra_kwargs=extra_kwargs,
+                )
+                if response is None:
+                    continue  # filter is not passed; try the next config
+                response.config_id = i
+                response.cost = self.cost(response)
+                return response
             except APIError:
                 logger.debug(f"config {i} failed", exc_info=1)
                 if i == last:
                     raise
-            else:
-                if cache_seed is not None:
-                    # Cache the response
-                    with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
-                        cache.set(key, response)
-
-                # check the filter
-                pass_filter = filter_func is None or filter_func(context=context, response=response)
-                if pass_filter or i == last:
-                    # Return the response if it passes the filter or it is the last client
-                    response.config_id = i
-                    response.pass_filter = pass_filter
-                    response.cost = self.cost(response)
-                    return response
-                continue  # filter is not passed; try the next config
 
     def cost(self, response: Union[ChatCompletion, Completion]) -> float:
         """Calculate the cost of the response."""
