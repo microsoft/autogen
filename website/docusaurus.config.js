@@ -44,6 +44,24 @@ module.exports = {
           label: 'GitHub',
           position: 'right',
         },
+        {
+          label: 'Ecosystem',
+          type: 'dropdown',
+          items: [
+            {
+              to: 'ecosystem',
+              label: 'ecosystem',
+            },
+            {
+              to: 'examples',
+              label: 'examples',
+            },
+            {
+              href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
+              label: 'PlayGround',
+            },
+          ],
+        },
       ],
     },
     footer: {
@@ -124,6 +142,46 @@ module.exports = {
         // language: ["en", "zh"],
         // ```
         // When applying `zh` in language, please install `nodejieba` in your project.
+      },
+    ],
+    [
+      '@docusaurus/plugin-content-blog',
+      {
+        /**
+         * Required for any multi-instance plugin
+         */
+        id: 'ecosystem',
+        /**
+         * URL route for the blog section of your site.
+         * *DO NOT* include a trailing slash.
+         */
+        routeBasePath: 'ecosystem',
+        /**
+         * Path to data on filesystem relative to site dir.
+         */
+        path: './ecosystem',
+        blogTitle: 'ecosystem',
+        blogDescription: '',
+      },
+    ],
+    [
+      '@docusaurus/plugin-content-blog',
+      {
+        /**
+         * Required for any multi-instance plugin
+         */
+        id: 'examples',
+        /**
+         * URL route for the blog section of your site.
+         * *DO NOT* include a trailing slash.
+         */
+        routeBasePath: 'examples',
+        /**
+         * Path to data on filesystem relative to site dir.
+         */
+        path: './examples',
+        blogTitle: 'examples',
+        blogDescription: '',
       },
     ],
   ],
