@@ -8,12 +8,27 @@ const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
   const [isOpen, setIsOpen] = React.useState(true);
   const minWidth = isOpen ? "270px" : "50px";
 
+  let windowHeight, sidebarMaxHeight;
+  if (typeof window !== "undefined") {
+    windowHeight = window.innerHeight;
+    sidebarMaxHeight = windowHeight - 180 + "px";
+  }
+
   return (
     <div
-      style={{ minWidth: minWidth, maxWidth: minWidth }}
-      className="transition overflow-hidden duration-300  flex flex-col    h-full p-2 "
+      style={{
+        minWidth: minWidth,
+        maxWidth: minWidth,
+        maxHeight: sidebarMaxHeight,
+      }}
+      className=""
     >
-      <div className="flex-1 ">
+      <div
+        style={{
+          maxHeight: sidebarMaxHeight,
+        }}
+        className="flex-1 transition overflow-hidden duration-300  flex flex-col   h-full p-2 overflow-y-scroll scroll rounded "
+      >
         <div className={`${isOpen ? "" : "hidden"}`}>
           <AgentsView />
           <SessionsView config={config} />

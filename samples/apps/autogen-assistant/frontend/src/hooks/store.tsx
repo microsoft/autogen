@@ -7,7 +7,7 @@ interface ConfigState {
   setFlowConfigs: (flowConfigs: IFlowConfig[]) => void;
   flowConfig: IFlowConfig;
   setFlowConfig: (flowConfig: IFlowConfig) => void;
-  messages: IChatMessage[];
+  messages: IChatMessage[] | null;
   setMessages: (messages: IChatMessage[]) => void;
   session: IChatSession | null;
   setSession: (session: IChatSession) => void;
@@ -20,7 +20,7 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   setFlowConfigs: (flowConfigs) => set({ flowConfigs }),
   flowConfig: getDefaultConfigFlows()[0],
   setFlowConfig: (flowConfig) => set({ flowConfig }),
-  messages: [],
+  messages: null,
   setMessages: (messages) => set({ messages }),
   session: null,
   setSession: (session) => set({ session }),

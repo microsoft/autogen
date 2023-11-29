@@ -26,7 +26,9 @@ class Message(object):
             self.timestamp = datetime.now()
 
     def dict(self):
-        return asdict(self)
+        result = asdict(self)
+        result["timestamp"] = result["timestamp"].isoformat()
+        return result
 
 
 
@@ -60,7 +62,7 @@ class AgentConfig:
     """Data model for Agent Config for Autogen"""
 
     name: str
-    llm_config: Optional[LLMConfig] = None
+    llm_config: Optional[Union[LLMConfig, bool]] = False
     human_input_mode: str = "NEVER"
     max_consecutive_auto_reply: int = 10
     system_message: Optional[str] = None
@@ -103,7 +105,31 @@ class Session(object):
             self.session_id = str(uuid.uuid4())
 
     def dict(self):
-        return asdict(self)
+        result = asdict(self)
+        result["timestamp"] = self.timestamp.isoformat()
+        return  result
+
+    
+@dataclass 
+class Gallery(object):
+    """Data model for Gallery Item"""
+    
+    session: Session 
+    messages: List[Message]
+    tags: List[str]
+    id: Optional[str] = None
+    timestamp: Optional[datetime] = None
+    def __post_init__(self):
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
+        if self.id is None:
+            self.id = str(uuid.uuid4())
+    def dict(self):
+        result = asdict(self)
+        result["timestamp"] = self.timestamp.isoformat()
+        return  result
+
+
 @dataclass
 class ChatWebRequestModel(object):
     """Data model for Chat Web Request for Web End"""
@@ -130,4 +156,5 @@ class DBWebRequestModel(object):
     user_id: str 
     msg_id: Optional[str] = None
     session: Optional[Session] = None
-    skills: Optional[Union[str, List[str]]] = None  
+    skills: Optional[Union[str, List[str]]] = None 
+    tags: Optional[List[str]] = None 

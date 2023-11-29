@@ -302,9 +302,9 @@ const ChatBox = ({
     // }
   }, []);
 
-  const chatHistory = (messages: IChatMessage[]) => {
+  const chatHistory = (messages: IChatMessage[] | null) => {
     let history = "";
-    messages.forEach((message) => {
+    messages?.forEach((message) => {
       history += message.text + "\n"; // message.sender + ": " + message.text + "\n";
     });
     return history;
@@ -404,7 +404,7 @@ const ChatBox = ({
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
       >
         <div className="flex-1  boder mt-4"></div>
-        {loading && !messages && (
+        {!messages && messages !== null && (
           <div className="w-full text-center boder mt-4">
             <div>
               {" "}
@@ -414,7 +414,7 @@ const ChatBox = ({
           </div>
         )}
 
-        {(!messages || messages?.length === 0) && (
+        {messages && messages?.length === 0 && (
           <div className="ml-2 text-sm text-secondary ">
             <InformationCircleIcon className="inline-block h-6 mr-2" />
             No messages in the current session. Start a conversation to begin.

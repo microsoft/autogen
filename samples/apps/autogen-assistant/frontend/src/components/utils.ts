@@ -259,6 +259,7 @@ export const getDefaultConfigFlows = () => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
     system_message: "",
+    llm_config: false,
     code_execution_config: {
       work_dir: null,
       use_docker: false,

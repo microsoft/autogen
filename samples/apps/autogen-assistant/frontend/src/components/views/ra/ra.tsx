@@ -36,6 +36,7 @@ const RAView = () => {
   const fetchMessages = () => {
     setError(null);
     setLoading(true);
+    setMessages(null);
     // const fetch;
     const payLoad = {
       method: "GET",

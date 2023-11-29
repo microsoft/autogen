@@ -1,10 +1,154 @@
 
 import json
-import sqlite3
-from typing import List
-from ..datamodel import Message, Session
-from ..db import DBManager
+import logging
+import sqlite3 
+import threading
+import os
+from typing import Any, List, Dict, Tuple
+from ..datamodel import Gallery, Message, Session 
 
+ 
+
+MESSAGES_TABLE_SQL= """
+            CREATE TABLE IF NOT EXISTS messages (
+                user_id TEXT NOT NULL,
+                session_id TEXT,
+                root_msg_id TEXT NOT NULL,
+                msg_id TEXT,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                metadata TEXT,
+                timestamp DATETIME, 
+                UNIQUE (user_id, root_msg_id, msg_id)
+            )
+            """ 
+
+SESSIONS_TABLE_SQL = """
+            CREATE TABLE IF NOT EXISTS sessions ( 
+                session_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                timestamp DATETIME NOT NULL,
+                flow_config TEXT,
+                UNIQUE (user_id, session_id)
+            )
+            """
+
+SKILLS_TABLE_SQL = """
+            CREATE TABLE IF NOT EXISTS sessions ( 
+                session_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                timestamp DATETIME NOT NULL,
+                flow_config TEXT,
+                UNIQUE (user_id, session_id)
+            )
+            """
+GALLERY_TABLE_SQL =  """
+            CREATE TABLE IF NOT EXISTS gallery (
+                gallery_id TEXT NOT NULL,
+                session TEXT,
+                messages TEXT,
+                tags TEXT,
+                timestamp DATETIME NOT NULL, 
+                UNIQUE ( gallery_id)
+            )
+            """
+
+
+lock = threading.Lock()
+logger = logging.getLogger()
+
+
+class DBManager:
+    """
+    A database manager class that handles the creation and interaction with an SQLite database.
+    """
+
+    def __init__(self, path: str = "database.sqlite", **kwargs: Any) -> None:
+        """
+        Initializes the DBManager object, creates a database if it does not exist, and establishes a connection.
+
+        Args:
+            path (str): The file path to the SQLite database file.
+            **kwargs: Additional keyword arguments to pass to the sqlite3.connect method.
+        """
+        self.path = path
+        # check if the database exists, if not create it
+        if not os.path.exists(self.path):
+            logger.info("Creating database")
+            self.init_db(path=self.path, **kwargs)
+
+        try:
+            self.conn = sqlite3.connect(self.path, check_same_thread=False, **kwargs)
+            self.cursor = self.conn.cursor()
+        except Exception as e:
+            logger.error("Error connecting to database: %s", e)
+            raise e
+
+    def init_db(self, path: str = "database.sqlite", **kwargs: Any) -> None:
+        """
+        Initializes the database by creating necessary tables.
+
+        Args:
+            path (str): The file path to the SQLite database file.
+            **kwargs: Additional keyword arguments to pass to the sqlite3.connect method.
+        """
+        # Connect to the database (or create a new one if it doesn't exist)
+        self.conn = sqlite3.connect(path, check_same_thread=False, **kwargs)
+        self.cursor = self.conn.cursor()
+
+        # Create the table with the specified columns, appropriate data types, and a UNIQUE constraint on (root_msg_id, msg_id)
+        self.cursor.execute(MESSAGES_TABLE_SQL) 
+
+        # Create a sessions table
+        self.cursor.execute(SESSIONS_TABLE_SQL)
+
+         
+        # Create a  skills
+        self.cursor.execute(SKILLS_TABLE_SQL) 
+
+        # Create a gallery table   
+        self.cursor.execute(GALLERY_TABLE_SQL       )
+
+
+
+        # Commit the changes and close the connection
+        self.conn.commit()
+
+    def query(self, query: str, args: Tuple = (), return_json: bool = False) -> List[Dict[str, Any]]:
+        """
+        Executes a given SQL query and returns the results.
+
+        Args:
+            query (str): The SQL query to execute.
+            args (Tuple): The arguments to pass to the SQL query.
+            return_json (bool): If True, the results will be returned as a list of dictionaries.
+
+        Returns:
+            List[Dict[str, Any]]: The result of the SQL query.
+        """
+        try:
+            with lock:
+                self.cursor.execute(query, args)
+                result = self.cursor.fetchall()
+                self.commit()
+                if return_json:
+                    result = [dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
+                return result
+        except Exception as e:
+            logger.error("Error running query with query %s and args %s: %s", query, args, e)
+            raise e
+
+    def commit(self) -> None:
+        """
+        Commits the current transaction to the database.
+        """
+        self.conn.commit()
+
+    def close(self) -> None:
+        """
+        Closes the database connection.
+        """
+        self.conn.close()
 
 
 
@@ -41,7 +185,7 @@ def load_messages(user_id: str,session_id: str, dbmanager: DBManager) -> List[di
     """
     query = "SELECT * FROM messages WHERE user_id = ? AND session_id = ?"
     args = (user_id, session_id)
-    result = dbmanager.query(query=query, args=args, json=True)
+    result = dbmanager.query(query=query, args=args, return_json=True)
     # Sort by timestamp ascending
     result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
     return result
@@ -62,9 +206,9 @@ def get_sessions(user_id: str, dbmanager: DBManager) -> List[dict]:
     """
     query = "SELECT * FROM sessions WHERE user_id = ?"
     args = (user_id,)
-    result = dbmanager.query(query=query, args=args, json=True)
+    result = dbmanager.query(query=query, args=args, return_json=True)
     # Sort by timestamp ascending
-    result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
+    result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
     for row in result:
         row["flow_config"] = json.loads(row["flow_config"])
     return result
@@ -84,6 +228,52 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
     return sessions
+
+def publish_session( session: Session,  dbmanager: DBManager, tags: List[str] = []) -> Gallery: 
+    """ 
+    Publish a session to the gallery table in the database. Fetches the session messages first, then saves session and messages object to the gallery database table. 
+    :param session: The Session object containing session data
+    :param dbmanager: The DBManager instance used to interact with the database 
+    :param tags: A list of tags to associate with the session
+    :return: A gallery object containing the session and messages objects 
+    """
+
+    messages = load_messages(user_id=session.user_id, session_id=session.session_id, dbmanager=dbmanager)
+    gallery_item = Gallery(
+        session= session, 
+        messages= messages,
+        tags= tags
+    )
+    query = "INSERT INTO gallery (gallery_id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
+    args = (gallery_item.id, json.dumps(gallery_item.session.dict()), json.dumps([
+        message.dict() for message in gallery_item.messages
+    ]), json.dumps(gallery_item.tags), gallery_item.timestamp)
+    dbmanager.query(query=query, args=args)
+    return gallery_item
+
+def get_gallery(dbmanager: DBManager) -> List[Gallery]:
+    """
+    Load all gallery items from the database, sorted by timestamp.
+
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of Gallery objects
+    """
+    query = "SELECT * FROM gallery"
+    result = dbmanager.query(query=query, return_json=True)
+    # Sort by timestamp ascending
+    result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
+    gallery = []
+    for row in result:
+        gallery_item = Gallery(
+            id=row["gallery_id"],
+            session=Session(**json.loads(row["session"])),
+            messages=[Message(**message) for message in json.loads(row["messages"])],
+            tags=json.loads(row["tags"]),
+            timestamp=row["timestamp"]
+        )
+        gallery.append(gallery_item)
+    return gallery
+
 
 def delete_user_sessions(user_id: str,session_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]: 
     """

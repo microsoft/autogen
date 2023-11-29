@@ -138,6 +138,7 @@ export const Card = ({
           </div>
         )}
         <div>{subtitle}</div>
+        {children}
       </div>
     </div>
   );

@@ -1,4 +1,9 @@
-import { ClockIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  ClockIcon,
+  PlusIcon,
+  QueueListIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { Modal, message } from "antd";
 import * as React from "react";
 import { IChatSession, IStatus } from "../../types";
@@ -31,7 +36,8 @@ const SessionsView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listSessionUrl = `${serverUrl}/sessions?user_id=${user?.email}`;
-  const createSessionUrl = `${serverUrl}/sessions/`;
+  const createSessionUrl = `${serverUrl}/sessions`;
+  const publishSessionUrl = `${serverUrl}/sessions/publish`;
 
   const sessions = useConfigStore((state) => state.sessions);
   const flowConfig = useConfigStore((state) => state.flowConfig);
@@ -58,6 +64,9 @@ const SessionsView = ({}: any) => {
         message.success(data.message);
         console.log("sesssions", data);
         setSessions(data.data);
+        if (data.data && data.data.length === 0) {
+          createSession();
+        }
       } else {
         message.error(data.message);
       }
@@ -69,6 +78,42 @@ const SessionsView = ({}: any) => {
       setLoading(false);
     };
     fetchJSON(listSessionUrl, payLoad, onSuccess, onError);
+  };
+
+  const publishSession = () => {
+    setError(null);
+    setLoading(true);
+
+    const body = {
+      user_id: user?.email,
+      session: session,
+      tags: ["published"],
+    };
+    // const fetch;
+    const payLoad = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    };
+
+    const onSuccess = (data: any) => {
+      console.log(data);
+      if (data && data.status) {
+        message.success(data.message);
+        // setSessions(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(publishSessionUrl, payLoad, onSuccess, onError);
   };
 
   React.useEffect(() => {
@@ -133,16 +178,31 @@ const SessionsView = ({}: any) => {
       ? "bg-accent text-white"
       : "bg-secondary text-primary";
     return (
-      <div
-        className={`rounded p-2   mb-2 cursor-pointer ${rowClass}`}
-        key={"sessionsrow" + index}
-        role="button"
-        onClick={() => {
-          setSession(data);
-        }}
-      >
-        <div className="text-sm">{data.session_id}</div>
-        <div className="text-xs text-right">{timeAgo(data.timestamp)}</div>
+      <div key={"sessionsrow" + index} className="  mb-2 ">
+        <div
+          className={`rounded p-2 cursor-pointer ${rowClass}`}
+          role="button"
+          onClick={() => {
+            setSession(data);
+          }}
+        >
+          <div className="text-sm">{data.session_id}</div>
+          <div className="text-xs text-right">{timeAgo(data.timestamp)}</div>
+        </div>
+        <div className="flex">
+          <div className="flex-1"></div>
+          <div
+            role="button"
+            onClick={() => {
+              console.log("pubish session", data);
+              publishSession();
+            }}
+            className="text-xs mt-1 text-secondary hover:text-accent cursor-pointer"
+          >
+            {" "}
+            publish{" "}
+          </div>
+        </div>
       </div>
     );
   });
@@ -167,7 +227,7 @@ const SessionsView = ({}: any) => {
             style={{
               maxHeight: "300px",
             }}
-            className="mb-4 pr-2 overflow-x-hidden scroll rounded  "
+            className="mb-4   overflow-x-hidden scropll rounded  "
           >
             {sessionRows}
           </div>
@@ -177,7 +237,7 @@ const SessionsView = ({}: any) => {
             </div>
           )}
         </div>
-        <div className="flex">
+        <div className="flex gap-x-2">
           <div className="flex-1"></div>
           <LaunchButton
             className="text-sm p-2 px-3"
@@ -187,7 +247,7 @@ const SessionsView = ({}: any) => {
           >
             {" "}
             <PlusIcon className="w-5 h-5 inline-block mr-1" />
-            New Session
+            New
           </LaunchButton>
         </div>
       </div>
