@@ -45,16 +45,16 @@ module.exports = {
           position: 'right',
         },
         {
-          label: 'Ecosystem',
+          to: 'examples',
+          label: 'Examples',
+        },
+        {
+          label: 'Resources',
           type: 'dropdown',
           items: [
             {
               to: 'ecosystem',
-              label: 'ecosystem',
-            },
-            {
-              to: 'examples',
-              label: 'examples',
+              label: 'Ecosystem',
             },
             {
               href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
@@ -150,7 +150,7 @@ module.exports = {
         /**
          * Required for any multi-instance plugin
          */
-        id: 'ecosystem',
+        id: 'resources',
         /**
          * URL route for the blog section of your site.
          * *DO NOT* include a trailing slash.
@@ -160,7 +160,7 @@ module.exports = {
          * Path to data on filesystem relative to site dir.
          */
         path: './ecosystem',
-        blogTitle: 'ecosystem',
+        blogTitle: 'Resources',
         blogDescription: '',
       },
     ],
@@ -180,7 +180,7 @@ module.exports = {
          * Path to data on filesystem relative to site dir.
          */
         path: './examples',
-        blogTitle: 'examples',
+        blogTitle: 'Examples',
         blogDescription: '',
       },
     ],

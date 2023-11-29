@@ -1,6 +1,6 @@
 ---
 slug: Autogen & MemGPT
-title: Autogen & MemGPT 
+title: Autogen & MemGPT
 ---
 [Copied from MemGPT](https://memgpt.readthedocs.io/en/latest/autogen/)
 ## MemGPT + Autogen
