@@ -193,6 +193,7 @@ class GPTAssistantAgent(ConversableAgent):
                                 )
                 return new_messages
             elif run.status == "requires_action":
+                print("Assistants API决定要调用以下function: ",[tool_call.function.name for tool_call in run.required_action.submit_tool_outputs.tool_calls])
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function

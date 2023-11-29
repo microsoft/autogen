@@ -172,6 +172,7 @@ class GroupChatManager(ConversableAgent):
             try:
                 # select the next speaker
                 speaker = groupchat.select_speaker(speaker, self)
+                print("Select next speaker: ", speaker.name)
                 # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
