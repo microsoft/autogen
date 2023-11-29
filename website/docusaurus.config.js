@@ -44,8 +44,14 @@ module.exports = {
           label: 'GitHub',
           position: 'right',
         },
+        // {
+        //   to: 'examples',
+        //   label: 'Examples',
+        // },
         {
-          to: 'examples',
+          type: 'doc',
+          docId: 'Examples',
+          position: 'left',
           label: 'Examples',
         },
         {
@@ -53,8 +59,8 @@ module.exports = {
           type: 'dropdown',
           items: [
             {
-              to: 'ecosystem',
-              label: 'Ecosystem',
+              label: 'Ecosystem - MemGPT',
+              href: 'https://memgpt.readthedocs.io/en/latest/autogen/',
             },
             {
               href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
@@ -142,46 +148,6 @@ module.exports = {
         // language: ["en", "zh"],
         // ```
         // When applying `zh` in language, please install `nodejieba` in your project.
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-blog',
-      {
-        /**
-         * Required for any multi-instance plugin
-         */
-        id: 'resources',
-        /**
-         * URL route for the blog section of your site.
-         * *DO NOT* include a trailing slash.
-         */
-        routeBasePath: 'ecosystem',
-        /**
-         * Path to data on filesystem relative to site dir.
-         */
-        path: './ecosystem',
-        blogTitle: 'Resources',
-        blogDescription: '',
-      },
-    ],
-    [
-      '@docusaurus/plugin-content-blog',
-      {
-        /**
-         * Required for any multi-instance plugin
-         */
-        id: 'examples',
-        /**
-         * URL route for the blog section of your site.
-         * *DO NOT* include a trailing slash.
-         */
-        routeBasePath: 'examples',
-        /**
-         * Path to data on filesystem relative to site dir.
-         */
-        path: './examples',
-        blogTitle: 'Examples',
-        blogDescription: '',
       },
     ],
   ],
