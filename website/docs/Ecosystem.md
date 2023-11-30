@@ -3,7 +3,7 @@
 This page lists libraries that have integrations with Autogen for LLM applications using multiple agents in alphabetical order. Including your own integration to this list is highly encouraged. Simply open a pull request with a few lines of text, see the dropdown below for more information.
 
 
-## [MemGPT & AutoGen](https://memgpt.readthedocs.io/en/latest/autogen/)
+## [MemGPT + AutoGen](https://memgpt.readthedocs.io/en/latest/autogen/)
 
 
 ![Agent Chat Example](img/ecosystem-memgpt.png)
