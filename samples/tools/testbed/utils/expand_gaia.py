@@ -79,6 +79,12 @@ if __name__ == "__main__":
             data = json.loads(line)
             gaia_validation_tasks[data["Level"] - 1].append(data)
 
+    gaia_test_tasks = [[], [], []]
+    with open(os.path.join(gaia_test_files, "metadata.jsonl")) as fh:
+        for line in fh:
+            data = json.loads(line)
+            gaia_test_tasks[data["Level"] - 1].append(data)
+
     models = {
         "gpt4": "gpt-4",
     }
@@ -99,3 +105,6 @@ if __name__ == "__main__":
             create_jsonl(f"gaia_validation_level_1__{t[0]}_{m[0]}", gaia_validation_tasks[0], t[1], m[1])
             create_jsonl(f"gaia_validation_level_2__{t[0]}_{m[0]}", gaia_validation_tasks[1], t[1], m[1])
             create_jsonl(f"gaia_validation_level_3__{t[0]}_{m[0]}", gaia_validation_tasks[2], t[1], m[1])
+            create_jsonl(f"gaia_test_level_1__{t[0]}_{m[0]}", gaia_test_tasks[0], t[1], m[1])
+            create_jsonl(f"gaia_test_level_2__{t[0]}_{m[0]}", gaia_test_tasks[1], t[1], m[1])
+            create_jsonl(f"gaia_test_level_3__{t[0]}_{m[0]}", gaia_test_tasks[2], t[1], m[1])
