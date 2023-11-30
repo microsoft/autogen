@@ -59,8 +59,8 @@ module.exports = {
           type: 'dropdown',
           items: [
             {
-              label: 'Ecosystem - MemGPT',
-              href: 'https://memgpt.readthedocs.io/en/latest/autogen/',
+              type: 'doc',
+              docId: 'Ecosystem',
             },
             {
               href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
