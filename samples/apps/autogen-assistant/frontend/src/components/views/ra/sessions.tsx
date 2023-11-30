@@ -178,7 +178,7 @@ const SessionsView = ({}: any) => {
       ? "bg-accent text-white"
       : "bg-secondary text-primary";
     return (
-      <div key={"sessionsrow" + index} className="  mb-2 ">
+      <div key={"sessionsrow" + index} className="  mb-2 pb-1   ">
         <div
           className={`rounded p-2 cursor-pointer ${rowClass}`}
           role="button"
@@ -186,23 +186,25 @@ const SessionsView = ({}: any) => {
             setSession(data);
           }}
         >
-          <div className="text-sm">{data.session_id}</div>
-          <div className="text-xs text-right">{timeAgo(data.timestamp)}</div>
+          <div className="text-xs">{truncateText(data.session_id, 27)}</div>
+          <div className="text-xs text-right ">{timeAgo(data.timestamp)} </div>
         </div>
-        <div className="flex">
+        <div className="flex mt-1 text-secondary">
           <div className="flex-1"></div>
+
           <div
             role="button"
             onClick={() => {
               console.log("pubish session", data);
               publishSession();
             }}
-            className="text-xs mt-1 text-secondary hover:text-accent cursor-pointer"
+            className="text-xs px-2  hover:text-accent cursor-pointer"
           >
             {" "}
             publish{" "}
           </div>
         </div>
+        {/* <div className="border-b border-dashed mx-2 mt-1"></div> */}
       </div>
     );
   });
@@ -227,7 +229,7 @@ const SessionsView = ({}: any) => {
             style={{
               maxHeight: "300px",
             }}
-            className="mb-4   overflow-x-hidden scropll rounded  "
+            className="mb-4 overflow-y-scroll rounded  "
           >
             {sessionRows}
           </div>

@@ -76,3 +76,11 @@ export interface IChatSession {
   user_id: string;
   flow_config: IFlowConfig;
 }
+
+export interface IGalleryItem {
+  id: string;
+  messages: Array<IMessage>;
+  session: IChatSession;
+  tags: Array<string>;
+  timestamp: string;
+}

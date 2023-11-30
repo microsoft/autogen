@@ -239,10 +239,10 @@ async def remove_message(req: DeleteMessageWebRequestModel):
 async def clear_db(req: DBWebRequestModel):
     """Clear user conversation history database and files"""
 
-    user_files_dir = os.path.join(folders["files_static_root"], "user", md5_hash(req.user_id))
+    # user_files_dir = os.path.join(folders["files_static_root"], "user", md5_hash(req.user_id))
     # user_skills_dir = os.path.join(folders["user_skills_dir"], md5_hash(req.user_id))
 
-    delete_files_in_folder([user_files_dir])
+    # delete_files_in_folder([user_files_dir])
 
     try:
         delete_message(user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True)

@@ -298,13 +298,13 @@ export const getDefaultConfigFlows = () => {
   };
 
   const GeneralFlowConfig: IFlowConfig = {
-    name: "General Assistant",
+    name: "General Agent Workflow",
     sender: userProxyFlowSpec,
     receiver: assistantFlowSpec,
     type: "default",
   };
   const VisualizationChatFlowConfig: IFlowConfig = {
-    name: "Visualization Assistant",
+    name: "Visualization Agent Workflow",
     sender: userProxyFlowSpec,
     receiver: visualizationAssistantFlowSpec,
     type: "default",
