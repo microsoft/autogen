@@ -27,6 +27,7 @@ except ImportError:
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_retrievechat():
+    conversations = {}
     # autogen.ChatCompletion.start_logging(conversations)  # deprecated in v0.2
 
     config_list = autogen.config_list_from_json(
@@ -63,6 +64,8 @@ def test_retrievechat():
 
     code_problem = "How can I use FLAML to perform a classification task, set use_spark=True, train 30 seconds and force cancel jobs if time limit is reached."
     ragproxyagent.initiate_chat(assistant, problem=code_problem, search_string="spark", silent=True)
+
+    print(conversations)
 
 
 def test_retrieve_config(caplog):
