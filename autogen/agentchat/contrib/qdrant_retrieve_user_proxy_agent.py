@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Optional
 
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
-from autogen.agentchat.contrib.retrieve_utils import get_files_from_dir, split_files_to_chunks, TEXT_FORMATS
+from autogen.agentchat.contrib.retriever.retrieve_utils import get_files_from_dir, split_files_to_chunks, TEXT_FORMATS
 import logging
 
 logger = logging.getLogger(__name__)
