@@ -1,3 +1,5 @@
+# filename: generate_images.py
+
 from typing import List
 import uuid
 import requests # to perform HTTP requests
@@ -5,12 +7,11 @@ from pathlib import Path
  
 from openai import OpenAI
  
-def generate_and_save_images(query: str, image_count: int = 1, image_size: str = "1024x1024") -> List[str]:
+def generate_and_save_images(query: str,  image_size: str = "1024x1024") -> List[str]:
     """
     Function to paint, draw or illustrate images based on the users query or request. Generates images from a given query using OpenAI's DALL-E model and saves them to disk.  Use the code below anytime there is a request to create an image.
     
-    :param query: A natural language description of the image to be generated.
-    :param image_count: The number of images to generate. (default is 1)
+    :param query: A natural language description of the image to be generated. 
     :param image_size: The size of the image to be generated. (default is "1024x1024")
     :return: A list of filenames for the saved images.
     """
@@ -19,7 +20,7 @@ def generate_and_save_images(query: str, image_count: int = 1, image_size: str =
     response = client.images.generate(
         model="dall-e-3",
         prompt=query,
-        n=image_count,
+        n=1,
         size=image_size
     )  # Generate images
     
