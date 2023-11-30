@@ -11,6 +11,7 @@ from typing import Dict, Optional, Union, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
 
+
 class GPTAssistantAgent(ConversableAgent):
     """
     An experimental AutoGen agent class that leverages the OpenAI Assistant API for conversational capabilities.
@@ -86,12 +87,7 @@ class GPTAssistantAgent(ConversableAgent):
                 logger.warning(
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
-        super().__init__(
-            name=name,
-            system_message=instructions,
-            llm_config=llm_config,
-            **kwargs
-        )
+        super().__init__(name=name, system_message=instructions, llm_config=llm_config, **kwargs)
         self.cancellation_requested = False
         # lazly create thread
         self._openai_threads = {}
@@ -163,7 +159,7 @@ class GPTAssistantAgent(ConversableAgent):
             run: The run object initiated with the OpenAI assistant.
         """
         if run.status == "failed":
-            logger.error(f'Run: {run.id} Thread: {assistant_thread.id}: failed...')
+            logger.error(f"Run: {run.id} Thread: {assistant_thread.id}: failed...")
             if run.last_error:
                 response = {
                     "role": "assistant",
@@ -172,25 +168,25 @@ class GPTAssistantAgent(ConversableAgent):
             else:
                 response = {
                     "role": "assistant",
-                    "content": 'Failed',
+                    "content": "Failed",
                 }
             return response
         elif run.status == "expired":
-            logger.warn(f'Run: {run.id} Thread: {assistant_thread.id}: expired...')
+            logger.warn(f"Run: {run.id} Thread: {assistant_thread.id}: expired...")
             response = {
                 "role": "assistant",
-                "content": 'Expired',
+                "content": "Expired",
             }
-            return new_messages
+            return response
         elif run.status == "cancelled":
-            logger.warn(f'Run: {run.id} Thread: {assistant_thread.id}: cancelled...')
+            logger.warn(f"Run: {run.id} Thread: {assistant_thread.id}: cancelled...")
             response = {
                 "role": "assistant",
-                "content": 'Cancelled',
+                "content": "Cancelled",
             }
             return response
         elif run.status == "completed":
-            logger.info(f'Run: {run.id} Thread: {assistant_thread.id}: completed...')
+            logger.info(f"Run: {run.id} Thread: {assistant_thread.id}: completed...")
             response_messages = self._openai_client.beta.threads.messages.list(assistant_thread.id, order="asc")
             new_messages = []
             for msg in response_messages:
@@ -231,12 +227,17 @@ class GPTAssistantAgent(ConversableAgent):
             if run.status == "in_progress" or run.status == "queued":
                 time.sleep(self.llm_config.get("check_every_ms", 1000) / 1000)
                 run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
-            elif run.status == "completed" or run.status == "cancelled" or run.status == "expired" or run.status == "failed":
+            elif (
+                run.status == "completed"
+                or run.status == "cancelled"
+                or run.status == "expired"
+                or run.status == "failed"
+            ):
                 return self._process_messages(assistant_thread, run)
             elif run.status == "cancelling":
-                logger.warn(f'Run: {run.id} Thread: {assistant_thread.id}: cancelling...')
+                logger.warn(f"Run: {run.id} Thread: {assistant_thread.id}: cancelling...")
             elif run.status == "requires_action":
-                logger.info(f'Run: {run.id} Thread: {assistant_thread.id}: required action...')
+                logger.info(f"Run: {run.id} Thread: {assistant_thread.id}: required action...")
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function
@@ -271,7 +272,6 @@ class GPTAssistantAgent(ConversableAgent):
                 run_info = json.dumps(run.dict(), indent=2)
                 raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
 
-
     def _cancel_run(self, run_id: str, thread_id: str):
         """
         Cancels a run.
@@ -282,10 +282,9 @@ class GPTAssistantAgent(ConversableAgent):
         """
         try:
             self._openai_client.beta.threads.runs.cancel(run_id=run_id, thread_id=thread_id)
-            logger.info(f'Run: {run_id} Thread: {thread_id}: successfully sent cancellation signal.')
+            logger.info(f"Run: {run_id} Thread: {thread_id}: successfully sent cancellation signal.")
         except Exception as e:
-            logger.error(f'Run: {run_id} Thread: {thread_id}: failed to send cancellation signal: {e}')
-
+            logger.error(f"Run: {run_id} Thread: {thread_id}: failed to send cancellation signal: {e}")
 
     def _format_assistant_message(self, message_content):
         """
