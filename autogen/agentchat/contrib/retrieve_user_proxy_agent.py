@@ -175,7 +175,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         if "docs_path" not in self._retrieve_config:
             logger.warning(
                 "docs_path is not provided in retrieve_config. "
-                f"Will raise ValueError if the collection `{self._collection_name}` doesn't exist."
+                f"Will raise ValueError if the collection `{self._collection_name}` doesn't exist. "
+                "Set docs_path to None to suppress this warning."
             )
         self._model = self._retrieve_config.get("model", "gpt-4")
         self._max_tokens = self.get_max_tokens(self._model)
