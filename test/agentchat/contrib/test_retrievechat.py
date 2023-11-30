@@ -68,11 +68,11 @@ def test_retrievechat():
     print(conversations)
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_retrieve_config(caplog):
-    from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
-        RetrieveUserProxyAgent,
-    )
-
     # test warning message when no docs_path is provided
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
@@ -97,5 +97,5 @@ def test_retrieve_config(caplog):
 
 
 if __name__ == "__main__":
-    test_retrievechat()
-    # test_retrieve_config()
+    # test_retrievechat()
+    test_retrieve_config()
