@@ -36,6 +36,8 @@ class OpenAIWrapper:
     cache_path_root: str = ".cache"
     extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
+    all_usage_summary: Dict = None
+    actual_usage_summary: Dict = None
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
         """
@@ -233,6 +235,7 @@ class OpenAIWrapper:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
+                    self._update_usage_summary(response, use_cache=True)
                     if response is not None:
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
@@ -240,7 +243,6 @@ class OpenAIWrapper:
                             # Return the response if it passes the filter or it is the last client
                             response.config_id = i
                             response.pass_filter = pass_filter
-                            response.cost = self.cost(response)
                             return response
                         continue  # filter is not passed; try the next config
             try:
@@ -250,6 +252,10 @@ class OpenAIWrapper:
                 if i == last:
                     raise
             else:
+                response.cost = self.cost(
+                    response
+                )  # add cost calculation before caching not matter filter is passed or not
+                self._update_usage_summary(response, use_cache=False)
                 if cache_seed is not None:
                     # Cache the response
                     with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
@@ -261,9 +267,70 @@ class OpenAIWrapper:
                     # Return the response if it passes the filter or it is the last client
                     response.config_id = i
                     response.pass_filter = pass_filter
-                    response.cost = self.cost(response)
                     return response
                 continue  # filter is not passed; try the next config
+
+    def _update_usage_summary(self, response, use_cache):
+        """Update the usage summary.
+
+        Usage is calculated no mattter filter is passed or not.
+        """
+
+        def update_usage(usage_summary):
+            if usage_summary is None:
+                usage_summary = {"total_cost": 0}
+            else:
+                usage_summary["total_cost"] += response.cost
+
+            usage_summary[response.model] = {
+                "cost": usage_summary.get(response.model, {}).get("cost", 0) + response.cost,
+                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0)
+                + response.usage.prompt_tokens,
+                "completion_tokens": usage_summary.get(response.model, {}).get("completion_tokens", 0)
+                + response.usage.completion_tokens,
+                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0)
+                + response.usage.total_tokens,
+            }
+            return usage_summary
+
+        self.all_usage_summary = update_usage(self.all_usage_summary)
+        if not use_cache:
+            self.actual_usage_summary = update_usage(self.actual_usage_summary)
+
+    def print_usage_summary(self, mode="both"):
+        """Print the usage summary."""
+
+        def print_usage(usage_summary, usage_type="all"):
+            word_from_type = "including" if usage_type == "all" else "excluding"
+            if usage_summary is None:
+                print(f"No usage summary for type '{usage_type}' ({word_from_type} cached usage).", flush=True)
+                return
+
+            print(f"Usage summary {word_from_type} cached usage:", flush=True)
+            print(f"Total cost: {usage_summary['total_cost']}", flush=True)
+            for model, counts in usage_summary.items():
+                print(
+                    f"Usage summary for model {model}: cost: {counts['cost']}, prompt_tokens: {counts['prompt_tokens']}, completion_tokens: {counts['completion_tokens']}, total_tokens: {counts['total_tokens']}",
+                    flush=True,
+                )
+
+        if mode == "both":
+            print_usage(self.all_usage_summary, "all")
+            if self.all_usage_summary != self.actual_usage_summary:
+                print_usage(self.actual_usage_summary, "actual")
+            else:
+                print("All completions are non-cached: The actual cost matches the total cost.", flush=True)
+        elif mode == "all":
+            print_usage(self.all_usage_summary, "all")
+        elif mode == "actual":
+            print_usage(self.actual_usage_summary, "actual")
+        else:
+            raise ValueError(f'Invalid mode: {mode}, choose from "all", "actual" and "both"')
+
+    def clear_usage_summary(self):
+        """Clear the usage summary."""
+        self.all_usage_summary = None
+        self.actual_usage_summary = None
 
     def cost(self, response: Union[ChatCompletion, Completion]) -> float:
         """Calculate the cost of the response."""
