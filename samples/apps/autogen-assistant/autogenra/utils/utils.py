@@ -19,18 +19,15 @@ def md5_hash(text: str) -> str:
     return hashlib.md5(text.encode()).hexdigest()
 
 
-
-
-def serialize_file(file_path: str) -> Tuple[str, str]:
+def get_file_type(file_path: str) -> str:
     """
-    Reads a file from a given file path, base64 encodes its content, 
-    and returns the base64 encoded string along with the file type.
+     
     
-    The file type is determined by the file extension. If the file extension is not 
+    Get file type   determined by the file extension. If the file extension is not 
     recognized, 'unknown' will be used as the file type.
 
     :param file_path: The path to the file to be serialized.
-    :return: A tuple containing the base64 encoded string of the file and the file type.
+    :return: A  string containing the file type.
     """
     
     # Extended list of file extensions for code and text files
@@ -60,7 +57,25 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     elif file_extension == PDF_EXTENSION:
         file_type = 'pdf'
     else:
-        file_type = 'unknown'
+        file_type = 'unknown' 
+
+    return  file_type
+
+
+
+def serialize_file(file_path: str) -> Tuple[str, str]:
+    """
+    Reads a file from a given file path, base64 encodes its content, 
+    and returns the base64 encoded string along with the file type.
+    
+    The file type is determined by the file extension. If the file extension is not 
+    recognized, 'unknown' will be used as the file type.
+
+    :param file_path: The path to the file to be serialized.
+    :return: A tuple containing the base64 encoded string of the file and the file type.
+    """
+    
+    file_type = get_file_type(file_path)
 
     # Read the file and encode its contents
     try:
@@ -120,12 +135,11 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
                 # Extract user id from the dest_dir and file path 
                 uid = dest_dir.split("/")[-1]
                 relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
-                file_content, file_type = serialize_file(dest_file_path)
+                file_type = get_file_type(dest_file_path)
                 file_dict = {
                     "path": f"files/user/{uid}/{relative_file_path}",
                     "name": file_name,
-                    "extension": file_ext.replace(".", ""),
-                    "content": file_content,
+                    "extension": file_ext.replace(".", ""), 
                     "type": file_type
                 }
                 modified_files.append(file_dict)
