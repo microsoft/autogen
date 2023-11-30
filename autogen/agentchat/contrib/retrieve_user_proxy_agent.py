@@ -6,6 +6,7 @@ from autogen.agentchat.contrib.retriever.retrieve_utils import TEXT_FORMATS
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen.agentchat.contrib.retriever import get_retriever
+
 from autogen import logger
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
@@ -173,6 +174,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._client = self._retrieve_config.get("client", None)
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
+        if "docs_path" not in self._retrieve_config:
+            logger.warning(
+                "docs_path is not provided in retrieve_config. "
+                f"Will raise ValueError if the collection `{self._collection_name}` doesn't exist. "
+                "Set docs_path to None to suppress this warning."
+            )
         self._model = self._retrieve_config.get("model", "gpt-4")
         self._max_tokens = self.get_max_tokens(self._model)
         self._chunk_token_size = int(self._retrieve_config.get("chunk_token_size", self._max_tokens * 0.4))
