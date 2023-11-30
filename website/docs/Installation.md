@@ -31,6 +31,22 @@ The following command will deactivate the current `conda` environment:
 conda deactivate
 ```
 
+### Option 3: poetry
+
+Another option is with `poetry`, which is a dependency manager for Python. You can install it by following [this doc](https://python-poetry.org/docs/#installation),
+and then create a virtual environment as below:
+```bash
+poetry init
+poetry shell
+
+poetry add pyautogen
+```
+
+The following command will deactivate the current `poetry` environment:
+```bash
+exit
+```
+
 Now, you're ready to install AutoGen in the virtual environment you've just created.
 
 ## Python
