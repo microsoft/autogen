@@ -34,9 +34,8 @@ def test_chromadb(tmpdir):
     assert isinstance(results, dict) and any("autogen" in res[0].lower() for res in results.get("documents", []))
 
     # Test index_exists()
-    db_path = "/tmp/test_retrieve_utils_chromadb.db"
-    vectorstore = ChromaDB(path=db_path)
-    assert vectorstore.index_exists()
+    vectorstore = ChromaDB(path=tmpdir)
+    assert vectorstore.index_exists
 
     # Test use_existing_index()
     assert vectorstore.collection is None

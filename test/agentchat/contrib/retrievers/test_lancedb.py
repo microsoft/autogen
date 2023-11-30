@@ -20,13 +20,9 @@ test_dir = os.path.join(os.path.dirname(__file__), "test_files")
 
 
 @pytest.mark.skipif(skip, reason="lancedb is not installed")
-def test_lancedb():
-    db_path = "/tmp/test_lancedb_store"
-    db = lancedb.connect(db_path)
-    if os.path.exists(db_path):
-        vectorstore = LanceDB(path=db_path)
-    else:
-        vectorstore = LanceDB(path=db_path)
+def test_lancedb(tmpdir):
+    db = lancedb.connect(str(tmpdir))
+    vectorstore = LanceDB(path=str(tmpdir))
     vectorstore.ingest_data(test_dir)
 
     assert "vectorstore" in db.table_names()
@@ -35,8 +31,8 @@ def test_lancedb():
     assert isinstance(results, dict) and any("autogen" in res[0].lower() for res in results.get("documents", []))
 
     # Test index_exists()
-    vectorstore = LanceDB(path=db_path)
-    assert vectorstore.index_exists()
+    vectorstore = LanceDB(path=str(tmpdir))
+    assert vectorstore.index_exists
 
     # Test use_existing_index()
     assert vectorstore.table is None
