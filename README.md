@@ -119,7 +119,7 @@ After the repo is cloned.
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
 
-Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/AgentChat) for this feature.
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
 
 ## Enhanced LLM Inferences
 
@@ -142,7 +142,7 @@ config, analysis = autogen.Completion.tune(
 response = autogen.Completion.create(context=test_instance, **config)
 ```
 
-Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples/Inference) for this feature. -->
+Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#tune-gpt-models) for this feature. -->
 
 ## Documentation
 
