@@ -1,4 +1,4 @@
-from typing import List, Union, Callable
+from typing import List, Union, Callable, Optional
 import os
 import requests
 from urllib.parse import urlparse
@@ -209,3 +209,22 @@ def is_url(string: str):
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
+
+
+AVILABLE_RETRIEVERS = ["lanchedb", "chromadb"]
+DEFAULT_RETRIEVER = "lancedb"
+
+
+def get_retriever(type: Optional[str] = None):
+    """Return a retriever instance."""
+    type = type or DEFAULT_RETRIEVER
+    if type == "chromadb":
+        from .chromadb import ChromaDB
+
+        return ChromaDB
+    elif type == "lancedb":
+        from .lancedb import LanceDB
+
+        return LanceDB
+    else:
+        raise ValueError(f"Unknown retriever type {type}")
