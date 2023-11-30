@@ -17,7 +17,7 @@ except ImportError:
 else:
     skip = False
 
-test_dir = os.path.join(os.path.dirname(__file__), "test_files")
+test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 
 
 @pytest.mark.skipif(skip, reason="chromadb is not installed")

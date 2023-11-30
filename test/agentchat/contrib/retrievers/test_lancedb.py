@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pytest
 from autogen.agentchat.contrib.retriever.retrieve_utils import (
     split_text_to_chunks,
@@ -16,14 +17,15 @@ except ImportError:
 else:
     skip = False
 
-test_dir = os.path.join(os.path.dirname(__file__), "test_files")
+# test_dir is 2 directories above this file
+test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 
 
 @pytest.mark.skipif(skip, reason="lancedb is not installed")
 def test_lancedb(tmpdir):
     db = lancedb.connect(str(tmpdir))
     vectorstore = LanceDB(path=str(tmpdir))
-    vectorstore.ingest_data(test_dir)
+    vectorstore.ingest_data(str(test_dir))
 
     assert "vectorstore" in db.table_names()
 
