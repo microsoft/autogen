@@ -7,7 +7,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    import openai
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
         RetrieveAssistantAgent,
     )
@@ -16,6 +15,7 @@ try:
     )
     import chromadb
     from chromadb.utils import embedding_functions as ef
+    import openai
 
     skip_test = False
 except ImportError:
