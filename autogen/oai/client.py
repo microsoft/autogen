@@ -140,10 +140,10 @@ class OpenAIWrapper:
 
     @classmethod
     def instantiate(
-        cls,
-        template: str | Callable | None,
-        context: Optional[Dict] = None,
-        allow_format_str_template: Optional[bool] = False,
+            cls,
+            template: str | Callable | None,
+            context: Optional[Dict] = None,
+            allow_format_str_template: Optional[bool] = False,
     ):
         if not context or template is None:
             return template
@@ -281,6 +281,9 @@ class OpenAIWrapper:
             for chunk in completions.create(**params):
                 if chunk.choices:
                     for choice in chunk.choices:
+                        # If the ChoiceDelta returns with content is None and a ChoiceDeltaFunctionCall value
+                        # We set streaming to false, as this message is calling a function, and call completions.create
+                        # So that we are sending a regular (not streaming) chat completion request
                         if choice.delta.function_call and not choice.delta.content:
                             params = params.copy()
                             params["stream"] = False
@@ -324,7 +327,12 @@ class OpenAIWrapper:
                         ),
                     )
                 )
-            return response
+        else:
+            # If streaming is not enabled, send a regular chat completion request
+            params = params.copy()
+            params["stream"] = False
+            response = completions.create(**params)
+        return response
 
     @classmethod
     def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
@@ -342,6 +350,5 @@ class OpenAIWrapper:
         return [
             choice.message if choice.message.function_call is not None else choice.message.content for choice in choices
         ]
-
 
 # TODO: logging
