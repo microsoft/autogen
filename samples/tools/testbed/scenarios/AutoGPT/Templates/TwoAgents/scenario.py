@@ -1,7 +1,7 @@
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 import testbed_utils
 
-# Assistant agent can all check.py to check if all the unit tests have passed
+# Assistant agent can call check.py to check if all the unit tests have passed
 testbed_utils.init()
 
 work_dir = "coding"
