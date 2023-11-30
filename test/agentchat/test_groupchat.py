@@ -265,7 +265,7 @@ def test_agent_mentions():
         max_consecutive_auto_reply=2,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is alice sepaking.",
+        default_auto_reply="This is alice speaking.",
     )
     agent2 = autogen.ConversableAgent(
         "bob",
@@ -330,11 +330,64 @@ def test_agent_mentions():
     )
 
 
+def test_termination():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "sam",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is sam speaking. TERMINATE",
+    )
+
+    # Test empty is_termination_msg function
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3], messages=[], speaker_selection_method="round_robin", max_round=10
+    )
+
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False, is_termination_msg=None)
+
+    agent1.initiate_chat(group_chat_manager, message="'None' is_termination_msg function.")
+    assert len(groupchat.messages) == 10
+
+    # Test user-provided is_termination_msg function
+    agent1.reset()
+    agent2.reset()
+    agent3.reset()
+
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3], messages=[], speaker_selection_method="round_robin", max_round=10
+    )
+
+    group_chat_manager = autogen.GroupChatManager(
+        groupchat=groupchat,
+        llm_config=False,
+        is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    )
+
+    agent1.initiate_chat(group_chat_manager, message="User-provided is_termination_msg function.")
+    assert len(groupchat.messages) == 3
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    test_speaker_selection_method()
-    test_n_agents_less_than_3()
+    # test_speaker_selection_method()
+    # test_n_agents_less_than_3()
     # test_agent_mentions()
+    test_termination()
