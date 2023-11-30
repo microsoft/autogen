@@ -161,7 +161,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .[teachable]
           python -c "import autogen"
-          pip install coverage
+          pip install coverage pytest
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
