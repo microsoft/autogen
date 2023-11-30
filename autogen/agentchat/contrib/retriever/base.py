@@ -43,11 +43,12 @@ class Retriever(ABC):
         self.init_db()
 
     @abstractmethod
-    def ingest_data(self, data_dir):
+    def ingest_data(self, data_dir, overwrite: bool = False):
         """
         Create a vector database from a directory of files.
         Args:
             data_dir: path to the directory containing the text files
+            overwrite: overwrite the existing database if True
         """
         pass
 
@@ -75,6 +76,7 @@ class Retriever(ABC):
         """
         pass
 
+    @property
     @abstractmethod
     def index_exists(self):
         """

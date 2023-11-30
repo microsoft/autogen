@@ -6,6 +6,7 @@ from autogen.agentchat.contrib.retriever.retrieve_utils import TEXT_FORMATS
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen.agentchat.contrib.retriever import get_retriever
+from autogen import logger
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 from IPython import get_ipython
@@ -118,7 +119,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
-                - get_or_create (Optional, bool): if True, will create/recreate a collection for the retrieve chat.
+                - db_mode (Optional, str): the mode to create the vector db. Possible values are "get", "recreate", "create". Default is "recreate" to
+                    keep the workflow less error-prone. If "get", will try to get an existing collection. If "recreate", will recreate a collection
+                    if the collection already exists. If "create", will create a collection if the collection doesn't exist.
+                - get_or_create (Optional, bool): [Depricated]if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in retriever. Default is False. Will be set to False if docs_path is None.
                 - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
@@ -179,7 +183,6 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
-        self._get_or_create = self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else True
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", count_token)
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._custom_text_types = self._retrieve_config.get("custom_text_types", TEXT_FORMATS)
@@ -193,6 +196,26 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
         self._search_string = ""  # the search string used in the current query
+        self._db_mode = self._retrieve_config.get("db_mode")
+        self._get_or_create = self._retrieve_config.get("get_or_create")
+        if self._db_mode and self._get_or_create:
+            logger.warning(
+                colored(
+                    "Warning: db_mode and get_or_create are both set. get_or_create will be ignored. get_or_create is depricated",
+                    "yellow",
+                )
+            )
+            self._get_or_create = None
+        elif self._db_mode is None and self._get_or_create is None:  # if both not set, set db_mode's default value
+            self._db_mode = "recreate"
+        elif self._get_or_create:
+            logger.warning(
+                colored(
+                    "Warning: get_or_create is depricated and will be removed from future versions. Use `db_mode` instead",
+                    "yellow",
+                )
+            )
+
         # update the termination message function
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
@@ -379,16 +402,37 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 custom_text_types=self._custom_text_types,
                 recursive=self._recursive,
             )
-        if not self.retriever.index_exists() or self._get_or_create:
-            if not self.retriever.index_exists():
-                print("Trying to create index.")  # TODO: logger
-                self.retriever.ingest_data(self._docs_path, overwrite=False)
-            else:
-                print("Trying to recreate index.")  # TODO: logger
+        if self._db_mode:
+            if self._db_mode not in ["get", "recreate", "create"]:
+                raise ValueError(
+                    f"db_mode {self._db_mode} is not supported. Possible values are 'get', 'recreate', 'create'."
+                )
+            if self._db_mode == "get":
+                if (
+                    not self.retriever.index_exists
+                ):  # warn users if the index doesn't exist. Maybe we can even raise here
+                    raise ValueError("The index doesn't exist. Please set db_mode to 'recreate' or 'create'.")
+                self.retriever.use_existing_index()
+            elif self._db_mode == "recreate":
+                logger.info("Trying to create index. If the index already exists, it will be recreated.")
                 self.retriever.ingest_data(self._docs_path, overwrite=True)
-        else:
-            print("Trying to use existing collection.")  # TODO: logger
-            self.retriever.use_existing_index()
+            elif self._db_mode == "create":
+                logger.info("Trying to create index.")
+                if self.retriever.index_exists:
+                    raise ValueError("The index already exists. Please set db_mode to 'get' or 'recreate'.")
+                self.retriever.ingest_data(self._docs_path, overwrite=False)
+
+        elif self._get_or_create:
+            if not self.retriever.index_exists or self._get_or_create:
+                if not self.retriever.index_exists:
+                    logger.info("Trying to create index.")
+                    self.retriever.ingest_data(self._docs_path, overwrite=False)
+                else:
+                    logger.info("Trying to recreate index.")
+                    self.retriever.ingest_data(self._docs_path, overwrite=True)
+            else:
+                logger.info("Trying to use existing collection.")
+                self.retriever.use_existing_index()
 
         results = self.retriever.query(
             texts=[problem],

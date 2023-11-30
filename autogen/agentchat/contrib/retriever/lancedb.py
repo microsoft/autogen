@@ -24,14 +24,14 @@ class LanceDB(Retriever):
             else self.embedding_function
         )
 
-    def ingest_data(self, data_dir):
+    def ingest_data(self, data_dir, overwrite: bool = False):
         """
         Create a vector database from a directory of files.
         Args:
             data_dir: path to the directory containing the text files
         """
         schema = self._get_schema(self.embedding_function)
-        self.table = self.db.create_table(self.name, schema=schema, mode="overwrite")
+        self.table = self.db.create_table(self.name, schema=schema, mode="overwrite" if overwrite else "create")
 
         if self.custom_text_split_function is not None:
             chunks = split_files_to_chunks(
@@ -70,6 +70,7 @@ class LanceDB(Retriever):
 
         return results
 
+    @property
     def index_exists(self):
         return self.name in self.db.table_names()
 
