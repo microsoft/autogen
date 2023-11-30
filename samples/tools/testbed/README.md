@@ -197,9 +197,9 @@ cat human_eval_results_gpt35.csv
 
 ## (Example) Running GAIA
 
-The Testbed can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if (nearly) exactly matches an unambious accepted answer.
+The Testbed can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if it (nearly) exactly matches an unambiguously accepted answer.
 
-Accessing this scenario-type requires downloading and converting the GAIA dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance 3 times with GPT-3.5-Turbo-16k:
+Accessing this scenario-type requires downloading and converting the GAIA dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance once with GPT-4:
 
 ```
 # Clone the GAIA dataset repo (assuming a 'repos' folder in your home directory)
