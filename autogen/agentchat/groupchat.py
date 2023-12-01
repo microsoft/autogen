@@ -161,10 +161,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
         context = self.messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
-
-        logger.warning("GroupChat selection context: " + json.dumps(context, indent=4))
         final, name = selector.generate_oai_reply(context)
-        logger.warning("GroupChat selection result: {name}")
 
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.

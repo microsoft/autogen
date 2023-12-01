@@ -64,8 +64,6 @@ class ConversableAgent(Agent):
         Args:
             name (str): name of the agent.
             system_message (str): system message for the ChatCompletion inference.
-            description (str): a short description of the agent. This description is used by other agents
-                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
@@ -102,6 +100,8 @@ class ConversableAgent(Agent):
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
         # a dictionary of conversations, default value is list

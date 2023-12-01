@@ -6,7 +6,8 @@ logger = logging.getLogger(__name__)
 
 
 class GroupChatModerator(GroupChat):
-    """(Experimental) TODO"""
+    """(Experimental) A variation of the standard GroupChat class, but with an alternate prompting strategy
+    that focus on conversation moderation rather than role play. A drop-in replacement for GroupChat."""
 
     def __init__(
         self,
@@ -19,8 +20,8 @@ class GroupChatModerator(GroupChat):
         allow_repeat_speaker: bool = True,
     ):
         """
-        Args:
-            TODO
+        GroupChatModerator uses the same initilization and constructor as GroupChat.
+        Please refer to [GroupChat](groupchat#groupchat-objects).
         """
         super().__init__(
             agents=agents,
