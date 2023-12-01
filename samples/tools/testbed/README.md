@@ -214,5 +214,5 @@ python ./utils/expand_gaia.py ~/repos/GAIA
 python ./run_scenarios.py ./scenarios/GAIA/gaia_validation_level_1__two_agents_gpt4.jsonl
 
 # Compute Metrics
-python utils/collate_gaia.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
+python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
 ```
