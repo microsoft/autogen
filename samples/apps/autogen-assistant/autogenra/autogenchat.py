@@ -3,11 +3,11 @@ import time
 from typing import List
 from .datamodel import FlowConfig, Message
 from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
-from .autogenflow import AutoGenFlow
+from .autogenflow import AutoGenWorkFlowManager
 import os
+ 
 
-
-class ChatManager:
+class AutoGenChatManager:
     def __init__(self) -> None:
         pass
 
@@ -21,7 +21,7 @@ class ChatManager:
             flow_config = get_default_agent_config(scratch_dir, skills_suffix=skills_suffix)
 
         # print("Flow config: ", flow_config)
-        flow = AutoGenFlow(config=flow_config, history=history, work_dir=scratch_dir, assistant_prompt=skills_suffix)
+        flow = AutoGenWorkFlowManager(config=flow_config, history=history, work_dir=scratch_dir, assistant_prompt=skills_suffix)
         message_text = message.content.strip()
 
         output = ""
