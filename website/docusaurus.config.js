@@ -44,6 +44,30 @@ module.exports = {
           label: 'GitHub',
           position: 'right',
         },
+        // {
+        //   to: 'examples',
+        //   label: 'Examples',
+        // },
+        {
+          type: 'doc',
+          docId: 'Examples',
+          position: 'left',
+          label: 'Examples',
+        },
+        {
+          label: 'Resources',
+          type: 'dropdown',
+          items: [
+            {
+              type: 'doc',
+              docId: 'Ecosystem',
+            },
+            {
+              href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
+              label: 'PlayGround',
+            },
+          ],
+        },
       ],
     },
     footer: {
