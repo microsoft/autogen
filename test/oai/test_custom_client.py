@@ -27,7 +27,6 @@ def test_custom_client():
             self.test_hook["other_params"] = self.other_params
             self.test_hook["max_length"] = self.max_length
 
-
         def create(self, params):
             if params.get("stream", False) and "messages" in params and "functions" not in params:
                 raise NotImplementedError("Custom Client does not support streaming or functions")

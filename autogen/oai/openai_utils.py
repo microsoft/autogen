@@ -6,6 +6,7 @@ from typing import List, Optional, Dict, Set, Union
 import logging
 from dotenv import find_dotenv, load_dotenv
 
+NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version", "custom_client"]
 
 oai_price1k = {
     "text-ada-001": 0.0004,
@@ -37,6 +38,24 @@ oai_price1k = {
     "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
 }
 
+
+def get_key(config):
+    """Get a unique identifier of a configuration.
+
+    Args:
+        config (dict or list): A configuration.
+
+    Returns:
+        tuple: A unique identifier which can be used as a key for a dict.
+    """
+    import json
+
+    copied = False
+    for key in NON_CACHE_KEY:
+        if key in config:
+            config, copied = config.copy() if not copied else config, True
+            config.pop(key)
+    return json.dumps(config, sort_keys=True)
 
 
 def get_config_list(

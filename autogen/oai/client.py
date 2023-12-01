@@ -48,25 +48,6 @@ def template_formatter(
 class ResponseCreator:
     cache_path_root: str = ".cache"
     extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context"}
-    NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version", "custom_client"]
-
-    def get_key(self, config):
-        """Get a unique identifier of a configuration.
-
-        Args:
-            config (dict or list): A configuration.
-
-        Returns:
-            tuple: A unique identifier which can be used as a key for a dict.
-        """
-        import json
-
-        copied = False
-        for key in self.NON_CACHE_KEY:
-            if key in config:
-                config, copied = config.copy() if not copied else config, True
-                config.pop(key)
-        return json.dumps(config, sort_keys=True)
 
     def construct_create_params(self, create_config: Dict, extra_kwargs: Dict) -> Dict:
         """Prime the create_config with additional_kwargs."""
@@ -109,7 +90,7 @@ class ResponseCreator:
         with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
             if cache_seed is not None:
                 # Try to get the response from cache
-                key = self.get_key(params)
+                key = get_key(params)
                 response = cache.get(key, None)
                 if response is not None:
                     # check the filter
@@ -139,15 +120,17 @@ class ResponseCreator:
                 return response
             return None
 
+
 class Client(ABC):
     """
     A client class must implement the following methods:
     - create must return a response object that implements the ClientResponseProtocol
     - cost
-    
+
     This class is used to create a client that can be used by OpenAIWrapper.
     It mimicks the OpenAI class, but allows for custom clients to be used.
     """
+
     class ClientResponseProtocol(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
