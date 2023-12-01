@@ -56,6 +56,8 @@ Links to notebook examples:
    - Multimodal Agent Chat with Llava  - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
    - Multimodal Agent Chat with GPT-4V - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb)
 
+8. **Automatic Agent Building**
+   - Automatically Build Multi-agent System with AgentBuilder    - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_autobuild.ipynb)
 
 ## Tune GPT Models
 
