@@ -36,11 +36,7 @@ class ChatManager:
         successful_code_blocks = extract_successful_code_blocks(agent_chat_messages)
         successful_code_blocks = "\n\n".join(successful_code_blocks)
         output = (
-            (
-                flow.sender.last_message()["content"]
-                + "\n"
-                + successful_code_blocks
-            )
+            (flow.sender.last_message()["content"] + "\n" + successful_code_blocks)
             if successful_code_blocks
             else flow.sender.last_message()["content"]
         )

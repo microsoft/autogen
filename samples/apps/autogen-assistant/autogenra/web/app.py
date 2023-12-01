@@ -5,15 +5,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
- 
-  
+
+
 from ..datamodel import (
     ChatWebRequestModel,
     DBWebRequestModel,
     CreateSkillWebRequestModel,
     DeleteMessageWebRequestModel,
     Message,
-    Session, 
+    Session,
 )
 from ..utils import (
     create_skills_from_code,
@@ -30,11 +30,11 @@ from ..utils import (
     delete_user_sessions,
     publish_session,
     get_gallery,
-    DBManager
+    DBManager,
 )
 
 from ..autogenchat import ChatManager
- 
+
 
 app = FastAPI()
 
@@ -74,7 +74,6 @@ chatmanager = ChatManager()  # manage calls to autogen
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
     user_history = load_messages(user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
- 
 
     # save incoming message to db
     save_message(message=message, dbmanager=dbmanager)
@@ -112,14 +111,14 @@ async def add_message(req: ChatWebRequestModel):
             "status": False,
             "message": "Error occurred while processing message: " + str(ex_error),
         }
- 
+
 
 @api.get("/messages")
 def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
     try:
-        user_history = load_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager) 
+        user_history = load_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -133,11 +132,11 @@ def get_messages(user_id: str = None, session_id: str = None):
             "message": "Error occurred while retrieving messages: " + str(ex_error),
         }
 
+
 @api.get("/gallery")
 def get_gallery_items(gallery_id: str = None):
-     
     try:
-        gallery = get_gallery(gallery_id=gallery_id, dbmanager=dbmanager) 
+        gallery = get_gallery(gallery_id=gallery_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": gallery,
@@ -150,13 +149,13 @@ def get_gallery_items(gallery_id: str = None):
             "message": "Error occurred while retrieving messages: " + str(ex_error),
         }
 
- 
+
 @api.get("/sessions")
 def get_user_sessions(user_id: str = None):
-    """ Return a list of all sessions for a user"""
+    """Return a list of all sessions for a user"""
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
-    
+
     try:
         user_sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
@@ -172,14 +171,15 @@ def get_user_sessions(user_id: str = None):
             "message": "Error occurred while retrieving sessions: " + str(ex_error),
         }
 
+
 @api.post("/sessions")
 async def create_user_session(req: DBWebRequestModel):
-    """Create a new session for a user""" 
+    """Create a new session for a user"""
     # print(req.session, "**********" )
-   
+
     try:
         session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
-        user_sessions = create_session(user_id=req.user_id, session=session,  dbmanager=dbmanager)
+        user_sessions = create_session(user_id=req.user_id, session=session, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session created successfully",
@@ -192,11 +192,12 @@ async def create_user_session(req: DBWebRequestModel):
             "message": "Error occurred while creating session: " + str(ex_error),
         }
 
+
 @api.post("/sessions/publish")
 async def publish_user_session_to_gallery(req: DBWebRequestModel):
-    """Create a new session for a user""" 
-    print(req.session, "**********" )
-   
+    """Create a new session for a user"""
+    print(req.session, "**********")
+
     try:
         gallery_item = publish_session(req.session, tags=req.tags, dbmanager=dbmanager)
         return {
@@ -212,16 +213,14 @@ async def publish_user_session_to_gallery(req: DBWebRequestModel):
         }
 
 
-
-
-
-
 @api.post("/messages/delete")
 async def remove_message(req: DeleteMessageWebRequestModel):
     """Delete a message from the database"""
 
     try:
-        messages = delete_message(user_id=req.user_id, msg_id=req.msg_id, session_id=req.session_id, dbmanager=dbmanager)
+        messages = delete_message(
+            user_id=req.user_id, msg_id=req.msg_id, session_id=req.session_id, dbmanager=dbmanager
+        )
         return {
             "status": True,
             "message": "Message deleted successfully",
@@ -245,7 +244,9 @@ async def clear_db(req: DBWebRequestModel):
     # delete_files_in_folder([user_files_dir])
 
     try:
-        delete_message(user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True)
+        delete_message(
+            user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True
+        )
         sessions = delete_user_sessions(user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
         return {
             "status": True,

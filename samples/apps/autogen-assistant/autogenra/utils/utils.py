@@ -21,73 +21,103 @@ def md5_hash(text: str) -> str:
 
 def get_file_type(file_path: str) -> str:
     """
-     
-    
-    Get file type   determined by the file extension. If the file extension is not 
+
+
+    Get file type   determined by the file extension. If the file extension is not
     recognized, 'unknown' will be used as the file type.
 
     :param file_path: The path to the file to be serialized.
     :return: A  string containing the file type.
     """
-    
+
     # Extended list of file extensions for code and text files
     CODE_EXTENSIONS = {
-        '.py', '.js', '.jsx', '.java', '.c', '.cpp', '.cs', '.ts', '.tsx',
-        '.html', '.css', '.scss', '.less', '.json', '.xml', '.yaml', '.yml',
-        '.md', '.rst', '.tex', '.sh', '.bat', '.ps1', '.php', '.rb', '.go',
-        '.swift', '.kt', '.hs', '.scala', '.lua', '.pl', '.sql', '.config'
+        ".py",
+        ".js",
+        ".jsx",
+        ".java",
+        ".c",
+        ".cpp",
+        ".cs",
+        ".ts",
+        ".tsx",
+        ".html",
+        ".css",
+        ".scss",
+        ".less",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".md",
+        ".rst",
+        ".tex",
+        ".sh",
+        ".bat",
+        ".ps1",
+        ".php",
+        ".rb",
+        ".go",
+        ".swift",
+        ".kt",
+        ".hs",
+        ".scala",
+        ".lua",
+        ".pl",
+        ".sql",
+        ".config",
     }
-    
+
     # Supported image extensions
-    IMAGE_EXTENSIONS = {
-        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.svg', '.webp'
-    }
-    
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+
     # Supported PDF extension
-    PDF_EXTENSION = '.pdf'
+    PDF_EXTENSION = ".pdf"
 
     # Determine the file extension
     _, file_extension = os.path.splitext(file_path)
-    
+
     # Determine the file type based on the extension
     if file_extension in CODE_EXTENSIONS:
-        file_type = 'code'
+        file_type = "code"
     elif file_extension in IMAGE_EXTENSIONS:
-        file_type = 'image'
+        file_type = "image"
     elif file_extension == PDF_EXTENSION:
-        file_type = 'pdf'
+        file_type = "pdf"
     else:
-        file_type = 'unknown' 
+        file_type = "unknown"
 
-    return  file_type
-
+    return file_type
 
 
 def serialize_file(file_path: str) -> Tuple[str, str]:
     """
-    Reads a file from a given file path, base64 encodes its content, 
+    Reads a file from a given file path, base64 encodes its content,
     and returns the base64 encoded string along with the file type.
-    
-    The file type is determined by the file extension. If the file extension is not 
+
+    The file type is determined by the file extension. If the file extension is not
     recognized, 'unknown' will be used as the file type.
 
     :param file_path: The path to the file to be serialized.
     :return: A tuple containing the base64 encoded string of the file and the file type.
     """
-    
+
     file_type = get_file_type(file_path)
 
     # Read the file and encode its contents
     try:
-        with open(file_path, 'rb') as file:
+        with open(file_path, "rb") as file:
             file_content = file.read()
-            base64_encoded_content = base64.b64encode(file_content).decode('utf-8')
+            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
     except Exception as e:
         raise IOError(f"An error occurred while reading the file: {e}")
 
     return base64_encoded_content, file_type
 
-def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str) -> List[Dict[str, str]]:
+
+def get_modified_files(
+    start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str
+) -> List[Dict[str, str]]:
     """
     Copy files from source_dir that were modified within a specified timestamp range
     to dest_dir, renaming files if they already exist there. The function excludes
@@ -131,21 +161,22 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
 
                 # Copying the modified file to the destination directory
                 shutil.copy2(file_path, dest_file_path)
-                
-                # Extract user id from the dest_dir and file path 
+
+                # Extract user id from the dest_dir and file path
                 uid = dest_dir.split("/")[-1]
                 relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
                 file_dict = {
                     "path": f"files/user/{uid}/{relative_file_path}",
                     "name": file_name,
-                    "extension": file_ext.replace(".", ""), 
-                    "type": file_type
+                    "extension": file_ext.replace(".", ""),
+                    "type": file_type,
                 }
                 modified_files.append(file_dict)
     # sort by extension
     modified_files.sort(key=lambda x: x["extension"])
     return modified_files
+
 
 def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
     """

@@ -1,15 +1,13 @@
-
 import json
 import logging
-import sqlite3 
+import sqlite3
 import threading
 import os
 from typing import Any, List, Dict, Tuple
-from ..datamodel import Gallery, Message, Session 
+from ..datamodel import Gallery, Message, Session
 
- 
 
-MESSAGES_TABLE_SQL= """
+MESSAGES_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS messages (
                 user_id TEXT NOT NULL,
                 session_id TEXT,
@@ -18,13 +16,13 @@ MESSAGES_TABLE_SQL= """
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 metadata TEXT,
-                timestamp DATETIME, 
+                timestamp DATETIME,
                 UNIQUE (user_id, root_msg_id, msg_id)
             )
-            """ 
+            """
 
 SESSIONS_TABLE_SQL = """
-            CREATE TABLE IF NOT EXISTS sessions ( 
+            CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
@@ -34,7 +32,7 @@ SESSIONS_TABLE_SQL = """
             """
 
 SKILLS_TABLE_SQL = """
-            CREATE TABLE IF NOT EXISTS sessions ( 
+            CREATE TABLE IF NOT EXISTS sessions (
                 session_id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
@@ -42,13 +40,13 @@ SKILLS_TABLE_SQL = """
                 UNIQUE (user_id, session_id)
             )
             """
-GALLERY_TABLE_SQL =  """
+GALLERY_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS gallery (
                 gallery_id TEXT NOT NULL,
                 session TEXT,
                 messages TEXT,
                 tags TEXT,
-                timestamp DATETIME NOT NULL, 
+                timestamp DATETIME NOT NULL,
                 UNIQUE ( gallery_id)
             )
             """
@@ -97,19 +95,16 @@ class DBManager:
         self.cursor = self.conn.cursor()
 
         # Create the table with the specified columns, appropriate data types, and a UNIQUE constraint on (root_msg_id, msg_id)
-        self.cursor.execute(MESSAGES_TABLE_SQL) 
+        self.cursor.execute(MESSAGES_TABLE_SQL)
 
         # Create a sessions table
         self.cursor.execute(SESSIONS_TABLE_SQL)
 
-         
         # Create a  skills
-        self.cursor.execute(SKILLS_TABLE_SQL) 
+        self.cursor.execute(SKILLS_TABLE_SQL)
 
-        # Create a gallery table   
-        self.cursor.execute(GALLERY_TABLE_SQL       )
-
-
+        # Create a gallery table
+        self.cursor.execute(GALLERY_TABLE_SQL)
 
         # Commit the changes and close the connection
         self.conn.commit()
@@ -151,7 +146,6 @@ class DBManager:
         self.conn.close()
 
 
-
 def save_message(message: Message, dbmanager: DBManager) -> None:
     """
     Save a message in the database using the provided database manager.
@@ -168,12 +162,12 @@ def save_message(message: Message, dbmanager: DBManager) -> None:
         message.content,
         message.metadata,
         message.timestamp,
-        message.session_id
+        message.session_id,
     )
     dbmanager.query(query=query, args=args)
 
 
-def load_messages(user_id: str,session_id: str, dbmanager: DBManager) -> List[dict]:
+def load_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[dict]:
     """
     Load messages for a specific user and session from the database, sorted by timestamp.
 
@@ -189,11 +183,6 @@ def load_messages(user_id: str,session_id: str, dbmanager: DBManager) -> List[di
     # Sort by timestamp ascending
     result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
     return result
-
-
-
-
-   
 
 
 def get_sessions(user_id: str, dbmanager: DBManager) -> List[dict]:
@@ -213,6 +202,7 @@ def get_sessions(user_id: str, dbmanager: DBManager) -> List[dict]:
         row["flow_config"] = json.loads(row["flow_config"])
     return result
 
+
 def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List[dict]:
     """
     Create a new session for a specific user in the database.
@@ -221,35 +211,37 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a session
     """
-  
-    query = "INSERT INTO sessions (user_id, session_id, timestamp, flow_config) VALUES (?, ?, ?,?)" 
-    args = (session.user_id, session.session_id, session.timestamp,  json.dumps(session.flow_config.dict()))
+
+    query = "INSERT INTO sessions (user_id, session_id, timestamp, flow_config) VALUES (?, ?, ?,?)"
+    args = (session.user_id, session.session_id, session.timestamp, json.dumps(session.flow_config.dict()))
     dbmanager.query(query=query, args=args)
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
     return sessions
 
-def publish_session( session: Session,  dbmanager: DBManager, tags: List[str] = []) -> Gallery: 
-    """ 
-    Publish a session to the gallery table in the database. Fetches the session messages first, then saves session and messages object to the gallery database table. 
+
+def publish_session(session: Session, dbmanager: DBManager, tags: List[str] = []) -> Gallery:
+    """
+    Publish a session to the gallery table in the database. Fetches the session messages first, then saves session and messages object to the gallery database table.
     :param session: The Session object containing session data
-    :param dbmanager: The DBManager instance used to interact with the database 
+    :param dbmanager: The DBManager instance used to interact with the database
     :param tags: A list of tags to associate with the session
-    :return: A gallery object containing the session and messages objects 
+    :return: A gallery object containing the session and messages objects
     """
 
     messages = load_messages(user_id=session.user_id, session_id=session.session_id, dbmanager=dbmanager)
-    gallery_item = Gallery(
-        session= session, 
-        messages= messages,
-        tags= tags
-    )
+    gallery_item = Gallery(session=session, messages=messages, tags=tags)
     query = "INSERT INTO gallery (gallery_id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
-    args = (gallery_item.id, json.dumps(gallery_item.session.dict()), json.dumps([
-        message.dict() for message in gallery_item.messages
-    ]), json.dumps(gallery_item.tags), gallery_item.timestamp)
+    args = (
+        gallery_item.id,
+        json.dumps(gallery_item.session.dict()),
+        json.dumps([message.dict() for message in gallery_item.messages]),
+        json.dumps(gallery_item.tags),
+        gallery_item.timestamp,
+    )
     dbmanager.query(query=query, args=args)
     return gallery_item
+
 
 def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
     """
@@ -266,7 +258,7 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
     else:
         query = "SELECT * FROM gallery"
         args = ()
-    result = dbmanager.query(query=query, args=args, return_json=True) 
+    result = dbmanager.query(query=query, args=args, return_json=True)
     # Sort by timestamp ascending
     result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
     gallery = []
@@ -276,13 +268,13 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
             session=Session(**json.loads(row["session"])),
             messages=[Message(**message) for message in json.loads(row["messages"])],
             tags=json.loads(row["tags"]),
-            timestamp=row["timestamp"]
+            timestamp=row["timestamp"],
         )
         gallery.append(gallery_item)
     return gallery
 
 
-def delete_user_sessions(user_id: str,session_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]: 
+def delete_user_sessions(user_id: str, session_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]:
     """
     Delete a specific session or all sessions for a user from the database.
 
@@ -306,8 +298,9 @@ def delete_user_sessions(user_id: str,session_id: str, dbmanager: DBManager, del
         return sessions
 
 
-
-def delete_message(user_id: str, msg_id: str, session_id:str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]:
+def delete_message(
+    user_id: str, msg_id: str, session_id: str, dbmanager: DBManager, delete_all: bool = False
+) -> List[dict]:
     """
     Delete a specific message or all messages for a user and session from the database.
 
@@ -318,7 +311,7 @@ def delete_message(user_id: str, msg_id: str, session_id:str, dbmanager: DBManag
     :param delete_all: If True, all messages for the user will be deleted
     :return: A list of the remaining messages if not all were deleted, otherwise an empty list
     """
-    
+
     if delete_all:
         query = "DELETE FROM messages WHERE user_id = ? AND session_id = ?"
         args = (user_id, session_id)
@@ -330,5 +323,3 @@ def delete_message(user_id: str, msg_id: str, session_id:str, dbmanager: DBManag
         dbmanager.query(query=query, args=args)
         messages = load_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
         return messages
-    
-

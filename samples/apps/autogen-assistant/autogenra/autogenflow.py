@@ -10,7 +10,11 @@ class AutoGenFlow:
     """
 
     def __init__(
-        self, config: FlowConfig, history: Optional[List[Message]] = None, work_dir: str = None, assistant_prompt: str = None
+        self,
+        config: FlowConfig,
+        history: Optional[List[Message]] = None,
+        work_dir: str = None,
+        assistant_prompt: str = None,
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional

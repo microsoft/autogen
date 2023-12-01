@@ -31,7 +31,6 @@ class Message(object):
         return result
 
 
-
 # web api data models
 
 
@@ -90,9 +89,11 @@ class FlowConfig:
     def dict(self):
         return asdict(self)
 
+
 @dataclass
 class Session(object):
     """Data model for AutoGen Chat Session"""
+
     user_id: str
     session_id: Optional[str] = None
     timestamp: Optional[datetime] = None
@@ -107,27 +108,29 @@ class Session(object):
     def dict(self):
         result = asdict(self)
         result["timestamp"] = self.timestamp.isoformat()
-        return  result
+        return result
 
-    
-@dataclass 
+
+@dataclass
 class Gallery(object):
     """Data model for Gallery Item"""
-    
-    session: Session 
+
+    session: Session
     messages: List[Message]
     tags: List[str]
     id: Optional[str] = None
     timestamp: Optional[datetime] = None
+
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = datetime.now()
         if self.id is None:
             self.id = str(uuid.uuid4())
+
     def dict(self):
         result = asdict(self)
         result["timestamp"] = self.timestamp.isoformat()
-        return  result
+        return result
 
 
 @dataclass
@@ -135,7 +138,7 @@ class ChatWebRequestModel(object):
     """Data model for Chat Web Request for Web End"""
 
     message: Message
-    flow_config: FlowConfig 
+    flow_config: FlowConfig
 
 
 @dataclass
@@ -145,16 +148,16 @@ class DeleteMessageWebRequestModel(object):
     session_id: Optional[str] = None
 
 
-
 @dataclass
 class CreateSkillWebRequestModel(object):
     user_id: str
     skills: Union[str, List[str]]
 
+
 @dataclass
 class DBWebRequestModel(object):
-    user_id: str 
+    user_id: str
     msg_id: Optional[str] = None
     session: Optional[Session] = None
-    skills: Optional[Union[str, List[str]]] = None 
-    tags: Optional[List[str]] = None 
+    skills: Optional[Union[str, List[str]]] = None
+    tags: Optional[List[str]] = None

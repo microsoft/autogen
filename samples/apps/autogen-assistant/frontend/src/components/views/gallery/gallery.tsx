@@ -8,7 +8,7 @@ import {
   ChevronLeftIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { Link, navigate } from "gatsby";
+import { navigate } from "gatsby";
 import ChatBox from "../ra/chatbox";
 
 const GalleryView = ({ location }: any) => {
@@ -45,7 +45,7 @@ const GalleryView = ({ location }: any) => {
 
   const fetchGallery = (galleryId: string | null) => {
     const fetchGalleryUrl = galleryId
-      ? `${serverUrl}/gallery/?gallery_id=${galleryId}`
+      ? `${serverUrl}/gallery?gallery_id=${galleryId}`
       : listGalleryUrl;
     setError(null);
     setLoading(true);
