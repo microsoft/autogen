@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import List, Optional, Dict, Callable
+from typing import List, Optional, Dict, Callable, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
 
-from autogen.oai.openai_utils import get_key
+from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
 
 try:
@@ -226,8 +226,10 @@ class OpenAIWrapper:
             cache_seed = extra_kwargs.get("cache_seed", 41)
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
-            with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
-                if cache_seed is not None:
+
+            # Try to load the response from cache
+            if cache_seed is not None:
+                with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
@@ -238,19 +240,45 @@ class OpenAIWrapper:
                             # Return the response if it passes the filter or it is the last client
                             response.config_id = i
                             response.pass_filter = pass_filter
-                            # TODO: add response.cost
+                            response.cost = self.cost(response)
                             return response
-                try:
-                    response = self._completions_create(client, params)
-                except APIError:
-                    logger.debug(f"config {i} failed", exc_info=1)
-                    if i == last:
-                        raise
-                else:
-                    if cache_seed is not None:
-                        # Cache the response
+                        continue  # filter is not passed; try the next config
+            try:
+                response = self._completions_create(client, params)
+            except APIError:
+                logger.debug(f"config {i} failed", exc_info=1)
+                if i == last:
+                    raise
+            else:
+                if cache_seed is not None:
+                    # Cache the response
+                    with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                         cache.set(key, response)
+
+                # check the filter
+                pass_filter = filter_func is None or filter_func(context=context, response=response)
+                if pass_filter or i == last:
+                    # Return the response if it passes the filter or it is the last client
+                    response.config_id = i
+                    response.pass_filter = pass_filter
+                    response.cost = self.cost(response)
                     return response
+                continue  # filter is not passed; try the next config
+
+    def cost(self, response: Union[ChatCompletion, Completion]) -> float:
+        """Calculate the cost of the response."""
+        model = response.model
+        if model not in oai_price1k:
+            # TODO: add logging to warn that the model is not found
+            return 0
+
+        n_input_tokens = response.usage.prompt_tokens
+        n_output_tokens = response.usage.completion_tokens
+        tmp_price1K = oai_price1k[model]
+        # First value is input token rate, second value is output token rate
+        if isinstance(tmp_price1K, tuple):
+            return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
+        return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
 
     def _completions_create(self, client, params):
         completions = client.chat.completions if "messages" in params else client.completions
