@@ -63,7 +63,7 @@ def test_function_call_groupchat():
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_define_function():
+def test_update_function():
     config_list_gpt4 = autogen.config_list_from_json(
         "OAI_CONFIG_LIST",
         filter_dict={
@@ -76,11 +76,15 @@ def test_define_function():
         "functions": [],
     }
 
-    user_proxy = autogen.UserProxyAgent(name="user_proxy", human_input_mode="NEVER")
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False,
+    )
     assistant = autogen.AssistantAgent(name="test", llm_config=llm_config)
 
     # Define a new function *after* the assistant has been created
-    assistant.define_function(
+    assistant.update_function_signature(
         {
             "name": "greet_user",
             "description": "Greets the user.",
@@ -89,20 +93,28 @@ def test_define_function():
                 "properties": {},
                 "required": [],
             },
-        }
+        },
+        is_remove=False,
     )
-
     user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
     )
-    messages = assistant.chat_messages[user_proxy]
-    print(messages)
+    messages1 = assistant.chat_messages[user_proxy][-1]["content"]
+    print(messages1)
 
+    assistant.update_function_signature("greet_user", is_remove=True)
+    user_proxy.initiate_chat(
+        assistant,
+        message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+    )
+    messages2 = assistant.chat_messages[user_proxy][-1]["content"]
+    print(messages2)
     # The model should know about the function in the context of the conversation
-    assert "greet_user" in messages[1]["content"]
+    assert "greet_user" in messages1
+    assert "greet_user" not in messages2
 
 
 if __name__ == "__main__":
     test_function_call_groupchat()
-    test_define_function()
+    test_update_function()
