@@ -216,7 +216,7 @@ You must select only one speaker to go next, and you must only return their name
             regex = (
                 r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
             )  # Finds agent mentions, taking word boundaries into account
-            count = len(re.findall(regex, " " + message_content + " "))  # Pad the message to help with matching
+            count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
         return mentions
@@ -265,6 +265,11 @@ class GroupChatManager(ConversableAgent):
             if message["role"] != "function":
                 message["name"] = speaker.name
             groupchat.messages.append(message)
+
+            if self._is_termination_msg(message):
+                # The conversation is over
+                break
+
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
@@ -310,6 +315,11 @@ class GroupChatManager(ConversableAgent):
             if message["role"] != "function":
                 message["name"] = speaker.name
             groupchat.messages.append(message)
+
+            if self._is_termination_msg(message):
+                # The conversation is over
+                break
+
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
