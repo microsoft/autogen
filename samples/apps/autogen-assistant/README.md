@@ -28,7 +28,7 @@ llm_config = LLMConfig(
         config_list=[{
                 "model": "gpt-4",
                 "api_key": "<azure_api_key>",
-                "api_base": "<azure api base>",
+                "base_url": "<azure api base>",
                 "api_type": "azure",
                 "api_version": "2023-06-01-preview"
         }],

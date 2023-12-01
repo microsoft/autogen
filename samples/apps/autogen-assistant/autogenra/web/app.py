@@ -17,7 +17,6 @@ from ..datamodel import (
 )
 from ..utils import (
     create_skills_from_code,
-    delete_files_in_folder,
     get_all_skills,
     load_messages,
     md5_hash,
@@ -33,7 +32,7 @@ from ..utils import (
     DBManager,
 )
 
-from ..autogenchat import ChatManager
+from ..autogenchat import AutoGenChatManager
 
 
 app = FastAPI()
@@ -67,7 +66,7 @@ api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=Tru
 
 db_path = os.path.join(root_file_path, "database.sqlite")
 dbmanager = DBManager(path=db_path)  # manage database operations
-chatmanager = ChatManager()  # manage calls to autogen
+chatmanager = AutoGenChatManager()  # manage calls to autogen
 
 
 @api.post("/messages")
