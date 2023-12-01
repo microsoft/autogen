@@ -251,15 +251,22 @@ def publish_session( session: Session,  dbmanager: DBManager, tags: List[str] = 
     dbmanager.query(query=query, args=args)
     return gallery_item
 
-def get_gallery(dbmanager: DBManager) -> List[Gallery]:
+def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
     """
-    Load all gallery items from the database, sorted by timestamp.
+    Load gallery items from the database, sorted by timestamp. If gallery_id is provided, only the gallery item with the matching gallery_id will be returned.
 
+    :param gallery_id: The ID of the gallery item to be loaded
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of Gallery objects
     """
-    query = "SELECT * FROM gallery"
-    result = dbmanager.query(query=query, return_json=True)
+
+    if gallery_id:
+        query = "SELECT * FROM gallery WHERE gallery_id = ?"
+        args = (gallery_id,)
+    else:
+        query = "SELECT * FROM gallery"
+        args = ()
+    result = dbmanager.query(query=query, args=args, return_json=True) 
     # Sort by timestamp ascending
     result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
     gallery = []

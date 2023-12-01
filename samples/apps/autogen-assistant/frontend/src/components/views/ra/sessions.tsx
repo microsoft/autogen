@@ -229,7 +229,7 @@ const SessionsView = ({}: any) => {
             style={{
               maxHeight: "300px",
             }}
-            className="mb-4 overflow-y-scroll rounded  "
+            className="mb-4 overflow-y-scroll scroll rounded  "
           >
             {sessionRows}
           </div>

@@ -22,13 +22,11 @@ import { BounceLoader, MarkdownView } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 
 const ChatBox = ({
-  config,
   initMessages,
-  skillup,
+  editable = true,
 }: {
-  config: any;
   initMessages: IMessage[] | null;
-  skillup: any;
+  editable: boolean;
 }) => {
   const session: IChatSession | null = useConfigStore((state) => state.session);
   const queryInputRef = React.useRef<HTMLInputElement>(null);
@@ -77,12 +75,6 @@ const ChatBox = ({
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
   }, [initMessages]);
-
-  function processString(inputString: string): string {
-    inputString = inputString.replace(/\n/g, "  \n");
-    const markdownPattern = /```markdown\s+([\s\S]*?)\s+```/g;
-    return inputString?.replace(markdownPattern, (match, content) => content);
-  }
 
   const deleteMessage = (messageId: string) => {
     setError(null);
@@ -137,14 +129,6 @@ const ChatBox = ({
       </Button>
     );
   });
-
-  const checkIsSkill = (message: string) => {
-    // check if message contains lowercase of 'Learned a new skill'
-    if (message.toLowerCase().includes("learned a new skill")) {
-      skillup.set(new Date().toLocaleTimeString());
-      console.log("learned a new skill .. updating UI ");
-    }
-  };
 
   const messageListView = messages?.map((message: IChatMessage, i: number) => {
     const isUser = message.sender === "user";
@@ -320,7 +304,6 @@ const ChatBox = ({
   const getCompletion = (query: string) => {
     setError(null);
     let messageHolder = Object.assign([], messages);
-    let history = chatHistory(messages);
 
     const userMessage: IChatMessage = {
       text: query,
@@ -367,7 +350,6 @@ const ChatBox = ({
                 metadata: data.metadata,
                 msg_id: data.msg_id,
               };
-              checkIsSkill(data.message);
               // if (data.metadata) {
               //   setMetadata(data.metadata);
               // }
@@ -389,7 +371,7 @@ const ChatBox = ({
           message.error("Connection error. Ensure server is up and running.");
         }
       })
-      .catch((err) => {
+      .catch(() => {
         setLoading(false);
 
         message.error("Connection error. Ensure server is up and running.");
@@ -403,6 +385,10 @@ const ChatBox = ({
         className="flex h-full     flex-col rounded  scroll pr-2 overflow-auto  "
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
       >
+        <div className="scroll-gradient h-10">
+          {" "}
+          <span className="  inline-block h-6"></span>{" "}
+        </div>
         <div className="flex-1  boder mt-4"></div>
         {!messages && messages !== null && (
           <div className="w-full text-center boder mt-4">
@@ -425,78 +411,80 @@ const ChatBox = ({
           {loading && <BounceLoader />}
         </div>
       </div>
-      <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
-        <div
-          className={`mt-2   rounded p-2 shadow-lg flex mb-1  gap-2 ${
-            loading ? " opacity-50 pointer-events-none" : ""
-          }`}
-        >
-          {/* <input className="flex-1 p-2 ring-2" /> */}
-          <form
-            autoComplete="on"
-            className="flex-1 "
-            onSubmit={(e) => {
-              e.preventDefault();
-              // if (queryInputRef.current && !loading) {
-              //   getCompletion(queryInputRef.current?.value);
-              // }
-            }}
+      {editable && (
+        <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
+          <div
+            className={`mt-2   rounded p-2 shadow-lg flex mb-1  gap-2 ${
+              loading ? " opacity-50 pointer-events-none" : ""
+            }`}
           >
-            <input
-              id="queryInput"
-              name="queryInput"
+            {/* <input className="flex-1 p-2 ring-2" /> */}
+            <form
               autoComplete="on"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && queryInputRef.current && !loading) {
+              className="flex-1 "
+              onSubmit={(e) => {
+                e.preventDefault();
+                // if (queryInputRef.current && !loading) {
+                //   getCompletion(queryInputRef.current?.value);
+                // }
+              }}
+            >
+              <input
+                id="queryInput"
+                name="queryInput"
+                autoComplete="on"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && queryInputRef.current && !loading) {
+                    getCompletion(queryInputRef.current?.value);
+                  }
+                }}
+                ref={queryInputRef}
+                className="w-full text-gray-600 bg-white p-2 ring-2 rounded-sm"
+              />
+            </form>
+            <div
+              role={"button"}
+              onClick={() => {
+                if (queryInputRef.current && !loading) {
                   getCompletion(queryInputRef.current?.value);
                 }
               }}
-              ref={queryInputRef}
-              className="w-full text-gray-600 bg-white p-2 ring-2 rounded-sm"
-            />
-          </form>
-          <div
-            role={"button"}
-            onClick={() => {
-              if (queryInputRef.current && !loading) {
-                getCompletion(queryInputRef.current?.value);
-              }
-            }}
-            className="bg-accent hover:brightness-75 transition duration-300 rounded pt-2 px-5 "
-          >
-            {" "}
-            {!loading && (
-              <div className="inline-block   ">
-                <PaperAirplaneIcon className="h-6 text-white   inline-block" />{" "}
-              </div>
-            )}
-            {loading && (
-              <div className="inline-block   ">
-                <Cog6ToothIcon className="relative -pb-2 text-white animate-spin  inline-flex rounded-full h-6 w-6" />
-              </div>
-            )}
+              className="bg-accent hover:brightness-75 transition duration-300 rounded pt-2 px-5 "
+            >
+              {" "}
+              {!loading && (
+                <div className="inline-block   ">
+                  <PaperAirplaneIcon className="h-6 text-white   inline-block" />{" "}
+                </div>
+              )}
+              {loading && (
+                <div className="inline-block   ">
+                  <Cog6ToothIcon className="relative -pb-2 text-white animate-spin  inline-flex rounded-full h-6 w-6" />
+                </div>
+              )}
+            </div>
+          </div>{" "}
+          <div>
+            <div className="mt-2 text-xs text-secondary">
+              Blank slate? Try one of the example prompts below{" "}
+            </div>
+            <div
+              className={`mt-2 inline-flex gap-2 flex-wrap  ${
+                loading ? "brightness-75 pointer-events-none" : ""
+              }`}
+            >
+              {promptButtons}
+            </div>
           </div>
-        </div>{" "}
-        <div>
-          <div className="mt-2 text-xs text-secondary">
-            Blank slate? Try one of the example prompts below{" "}
-          </div>
-          <div
-            className={`mt-2 inline-flex gap-2 flex-wrap  ${
-              loading ? "brightness-75 pointer-events-none" : ""
-            }`}
-          >
-            {promptButtons}
-          </div>
+          {error && !error.status && (
+            <div className="p-2 border rounded mt-4 text-orange-500 text-sm">
+              {" "}
+              <ExclamationTriangleIcon className="h-5 text-orange-500 inline-block mr-2" />{" "}
+              {error.message}
+            </div>
+          )}
         </div>
-        {error && !error.status && (
-          <div className="p-2 border rounded mt-4 text-orange-500 text-sm">
-            {" "}
-            <ExclamationTriangleIcon className="h-5 text-orange-500 inline-block mr-2" />{" "}
-            {error.message}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

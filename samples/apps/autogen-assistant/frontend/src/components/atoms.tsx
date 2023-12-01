@@ -279,7 +279,12 @@ export const GroupView = ({ children, title, className = "" }: any) => {
   );
 };
 
-export const ExpandView = ({ children, icon = null, className = "" }: any) => {
+export const ExpandView = ({
+  children,
+  icon = null,
+  className = "",
+  title = "Detail View",
+}: any) => {
   const [isOpen, setIsOpen] = React.useState(false);
   let windowAspect = 1;
   if (typeof window !== "undefined") {
@@ -304,12 +309,13 @@ export const ExpandView = ({ children, icon = null, className = "" }: any) => {
       </div>
       {isOpen && (
         <Modal
-          width="min-content"
+          title={title}
+          width={800}
           open={isOpen}
           onCancel={() => setIsOpen(false)}
           footer={null}
         >
-          <ResizableBox
+          {/* <ResizableBox
             // handle={<span className="text-accent">resize</span>}
             lockAspectRatio={false}
             handle={
@@ -322,9 +328,9 @@ export const ExpandView = ({ children, icon = null, className = "" }: any) => {
             minConstraints={[minImageWidth, minImageWidth * windowAspect]}
             maxConstraints={[900, 900 * windowAspect]}
             className="overflow-auto w-full rounded select-none "
-          >
-            {children}
-          </ResizableBox>
+          > */}
+          {children}
+          {/* </ResizableBox> */}
         </Modal>
       )}
     </div>

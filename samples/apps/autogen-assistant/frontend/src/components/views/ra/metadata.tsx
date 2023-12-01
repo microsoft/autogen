@@ -71,7 +71,10 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
           <div className="absolute rounded p-2 bg-secondary top-0 ">
             {fileTitle}
           </div>
-          <div className="bg-secondary h-full w-full rounded  flex items-center justify-center ">
+          <div
+            style={{ minHeight: "150px" }}
+            className="bg-secondary  h-full w-full rounded  flex items-center justify-center text-primary"
+          >
             <Icon icon="python" size={14} />
           </div>
         </div>
@@ -89,7 +92,10 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
           <div className="absolute rounded p-2 bg-secondary top-0 ">
             {fileTitle}
           </div>
-          <div className="bg-secondary h-full w-full rounded  flex items-center justify-center ">
+          <div
+            style={{ minHeight: "150px" }}
+            className="bg-secondary h-full w-full rounded  flex items-center justify-center text-primary "
+          >
             <Icon icon="pdf" size={14} />
           </div>
         </div>
@@ -100,7 +106,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
 
     return (
       <div className="  h-full rounded">
-        <ExpandView className="mb-1" icon={icon}>
+        <ExpandView className="mb-1" icon={icon} title={file_name}>
           {fileView}
         </ExpandView>
       </div>

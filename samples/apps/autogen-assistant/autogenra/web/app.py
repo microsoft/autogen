@@ -134,11 +134,10 @@ def get_messages(user_id: str = None, session_id: str = None):
         }
 
 @api.get("/gallery")
-def get_gallery_items():
+def get_gallery_items(gallery_id: str = None):
      
     try:
-        gallery = get_gallery(dbmanager=dbmanager)
-
+        gallery = get_gallery(gallery_id=gallery_id, dbmanager=dbmanager) 
         return {
             "status": True,
             "data": gallery,
@@ -151,6 +150,7 @@ def get_gallery_items():
             "message": "Error occurred while retrieving messages: " + str(ex_error),
         }
 
+ 
 @api.get("/sessions")
 def get_user_sessions(user_id: str = None):
     """ Return a list of all sessions for a user"""
