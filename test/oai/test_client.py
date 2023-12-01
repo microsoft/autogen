@@ -64,6 +64,7 @@ def test_cost(cache_seed, model):
     print(response.cost)
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_usage_summary():
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
