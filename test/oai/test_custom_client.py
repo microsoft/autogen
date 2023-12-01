@@ -1,8 +1,17 @@
+import pytest
 from autogen import OpenAIWrapper
 from autogen.oai import Client
 from typing import Dict
 
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False
 
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_custom_client():
     TEST_COST = 20000000
     TEST_CUSTOM_RESPONSE = "This is a custom response."
