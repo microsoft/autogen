@@ -7,6 +7,7 @@ import logging
 import inspect
 from flaml.automl.logger import logger_formatter
 from abc import ABC, abstractmethod
+from typing import Protocol
 
 from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
@@ -32,14 +33,6 @@ if not logger.handlers:
     logger.addHandler(_ch)
 
 
-def import_class_from_path(path, class_name):
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("module.name", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    cls = getattr(module, class_name)
-    return cls
-
 def template_formatter(
     template: str | Callable | None,
     context: Optional[Dict] = None,
@@ -55,6 +48,25 @@ def template_formatter(
 class ResponseCreator:
     cache_path_root: str = ".cache"
     extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context"}
+    NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version", "custom_client"]
+
+    def get_key(self, config):
+        """Get a unique identifier of a configuration.
+
+        Args:
+            config (dict or list): A configuration.
+
+        Returns:
+            tuple: A unique identifier which can be used as a key for a dict.
+        """
+        import json
+
+        copied = False
+        for key in self.NON_CACHE_KEY:
+            if key in config:
+                config, copied = config.copy() if not copied else config, True
+                config.pop(key)
+        return json.dumps(config, sort_keys=True)
 
     def construct_create_params(self, create_config: Dict, extra_kwargs: Dict) -> Dict:
         """Prime the create_config with additional_kwargs."""
@@ -97,7 +109,7 @@ class ResponseCreator:
         with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
             if cache_seed is not None:
                 # Try to get the response from cache
-                key = get_key(params)
+                key = self.get_key(params)
                 response = cache.get(key, None)
                 if response is not None:
                     # check the filter
@@ -128,13 +140,35 @@ class ResponseCreator:
             return None
 
 class Client(ABC):
+    """
+    A client class must implement the following methods:
+    - create must return a response object that implements the ClientResponseProtocol
+    - cost
+    
+    This class is used to create a client that can be used by OpenAIWrapper.
+    It mimicks the OpenAI class, but allows for custom clients to be used.
+    """
+    class ClientResponseProtocol(Protocol):
+        class Choice(Protocol):
+            class Message(Protocol):
+                content: str | None
+                function_call: str | None
 
-    @abstractmethod
-    def create(self, params):
+        choices: List[Choice]
+        config_id: int
+        cost: float
+        pass_filter: bool
+
+    def update(self, config: Dict):
+        # update with anything here
         pass
 
     @abstractmethod
-    def cost(self, response):
+    def create(self, params) -> ClientResponseProtocol:
+        pass
+
+    @abstractmethod
+    def cost(self, response: ClientResponseProtocol) -> float:
         pass
 
 
@@ -326,11 +360,10 @@ class OpenAIWrapper:
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         self._process_for_azure(openai_config, config)
-        if "custom_client" in config and "custom_client_code_path" in config:
+        if "custom_client" in config:
             custom_client = config["custom_client"]
-            custom_client_code_path = config["custom_client_code_path"]
-            CustomClient = import_class_from_path(custom_client_code_path, custom_client)
-            return CustomClient(config)
+            custom_client.update(config)
+            return custom_client
         else:
             return OpenAIClient(openai_config)
 
@@ -398,10 +431,12 @@ class OpenAIWrapper:
                     raise
 
     @classmethod
-    def extract_text_or_function_call(cls, response) -> List[str]:
+    def extract_text_or_function_call(cls, response: Client.ClientResponseProtocol) -> List[str]:
         """Extract the text or function calls from a completion or chat response.
 
         Args:
+            response (Client.ClientResponseProtocol): The response protocol, following ChatCompletion/Completion
+            if response is not one of those then it is assumed to have originated from a custom client
             response (ChatCompletion | Completion): The response from openai.
 
         Returns:
