@@ -21,7 +21,7 @@ class GroupChatModerator(GroupChat):
     ):
         """
         GroupChatModerator uses the same initilization and constructor as GroupChat.
-        Please refer to [GroupChat](groupchat#groupchat-objects).
+        Please refer to the GroupChat constructor for more information.
         """
         super().__init__(
             agents=agents,
