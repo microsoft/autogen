@@ -1,6 +1,7 @@
 import logging
 import sys
 import random
+import json
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 import re
@@ -65,15 +66,16 @@ class GroupChat:
                     return self.agents[(offset + i) % len(self.agents)]
 
     def select_speaker_msg(self, agents: List[Agent]):
-        """Return the message for selecting the next speaker."""
-        return f"""You are moderating a conversation between the following participants:
+        """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
+        return f"""You are in a role play game. The following roles are available:
+{self._participant_roles(agents)}.
 
-{self._participant_roles(agents)}
+Read the following conversation.
+Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-Read the following conversation, then carefully consider who should speak next based on who's input would be most valued in this moment (e.g., to make the most progress on the task). Speakers do not need equal speaking time. You may even ignore non-relevant participants. Your focus is on efficiently driving progress toward task completion.
-
-You must select only one speaker to go next, and you must only return their name (i.e., from the set {[agent.name for agent in agents]})
-"""
+    def select_speaker_prompt(self, agents: List[Agent]):
+        """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
+        return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
 
     def manual_select_speaker(self, agents: List[Agent]) -> Agent:
         """Manually select the next speaker."""
@@ -158,19 +160,11 @@ You must select only one speaker to go next, and you must only return their name
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        # logger.warning("GroupChat selection prompt:\n" + selector.system_message)
+        context = self.messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
 
-        final, name = selector.generate_oai_reply(
-            self.messages
-            + [
-                {
-                    "role": "system",
-                    "content": f"Read the above conversation, then carefully consider who should speak next based on who's input would be most valued in this moment to make progress on the task. Select the next speaker from {[agent.name for agent in agents]}. Only return their name.",
-                }
-            ]
-        )
-
-        # logger.warning("GroupChat selection result: " + name)
+        logger.warning("GroupChat selection context: " + json.dumps(context, indent=4))
+        final, name = selector.generate_oai_reply(context)
+        logger.warning("GroupChat selection result: {name}")
 
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
