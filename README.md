@@ -12,6 +12,8 @@
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
+:fire: pyautogen v0.2 switches to using openai-python v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
+
 :fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples.
 
 :fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff.
@@ -20,9 +22,7 @@
 
 :fire: Nov 1: AutoGen is the top trending repo on GitHub in October 2023.
 
-:fire: Heads-up: pyautogen v0.2 will switch to using openai v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
-
-:tada: **Oct 03**: AutoGen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github and has a major paper update.
+:tada: Oct 03: AutoGen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github and has a major paper update.
 
 :tada: Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv.
 
