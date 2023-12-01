@@ -6,7 +6,7 @@ import os
 import shutil
 import re
 import autogen
-from ..datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig
+from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig
 
 
 def md5_hash(text: str) -> str:
@@ -327,7 +327,7 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
                 print(f"Failed to delete {path}. Reason: {e}")
 
 
-def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> FlowConfig:
+def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> AgentWorkFlowConfig:
     """
     Get a default agent flow config .
     """
@@ -365,7 +365,7 @@ def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> FlowConf
         ),
     )
 
-    flow_config = FlowConfig(
+    flow_config = AgentWorkFlowConfig(
         name="default",
         sender=userproxy_spec,
         receiver=assistant_spec,

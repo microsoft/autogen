@@ -78,7 +78,7 @@ class AgentFlowSpec:
 
 
 @dataclass
-class FlowConfig:
+class AgentWorkFlowConfig:
     """Data model for Flow Config for Autogen"""
 
     name: str
@@ -97,7 +97,7 @@ class Session(object):
     user_id: str
     session_id: Optional[str] = None
     timestamp: Optional[datetime] = None
-    flow_config: FlowConfig = None
+    flow_config: AgentWorkFlowConfig = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -138,7 +138,7 @@ class ChatWebRequestModel(object):
     """Data model for Chat Web Request for Web End"""
 
     message: Message
-    flow_config: FlowConfig
+    flow_config: AgentWorkFlowConfig
 
 
 @dataclass

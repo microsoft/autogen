@@ -1,7 +1,7 @@
 from typing import List, Optional
 from dataclasses import asdict
 import autogen
-from .datamodel import AgentFlowSpec, FlowConfig, Message
+from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
 
 
 class AutoGenWorkFlowManager:
@@ -11,7 +11,7 @@ class AutoGenWorkFlowManager:
 
     def __init__(
         self,
-        config: FlowConfig,
+        config: AgentWorkFlowConfig,
         history: Optional[List[Message]] = None,
         work_dir: str = None,
         assistant_prompt: str = None,
@@ -91,7 +91,7 @@ class AutoGenWorkFlowManager:
             code_execution_config = agent_spec.config.code_execution_config or {}
             code_execution_config["work_dir"] = self.work_dir
             agent_spec.config.code_execution_config = code_execution_config
-             
+
         if agent_spec.type == "assistant":
             agent_spec.config.system_message = (
                 autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE

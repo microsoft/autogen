@@ -1,17 +1,17 @@
 import json
 import time
 from typing import List
-from .datamodel import FlowConfig, Message
+from .datamodel import AgentWorkFlowConfig, Message
 from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
 from .autogenflow import AutoGenWorkFlowManager
 import os
- 
+
 
 class AutoGenChatManager:
     def __init__(self) -> None:
         pass
 
-    def chat(self, message: Message, history: List, flow_config: FlowConfig = None, **kwargs) -> None:
+    def chat(self, message: Message, history: List, flow_config: AgentWorkFlowConfig = None, **kwargs) -> None:
         work_dir = kwargs.get("work_dir", None)
         scratch_dir = os.path.join(work_dir, "scratch")
         skills_suffix = kwargs.get("skills_prompt", "")
@@ -21,7 +21,9 @@ class AutoGenChatManager:
             flow_config = get_default_agent_config(scratch_dir, skills_suffix=skills_suffix)
 
         # print("Flow config: ", flow_config)
-        flow = AutoGenWorkFlowManager(config=flow_config, history=history, work_dir=scratch_dir, assistant_prompt=skills_suffix)
+        flow = AutoGenWorkFlowManager(
+            config=flow_config, history=history, work_dir=scratch_dir, assistant_prompt=skills_suffix
+        )
         message_text = message.content.strip()
 
         output = ""
