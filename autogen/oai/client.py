@@ -213,7 +213,15 @@ class OpenAIWrapper:
         if ERROR:
             raise ERROR
         last = len(self._clients) - 1
+        model_to_use = config.get("model")
+        if model_to_use and not any(c.get("model") == model_to_use for c in self._config_list):
+            raise ValueError(
+                f"model {model_to_use} is not found in the config_list. Please add the model with the corresponding api_key when creating the OpenAIWrapper."
+            )
+
         for i, client in enumerate(self._clients):
+            if model_to_use and model_to_use != self._config_list[i].get("model"):
+                continue
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}
             # separate the config into create_config and extra_kwargs

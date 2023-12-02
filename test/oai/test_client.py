@@ -64,6 +64,30 @@ def test_cost(cache_seed, model):
     print(response.cost)
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_create_with_different_models():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-3.5-turbo-instruct"]},
+    )
+    messages = [{"role": "user", "content": "2+2="}]
+
+    client = OpenAIWrapper(config_list=config_list)
+    response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct")
+    assert response.model in ["gpt-3.5-turbo-instruct", "gpt-35-turbo-instruct"], "Model not consistent."
+
+    response = client.create(messages=messages, model="gpt-3.5-turbo")
+    assert response.model in ["gpt-3.5-turbo", "gpt-35-turbo"], "Model not consistent."
+
+    try:
+        response = client.create(messages=messages, model="gpt-4")
+    except ValueError as e:
+        print(e)
+    else:
+        raise ValueError("Expected ValueError")
+
+
 if __name__ == "__main__":
     test_aoai_chat_completion()
     test_chat_completion()
