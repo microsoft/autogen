@@ -1,11 +1,7 @@
 import os
-import errno
-import shutil
-import subprocess
 import json
+import re
 import sys
-import time
-import pathlib
 import argparse
 
 
@@ -34,9 +30,8 @@ def collate(results_dir):
                 with open(console_log, "rt") as fh:
                     content = fh.read()
                     if "ALL TESTS PASSED !#!#" in content:
-                        results.append(
-                            str(content.count("assistant (to user_proxy):"))
-                        )  # The number of assistant replies (which is also equal to the number of GPT calls in this case)
+                        # Ideally we would have a more distinctive pattern.
+                        results.append(str(len(re.findall(r"\n(.*?) \(to (.*?)\)\:\n", content))))
                     else:
                         results.append("-1")
 

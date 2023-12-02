@@ -100,8 +100,8 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         """
         Args:
             problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved.
-            search_string (str): only docs containing this string will be retrieved.
+            n_results (int): the number of results to be retrieved. Default is 20.
+            search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
         """
         if not self._collection:
             print("Trying to create collection.")
