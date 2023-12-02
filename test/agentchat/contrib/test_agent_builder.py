@@ -24,7 +24,10 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
-
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
 def test_build():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
@@ -48,6 +51,10 @@ def test_build():
         assert "TERMINATE" in agent.system_message
 
 
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
 def test_save():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
@@ -77,6 +84,10 @@ def test_save():
     assert saved_configs.get("default_llm_config", None) is not None
 
 
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
 def test_load():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
@@ -101,6 +112,10 @@ def test_load():
         assert agent_configs[agent_name]["system_message"] == agent[0].system_message
 
 
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
 def test_clear_agent():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
@@ -116,6 +131,10 @@ def test_clear_agent():
     assert len(builder.agent_procs_assign) == 0
 
 
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
 def test_start():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     config_save_path = f"{here}/example_test_agent_builder_config.json"
