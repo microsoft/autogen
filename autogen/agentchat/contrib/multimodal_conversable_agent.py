@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
-from autogen.img_utils import gpt4v_formatter
+from autogen.agentchat.contrib.img_utils import gpt4v_formatter
 
 try:
     from termcolor import colored

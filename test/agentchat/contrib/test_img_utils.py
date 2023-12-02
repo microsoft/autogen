@@ -10,7 +10,7 @@ import requests
 try:
     from PIL import Image
 
-    from autogen.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
+    from autogen.agentchat.contrib.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
 except ImportError:
     skip = True
 else:

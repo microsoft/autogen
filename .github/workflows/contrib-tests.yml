@@ -9,7 +9,6 @@ on:
     paths:
       - 'autogen/**'
       - 'test/agentchat/contrib/**'
-      - 'test/test_img_utils.py'
       - '.github/workflows/contrib-tests.yml'
       - 'setup.py'
 
@@ -161,12 +160,12 @@ jobs:
           pip uninstall -y openai
       - name: Test LMM and LLaVA
         run: |
-          pytest test/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
+          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
+          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
