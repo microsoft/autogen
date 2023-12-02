@@ -1007,7 +1007,7 @@ class ConversableAgent(Agent):
             - bool: Returns `True` if the sender matches the trigger, otherwise `False`.
 
         Raises:
-        - ValueError: If the trigger type is unsupported.
+            - ValueError: If the trigger type is unsupported.
         """
         if trigger is None:
             return sender is None

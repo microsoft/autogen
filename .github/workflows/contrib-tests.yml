@@ -8,7 +8,6 @@ on:
     branches: ['main', 'dev/v0.2']
     paths:
       - 'autogen/**'
-      - 'autogen/img_utils.py'
       - 'test/agentchat/contrib/**'
       - 'test/test_img_utils.py'
       - '.github/workflows/contrib-tests.yml'
