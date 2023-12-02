@@ -197,9 +197,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[teachable]
+          pip install -e .
           python -c "import autogen"
-          pip install coverage pytest
+          pip install coverage pytest-asyncio
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
