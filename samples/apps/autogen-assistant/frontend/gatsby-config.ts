@@ -8,7 +8,7 @@ const config: GatsbyConfig = {
   pathPrefix: `${process.env.PREFIX_PATH_VALUE}`,
   siteMetadata: {
     title: `AutoGen Assistant`,
-    description: `Build LLM Enabled Agents`,
+    description: `Build Multi-Agent Apps`,
     siteUrl: `http://tbd.place`,
   },
   flags: {
