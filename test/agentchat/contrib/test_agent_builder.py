@@ -24,6 +24,7 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
+
 @pytest.mark.skipif(
     not OPENAI_INSTALLED,
     reason="do not run when dependency is not installed",
@@ -35,7 +36,6 @@ def test_build():
         "For example, find a latest paper about gpt-4 on arxiv "
         "and find its potential applications in software."
     )
-
     builder.build(
         building_task=building_task,
         default_llm_config={"temperature": 0},
