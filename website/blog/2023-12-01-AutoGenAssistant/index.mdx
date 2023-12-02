@@ -136,7 +136,7 @@ import json
 from autogenra import AutoGenWorkFlowManager, FlowConfig
 
 # load an agent specification in JSON
-agent_spec= json.load(open('agent_spec.json'))
+agent_spec = json.load(open('agent_spec.json'))
 
 # Create an AutoGen Workflow Configuration from the agent specification
 agent_work_flow_config = FlowConfig(**agent_spec)
