@@ -158,14 +158,14 @@ In addition, you can find:
 
 - [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
-## Citation
+## 📚 Cite Papers
 
 [AutoGen](https://arxiv.org/abs/2308.08155)
 
 ```
 @inproceedings{wu2023autogen,
       title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
-      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
+      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Beibin Li and Erkang Zhu and Li Jiang and Xiaoyun Zhang and Shaokun Zhang and Jiale Liu and Ahmed Hassan Awadallah and Ryen W White and Doug Burger and Chi Wang},
       year={2023},
       eprint={2308.08155},
       archivePrefix={arXiv},
