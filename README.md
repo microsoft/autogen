@@ -26,6 +26,17 @@
 
 :tada: Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv.
 
+```
+@inproceedings{wu2023autogen,
+      title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
+      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Beibin Li and Erkang Zhu and Li Jiang and Xiaoyun Zhang and Shaokun Zhang and Jiale Liu and Ahmed Hassan Awadallah and Ryen W White and Doug Burger and Chi Wang},
+      year={2023},
+      eprint={2308.08155},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI}
+}
+```
+
 :tada: Mar 29: [AutoGen is first created in FLAML](https://github.com/microsoft/FLAML/pull/968).
 
 <!--
@@ -158,7 +169,7 @@ In addition, you can find:
 
 - [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
-## 📚 Cite Papers
+## 📚 Related Papers
 
 [AutoGen](https://arxiv.org/abs/2308.08155)
 
