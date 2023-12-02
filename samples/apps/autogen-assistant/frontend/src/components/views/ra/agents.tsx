@@ -293,14 +293,14 @@ const AgentsView = () => {
   // );
 
   return (
-    <div className="h-full  mb-4 ">
+    <div className=" mb-4 ">
       <div className="font-semibold pb-2 border-b">Agents </div>
       <div className="text-xs mt-2 mb-2 pb-1  ">
         {" "}
         Select or create an agent workflow.{" "}
       </div>
       <div className="text-xs text-secondary mt-2 flex">
-        <div>Default Agent</div>
+        <div>Agent Workflow</div>
         <div className="flex-1">
           <AgentsControlView
             flowConfig={flowConfig}
