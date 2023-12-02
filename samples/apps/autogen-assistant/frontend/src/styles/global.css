@@ -190,10 +190,15 @@ iiz__zoom-img {
     right: 0;
   }
 }
-
 .scroll::-webkit-scrollbar {
-  width: 8px; /* width of the entire scrollbar */
+  width: 8px;
   height: 8px;
+  opacity: 0; /* Make scrollbar fully transparent by default */
+  transition: opacity 0.25s ease; /* Transition for the opacity */
+}
+
+.scroll:hover::-webkit-scrollbar {
+  opacity: 1; /* Make scrollbar fully opaque on hover */
 }
 
 .scroll::-webkit-scrollbar-track {
@@ -203,8 +208,32 @@ iiz__zoom-img {
 
 .scroll::-webkit-scrollbar-thumb {
   @apply bg-accent;
-  border-radius: 20px; /* roundness of the scroll thumb */
-  border: 3px solid rgb(214, 214, 214); /* creates padding around scroll thumb */
+  border-radius: 20px;
+  border: 3px solid rgb(214, 214, 214);
+}
+
+.dark .scroll-gradient {
+  background: linear-gradient(
+    to bottom,
+    rgba(17, 24, 39, 1),
+    rgba(17, 24, 39, 0)
+  );
+}
+
+.light .scroll-gradient {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 1),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+.scroll-gradient {
+  position: sticky;
+  top: 0;
+  height: 15px;
+  z-index: 2; /* Above the content but below the scrollbar */
+  pointer-events: none; /* So it doesn't block interaction with the content */
 }
 
 .vega-embed {
