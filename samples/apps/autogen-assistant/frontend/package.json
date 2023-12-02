@@ -45,7 +45,7 @@
     "react-dom": "^18.2.0",
     "react-inner-image-zoom": "^3.0.2",
     "react-markdown": "^8.0.7",
-    "react-resizable": "^3.0.4",
+    "react-resizable": "^3.0.5",
     "react-router-dom": "^6.3.0",
     "react-syntax-highlighter": "^15.5.0",
     "remark-gfm": "^3.0.1",
