@@ -347,7 +347,9 @@ class OpenAIWrapper:
         return response
 
     @classmethod
-    def extract_text_or_completion_object(cls, response: ChatCompletion | Completion) -> List[str]:
+    def extract_text_or_completion_object(
+        cls, response: ChatCompletion | Completion
+    ) -> Union[List[str], List[ChatCompletionMessage]]:
         """Extract the text or ChatCompletion objects from a completion or chat response.
 
         Args:
