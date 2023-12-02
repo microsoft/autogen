@@ -189,7 +189,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         roles = []
         for agent in agents:
-            if agent.system_message.strip() == "":
+            if agent.description.strip() == "":
                 logger.warning(
                     f"The agent '{agent.name}' has an empty description, and may not work well with GroupChat."
                 )
