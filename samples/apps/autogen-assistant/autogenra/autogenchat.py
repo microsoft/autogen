@@ -1,17 +1,17 @@
 import json
 import time
 from typing import List
-from .datamodel import FlowConfig, Message
+from .datamodel import AgentWorkFlowConfig, Message
 from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
-from .autogenflow import AutoGenFlow
+from .autogenflow import AutoGenWorkFlowManager
 import os
 
 
-class ChatManager:
+class AutoGenChatManager:
     def __init__(self) -> None:
         pass
 
-    def chat(self, message: Message, history: List, flow_config: FlowConfig = None, **kwargs) -> None:
+    def chat(self, message: Message, history: List, flow_config: AgentWorkFlowConfig = None, **kwargs) -> None:
         work_dir = kwargs.get("work_dir", None)
         scratch_dir = os.path.join(work_dir, "scratch")
         skills_suffix = kwargs.get("skills_prompt", "")
@@ -21,7 +21,9 @@ class ChatManager:
             flow_config = get_default_agent_config(scratch_dir, skills_suffix=skills_suffix)
 
         # print("Flow config: ", flow_config)
-        flow = AutoGenFlow(config=flow_config, history=history, work_dir=scratch_dir, asst_prompt=skills_suffix)
+        flow = AutoGenWorkFlowManager(
+            config=flow_config, history=history, work_dir=scratch_dir, assistant_prompt=skills_suffix
+        )
         message_text = message.content.strip()
 
         output = ""
@@ -36,11 +38,7 @@ class ChatManager:
         successful_code_blocks = extract_successful_code_blocks(agent_chat_messages)
         successful_code_blocks = "\n\n".join(successful_code_blocks)
         output = (
-            (
-                flow.sender.last_message()["content"]
-                + "\n The following code snippets were used: \n"
-                + successful_code_blocks
-            )
+            (flow.sender.last_message()["content"] + "\n" + successful_code_blocks)
             if successful_code_blocks
             else flow.sender.last_message()["content"]
         )
@@ -51,7 +49,7 @@ class ChatManager:
         modified_files = get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir)
         metadata["files"] = modified_files
 
-        print("Modified files: ", modified_files)
+        print("Modified files: ", len(modified_files))
 
         output_message = Message(
             user_id=message.user_id,
@@ -59,6 +57,7 @@ class ChatManager:
             role="assistant",
             content=output,
             metadata=json.dumps(metadata),
+            session_id=message.session_id,
         )
 
         return output_message
