@@ -36,7 +36,7 @@ class OpenAIWrapper:
     cache_path_root: str = ".cache"
     extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
-    all_usage_summary: Dict = None
+    total_usage_summary: Dict = None
     actual_usage_summary: Dict = None
 
     def __init__(self, *, config_list: List[Dict] = None, **base_config):
@@ -332,7 +332,7 @@ class OpenAIWrapper:
             response = completions.create(**params)
         return response
 
-    def _update_usage_summary(self, response, use_cache):
+    def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
         """Update the usage summary.
 
         Usage is calculated no mattter filter is passed or not.
@@ -355,15 +355,15 @@ class OpenAIWrapper:
             }
             return usage_summary
 
-        self.all_usage_summary = update_usage(self.all_usage_summary)
+        self.total_usage_summary = update_usage(self.total_usage_summary)
         if not use_cache:
             self.actual_usage_summary = update_usage(self.actual_usage_summary)
 
-    def print_usage_summary(self, mode="both"):
+    def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
 
-        def print_usage(usage_summary, usage_type="all"):
-            word_from_type = "including" if usage_type == "all" else "excluding"
+        def print_usage(usage_summary, usage_type="total"):
+            word_from_type = "including" if usage_type == "total" else "excluding"
             if usage_summary is None:
                 print("No actual cost incurred (all completions are using cache).", flush=True)
                 return
@@ -378,32 +378,42 @@ class OpenAIWrapper:
                     flush=True,
                 )
 
-        if self.all_usage_summary is None:
+        if self.total_usage_summary is None:
             print('No usage summary. Please call "create" first.', flush=True)
             return
+
+        if isinstance(mode, list):
+            if len(mode) == 0 or len(mode) > 2:
+                raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
+            if "actual" in mode and "total" in mode:
+                mode = "both"
+            elif "actual" in mode:
+                mode = "actual"
+            elif "total" in mode:
+                mode = "total"
 
         print("-" * 100, flush=True)
         if mode == "both":
             print_usage(self.actual_usage_summary, "actual")
             print()
-            if self.all_usage_summary != self.actual_usage_summary:
-                print_usage(self.all_usage_summary, "all")
+            if self.total_usage_summary != self.actual_usage_summary:
+                print_usage(self.total_usage_summary, "total")
             else:
                 print(
                     "All completions are non-cached: the total cost with cached completions is the same as actual cost.",
                     flush=True,
                 )
-        elif mode == "all":
-            print_usage(self.all_usage_summary, "all")
+        elif mode == "total":
+            print_usage(self.total_usage_summary, "total")
         elif mode == "actual":
             print_usage(self.actual_usage_summary, "actual")
         else:
-            raise ValueError(f'Invalid mode: {mode}, choose from "all", "actual" and "both"')
+            raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
         print("-" * 100, flush=True)
 
-    def clear_usage_summary(self):
+    def clear_usage_summary(self) -> None:
         """Clear the usage summary."""
-        self.all_usage_summary = None
+        self.total_usage_summary = None
         self.actual_usage_summary = None
 
     def cost(self, response: Union[ChatCompletion, Completion]) -> float:

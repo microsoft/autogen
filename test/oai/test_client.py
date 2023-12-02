@@ -72,7 +72,7 @@ def test_usage_summary():
 
     # usage should be recorded
     assert client.actual_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
-    assert client.all_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
 
     # check print
     client.print_usage_summary()
@@ -86,11 +86,11 @@ def test_usage_summary():
     # check clear
     client.clear_usage_summary()
     assert client.actual_usage_summary is None, "actual_usage_summary should be None"
-    assert client.all_usage_summary is None, "all_usage_summary should be None"
+    assert client.total_usage_summary is None, "total_usage_summary should be None"
 
     # actual usage and all usage should be different
     response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct", cache_seed=42)
-    assert client.all_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
     assert client.actual_usage_summary is None, "No actual cost should be recorded"
 
 

@@ -141,9 +141,9 @@ For local LLMs, one can spin up an endpoint using a package like [FastChat](http
 
 The `OpenAIWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
 
-- `mode='both'` (default): print usage summary for all completions and non-caching completions.
+- `mode=["actual", "total"]` (default): print usage summary for all completions and non-caching completions.
 - `mode='actual'`: only print non-cached usage.
-- `mode='all'`: only print all usage (including cache).
+- `mode='total'`: only print all usage (including cache).
 
 Reset your session's usage data with `clear_usage_summary()` when needed.
 
