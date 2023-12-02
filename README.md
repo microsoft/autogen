@@ -12,7 +12,7 @@
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
-:fire: pyautogen v0.2 switches to using openai-python v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
+:fire: Nov 24: pyautogen [v0.2](releases/tag/v0.2.0) is released with many updates and new features compared to v0.1.1. It switches to using openai-python v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
 
 :fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples.
 
@@ -24,9 +24,9 @@
 
 :tada: Oct 03: AutoGen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github and has a major paper update.
 
-:tada: Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv.
+:tada: Aug 16: Paper about AutoGen on [arxiv](https://arxiv.org/abs/2308.08155). [📚 Cite paper](#related-papers).
 
-:tada: Mar 29: [AutoGen is first created in FLAML](https://github.com/microsoft/FLAML/pull/968).
+:tada: Mar 29: AutoGen is first created in [FLAML](https://github.com/microsoft/FLAML/pull/968).
 
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
@@ -158,14 +158,14 @@ In addition, you can find:
 
 - [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
-## Citation
+## Related Papers
 
 [AutoGen](https://arxiv.org/abs/2308.08155)
 
 ```
 @inproceedings{wu2023autogen,
       title={AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework},
-      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Shaokun Zhang and Erkang Zhu and Beibin Li and Li Jiang and Xiaoyun Zhang and Chi Wang},
+      author={Qingyun Wu and Gagan Bansal and Jieyu Zhang and Yiran Wu and Beibin Li and Erkang Zhu and Li Jiang and Xiaoyun Zhang and Shaokun Zhang and Jiale Liu and Ahmed Hassan Awadallah and Ryen W White and Doug Burger and Chi Wang},
       year={2023},
       eprint={2308.08155},
       archivePrefix={arXiv},
