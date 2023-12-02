@@ -24,7 +24,7 @@
 
 :tada: Oct 03: AutoGen spins off from [FLAML](../FLAML) on Github and has a major paper update.
 
-🎉 Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv. [📚 Cite paper](README.md#📚-related-papers).
+🎉 Aug 16: [Paper about AutoGen](https://arxiv.org/abs/2308.08155) on arxiv. [📚 Cite paper](#📚-related-papers).
 
 🎉 Mar 29: [AutoGen is first created in FLAML](https://github.com/microsoft/FLAML/pull/968).
 
