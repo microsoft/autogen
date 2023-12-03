@@ -245,7 +245,13 @@ class OpenAIWrapper:
                         continue  # filter is not passed; try the next config
             try:
                 response = self._completions_create(client, params)
-            except APIError:
+            except APIError as err:
+                error_code = err and err.body and isinstance(err.body, dict) and err.body.get("error")
+                if isinstance(error_code, dict):
+                    error_code = error_code.get("code")
+                if error_code == "content_filter":
+                    # raise the error for content_filter
+                    raise
                 logger.debug(f"config {i} failed", exc_info=1)
                 if i == last:
                     raise
