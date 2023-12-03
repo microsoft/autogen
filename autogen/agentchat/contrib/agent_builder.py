@@ -12,9 +12,8 @@ class AgentBuilder:
     """
     AgentBuilder can help user build an automatic task solving process powered by multi-agent system.
     Specifically, our building pipeline include init(), build(), and start().
-    In build(), we prompt a gpt-4 model to create multiple participant agent and initialize a group chat, and specify
-        whether this task need programming to solve.
-    After that, user can call start() at a proper time to complete the task.
+    In build(), we prompt a gpt-4 model to create multiple participant agents, and specify whether
+        this task need programming to solve.
     User can save the built agents' config by calling save(), and load the saved configs by load(), which can skip the
         building process.
     """
@@ -79,17 +78,12 @@ class AgentBuilder:
         self.config_path = config_path
         self.endpoint_building_timeout = endpoint_building_timeout
 
-        self.user_proxy: autogen.UserProxyAgent = None
-        self.group_chat_manager_config: dict = None
-        self.initiate_agent_name: str = "User_console_and_Python_code_interpreter"
-        self.manager_system_message: str = "Group chat manager."
-        self.agent_configs: List[Dict] = []
-        self.coding: bool = None
-        self.default_llm_config: Dict = None
         self.building_task: str = None
+        self.agent_configs: List[Dict] = []
         self.open_ports: List[str] = []
         self.agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
         self.agent_procs_assign: Dict[str, Tuple[autogen.ConversableAgent, str]] = {}
+        self.cached_configs: Dict = {}
 
         for port in range(8000, 65535):
             if self._is_port_open(host, port):
@@ -107,7 +101,7 @@ class AgentBuilder:
         except OSError:
             return False
 
-    def create_agent(
+    def _create_agent(
         self,
         agent_name: str,
         model_name_or_hf_repo: str,
@@ -117,7 +111,7 @@ class AgentBuilder:
         world_size: Optional[int] = 1,
     ) -> autogen.AssistantAgent:
         """
-        Create a group chat agent.
+        Create group chat agents.
 
         If the agent rely on an open-source model, this function will automatically set up an endpoint for that agent.
         The API address of that endpoint will be "localhost:{free port}".
@@ -269,16 +263,13 @@ class AgentBuilder:
 
         if cached_configs is None:
             use_api = True
+            agent_configs = []
             self.building_task = building_task
-            self.default_llm_config = default_llm_config.copy()
-            self.coding = coding
-            self.agent_configs = []
         else:
-            self.building_task = cached_configs["building_task"]
-            self.default_llm_config = cached_configs["default_llm_config"]
-            self.coding = cached_configs["coding"]
-            self.agent_configs = cached_configs["agent_configs"]
-            self.manager_system_message = cached_configs["manager_system_message"]
+            self.building_task = building_task = cached_configs["building_task"]
+            default_llm_config = cached_configs["default_llm_config"]
+            coding = cached_configs["coding"]
+            agent_configs = cached_configs["agent_configs"]
 
         config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
@@ -290,9 +281,7 @@ class AgentBuilder:
                     messages=[
                         {
                             "role": "user",
-                            "content": self.AGENT_NAME_PROMPT.format(
-                                task=self.building_task, max_agents=self.max_agents
-                            ),
+                            "content": self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents),
                         }
                     ]
                 )
@@ -311,7 +300,7 @@ class AgentBuilder:
                             {
                                 "role": "user",
                                 "content": self.AGENT_SYS_MSG_PROMPT.format(
-                                    task=self.building_task,
+                                    task=building_task,
                                     position=name,
                                     default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
                                 ),
@@ -324,51 +313,59 @@ class AgentBuilder:
                 agent_sys_msg_list.append(resp_agent_sys_msg)
 
             for i in range(len(agent_name_list)):
-                self.agent_configs.append(
+                agent_configs.append(
                     {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
                 )
-            self.manager_system_message = "Group chat manager."
 
-        for config in self.agent_configs:
+        for config in agent_configs:
             print(f"Creating agent {config['name']} with backbone {config['model']}...")
-            self.create_agent(
+            self._create_agent(
                 config["name"],
                 config["model"],
-                self.default_llm_config,
+                default_llm_config,
                 system_message=config["system_message"],
                 use_gpts=use_gpts,
                 **kwargs,
             )
+        agent_list = [agent_config[0] for agent_config in self.agent_procs_assign.values()]
 
-        if self.coding is None:
+        if coding is None:
             resp = (
                 build_manager.create(
-                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=self.building_task)}]
+                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
                 )
                 .choices[0]
                 .message.content
             )
-            self.coding = True if resp == "YES" else False
+            coding = True if resp == "YES" else False
 
-        if self.coding is True:
+        if coding is True:
             print("Adding user console proxy...")
-            self.user_proxy = autogen.UserProxyAgent(
-                name="User_console_and_Python_code_interpreter",
-                is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
-                system_message="User console with a python code interpreter interface.",
-                code_execution_config={
-                    "last_n_messages": 2,
-                    "work_dir": user_proxy_work_dir,
-                    "use_docker": docker,
-                    "timeout": 60,
-                },
-                human_input_mode="NEVER",
-            )
-        else:
-            self.initiate_agent_name = self.agent_configs[0]["name"]
+            agent_list = [
+                autogen.UserProxyAgent(
+                    name="User_console_and_Python_code_interpreter",
+                    is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
+                    system_message="User console with a python code interpreter interface.",
+                    code_execution_config={
+                        "last_n_messages": 2,
+                        "work_dir": user_proxy_work_dir,
+                        "use_docker": docker,
+                        "timeout": 60,
+                    },
+                    human_input_mode="NEVER",
+                )
+            ] + agent_list
 
-        self.group_chat_manager_config = self.default_llm_config.copy()
-        self.group_chat_manager_config["config_list"] = config_list
+        self.cached_configs.update(
+            {
+                "building_task": building_task,
+                "agent_configs": agent_configs,
+                "coding": coding,
+                "default_llm_config": default_llm_config,
+            }
+        )
+
+        return agent_list, self.cached_configs.copy()
 
     def save(self, filepath: Optional[str] = None) -> str:
         """
@@ -383,17 +380,8 @@ class AgentBuilder:
         """
         if filepath is None:
             filepath = f'./save_config_{hashlib.md5(self.building_task.encode("utf-8")).hexdigest()}.json'
-        json.dump(
-            {
-                "building_task": self.building_task,
-                "agent_configs": self.agent_configs,
-                "manager_system_message": self.manager_system_message,
-                "coding": self.coding,
-                "default_llm_config": self.default_llm_config,
-            },
-            open(filepath, "w"),
-            indent=4,
-        )
+        with open(filepath, "w") as save_file:
+            json.dump(self.cached_configs, save_file, indent=4)
         print(f"Building config saved to {filepath}")
 
         return filepath
@@ -409,42 +397,10 @@ class AgentBuilder:
         Args:
             filepath: filepath for the save config.
         """
-        if os.path.isfile(filepath):
+        try:
             print(f"Loding config from {filepath}")
             cached_configs = json.load(open(filepath))
-            self.build(cached_configs=cached_configs, **kwargs)
-        else:
+        except FileNotFoundError:
             raise FileNotFoundError(f"Config file {filepath} does not exist.")
 
-        return self
-
-    def start(
-        self, task: str, max_round: Optional[int] = 12, init_messages: Optional[List[dict]] = []
-    ) -> Tuple[autogen.GroupChat, autogen.GroupChatManager]:
-        """
-        Start a group chat task solving process with built config.
-
-        Args:
-            task: description of a task.
-            max_round: the maximum number of rounds.
-            init_messages: input messages before the task start. This can be the chat history from other group chat
-                or some preliminary of the task.
-        """
-        agent_list = [agent for agent, _ in self.agent_procs_assign.values()]
-        if self.user_proxy is not None:
-            agent_list.append(self.user_proxy)
-        # TODO: add agent trigger
-        group_chat = autogen.GroupChat(agents=agent_list, messages=init_messages, max_round=max_round)
-
-        manager = autogen.GroupChatManager(
-            groupchat=group_chat, llm_config=self.group_chat_manager_config, system_message=self.manager_system_message
-        )
-
-        if self.initiate_agent_name == "User_console_and_Python_code_interpreter" and self.user_proxy is not None:
-            self.user_proxy.initiate_chat(manager, message=task)
-        else:
-            for agent in agent_list:
-                if self.initiate_agent_name == agent.name:
-                    agent.initiate_chat(manager, message=task)
-
-        return group_chat, manager
+        return self.build(cached_configs=cached_configs, **kwargs)
