@@ -143,7 +143,7 @@ The `OpenAIWrapper` from `autogen` tracks token counts and costs of your API cal
 - `mode='actual'`: only print non-cached usage.
 - `mode='total'`: only print all usage (including cache).
 
-Reset your session's usage data with `clear_usage_summary()` when needed.
+Reset your session's usage data with `clear_usage_summary()` when needed. [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
 
 Example usage:
 ```python
