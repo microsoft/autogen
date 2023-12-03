@@ -206,7 +206,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
         )
-        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=1)
+        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
 
     def _is_termination_msg_retrievechat(self, message):
         """Check if a message is a termination message.
