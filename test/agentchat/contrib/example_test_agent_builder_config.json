@@ -1,5 +1,5 @@
 {
-    "building_task": "Find a paper on arxiv by programming, and analysis its application in some domain. For example, find a latest paper about gpt-4 on arxiv and find its potential applications in software.",
+    "building_task": "Find a paper on arxiv by programming, and analyze its application in some domain. For example, find a recent paper about gpt-4 on arxiv and find its potential applications in software.",
     "agent_configs": [
         {
             "name": "Data_scientist",

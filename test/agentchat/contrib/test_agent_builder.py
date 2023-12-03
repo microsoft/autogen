@@ -32,8 +32,8 @@ except ImportError:
 def test_build():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
-        "Find a paper on arxiv by programming, and analysis its application in some domain. "
-        "For example, find a latest paper about gpt-4 on arxiv "
+        "Find a paper on arxiv by programming, and analyze its application in some domain. "
+        "For example, find a recent paper about gpt-4 on arxiv "
         "and find its potential applications in software."
     )
     builder.build(
@@ -58,8 +58,8 @@ def test_build():
 def test_save():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
-        "Find a paper on arxiv by programming, and analysis its application in some domain. "
-        "For example, find a latest paper about gpt-4 on arxiv "
+        "Find a paper on arxiv by programming, and analyze its application in some domain. "
+        "For example, find a recent paper about gpt-4 on arxiv "
         "and find its potential applications in software."
     )
 
@@ -79,7 +79,6 @@ def test_save():
     # check config format
     assert saved_configs.get("building_task", None) is not None
     assert saved_configs.get("agent_configs", None) is not None
-    assert saved_configs.get("manager_system_message", None) is not None
     assert saved_configs.get("coding", None) is not None
     assert saved_configs.get("default_llm_config", None) is not None
 
@@ -97,15 +96,15 @@ def test_load():
         e["name"]: {"model": e["model"], "system_message": e["system_message"]} for e in configs["agent_configs"]
     }
 
-    builder.load(
+    agent_list, loaded_agent_configs = builder.load(
         config_save_path,
         user_proxy_work_dir=f"{here}/test_agent_scripts",
         docker="python:3",
     )
 
     # check config loading
-    assert builder.coding == configs["coding"]
-    for agent in builder.agent_procs_assign.values():
+    assert loaded_agent_configs["coding"] == configs["coding"]
+    for agent in agent_list:
         agent_name = agent[0].name
         assert agent_configs.get(agent_name, None) is not None
         assert agent_configs[agent_name]["model"] == agent[0].llm_config["model"]
@@ -129,24 +128,3 @@ def test_clear_agent():
 
     # check if the agent cleared
     assert len(builder.agent_procs_assign) == 0
-
-
-@pytest.mark.skipif(
-    not OPENAI_INSTALLED,
-    reason="do not run when dependency is not installed",
-)
-def test_start():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
-    config_save_path = f"{here}/example_test_agent_builder_config.json"
-    builder.load(config_save_path)
-    test_task = "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
-
-    group_chat, _ = builder.start(task=test_task)
-    history = group_chat.messages.copy()
-
-    assert history[0]["content"] == test_task
-    history.reverse()
-    for msg in history:
-        if msg["content"] != "":
-            assert "TERMINATE" in msg["content"]
-            break
