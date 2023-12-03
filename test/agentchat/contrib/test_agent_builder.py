@@ -4,12 +4,13 @@ import json
 import sys
 from packaging.requirements import Requirement
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
+from autogen import UserProxyAgent
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
-oai_config_path = os.path.join(KEY_LOC, OAI_CONFIG_LIST)
+oai_config_path = OAI_CONFIG_LIST
 
 # openai>=1 required
 try:
@@ -104,11 +105,14 @@ def test_load():
 
     # check config loading
     assert loaded_agent_configs["coding"] == configs["coding"]
+    if loaded_agent_configs["coding"] is True:
+        assert isinstance(agent_list[0], UserProxyAgent)
+        agent_list = agent_list[1:]
     for agent in agent_list:
-        agent_name = agent[0].name
+        agent_name = agent.name
         assert agent_configs.get(agent_name, None) is not None
-        assert agent_configs[agent_name]["model"] == agent[0].llm_config["model"]
-        assert agent_configs[agent_name]["system_message"] == agent[0].system_message
+        assert agent_configs[agent_name]["model"] == agent.llm_config["model"]
+        assert agent_configs[agent_name]["system_message"] == agent.system_message
 
 
 @pytest.mark.skipif(
