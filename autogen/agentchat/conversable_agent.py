@@ -133,6 +133,7 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_async_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
     def register_reply(
         self,
