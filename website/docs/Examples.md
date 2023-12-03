@@ -1,7 +1,6 @@
 # Examples
 
-
-## Automated Multi Agent Chat
+### Automated Multi Agent Chat
 
 AutoGen offers conversable agents powered by LLM, tool or human, which can be used to perform tasks collectively via automated chat. This framework allows tool use and human participation via multi-agent conversation.
 Please find documentation about this feature [here](/docs/Use-Cases/agent_chat).
@@ -58,7 +57,7 @@ Links to notebook examples:
    - Multimodal Agent Chat with GPT-4V - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb)
 
 
-## Tune GPT Models
+## Tune Inference Hyperparameters
 
 AutoGen also offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. The research study finds that tuning hyperparameters can significantly improve the utility of them.
 Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inference).
@@ -66,3 +65,4 @@ Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inf
 Links to notebook examples:
 * [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
 * [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+* [Usage Estimation](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
