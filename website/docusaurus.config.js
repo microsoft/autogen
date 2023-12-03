@@ -44,6 +44,30 @@ module.exports = {
           label: 'GitHub',
           position: 'right',
         },
+        // {
+        //   to: 'examples',
+        //   label: 'Examples',
+        // },
+        {
+          type: 'doc',
+          docId: 'Examples',
+          position: 'left',
+          label: 'Examples',
+        },
+        {
+          label: 'Resources',
+          type: 'dropdown',
+          items: [
+            {
+              type: 'doc',
+              docId: 'Ecosystem',
+            },
+            {
+              href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
+              label: 'PlayGround',
+            },
+          ],
+        },
       ],
     },
     footer: {
@@ -83,6 +107,11 @@ module.exports = {
     [
       '@docusaurus/preset-classic',
       {
+        blog: {
+          showReadingTime: true,
+          blogSidebarCount: "ALL",
+          // Adjust any other blog settings as needed
+        },
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
