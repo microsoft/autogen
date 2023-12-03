@@ -65,3 +65,4 @@ Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inf
 Links to notebook examples:
 * [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
 * [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+* [Usage Estimation](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)

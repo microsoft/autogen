@@ -135,6 +135,37 @@ For local LLMs, one can spin up an endpoint using a package like [FastChat](http
 
 <!-- When only working with the chat-based models, `autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages. -->
 
+## Usage Summary
+
+The `OpenAIWrapper` from `autogen` tracks token counts and costs of your API calls. Use the `create()` method to initiate requests and `print_usage_summary()` to retrieve a detailed usage report, including total cost and token usage for both cached and actual requests.
+
+- `mode=["actual", "total"]` (default): print usage summary for all completions and non-caching completions.
+- `mode='actual'`: only print non-cached usage.
+- `mode='total'`: only print all usage (including cache).
+
+Reset your session's usage data with `clear_usage_summary()` when needed. [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
+
+Example usage:
+```python
+from autogen import OpenAIWrapper
+
+client = OpenAIWrapper()
+client.create(messages=[{"role": "user", "content": "Python learning tips."}], model="gpt-3.5-turbo")
+client.print_usage_summary()  # Display usage
+client.clear_usage_summary()  # Reset usage data
+```
+
+Sample output:
+```
+Usage summary excluding cached usage:
+Total cost: 0.00015
+* Model 'gpt-3.5-turbo': cost: 0.00015, prompt_tokens: 25, completion_tokens: 58, total_tokens: 83
+
+Usage summary including cached usage:
+Total cost: 0.00027
+* Model 'gpt-3.5-turbo': cost: 0.00027, prompt_tokens: 50, completion_tokens: 100, total_tokens: 150
+```
+
 ## Caching
 
 API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "cache_seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
