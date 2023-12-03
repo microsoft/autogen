@@ -246,7 +246,7 @@ class AgentBuilder:
         user_proxy_work_dir: Optional[str] = None,
         docker: Optional[Union[list, bool, str]] = False,
         **kwargs,
-    ):
+    ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Auto build agents based on the building task.
 
@@ -390,7 +390,7 @@ class AgentBuilder:
         self,
         filepath: str,
         **kwargs,
-    ):
+    ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Load building configs and call the build function to complete building without calling online LLMs' api.
 
