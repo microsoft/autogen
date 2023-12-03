@@ -62,9 +62,13 @@ Links to notebook examples:
 1. **Evaluation and Assessment**
    - AgentEval: A Multi-Agent System for Assess Utility of LLM-powered Applications - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb)
 
-## Tune Inference Hyperparameters
+## Enhanced Inferences
+### Utilities
+- API Unification with Cost Calculation - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
 
-AutoGen also offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. The research study finds that tuning hyperparameters can significantly improve the utility of them.
+### Inference Hyperparameters Tuning
+
+AutoGen offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. The research study finds that tuning hyperparameters can significantly improve the utility of them.
 Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inference).
 
 Links to notebook examples:
