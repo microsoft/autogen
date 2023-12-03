@@ -64,7 +64,8 @@ Links to notebook examples:
 
 ## Enhanced Inferences
 ### Utilities
-- API Unification with Cost Calculation - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
+- API Unification  - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
+- Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
 
 ### Inference Hyperparameters Tuning
 
@@ -74,4 +75,3 @@ Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inf
 Links to notebook examples:
 * [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
 * [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
-* [Usage Estimation](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
