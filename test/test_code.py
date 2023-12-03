@@ -403,7 +403,7 @@ class TestContentStr(unittest.TestCase):
 
     def test_invalid_content(self):
         content = [{"type": "text", "text": "hello"}, {"type": "wrong_type", "url": "http://example.com/image.png"}]
-        with self.assertRaises(AssertionError) as context:
+        with self.assertRaises(ValueError) as context:
             content_str(content)
         self.assertIn("Wrong content format", str(context.exception))
 
