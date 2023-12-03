@@ -1207,6 +1207,41 @@ class ConversableAgent(Agent):
         """
         self._function_map.update(function_map)
 
+    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
+        """update a function_signature in the LLM configuration for function_call.
+
+        Args:
+            func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
+            is_remove: whether removing the funciton from llm_config with name 'func_sig'
+        """
+
+        if not self.llm_config:
+            error_msg = "To update a function signature, agent must have an llm_config"
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+
+        if is_remove:
+            if "functions" not in self.llm_config.keys():
+                error_msg = "The agent config doesn't have function {name}.".format(name=func_sig)
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
+            else:
+                self.llm_config["functions"] = [
+                    func for func in self.llm_config["functions"] if func["name"] != func_sig
+                ]
+        else:
+            if "functions" in self.llm_config.keys():
+                self.llm_config["functions"] = [
+                    func for func in self.llm_config["functions"] if func.get("name") != func_sig["name"]
+                ] + [func_sig]
+            else:
+                self.llm_config["functions"] = [func_sig]
+
+        if len(self.llm_config["functions"]) == 0:
+            del self.llm_config["functions"]
+
+        self.client = OpenAIWrapper(**self.llm_config)
+
     def can_execute_function(self, name: str) -> bool:
         """Whether the agent can execute the function."""
         return name in self._function_map
