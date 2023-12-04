@@ -8,4 +8,4 @@
 
 - Agent communication
 - [ ] Two-agent chat
-- [ ] 
+- [ ] Group chat

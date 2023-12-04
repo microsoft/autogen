@@ -13,4 +13,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
+  </ItemGroup>
+
 </Project>
