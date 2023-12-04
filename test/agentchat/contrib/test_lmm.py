@@ -29,6 +29,7 @@ class TestMultimodalConversableAgent(unittest.TestCase):
                 "timeout": 600,
                 "seed": 42,
                 "config_list": [{"model": "gpt-4-vision-preview", "api_key": "sk-fake"}],
+                "model": "gpt-4-vision-preview",
             },
         )
 
