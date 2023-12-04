@@ -198,10 +198,10 @@ def test_process_messages_not_complete():
             },
         )
 
-    # Call _process_messages and assert it returns the correct response
-    response = instance._process_messages(mock_thread, mock_run)
-    instance.delete_assistant()
-    assert response == {"role": "assistant", "content": expected_content}
+        # Call _process_messages and assert it returns the correct response
+        response = instance._process_messages(mock_thread, mock_run)
+        instance.delete_assistant()
+        assert response == {"role": "assistant", "content": expected_content}
 
 
 if __name__ == "__main__":
