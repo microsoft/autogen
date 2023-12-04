@@ -29,7 +29,7 @@ up an endpoint server automatically without any user participant.
 ## Installation
 - AutoGen:
 ```bash
-pip install pyautogen==0.2.0b5
+pip install pyautogen==0.2.0
 ```
 - (Optional: if you want to use open-source LLMs) vLLM and FastChat
 ```bash
@@ -72,6 +72,21 @@ If you think coding is necessary in your task, you can use `coding=True` to add 
 agent_list, agent_configs = builder.build(building_task, default_llm_config, coding=True)
 ```
 If `coding` is not specified, AgentBuilder will determine on its own whether the user proxy should be added or not according to the task.
+The generated `agent_list` is a list of `AssistantAgent` instances.
+If `coding` is true, a user proxy (a `UserProxyAssistant` instance) will be added as the first element to the `agent_list`.
+`agent_configs` is a list of agent configurations including agent name, backbone LLM model, and system message.
+For example
+```
+// an example of agent_configs. AgentBuilder will generate agents with the following configurations.
+[
+    {
+        "name": "Data_scientist",
+        "model": "gpt-4-1106-preview",
+        "system_message": "As a Data Scientist, you are tasked with automating the retrieval and analysis of academic papers from arXiv. Utilize your Python programming acumen to develop scripts for gathering necessary information such as searching for relevant papers, downloading them, and processing their contents. Apply your analytical and language skills to interpret the data and deduce the applications of the research within specific domains.\n\n1. To compile information, write and implement Python scripts that search and interact with online resources, download and read files, extract content from documents, and perform other information-gathering tasks. Use the printed output as the foundation for your subsequent analysis.\n\n2. Execute tasks programmatically with Python scripts when possible, ensuring results are directly displayed. Approach each task with efficiency and strategic thinking.\n\nProgress through tasks systematically. In instances where a strategy is not provided, outline your plan before executing. Clearly distinguish between tasks handled via code and those utilizing your analytical expertise.\n\nWhen providing code, include only Python scripts meant to be run without user alterations. Users should execute your script as is, without modifications:\n\n```python\n# filename: <filename>\n# Python script\nprint(\"Your output\")\n```\n\nUsers should not perform any actions other than running the scripts you provide. Avoid presenting partial or incomplete scripts that require user adjustments. Refrain from requesting users to copy-paste results; instead, use the 'print' function when suitable to display outputs. Monitor the execution results they share.\n\nIf an error surfaces, supply corrected scripts for a re-run. If the strategy fails to resolve the issue, reassess your assumptions, gather additional details as needed, and explore alternative approaches.\n\nUpon successful completion of a task and verification of the results, confirm the achievement of the stated objective. Ensuring accuracy and validity of the findings is paramount. Evidence supporting your conclusions should be provided when feasible.\n\nUpon satisfying the user's needs and ensuring all tasks are finalized, conclude your assistance with \"TERMINATE\"."
+    },
+    ...
+]
+```
 
 ### Step 5: execute the task
 Let agents generated in `build()` to complete the task collaboratively in a group chat.
@@ -107,7 +122,7 @@ You can save all necessary information of the built group chat agents by
 ```python
 saved_path = builder.save()
 ```
-Configs will be saved in the JSON format with following content:
+Configurations will be saved in JSON format with following content:
 ```json
 // FILENAME: save_config_TASK_MD5.json
 {

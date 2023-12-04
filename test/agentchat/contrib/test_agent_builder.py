@@ -40,8 +40,13 @@ def test_build():
     builder.build(
         building_task=building_task,
         default_llm_config={"temperature": 0},
-        user_proxy_work_dir=f"{here}/test_agent_scripts",
-        docker="python:3",
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "use_docker": False,
+            "timeout": 60,
+            "use_docker": "python:3",
+        }
     )
 
     # check number of agents
@@ -67,8 +72,13 @@ def test_save():
     builder.build(
         building_task=building_task,
         default_llm_config={"temperature": 0},
-        user_proxy_work_dir=f"{here}/test_agent_scripts",
-        docker="python:3",
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "use_docker": False,
+            "timeout": 60,
+            "use_docker": "python:3",
+        }
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
 
@@ -99,8 +109,13 @@ def test_load():
 
     agent_list, loaded_agent_configs = builder.load(
         config_save_path,
-        user_proxy_work_dir=f"{here}/test_agent_scripts",
-        docker="python:3",
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "use_docker": False,
+            "timeout": 60,
+            "use_docker": "python:3",
+        }
     )
 
     # check config loading
@@ -125,8 +140,13 @@ def test_clear_agent():
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     builder.load(
         config_save_path,
-        user_proxy_work_dir=f"{here}/test_agent_scripts",
-        docker="python:3",
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "use_docker": False,
+            "timeout": 60,
+            "use_docker": "python:3",
+        }
     )
     builder.clear_all_agents()
 
