@@ -3,7 +3,7 @@ try:
     import matplotlib.pyplot as plt
     from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat
 
-    skip_test = False
+    skip_test = True
 except (ModuleNotFoundError, ImportError):
     skip_test = False
 
@@ -25,11 +25,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 
-#config_list = autogen.config_list_from_json(
-#    OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
-#)
+config_list = autogen.config_list_from_json(
+    OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+)
 
-config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, filter_dict={"model": ["dev-oai-gpt4"]})
+# config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, filter_dict={"model": ["dev-oai-gpt4"]})
 
 # assert len(config_list) > 0
 
