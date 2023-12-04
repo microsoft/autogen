@@ -185,6 +185,8 @@ print("hello extract code")
 """,
         detect_single_line_code=True,
     )
+    print(codeblocks2)
+
     assert codeblocks2 == codeblocks
     # import pdb; pdb.set_trace()
 
@@ -207,9 +209,77 @@ url = "https://en.wikipedia.org/wiki/Web_scraping"
 title, text = scrape(url)
 print(f"Title: {title}")
 print(f"Text: {text}")
+```
 """
     )
     print(codeblocks)
+    assert len(codeblocks) == 2 and codeblocks[0][0] == "python" and codeblocks[1][0] == "python"
+
+    codeblocks = extract_code(
+        """
+Example:
+``` python
+def scrape(url):
+    import requests
+    from bs4 import BeautifulSoup
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    title = soup.find("title").text
+    text = soup.find("div", {"id": "bodyContent"}).text
+    return title, text
+```
+Test:
+``` python
+url = "https://en.wikipedia.org/wiki/Web_scraping"
+title, text = scrape(url)
+print(f"Title: {title}")
+print(f"Text: {text}")
+```
+"""
+    )
+    print(codeblocks)
+    assert len(codeblocks) == 2 and codeblocks[0][0] == "python" and codeblocks[1][0] == "python"
+
+    # Check for indented code blocks
+    codeblocks = extract_code(
+        """
+Example:
+   ```python
+   def scrape(url):
+       import requests
+       from bs4 import BeautifulSoup
+       response = requests.get(url)
+       soup = BeautifulSoup(response.text, "html.parser")
+       title = soup.find("title").text
+       text = soup.find("div", {"id": "bodyContent"}).text
+       return title, text
+   ```
+"""
+    )
+    print(codeblocks)
+    assert len(codeblocks) == 1 and codeblocks[0][0] == "python"
+
+    # Check for codeblocks with \r\n
+    codeblocks = extract_code(
+        """
+Example:
+``` python
+def scrape(url):
+   import requests
+   from bs4 import BeautifulSoup
+   response = requests.get(url)
+   soup = BeautifulSoup(response.text, "html.parser")
+   title = soup.find("title").text
+   text = soup.find("div", {"id": "bodyContent"}).text
+   return title, text
+```
+""".replace(
+            "\n", "\r\n"
+        )
+    )
+    print(codeblocks)
+    assert len(codeblocks) == 1 and codeblocks[0][0] == "python"
+
     codeblocks = extract_code("no code block")
     assert len(codeblocks) == 1 and codeblocks[0] == (UNKNOWN, "no code block")
 
@@ -333,7 +403,7 @@ class TestContentStr(unittest.TestCase):
 
     def test_invalid_content(self):
         content = [{"type": "text", "text": "hello"}, {"type": "wrong_type", "url": "http://example.com/image.png"}]
-        with self.assertRaises(AssertionError) as context:
+        with self.assertRaises(ValueError) as context:
             content_str(content)
         self.assertIn("Wrong content format", str(context.exception))
 
@@ -348,7 +418,7 @@ class TestContentStr(unittest.TestCase):
 
 if __name__ == "__main__":
     # test_infer_lang()
-    # test_extract_code()
-    test_execute_code()
+    test_extract_code()
+    # test_execute_code()
     # test_find_code()
-    unittest.main()
+    # unittest.main()
