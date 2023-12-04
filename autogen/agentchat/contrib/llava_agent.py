@@ -10,9 +10,9 @@ import requests
 from regex import R
 
 from autogen.agentchat.agent import Agent
+from autogen.agentchat.contrib.img_utils import get_image_data, llava_formater
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
-from autogen.img_utils import get_image_data, llava_formater
 
 try:
     from termcolor import colored
@@ -54,7 +54,7 @@ class LLaVAAgent(MultimodalConversableAgent):
         )
 
         assert self.llm_config is not None, "llm_config must be provided."
-        self.register_reply([Agent, None], reply_func=LLaVAAgent._image_reply, position=1)
+        self.register_reply([Agent, None], reply_func=LLaVAAgent._image_reply, position=2)
 
     def _image_reply(self, messages=None, sender=None, config=None):
         # Note: we did not use "llm_config" yet.
