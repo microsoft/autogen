@@ -34,7 +34,7 @@ def test_aoai_chat_completion():
 
 
 @pytest.mark.skipif(skip and not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
-def test_aoai_tool_calling_extraction():
+def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
@@ -71,7 +71,7 @@ def test_aoai_tool_calling_extraction():
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_chatmessate_to_dict():
+def test_ChatCompletionMessage_to_dict():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
@@ -79,11 +79,13 @@ def test_chatmessate_to_dict():
     )
     client = OpenAIWrapper(config_list=config_list)
 
+    # test extract content
     message = ChatCompletionMessage(role="assistant", content="hello", function_call=None)
     assert isinstance(
         client.ChatCompletionMessage_to_dict(message), dict
     ), "ChatCompletionMessage_to_dict should return a dict"
 
+    # test extract function_call
     message = ChatCompletionMessage(
         role="assistant",
         content="hello",
@@ -93,6 +95,7 @@ def test_chatmessate_to_dict():
         client.ChatCompletionMessage_to_dict(message), dict
     ), "ChatCompletionMessage_to_dict should return a dict"
 
+    # test extract tool_call
     if TOOL_ENABLED:
         message = ChatCompletionMessage(
             role="assistant",
@@ -179,6 +182,8 @@ def test_usage_summary():
 
 if __name__ == "__main__":
     test_aoai_chat_completion()
+    test_oai_tool_calling_extraction()
+    test_ChatCompletionMessage_to_dict()
     test_chat_completion()
     test_completion()
     test_cost()
