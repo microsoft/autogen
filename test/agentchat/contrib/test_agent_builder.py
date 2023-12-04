@@ -46,7 +46,7 @@ def test_build():
             "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
-        }
+        },
     )
 
     # check number of agents
@@ -78,7 +78,7 @@ def test_save():
             "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
-        }
+        },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
 
@@ -115,7 +115,7 @@ def test_load():
             "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
-        }
+        },
     )
 
     # check config loading
@@ -146,7 +146,7 @@ def test_clear_agent():
             "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
-        }
+        },
     )
     builder.clear_all_agents()
 
