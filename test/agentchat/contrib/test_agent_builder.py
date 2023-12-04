@@ -43,7 +43,6 @@ def test_build():
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
-            "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
         },
@@ -75,7 +74,6 @@ def test_save():
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
-            "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
         },
@@ -112,7 +110,6 @@ def test_load():
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
-            "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
         },
@@ -143,7 +140,6 @@ def test_clear_agent():
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
-            "use_docker": False,
             "timeout": 60,
             "use_docker": "python:3",
         },
