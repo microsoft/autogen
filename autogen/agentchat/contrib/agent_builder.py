@@ -11,7 +11,7 @@ from typing import Optional, List, Dict, Tuple, Union
 class AgentBuilder:
     """
     AgentBuilder can help user build an automatic task solving process powered by multi-agent system.
-    Specifically, our building pipeline include init(), build(), and start().
+    Specifically, our building pipeline includes initialize and build.
     In build(), we prompt a gpt-4 model to create multiple participant agents, and specify whether
         this task need programming to solve.
     User can save the built agents' config by calling save(), and load the saved configs by load(), which can skip the
@@ -107,11 +107,11 @@ class AgentBuilder:
         model_name_or_hf_repo: str,
         llm_config: dict,
         system_message: Optional[str] = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-        use_gpts: Optional[bool] = False,
+        use_oai_assistant: Optional[bool] = False,
         world_size: Optional[int] = 1,
     ) -> autogen.AssistantAgent:
         """
-        Create group chat agents.
+        Create a group chat participant agent.
 
         If the agent rely on an open-source model, this function will automatically set up an endpoint for that agent.
         The API address of that endpoint will be "localhost:{free port}".
@@ -121,7 +121,7 @@ class AgentBuilder:
             model_name_or_hf_repo:
             llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             system_message: system prompt use to format an agent's behavior.
-            use_gpts: use OpenAI GPTs api instead on self-construct agent.
+            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
             world_size: the max size of parallel tensors (in most of the cases, this is identical to the amount of GPUs).
 
         Returns:
@@ -190,7 +190,7 @@ class AgentBuilder:
         current_config.update(
             {"config_list": config_list, "model": model_name_or_hf_repo, "max_tokens": self.max_tokens}
         )
-        if use_gpts:
+        if use_oai_assistant:
             from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
             agent = GPTAssistantAgent(
@@ -242,9 +242,8 @@ class AgentBuilder:
         default_llm_config: Optional[Dict] = None,
         coding: Optional[bool] = None,
         cached_configs: Optional[Dict] = None,
-        use_gpts: Optional[bool] = False,
-        user_proxy_work_dir: Optional[str] = None,
-        docker: Optional[Union[list, bool, str]] = False,
+        use_oai_assistant: Optional[bool] = False,
+        code_execution_config: Optional[Dict] = None,
         **kwargs,
     ):
         """
@@ -255,11 +254,18 @@ class AgentBuilder:
             default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             coding: use to identify if the user proxy (a code interpreter) should be added.
             cached_configs: previously saved agent configs.
-            use_gpts: if true, build function will use GPTs api to build agents.
-            user_proxy_work_dir: The working directory for the code execution.
-            docker (Optional, list, str or bool): The docker image to use for code execution.
+            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+            code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
         """
         use_api = False
+
+        if code_execution_config is None:
+            code_execution_config = {
+                "last_n_messages": 2,
+                "work_dir": 'groupchat',
+                "use_docker": False,
+                "timeout": 60,
+            }
 
         if cached_configs is None:
             use_api = True
@@ -324,7 +330,7 @@ class AgentBuilder:
                 config["model"],
                 default_llm_config,
                 system_message=config["system_message"],
-                use_gpts=use_gpts,
+                use_oai_assistant=use_oai_assistant,
                 **kwargs,
             )
         agent_list = [agent_config[0] for agent_config in self.agent_procs_assign.values()]
@@ -346,12 +352,7 @@ class AgentBuilder:
                     name="User_console_and_Python_code_interpreter",
                     is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
                     system_message="User console with a python code interpreter interface.",
-                    code_execution_config={
-                        "last_n_messages": 2,
-                        "work_dir": user_proxy_work_dir,
-                        "use_docker": docker,
-                        "timeout": 60,
-                    },
+                    code_execution_config=code_execution_config,
                     human_input_mode="NEVER",
                 )
             ] + agent_list
@@ -362,6 +363,7 @@ class AgentBuilder:
                 "agent_configs": agent_configs,
                 "coding": coding,
                 "default_llm_config": default_llm_config,
+                "code_execution_config": code_execution_config,
             }
         )
 
