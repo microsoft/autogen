@@ -2,10 +2,10 @@
 
 #### Functionality
 - Agent
--- [ ] function call
--- [ ] code execution
--- [ ] assistant api
+    - [ ] function call
+    - [ ] code execution
+    - [ ] assistant api
 
 - Agent communication
-- [ ] Two-agent chat
-- [ ] Group chat
+    - [ ] Two-agent chat
+    - [ ] Group chat
