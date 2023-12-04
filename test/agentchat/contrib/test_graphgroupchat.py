@@ -1,29 +1,26 @@
-try:
-    import networkx as nx
-    import matplotlib.pyplot as plt
-    from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat
-
-    skip_test = True
-except (ModuleNotFoundError, ImportError):
-    skip_test = False
-
-
 import autogen
-from io import StringIO
-import logging
-
+import pytest
 import sys
 import os
-import pytest
+from io import StringIO
+import logging
 from unittest.mock import MagicMock
 import unittest
-from autogen.agentchat.groupchat import GroupChat, Agent, ConversableAgent
+from autogen.agentchat.groupchat import Agent, ConversableAgent
 from autogen.agentchat.assistant_agent import AssistantAgent
-
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
+
+try:
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat  # noqa: E402
+
+    skip_test = True
+except (ModuleNotFoundError, ImportError):
+    skip_test = False
 
 config_list = autogen.config_list_from_json(
     OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
