@@ -69,15 +69,29 @@ building_task = "Find a paper on arxiv by programming, and analysis its applicat
 Use `build()` to let build manager (with a `builder_model` as backbone) complete the group chat agents generation.
 If you think coding is necessary in your task, you can use `coding=True` to add a user proxy (a local code interpreter) into the agent list as:
 ```python
-builder.build(building_task, default_llm_config, coding=True)
+agent_list, agent_configs = builder.build(building_task, default_llm_config, coding=True)
 ```
 If `coding` is not specified, AgentBuilder will determine on its own whether the user proxy should be added or not according to the task.
 
 ### Step 5: execute the task
 Let agents generated in `build()` to complete the task collaboratively in a group chat.
 ```python
-execution_task="Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
-builder.start(task=execution_task)
+import autogen
+
+def start_task(execution_task: str, agent_list: list, llm_config: dict):
+    config_list = autogen.config_list_from_json(config_path, filter_dict={"model": ["gpt-4-1106-preview"]})
+
+    group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
+    manager = autogen.GroupChatManager(
+        groupchat=group_chat, llm_config={"config_list": config_list, **llm_config}
+    )
+    agent_list[0].initiate_chat(manager, message=execution_task)
+
+start_task(
+    execution_task="Find a recent paper about gpt-4 on arxiv and find its potential applications in software.",
+    agent_list=agent_list,
+    llm_config=default_llm_config
+)
 ```
 
 ### Step 6 (Optional): clear all agents and prepare for the next task
@@ -117,8 +131,9 @@ You can provide a specific filename, otherwise, AgentBuilder will save config to
 
 You can load the saved config and skip the building process. AgentBuilder will create agents with those information without prompting the build manager.
 ```python
-new_builder = AgentBuilder(config_path=config_path).load(saved_path)
-new_builder.start()
+new_builder = AgentBuilder(config_path=config_path)
+agent_list, agent_config = new_builder.load(saved_path)
+start_task(...)  # skip build()
 ```
 
 ## Use Open-source LLM
@@ -138,14 +153,18 @@ After satisfying the requirements, you can add an open-source LLM's huggingface 
 and specify it when initializing AgentBuilder.
 AgentBuilder will automatically set up an endpoint server for open-source LLM. Make sure you have sufficient GPUs resources.
 
-## Use GPTs
-[GPTs](https://openai.com/blog/introducing-gpts) allow user to create an assistant with a simple instruction of the task. It has plugin support that can let ChatGPT complete some complex instructions, and can optionally update the assistant's instruction to let it adapt to new task or improve on the current task.
-AutoBuild also support GPTs api by adding `use_gpts=True` to the `build()` function.
+## Use OpenAI Assistant
+[Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
+An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
+AutoBuild also support assistant api by adding `use_oai_assistant=True` to `build()`.
 ```python
-# Transfer to GPTs API.
-new_builder.build(building_task, default_llm_config, use_gpts=True)
+# Transfer to OpenAI Assistant API.
+agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
+...
 ```
 
 ## Summary
-We propose AutoBuild with a new class `AgentBuilder`. AutoBuild can help user solve their complex task with an automatically built multi-agent system. AutoBuild support open-source LLMs and GPTs api, giving users more flexibility to choose their favorite models.
+We propose AutoBuild with a new class `AgentBuilder`.
+AutoBuild can help user solve their complex task with an automatically built multi-agent system.
+AutoBuild support open-source LLMs and GPTs api, giving users more flexibility to choose their favorite models.
 More related features coming soon.
