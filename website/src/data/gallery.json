@@ -80,7 +80,7 @@
     "title": "Next.js + FASTAPI Based UI for AutoGen",
     "link": "https://github.com/victordibia/autogen-ui",
     "description": "A project featuring a UI for AutoGen built with Next.js and FastAPI.",
-    "image": "default.png",
+    "image": "https://raw.githubusercontent.com/victordibia/autogen-ui/main/docs/images/autogenuiscreen.png",
     "tags": ["ui", "tools"]
   },
   {

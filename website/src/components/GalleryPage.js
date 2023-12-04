@@ -94,20 +94,34 @@ const GalleryPage = () => {
                 cover={
                   <img
                     alt={item.title}
-                    src="/autogen/img/gallery/default.png"
+                    src={
+                      item.image.includes("http")
+                        ? item.image
+                        : `/autogen/img/gallery/${item.image}`
+                    }
                   />
                 }
               >
+                <div>
+                  <span
+                    style={{
+                      fontSize: "1.2rem",
+                      fontWeight: "bold",
+                      color: "black",
+                    }}
+                  >
+                    {item.title}
+                  </span>
+                </div>
                 <div
                   style={{
-                    fontSize: "1.2rem",
-                    fontWeight: "bold",
-                    color: "black",
+                    // fontSize: "0.8rem",
+                    fontWeight: "normal",
+                    color: "grey",
                   }}
                 >
-                  {item.title}
+                  {item.description}
                 </div>
-                <div>{item.description}</div>
                 <TagsView tags={item.tags} />
               </Card>
             </a>
