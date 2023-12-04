@@ -1,16 +1,20 @@
 from typing import List, Optional
 from dataclasses import asdict
 import autogen
-from .datamodel import AgentFlowSpec, FlowConfig, Message
+from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
 
 
-class AutoGenFlow:
+class AutoGenWorkFlowManager:
     """
-    AutoGenFlow class to load agents from a provided configuration and run a chat between them
+    AutoGenWorkFlowManager class to load agents from a provided configuration and run a chat between them
     """
 
     def __init__(
-        self, config: FlowConfig, history: Optional[List[Message]] = None, work_dir: str = None, asst_prompt: str = None
+        self,
+        config: AgentWorkFlowConfig,
+        history: Optional[List[Message]] = None,
+        work_dir: str = None,
+        assistant_prompt: str = None,
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
@@ -21,8 +25,8 @@ class AutoGenFlow:
             history: An optional list of previous messages to populate the agents' history.
 
         """
-        self.work_dir = work_dir
-        self.asst_prompt = asst_prompt
+        self.work_dir = work_dir or "work_dir"
+        self.assistant_prompt = assistant_prompt or ""
         self.sender = self.load(config.sender)
         self.receiver = self.load(config.receiver)
 
@@ -87,13 +91,14 @@ class AutoGenFlow:
             code_execution_config = agent_spec.config.code_execution_config or {}
             code_execution_config["work_dir"] = self.work_dir
             agent_spec.config.code_execution_config = code_execution_config
+
         if agent_spec.type == "assistant":
             agent_spec.config.system_message = (
                 autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
                 + "\n\n"
                 + agent_spec.config.system_message
                 + "\n\n"
-                + self.asst_prompt
+                + self.assistant_prompt
             )
 
         return agent_spec
