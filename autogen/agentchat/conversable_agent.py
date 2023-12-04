@@ -54,6 +54,7 @@ class ConversableAgent(Agent):
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        description: Optional[str] = None,
     ):
         """
         Args:
@@ -95,11 +96,14 @@ class ConversableAgent(Agent):
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
+        self.description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
@@ -1302,3 +1306,26 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
+
+    def as_function_call_schema(self) -> Dict:
+        """
+        Return the function call schema for the agent.
+        """
+        return {
+            "name": self.name,
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "description": "The input message or task for the agent.",
+                    }
+                },
+                "required": ["content"],
+            },
+            "description": (
+                "This function establishes communication with a stateful agent, capable of contextual interaction and assistance. "
+                "It retains conversation history between the two of you, enhancing its responses and recommendations. "
+                f"Agent's function: {self.description}"
+            ),
+        }

@@ -27,6 +27,7 @@ class UserProxyAgent(ConversableAgent):
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
+        description: Optional[str] = None,
     ):
         """
         Args:
@@ -69,6 +70,8 @@ class UserProxyAgent(ConversableAgent):
                 Default to false, which disables llm-based auto reply.
             system_message (str or List): system message for ChatCompletion inference.
                 Only used when llm_config is not False. Use it to reprogram the agent.
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(
             name,
