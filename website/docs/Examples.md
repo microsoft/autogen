@@ -61,6 +61,8 @@ Links to notebook examples:
    - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb)
 1. **Evaluation and Assessment**
    - AgentEval: A Multi-Agent System for Assess Utility of LLM-powered Applications - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb)
+1. **Automatic Agent Building**
+   - Automatically Build Multi-agent System with AgentBuilder - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_autobuild.ipynb)
 
 ## Enhanced Inferences
 ### Utilities
