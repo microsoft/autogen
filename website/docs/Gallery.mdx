@@ -1,0 +1,26 @@
+import GalleryPage from '../src/components/GalleryPage';
+
+# Gallery
+
+This page contains a list of demos that use AutoGen in various applications from the community.
+
+**Contribution guide:**
+Built something interesting with AutoGen? Submit a PR to add it to the list! See the [Contribution Guide below](#contributing) for more details.
+
+<GalleryPage />
+
+## Contributing
+
+To contribute, please open a PR that adds an entry to the `data/gallery.json` file in the `src` directory. The entry should be an object with the following properties:
+
+```js
+{
+    "title": "AutoGen Playground",
+    "link": "https://huggingface.co/spaces/thinkall/AutoGen_Playground",
+    "description": "A space to explore the capabilities of AutoGen.",
+    "image": "default.png",
+    "tags": ["web", "app"]
+  }
+```
+
+The `image` property should be the name of a file in the `static/img/gallery` directory. The `tags` property should be an array of strings that describe the demo.
