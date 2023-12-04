@@ -64,8 +64,39 @@ def test_cost(cache_seed, model):
     print(response.cost)
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_usage_summary():
+    config_list = config_list_openai_aoai(KEY_LOC)
+    client = OpenAIWrapper(config_list=config_list)
+    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct", cache_seed=42)
+
+    # usage should be recorded
+    assert client.actual_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+
+    # check print
+    client.print_usage_summary()
+
+    # check update
+    client._update_usage_summary(response, use_cache=True)
+    assert (
+        client.actual_usage_summary["total_cost"] == response.cost * 2
+    ), "total_cost should be equal to response.cost * 2"
+
+    # check clear
+    client.clear_usage_summary()
+    assert client.actual_usage_summary is None, "actual_usage_summary should be None"
+    assert client.total_usage_summary is None, "total_usage_summary should be None"
+
+    # actual usage and all usage should be different
+    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct", cache_seed=42)
+    assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    assert client.actual_usage_summary is None, "No actual cost should be recorded"
+
+
 if __name__ == "__main__":
     test_aoai_chat_completion()
     test_chat_completion()
     test_completion()
     test_cost()
+    test_usage_summary()

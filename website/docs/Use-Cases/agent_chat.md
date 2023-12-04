@@ -83,9 +83,6 @@ The figure below shows six examples of applications built using AutoGen.
 
 Find a list of examples in this page: [Automated Agent Chat Examples](../Examples.md#automated-multi-agent-chat)
 
-8. **Automatic Agent Building**
-   - Automatically Build Multi-agent System with AgentBuilder    - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_autobuild.ipynb)
-
 ## For Further Reading
 
 _Interested in the research that leads to this package? Please check the following papers._
