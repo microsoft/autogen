@@ -239,7 +239,6 @@ class OpenAIWrapper:
                 continue
             # merge the input config with the i-th config in the config list
             full_config = {**self._config_list[i], **config}
-            print("full_config", full_config)
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
             # process for azure
