@@ -35,13 +35,6 @@
     "tags": ["web", "app"]
   },
   {
-    "title": "Using AutoGen to Code a Multi-Agent Postgres AI Tool",
-    "link": "https://www.youtube.com/watch?v=JjVvYDPVrAQ",
-    "description": "A tutorial on creating a multi-agent AI tool for Postgres database management using AutoGen.",
-    "image": "default.png",
-    "tags": ["tools", "web"]
-  },
-  {
     "title": "AutoGen Engineer",
     "link": "https://chat.openai.com/g/g-Y50TY4F35-autogen-engineer",
     "description": "Join the AutoGen Engineer group chat to collaborate and build with others.",
@@ -91,9 +84,9 @@
     "tags": ["tools", "web"]
   },
   {
-    "title": "Control your LLM agents for Accurate Postgres AI Data Analytics",
-    "link": "https://www.youtube.com/watch?v=4o8tymMQ5GM&ab_channel=IndyDevDan",
-    "description": "A guide on using LLM agents for accurate data analytics with Postgres AI.",
+    "title": "Postgres Data Analytics AI Agent",
+    "link": "https://www.youtube.com/playlist?list=PLS_o2ayVCKvDzj2YxeFqMq9UbR1PkPEh0",
+    "description": "Utilizing AutoGen to speak directly to Postgres Database.",
     "image": "default.png",
     "tags": ["tools", "web"]
   },
