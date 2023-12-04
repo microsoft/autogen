@@ -1144,7 +1144,7 @@ class ConversableAgent(Agent):
             result.append(char)
         return "".join(result)
 
-    def execute_function(self, func_call) -> Tuple[bool, Dict[str, str]]:
+    def execute_function(self, func_call, verbose: bool = False) -> Tuple[bool, Dict[str, str]]:
         """Execute a function call and return the result.
 
         Override this function to modify the way to execute a function call.
@@ -1183,6 +1183,12 @@ class ConversableAgent(Agent):
                     content = f"Error: {e}"
         else:
             content = f"Error: Function {func_name} not found."
+
+        if verbose:
+            print(
+                colored(f"\nInput arguments: {arguments}\nOutput:\n{content}", "magenta"),
+                flush=True,
+            )
 
         return is_exec_success, {
             "name": func_name,
