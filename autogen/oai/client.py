@@ -74,7 +74,13 @@ class OpenAIWrapper:
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
+        if isinstance(config_list, list) and any((c.get("model") is None for c in config_list)):
+            logger.warning(
+                "OpenAIWrapper: one or more configs in config_list do not have a model specified, which may not be intended."
+            )
         if config_list:
+            self._check_model_in_config_list(model=base_config.get("model"), config_list=config_list)
+            self._default_model = base_config.get("model", None)
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             self._clients = [self._client(config, openai_config) for config in config_list]  # could modify the config
             self._config_list = [
@@ -184,6 +190,16 @@ class OpenAIWrapper:
             ]
         return params
 
+    @staticmethod
+    def _check_model_in_config_list(model, config_list=None):
+        if model is None or config_list is None:
+            return
+
+        if not any(c.get("model", None) == model for c in config_list):
+            raise ValueError(
+                f"model {model} is not found in the config_list. Please add the model with the corresponding api_key when creating the OpenAIWrapper."
+            )
+
     def create(self, **config):
         """Make a completion for a given config using openai's clients.
         Besides the kwargs allowed in openai's client, we allow the following additional kwargs.
@@ -215,17 +231,15 @@ class OpenAIWrapper:
         if ERROR:
             raise ERROR
         last = len(self._clients) - 1
-        model_to_use = config.get("model")
-        if model_to_use and not any(c.get("model") == model_to_use for c in self._config_list):
-            raise ValueError(
-                f"model {model_to_use} is not found in the config_list. Please add the model with the corresponding api_key when creating the OpenAIWrapper."
-            )
+        model_to_use = config.get("model", self._default_model)
+        self._check_model_in_config_list(model=model_to_use, config_list=self._config_list)
 
         for i, client in enumerate(self._clients):
             if model_to_use and model_to_use != self._config_list[i].get("model"):
                 continue
             # merge the input config with the i-th config in the config list
-            full_config = {**config, **self._config_list[i]}
+            full_config = {**self._config_list[i], **config}
+            print("full_config", full_config)
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
             # process for azure
