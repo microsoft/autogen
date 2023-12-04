@@ -5,6 +5,7 @@ from test_utils import OAI_CONFIG_LIST, KEY_LOC
 TOOL_ENABLED = False
 try:
     from openai import OpenAI
+    from openai.types.chat.chat_completion import ChatCompletionMessage
 except ImportError:
     skip = True
 else:
@@ -67,6 +68,46 @@ def test_aoai_tool_calling_extraction():
     )
     print(response)
     print(client.extract_text_or_completion_object(response))
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_chatmessate_to_dict():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+    )
+    client = OpenAIWrapper(config_list=config_list)
+
+    message = ChatCompletionMessage(role="assistant", content="hello", function_call=None)
+    assert isinstance(
+        client.ChatCompletionMessage_to_dict(message), dict
+    ), "ChatCompletionMessage_to_dict should return a dict"
+
+    message = ChatCompletionMessage(
+        role="assistant",
+        content="hello",
+        function_call={"arguments": '{"location":"San Francisco, CA","unit":"celsius"}', "name": "getCurrentWeather"},
+    )
+    assert isinstance(
+        client.ChatCompletionMessage_to_dict(message), dict
+    ), "ChatCompletionMessage_to_dict should return a dict"
+
+    if TOOL_ENABLED:
+        message = ChatCompletionMessage(
+            role="assistant",
+            content="hello",
+            tool_calls=[
+                {
+                    "id": "call_DvkeGSplZjWLOCRIsoOFN9Bu",
+                    "type": "function",
+                    "function": {"name": "getCurrentWeather", "arguments": '{"location":"San Francisco"}'},
+                }
+            ],
+        )
+        assert isinstance(
+            client.ChatCompletionMessage_to_dict(message), dict
+        ), "ChatCompletionMessage_to_dict should return a dict"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
