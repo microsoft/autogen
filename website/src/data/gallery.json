@@ -3,14 +3,14 @@
     "title": "AutoGen Playground",
     "link": "https://huggingface.co/spaces/thinkall/AutoGen_Playground",
     "description": "A space to explore the capabilities of AutoGen.",
-    "tags": ["web", "app"]
+    "tags": ["ui", "app"]
   },
   {
     "title": "Solving Security Vulnerabilities",
     "link": "https://www.linkedin.com/pulse/solving-security-vulnerabilities-llms-society-mind-model-leah-bonser-kcswc?trk=public_post_feed-article-content",
     "description": "An article discussing the use of AutoGen to tackle security vulnerabilities.",
     "image": "default.png",
-    "tags": ["tools", "web"]
+    "tags": ["app"]
   },
   {
     "title": "Research agents via Autogen - Build a Group of AI Researchers",
