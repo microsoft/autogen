@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Optional
 
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
-from autogen.retrieve_utils import get_files_from_dir, split_files_to_chunks
+from autogen.retrieve_utils import get_files_from_dir, split_files_to_chunks, TEXT_FORMATS
 import logging
 
 logger = logging.getLogger(__name__)
@@ -45,8 +45,8 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
                 - client (Optional, qdrant_client.QdrantClient(":memory:")): A QdrantClient instance. If not provided, an in-memory instance will be assigned. Not recommended for production.
                     will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
-                - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
-                    or the url to a single file. Default is None, which works only if the collection is already created.
+                - docs_path (Optional, Union[str, List[str]]): the path to the docs directory. It can also be the path to a single file,
+                    the url to a single file or a list of directories, files and urls. Default is None, which works only if the collection is already created.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
@@ -66,11 +66,14 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
-                - custom_token_count_function(Optional, Callable): a custom function to count the number of tokens in a string.
+                - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
                     Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
-                - custom_text_split_function(Optional, Callable): a custom function to split a string into a list of strings.
+                - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+                - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
+                    This only applies to files under the directories in `docs_path`. Explictly included files and urls will be chunked regardless of their types.
+                - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
                 - parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores.
                 - on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
                 - quantization_config: Quantization configuration. If None, quantization will be disabled.
@@ -97,8 +100,8 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         """
         Args:
             problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved.
-            search_string (str): only docs containing this string will be retrieved.
+            n_results (int): the number of results to be retrieved. Default is 20.
+            search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
         """
         if not self._collection:
             print("Trying to create collection.")
@@ -111,6 +114,8 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 must_break_at_empty_line=self._must_break_at_empty_line,
                 embedding_model=self._embedding_model,
                 custom_text_split_function=self.custom_text_split_function,
+                custom_text_types=self._custom_text_types,
+                recursive=self._recursive,
                 parallel=self._parallel,
                 on_disk=self._on_disk,
                 quantization_config=self._quantization_config,
@@ -139,6 +144,8 @@ def create_qdrant_from_dir(
     must_break_at_empty_line: bool = True,
     embedding_model: str = "BAAI/bge-small-en-v1.5",
     custom_text_split_function: Callable = None,
+    custom_text_types: List[str] = TEXT_FORMATS,
+    recursive: bool = True,
     parallel: int = 0,
     on_disk: bool = False,
     quantization_config: Optional[models.QuantizationConfig] = None,
@@ -146,8 +153,8 @@ def create_qdrant_from_dir(
     payload_indexing: bool = False,
     qdrant_client_options: Optional[Dict] = {},
 ):
-    """Create a Qdrant collection from all the files in a given directory, the directory can also be a single file or a url to
-        a single file.
+    """Create a Qdrant collection from all the files in a given directory, the directory can also be a single file or a
+      url to a single file.
 
     Args:
         dir_path (str): the path to the directory, file or url.
@@ -156,13 +163,21 @@ def create_qdrant_from_dir(
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
         must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
-        embedding_model (Optional, str): the embedding model to use. Default is "BAAI/bge-small-en-v1.5". The list of all the available models can be at https://qdrant.github.io/fastembed/examples/Supported_Models/.
+        embedding_model (Optional, str): the embedding model to use. Default is "BAAI/bge-small-en-v1.5".
+            The list of all the available models can be at https://qdrant.github.io/fastembed/examples/Supported_Models/.
+        custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
+            Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+        custom_text_types (Optional, List[str]): a list of file types to be processed. Default is TEXT_FORMATS.
+        recursive (Optional, bool): whether to search documents recursively in the dir_path. Default is True.
         parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores
         on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
-        quantization_config: Quantization configuration. If None, quantization will be disabled. Ref: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
-        hnsw_config: HNSW configuration. If None, default configuration will be used. Ref: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
+        quantization_config: Quantization configuration. If None, quantization will be disabled.
+            Ref: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
+        hnsw_config: HNSW configuration. If None, default configuration will be used.
+            Ref: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
         payload_indexing: Whether to create a payload index for the document field. Default is False.
-        qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client. Reference: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
+        qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client.
+            Ref: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
     """
     if client is None:
         client = QdrantClient(**qdrant_client_options)
@@ -170,10 +185,13 @@ def create_qdrant_from_dir(
 
     if custom_text_split_function is not None:
         chunks = split_files_to_chunks(
-            get_files_from_dir(dir_path), custom_text_split_function=custom_text_split_function
+            get_files_from_dir(dir_path, custom_text_types, recursive),
+            custom_text_split_function=custom_text_split_function,
         )
     else:
-        chunks = split_files_to_chunks(get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line)
+        chunks = split_files_to_chunks(
+            get_files_from_dir(dir_path, custom_text_types, recursive), max_tokens, chunk_mode, must_break_at_empty_line
+        )
     logger.info(f"Found {len(chunks)} chunks.")
 
     # Check if collection by same name exists, if not, create it with custom options

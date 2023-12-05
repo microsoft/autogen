@@ -1,8 +1,39 @@
-from importlib.metadata import version as lib_version
+from pkg_resources import packaging
 from datetime import datetime
 import os
 import autogen
 import json
+
+AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
+
+
+def default_llm_config(config_list, timeout=180):
+    """Return a default config list with a given timeout, and with caching disabled.
+    The formatting depends on the version of Autogen installed.
+
+    Args:
+        config_list (list): the OAI config list to include in the final llm_config
+        timeout (int): the timeout for calls to the LLM
+
+    Returns:
+        None
+    """
+    llm_config = {
+        "config_list": config_list,
+    }
+
+    # Add options depending on the version
+    if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
+        llm_config["request_timeout"] = timeout
+        llm_config["use_cache"] = False
+    elif AUTOGEN_VERSION < packaging.version.parse("0.2.0b4"):
+        llm_config["timeout"] = timeout
+        llm_config["cache"] = None
+    else:
+        llm_config["timeout"] = timeout
+        llm_config["cache_seed"] = None
+
+    return llm_config
 
 
 def init():
@@ -20,7 +51,11 @@ def init():
     # Print some information about the run
     with open("timestamp.txt", "wt") as f:
         f.write("Timestamp: " + datetime.now().isoformat() + "\n")
-        f.write("pyautogen version: " + lib_version("pyautogen") + "\n")
+        f.write("pyautogen version: " + str(autogen.__version__) + "\n")
+
+    # Start logging
+    if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
+        autogen.Completion.start_logging(compact=False)
 
 
 def finalize(agents):
@@ -48,3 +83,9 @@ def finalize(agents):
         fname = agent.name + "_messages.json"
         with open(os.path.join(script_dir, fname), "wt") as fh:
             fh.write(messages_to_json(agent))
+
+    # Stop logging, and write logs to disk
+    if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
+        with open(os.path.join(script_dir, "completion_log.json"), "wt") as fh:
+            fh.write(json.dumps(autogen.Completion.logged_history, indent=4))
+        autogen.Completion.stop_logging()
