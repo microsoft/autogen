@@ -9,6 +9,7 @@ export interface IMessage {
   timestamp?: string;
   personalize?: boolean;
   ra?: string;
+  session_id?: string;
 }
 
 export interface IStatus {
@@ -33,7 +34,7 @@ export interface ILLMConfig {
 
 export interface IAgentConfig {
   name: string;
-  llm_config?: ILLMConfig;
+  llm_config?: ILLMConfig | boolean;
   human_input_mode: string;
   max_consecutive_auto_reply: number;
   system_message: string | "";
@@ -59,4 +60,27 @@ export interface IModelConfig {
   api_version?: string;
   base_url?: string;
   api_type?: string;
+}
+
+export interface IMetadataFile {
+  name: string;
+  path: string;
+  extension: string;
+  content: string;
+  type: string;
+}
+
+export interface IChatSession {
+  session_id: string;
+  timestamp: string;
+  user_id: string;
+  flow_config: IFlowConfig;
+}
+
+export interface IGalleryItem {
+  id: string;
+  messages: Array<IMessage>;
+  session: IChatSession;
+  tags: Array<string>;
+  timestamp: string;
 }
