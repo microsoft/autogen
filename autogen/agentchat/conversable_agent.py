@@ -621,7 +621,7 @@ class ConversableAgent(Agent):
                 if "content" in message:
                     try:
                         message["content"] = message["content"][:5000]
-                    except:
+                    except IndexError:
                         pass
                 short_messages.append(message)
             return short_messages
