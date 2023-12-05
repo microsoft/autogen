@@ -1,6 +1,7 @@
 import json
 import copy
 from logging import config
+from typing import Dict, List, Optional
 import autogen
 
 
@@ -14,7 +15,20 @@ execution, TERMINATE messsages, etc"
 """
 
 
-def annotate_message(role, content, llm_config=None, codes=None):
+def annotate_message(role: str, content: str, codes: str, llm_config: Optional[Dict] = None) -> str:
+    """
+    Annotates a message by performing qualitative coding.
+
+    Args:
+        role (str): The role of the agent (user or assistant) sending the message.
+        content (str): The content of the message.
+        llm_config (Optional[Dict], optional): Configuration for the OpenAIWrapper. Defaults to None.
+        codes (List[str], optional): A prompt containing the codes of interest. Defaults to None.
+
+    Returns:
+        str: The extracted text or function call from the OpenAIWrapper response.
+    """
+
     if codes is None:
         codes = EXAMPLE_CODES
 
@@ -49,7 +63,22 @@ Only respond with codes that apply. Codes should be separated by commas.
     return client.extract_text_or_function_call(response)
 
 
-def annotate_chat_history(chat_history, llm_config=None, codes=None):
+def annotate_chat_history(
+    chat_history: List[Dict[str, str]],
+    codes: str = None,
+    llm_config: Dict[str, str] = None,
+) -> None:
+    """
+    Annotates the chat history with codes based on the role and content of each message.
+
+    Args:
+        chat_history (List[Dict[str, str]]): A list of JSON objects representing the chat history. Each JSON object should have 'role' and 'content' keys.
+        codes (List[str], optional): A prompt containing the codes of interest. Defaults to None.
+        llm_config (Dict[str, str], optional): The configuration for the language model. Defaults to None.
+
+    Returns:
+        annotated_chat_history (List[Dict[str, str]]): A list of JSON objects representing the chat history. Each JSON object should have 'role', 'content', and 'codes' keys.
+    """
     # Create a copy of the chat history object
     chat_history_annotated = copy.deepcopy(chat_history)
 
@@ -69,7 +98,7 @@ if __name__ == "__main__":
         filter_dict={"model": ["gpt-4"]},
     )[0]
 
-    labels = annotate_chat_history(chat_history, llm_config, codes=EXAMPLE_CODES)
+    labels = annotate_chat_history(chat_history, llm_config=llm_config)
 
     # Save the new JSON to disk
     with open("sample_data/chat_history_annotated.json", "w") as file:
