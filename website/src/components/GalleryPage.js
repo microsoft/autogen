@@ -95,9 +95,11 @@ const GalleryPage = () => {
                   <img
                     alt={item.title}
                     src={
-                      item.image.includes("http")
-                        ? item.image
-                        : `/autogen/img/gallery/${item.image}`
+                      item.image
+                        ? item.image.includes("http")
+                          ? item.image
+                          : `/autogen/img/gallery/${item.image}`
+                        : `/autogen/img/gallery/default.png`
                     }
                   />
                 }
@@ -120,7 +122,7 @@ const GalleryPage = () => {
                     color: "grey",
                   }}
                 >
-                  {item.description}
+                  {item.description ? item.description : item.title}
                 </div>
                 <TagsView tags={item.tags} />
               </Card>

@@ -3,7 +3,6 @@
     "title": "AutoGen Playground",
     "link": "https://huggingface.co/spaces/thinkall/AutoGen_Playground",
     "description": "A space to explore the capabilities of AutoGen.",
-    "image": "default.png",
     "tags": ["web", "app"]
   },
   {
