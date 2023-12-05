@@ -747,6 +747,7 @@ class ConversableAgent(Agent):
         message = messages[-1]
         reply = ""
         no_human_input_msg = ""
+        exit_reason = "Terminated by human."  # the reason for conversation termination
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
                 f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
@@ -758,6 +759,7 @@ class ConversableAgent(Agent):
             if self._consecutive_auto_reply_counter[sender] >= self._max_consecutive_auto_reply_dict[sender]:
                 if self.human_input_mode == "NEVER":
                     reply = "exit"
+                    exit_reason = "Exceeded maximum auto-reply count."
                 else:
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
@@ -772,6 +774,7 @@ class ConversableAgent(Agent):
             elif self._is_termination_msg(message):
                 if self.human_input_mode == "NEVER":
                     reply = "exit"
+                    exit_reason = "Last message matched termination condition."
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = self.get_human_input(
@@ -789,6 +792,8 @@ class ConversableAgent(Agent):
         if reply == "exit":
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender] = 0
+            # tell user if the termination check matched
+            print(colored(f"Termination check of {self.name} matched: {exit_reason}", "red"))
             return True, None
 
         # send the human reply
@@ -939,6 +944,14 @@ class ConversableAgent(Agent):
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if final:
+                    # inform user about conversation termination
+                    if reply is None:
+                        print(
+                            colored(
+                                f"{self.name} has chosen to end the conversation. Last speaker: {sender.name}", "red"
+                            ),
+                            "\n",
+                        )
                     return reply
         return self._default_auto_reply
 
@@ -993,6 +1006,14 @@ class ConversableAgent(Agent):
                 else:
                     final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if final:
+                    # inform user about conversation termination
+                    if reply is None:
+                        print(
+                            colored(
+                                f"{self.name} has chosen to end the conversation. Last speaker: {sender.name}", "red"
+                            ),
+                            "\n",
+                        )
                     return reply
         return self._default_auto_reply
 

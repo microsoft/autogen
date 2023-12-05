@@ -9,6 +9,14 @@ from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -269,6 +277,7 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        exit_reason = "Exceeded max rounds count"  # the reason for groupchat termination
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
@@ -301,10 +310,14 @@ class GroupChatManager(ConversableAgent):
                     # admin agent is not found in the participants
                     raise
             if reply is None:
+                exit_reason = f"Response of {speaker.name}"
                 break
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
+
+        # inform user about the groupchat termination
+        print(colored(f"{self.name} has chosen to end the groupchat. Reason: {exit_reason}", "red"), "\n")
         return True, None
 
     async def a_run_chat(
@@ -319,6 +332,7 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        exit_reason = "Exceeded max rounds count"  # the reason for groupchat termination
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
@@ -352,8 +366,12 @@ class GroupChatManager(ConversableAgent):
                     # admin agent is not found in the participants
                     raise
             if reply is None:
+                exit_reason = f"Response of {speaker.name}"
                 break
             # The speaker sends the message without requesting a reply
             await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
+
+        # inform user about the groupchat termination
+        print(colored(f"{self.name} has chosen to end the groupchat. Reason: {exit_reason}", "red"), "\n")
         return True, None
