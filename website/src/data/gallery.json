@@ -24,7 +24,7 @@
     "link": "https://youtu.be/y7wMTwJN7rA",
     "description": "A demonstration of integrating Ollama, LiteLLM, and AutoGen.",
     "image": "default.png",
-    "tags": ["web", "app"]
+    "tags": ["app"]
   },
   {
     "title": "AutoGen Engineer",
