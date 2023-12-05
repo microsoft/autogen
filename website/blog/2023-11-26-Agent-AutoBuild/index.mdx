@@ -10,26 +10,26 @@ tags: [LLM, research]
 
 **TL;DR:**
 Introducing **AutoBuild**, building multi-agent system automatically, fast, and easily for complex tasks with minimal
-user prompt required, powered by a new designed class **AgentBuilder**. AgentBuilder also support open-source LLMs by
+user prompt required, powered by a new designed class **AgentBuilder**. AgentBuilder also supports open-source LLMs by
 leveraging [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
-Checkout example notebooks and file for reference:
+Checkout example notebooks and source code for reference:
 
 - [AutoBuild Examples](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_autobuild.ipynb)
 - [AgentBuilder](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/agent_builder.py)
 
 ## Introduction
-In this blog, we introduce **AutoBuild**, a pipeline that can automatically build multi-agent system for complex task.
+In this blog, we introduce **AutoBuild**, a pipeline that can automatically build multi-agent systems for complex tasks.
 Specifically, we design a new class called **AgentBuilder**, which will complete the generation of participant expert agents
-and the construction of group chat automatically after the user provide descriptions of a building task and a execution task.
+and the construction of group chat automatically after the user provides descriptions of a building task and an execution task.
 
-AgentBuilder support open-source models on Hugging Face powered by [vLLM](https://docs.vllm.ai/en/latest/index.html)
-and [FastChat](https://github.com/lm-sys/FastChat). Once the user choose to use open-source LLM, AgentBuilder will set
-up an endpoint server automatically without any user participant.
+AgentBuilder supports open-source models on Hugging Face powered by [vLLM](https://docs.vllm.ai/en/latest/index.html)
+and [FastChat](https://github.com/lm-sys/FastChat). Once the user chooses to use open-source LLM, AgentBuilder will set
+up an endpoint server automatically without any user participation.
 
 ## Installation
 - AutoGen:
 ```bash
-pip install pyautogen==0.2.0b5
+pip install pyautogen~=0.2.0
 ```
 - (Optional: if you want to use open-source LLMs) vLLM and FastChat
 ```bash
@@ -41,7 +41,7 @@ In this section, we provide a step-by-step example of how to use AgentBuilder to
 
 ### Step 1: prepare configurations
 First, we need to prepare the Agent configurations.
-Specifically, a config path containing model name and api key, and a default config for each agent, are required.
+Specifically, a config path containing the model name and API key, and a default config for each agent, are required.
 ```python
 config_path = '/home/elpis_ubuntu/LLM/autogen/OAI_CONFIG_LIST'  # modify path
 default_llm_config = {
@@ -49,8 +49,8 @@ default_llm_config = {
 }
 ```
 
-### Step 2: create a AgentBuilder instance
-Then, we create a AgentBuilder instance with the config path and default config.
+### Step 2: create an AgentBuilder instance
+Then, we create an AgentBuilder instance with the config path and default config.
 You can also specific the builder model and agent model, which are the LLMs used for building and agent respectively.
 ```python
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
@@ -59,22 +59,37 @@ builder = AgentBuilder(config_path=config_path, builder_model='gpt-4-1106-previe
 ```
 
 ### Step 3: specify the building task
-Specify a building task with a general description. Building task will help build manager (a LLM) decide what agents should be build.
+Specify a building task with a general description. Building task will help the build manager (a LLM) decide what agents should be built.
 Note that your building task should have a general description of the task. Adding some specific examples is better.
 ```python
-building_task = "Find a paper on arxiv by programming, and analysis its application in some domain. For example, find a latest paper about gpt-4 on arxiv and find its potential applications in software."
+building_task = "Find a paper on arxiv by programming, and analyze its application in some domain. For example, find a latest paper about gpt-4 on arxiv and find its potential applications in software."
 ```
 
 ### Step 4: build group chat agents
-Use `build()` to let build manager (with a `builder_model` as backbone) complete the group chat agents generation.
-If you think coding is necessary in your task, you can use `coding=True` to add a user proxy (a local code interpreter) into the agent list as:
+Use `build()` to let the build manager (with a `builder_model` as backbone) complete the group chat agents generation.
+If you think coding is necessary for your task, you can use `coding=True` to add a user proxy (a local code interpreter) into the agent list as:
 ```python
 agent_list, agent_configs = builder.build(building_task, default_llm_config, coding=True)
 ```
 If `coding` is not specified, AgentBuilder will determine on its own whether the user proxy should be added or not according to the task.
+The generated `agent_list` is a list of `AssistantAgent` instances.
+If `coding` is true, a user proxy (a `UserProxyAssistant` instance) will be added as the first element to the `agent_list`.
+`agent_configs` is a list of agent configurations including agent name, backbone LLM model, and system message.
+For example
+```
+// an example of agent_configs. AgentBuilder will generate agents with the following configurations.
+[
+    {
+        "name": "Data_scientist",
+        "model": "gpt-4-1106-preview",
+        "system_message": "As a Data Scientist, you are tasked with automating the retrieval and analysis of academic papers from arXiv. Utilize your Python programming acumen to develop scripts for gathering necessary information such as searching for relevant papers, downloading them, and processing their contents. Apply your analytical and language skills to interpret the data and deduce the applications of the research within specific domains.\n\n1. To compile information, write and implement Python scripts that search and interact with online resources, download and read files, extract content from documents, and perform other information-gathering tasks. Use the printed output as the foundation for your subsequent analysis.\n\n2. Execute tasks programmatically with Python scripts when possible, ensuring results are directly displayed. Approach each task with efficiency and strategic thinking.\n\nProgress through tasks systematically. In instances where a strategy is not provided, outline your plan before executing. Clearly distinguish between tasks handled via code and those utilizing your analytical expertise.\n\nWhen providing code, include only Python scripts meant to be run without user alterations. Users should execute your script as is, without modifications:\n\n```python\n# filename: <filename>\n# Python script\nprint(\"Your output\")\n```\n\nUsers should not perform any actions other than running the scripts you provide. Avoid presenting partial or incomplete scripts that require user adjustments. Refrain from requesting users to copy-paste results; instead, use the 'print' function when suitable to display outputs. Monitor the execution results they share.\n\nIf an error surfaces, supply corrected scripts for a re-run. If the strategy fails to resolve the issue, reassess your assumptions, gather additional details as needed, and explore alternative approaches.\n\nUpon successful completion of a task and verification of the results, confirm the achievement of the stated objective. Ensuring accuracy and validity of the findings is paramount. Evidence supporting your conclusions should be provided when feasible.\n\nUpon satisfying the user's needs and ensuring all tasks are finalized, conclude your assistance with \"TERMINATE\"."
+    },
+    ...
+]
+```
 
 ### Step 5: execute the task
-Let agents generated in `build()` to complete the task collaboratively in a group chat.
+Let agents generated in `build()` complete the task collaboratively in a group chat.
 ```python
 import autogen
 
@@ -95,11 +110,11 @@ start_task(
 ```
 
 ### Step 6 (Optional): clear all agents and prepare for the next task
-You can clear all agents generated in this task by the following code if your task is completed or the next task is largely different from the current task.
+You can clear all agents generated in this task by the following code if your task is completed or if the next task is largely different from the current task.
 ```python
 builder.clear_all_agents(recycle_endpoint=True)
 ```
-If the agent's backbone is an open-source LLM, this process will also shutdown the endpoint server. More details in the next section.
+If the agent's backbone is an open-source LLM, this process will also shut down the endpoint server. More details are in the next section.
 If necessary, you can use `recycle_endpoint=False` to retain the previous open-source LLM's endpoint server.
 
 ## Save and Load
@@ -107,7 +122,7 @@ You can save all necessary information of the built group chat agents by
 ```python
 saved_path = builder.save()
 ```
-Configs will be saved in the JSON format with following content:
+Configurations will be saved in JSON format with the following content:
 ```json
 // FILENAME: save_config_TASK_MD5.json
 {
@@ -127,7 +142,7 @@ Configs will be saved in the JSON format with following content:
     }
 }
 ```
-You can provide a specific filename, otherwise, AgentBuilder will save config to the current path with a generated filename `save_config_TASK_MD5.json`.
+You can provide a specific filename, otherwise, AgentBuilder will save config to the current path with the generated filename `save_config_TASK_MD5.json`.
 
 You can load the saved config and skip the building process. AgentBuilder will create agents with those information without prompting the build manager.
 ```python
@@ -137,7 +152,7 @@ start_task(...)  # skip build()
 ```
 
 ## Use Open-source LLM
-AutoBuild support open-source LLM by [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
+AutoBuild supports open-source LLM by [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
 Check the supported model list [here](https://docs.vllm.ai/en/latest/models/supported_models.html).
 After satisfying the requirements, you can add an open-source LLM's huggingface repository to the config file,
 ```json,
@@ -156,15 +171,18 @@ AgentBuilder will automatically set up an endpoint server for open-source LLM. M
 ## Use OpenAI Assistant
 [Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
 An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
-AutoBuild also support assistant api by adding `use_oai_assistant=True` to `build()`.
+AutoBuild also supports the assistant API by adding `use_oai_assistant=True` to `build()`.
 ```python
-# Transfer to OpenAI Assistant API.
+# Transfer to the OpenAI Assistant API.
 agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
 ...
 ```
 
+## Future work/Roadmap
+- Let the builder select the best agents from a given library/database to solve the task.
+
 ## Summary
 We propose AutoBuild with a new class `AgentBuilder`.
 AutoBuild can help user solve their complex task with an automatically built multi-agent system.
-AutoBuild support open-source LLMs and GPTs api, giving users more flexibility to choose their favorite models.
-More related features coming soon.
+AutoBuild supports open-source LLMs and GPTs API, giving users more flexibility to choose their favorite models.
+More advanced features are coming soon.
