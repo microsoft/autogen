@@ -335,12 +335,12 @@ def query_vector_db(
         and query function.
 
     Args:
-        query_texts (List[str]): the query texts.
+        query_texts (List[str]): the list of strings which will be used to query the vector db.
         n_results (Optional, int): the number of results to return. Default is 10.
         client (Optional, API): the chromadb compatible client. Default is None, a chromadb client will be used.
         db_path (Optional, str): the path to the vector db. Default is "/tmp/chromadb.db".
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
-        search_string (Optional, str): the search string. Default is "".
+        search_string (Optional, str): the search string. Only docs that contain an exact match of this string will be retrieved. Default is "".
         embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
             embedding_function is not None.
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
