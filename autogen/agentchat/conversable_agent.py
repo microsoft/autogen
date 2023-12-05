@@ -54,6 +54,7 @@ class ConversableAgent(Agent):
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        max_context_length: Optional[int] = 225000,
     ):
         """
         Args:
@@ -95,6 +96,7 @@ class ConversableAgent(Agent):
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            max_context_length (int): maximum length of the context, in characters.  Set this if you are getting context length errors.  Defaults to 255000, estimated context length for GPT-4 Turbo.
         """
         super().__init__(name)
         # a dictionary of conversations, default value is list
@@ -128,6 +130,7 @@ class ConversableAgent(Agent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
+        self.max_context_length = max_context_length
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
@@ -608,6 +611,23 @@ class ConversableAgent(Agent):
         else:
             self._oai_messages[agent].clear()
 
+    def truncate_messages_if_over_context_len(self, messages: List[Dict], context_len: int = 255000) -> List[Dict]:
+        """Truncate messages if the total length of all the messages is over the context length for the chosen model."""
+        messages_characters = len(str(messages))
+        if messages_characters > context_len:
+            logger.warning("Messages re too long!")
+            short_messages = []
+            for message in messages:
+                if "content" in message:
+                    try:
+                        message["content"] = message["content"][:5000]
+                    except:
+                        pass
+                short_messages.append(message)
+            return short_messages
+        else:
+            return messages
+
     def generate_oai_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -621,7 +641,8 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # TODO: #1143 handle token limit exceeded error
+        messages = self.truncate_messages_if_over_context_len(messages, self.max_context_length)
+
         response = client.create(
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
