@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
 
 
-class GroupChatRepresentative(ConversableAgent):
+class SocietyOfMindAgent(ConversableAgent):
     """(In preview) A single agent that runs a Group Chat as an inner monologue."""
 
     def __init__(
@@ -35,7 +35,7 @@ class GroupChatRepresentative(ConversableAgent):
         self.update_chat_manager(chat_manager)
         self.response_preparer = response_preparer
 
-        self.register_reply([Agent, None], GroupChatRepresentative.generate_group_reply)
+        self.register_reply([Agent, None], SocietyOfMindAgent.generate_group_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
