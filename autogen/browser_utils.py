@@ -14,7 +14,7 @@ class SimpleTextBrowser:
     def __init__(
         self,
         start_page: Optional[str] = "about:blank",
-        viewport_size: Optional[int] = 1024,
+        viewport_size: Optional[int] = 2048,
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
     ):
@@ -85,20 +85,20 @@ class SimpleTextBrowser:
         self.viewport_position = self._viewport_start_position()  # Align to whitespace
 
     def find_on_page(self, string):
-        self._find_string = string
-        self._find_matches = [m.start() for m in re.finditer(re.escape(string), self.page_content, re.IGNORECASE)]
-        self._find_idx = -1
+        self.find_string = string
+        self.find_matches = [m.start() for m in re.finditer(re.escape(string), self.page_content, re.IGNORECASE)]
+        self.find_idx = -1
         return self.find_next_on_page()
 
     def find_next_on_page(self):
-        if len(self._find_matches) == 0:
+        if len(self.find_matches) == 0:
             return False
-        self._find_idx += 1
-        if self._find_idx >= len(self._find_matches):
-            self._find_idx = 0  # Loop around
+        self.find_idx += 1
+        if self.find_idx >= len(self.find_matches):
+            self.find_idx = 0  # Loop around
 
         # Scroll to the position
-        self.viewport_position = self._find_matches[self._find_idx] - 100  # Context
+        self.viewport_position = self.find_matches[self.find_idx] - 100  # Context
         self.viewport_position = self._viewport_start_position()  # Align to whitespace
         return True
 
