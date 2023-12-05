@@ -6,13 +6,6 @@
     "tags": ["web", "app"]
   },
   {
-    "title": "AutoGen + Semantic Kernel",
-    "link": "https://devblogs.microsoft.com/semantic-kernel/autogen-agents-meet-semantic-kernel/",
-    "description": "A discussion on how AutoGen agents integrate with Semantic Kernel.",
-    "image": "default.png",
-    "tags": ["tools", "app"]
-  },
-  {
     "title": "Solving Security Vulnerabilities",
     "link": "https://www.linkedin.com/pulse/solving-security-vulnerabilities-llms-society-mind-model-leah-bonser-kcswc?trk=public_post_feed-article-content",
     "description": "An article discussing the use of AutoGen to tackle security vulnerabilities.",
