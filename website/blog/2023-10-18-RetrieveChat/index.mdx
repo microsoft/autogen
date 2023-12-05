@@ -369,7 +369,7 @@ groupchat = autogen.GroupChat(
 )
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
-# Start chatting with boss as this is the user proxy agent.
+# Start chatting with the boss as this is the user proxy agent.
 boss.initiate_chat(
     manager,
     message="How to use spark for parallel training in FLAML? Give me sample code.",
