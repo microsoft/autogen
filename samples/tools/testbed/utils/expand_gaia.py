@@ -39,6 +39,7 @@ def create_jsonl(name, tasks, template, model):
                         "__MODEL__": model,
                         "__FILE_NAME__": task["file_name"],
                         "__PROMPT__": task["Question"],
+                        "__SELECTION_METHOD__": "auto",
                     },
                     "expected_answer.txt": {"__EXPECTED_ANSWER__": task["Final answer"]},
                 },
@@ -91,6 +92,7 @@ if __name__ == "__main__":
 
     templates = {
         "two_agents": "Templates/BasicTwoAgents",
+        "gc3_surfer": "Templates/GroupChatSurfer",
     }
 
     # Add coding directories if needed (these are usually empty and left out of the repo)
