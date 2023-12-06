@@ -131,6 +131,14 @@ class WebSurferAgent(ConversableAgent):
             header = f"Address: {self.browser.address}\n"
             if self.browser.page_title is not None:
                 header += f"Title: {self.browser.page_title}\n"
+
+            start_idx = self.browser._viewport_start_position()
+            end_idx = self.browser._viewport_end_position()
+            content_length = len(self.browser.page_content)
+
+            header += (
+                f"Viewport position: Showing characters {start_idx} - {end_idx} of {content_length} total characters.\n"
+            )
             return (header, self.browser.viewport)
 
         def _bing_search(query):
