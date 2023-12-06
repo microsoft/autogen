@@ -32,7 +32,7 @@ from ..utils import (
     DBManager,
 )
 
-from ..autogenchat import AutoGenChatManager
+from ..chatmanager import AutoGenChatManager
 
 
 app = FastAPI()

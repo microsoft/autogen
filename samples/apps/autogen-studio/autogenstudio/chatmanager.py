@@ -3,7 +3,7 @@ import time
 from typing import List
 from .datamodel import AgentWorkFlowConfig, Message
 from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
-from .autogenflow import AutoGenWorkFlowManager
+from .workflowmanager import AutoGenWorkFlowManager
 import os
 
 

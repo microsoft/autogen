@@ -23,7 +23,7 @@ def ui(
     os.environ["AUTOGENUI_API_DOCS"] = str(docs)
 
     uvicorn.run(
-        "autogenra.web.app:app",
+        "autogenstudio.web.app:app",
         host=host,
         port=port,
         workers=workers,

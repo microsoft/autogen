@@ -3,11 +3,11 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "autogenra"
+name = "autogenstudio"
 authors = [
   { name="Autogen Team", email="autogen@microsoft.com" },
 ]
-description = "Autogen Assistant UI"
+description = "Autogen Studio"
 readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.9"
@@ -35,16 +35,16 @@ include-package-data = true
 
 
 [tool.setuptools.dynamic]
-version = {attr = "autogenra.version.VERSION"}
+version = {attr = "autogenstudio.version.VERSION"}
 readme = {file = ["README.md"]}
 
 [tool.setuptools.packages.find]
-include = ["autogenra*"]
+include = ["autogenstudio*"]
 exclude = ["*.tests*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"autogenra" = ["*.*"]
+"autogenstudio" = ["*.*"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -58,4 +58,4 @@ filterwarnings = [
 "Bug Tracker" = "https://github.com/microsoft/autogen/issues"
 
 [project.scripts]
-autogenra = "autogenra.cli:run"
+autogenstudio = "autogenstudio.cli:run"

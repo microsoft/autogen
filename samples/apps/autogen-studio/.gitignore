@@ -1,12 +1,12 @@
 database.sqlite
 .cache/*
-autogenra/web/files/user/*
-autogenra/web/files/ui/*
+autogenstudio/web/files/user/*
+autogenstudio/web/files/ui/*
 OAI_CONFIG_LIST
 scratch/
-autogenra/web/workdir/*
-autogenra/web/ui/*
-autogenra/web/skills/user/*
+autogenstudio/web/workdir/*
+autogenstudio/web/ui/*
+autogenstudio/web/skills/user/*
 .release.sh
 
 # Byte-compiled / optimized / DLL files
