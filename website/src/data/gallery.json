@@ -1,8 +1,8 @@
 [
   {
-    "title": "AutoGen Playground",
+    "title": "AutoGen Group Chat Playground",
     "link": "https://huggingface.co/spaces/thinkall/AutoGen_Playground",
-    "description": "A space to explore the capabilities of AutoGen.",
+    "description": "A huggingface space to explore AutoGen group chat, build agents with zero-code, and access source code for reuse.",
     "tags": ["ui", "app"]
   },
   {
