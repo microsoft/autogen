@@ -15,6 +15,13 @@ import logging
 import pypdf
 from autogen.token_count_utils import count_token
 
+try:
+    from unstructured.partition.auto import partition
+
+    HAS_UNSTRUCTURED = True
+except ImportError:
+    HAS_UNSTRUCTURED = False
+
 logger = logging.getLogger(__name__)
 TEXT_FORMATS = [
     "txt",
@@ -33,6 +40,23 @@ TEXT_FORMATS = [
     "yml",
     "pdf",
 ]
+UNSTRUCTURED_FORMATS = [
+    "doc",
+    "docx",
+    "epub",
+    "msg",
+    "odt",
+    "org",
+    "pdf",
+    "ppt",
+    "pptx",
+    "rtf",
+    "rst",
+    "xlsx",
+]
+if HAS_UNSTRUCTURED:
+    TEXT_FORMATS += UNSTRUCTURED_FORMATS
+    TEXT_FORMATS = list(set(TEXT_FORMATS))
 VALID_CHUNK_MODES = frozenset({"one_line", "multi_lines"})
 
 
@@ -123,7 +147,10 @@ def split_files_to_chunks(
         _, file_extension = os.path.splitext(file)
         file_extension = file_extension.lower()
 
-        if file_extension == ".pdf":
+        if HAS_UNSTRUCTURED and file_extension[1:] in UNSTRUCTURED_FORMATS:
+            text = partition(file)
+            text = "\n".join([t.text for t in text]) if len(text) > 0 else ""
+        elif file_extension == ".pdf":
             text = extract_text_from_pdf(file)
         else:  # For non-PDF text-based files
             with open(file, "r", encoding="utf-8", errors="ignore") as f:
@@ -142,7 +169,7 @@ def split_files_to_chunks(
 
 
 def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
-    """Return a list of all the files in a given directory."""
+    """Return a list of all the files in a given directory, a url, a file path or a list of them."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
     types = [t[1:].lower() if t.startswith(".") else t.lower() for t in set(types)]
@@ -156,6 +183,11 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
                 files.append(item)
             elif is_url(item):
                 files.append(get_file_from_url(item))
+            elif os.path.exists(item):
+                try:
+                    files.extend(get_files_from_dir(item, types, recursive))
+                except ValueError:
+                    logger.warning(f"Directory {item} does not exist. Skipping.")
             else:
                 logger.warning(f"File {item} does not exist. Skipping.")
         return files
@@ -205,7 +237,7 @@ def is_url(string: str):
 
 
 def create_vector_db_from_dir(
-    dir_path: str,
+    dir_path: Union[str, List[str]],
     max_tokens: int = 4000,
     client: API = None,
     db_path: str = "/tmp/chromadb.db",
@@ -216,19 +248,21 @@ def create_vector_db_from_dir(
     embedding_model: str = "all-MiniLM-L6-v2",
     embedding_function: Callable = None,
     custom_text_split_function: Callable = None,
+    custom_text_types: List[str] = TEXT_FORMATS,
+    recursive: bool = True,
 ) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
         you prepared your own vector db.
 
     Args:
-        dir_path (str): the path to the directory, file or url.
+        dir_path (Union[str, List[str]]): the path to the directory, file, url or a list of them.
         max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
         client (Optional, API): the chromadb client. Default is None.
         db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
-            will be recreated if it already exists.
+            will be returned if it already exists. Will raise ValueError if the collection already exists and get_or_create is False.
         chunk_mode (Optional, str): the chunk mode. Default is "multi_lines".
         must_break_at_empty_line (Optional, bool): Whether to break at empty line. Default is True.
         embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
@@ -236,6 +270,10 @@ def create_vector_db_from_dir(
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with
             the given `embedding_model` will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
             functions, you can pass it here, follow the examples in `https://docs.trychroma.com/embeddings`.
+        custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
+            Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
+        custom_text_types (Optional, List[str]): a list of file types to be processed. Default is TEXT_FORMATS.
+        recursive (Optional, bool): whether to search documents recursively in the dir_path. Default is True.
 
     Returns:
         API: the chromadb client.
@@ -260,11 +298,15 @@ def create_vector_db_from_dir(
 
         if custom_text_split_function is not None:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path), custom_text_split_function=custom_text_split_function
+                get_files_from_dir(dir_path, custom_text_types, recursive),
+                custom_text_split_function=custom_text_split_function,
             )
         else:
             chunks = split_files_to_chunks(
-                get_files_from_dir(dir_path), max_tokens, chunk_mode, must_break_at_empty_line
+                get_files_from_dir(dir_path, custom_text_types, recursive),
+                max_tokens,
+                chunk_mode,
+                must_break_at_empty_line,
             )
         logger.info(f"Found {len(chunks)} chunks.")
         # Upsert in batch of 40000 or less if the total number of chunks is less than 40000
@@ -293,12 +335,12 @@ def query_vector_db(
         and query function.
 
     Args:
-        query_texts (List[str]): the query texts.
+        query_texts (List[str]): the list of strings which will be used to query the vector db.
         n_results (Optional, int): the number of results to return. Default is 10.
         client (Optional, API): the chromadb compatible client. Default is None, a chromadb client will be used.
         db_path (Optional, str): the path to the vector db. Default is "/tmp/chromadb.db".
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
-        search_string (Optional, str): the search string. Default is "".
+        search_string (Optional, str): the search string. Only docs that contain an exact match of this string will be retrieved. Default is "".
         embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
             embedding_function is not None.
         embedding_function (Optional, Callable): the embedding function to use. Default is None, SentenceTransformer with

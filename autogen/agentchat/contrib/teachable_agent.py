@@ -1,5 +1,4 @@
 import os
-from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
@@ -7,6 +6,7 @@ from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
 import pickle
+from tqdm import tqdm
 
 
 try:
@@ -18,7 +18,7 @@ except ImportError:
 
 
 class TeachableAgent(ConversableAgent):
-    """Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
+    """(Experimental) Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
     In this class, the term 'user' refers to any caller (human or not) sending messages to this agent.
     Not yet tested in the group-chat setting."""
 
@@ -40,7 +40,7 @@ class TeachableAgent(ConversableAgent):
             system_message (str): system message for the ChatCompletion inference.
             human_input_mode (str): This agent should NEVER prompt the human for input.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
             analyzer_llm_config (dict or False): llm inference configuration passed to TextAnalyzerAgent.
@@ -63,7 +63,7 @@ class TeachableAgent(ConversableAgent):
             **kwargs,
         )
         # Register a custom reply function.
-        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, 1)
+        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, position=2)
 
         # Assemble the parameter settings.
         self._teach_config = {} if teach_config is None else teach_config
@@ -125,18 +125,15 @@ class TeachableAgent(ConversableAgent):
                 messages = messages.copy()
                 messages[-1]["content"] = new_user_text
 
-        # Generate a response.
-        msgs = self._oai_system_message + messages
-        response = oai.ChatCompletion.create(messages=msgs, **self.llm_config)
-        response_text = oai.ChatCompletion.extract_text_or_function_call(response)[0]
-        return True, response_text
+        # Generate a response by reusing existing generate_oai_reply
+        return self.generate_oai_reply(messages, sender, config)
 
     def learn_from_user_feedback(self):
         """Reviews the user comments from the last chat, and decides what teachings to store as memos."""
         print(colored("\nREVIEWING CHAT FOR USER TEACHINGS TO REMEMBER", "light_yellow"))
         # Look at each user turn.
         if len(self.user_comments) > 0:
-            for comment in self.user_comments:
+            for comment in tqdm(self.user_comments):
                 # Consider whether to store something from this user turn in the DB.
                 self.consider_memo_storage(comment)
         self.user_comments = []
@@ -265,12 +262,14 @@ class TeachableAgent(ConversableAgent):
             self.send(recipient=self.analyzer, message=analysis_instructions, request_reply=True)  # Request the reply.
             return self.last_message(self.analyzer)["content"]
         else:
+            # TODO: This is not an encouraged usage pattern. It breaks the conversation-centric design.
+            # consider using the arg "silent"
             # Use the analyzer's method directly, to leave analyzer message out of the printed chat.
             return self.analyzer.analyze_text(text_to_analyze, analysis_instructions)
 
 
 class MemoStore:
-    """
+    """(Experimental)
     Provides memory storage and retrieval for a TeachableAgent, using a vector database.
     Each DB entry (called a memo) is a pair of strings: an input text and an output text.
     The input text might be a question, or a task to perform.

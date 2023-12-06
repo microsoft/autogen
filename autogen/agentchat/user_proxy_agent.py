@@ -1,5 +1,6 @@
+from typing import Callable, Dict, List, Literal, Optional, Union
+
 from .conversable_agent import ConversableAgent
-from typing import Callable, Dict, Optional, Union
 
 
 class UserProxyAgent(ConversableAgent):
@@ -22,10 +23,10 @@ class UserProxyAgent(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "ALWAYS",
         function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Optional[Union[Dict, bool]] = None,
+        code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        llm_config: Optional[Union[Dict, bool]] = False,
-        system_message: Optional[str] = "",
+        llm_config: Optional[Union[Dict, Literal[False]]] = False,
+        system_message: Optional[Union[str, List]] = "",
     ):
         """
         Args:
@@ -63,10 +64,10 @@ class UserProxyAgent(ConversableAgent):
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
             llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 Default to false, which disables llm-based auto reply.
-            system_message (str): system message for ChatCompletion inference.
+            system_message (str or List): system message for ChatCompletion inference.
                 Only used when llm_config is not False. Use it to reprogram the agent.
         """
         super().__init__(

@@ -1,18 +1,14 @@
 import asyncio
-from collections import defaultdict
 import copy
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
-from autogen import oai
+from collections import defaultdict
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+
+from autogen import OpenAIWrapper
+from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+
 from .agent import Agent
-from autogen.code_utils import (
-    DEFAULT_MODEL,
-    UNKNOWN,
-    execute_code,
-    extract_code,
-    infer_lang,
-)
 
 try:
     from termcolor import colored
@@ -45,22 +41,24 @@ class ConversableAgent(Agent):
     }
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
+    llm_config: Union[Dict, Literal[False]]
+
     def __init__(
         self,
         name: str,
-        system_message: Optional[str] = "You are a helpful AI Assistant.",
+        system_message: Optional[Union[str, List]] = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Optional[Union[Dict, bool]] = None,
-        llm_config: Optional[Union[Dict, bool]] = None,
+        code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
+        llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
     ):
         """
         Args:
             name (str): name of the agent.
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str or list): system message for the ChatCompletion inference.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
@@ -91,9 +89,9 @@ class ConversableAgent(Agent):
                     When set to True, a default list will be used.
                     We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
-                - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
+                - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. Default to 1. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke (typically this is the last time execution was attempted).
             llm_config (dict or False): llm inference configuration.
-                Please refer to [Completion.create](/docs/reference/oai/completion#create)
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
@@ -103,16 +101,23 @@ class ConversableAgent(Agent):
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._is_termination_msg = (
-            is_termination_msg if is_termination_msg is not None else (lambda x: x.get("content") == "TERMINATE")
+            is_termination_msg
+            if is_termination_msg is not None
+            else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+
         if llm_config is False:
             self.llm_config = False
+            self.client = None
         else:
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
+            self.client = OpenAIWrapper(**self.llm_config)
 
-        self._code_execution_config = {} if code_execution_config is None else code_execution_config
+        self._code_execution_config: Union[Dict, Literal[False]] = (
+            {} if code_execution_config is None else code_execution_config
+        )
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
@@ -128,12 +133,13 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_async_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
     def register_reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         reply_func: Callable,
-        position: Optional[int] = 0,
+        position: int = 0,
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
     ):
@@ -160,7 +166,7 @@ class ConversableAgent(Agent):
             messages: Optional[List[Dict]] = None,
             sender: Optional[Agent] = None,
             config: Optional[Any] = None,
-        ) -> Union[str, Dict, None]:
+        ) -> Tuple[bool, Union[str, Dict, None]]:
         ```
             position (int): the position of the reply function in the reply function list.
                 The function registered later will be checked earlier by default.
@@ -184,15 +190,15 @@ class ConversableAgent(Agent):
         )
 
     @property
-    def system_message(self):
+    def system_message(self) -> Union[str, List]:
         """Return the system message."""
         return self._oai_system_message[0]["content"]
 
-    def update_system_message(self, system_message: str):
+    def update_system_message(self, system_message: Union[str, List]):
         """Update the system message.
 
         Args:
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str or List): system message for the ChatCompletion inference.
         """
         self._oai_system_message[0]["content"] = system_message
 
@@ -219,7 +225,7 @@ class ConversableAgent(Agent):
         """A dictionary of conversations from agent to list of messages."""
         return self._oai_messages
 
-    def last_message(self, agent: Optional[Agent] = None) -> Dict:
+    def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict]:
         """The last message exchanged with the agent.
 
         Args:
@@ -238,6 +244,10 @@ class ConversableAgent(Agent):
                 for conversation in self._oai_messages.values():
                     return conversation[-1]
             raise ValueError("More than one conversation is found. Please specify the sender to get the last message.")
+        if agent not in self._oai_messages.keys():
+            raise KeyError(
+                f"The agent '{agent.name}' is not present in any conversation. No history available for this agent."
+            )
         return self._oai_messages[agent][-1]
 
     @property
@@ -248,15 +258,17 @@ class ConversableAgent(Agent):
         return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
 
     @staticmethod
-    def _message_to_dict(message: Union[Dict, str]):
+    def _message_to_dict(message: Union[Dict, str]) -> Dict:
         """Convert a message to a dictionary.
 
         The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
         """
         if isinstance(message, str):
             return {"content": message}
-        else:
+        elif isinstance(message, dict):
             return message
+        else:
+            return dict(message)
 
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
@@ -286,6 +298,7 @@ class ConversableAgent(Agent):
         oai_message["role"] = "function" if message.get("role") == "function" else role
         if "function_call" in oai_message:
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
+            oai_message["function_call"] = dict(oai_message["function_call"])
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
@@ -295,19 +308,19 @@ class ConversableAgent(Agent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-    ) -> bool:
+    ):
         """Send a message to another agent.
 
         Args:
             message (dict or str): message to be sent.
                 The message could contain the following fields:
-                - content (str): Required, the content of the message. (Can be None)
+                - content (str or List): Required, the content of the message. (Can be None)
                 - function_call (str): the name of the function to be called.
                 - name (str): the name of the function to be called.
                 - role (str): the role of the message, any role that is not "function"
                     will be modified to "assistant".
                 - context (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
                     For example, one agent can send a message A as:
         ```python
         {
@@ -344,19 +357,19 @@ class ConversableAgent(Agent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-    ) -> bool:
+    ):
         """(async) Send a message to another agent.
 
         Args:
             message (dict or str): message to be sent.
                 The message could contain the following fields:
-                - content (str): Required, the content of the message. (Can be None)
+                - content (str or List): Required, the content of the message. (Can be None)
                 - function_call (str): the name of the function to be called.
                 - name (str): the name of the function to be called.
                 - role (str): the role of the message, any role that is not "function"
                     will be modified to "assistant".
                 - context (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
                     For example, one agent can send a message A as:
         ```python
         {
@@ -390,6 +403,8 @@ class ConversableAgent(Agent):
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
         print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
+        message = self._message_to_dict(message)
+
         if message.get("role") == "function":
             func_print = f"***** Response from calling function \"{message['name']}\" *****"
             print(colored(func_print, "green"), flush=True)
@@ -399,25 +414,28 @@ class ConversableAgent(Agent):
             content = message.get("content")
             if content is not None:
                 if "context" in message:
-                    content = oai.ChatCompletion.instantiate(
+                    content = OpenAIWrapper.instantiate(
                         content,
                         message["context"],
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
-                print(content, flush=True)
+                print(content_str(content), flush=True)
             if "function_call" in message:
-                func_print = f"***** Suggested function Call: {message['function_call'].get('name', '(No function name found)')} *****"
+                function_call = dict(message["function_call"])
+                func_print = (
+                    f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
+                )
                 print(colored(func_print, "green"), flush=True)
                 print(
                     "Arguments: \n",
-                    message["function_call"].get("arguments", "(No arguments found)"),
+                    function_call.get("arguments", "(No arguments found)"),
                     flush=True,
                     sep="",
                 )
                 print(colored("*" * len(func_print), "green"), flush=True)
         print("\n", "-" * 80, flush=True, sep="")
 
-    def _process_received_message(self, message, sender, silent):
+    def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         message = self._message_to_dict(message)
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
@@ -448,7 +466,7 @@ class ConversableAgent(Agent):
                     This field is only needed to distinguish between "function" or "assistant"/"user".
                 4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                 5. "context" (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
@@ -484,7 +502,7 @@ class ConversableAgent(Agent):
                     This field is only needed to distinguish between "function" or "assistant"/"user".
                 4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                 5. "context" (dict): the context of the message, which will be passed to
-                    [Completion.create](../oai/Completion#create).
+                    [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
                 If None, the value is determined by `self.reply_at_receive[sender]`.
@@ -594,26 +612,26 @@ class ConversableAgent(Agent):
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
+        config: Optional[OpenAIWrapper] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai."""
-        llm_config = self.llm_config if config is None else config
-        if llm_config is False:
+        client = self.client if config is None else config
+        if client is None:
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
         # TODO: #1143 handle token limit exceeded error
-        response = oai.ChatCompletion.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages, **llm_config
+        response = client.create(
+            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
-        return True, oai.ChatCompletion.extract_text_or_function_call(response)[0]
+        return True, client.extract_text_or_function_call(response)[0]
 
     def generate_code_execution_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
+        config: Optional[Union[Dict, Literal[False]]] = None,
     ):
         """Generate a reply using code execution."""
         code_execution_config = config if config is not None else self._code_execution_config
@@ -623,10 +641,23 @@ class ConversableAgent(Agent):
             messages = self._oai_messages[sender]
         last_n_messages = code_execution_config.pop("last_n_messages", 1)
 
+        messages_to_scan = last_n_messages
+        if last_n_messages == "auto":
+            # Find when the agent last spoke
+            messages_to_scan = 0
+            for i in range(len(messages)):
+                message = messages[-(i + 1)]
+                if "role" not in message:
+                    break
+                elif message["role"] != "user":
+                    break
+                else:
+                    messages_to_scan += 1
+
         # iterate through the last n messages reversly
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
-        for i in range(min(len(messages), last_n_messages)):
+        for i in range(min(len(messages), messages_to_scan)):
             message = messages[-(i + 1)]
             if not message["content"]:
                 continue
@@ -650,7 +681,7 @@ class ConversableAgent(Agent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
-    ):
+    ) -> Tuple[bool, Union[Dict, None]]:
         """Generate a reply using function call."""
         if config is None:
             config = self
@@ -667,7 +698,7 @@ class ConversableAgent(Agent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
-    ):
+    ) -> Tuple[bool, Union[Dict, None]]:
         """Generate a reply using async function call."""
         if config is None:
             config = self
@@ -689,8 +720,26 @@ class ConversableAgent(Agent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
-    ) -> Tuple[bool, Union[str, Dict, None]]:
-        """Check if the conversation should be terminated, and if human reply is provided."""
+    ) -> Tuple[bool, Union[str, None]]:
+        """Check if the conversation should be terminated, and if human reply is provided.
+
+        This method checks for conditions that require the conversation to be terminated, such as reaching
+        a maximum number of consecutive auto-replies or encountering a termination message. Additionally,
+        it prompts for and processes human input based on the configured human input mode, which can be
+        'ALWAYS', 'NEVER', or 'TERMINATE'. The method also manages the consecutive auto-reply counter
+        for the conversation and prints relevant messages based on the human input received.
+
+        Args:
+            - messages (Optional[List[Dict]]): A list of message dictionaries, representing the conversation history.
+            - sender (Optional[Agent]): The agent object representing the sender of the message.
+            - config (Optional[Any]): Configuration object, defaults to the current instance if not provided.
+
+        Returns:
+            - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
+            should be terminated, and a human reply which can be a string, a dictionary, or None.
+        """
+        # Function implementation...
+
         if config is None:
             config = self
         if messages is None:
@@ -760,8 +809,24 @@ class ConversableAgent(Agent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
-    ) -> Tuple[bool, Union[str, Dict, None]]:
-        """(async) Check if the conversation should be terminated, and if human reply is provided."""
+    ) -> Tuple[bool, Union[str, None]]:
+        """(async) Check if the conversation should be terminated, and if human reply is provided.
+
+        This method checks for conditions that require the conversation to be terminated, such as reaching
+        a maximum number of consecutive auto-replies or encountering a termination message. Additionally,
+        it prompts for and processes human input based on the configured human input mode, which can be
+        'ALWAYS', 'NEVER', or 'TERMINATE'. The method also manages the consecutive auto-reply counter
+        for the conversation and prints relevant messages based on the human input received.
+
+        Args:
+            - messages (Optional[List[Dict]]): A list of message dictionaries, representing the conversation history.
+            - sender (Optional[Agent]): The agent object representing the sender of the message.
+            - config (Optional[Any]): Configuration object, defaults to the current instance if not provided.
+
+        Returns:
+            - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
+            should be terminated, and a human reply which can be a string, a dictionary, or None.
+        """
         if config is None:
             config = self
         if messages is None:
@@ -931,8 +996,20 @@ class ConversableAgent(Agent):
                     return reply
         return self._default_auto_reply
 
-    def _match_trigger(self, trigger, sender):
-        """Check if the sender matches the trigger."""
+    def _match_trigger(self, trigger: Union[None, str, type, Agent, Callable, List], sender: Agent) -> bool:
+        """Check if the sender matches the trigger.
+
+        Args:
+            - trigger (Union[None, str, type, Agent, Callable, List]): The condition to match against the sender.
+            Can be `None`, string, type, `Agent` instance, callable, or a list of these.
+            - sender (Agent): The sender object or type to be matched against the trigger.
+
+        Returns:
+            - bool: Returns `True` if the sender matches the trigger, otherwise `False`.
+
+        Raises:
+            - ValueError: If the trigger type is unsupported.
+        """
         if trigger is None:
             return sender is None
         elif isinstance(trigger, str):
@@ -940,9 +1017,12 @@ class ConversableAgent(Agent):
         elif isinstance(trigger, type):
             return isinstance(sender, trigger)
         elif isinstance(trigger, Agent):
+            # return True if the sender is the same type (class) as the trigger
             return trigger == sender
         elif isinstance(trigger, Callable):
-            return trigger(sender)
+            rst = trigger(sender)
+            assert rst in [True, False], f"trigger {trigger} must return a boolean value."
+            return rst
         elif isinstance(trigger, list):
             return any(self._match_trigger(t, sender) for t in trigger)
         else:
@@ -1064,7 +1144,7 @@ class ConversableAgent(Agent):
             result.append(char)
         return "".join(result)
 
-    def execute_function(self, func_call):
+    def execute_function(self, func_call, verbose: bool = False) -> Tuple[bool, Dict[str, str]]:
         """Execute a function call and return the result.
 
         Override this function to modify the way to execute a function call.
@@ -1103,6 +1183,12 @@ class ConversableAgent(Agent):
                     content = f"Error: {e}"
         else:
             content = f"Error: Function {func_name} not found."
+
+        if verbose:
+            print(
+                colored(f"\nInput arguments: {arguments}\nOutput:\n{content}", "magenta"),
+                flush=True,
+            )
 
         return is_exec_success, {
             "name": func_name,
@@ -1165,6 +1251,9 @@ class ConversableAgent(Agent):
 
         Override this function to customize the initial message based on user's request.
         If not overriden, "message" needs to be provided in the context.
+
+        Args:
+            **context: any context information, and "message" parameter needs to be provided.
         """
         return context["message"]
 
@@ -1175,6 +1264,41 @@ class ConversableAgent(Agent):
             function_map: a dictionary mapping function names to functions.
         """
         self._function_map.update(function_map)
+
+    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
+        """update a function_signature in the LLM configuration for function_call.
+
+        Args:
+            func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
+            is_remove: whether removing the funciton from llm_config with name 'func_sig'
+        """
+
+        if not self.llm_config:
+            error_msg = "To update a function signature, agent must have an llm_config"
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+
+        if is_remove:
+            if "functions" not in self.llm_config.keys():
+                error_msg = "The agent config doesn't have function {name}.".format(name=func_sig)
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
+            else:
+                self.llm_config["functions"] = [
+                    func for func in self.llm_config["functions"] if func["name"] != func_sig
+                ]
+        else:
+            if "functions" in self.llm_config.keys():
+                self.llm_config["functions"] = [
+                    func for func in self.llm_config["functions"] if func.get("name") != func_sig["name"]
+                ] + [func_sig]
+            else:
+                self.llm_config["functions"] = [func_sig]
+
+        if len(self.llm_config["functions"]) == 0:
+            del self.llm_config["functions"]
+
+        self.client = OpenAIWrapper(**self.llm_config)
 
     def can_execute_function(self, name: str) -> bool:
         """Whether the agent can execute the function."""

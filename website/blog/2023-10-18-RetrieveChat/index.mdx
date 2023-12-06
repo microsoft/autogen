@@ -54,9 +54,18 @@ Please install pyautogen with the [retrievechat] option before using RAG agents.
 pip install "pyautogen[retrievechat]"
 ```
 
+RetrieveChat can handle various types of documents. By default, it can process
+plain text and PDF files, including formats such as 'txt', 'json', 'csv', 'tsv',
+'md', 'html', 'htm', 'rtf', 'rst', 'jsonl', 'log', 'xml', 'yaml', 'yml' and 'pdf'.
+If you install [unstructured](https://unstructured-io.github.io/unstructured/installation/full_installation.html)
+(`pip install "unstructured[all-docs]"`), additional document types such as 'docx',
+'doc', 'odt', 'pptx', 'ppt', 'xlsx', 'eml', 'msg', 'epub' will also be supported.
+
+You can find a list of all supported document types by using `autogen.retrieve_utils.TEXT_FORMATS`.
+
 1. Import Agents
 ```python
-from autogen
+import autogen
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 ```
@@ -292,7 +301,7 @@ llm_config = {
         },
     ],
     "config_list": config_list,
-    "request_timeout": 60,
+    "timeout": 60,
     "seed": 42,
 }
 
@@ -360,7 +369,7 @@ groupchat = autogen.GroupChat(
 )
 manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
-# Start chatting with boss as this is the user proxy agent.
+# Start chatting with the boss as this is the user proxy agent.
 boss.initiate_chat(
     manager,
     message="How to use spark for parallel training in FLAML? Give me sample code.",
@@ -474,3 +483,4 @@ The online app and the source code are hosted in [HuggingFace](https://huggingfa
 You can check out more example notebooks for RAG use cases:
 - [Automated Code Generation and Question Answering with Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
 - [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
+- [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
