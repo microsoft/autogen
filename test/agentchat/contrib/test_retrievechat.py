@@ -68,5 +68,34 @@ def test_retrievechat():
     print(conversations)
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_retrieve_config(caplog):
+    # test warning message when no docs_path is provided
+    ragproxyagent = RetrieveUserProxyAgent(
+        name="ragproxyagent",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=2,
+        retrieve_config={
+            "chunk_token_size": 2000,
+            "get_or_create": True,
+        },
+    )
+
+    # Capture the printed content
+    captured_logs = caplog.records[0]
+    print(captured_logs)
+
+    # Assert on the printed content
+    assert (
+        f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
+        in captured_logs.message
+    )
+    assert captured_logs.levelname == "WARNING"
+
+
 if __name__ == "__main__":
-    test_retrievechat()
+    # test_retrievechat()
+    test_retrieve_config()

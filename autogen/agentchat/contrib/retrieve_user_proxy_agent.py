@@ -9,6 +9,7 @@ from autogen.agentchat import UserProxyAgent
 from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, TEXT_FORMATS
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
+from autogen import logger
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 from IPython import get_ipython
@@ -171,6 +172,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
+        if "docs_path" not in self._retrieve_config:
+            logger.warning(
+                "docs_path is not provided in retrieve_config. "
+                f"Will raise ValueError if the collection `{self._collection_name}` doesn't exist. "
+                "Set docs_path to None to suppress this warning."
+            )
         self._model = self._retrieve_config.get("model", "gpt-4")
         self._max_tokens = self.get_max_tokens(self._model)
         self._chunk_token_size = int(self._retrieve_config.get("chunk_token_size", self._max_tokens * 0.4))
@@ -199,7 +206,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
         )
-        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=1)
+        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
 
     def _is_termination_msg_retrievechat(self, message):
         """Check if a message is a termination message.
@@ -367,8 +374,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         Args:
             problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved.
-            search_string (str): only docs containing this string will be retrieved.
+            n_results (int): the number of results to be retrieved. Default is 20.
+            search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
         """
         if not self._collection or not self._get_or_create:
             print("Trying to create collection.")
