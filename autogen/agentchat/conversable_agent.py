@@ -478,7 +478,7 @@ class ConversableAgent(Agent):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
-        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
+        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender, silent=silent)
         if reply is not None:
             self.send(reply, sender, silent=silent)
 
@@ -514,7 +514,7 @@ class ConversableAgent(Agent):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
-        reply = await self.a_generate_reply(sender=sender)
+        reply = await self.a_generate_reply(sender=sender, silent=silent)
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
@@ -901,6 +901,7 @@ class ConversableAgent(Agent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         exclude: Optional[List[Callable]] = None,
+        silent: Optional[bool] = False,
     ) -> Union[str, Dict, None]:
         """Reply based on the conversation history and the sender.
 
@@ -935,6 +936,7 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        reply = self._default_auto_reply
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
@@ -942,24 +944,27 @@ class ConversableAgent(Agent):
             if asyncio.coroutines.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
-                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                final, reply_from_func = reply_func(
+                    self, messages=messages, sender=sender, config=reply_func_tuple["config"]
+                )
                 if final:
-                    # inform user about conversation termination
-                    if reply is None:
-                        print(
-                            colored(
-                                f"{self.name} has chosen to end the conversation. Last speaker: {sender.name}", "red"
-                            ),
-                            "\n",
-                        )
-                    return reply
-        return self._default_auto_reply
+                    reply = reply_from_func
+                    break
+
+        # inform user about conversation termination
+        if reply is None and not silent:
+            print(
+                colored(f"{self.name} has chosen to end the conversation. Last speaker: {sender.name}", "red"),
+                "\n",
+            )
+        return reply
 
     async def a_generate_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         exclude: Optional[List[Callable]] = None,
+        silent: Optional[bool] = False,
     ) -> Union[str, Dict, None]:
         """(async) Reply based on the conversation history and the sender.
 
@@ -994,28 +999,31 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        reply = self._default_auto_reply
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if asyncio.coroutines.iscoroutinefunction(reply_func):
-                    final, reply = await reply_func(
+                    final, reply_from_func = await reply_func(
                         self, messages=messages, sender=sender, config=reply_func_tuple["config"]
                     )
                 else:
-                    final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                    final, reply_from_func = reply_func(
+                        self, messages=messages, sender=sender, config=reply_func_tuple["config"]
+                    )
                 if final:
-                    # inform user about conversation termination
-                    if reply is None:
-                        print(
-                            colored(
-                                f"{self.name} has chosen to end the conversation. Last speaker: {sender.name}", "red"
-                            ),
-                            "\n",
-                        )
-                    return reply
-        return self._default_auto_reply
+                    reply = reply_from_func
+                    break
+
+        # inform user about conversation termination
+        if reply is None and not silent:
+            print(
+                colored(f"{self.name} has chosen to end the conversation. Last speaker: {sender.name}", "red"),
+                "\n",
+            )
+        return reply
 
     def _match_trigger(self, trigger: Union[None, str, type, Agent, Callable, List], sender: Agent) -> bool:
         """Check if the sender matches the trigger.
