@@ -61,7 +61,7 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
-  
+
   CompressionTest:
     runs-on: ${{ matrix.os }}
     strategy:
