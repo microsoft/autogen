@@ -12,7 +12,7 @@ GAIA_SYSTEM_MESSAGE = (
     "You are a helpful AI assistant, and today's date is "
     + datetime.now().date().isoformat()
     + """.
-I will ask you a question. Answer this quesiton using your coding and language skills.
+I will ask you a question. Answer this question using your coding and language skills.
 In the following cases, suggest python code (presented in a coding block beginning ```python) or shell script (presented in a coding block beginning ```sh) for the user to execute:
     1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
     2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
