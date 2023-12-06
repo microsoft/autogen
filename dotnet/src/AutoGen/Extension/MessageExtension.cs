@@ -11,11 +11,16 @@ namespace AutoGen.Extension
     {
         private const string FunctionNamePropertyName = "Name";
         private const string FunctionDescriptionPropertyName = "Arguments";
-        public static void SetFunctionCall(this Microsoft.SemanticKernel.AI.ChatCompletion.ChatMessage message, FunctionCall functionCall)
+        public static void SetFunctionCall(this Microsoft.SemanticKernel.AI.ChatCompletion.ChatMessage message, FunctionCall? functionCall)
         {
             if (message == null)
             {
                 throw new ArgumentNullException(nameof(message));
+            }
+
+            if (functionCall == null)
+            {
+                return;
             }
 
             if (string.IsNullOrEmpty(functionCall.Name))
@@ -77,7 +82,7 @@ namespace AutoGen.Extension
             }
         }
 
-        public static void SetFrom(this Microsoft.SemanticKernel.AI.ChatCompletion.ChatMessage message, string from)
+        public static void SetFrom(this Microsoft.SemanticKernel.AI.ChatCompletion.ChatMessage message, string? from)
         {
             if (message == null)
             {
@@ -86,7 +91,7 @@ namespace AutoGen.Extension
 
             if (string.IsNullOrEmpty(from))
             {
-                throw new ArgumentNullException(nameof(from));
+                return;
             }
 
             if (message.AdditionalProperties == null)

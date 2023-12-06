@@ -2,16 +2,15 @@
 // IGroupChat.cs
 
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Threading;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using System.Threading.Tasks;
 
 namespace AutoGen
 {
     public interface IGroupChat
     {
-        void AddInitializeMessage(ChatMessage message);
+        void AddInitializeMessage(Message message);
 
-        Task<IEnumerable<ChatMessage>> CallAsync(IEnumerable<ChatMessage>? conversationWithName = null, int maxRound = 10, bool throwExceptionWhenMaxRoundReached = true, CancellationToken? ct = null);
+        Task<IEnumerable<Message>> CallAsync(IEnumerable<Message>? conversation = null, int maxRound = 10, bool throwExceptionWhenMaxRoundReached = true, CancellationToken? ct = null);
     }
 }

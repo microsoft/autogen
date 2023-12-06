@@ -15,15 +15,15 @@ namespace AutoGen
 
         public static void AddInitializeMessage(this IAgent agent, string message, IGroupChat groupChat)
         {
-            var msg = new ChatMessage(AuthorRole.User, message);
+            var msg = new Message(AuthorRole.User, message);
             msg.SetFrom(agent.Name);
 
             groupChat.AddInitializeMessage(msg);
         }
 
-        public static IEnumerable<ChatMessage> MessageToKeep(
+        public static IEnumerable<Message> MessageToKeep(
             this IGroupChat _,
-            IEnumerable<ChatMessage> messages)
+            IEnumerable<Message> messages)
         {
             var lastCLRMessageIndex = messages.ToList()
                     .FindLastIndex(x => x.IsGroupChatClearMessage());
@@ -49,46 +49,46 @@ namespace AutoGen
         }
 
         /// <summary>
-        /// Return true if <see cref="ChatMessage.Content"/> contains <see cref="TERMINATE"/>, otherwise false.
+        /// Return true if <see cref="Message.Content"/> contains <see cref="TERMINATE"/>, otherwise false.
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static bool IsGroupChatTerminateMessage(this ChatMessage message)
+        public static bool IsGroupChatTerminateMessage(this Message message)
         {
             return message.Content?.Contains(TERMINATE) ?? false;
         }
 
-        public static bool IsGroupChatClearMessage(this ChatMessage message)
+        public static bool IsGroupChatClearMessage(this Message message)
         {
             return message.Content?.Contains(CLEAR_MESSAGES) ?? false;
         }
 
-        public static IEnumerable<ChatMessage> ProcessConversationForAgent(
+        public static IEnumerable<Message> ProcessConversationForAgent(
             this IGroupChat groupChat,
-            IEnumerable<ChatMessage> initialMessages,
-            IEnumerable<ChatMessage> messages)
+            IEnumerable<Message> initialMessages,
+            IEnumerable<Message> messages)
         {
             messages = groupChat.MessageToKeep(messages);
             return initialMessages.Concat(messages);
         }
 
-        internal static IEnumerable<ChatMessage> ProcessConversationsForRolePlay(
+        internal static IEnumerable<Message> ProcessConversationsForRolePlay(
                 this IGroupChat groupChat,
-                IEnumerable<ChatMessage> initialMessages,
-                IEnumerable<ChatMessage> messages)
+                IEnumerable<Message> initialMessages,
+                IEnumerable<Message> messages)
         {
             messages = groupChat.MessageToKeep(messages);
             var messagesToKeep = initialMessages.Concat(messages);
 
             return messagesToKeep.Select((x, i) =>
             {
-                var msg = @$"From {x.From}:
+                var msg = @$"From {x.GetFrom()}:
 {x.Content}
 <eof_msg>
 round # 
                 {i}";
 
-                return new ChatMessage(AuthorRole.User, content: msg);
+                return new Message(AuthorRole.User, content: msg);
             });
         }
     }

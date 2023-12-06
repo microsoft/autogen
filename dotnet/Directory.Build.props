@@ -3,8 +3,9 @@
   <Import Project="./eng/Version.props" />
   <Import Project="./eng/MetaInfo.props" />
   <PropertyGroup>
+    <TestTargetFramework>net7.0</TestTargetFramework>
     <LangVersion>preview</LangVersion>
-	<Nullable>enable</Nullable>
+	  <Nullable>enable</Nullable>
     <SignAssembly>True</SignAssembly>
     <DelaySign>false</DelaySign>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng/opensource.snk</AssemblyOriginatorKeyFile>

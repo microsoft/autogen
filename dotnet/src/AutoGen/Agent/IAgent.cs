@@ -10,8 +10,10 @@ namespace AutoGen
 {
     public interface IAgent
     {
-        public string Name { get; }
+        public string? Name { get; }
 
-        public Task<ChatMessage> GenerateReplyAsync(IEnumerable<ChatMessage> messages, CancellationToken? cancellationToken = null);
+        public IChatCompletion? ChatCompletion { get; }
+
+        public Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default);
     }
 }

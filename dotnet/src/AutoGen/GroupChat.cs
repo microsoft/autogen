@@ -13,28 +13,52 @@ namespace AutoGen
 {
     public class GroupChat : IGroupChat
     {
-        private IChatCompletion chatLLM;
         private IAgent admin;
         private List<IAgent> agents = new List<IAgent>();
-        private IEnumerable<ChatMessage> initializeMessages = new List<ChatMessage>();
+        private IEnumerable<Message> initializeMessages = new List<Message>();
+
+        public IEnumerable<Message>? Messages { get; private set; }
 
         public GroupChat(
-            IChatCompletion chatLLM,
             IAgent admin,
             IEnumerable<IAgent> agents,
-            IEnumerable<ChatMessage>? initializeMessages = null)
+            IEnumerable<Message>? initializeMessages = null)
         {
-            this.chatLLM = chatLLM;
             this.admin = admin;
             this.agents = agents.ToList();
             this.agents.Add(admin);
-            this.initializeMessages = initializeMessages ?? new List<ChatMessage>();
+            this.initializeMessages = initializeMessages ?? new List<Message>();
+
+            this.Validation();
         }
 
-        public async Task<IAgent?> SelectNextSpeakerAsync(IEnumerable<ChatMessage> conversationHistory)
+        private void Validation()
         {
+            // check if all agents has a name
+            if (this.agents.Any(x => string.IsNullOrEmpty(x.Name)))
+            {
+                throw new Exception("All agents must have a name.");
+            }
+
+            // check if any agents has the same name
+            var names = this.agents.Select(x => x.Name).ToList();
+            if (names.Distinct().Count() != names.Count)
+            {
+                throw new Exception("All agents must have a unique name.");
+            }
+
+            // check if admin has a chat completion
+            if (this.admin.ChatCompletion == null)
+            {
+                throw new Exception("Admin must have a chat completion.");
+            }
+        }
+
+        public async Task<IAgent?> SelectNextSpeakerAsync(IEnumerable<Message> conversationHistory)
+        {
+            var llm = this.admin.ChatCompletion ?? throw new Exception("Admin does not have a chat completion.");
             var agent_names = this.agents.Select(x => x.Name).ToList();
-            var systemMessage = new ChatMessage(AuthorRole.System,
+            var systemMessage = new Message(AuthorRole.System,
                 content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
 The available roles are:
 {string.Join(",", agent_names)}
@@ -45,7 +69,7 @@ From admin:
 
             var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
 
-            var messages = new ChatMessage[] { systemMessage }.Concat(conv);
+            var messages = new Message[] { systemMessage }.Concat(conv);
             var settings = new AIRequestSettings
             {
                 ExtensionData = new Dictionary<string, object>
@@ -54,13 +78,13 @@ From admin:
                     { "stopWords", new[] { ":" } },
                 },
             };
-            var history = this.chatLLM.CreateNewChat();
+            var history = llm.CreateNewChat();
             foreach (var message in messages)
             {
                 history.Add(message);
             }
 
-            var response = await this.chatLLM.GenerateMessageAsync(history, settings);
+            var response = await llm.GenerateMessageAsync(history, settings);
 
             var name = response ?? throw new Exception("No name is returned.");
 
@@ -68,7 +92,7 @@ From admin:
             {
                 // remove From
                 name = name!.Substring(5);
-                var agent = this.agents.FirstOrDefault(x => x.Name.ToLower() == name.ToLower());
+                var agent = this.agents.FirstOrDefault(x => x.Name!.ToLower() == name.ToLower());
 
                 return agent;
             }
@@ -78,13 +102,13 @@ From admin:
             }
         }
 
-        public void AddInitializeMessage(ChatMessage message)
+        public void AddInitializeMessage(Message message)
         {
             this.initializeMessages = this.initializeMessages.Append(message);
         }
 
-        public async Task<IEnumerable<ChatMessage>> CallAsync(
-            IEnumerable<ChatMessage>? conversationWithName = null,
+        public async Task<IEnumerable<Message>> CallAsync(
+            IEnumerable<Message>? conversationWithName = null,
             int maxRound = 10,
             bool throwExceptionWhenMaxRoundReached = false,
             CancellationToken? ct = null)
@@ -97,7 +121,7 @@ From admin:
                 }
                 else
                 {
-                    return conversationWithName ?? Enumerable.Empty<ChatMessage>();
+                    return conversationWithName ?? Enumerable.Empty<Message>();
                 }
             }
 
@@ -106,7 +130,7 @@ From admin:
 
             if (conversationWithName == null)
             {
-                conversationWithName = Enumerable.Empty<ChatMessage>();
+                conversationWithName = Enumerable.Empty<Message>();
             }
 
             var agent = await this.SelectNextSpeakerAsync(conversationWithName) ?? this.admin;

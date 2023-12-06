@@ -24,9 +24,11 @@ namespace AutoGen
             this.Name = name;
         }
 
-        public string Name { get; }
+        public string? Name { get; }
 
-        public async Task<ChatMessage> GenerateReplyAsync(IEnumerable<ChatMessage> messages, CancellationToken? cancellationToken = null)
+        public IChatCompletion? ChatCompletion { get; private set; }
+
+        public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
             var chatMessages = this.ProcessMessages(messages);
             var chatService = this.kernel.GetService<IChatCompletion>() ?? throw new System.Exception("ChatCompletion service is not registered.");
@@ -37,11 +39,11 @@ namespace AutoGen
                 chatHistory.Add(chatMessage);
             }
 
-            var response = await chatService.GenerateMessageAsync(chatHistory, cancellationToken: cancellationToken ?? default);
+            var response = await chatService.GenerateMessageAsync(chatHistory, cancellationToken: cancellationToken);
 
             // todo
             // figure out a way to retrieve functionCall object from chatHistory
-            var message = new ChatMessage(AuthorRole.Assistant, response);
+            var message = new Message(AuthorRole.Assistant, response, from: this.Name);
 
             return message;
         }

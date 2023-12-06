@@ -12,7 +12,9 @@ namespace AutoGen
     {
         public string Name => throw new System.NotImplementedException();
 
-        public Task<ChatMessage> GenerateReplyAsync(IEnumerable<ChatMessage> messages, CancellationToken? cancellationToken = null)
+        public IChatCompletion? ChatCompletion => null;
+
+        public Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
             throw new System.NotImplementedException();
         }

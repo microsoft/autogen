@@ -7,35 +7,34 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Extension;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
 {
     public class SequentialGroupChat : IGroupChat
     {
         private readonly List<IAgent> agents = new List<IAgent>();
-        private readonly List<ChatMessage> initializeMessages = new List<ChatMessage>();
+        private readonly List<Message> initializeMessages = new List<Message>();
 
         public SequentialGroupChat(
             IEnumerable<IAgent> agents,
-            List<ChatMessage>? initializeMessages = null)
+            List<Message>? initializeMessages = null)
         {
             this.agents.AddRange(agents);
-            this.initializeMessages = initializeMessages ?? new List<ChatMessage>();
+            this.initializeMessages = initializeMessages ?? new List<Message>();
         }
 
-        public void AddInitializeMessage(ChatMessage message)
+        public void AddInitializeMessage(Message message)
         {
             this.initializeMessages.Add(message);
         }
 
-        public async Task<IEnumerable<ChatMessage>> CallAsync(
-            IEnumerable<ChatMessage>? conversationWithName = null,
+        public async Task<IEnumerable<Message>> CallAsync(
+            IEnumerable<Message>? conversationWithName = null,
             int maxRound = 10,
             bool throwExceptionWhenMaxRoundReached = false,
             CancellationToken? ct = null)
         {
-            var conversationHistory = new List<ChatMessage>();
+            var conversationHistory = new List<Message>();
             if (conversationWithName != null)
             {
                 conversationHistory.AddRange(conversationWithName);
