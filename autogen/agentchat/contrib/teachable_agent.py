@@ -63,7 +63,7 @@ class TeachableAgent(ConversableAgent):
             **kwargs,
         )
         # Register a custom reply function.
-        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, 1)
+        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, position=2)
 
         # Assemble the parameter settings.
         self._teach_config = {} if teach_config is None else teach_config
