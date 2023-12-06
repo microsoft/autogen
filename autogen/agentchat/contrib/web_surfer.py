@@ -4,14 +4,21 @@ from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
 from autogen.browser_utils import SimpleTextBrowser
 from autogen.code_utils import content_str
+from datetime import datetime
 
 
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
+    DEFAULT_SURFER_PROMPT = (
+        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
+        + datetime.now().date().isoformat()
+    )
+
     def __init__(
         self,
         name,
+        system_message: Optional[Union[str, List]] = DEFAULT_SURFER_PROMPT,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
@@ -23,6 +30,7 @@ class WebSurferAgent(ConversableAgent):
     ):
         super().__init__(
             name=name,
+            system_message=system_message,
             is_termination_msg=is_termination_msg,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
@@ -105,7 +113,9 @@ class WebSurferAgent(ConversableAgent):
         # Set up the inner monologue
         self._assistant = AssistantAgent(
             self.name + "_inner_assistant",
+            system_message=system_message,
             llm_config=inner_llm_config,
+            is_termination_msg=lambda m: False,
         )
 
         self._user_proxy = UserProxyAgent(
@@ -113,6 +123,7 @@ class WebSurferAgent(ConversableAgent):
             human_input_mode="NEVER",
             code_execution_config=False,
             default_auto_reply="",
+            is_termination_msg=lambda m: False,
         )
 
         # Helper fuctions
@@ -215,11 +226,13 @@ class WebSurferAgent(ConversableAgent):
 
         self._user_proxy.send(messages[-1]["content"], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
+        # print("Agent Reply: " + str(agent_reply))
         proxy_reply = self._user_proxy.generate_reply(
             messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
         )
+        # print("Proxy Reply: " + str(proxy_reply))
 
         if proxy_reply == "":  # Was the default reply
-            return True, agent_reply["content"]
+            return True, None if agent_reply is None else agent_reply["content"]
         else:
-            return True, proxy_reply["content"]
+            return True, None if proxy_reply is None else proxy_reply["content"]

@@ -24,7 +24,7 @@ class SimpleTextBrowser:
     def __init__(
         self,
         start_page: Optional[str] = "about:blank",
-        viewport_size: Optional[int] = 2048,
+        viewport_size: Optional[int] = 1024 * 16,  # 16Kb
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
     ):
