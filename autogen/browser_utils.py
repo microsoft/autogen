@@ -2,10 +2,20 @@ import json
 import requests
 import re
 import markdownify
+import io
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
+
+IS_PDF_CAPABLE = False
+try:
+    import pdfminer
+    import pdfminer.high_level
+
+    IS_PDF_CAPABLE = True
+except ModuleNotFoundError:
+    pass
 
 
 class SimpleTextBrowser:
@@ -143,27 +153,53 @@ class SimpleTextBrowser:
     def _fetch_page(self, url):
         try:
             # Send a HTTP request to the URL
-            response = requests.get(url)
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
 
             # If the HTTP request returns a status code 200, proceed
             if response.status_code == 200:
-                # Get the content of the response
-                html = response.text
-                soup = BeautifulSoup(html, "html.parser")
+                content_type = response.headers.get("content-type", "")
+                for ct in ["text/html", "text/plain", "application/pdf"]:
+                    if ct in content_type.lower():
+                        content_type = ct
+                        break
 
-                # Remove javascript and style blocks
-                for script in soup(["script", "style"]):
-                    script.extract()
+                if content_type == "text/html":
+                    # Get the content of the response
+                    html = ""
+                    for chunk in response.iter_content(decode_unicode=True):
+                        html += chunk
 
-                # Convert to markdown
-                webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+                    soup = BeautifulSoup(html, "html.parser")
 
-                # Convert newlines
-                webpage_text = re.sub(r"\r\n", "\n", webpage_text)
+                    # Remove javascript and style blocks
+                    for script in soup(["script", "style"]):
+                        script.extract()
 
-                # Remove excesive blank lines
-                self.page_title = soup.title.string
-                self.page_content = re.sub(r"\n{2,}", "\n\n", webpage_text).strip()
+                    # Convert to markdown
+                    webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+
+                    # Convert newlines
+                    webpage_text = re.sub(r"\r\n", "\n", webpage_text)
+
+                    # Remove excesive blank lines
+                    self.page_title = soup.title.string
+                    self.page_content = re.sub(r"\n{2,}", "\n\n", webpage_text).strip()
+                elif content_type == "text/plain":
+                    # Get the content of the response
+                    plain_text = ""
+                    for chunk in response.iter_content(decode_unicode=True):
+                        plain_text += chunk
+
+                    self.page_title = None
+                    self.page_content = plain_text
+                elif IS_PDF_CAPABLE and content_type == "application/pdf":
+                    pdf_data = io.BytesIO(response.raw.read())
+                    self.page_title = None
+                    self.page_content = pdfminer.high_level.extract_text(pdf_data)
+                else:
+                    self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
+                    self.page_content = self.page_title
             else:
                 self.page_title = "Error"
                 self.page_content = "Failed to retrieve " + url
@@ -177,8 +213,12 @@ if __name__ == "__main__":
 
     browser = SimpleTextBrowser(bing_api_key=os.environ["BING_API_KEY"])
 
-    print(browser.visit_page("bing: latest news on OpenAI"))
-    input("Press Next to navigate to Micosoft wikipedia page...")
+    # print(browser.visit_page("bing: latest news on OpenAI"))
+    # input("Press Next to navigate to Micosoft wikipedia page...")
+    print(browser.visit_page("https://www.adamfourney.com/papers/bibtex/chang_arxiv2023.txt"))
+    input("Press Enter to fetch PDF...")
+    print(browser.visit_page("https://arxiv.org/pdf/2306.04930.pdf"))
+    input("Press Enter to visit Wikipedia...")
     print(browser.visit_page("https://en.wikipedia.org/wiki/Microsoft"))
     input("Press Next to find on the page...")
     browser.find_on_page("Bill Gates")
