@@ -1,13 +1,12 @@
 import ast
+import base64
 import hashlib
-from typing import List, Dict, Union
+from typing import List, Dict, Tuple, Union
 import os
 import shutil
 import re
-import uuid
 import autogen
-from .datamodel import AgentConfig, AgentFlowSpec, FlowConfig, LLMConfig, Message
-from .db import DBManager
+from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig
 
 
 def md5_hash(text: str) -> str:
@@ -20,67 +19,105 @@ def md5_hash(text: str) -> str:
     return hashlib.md5(text.encode()).hexdigest()
 
 
-def save_message(message: Message, dbmanager: DBManager) -> None:
+def get_file_type(file_path: str) -> str:
     """
-    Save a message in the database using the provided database manager.
 
-    :param message: The Message object containing message data
-    :param dbmanager: The DBManager instance used to interact with the database
+
+    Get file type   determined by the file extension. If the file extension is not
+    recognized, 'unknown' will be used as the file type.
+
+    :param file_path: The path to the file to be serialized.
+    :return: A  string containing the file type.
     """
-    query = "INSERT INTO messages (user_id, root_msg_id, msg_id, role, content, metadata, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    args = (
-        message.user_id,
-        message.root_msg_id,
-        message.msg_id,
-        message.role,
-        message.content,
-        message.metadata,
-        message.timestamp,
-    )
-    dbmanager.query(query=query, args=args)
 
+    # Extended list of file extensions for code and text files
+    CODE_EXTENSIONS = {
+        ".py",
+        ".js",
+        ".jsx",
+        ".java",
+        ".c",
+        ".cpp",
+        ".cs",
+        ".ts",
+        ".tsx",
+        ".html",
+        ".css",
+        ".scss",
+        ".less",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".md",
+        ".rst",
+        ".tex",
+        ".sh",
+        ".bat",
+        ".ps1",
+        ".php",
+        ".rb",
+        ".go",
+        ".swift",
+        ".kt",
+        ".hs",
+        ".scala",
+        ".lua",
+        ".pl",
+        ".sql",
+        ".config",
+    }
 
-def load_messages(user_id: str, dbmanager: DBManager) -> List[dict]:
-    """
-    Load messages for a specific user from the database, sorted by timestamp.
+    # Supported image extensions
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
 
-    :param user_id: The ID of the user whose messages are to be loaded
-    :param dbmanager: The DBManager instance to interact with the database
-    :return: A list of dictionaries, each representing a message
-    """
-    query = "SELECT * FROM messages WHERE user_id = ?"
-    args = (user_id,)
-    result = dbmanager.query(query=query, args=args, json=True)
-    # Sort by timestamp ascending
-    result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
-    return result
+    # Supported PDF extension
+    PDF_EXTENSION = ".pdf"
 
+    # Determine the file extension
+    _, file_extension = os.path.splitext(file_path)
 
-def delete_message(user_id: str, msg_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]:
-    """
-    Delete a specific message or all messages for a user from the database.
-
-    :param user_id: The ID of the user whose messages are to be deleted
-    :param msg_id: The ID of the specific message to be deleted (ignored if delete_all is True)
-    :param dbmanager: The DBManager instance to interact with the database
-    :param delete_all: If True, all messages for the user will be deleted
-    :return: A list of the remaining messages if not all were deleted, otherwise an empty list
-    """
-    if delete_all:
-        query = "DELETE FROM messages WHERE user_id = ?"
-        args = (user_id,)
-        dbmanager.query(query=query, args=args)
-        return []
+    # Determine the file type based on the extension
+    if file_extension in CODE_EXTENSIONS:
+        file_type = "code"
+    elif file_extension in IMAGE_EXTENSIONS:
+        file_type = "image"
+    elif file_extension == PDF_EXTENSION:
+        file_type = "pdf"
     else:
-        query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ?"
-        args = (user_id, msg_id)
-        dbmanager.query(query=query, args=args)
-        messages = load_messages(user_id=user_id, dbmanager=dbmanager)
+        file_type = "unknown"
 
-        return messages
+    return file_type
 
 
-def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str) -> List[str]:
+def serialize_file(file_path: str) -> Tuple[str, str]:
+    """
+    Reads a file from a given file path, base64 encodes its content,
+    and returns the base64 encoded string along with the file type.
+
+    The file type is determined by the file extension. If the file extension is not
+    recognized, 'unknown' will be used as the file type.
+
+    :param file_path: The path to the file to be serialized.
+    :return: A tuple containing the base64 encoded string of the file and the file type.
+    """
+
+    file_type = get_file_type(file_path)
+
+    # Read the file and encode its contents
+    try:
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
+    except Exception as e:
+        raise IOError(f"An error occurred while reading the file: {e}")
+
+    return base64_encoded_content, file_type
+
+
+def get_modified_files(
+    start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str
+) -> List[Dict[str, str]]:
     """
     Copy files from source_dir that were modified within a specified timestamp range
     to dest_dir, renaming files if they already exist there. The function excludes
@@ -91,7 +128,8 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
     :param source_dir: The directory to search for modified files.
     :param dest_dir: The destination directory to copy modified files to.
 
-    :return: A list of file paths in dest_dir that were modified and copied over.
+    :return: A list of dictionaries with details of file paths in dest_dir that were modified and copied over.
+             Dictionary format: {path: "", name: "", extension: ""}
              Files with extensions "__pycache__", "*.pyc", "__init__.py", and "*.cache"
              are ignored.
     """
@@ -123,11 +161,20 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
 
                 # Copying the modified file to the destination directory
                 shutil.copy2(file_path, dest_file_path)
-                uid = dest_dir.split("/")[-1]
-                print("******", uid)
-                file_path = f"files/user/{uid}/{dest_file_path.split('/')[-1]}"
-                modified_files.append(file_path)
 
+                # Extract user id from the dest_dir and file path
+                uid = dest_dir.split("/")[-1]
+                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
+                file_type = get_file_type(dest_file_path)
+                file_dict = {
+                    "path": f"files/user/{uid}/{relative_file_path}",
+                    "name": file_name,
+                    "extension": file_ext.replace(".", ""),
+                    "type": file_type,
+                }
+                modified_files.append(file_dict)
+    # sort by extension
+    modified_files.sort(key=lambda x: x["extension"])
     return modified_files
 
 
@@ -280,7 +327,7 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
                 print(f"Failed to delete {path}. Reason: {e}")
 
 
-def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> FlowConfig:
+def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> AgentWorkFlowConfig:
     """
     Get a default agent flow config .
     """
@@ -318,7 +365,7 @@ def get_default_agent_config(work_dir: str, skills_suffix: str = "") -> FlowConf
         ),
     )
 
-    flow_config = FlowConfig(
+    flow_config = AgentWorkFlowConfig(
         name="default",
         sender=userproxy_spec,
         receiver=assistant_spec,
