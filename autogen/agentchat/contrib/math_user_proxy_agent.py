@@ -165,7 +165,7 @@ class MathUserProxyAgent(UserProxyAgent):
             default_auto_reply=default_auto_reply,
             **kwargs,
         )
-        self.register_reply([Agent, None], MathUserProxyAgent._generate_math_reply, 1)
+        self.register_reply([Agent, None], MathUserProxyAgent._generate_math_reply, position=2)
         # fixed var
         self._max_invalid_q_per_step = max_invalid_q_per_step
 
