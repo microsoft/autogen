@@ -249,7 +249,7 @@ class OpenAIWrapper:
             try:
                 response = self._completions_create(client, params)
             except APIError as err:
-                error_code = err and getattr(err, "code", None)
+                error_code = getattr(err, "code", None)
                 if error_code == "content_filter":
                     # raise the error for content_filter
                     raise
@@ -257,7 +257,7 @@ class OpenAIWrapper:
                 if i == last:
                     raise
             else:
-                # add cost calculation before caching not matter filter is passed or not
+                # add cost calculation before caching no matter filter is passed or not
                 response.cost = self.cost(response)
                 self._update_usage_summary(response, use_cache=False)
                 if cache_seed is not None:
