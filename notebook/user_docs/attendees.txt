@@ -1,0 +1,604 @@
+First Name,Last Name,Display Name,Registrant Email,Agree to Receive Marketing Communication?,Register Date (UTC),Event Attendance
+Bodhibrata,Nag,Bodhibrata Nag,bnag@iimcal.ac.in,Opt-in,11/9/2023 16:03,Absent
+Kent,Kostuk,Kent Kostuk,kkostuk@engcomp.ca,Opt-in,11/9/2023 15:35,Absent
+Jaya,Nanwani,Jaya Nanwani,jayananwani2012@gmail.com,Opt-out,11/9/2023 16:54,Absent
+Kauê,Fagundes,Fagundes Kauê,kaue.fagundes@genoads.com.br,Opt-in,12/7/2023 16:01,Attended
+Charles,Scott,Charles Scott,cdscotti@bellsouth.net,Opt-in,11/10/2023 20:07,Attended
+Ross,Halatchev,Ross Halatchev,ross@ausgemco.com,Opt-in,11/10/2023 0:27,Absent
+Young-Ae,Chun,Young-Ae Chun,yajeon@etri.re.kr,Opt-in,11/9/2023 22:47,Absent
+Li,Xiao,Li Xiao,lxiao@up.com,Opt-in,11/22/2023 14:47,Absent
+oscar,llacchas,oscar llacchas,victor.oscar.llacchas@estudiantat.upc.edu,Opt-out,11/26/2023 13:13,Absent
+Mohammad,Shariatmadari,Mohammad Shariatmadari,mshariatmadari@meta.com,Opt-in,11/9/2023 17:59,Absent
+Sri Harshitha,Kilaparthi,Sri Harshitha Kilaparthi,25020879@mahindra.com,Opt-in,11/17/2023 11:47,Attended
+Siti,Fariya,Siti Fariya,s.fariya@kent.ac.uk,Opt-in,12/5/2023 15:05,Absent
+Marco,Ribeiro,Marco Ribeiro,marco.samuel.ribeiro@blufab.pt,Opt-out,11/10/2023 8:39,Attended
+Shervin,Ahmadi,Shervin Ahmadi,shervin.ahmadi1372@gmail.com,Opt-in,12/5/2023 14:55,Absent
+Toni,Lepistö,LepistöToni,toni.lepisto@makron.com,Opt-in,11/10/2023 6:26,Attended
+Mustapha,Aboulbaroudi,Mustapha Aboulbaroudi,maboulbaroudi@aecon.com,Opt-out,11/30/2023 17:03,Absent
+Raul Esteban,Jimenez,Raul Esteban Jimenez,rjimenezji@argos.com.co,Opt-in,11/22/2023 15:01,Attended
+Brian,Amouzgar,Brian Amouzgar,bamouzgar@yorkvilleu.ca,Opt-out,11/9/2023 16:20,Attended
+Peter,Johnson,Peter Johnson,peterjohnson_png@hotmail.com,Opt-out,11/10/2023 7:32,Absent
+Peter,van Doesburg,Peter van Doesburg,petervandoesburg11@gmail.com,Opt-out,11/22/2023 15:19,Attended
+Kimmo,Liuksiala,Kimmo Liuksiala,kimmo@qkk.fi,Opt-in,11/22/2023 15:55,Absent
+Serg,Studnev,Serg Studnev,studnev.sergei1@gmail.com,Opt-out,11/22/2023 14:55,Absent
+James,Brucher,James Brucher,jbrucher@kurvesystems.com,Opt-out,11/22/2023 16:46,Attended
+Hemant,S,Hemant S,hemant.s@airbus.com,Opt-out,11/10/2023 6:36,Attended
+Yen,Mai Thi,Yen Mai Thi,yen.mai.thi@fh-zwickau.de,Opt-in,11/23/2023 8:46,Absent
+Mohammed,BOUZAKRY,Mohammed BOUZAKRY,mohammed_bouzakry@cargill.com,Opt-in,12/5/2023 14:35,Absent
+Nallely,Balderas,Nallely Balderas,nallelybalderas63@gmail.com,Opt-in,11/17/2023 12:09,Absent
+Shivangi,Garg,Shivangi Garg,garg.shivangi9@gmail.com,Opt-out,12/7/2023 16:59,Attended
+Yaroslav,Yaroslav,Yaroslav Yaroslav,yaroslav.misyachenko@bk.ru,Opt-in,12/6/2023 10:54,Attended
+Jonathan,Rosales,Jonathan Rosales,jonathan.rosales.vizuete@bd.com,Opt-out,11/9/2023 17:27,Attended
+GOGUL, V D,GOGUL V D,22mf01@psgtech.ac.in,Opt-in,11/11/2023 17:40,Absent
+James,Hill,James Hill,james.hill@agingaircraftsolutions.com,Opt-in,11/17/2023 21:21,Absent
+Pramod,Nair,Pramod Nair,pramodchandrasekhar.nair@molex.com,Opt-in,12/6/2023 5:31,Attended
+Werner,Streich,Werner Streich,werner@gousabc.com,Opt-out,11/11/2023 13:53,Attended
+Dmitry,Akchurin,Dmitry Akchurin,adk@a2company.de,Opt-out,11/22/2023 14:46,Absent
+Vadim,Makarov,Vadim Makarov,makfone@mail.ru,Opt-in,11/14/2023 11:58,Absent
+Andrei,Borshchev,Andrei Borshchev,andrei@anylogic.com,Opt-out,12/7/2023 10:16,Attended
+Siarhei,Tuzik,Siarhei Tuzik,sergei_tuzik@tut.by,Opt-out,12/7/2023 16:16,Attended
+David,Graehl,David Graehl,david.graehl@cardinalhealth.com,Opt-in,12/5/2023 14:31,Attended
+Milan,Smiesko,Milan Smiesko,milansmiesko4@gmail.com,Opt-out,12/5/2023 20:00,Attended
+Tung,Nguyen,Tung Nguyen,nntung@hcmiu.edu.vn,Opt-in,11/10/2023 8:21,Absent
+ilyes,bellamine,ilyes bellamine,ilyes.bellamine@gmail.com,Opt-in,12/5/2023 20:49,Attended
+Gino,Sedano,Gino Sedano,gino.sedano@bctsconsulting.com,Opt-in,12/5/2023 14:22,Absent
+Dinh,Dung,Dinh Dung,hdt.dth@gmail.com,Opt-in,11/9/2023 16:19,Attended
+Andre,Jacques,Andre Jacques,ajacques@simwell.io,Opt-out,11/9/2023 16:11,Absent
+Sambit Kumar,Sahu,Sambit Kumar Sahu,sambitkumar.sahu@skema.edu,Opt-in,12/5/2023 16:09,Absent
+Rainer,Dronzek,Rainer Dronzek,rainer@sim-model.com,Opt-in,11/10/2023 4:38,Absent
+Solly ,Tsotetsi,Solly Tsotetsi,u13081935@tuks.co.za,Opt-out,11/10/2023 10:35,Absent
+Kehinde,Ismaila,Kehinde Ismaila,100060827@ku.ac.ae,Opt-in,11/22/2023 15:12,Absent
+Shubhashish,Dahiwale,Shubhashish Dahiwale,shubhashish_dahiwale@contractor.amat.com,Opt-out,12/7/2023 16:25,Attended
+Siti,Fariya,Siti Fariya,siti-naval@strath.ac.uk,Opt-in,11/10/2023 19:20,Absent
+Thomas,Scherer,Thomas Scherer,tschere1@smail.uni-koeln.de,Opt-out,12/6/2023 18:01,Attended
+Jing ,Yang,Jing Yang,jing.yang@ahs.ca,Opt-out,11/9/2023 16:37,Absent
+Nahuel,Romera,Nahuel Romera,nahuel.romera@usal.edu.ar,Opt-in,11/22/2023 17:53,Absent
+Fidelis,Aldo Widhi Pangestu,Fidelis Aldo Widhi Pangestu,fidelisaldowp@gmail.com,Opt-in,12/5/2023 23:17,Absent
+Erik,Roy-Veilleux,Erik Roy-Veilleux,royve@amazon.com,Opt-out,11/22/2023 16:57,Attended
+Dayan,Munasinghe,Dayan Munasinghe,dayan.munasinghe@nbro.gov.lk,Opt-in,11/10/2023 1:50,Absent
+Venkataramanan ,Swaminathan,Venkataramanan Swaminathan,ramanan.v.1104@gmail.com,Opt-in,11/9/2023 18:14,Absent
+Aleksei,Khanygin,Aleksei Khanygin,khanygin_an@rtsoft.ru,Opt-out,11/10/2023 8:29,Absent
+Siamak,Alipour,Siamak Alipour,alipour_s@hotmail.com,Opt-in,11/10/2023 12:32,Absent
+Charles,Demeure,Charles Demeure,csd@lem.com,Opt-out,11/12/2023 17:17,Absent
+Igor,Naumeyko,Igor Naumeyko,igor.naumeyko@nure.ua,Opt-in,12/5/2023 15:22,Absent
+Andrey,Slyusarenko,Andrey Slyusarenko,aslyusarenko@tbsconsulting.ru,Opt-out,11/10/2023 14:00,Attended
+Preetham,Thadi,Preetham Thadi,preethammufc@gmail.com,Opt-in,11/10/2023 10:28,Absent
+Sophie ,Wurst ,Sophie Wurst,sophie.wurst@optima-packaging.com,Opt-out,11/13/2023 5:31,Absent
+Girish,Bakshi,Girish Bakshi,gbakshi@apple.com,Opt-in,11/9/2023 15:55,Absent
+Justin,Taylor,Justin Taylor,justin.taylor3@bnsf.com,Opt-out,11/9/2023 15:38,Attended
+Aku,Mäkimattila,Mäkimattila Aku,aku.makimattila@pinja.com,Opt-out,11/10/2023 6:11,Absent
+Maria ,Papadaki Fanioudaki,Maria Papadaki Fanioudaki,maripapa16@gmail.com,Opt-out,11/9/2023 17:31,Attended
+Thomas,Bachinger,Thomas Bachinger,thomas.bachinger@plantvision.se,Opt-out,11/9/2023 15:47,Attended
+Sergey,Batiuk,Sergey Batiuk,sergnikbatiuk@mail.ru,Opt-in,11/9/2023 15:43,Absent
+Madina,Gozhakhmetova,Madina Gozhakhmetova,kdrvmd@mail.ru,Opt-in,11/23/2023 7:40,Absent
+Pavel,Azaletskiy,Pavel Azaletskiy,pavel@vsoptima.com,Opt-in,11/9/2023 15:34,Attended
+Polina,Buyvol,Polina Buyvol,skyeyes@mail.ru,Opt-out,11/23/2023 7:11,Absent
+JESUS BERNABE,CID REYES,JESUS BERNABE CID REYES,cidreyes@gmail.com,Opt-in,11/9/2023 23:22,Absent
+Serg,Stud,Serg Stud,studnev.sergei@ya.ru,Opt-out,12/5/2023 14:27,Attended
+Francisco,Regateiro,Francisco Regateiro,franciscoregateiro@gmail.com,Opt-in,11/24/2023 15:16,Absent
+Omar,Ayala,Omar Ayala,omar.ayala@sintec.com,Opt-in,12/5/2023 15:42,Absent
+Vanel,Mudimbi,Vanel Mudimbi,vanel.mud@gmail.com,Opt-in,11/22/2023 19:13,Absent
+Ali,Aidibe,Ali Aidibe,ali.aidibe@polymtl.ca,Opt-out,11/23/2023 1:06,Absent
+Shervin,KADKHODA AHMADI,Shervin KADKHODA AHMADI,shervin_ahmadi@ymail.com,Opt-in,12/5/2023 15:01,Absent
+Phuc,Le,Phuc Le,lep@ccf.org,Opt-out,11/9/2023 15:35,Attended
+Israel,De la Cruz,Israel De la Cruz,israel.delacruz@itcelaya.edu.mx,Opt-in,11/24/2023 14:15,Absent
+Ivy,Ling,Ivy Ling,ling.jialing@student.greenriver.edu,Opt-in,11/27/2023 12:03,Absent
+Nerene,Greeff,Nerene Greeff,nerene.greeff@sibanyestillwater.com,Opt-out,11/15/2023 12:51,Absent
+Sophie ,Gee,Sophie Gee,sgee@systra.com,Opt-out,11/9/2023 22:55,Absent
+Hakan,İmamoğlu,İmamoğlu Hakan,hakanimamoglu@hotmail.com,Opt-in,11/9/2023 15:35,Absent
+Chase,Swindle,Chase Swindle,austin.swindle@nouryon.com,Opt-in,12/7/2023 16:28,Attended
+arun,kumar,arun kumar,25011620@mahindra.com,Opt-in,12/7/2023 15:30,Attended
+Agnes,Pechmann,Agnes Pechmann,agnes.pechmann@hs-emden-leer.de,Opt-in,11/23/2023 8:28,Absent
+MICHAEL,KOCZWARA,MICHAEL KOCZWARA,mkoczwara@arcbtech.com,Opt-out,11/9/2023 15:35,Attended
+Nikita,Strelkovskii,Nikita Strelkovskii,strelkon@iiasa.ac.at,Opt-out,12/6/2023 9:16,Attended
+Sharif,Khaleghparast,Sharif Khaleghparast,sharifkhaleghparast@gmail.com,Opt-out,11/9/2023 15:42,Absent
+Rishabh,Tripathi,Rishabh Tripathi,rishtrip@iitk.ac.in,Opt-out,11/9/2023 17:51,Attended
+Lara,Schiborr,Lara Schiborr,lara.schiborr@cnx-consulting.de,Opt-out,11/30/2023 16:24,Attended
+Ju,Jeon,Ju Jeon,ju.jeon@novelis.com,Opt-out,11/30/2023 16:30,Attended
+Khawla,LAMGHARI,Khawla LAMGHARI,khawla.lamghari@um6p.ma,Opt-in,11/22/2023 14:47,Attended
+guolei,tang,guolei tang,tangguolei@dlut.edu.cn,Opt-in,11/10/2023 1:11,Absent
+Ducnan,Lo,Ducnan Lo,dlo@systra.com,Opt-in,11/9/2023 22:45,Absent
+Elena,Krikun,Elena Krikun,ekrikun@simwell.io,Opt-out,11/22/2023 15:13,Absent
+Erin,Britton,Erin Britton,erinbritton@brandeis.edu,Opt-in,12/5/2023 16:04,Absent
+Adam,Coleman,Adam Coleman,adam.coleman@decisionlab.co.uk,Opt-out,11/13/2023 12:18,Attended
+mehmet sinan,yıldırım,yıldırım mehmet sinan,msyildirim35@gmail.com,Opt-in,12/5/2023 14:41,Absent
+George,BOLES,George BOLES,george.boles@u-bordeaux.fr,Opt-in,11/10/2023 9:29,Absent
+Panagiotis,Trivellas,Panagiotis Trivellas,ptrivel@yahoo.com,Opt-in,11/9/2023 19:05,Absent
+Juan,Gutiérrez,Gutiérrez Juan,jgutierrezm@ipn.mx,Opt-in,12/1/2023 15:43,Absent
+Tony,Pule,Tony Pule,tony.pule@htpenergy.com,Opt-out,11/9/2023 17:59,Attended
+Shriprasad,Chorghe,Shriprasad Chorghe,shriprasadchorghe@gmail.com,Opt-out,12/5/2023 14:44,Attended
+Andrea,Macz,Andrea Macz,andrea.macz@epicinnolabs.hu,Opt-out,11/23/2023 8:15,Absent
+Marco,Cotton,Marco Cotton,marco@grupopdca.com,Opt-out,11/23/2023 17:33,Attended
+Brandon,Eaton,Brandon Eaton,brando122476@gmail.com,Opt-in,11/14/2023 18:58,Attended
+Abdullah,Alibrahim,Abdullah Alibrahim,aalibrahim@outlook.com,Opt-out,11/23/2023 5:39,Absent
+ben,tng,ben tng,benjamin_tngsk@sats.com.sg,Opt-in,12/6/2023 1:21,Absent
+Mohammad Reza ,Rezaee ,Mohammad Reza Rezaee,mo.rezarezaee@gmail.com,Opt-in,11/22/2023 14:51,Absent
+Rodrigo,De Assis,Rodrigo De Assis,rodrigo.furlan-de-assis@etsmtl.ca,Opt-in,11/22/2023 16:21,Absent
+Kulyk,Volodymyr,Kulyk Volodymyr,volodymyr_kulyk@ukr.net,Opt-in,11/22/2023 15:13,Attended
+SIVA SELVAN,ALANKATTUTHOTTAM VISWANATHAN,SIVA SELVAN ALANKATTUTHOTTAM VISWANATHAN,siva_selvan.a_v@mercedes-benz.com,Opt-out,12/5/2023 14:31,Absent
+Marcos,Garber,Marcos Garber,mgarber@uol.com.br,Opt-out,11/9/2023 20:29,Attended
+Pietro,De Vito,Pietro De Vito,p.devito@stamtech.com,Opt-out,11/9/2023 15:36,Attended
+SRI HARSHA,DORAPUDI,SRI HARSHA DORAPUDI,mez208831@mech.iitd.ac.in,Opt-out,11/22/2023 16:19,Absent
+HSIN-YU,CHEN,HSIN-YU CHEN,hyc.md10@nycu.edu.tw,Opt-in,12/6/2023 1:31,Absent
+Kedar,Palsule,Kedar Palsule,kedar_palsule@amat.com,Opt-in,11/9/2023 15:53,Attended
+Syed Adeel Haneef,Zaidi,Syed Adeel Haneef Zaidi,syed.zaidi@uregina.ca,Opt-out,11/22/2023 22:35,Absent
+Jose Antonio,Taquia,Jose Antonio Taquia,jose.antonio.taquia@gmail.com,Opt-out,11/22/2023 15:26,Absent
+Harilys Victoire,Rakotondramasy,Harilys Victoire Rakotondramasy,victoireharilys@gmail.com,Opt-in,12/5/2023 20:05,Absent
+Joaquín,Salazar,Salazar Joaquín,joaquin.salazar@alumnos.ucn.cl,Opt-in,11/9/2023 15:35,Absent
+Henry,Soo,Henry Soo,henrysoo@datadevelop.net,Opt-out,11/9/2023 22:48,Attended
+Anastasia ,Molchan,Anastasia Molchan,kimintea0coffee@gmail.com,Opt-in,11/11/2023 18:37,Attended
+Giovani,Monzambe,Giovani Monzambe,giovanimonz@gmail.com,Opt-out,11/10/2023 6:22,Attended
+Martin,Schönheit,Schönheit Martin,martin.schoenheit@tu-dresden.de,Opt-out,11/22/2023 17:40,Attended
+Nuria,Hurtado,Nuria Hurtado,nuria.hurtado@uca.es,Opt-out,11/23/2023 9:53,Absent
+Thomas,Wittig,Thomas Wittig,thomas.b.wittig@gmail.com,Opt-in,11/10/2023 0:55,Absent
+Daniel,Arthur,Daniel Arthur,darthur@ipdynamics.org.uk,Opt-out,11/22/2023 15:55,Absent
+Omar,Alas,Omar Alas,omar.alas@indx.com,Opt-in,12/5/2023 14:43,Absent
+Mujahed,Thneibat,Mujahed Thneibat,m_thneibat@ju.edu.jo,Opt-in,12/5/2023 14:09,Absent
+Valentas,Daniunas,Valentas Daniunas,office@ibn.lt,Opt-out,11/9/2023 15:36,Attended
+Elena Irina,Neaga,Elena Irina Neaga,irina_neaga@yahoo.com,Opt-in,12/7/2023 16:15,Attended
+Jason,Evenson,Jason Evenson,jevenson@anylogic.com,N/A,12/7/2023 13:57,Attended
+Tatiana,Hryhorieva,Tatiana Hryhorieva,grigorieva.t@analytera.ru,Opt-in,11/10/2023 9:21,Absent
+Alberto,Duaden,Alberto Duaden,tuchone@gmail.com,Opt-out,11/9/2023 16:16,Absent
+Ali,Selamat,Ali Selamat,aselamat@utm.my,Opt-in,11/23/2023 0:07,Absent
+Dr. Nikhil,Ghag,Dr. Nikhil Ghag,nikhil.ghag@siom.in,Opt-in,11/23/2023 11:11,Attended
+Yosoon,Choi,Yosoon Choi,energy@pknu.ac.kr,Opt-in,11/22/2023 23:37,Absent
+Daniela,Arias,Daniela Arias,daarias@itba.edu.ar,Opt-out,11/10/2023 16:03,Absent
+Brian,Kalahan,Brian Kalahan,b.kalahan@comcast.net,Opt-in,11/23/2023 1:30,Absent
+Arif,Vural,Arif Vural,arif.vural@amtrak.com,Opt-out,11/9/2023 20:25,Absent
+Elena,Chernigina,Elena Chernigina,elenachernigina@gmail.com,Opt-out,11/15/2023 7:25,Absent
+Samuel,Alvarez,Samuel Alvarez,samuel.alvarez@sintec.com,Opt-out,12/5/2023 15:07,Absent
+Anna,Mangasheva,Anna Mangasheva,amangasheva@gmail.com,Opt-in,12/5/2023 15:00,Absent
+Suad,Saliju,Suad Saliju,suad.saliju@uni-bayreuth.de,Opt-out,12/5/2023 14:12,Absent
+ Sophia,yue,Sophia yue,58463138@qq.com,Opt-in,12/5/2023 8:30,Absent
+Lauren,Purves,Lauren Purves,kf20712@bristol.ac.uk,Opt-in,11/23/2023 10:21,Attended
+Bárbara,Martins,Martins Bárbara,barbaraaugustammartins@gmail.com,Opt-in,11/13/2023 13:40,Absent
+Blerand,Sojeva,Blerand Sojeva,blerand.sojeva@student.uni-pr.edu,Opt-out,11/22/2023 15:41,Absent
+Ariful ,Islam,Ariful Islam,aislam@tce.co.in,Opt-out,12/6/2023 11:06,Absent
+Andre,Vega,Andre Vega,andre.vega3@gmail.com,Opt-in,12/5/2023 19:54,Absent
+Alex,Kulay,Alex Kulay,kulay@mail.ru,Opt-in,11/23/2023 11:51,Absent
+Nickolay,Lobanov,Nickolay Lobanov,ne.ice.evil@gmail.com,Opt-in,12/6/2023 13:03,Absent
+Hafsa,Mohsin,Hafsa Mohsin,hbmohsin@amazon.com,Opt-out,11/22/2023 15:31,Absent
+Mahmoud,Soliman,Mahmoud Soliman,mah.abdelrahman@outlook.com,Opt-out,11/23/2023 11:59,Absent
+Giovanni Maria ,Ferraris,Giovanni Maria Ferraris,giovannimariaferraris@gmail.com,Opt-in,11/22/2023 14:52,Attended
+Brandon,Eaton,Brandon Eaton,beaton@spa.com,Opt-in,12/7/2023 15:57,Attended
+Juan Pablo,Quezada,Juan Pablo Quezada,juan@wearesilverbullet.com,Opt-out,11/30/2023 19:19,Attended
+Lionel,BECKER,Lionel BECKER,lionel.becker@libertysurf.fr,Opt-out,11/22/2023 17:15,Absent
+Akash,Rathod,Akash Rathod,a.07abhay@gmail.com,Opt-out,12/6/2023 5:33,Absent
+Hamid,Tikani,Hamid Tikani,hamid.tikani@gmail.com,Opt-in,11/24/2023 15:33,Absent
+Evgeniya,Romanova,Evgeniya Romanova,eur2003@mail.ru,Opt-in,12/6/2023 8:02,Attended
+Clayton,Burrell,Clayton Burrell,clayton.burrell@sibanyestillwater.com,Opt-out,11/10/2023 3:47,Absent
+Dariga ,Kushtayeva ,Dariga Kushtayeva,906_dariga_996@mail.ru,Opt-in,12/5/2023 14:20,Absent
+Polina,Buyvol,Polina Buyvol,bpa.kfu@gmail.com,Opt-out,11/9/2023 18:29,Attended
+Hamlet,Virabyan,Hamlet Virabyan,shirakatci@gmail.com,Opt-out,12/5/2023 18:58,Absent
+Dave,Andersen,Dave Andersen,dandersen@anylogic.com,Opt-out,12/5/2023 22:06,Attended
+Irina,Neaga,Irina Neaga,irina.neaga@uwtsd.ac.uk,Opt-in,11/16/2023 9:01,Absent
+Thien Sen,Low,Thien Sen Low,thiensen_low@singaporeair.com.sg,Opt-out,11/21/2023 1:20,Absent
+Kanat,Aidarov,Kanat Aidarov,kanataidarov@yahoo.com,Opt-out,11/28/2023 14:43,Absent
+Kit,Baroness,Kit Baroness,kitbaroness@gmail.com,Opt-in,12/5/2023 19:20,Absent
+Ricardo,Palma,Ricardo Palma,rpalma@uncu.edu.ar,Opt-in,12/5/2023 14:55,Absent
+Jenny ,He,Jenny He,he.j@tcs.com,Opt-out,11/25/2023 12:53,Absent
+MASENGO,ILUNGA,MASENGO ILUNGA,ilungmasfrans@gmail.com,Opt-in,11/11/2023 18:42,Absent
+Yijie,Chen,Yijie Chen,mns7@cdc.gov,Opt-out,11/9/2023 15:36,Attended
+Mohamed,Amin,Mohamed Amin,mohalhag1990@gmail.com,Opt-in,11/23/2023 12:34,Attended
+w,t,w t,winston.tang@nouryon.com,Opt-out,11/10/2023 15:06,Attended
+Idoaldo,Lima,Idoaldo Lima,idoaldolima@gmail.com,Opt-in,11/22/2023 18:10,Absent
+Balaji,G K,Balaji G K,gkbalaji0812@gmail.com,Opt-in,11/14/2023 3:27,Absent
+Andrew,Yeo,Andrew Yeo,andrewyhc@gmail.com,Opt-out,11/27/2023 5:48,Absent
+Peter,Riley,Peter Riley,peter.riley@decisionlab.co.uk,Opt-out,11/9/2023 15:49,Attended
+Mingdong,SHANG,Mingdong SHANG,m.shang@sheffield.ac.uk,Opt-out,12/5/2023 20:09,Attended
+liu,haibin,liu haibin,haibin_liu@yeah.net,Opt-in,12/6/2023 0:45,Absent
+Brian,Mulcahy,Brian Mulcahy,brian@adaptint.com.au,Opt-out,11/23/2023 2:39,Absent
+Mohamed,EL-GHAZAL,Mohamed EL-GHAZAL,mohamed.el-ghazal@valeo.com,Opt-out,12/5/2023 14:40,Absent
+Rajon Paul,Pantha,Rajon Paul Pantha,rajonpaul.pantha@bnsf.com,Opt-out,11/10/2023 16:02,Absent
+Eugene,Maisiuk,Eugene Maisiuk,yauhen.maisiuk@himolde.no,Opt-in,12/6/2023 10:55,Absent
+Carlos,Rosales Gallegos,Carlos Rosales Gallegos,cjrosales@gandolapp.com,Opt-in,12/7/2023 9:31,Attended
+Teena,T,Teena T,teena.thomas@edmontonpolice.ca,Opt-out,11/22/2023 18:46,Absent
+Sho,Kozono,Sho Kozono,sho_kozono@yanmar.com,Opt-in,11/30/2023 2:15,Absent
+Yasmeen,Sherif,Yasmeen Sherif,y_essawy@aucegypt.edu,Opt-out,12/6/2023 0:34,Absent
+Jardiel,Santi,Jardiel Santi,jardi.santi@gmail.com,Opt-out,11/9/2023 23:38,Absent
+Vivek,Khanzode,Vivek Khanzode,vkhanzode@iimmumbai.ac.in,Opt-in,11/23/2023 1:13,Absent
+Nadezhda,'-,Nadezhda -,redinskich@yandex.ru,Opt-in,11/9/2023 15:44,Absent
+Tonci,Grubic,Tonci Grubic,t.grubic@ljmu.ac.uk,Opt-out,11/22/2023 15:06,Absent
+Kristin,Müller,Müller Kristin,kristin.mueller@leuphana.de,Opt-out,11/10/2023 13:43,Attended
+Robert,Stout,Robert Stout,robert.stout@atkinsrealis.com,Opt-in,11/10/2023 16:34,Absent
+Kevin,Hiteko,Kevin Hiteko,kevinhiteko@gmail.com,Opt-out,12/6/2023 6:23,Absent
+German,Espinosa,German Espinosa,ge660@york.ac.uk,Opt-out,11/25/2023 22:51,Absent
+Mohammed Afthab,Alam,Mohammed Afthab Alam,mohammedafthab.alam@hitachivantara.com,Opt-in,11/9/2023 17:15,Attended
+Gerry,Brockman,Gerry Brockman,gerry.brockman@gmail.com,Opt-out,12/5/2023 17:05,Attended
+Alvaro,Rubio,Alvaro Rubio,alvaro.rubiogimenez@asml.com,Opt-in,11/10/2023 7:15,Absent
+Monika,Mlakar,Monika Mlakar,monica.mlakar@gmail.com,Opt-in,11/9/2023 15:55,Absent
+Gabriel,Garcìa,Garcìa Gabriel,gabriel.garcia@utc.edu.mx,Opt-in,12/5/2023 19:58,Absent
+Andrii,Galkin,Andrii Galkin,galkin.tsl@gmail.com,Opt-in,11/24/2023 11:24,Attended
+Biswaraj,Baral,Biswaraj Baral,brr.baral@gmail.com,Opt-in,12/6/2023 0:46,Absent
+Troy,Curry,Troy Curry,tcurry4@gmu.edu,Opt-in,11/9/2023 18:25,Absent
+Junaid ,Mansabdar,Junaid Mansabdar,mansabdarjunaid@gmail.com,Opt-out,12/6/2023 4:57,Attended
+Hemanth Sai Kumar,Doddi,Hemanth Sai Kumar Doddi,hemanthsaikumardoddi10@gmail.com,Opt-in,12/7/2023 2:51,Absent
+Gustavo,Costa,Gustavo Costa,costa@usp.br,Opt-out,12/5/2023 14:16,Absent
+Valery,Kasyanik,Valery Kasyanik,val.tut@gmail.com,Opt-out,11/10/2023 9:55,Attended
+Fernando,Frias,Fernando Frias,fernando.frias@tsolco.com,Opt-in,12/5/2023 17:14,Attended
+Dominic,Finazzo,Dominic Finazzo,d.finazzo@bravodeltasim.com,Opt-out,11/22/2023 22:41,Absent
+Lyudmila,Vyunenko,Lyudmila Vyunenko,vyunenko@yandex.ru,Opt-out,11/23/2023 8:54,Absent
+Jaekoo,Joo,Jaekoo Joo,jaekoojoo@gmail.com,Opt-in,12/1/2023 2:37,Attended
+Viktar,Liauchuk,Viktar Liauchuk,liauchuk@gmail.com,Opt-in,11/22/2023 19:05,Absent
+Avi,Roy Chowdhury,Avi Roy Chowdhury,1viroy555@gmail.com,Opt-in,12/5/2023 14:15,Attended
+Will,Hodi,Will Hodi,william.l.hodi@boeing.com,Opt-out,12/5/2023 14:42,Absent
+Amanda,Fernandez,Amanda Fernandez,amanda.fernandez@sintec.com,Opt-in,12/5/2023 14:53,Absent
+Kamal,Henderson,Kamal Henderson,khende24@gmail.com,Opt-in,11/22/2023 20:03,Absent
+Adouakoua Aka Brice,KANGA,Adouakoua Aka Brice KANGA,brice.kanga@yahoo.fr,Opt-in,11/11/2023 8:25,Absent
+N,SH,N SH,nas460@usask.ca,Opt-in,11/9/2023 17:27,Absent
+Denis,Tokmakov,Denis Tokmakov,d.j.tokmakov@niivs.ru,Opt-in,12/6/2023 5:58,Absent
+Marek,Ryrych,Marek Ryrych,mryrych@objectivity.co.uk,Opt-out,11/22/2023 15:09,Attended
+Jaco-Ben,Vosloo,Jaco-Ben Vosloo,jacoben.vosloo@gmail.com,Opt-in,11/23/2023 5:46,Absent
+Jobair,Alam,Jobair Alam,mjbalam@gmail.com,Opt-in,12/5/2023 15:11,Absent
+Sai,S,Sai S,sai-swaroop.k-c@airbus.com,Opt-out,12/6/2023 12:15,Attended
+stephen,miller,stephen miller,sjmiller60@gmail.com,Opt-out,11/22/2023 18:13,Absent
+Taofeeq,Badmus,Taofeeq Badmus,tabadmus@gmail.com,Opt-in,11/13/2023 10:14,Attended
+Andrew,Putschkoff,Andrew Putschkoff,andrew_puchkoff@mail.ru,Opt-in,11/9/2023 15:38,Absent
+Anskey,Miranda,Anskey Miranda,anskey.miranda@globalmaritime.com,Opt-out,12/7/2023 14:13,Attended
+Levente,Zakarias,Levente Zakarias,levente.zakarias@accenture.com,Opt-in,12/6/2023 17:58,Attended
+Juan,Palome,Juan Palome,juanpalomeque@hotmail.com,Opt-out,11/10/2023 4:56,Absent
+Xiaoli,Fan,Xiaoli Fan,xiaoli@ualberta.ca,Opt-out,11/22/2023 14:46,Absent
+Dakalo,Ramabulana,Dakalo Ramabulana,dakalo.ramabulana@bigengroup.com,Opt-in,12/6/2023 5:54,Attended
+Елена,Неупокоева,НеупокоеваЕлена,neupokoeva@iimm.ru,Opt-out,11/15/2023 10:32,Attended
+Vadim,Semenychev,Vadim Semenychev,semenychev@reksoft.ru,Opt-in,12/5/2023 14:39,Absent
+Andrey,Sssss,Andrey Sssss,bandeja_segura@yahoo.com,Opt-out,11/12/2023 14:33,Absent
+Derek,Pratt,Derek Pratt,dereksjpratt@gmail.com,Opt-in,12/5/2023 16:12,Attended
+Yanxin,Guo,Yanxin Guo,gyxyouxiang@mail.dlut.edu.cn,Opt-in,11/10/2023 2:36,Absent
+Andrea,Arias,Andrea Arias,andrea.ariasllorenty@bnsf.com,Opt-in,11/9/2023 16:09,Attended
+Aqeel,Zaman,Aqeel Zaman,aqeelzam@yorku.ca,Opt-in,11/22/2023 14:59,Absent
+Bryan,Monk,Bryan Monk,bryan.monk@misim.ca,Opt-out,11/10/2023 17:43,Attended
+H M Imran,Kays,H M Imran Kays,kays@ou.edu,Opt-in,12/5/2023 15:47,Absent
+Surajit,Ghosh,Surajit Ghosh,surajitg@tce.co.in,Opt-out,12/6/2023 10:44,Absent
+Petros,Boutselis,Petros Boutselis,pcsksa5@gmail.com,Opt-out,11/22/2023 14:55,Attended
+Thokozani,Simelane,Thokozani Simelane,tsimelane@hsrc.ac.za,Opt-in,12/6/2023 4:28,Attended
+Mohammad Zaki,Bin Mohammud,Mohammad Zaki Bin Mohammud,zakimohammud@gmail.com,Opt-in,11/10/2023 23:01,Absent
+Gordon,Carlyle,Gordon Carlyle,gordon.carlyle@reece.com.au,Opt-out,11/26/2023 20:50,Absent
+HEydi,Han,HEydi Han,hcalderonambelis2@unl.edu,Opt-out,11/9/2023 17:38,Absent
+Alexander,Apfeld,Alexander Apfeld,alexander.apfeld@ruhr-uni-bochum.de,Opt-out,11/12/2023 15:48,Attended
+Shoaa,Heedan ,Shoaa Heedan,shhe51891@hbku.edu.qa,Opt-out,12/5/2023 14:57,Absent
+Matteo,Zeccoli Marazzini,Matteo Zeccoli Marazzini,m.zeccoli@mce-solutions.it,Opt-out,11/28/2023 13:09,Attended
+Tuấn Anh,Lê,LêTuấn Anh,tuananh.le2301@gmail.com,Opt-out,12/1/2023 3:55,Absent
+Sheridan,Lomas,Sheridan Lomas,sheridan.lomas1@dwp.gov.uk,Opt-out,11/10/2023 9:31,Absent
+Boris,Nikitin,Boris Nikitin,nbe6419@gmail.com,Opt-in,11/9/2023 19:26,Absent
+Jonas,Pröschel,Pröschel Jonas,jonas.proeschel@warema.de,Opt-out,12/6/2023 9:08,Attended
+AHMET,GUNGOR,AHMET GUNGOR,ahmet.gungor@ogr.sakarya.edu.tr,Opt-in,11/10/2023 20:24,Absent
+Umar,Husriadi,Umar Husriadi,umar_husriadi@yahoo.com,Opt-out,11/27/2023 9:37,Absent
+cong,zhuhui,cong zhuhui,zhuhui_bupt@126.com,Opt-in,12/6/2023 6:37,Absent
+Yves,NDIKURIYO,Yves NDIKURIYO,yves.ndikuriyo@ub.edu.bi,Opt-in,12/5/2023 14:40,Attended
+Piet,Wallays,Piet Wallays,piet.wallays@telenet.be,Opt-in,11/10/2023 5:33,Absent
+John,Yedinak,John Yedinak,jyedinak@anylogic.com,N/A,12/7/2023 15:47,Attended
+Mohammad Zaki,bin Mohammud,Mohammad Zaki bin Mohammud,zaki.binmohammud@cranfield.ac.uk,Opt-out,11/23/2023 14:36,Attended
+Peppa,Stud,Peppa Stud,pepper.studie@gmail.com,Opt-out,11/9/2023 18:07,Absent
+ma,mengxin,ma mengxin,mamengxin@hotmail.com,Opt-in,11/10/2023 13:18,Absent
+George,Anagnostopoulos,George Anagnostopoulos,george.k.anagnostopoulos@gmail.com,Opt-out,12/5/2023 14:07,Attended
+Alvaro,Suarez,Alvaro Suarez,asuarezmateos@worldcourier.co.uk,Opt-out,11/22/2023 14:53,Absent
+Nadhir,M,Nadhir M,tst@mechai.me,Opt-out,11/9/2023 18:24,Absent
+Alexander,Skorniakov,Alexander Skorniakov,s_korn@bk.ru,Opt-out,11/9/2023 16:15,Attended
+Salisu Ibrahim ,YUSUF,Salisu Ibrahim YUSUF,salisuibrahimyusuf@gmail.com,Opt-in,12/5/2023 19:38,Absent
+Moeez,Ahmad,Moeez Ahmad,moeez.ahmad@siemens.com,Opt-out,12/5/2023 15:22,Absent
+Fredy,Diaz,Fredy Diaz,fredyad@stud.ntnu.no,Opt-in,11/23/2023 9:44,Absent
+Sergey,Timchenko,Sergey Timchenko,timchenko.so@alidi.ru,Opt-out,12/5/2023 14:05,Absent
+David,Beaumont,David Beaumont,david.beaumont@idoba.com,Opt-out,11/10/2023 0:18,Absent
+Christine,Barber,Christine Barber,christine.barber@agingaircraft.us,Opt-out,12/5/2023 14:13,Attended
+David,Nalli,David Nalli,david.nalli@tigeranalytics.com,Opt-out,11/9/2023 15:34,Absent
+Ian,Bryson,Ian Bryson,i.bryson@aspire2x.co.uk,Opt-out,11/22/2023 16:42,Attended
+Aleksei,Dimov,Aleksei Dimov,dimov_av@irgups.ru,Opt-in,12/7/2023 2:29,Absent
+Vladimir,Koltchanov,Vladimir Koltchanov,vkoltchanov@anylogic.com,Opt-in,11/10/2023 8:04,Absent
+Javier,Luco,Javier Luco,javier.luco@eramet.com,Opt-out,12/6/2023 6:36,Absent
+Rahmad,Hidayat,Rahmad Hidayat,rahmadhidayat67316@gmail.com,Opt-in,12/6/2023 7:26,Absent
+Chris,Schopp,Chris Schopp,cschopp@simwell.io,Opt-in,11/22/2023 15:31,Attended
+Viktor,Poplavski,Viktor Poplavski,vpoplavski@tundo.de,Opt-out,11/9/2023 17:14,Attended
+Jonathan,Paz,Jonathan Paz,jonathan.paz@parsons.com,Opt-out,12/5/2023 15:58,Attended
+Tokelo,Jiyane,Tokelo Jiyane,tokelojiyane@gmail.com,Opt-in,12/7/2023 15:32,Attended
+Mitchell,VanDalen,Mitchell VanDalen,mitchell.vandalen@novelis.com,Opt-out,11/10/2023 14:02,Attended
+Rahul,Ramachandran,Rahul Ramachandran,rhramac@amazon.com,Opt-in,11/9/2023 16:47,Absent
+Guillermo,Bobadilla,Guillermo Bobadilla,guillermo_bobadilla@comcast.com,Opt-in,12/6/2023 17:43,Absent
+Victor,Torres ,Victor Torres,mecatrvm@yahoo.com.mx,Opt-in,11/22/2023 14:52,Absent
+Tatiana,Babkina,Tatiana Babkina,tbabkina@hse.ru,Opt-out,11/9/2023 20:16,Absent
+Natalie,Brizzolara,Natalie Brizzolara,nbrizzolara@anylogic.com,Opt-out,12/5/2023 22:12,Attended
+Pham Huynh ,Tram,Pham Huynh Tram,phtram@hcmiu.edu.vn,Opt-in,12/6/2023 2:45,Absent
+Nada,Hamila,Nada Hamila,n.hamila@tu-berlin.de,Opt-out,12/5/2023 14:05,Attended
+Md Jobair,Alam,Md Jobair Alam,jobair.alam@houstontx.gov,Opt-out,11/9/2023 15:54,Attended
+David,Payne,David Payne,dpayne@advancedsystemsintegration.com,Opt-in,11/9/2023 16:59,Attended
+Lyuxi,Wang,Lyuxi Wang,lyuxi.wang@airbus.com,Opt-out,12/7/2023 16:37,Attended
+Khasan,Adzhiev,Khasan Adzhiev,amyr_d@mail.ru,Opt-out,11/23/2023 10:13,Absent
+Mioko,Tsujiuchi,Mioko Tsujiuchi,mioko.tsujiuchi@pwc.com,Opt-out,11/9/2023 23:44,Absent
+Jitin,U,Jitin U,jitinu@hexaware.com,Opt-out,11/14/2023 7:00,Attended
+Dylan,Knowles,Dylan Knowles,dknowles@vendasta.com,Opt-out,11/9/2023 16:47,Absent
+Maxim,Solomin,Maxim Solomin,chessclabik@yandex.ru,Opt-in,11/10/2023 12:07,Absent
+Michael,Kestigian,Michael Kestigian,michael.kestigian@dxarcs.com,Opt-in,11/9/2023 22:42,Attended
+Kevin,Bebensee,Kevin Bebensee,kevin.bebensee@airbus.com,Opt-out,11/28/2023 8:17,Attended
+Stratis,Boucoyannis,Stratis Boucoyannis,stratis.boucoyannis@gmail.com,Opt-in,11/14/2023 21:12,Attended
+idp,rr,idp rr,idprrd2@gmail.com,Opt-in,11/28/2023 6:24,Absent
+Нарик,Шингаров,ШингаровНарик,shingarov_nd@nlmk.com,Opt-in,11/10/2023 6:14,Absent
+Songyi,Cui,Songyi Cui,echo07@connect.hku.hk,Opt-in,12/6/2023 7:44,Absent
+Yuan Yuan,Lee,Yuan Yuan Lee,yuanyuan.lee@inl.gov,Opt-in,11/9/2023 15:53,Attended
+Marek,Karkula,Marek Karkula,mkarkula@agh.edu.pl,Opt-in,11/9/2023 16:02,Absent
+Jayaz,Atukunda,Jayaz Atukunda,j.atukunda-2022@hull.ac.uk,Opt-out,11/18/2023 10:14,Absent
+Carlos Andres,Silva Bastidas,Carlos Andres Silva Bastidas,csilvab@argos.com.co,Opt-in,12/5/2023 14:16,Attended
+Laura,Capps,Laura Capps,lcapps@smail.uni-koeln.de,Opt-out,12/5/2023 17:13,Absent
+Robson,Castro,Robson Castro,robson.castro@genoads.com.br,Opt-in,11/12/2023 16:52,Attended
+Patrik,Ratzlaff,Patrik Ratzlaff,patrikr@chortitzer.com.py,Opt-out,11/9/2023 16:06,Attended
+Hari venkata Sai Prakash,Kambala,Hari venkata Sai Prakash Kambala,saiprakash.fns@gmail.com,Opt-in,11/22/2023 14:58,Absent
+sara,parang,sara parang,parangs.2017@gmail.com,Opt-in,12/5/2023 18:32,Attended
+Koon Hock,Low,Koon Hock Low,khlow27@yahoo.com,Opt-out,11/22/2023 22:58,Absent
+Anna,Bolognesi,Anna Bolognesi,a.bolognesi@stamtech.com,Opt-in,11/23/2023 9:51,Absent
+Abhishek ,Aggarwal ,Abhishek Aggarwal,abhishek19aggarwal@gmail.com,Opt-in,11/9/2023 16:58,Absent
+Gaetana,Rubino,Gaetana Rubino,gaetana.rubino@unirc.it,Opt-in,11/9/2023 16:03,Attended
+Jose,Adan,Jose Adan,a00174646@tec.mx,Opt-out,11/22/2023 17:41,Absent
+Gustavo,Nakano,Gustavo Nakano,gustavo.nakano@genoads.com.br,Opt-out,11/9/2023 18:41,Absent
+Алексей,Ковалёв,КовалёвАлексей,alexei@alum.mit.edu,Opt-out,11/21/2023 23:05,Absent
+Arivalagan,Rengaraj,Arivalagan Rengaraj,arivalagan_rengaraj@comcast.com,Opt-in,12/6/2023 13:54,Attended
+David ,Blubaugh ,David Blubaugh,davidblubaugh2000@yahoo.com,Opt-in,11/22/2023 14:59,Attended
+Yoad,Gidron,Yoad Gidron,yoad.gidron@gmail.com,Opt-out,11/9/2023 16:43,Absent
+Andries,Botha,Andries Botha,abotha@alum.mit.edu,Opt-out,11/10/2023 4:16,Attended
+iwrm,uvbn2,iwrm uvbn2,iwrm.uvbn2@gmail.com,Opt-out,11/12/2023 7:39,Absent
+Michel,Dutry,Michel Dutry,michel.dutry@sabca.be,Opt-out,11/27/2023 14:49,Attended
+louis paul,hayoun,louis paul hayoun,lp.hayoun@gmail.com,Opt-out,11/28/2023 11:28,Attended
+Botond,Draskoczy,Botond Draskoczy,botond.draskoczy@de.bosch.com,Opt-in,11/9/2023 16:13,Attended
+James,Park,James Park,jamesparkyj@hotmail.com,Opt-out,11/10/2023 1:23,Absent
+Romeo,Bandinelli,Romeo Bandinelli,romeo.bandinelli@unifi.it,Opt-out,11/22/2023 23:22,Absent
+Bambang,Judi Bagiono,Bambang Judi Bagiono,bambangjudibagiono@gmail.com,Opt-in,11/22/2023 23:14,Absent
+dusan,terzic,dusan terzic,terzicdusan29@gmail.com,Opt-in,11/9/2023 19:58,Absent
+Aljaž,Blatnik,Blatnik Aljaž,aljaz.blatnik@fis.unm.si,Opt-in,11/23/2023 13:37,Attended
+B,P,B P,bpark@ilstu.edu,Opt-out,12/5/2023 14:41,Absent
+Ip-Shing,Fan,Ip-Shing Fan,i.s.fan@cranfield.ac.uk,Opt-in,11/22/2023 15:11,Absent
+Patricia,Mendez,Patricia Mendez,pmendez@theacegroupinc.com,Opt-out,12/5/2023 16:03,Absent
+Irinie ,Roufaeel ,Irinie Roufaeel,irinie.roufaeel.19@ucl.ac.uk,Opt-out,11/9/2023 16:17,Absent
+Filipe,Ataide,Filipe Ataide,fataide@hovione.com,Opt-out,11/9/2023 16:26,Absent
+retno,nalarsih,retno nalarsih,nalarsihwww@gmail.com,Opt-in,11/12/2023 7:31,Absent
+Luiz,Calderoni,Luiz Calderoni,luiz.calderoni@attain.co.uk,Opt-out,11/9/2023 16:20,Absent
+SALVADOR,ABREGO QUINTERO,SALVADOR ABREGO QUINTERO,ordsalvadorabregoquintero@ugmnorte.edu.mx,Opt-in,11/9/2023 17:35,Absent
+Utkan,Uluçay,Uluçay Utkan,utkan@3ftextile.com,Opt-in,12/5/2023 14:08,Attended
+Bhupendra,Chhetri,Bhupendra Chhetri,bhupendra.chhetri@ku.edu.np,Opt-in,11/10/2023 13:15,Absent
+Mirbella Teresa,Gallareta Negron,Mirbella Teresa Gallareta Negron,mgallareta@ucaribe.edu.mx,Opt-in,11/9/2023 16:37,Absent
+Rocío,Mingorance,Mingorance Rocío,rmingorance@ikerlan.es,Opt-in,11/22/2023 14:48,Attended
+Jhonattan,Martinez,Jhonattan Martinez,jgmartinez1@uc.cl,Opt-in,11/9/2023 15:53,Attended
+Braidley ,Mathobela,Braidley Mathobela,u19047942@tuks.co.za,Opt-in,11/29/2023 11:23,Absent
+Peter,Farkas,Peter Farkas,peterwolf0623@gmail.com,Opt-in,11/27/2023 19:53,Absent
+Dirk,Cremers,Dirk Cremers,dirk.cremers@pwc.com,Opt-out,11/10/2023 7:36,Attended
+Victoria,Lunetskaya,Victoria Lunetskaya,lunetskaya@anylogic.com,Opt-out,11/9/2023 12:44,Attended
+ADRIÁN,GARCÍA,GARCÍA ADRIÁN,agarcia@alhona.com,Opt-out,11/9/2023 15:38,Absent
+Tomer,Rokita,Tomer Rokita,rokita.tomer@gmail.com,Opt-in,11/9/2023 16:16,Attended
+Athanasios ,Migdalas ,Athanasios Migdalas,athanasios.migdalas@ltu.se,Opt-in,12/7/2023 9:16,Attended
+Anh Tuan,Vu,Anh Tuan Vu,vuanhtuan@utc.edu.vn,Opt-in,11/22/2023 16:08,Absent
+George-Cosmin,PARTENE,George-Cosmin PARTENE,partenegeorgecosmin@yahoo.com,Opt-in,11/22/2023 14:51,Attended
+Stephan,Scheuerer,Stephan Scheuerer,stephan.scheuerer@th-deg.de,Opt-out,11/10/2023 16:08,Absent
+Hui,Wang,Hui Wang,hui.wang@publicismedia.com,Opt-out,11/9/2023 18:00,Absent
+Yvonne,Kummer,Yvonne Kummer,yvonne.kummer@boku.ac.at,Opt-out,12/5/2023 14:13,Absent
+Greg,McDonald,Greg McDonald,gemcdonald@r1-innovations.com,Opt-out,11/24/2023 13:20,Absent
+Pratik,Patil,Pratik Patil,pratik2000patil@gmail.com,Opt-in,11/22/2023 16:12,Absent
+Shrutivandana,Sharma,Shrutivandana Sharma,shrutivandana.sharma@nyu.edu,Opt-out,11/9/2023 19:22,Attended
+Furqan ,Awan,Furqan Awan,furqanvet@gmail.com,Opt-out,11/23/2023 8:48,Absent
+Fernando,Mengod ,Fernando Mengod,fernando.mengod@ite.es,Opt-in,11/10/2023 6:39,Absent
+Павел,Попов ,ПоповПавел,s62s2bmpqx@privaterelay.appleid.com,Opt-out,12/6/2023 15:17,Absent
+Natalia,Tkachenko ,Natalia Tkachenko,01590758@rambler.ru,Opt-out,12/5/2023 17:06,Attended
+Xi,Feng,Xi Feng,isissifeng@gmail.com,Opt-in,12/5/2023 14:42,Absent
+Karin,Kritzinger,Karin Kritzinger,karink@sun.ac.za,Opt-in,11/9/2023 15:54,Attended
+Ифеолува,Инкриз ,ИнкризИфеолува,ifeoluwatimilehin@yahoo.com,Opt-in,12/5/2023 2:15,Attended
+Zeynep Didem,UNUTMAZ DURMUŞOĞLU,UNUTMAZ DURMUŞOĞLU Zeynep Didem,unutmaz@gantep.edu.tr,Opt-in,11/23/2023 6:32,Absent
+Hokbyan,Angkat,Hokbyan Angkat,hokbyan@gmail.com,Opt-in,12/6/2023 18:42,Absent
+Roman,Upyr,Roman Upyr,upyr.roman@gmail.com,Opt-in,11/10/2023 3:32,Absent
+Mohit,Nigam,Mohit Nigam,mohit.nigam@stackbox.xyz,Opt-out,11/24/2023 5:38,Absent
+Gabriel,Cardinali,Gabriel Cardinali,gabriel.cardinali@amorsaude.com,Opt-in,11/30/2023 21:05,Attended
+Ivanka,Dimitrova,Ivanka Dimitrova,id.dimitrova@tu-plovdiv.bg,Opt-in,11/22/2023 18:36,Absent
+Roselle,Palomaria,Roselle Palomaria,mrspalomaria@tip.edu.ph,Opt-in,11/10/2023 0:40,Absent
+Daria,Potapova,Daria Potapova,dpotapova2009@mail.ru,Opt-in,12/2/2023 18:50,Absent
+Victoria,Kazieva,Victoria Kazieva,victoria.kazieva@miun.se,Opt-out,11/9/2023 16:12,Absent
+Michele,Martignago,Michele Martignago,martignagomichele@gmail.com,Opt-in,11/9/2023 16:13,Absent
+Clarissa María,Robinson Bours Escamilla,Robinson Bours Escamilla Clarissa María,a00227130@tec.mx,Opt-in,11/9/2023 16:17,Absent
+Jakub,Neugebauer,Jakub Neugebauer,jakub.neugebauer@mercedes-benz.com,Opt-in,12/7/2023 15:59,Attended
+Achmad,Bahauddin,Achmad Bahauddin,baha@untirta.ac.id,Opt-out,11/22/2023 23:13,Absent
+Rushali,Pant,Rushali Pant,vrushalipant28@gmail.com,Opt-in,12/5/2023 10:33,Absent
+John,Rodat,John Rodat,john.rodat@publicsignals.com,Opt-out,11/22/2023 15:17,Absent
+Mohammad,Sh. Khamseh,Mohammad Sh. Khamseh,moha.sh.m.kh@gmail.com,Opt-in,11/23/2023 11:50,Attended
+Marc,Euchner,Marc Euchner,marc.euchner@capgemini.com,Opt-out,12/5/2023 14:04,Attended
+Thibaut,Cerabona,Thibaut Cerabona,thibaut.cerabona@mines-albi.fr,Opt-out,11/13/2023 22:30,Attended
+Yoyi,Zhang,Yoyi Zhang,yoyo0613@outlook.com,Opt-in,12/6/2023 1:33,Absent
+frzzy,陈,陈frzzy,frzzy1014@gmail.com,Opt-in,12/6/2023 5:51,Absent
+atmy,vera,atmy vera,atmyvera@gmail.com,Opt-out,11/23/2023 1:14,Absent
+AMY,GREER,AMY GREER,amy@mosimtec.com,Opt-in,11/24/2023 12:00,Absent
+Lucas,Stretton,Lucas Stretton,lstretton@simwell.io,Opt-out,12/5/2023 21:13,Absent
+James,Hill,James Hill,james.hill@agingaircraft.us,Opt-in,12/5/2023 21:56,Attended
+Cory,Dixon,Cory Dixon,cdixon@spa.com,Opt-out,11/9/2023 20:40,Absent
+saravanan,periyasamy,saravanan periyasamy,p.saravanan@tvsmotor.com,Opt-in,12/1/2023 6:49,Absent
+Walter,Harper,Walter Harper,waltervol@yahoo.com,Opt-out,11/12/2023 1:55,Absent
+Leonardo,Soler,Leonardo Soler,lesoler@uade.edu.ar,Opt-in,11/30/2023 16:56,Attended
+DEEPUDEV ,SAHADEVAN,DEEPUDEV SAHADEVAN,deepu.dev@eau.ac.ae,Opt-in,11/9/2023 16:40,Absent
+Giuseppe,Monaco,Giuseppe Monaco,giuseppe.monaco@avanade.com,Opt-out,12/5/2023 14:04,Absent
+Dmytro,Muzylov,Dmytro Muzylov,murza_1@ukr.net,Opt-in,11/22/2023 14:55,Attended
+Viacheslav,Matsiuk,Viacheslav Matsiuk,vimatsiuk@gmail.com,Opt-out,12/1/2023 8:49,Absent
+Pascalin,Ngoko,Pascalin Ngoko,npascaln@amazon.com,Opt-out,11/9/2023 17:06,Attended
+Gleb,Zakhodyakin,Gleb Zakhodyakin,postlogist@gmail.com,Opt-out,11/10/2023 19:38,Absent
+Ashfaque,Chowdhury,Ashfaque Chowdhury,a.chowdhury@cqu.edu.au,Opt-in,11/10/2023 0:16,Attended
+Michelle,Yao,Michelle Yao,michelledy.yao@gmail.com,Opt-in,11/13/2023 12:53,Absent
+Poornima,Adiga,Poornima Adiga,poornima.adiga@airbus.com,Opt-out,12/6/2023 4:42,Attended
+Wencheslaus,Ata,Wencheslaus Ata,chukwukaoneofawka@gmail.com,Opt-in,11/11/2023 17:54,Attended
+Alexandre,Ouellet,Alexandre Ouellet,aouellet@simwell.io,Opt-out,11/9/2023 15:34,Attended
+Mohammadali,Tofighi,Mohammadali Tofighi,tofighim@yorku.ca,Opt-in,11/9/2023 23:40,Attended
+Anthony,FRIEDLI,Anthony FRIEDLI,anthonyfriedli@yahoo.com.au,Opt-out,11/22/2023 20:53,Absent
+Sergey,Vasilev,Sergey Vasilev,sergey.wasiliev@gmail.com,Opt-out,11/10/2023 11:35,Absent
+Luis,Sanabria Salazar,Luis Sanabria Salazar,luisrsanabria@gmail.com,Opt-in,11/30/2023 15:41,Absent
+Nadhir,M,Nadhir M,sub@mechai.me,Opt-out,11/23/2023 16:35,Absent
+Malick,Ndiaye,Malick Ndiaye,ingmalickndiaye@gmail.com,Opt-in,11/22/2023 15:21,Absent
+Han-I,Wang,Han-I Wang,han-i.wang@york.ac.uk,Opt-out,12/5/2023 14:19,Absent
+Ryan,Berger,Ryan Berger,rberguk@gmail.com,Opt-out,11/9/2023 11:40,Attended
+Aris,Thanos,Aris Thanos,mthanos1986@gmail.com,Opt-in,12/7/2023 16:03,Attended
+Saif,Almutairi,Saif Almutairi,saif.mutairi@kapsarc.org,Opt-in,12/6/2023 7:40,Absent
+Thorsten,Pannenbäcker,Pannenbäcker Thorsten,thorsten@tj-pannenbaecker.de,Opt-out,11/9/2023 17:24,Absent
+Grzegorz,Karoń,KarońGrzegorz,grzegorz.karon@polsl.pl,Opt-out,12/5/2023 0:12,Absent
+Manpreet ,Singh,Manpreet Singh,manpreenitie@gmail.com,Opt-in,11/9/2023 16:35,Attended
+SHUVABRATA,CHAKRABORTY,SHUVABRATA CHAKRABORTY,shuvabratac@iimamritsar.ac.in,Opt-out,11/25/2023 13:02,Absent
+Patrik,Ratzlaff,Patrik Ratzlaff,patriklionel@gmail.com,Opt-out,12/5/2023 14:11,Absent
+Korablev,Yuriy,Korablev Yuriy,yura-korablyov@yandex.ru,Opt-out,11/9/2023 15:34,Absent
+Ben,Chien,Ben Chien,hchien@eagle.org,Opt-in,11/10/2023 2:32,Absent
+Kai,Wu,Kai Wu,kai.wu-1@uts.edu.au,Opt-in,12/7/2023 7:01,Absent
+Rosario,Landa,Rosario Landa,rosario.landapi@anahuac.mx,Opt-in,11/9/2023 16:45,Attended
+Musa,Buthelezi,Musa Buthelezi,musa.buthelezi@sibanyestillwater.com,Opt-out,11/15/2023 14:01,Absent
+Liang,Wen,Liang Wen,liang.wen@grainger.com,Opt-out,12/1/2023 13:10,Attended
+Pratik,Kodam,Pratik Kodam,pratik.bhimraj-kodam@airbus.com,Opt-in,12/6/2023 4:51,Absent
+HANGFEI,GUO,HANGFEI GUO,h.guo@qub.ac.uk,Opt-in,11/10/2023 9:31,Attended
+Dale,Johnson,Dale Johnson,dale.johnson@agingaircraft.us,Opt-out,12/5/2023 14:22,Attended
+Haafizah Rameeza,shaukat,Haafizah Rameeza shaukat,hshaukat@deakin.edu.au,Opt-in,11/10/2023 4:27,Absent
+Muthana,Al-Sukhni,Muthana Al-Sukhni,muthana.al-sukhni@associated.ltu.se,Opt-in,12/7/2023 7:35,Attended
+Davide,Dalla Rosa,Davide Dalla Rosa,d.dr@libero.it,Opt-in,11/9/2023 16:13,Attended
+Gareth,Smith,Gareth Smith,gareth.smith@sibanyestillwater.com,Opt-in,11/15/2023 12:46,Attended
+MANU,T R,MANU T R,manutr04raju@gmail.com,Opt-in,11/22/2023 18:18,Absent
+Tiziano,Miroglio,Tiziano Miroglio,tiziano.miroglio@edu.unige.it,Opt-out,12/5/2023 14:25,Absent
+Hind,Abdulla,Hind Abdulla,100057555@ku.ac.ae,Opt-in,11/22/2023 16:16,Absent
+Sverker,Gustafsson,Sverker Gustafsson,sverker.gustafsson@centigo.se,Opt-in,11/9/2023 18:49,Absent
+Tolusha Sajeewanie,Dahanayake Yapa,Tolusha Sajeewanie Dahanayake Yapa,sajeewanied@uom.lk,Opt-in,11/26/2023 13:30,Attended
+Andrew,Yeow,Andrew Yeow,andrew.yeow@clinicallabs.com.au,Opt-in,12/6/2023 22:05,Attended
+Maya,Dimitrova,Maya Dimitrova,maya.dim@icloud.com,Opt-out,11/24/2023 19:27,Absent
+Thobeka,Nkosi,Thobeka Nkosi,thobeka.nkosi@sibanyestillwater.com,Opt-out,11/15/2023 12:52,Attended
+Paul,L,Paul L,paul.li@airbus.com,Opt-out,12/6/2023 9:00,Attended
+Петр,Кузьмин,КузьминПетр,kuzminpi@mail.ru,Opt-out,12/6/2023 3:59,Absent
+George,Zacharopoulos,George Zacharopoulos,gzacharopoulos@nisosadvisors.com,Opt-out,11/22/2023 14:52,Absent
+Dr.,Lindoo,Dr. Lindoo,eclindoo@campbellsville.edu,Opt-in,12/5/2023 15:39,Absent
+Muhammad Hammad,Majeed,Muhammad Hammad Majeed,h.majeed@nu.edu.pk,Opt-in,11/23/2023 8:24,Absent
+Aleksander,K.,Aleksander K.,ask369@mail.ru,Opt-in,11/11/2023 12:37,Absent
+Dnyaneshwar ,Kaulwar ,Dnyaneshwar Kaulwar,dkaulwar@gmail.com,Opt-in,11/9/2023 15:52,Attended
+Xu,Sun,Xu Sun,xu.sun@uit.no,Opt-in,11/9/2023 17:04,Absent
+Muhammad Zul Fikri,Khamis,Muhammad Zul Fikri Khamis,m.khamis@cranfield.ac.uk,Opt-in,12/5/2023 15:20,Absent
+Rhonalyn,Maulion,Rhonalyn Maulion,rhonalyn.maulion@g.batstate-u.edu.ph,Opt-out,11/10/2023 5:28,Absent
+Chris,Haynes,Chris Haynes,c.haynes@amrc.co.uk,Opt-out,12/6/2023 8:54,Attended
+Nikita,Bakhmetev,Nikita Bakhmetev,nbakhmetev@gmail.com,Opt-in,12/5/2023 14:18,Absent
+Nicos,Komninos,Nicos Komninos,nico.komninos@gmail.com,Opt-out,11/9/2023 15:41,Attended
+Narges,Hajloo,Narges Hajloo,narges.hajloo@gmail.com,Opt-out,11/15/2023 14:20,Absent
+Tami,Demayo,Tami Demayo,tamidemayo@gmail.com,Opt-out,11/22/2023 19:21,Attended
+T,B,T B,twan@optimsim.nl,Opt-out,12/5/2023 14:17,Absent
+Alexxey,Mur,Alexxey Mur,alexxey.mur@gmail.com,Opt-out,12/6/2023 8:22,Absent
+Mouri,Hoque Nadia,Mouri Hoque Nadia,mhn1n23@soton.ac.uk,Opt-in,11/22/2023 14:53,Absent
+Madhup,Solanki,Madhup Solanki,madhup_solanki@hotmail.com,Opt-in,11/30/2023 16:52,Absent
+Kyle,Vieira,Kyle Vieira,kyle@dhtech.com,Opt-in,11/22/2023 14:54,Attended
+Judith,Berns,Judith Berns,judith.berns@rub.de,Opt-out,11/9/2023 18:09,Absent
+Ranga,Abeysooriya ,Ranga Abeysooriya,rangaa@uom.lk,Opt-in,11/24/2023 0:06,Absent
+Maarten,Petit,Maarten Petit,maarten.petit@teampicnic.com,Opt-out,11/9/2023 16:29,Absent
+Richard,Hurley,Richard Hurley,mohurls@optonline.net,Opt-in,11/9/2023 16:04,Attended
+Vladimir,Isaev,Vladimir Isaev,vladimir_isaev_1988@mail.ru,Opt-out,11/22/2023 15:22,Attended
+Carlos,Castellanos,Carlos Castellanos,carlos.castellanos@carlsberg.com,Opt-in,11/22/2023 18:52,Attended
+Prasun,Goel,Prasun Goel,prasungoel@yahoo.com,Opt-in,11/9/2023 15:59,Absent
+Antonio,Cortes,Antonio Cortes,antoniocortescastillo@gmail.com,Opt-in,11/9/2023 22:16,Absent
+Robert,Ratazak,Robert Ratazak,robertratazak@gmail.com,Opt-in,12/5/2023 14:20,Attended
+SURAJIT,DAS,SURAJIT DAS,surajitd@tce.co.in,Opt-out,12/6/2023 10:47,Absent
+Manuela,Beier,Manuela Beier,mbeier@beier.co.za,Opt-in,12/5/2023 14:07,Absent
+Gustavo C.,Peláez-Lourido,Peláez-Lourido Gustavo C.,gupelaez@uvigo.es,Opt-in,12/7/2023 14:37,Absent
+Sandeep,Bhakat,Sandeep Bhakat,bd22103@astra.xlri.ac.in,Opt-out,11/22/2023 14:46,Absent
+Robert,Whetsel,Robert Whetsel,rwhetsel@ravensong.com,Opt-out,12/5/2023 16:54,Absent
+Jeff,Lo,Jeff Lo,jefferson.lo@misim.ca,Opt-out,11/10/2023 17:41,Attended
+Serhii,Klimov,Serhii Klimov,s.v.klimov@nuwm.edu.ua,Opt-out,11/10/2023 3:04,Attended
+Yang,Liu,Yang Liu,sandyliu.yang@decisionlab.co.uk,Opt-in,11/13/2023 12:58,Absent
+Xiaoning,Shi,Xiaoning Shi,xiaoning.shi@dlr.de,Opt-in,12/5/2023 14:31,Absent
+January,Zilabumba,January Zilabumba,jzilabumba@gmail.com,Opt-in,12/6/2023 9:41,Attended
+Omar,Kella,Omar Kella,omarkella843@gmail.com,Opt-in,12/5/2023 17:16,Absent
+Francisco,Regateiro,Francisco Regateiro,francisco.regateiro@gmail.com,Opt-in,11/9/2023 17:30,Absent
+Otto,Chen,Otto Chen,c.chen2@exeter.ac.uk,Opt-in,11/10/2023 9:51,Attended
+Joffre,León Veas,León Veas Joffre,jleon@ups.edu.ec,Opt-in,11/22/2023 15:59,Attended
+Mauricio,N,Mauricio N,mauricio.dsn@outlook.com,Opt-in,12/5/2023 14:28,Absent
+Roberto ,Palacios,Roberto Palacios,rpalacios11@abc.gob.ar,Opt-in,11/10/2023 23:07,Absent
+Thembeka,Mkhize,Thembeka Mkhize,thembeka.mkhize11@gmail.com,Opt-in,11/23/2023 13:26,Attended
+Suveg V,Iyer,Suveg V Iyer,p20200051@pilani.bits-pilani.ac.in,Opt-out,12/5/2023 16:13,Absent
+Thomas,Wittig,Thomas Wittig,admin@wittigonia.com,Opt-in,11/22/2023 14:50,Absent
+Julius,Jow,Julius Jow,juliusjow@gmail.com,Opt-in,12/5/2023 17:54,Absent
+Celina,Mfala,Celina Mfala,mfalac@nm-aist.ac.tz,Opt-out,11/9/2023 18:07,Absent
+José Ernesto,Nájera Carpio,Nájera Carpio José Ernesto,jose.najera@enel.com,Opt-in,11/22/2023 14:48,Absent
+Richard ,Guadalupe McDonald ,Richard Guadalupe McDonald,contact@globalhealthscienceinstitute.org,Opt-in,11/9/2023 15:49,Absent
+Pascal,Cesari,Pascal Cesari,pascal.cesari@airbus.com,Opt-out,12/6/2023 11:03,Attended
+Nitin,Roy,Nitin Roy,nitin.x.roy@kp.org,Opt-out,11/9/2023 17:27,Absent
+Corky,Wicks,Corky Wicks,cwicks@belhaven.edu,Opt-in,11/22/2023 15:07,Attended
+Pierre,Gros,Pierre Gros,pierre-alexis.gros@cosmotech.com,Opt-out,11/17/2023 13:54,Absent
+Amir,Nazerian,Amir Nazerian,amir.nazerian@ontario.ca,Opt-in,11/22/2023 15:29,Attended
+Tadeas,Sommer,Tadeas Sommer,tadeas.sommer@mercedes-benz.com,Opt-out,11/22/2023 15:09,Attended
+Sophia,Tan,Sophia Tan,tana3@chop.edu,Opt-out,11/22/2023 14:46,Attended
+Atharva,Bhad,Atharva Bhad,atharvabhad@gmail.com,Opt-in,12/6/2023 10:43,Absent
+Mukundkumar,Kachare,Mukundkumar Kachare,kacharemukund@live.com,Opt-in,11/22/2023 14:57,Attended
+Renata,Vieira Gonçalves,Vieira Gonçalves Renata,renata.vegon@gmail.com,Opt-in,12/5/2023 15:34,Attended
+Ayanda,Hlongwane,Ayanda Hlongwane,ayanda-x@hotmail.com,Opt-out,11/23/2023 7:07,Absent
+Elisa,Elena,Elisa Elena,eelena@ite-consult.com,Opt-in,12/5/2023 22:39,Absent
+Afroditi,Pantazidou,Afroditi Pantazidou,pantazidou.afroditi@gmail.com,Opt-in,12/1/2023 17:13,Attended
+Dasola,Oluge,Dasola Oluge,daoluge@ucalgary.ca,Opt-out,12/5/2023 15:12,Attended
+Vaibhav,Kankal,Vaibhav Kankal,vaibhav.kankal@nivid.co.in,Opt-out,11/23/2023 11:07,Attended
+Robert,Simmonds,Robert Simmonds,orsadoc@gmail.com,Opt-out,11/22/2023 15:31,Absent
+Orville ,Walker,Orville Walker,owalker7@gatech.edu,Opt-in,11/9/2023 16:41,Absent
+Jonathan,Smith,Jonathan Smith,jwray89@yahoo.com,Opt-out,12/5/2023 20:03,Attended
+Costanza,Chiesa,Costanza Chiesa,chiesa@circletouch.eu,Opt-out,11/13/2023 13:27,Attended
+Carlos,Rivera,Carlos Rivera,carlos.rivera@indx.com,Opt-out,11/9/2023 16:18,Absent
+Stephen,Ndire,Stephen Ndire,ndirestephen.47@gmail.com,Opt-in,12/7/2023 11:55,Attended
+Eugene,Boyarchuk,Eugene Boyarchuk,boerbek@gmail.com,Opt-in,12/3/2023 11:21,Absent
+Ruzzel Evry,San Pedro,Ruzzel Evry San Pedro,mregsanpedro@tip.edu.ph,Opt-in,11/30/2023 16:32,Absent
+Maximilian,Selmair,Maximilian Selmair,maximilian.selmair@gmail.com,Opt-out,12/1/2023 6:11,Attended
+Neda ,Naghshbandi,Neda Naghshbandi,seyedehneda.naghshbandi@atkinsrealis.com,Opt-out,11/23/2023 9:30,Absent
+Shabaz,Bhavikatti,Shabaz Bhavikatti,shabaz259@gmail.com,Opt-in,11/22/2023 18:18,Absent
+Robert,Aschenbrenner,Robert Aschenbrenner,robert.aschenbrenner@mercedes-benz.com,Opt-out,12/5/2023 14:45,Attended
+Abdurrahman,Yavuz,Abdurrahman Yavuz,abdurrahman.yavuz@novelis.adityabirla.com,Opt-out,12/7/2023 16:03,Attended
+Ana Theodora,Balaci,Ana Theodora Balaci,balaci.ana.theodora@gmail.com,Opt-out,11/9/2023 23:46,Attended
+Prashant,Tiwari,Prashant Tiwari,p_tiwari@cargill.com,Opt-in,11/9/2023 15:41,Attended
+Atharva,Bhad,Atharva Bhad,50000836@mahindra.com,Opt-in,12/6/2023 10:42,Absent
+Afonso,Medina,Afonso Medina,afonso.medina@genoads.com.br,Opt-in,11/9/2023 16:04,Attended
+Manish,Choudhary,Manish Choudhary,manishmech05@gmail.com,Opt-in,12/6/2023 18:34,Absent
+Serkan,Ceran,Serkan Ceran,serkan.ceran@analizon.com,Opt-in,11/9/2023 15:41,Attended
+Dmitry,Z,Dmitry Z,dv.tcymai@spbgipro.ru,Opt-in,12/4/2023 7:22,Attended
+AW,Mehdi,AW Mehdi,aamirmehdi@hotmail.com,Opt-out,11/24/2023 1:52,Absent
+Stefano,Sanfilippo,Stefano Sanfilippo,s.sanfilippo@stamtech.com,Opt-in,12/6/2023 15:59,Absent
+Pedro,Vasquez,Pedro Vasquez,pvasquezcoronado@laurentian.ca,Opt-out,12/6/2023 2:53,Absent
+Jack,Rijnberg,Jack Rijnberg,jack.rijnberg@cematec.nl,Opt-in,12/6/2023 9:28,Absent
+Fatemeh,Keshavarz-Ghorbani,Fatemeh Keshavarz-Ghorbani,fatemekeshavarz337@yahoo.com,Opt-out,11/22/2023 16:01,Absent
+monika,mlakar,monika mlakar,monika.mlakar1@student.um.si,Opt-out,12/7/2023 16:02,Attended
+Daniel,Neyrot,Daniel Neyrot,daneyrot@gmail.com,Opt-out,12/3/2023 5:28,Absent
+Marek,Doležel,Doležel Marek,mdolezel@fmlogistic.com,Opt-in,12/5/2023 15:56,Absent
+Fernando,Merino,Fernando Merino,fmerinob@minsait.com,Opt-out,12/5/2023 15:40,Absent
+Alexandr,Zyulkov,Alexandr Zyulkov,avzz888@yandex.ru,Opt-in,11/30/2023 19:56,Attended
+Rolando,Streber,Rolando Streber,rastreber@gmail.com,Opt-out,11/22/2023 16:39,Attended
+Victor,Melnikov,Victor Melnikov,melnikov1990@gmail.com,Opt-in,11/22/2023 15:06,Absent
+Rob,Andel,Rob Andel,andelrob@cvut.cz,Opt-out,11/22/2023 21:55,Absent
+A,T,A T,a.tsitlakidis@dia-toulis.gr,Opt-out,12/5/2023 14:17,Attended
+Jorge ,Alvarez,Jorge Alvarez,jorge1.alvarez@geodis.com,Opt-in,11/30/2023 18:36,Attended
+Hanif,Vallani,Hanif Vallani,hanifvallani@gmail.com,Opt-in,12/5/2023 6:21,Absent
+Ezhilan ,AK,Ezhilan AK,akezhilan@gmail.com,Opt-in,11/9/2023 23:08,Absent
+Amit,Kumar,Amit Kumar,akumar@simwell.io,Opt-in,11/10/2023 5:44,Attended
+Andre,Belmonte,Andre Belmonte,andre.belmonte@indx.com,Opt-in,11/22/2023 14:53,Attended
+Adam,Young,Adam Young,adamy2014@gmail.com,Opt-in,12/5/2023 14:51,Attended
+Sushant,Mahindrakar,Sushant Mahindrakar,sushant.sudhir-mahindrakar.external@airbus.com,Opt-out,11/10/2023 6:40,Absent
+Nicolas,Ramírez,Ramírez Nicolas,nicolas_ramirez@hotmail.es,Opt-in,11/22/2023 18:49,Attended
+Olha,Poliakova,Olha Poliakova,polya_o@ukr.net,Opt-out,11/9/2023 15:58,Attended
+Beau,Furnee,Beau Furnee,beau.furnee@pwc.com,Opt-out,11/10/2023 7:27,Attended
+Nawal,GHAZI,Nawal GHAZI,nawel.ghazi@ensta.edu.dz,Opt-out,11/10/2023 21:15,Attended
+Alain,Widjanarka,Alain Widjanarka,alainwidjanarka@gmail.com,Opt-out,11/22/2023 15:22,Attended
+Stepan,Orlov,Stepan Orlov,rfkfi345@gmail.com,Opt-in,11/11/2023 8:23,Attended
+David,Beaumont,David Beaumont,dericb888@gmail.com,Opt-in,12/6/2023 1:30,Absent
+Patricia,Randall,Patricia Randall,prandall@princeton.com,Opt-out,11/30/2023 15:26,Absent
+Gloria,D'Azevedo,Gloria D'Azevedo,gloria.dazevedo@canadapost.ca,Opt-in,11/22/2023 14:53,Attended
+Edgar ,Ortiz,Edgar Ortiz,edg3km@gmail.com,Opt-in,12/5/2023 19:48,Attended
+Nina,Gabdrakipova,Nina Gabdrakipova,greinn@yandex.ru,Opt-in,11/13/2023 6:18,Absent
+Adrian,Langer,Adrian Langer,adrian.langer@tu-braunschweig.de,Opt-out,11/23/2023 10:57,Absent
+Naveen,Yalal,Naveen Yalal,naveen-kumar.yalal@airbus.com,Opt-in,11/10/2023 6:20,Absent
+George,Stelling,George Stelling,gstelling@quadrillionpartners.com,Opt-in,11/22/2023 14:54,Attended
+Irina,Miss,Irina Miss,free-mis@yandex.ru,Opt-out,11/9/2023 17:19,Absent
+Stephan,Tieck,Stephan Tieck,stephan.tieck@airbus.com,Opt-in,11/23/2023 16:14,Attended
+Hamidreza,Rahimzadeh,Hamidreza Rahimzadeh,hamidreza.rahimzadeh@intel.com,Opt-in,11/22/2023 22:53,Attended
+Steve,Truong,Steve Truong,steven.truong@dot.gov,Opt-in,11/9/2023 17:04,Attended
+David,Ciprés,Ciprés David,dcipres@itainnova.es,Opt-in,11/10/2023 13:02,Absent
+Mario,Eandi,Mario Eandi,mario.eandi@gmail.com,Opt-in,12/5/2023 15:03,Attended
+Malcolm,Garbutt,Malcolm Garbutt,mgarbutt@uwc.ac.za,Opt-in,11/22/2023 16:22,Attended
+Agustín,Caferri,Caferri Agustín,acaferri@frlp.utn.edu.ar,Opt-out,11/13/2023 10:17,Absent
+Игорь,Пешков,ПешковИгорь,idelovoi@gmail.com,Opt-in,11/22/2023 15:55,Absent
+Amine,Abdous,Amine Abdous,amine.abdous@imt-lille-douai.fr,Opt-in,11/10/2023 18:49,Absent
+Huimin,Tang,Huimin Tang,342674675@qq.com,Opt-in,11/10/2023 15:38,Attended
+Robert,Bradley,Robert Bradley,robertbradley@intermatllc.com,Opt-out,11/9/2023 16:39,Absent
+Arnav,Sudhansh,Arnav Sudhansh,arnav.sudhansh12@gmail.com,Opt-in,11/30/2023 16:40,Absent
+Rishi,Kumar,Rishi Kumar,p20180035@pilani.bits-pilani.ac.in,Opt-in,12/5/2023 14:27,Absent
+Tom,Venema,Tom Venema,tom.venema@capgemini.com,Opt-out,11/26/2023 18:20,Absent
+Doha,TAPE,Doha TAPE,dohaguy.tape@cost-solutions.com,Opt-out,12/5/2023 21:37,Absent
+Alisher,Suyunov,Alisher Suyunov,asuyunov@outlook.com,Opt-out,11/17/2023 17:04,Absent
+Adam,Young,Adam Young,deltarider2208@yahoo.com,Opt-in,12/7/2023 15:32,Absent
+Ashok,Kinjarapu,Ashok Kinjarapu,akinjarapu@cpcs.ca,Opt-out,12/5/2023 16:16,Absent
+Hassan,Assareh,Hassan Assareh,hassan.assareh@health.nsw.gov.au,Opt-out,11/22/2023 22:04,Absent
+Alban Max,KOKOUALE NGBOKOTO,Alban Max KOKOUALE NGBOKOTO,albankokouale@gmail.com,Opt-in,11/23/2023 10:26,Absent
+Christian,Bruss,Christian Bruss,christian.bruss@tuhh.de,Opt-out,11/9/2023 17:00,Attended
+Etienne,Jean,Etienne Jean,etienne.jean@lda.fr,Opt-out,11/23/2023 9:29,Absent
+Mauricio,González Velez Barahona,González Velez Barahona Mauricio,mgonzalez@vpconsulting.mx,Opt-out,11/9/2023 16:35,Absent
+Natalie,Davenport,Natalie Davenport,ndavenport@systra.com,Opt-in,11/9/2023 23:45,Absent
+Edison,Carpio,Edison Carpio,edicarpio18@gmail.com,Opt-in,12/5/2023 17:40,Attended
+Paweł,Sutowski,Sutowski Paweł,pawel.sutowski@tu.koszalin.pl,Opt-out,12/5/2023 15:05,Attended
+Gelu,Madear,Gelu Madear,gelu.madear@eco-rocca.ro,Opt-in,11/22/2023 15:12,Absent
+dahee,jung,dahee jung,98dahee@naver.com,Opt-out,11/24/2023 8:12,Absent
