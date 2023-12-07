@@ -235,9 +235,8 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[graphs]
+          pip install -e .[graphs,test]
           python -c "import autogen"
-          pip install coverage
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
