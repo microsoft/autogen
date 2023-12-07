@@ -53,7 +53,7 @@ UNSTRUCTURED_FORMATS = [
     "rtf",
     "rst",
     "xlsx",
-]
+]  # these formats will be parsed by unstructured if it's installed
 if HAS_UNSTRUCTURED:
     TEXT_FORMATS += UNSTRUCTURED_FORMATS
     TEXT_FORMATS = list(set(TEXT_FORMATS))
