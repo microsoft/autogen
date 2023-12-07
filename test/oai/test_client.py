@@ -80,7 +80,7 @@ def test_usage_summary():
     # check update
     client._update_usage_summary(response, use_cache=True)
     assert (
-        client.actual_usage_summary["total_cost"] == response.cost * 2
+        client.total_usage_summary["total_cost"] == response.cost * 2
     ), "total_cost should be equal to response.cost * 2"
 
     # check clear
