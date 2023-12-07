@@ -229,7 +229,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 for tool_call in message_content["tool_calls"]:
                     if tool_call.get("type") == "function":
                         tmp_content += tool_call["function"]["name"] + tool_call["function_call"]["arguments"]
-        message_content = content_str(message_content)  # Cast message content to str
+            message_content = tmp_content
 
         # Cast message content to str
         message_content = content_str(message_content)
