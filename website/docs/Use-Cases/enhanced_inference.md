@@ -6,9 +6,7 @@ There are a number of benefits of using `autogen` to perform inference: performa
 
 ## Tune Inference Parameters (for openai<1)
 
-*Links to notebook examples:*
-* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
-* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#tune-inference-hyperparameters)
 
 ### Choices to optimize
 
@@ -122,6 +120,8 @@ client = OpenAIWrapper()
 response = client.create(messages=[{"role": "user", "content": "2+2="}], model="gpt-3.5-turbo")
 # extract the response text
 print(client.extract_text_or_function_call(response))
+# get cost of this completion
+print(response.cost)
 # Azure OpenAI endpoint
 client = OpenAIWrapper(api_key=..., base_url=..., api_version=..., api_type="azure")
 # Completion
