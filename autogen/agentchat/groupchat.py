@@ -217,6 +217,20 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         Returns:
             Dict: a counter for mentioned agents.
         """
+        # This handles the case when the selector gives a wrong response of making function calls
+        # take out content, function_calls, tool_calls to put in one string
+        if isinstance(message_content, dict):
+            tmp_content = ""
+            if message_content.get("content"):
+                tmp_content = message_content["content"]
+            if message_content.get("function_call"):
+                tmp_content += message_content["function_call"]["name"] + message_content["function_call"]["arguments"]
+            if message_content.get("tool_calls"):
+                for tool_call in message_content["tool_calls"]:
+                    if tool_call.get("type") == "function":
+                        tmp_content += tool_call["function"]["name"] + tool_call["function_call"]["arguments"]
+        message_content = content_str(message_content)  # Cast message content to str
+
         # Cast message content to str
         message_content = content_str(message_content)
 
@@ -244,6 +258,11 @@ class GroupChatManager(ConversableAgent):
         system_message: Optional[Union[str, List]] = "Group chat manager.",
         **kwargs,
     ):
+        if kwargs.get("llm_config") and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools")):
+            raise ValueError(
+                "GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in."
+            )
+
         super().__init__(
             name=name,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
