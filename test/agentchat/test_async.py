@@ -4,6 +4,7 @@ import autogen
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 
+
 def get_market_news(ind, ind_upper):
     data = {
         "feed": [
@@ -44,6 +45,50 @@ def get_market_news(ind, ind_upper):
     )
     return feeds_summary
 
+@pytest.mark.asyncio
+async def test_async_groupchat():
+    
+    try:
+        import openai
+    except ImportError:
+        return
+    
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    
+    llm_config={
+            "timeout": 600,
+            "cache_seed": 41,
+            "config_list": config_list,
+            "temperature": 0,
+        }
+    
+    # create an AssistantAgent instance named "assistant"
+    assistant = autogen.AssistantAgent(
+        name="assistant",
+        llm_config={
+            "timeout": 600,
+            "cache_seed": 41,
+            "config_list": config_list,
+            "temperature": 0,
+        },
+        system_message="You are a helpful assistant.  Reply 'TERMINATE' to end the conversation.",
+    )
+    # create a UserProxyAgent instance named "user"
+    user_proxy = autogen.UserProxyAgent(
+        name="user",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=5,
+        code_execution_config=False,
+        default_auto_reply=None,
+    )
+
+    groupchat = autogen.GroupChat(agents=[user_proxy, assistant], messages=[], max_round=12)
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config,
+                                is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+                                )
+    await user_proxy.a_initiate_chat(manager,
+                                  message="""Have a short conversation with the assistant.""")
+    assert len(user_proxy.chat_messages)>0
 
 @pytest.mark.asyncio
 async def test_stream():
