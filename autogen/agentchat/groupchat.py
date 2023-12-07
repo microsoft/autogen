@@ -160,7 +160,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = random.choice(agents)
         else:
             selected_agent = None
-        return selected_agent
+        return selected_agent, agents
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
         """Select the next speaker."""
