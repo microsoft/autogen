@@ -235,9 +235,15 @@ class OpenAIWrapper:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
+
                     if response is not None:
+                        try:
+                            response.cost
+                        except AttributeError:
+                            # update atrribute if cost is not calculated
+                            response.cost = self.cost(response)
+                            cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
-                    if response is not None:
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
@@ -248,12 +254,16 @@ class OpenAIWrapper:
                         continue  # filter is not passed; try the next config
             try:
                 response = self._completions_create(client, params)
-            except APIError:
+            except APIError as err:
+                error_code = getattr(err, "code", None)
+                if error_code == "content_filter":
+                    # raise the error for content_filter
+                    raise
                 logger.debug(f"config {i} failed", exc_info=1)
                 if i == last:
                     raise
             else:
-                # add cost calculation before caching not matter filter is passed or not
+                # add cost calculation before caching no matter filter is passed or not
                 response.cost = self.cost(response)
                 self._update_usage_summary(response, use_cache=False)
                 if cache_seed is not None:

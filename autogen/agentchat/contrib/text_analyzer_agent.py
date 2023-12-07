@@ -46,7 +46,7 @@ class TextAnalyzerAgent(ConversableAgent):
             llm_config=llm_config,
             **kwargs,
         )
-        self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply, 1)
+        self.register_reply(Agent, TextAnalyzerAgent._analyze_in_reply, position=2)
 
     def _analyze_in_reply(
         self,
