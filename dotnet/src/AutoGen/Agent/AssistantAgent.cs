@@ -26,9 +26,11 @@ namespace AutoGen
         private readonly HumanInputMode humanInputMode;
         private readonly IDictionary<string, Func<string, Task<string>>>? functionMaps;
         private readonly bool selfExecute;
+        private readonly string systemMessage;
 
         public AssistantAgent(
             string name,
+            string systemMessage = "You are a helpful AI assistant",
             IAgent? innerAgent = null,
             string? defaultReply = null,
             HumanInputMode humanInputMode = HumanInputMode.AUTO,
@@ -44,16 +46,24 @@ namespace AutoGen
             this.IsTermination = isTermination;
             this.defaultReply = defaultReply;
             this.selfExecute = selfExecute;
+            this.systemMessage = systemMessage;
         }
 
         public string? Name { get; }
 
-        public IChatCompletion? ChatCompletion { get; private set; }
+        public IChatCompletion? ChatCompletion => this.innerAgent?.ChatCompletion;
 
         public Func<IEnumerable<Message>, CancellationToken, Task<bool>>? IsTermination { get; }
 
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
+            // if there's no system message, add system message to the first of chat history
+            if (!messages.Any(m => m.Role == AuthorRole.System))
+            {
+                var systemMessage = new Message(AuthorRole.System, this.systemMessage, from: this.Name);
+                messages = new[] { systemMessage }.Concat(messages);
+            }
+
             // process order: function_call -> human_input -> inner_agent -> default_reply -> self_execute
             // first in, last out
 
@@ -137,7 +147,7 @@ namespace AutoGen
             // process function call
             agent = agent.RegisterReply(async (messages, cancellationToken) =>
             {
-                if (this.functionMaps != null && messages.Last()?.FunctionCall is FunctionCall fc)
+                if (this.functionMaps != null && messages.Last()?.FunctionCall is FunctionCall fc && this.functionMaps.ContainsKey(fc.Name))
                 {
                     return await this.ExecuteFunctionCallAsync(messages.Last(), cancellationToken);
                 }
@@ -163,7 +173,7 @@ namespace AutoGen
 
         private async Task<Message> ExecuteFunctionCallAsync(Message message, CancellationToken cancellationToken)
         {
-            if (this.functionMaps != null && message.FunctionCall is FunctionCall fc)
+            if (message.FunctionCall is FunctionCall fc && this.functionMaps != null)
             {
                 if (this.functionMaps.TryGetValue(fc.Name, out var func))
                 {
@@ -183,7 +193,7 @@ namespace AutoGen
                 }
             }
 
-            throw new Exception("Function call is not available.");
+            throw new Exception("Function call is not available. Please pass a function map to assistant agent");
         }
     }
 }

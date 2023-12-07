@@ -31,8 +31,7 @@ namespace AutoGen
         public async Task<IEnumerable<Message>> CallAsync(
             IEnumerable<Message>? conversationWithName = null,
             int maxRound = 10,
-            bool throwExceptionWhenMaxRoundReached = false,
-            CancellationToken? ct = null)
+            CancellationToken ct = default)
         {
             var conversationHistory = new List<Message>();
             if (conversationWithName != null)
@@ -43,7 +42,7 @@ namespace AutoGen
             var lastSpeaker = conversationHistory.LastOrDefault()?.GetFrom() switch
             {
                 null => this.agents.First(),
-                _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().GetFrom()) ?? throw new Exception("The agent is not in the group chat"),
+                _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().From) ?? throw new Exception("The agent is not in the group chat"),
             };
             var round = 0;
             while (round < maxRound)
@@ -61,11 +60,6 @@ namespace AutoGen
 
                 lastSpeaker = currentSpeaker;
                 round++;
-            }
-
-            if (round == maxRound && throwExceptionWhenMaxRoundReached)
-            {
-                throw new Exception("Max round reached");
             }
 
             return conversationHistory;

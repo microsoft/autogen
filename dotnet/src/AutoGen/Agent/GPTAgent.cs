@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Extension;
@@ -51,7 +53,18 @@ namespace AutoGen
 
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
-            var chatHistory = ChatCompletion!.CreateNewChat(_systemMessage);
+            // if there's no system message in messages, add one
+            ChatHistory? chatHistory = null;
+            if (messages.Any(m => m.Role == AuthorRole.System))
+            {
+                chatHistory = ChatCompletion!.CreateNewChat();
+            }
+            else
+            {
+                chatHistory = ChatCompletion!.CreateNewChat(_systemMessage);
+            }
+
+            messages = this.ProcessMessages(messages);
             foreach (var message in messages)
             {
                 chatHistory.Add(message);
@@ -91,13 +104,45 @@ namespace AutoGen
 
         private OpenAIFunction ToOpenAIFunction(FunctionDefinition functionDefinition)
         {
+            var jsonOption = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            };
+            var parametersObject = functionDefinition.Parameters.ToObjectFromJson<ParameterObject>(jsonOption);
             var function = new OpenAIFunction
             {
                 FunctionName = functionDefinition.Name,
                 Description = functionDefinition.Description,
+                Parameters = parametersObject.Properties.Select(p => new OpenAIFunctionParameter
+                {
+                    Name = p.Key,
+                    Description = p.Value.Description,
+                    IsRequired = parametersObject.Required.Contains(p.Key),
+                    Type = p.Value.Type,
+                    ParameterType = p.Value.Type switch
+                    {
+                        "int" => typeof(int),
+                        "number" => typeof(double),
+                        "string" => typeof(string),
+                        "boolean" => typeof(bool),
+                        "string[]" => typeof(string[]),
+                        "int[]" => typeof(int[]),
+                        "number[]" => typeof(double[]),
+                        _ => typeof(object),
+                    }
+                }).ToList(),
             };
 
             return function;
+        }
+
+        class ParameterObject
+        {
+            [JsonPropertyName("required")]
+            public string[] Required { get; set; } = Array.Empty<string>();
+
+            [JsonPropertyName("properties")]
+            public Dictionary<string, OpenAIFunctionParameter> Properties { get; set; } = new Dictionary<string, OpenAIFunctionParameter>();
         }
     }
 }

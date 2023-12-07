@@ -101,5 +101,59 @@ namespace AutoGen.Extension
 
             message.AdditionalProperties["From"] = from!;
         }
+
+        public static void SetName(this Microsoft.SemanticKernel.AI.ChatCompletion.ChatMessage message, string? name)
+        {
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            if (string.IsNullOrEmpty(name))
+            {
+                return;
+            }
+
+            if (message.AdditionalProperties == null)
+            {
+                message.AdditionalProperties = new Dictionary<string, string>();
+            }
+
+            message.AdditionalProperties["Name"] = name!;
+        }
+
+        public static string? GetName(this Microsoft.SemanticKernel.AI.ChatCompletion.ChatMessage message)
+        {
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            if (message.AdditionalProperties == null)
+            {
+                return null;
+            }
+
+            if (message.AdditionalProperties.TryGetValue("Name", out var name))
+            {
+                return name;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public static string FormatMessage(this Message message)
+        {
+            // write result
+            var result = $"Message from {message.From}\n";
+            // write a seperator
+            result += new string('-', 20) + "\n";
+            result += message.Content + "\n";
+            result += new string('-', 20) + "\n";
+
+            return result;
+        }
     }
 }

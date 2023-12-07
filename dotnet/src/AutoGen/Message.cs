@@ -37,5 +37,11 @@ namespace AutoGen
             get => this.GetFunctionCall();
             set => this.SetFunctionCall(value);
         }
+
+        public string? FunctionName
+        {
+            get => this.GetName();
+            set => this.SetName(value);
+        }
     }
 }

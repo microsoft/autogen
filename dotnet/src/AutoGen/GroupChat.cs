@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel.AI;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
 namespace AutoGen
 {
@@ -70,8 +71,13 @@ From admin:
             var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
 
             var messages = new Message[] { systemMessage }.Concat(conv);
-            var settings = new AIRequestSettings
+            var settings = new OpenAIRequestSettings
             {
+                Temperature = 0,
+                StopSequences = new[]
+                {
+                    ":",
+                },
                 ExtensionData = new Dictionary<string, object>
                 {
                     { "temperature", 0 },
@@ -110,19 +116,11 @@ From admin:
         public async Task<IEnumerable<Message>> CallAsync(
             IEnumerable<Message>? conversationWithName = null,
             int maxRound = 10,
-            bool throwExceptionWhenMaxRoundReached = false,
-            CancellationToken? ct = null)
+            CancellationToken ct = default)
         {
             if (maxRound == 0)
             {
-                if (throwExceptionWhenMaxRoundReached)
-                {
-                    throw new Exception("Max round reached.");
-                }
-                else
-                {
-                    return conversationWithName ?? Enumerable.Empty<Message>();
-                }
+                return conversationWithName ?? Enumerable.Empty<Message>();
             }
 
             // sleep 10 seconds
@@ -144,7 +142,7 @@ From admin:
                 return updatedConversation;
             }
 
-            return await this.CallAsync(updatedConversation, maxRound - 1, throwExceptionWhenMaxRoundReached);
+            return await this.CallAsync(updatedConversation, maxRound - 1, ct);
         }
     }
 }

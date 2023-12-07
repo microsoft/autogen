@@ -12,19 +12,22 @@ namespace AutoGen
 {
     public class GroupChatManager : IAgent
     {
-        private readonly IGroupChat _groupChat;
-
         public GroupChatManager(IGroupChat groupChat)
         {
-            _groupChat = groupChat;
+            GroupChat = groupChat;
         }
         public string? Name => throw new ArgumentException("GroupChatManager does not have a name");
 
         public IChatCompletion? ChatCompletion => null;
 
+        public IEnumerable<Message>? Messages { get; private set; }
+
+        public IGroupChat GroupChat { get; }
+
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
-            var response = await _groupChat.CallAsync(messages, ct: cancellationToken);
+            var response = await GroupChat.CallAsync(messages, ct: cancellationToken);
+            Messages = response;
 
             return response.Last();
         }

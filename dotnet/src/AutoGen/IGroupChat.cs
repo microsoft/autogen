@@ -11,6 +11,6 @@ namespace AutoGen
     {
         void AddInitializeMessage(Message message);
 
-        Task<IEnumerable<Message>> CallAsync(IEnumerable<Message>? conversation = null, int maxRound = 10, bool throwExceptionWhenMaxRoundReached = true, CancellationToken? ct = null);
+        Task<IEnumerable<Message>> CallAsync(IEnumerable<Message>? conversation = null, int maxRound = 10, CancellationToken ct = default);
     }
 }
