@@ -3,17 +3,26 @@ import requests
 import re
 import markdownify
 import io
-from urllib.parse import urljoin
+import uuid
+import mimetypes
+from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 
+# Optional PDF support
 IS_PDF_CAPABLE = False
 try:
     import pdfminer
     import pdfminer.high_level
 
     IS_PDF_CAPABLE = True
+except ModuleNotFoundError:
+    pass
+
+# Other optional dependencies
+try:
+    import pathvalidate
 except ModuleNotFoundError:
     pass
 
@@ -27,6 +36,7 @@ class SimpleTextBrowser:
         viewport_size: Optional[int] = 1024 * 16,  # 16Kb
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
+        request_kwargs: Optional[Union[Dict, None]] = None,
     ):
         self.start_page = start_page
         self.viewport_size = viewport_size  # Applies only to the standard uri types
@@ -37,6 +47,7 @@ class SimpleTextBrowser:
         self.viewport_position = 0
         self.set_address(start_page)
         self.bing_api_key = bing_api_key
+        self.request_kwargs = request_kwargs
 
         # For find on page
         self.find_string = ""
@@ -118,9 +129,23 @@ class SimpleTextBrowser:
         return self.viewport
 
     def _bing_search(self, query):
-        headers = {"Ocp-Apim-Subscription-Key": self.bing_api_key}
-        params = {"q": query, "textDecorations": False, "textFormat": "raw"}
-        response = requests.get("https://api.bing.microsoft.com/v7.0/search", headers=headers, params=params)
+        # Prepare the request parameters
+        request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
+
+        if "headers" not in request_kwargs:
+            request_kwargs["headers"] = {}
+        request_kwargs["headers"]["Ocp-Apim-Subscription-Key"] = self.bing_api_key
+
+        if "params" not in request_kwargs:
+            request_kwargs["params"] = {}
+        request_kwargs["params"]["q"] = query
+        request_kwargs["params"]["textDecorations"] = False
+        request_kwargs["params"]["textFormat"] = "raw"
+
+        request_kwargs["stream"] = False
+
+        # Make the request
+        response = requests.get("https://api.bing.microsoft.com/v7.0/search", **request_kwargs)
         response.raise_for_status()
         results = response.json()
 
@@ -152,8 +177,12 @@ class SimpleTextBrowser:
 
     def _fetch_page(self, url):
         try:
+            # Prepare the request parameters
+            request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
+            request_kwargs["stream"] = True
+
             # Send a HTTP request to the URL
-            response = requests.get(url, stream=True)
+            response = requests.get(url, **request_kwargs)
             response.raise_for_status()
 
             # If the HTTP request returns a status code 200, proceed
@@ -167,7 +196,7 @@ class SimpleTextBrowser:
                 if content_type == "text/html":
                     # Get the content of the response
                     html = ""
-                    for chunk in response.iter_content(decode_unicode=True):
+                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
                         html += chunk
 
                     soup = BeautifulSoup(html, "html.parser")
@@ -188,7 +217,7 @@ class SimpleTextBrowser:
                 elif content_type == "text/plain":
                     # Get the content of the response
                     plain_text = ""
-                    for chunk in response.iter_content(decode_unicode=True):
+                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
                         plain_text += chunk
 
                     self.page_title = None
@@ -197,6 +226,30 @@ class SimpleTextBrowser:
                     pdf_data = io.BytesIO(response.raw.read())
                     self.page_title = None
                     self.page_content = pdfminer.high_level.extract_text(pdf_data)
+                elif self.downloads_folder is not None:
+                    # Try producing a safe filename
+                    fname = None
+                    try:
+                        fname = pathvalidate.sanitize_filename(os.path.basename(urlparse(url).path)).strip()
+                    except NameError:
+                        pass
+
+                    # No suitable name, so make one
+                    if fname is None:
+                        extension = mimetypes.guess_extension(content_type)
+                        if extension is None:
+                            extension = ".download"
+                        fname = str(uuid.uuid4()) + extension
+
+                    # Open a file for writing
+                    download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
+                    with open(download_path, "wb") as fh:
+                        for chunk in response.iter_content(chunk_size=512):
+                            fh.write(chunk)
+
+                    # Return a page describing what just happened
+                    self.page_title = "Download complete."
+                    self.page_content = f"Downloaded '{url}' to '{download_path}'."
                 else:
                     self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
                     self.page_content = self.page_title
@@ -210,11 +263,23 @@ class SimpleTextBrowser:
 
 if __name__ == "__main__":
     import os
+    import sys
 
-    browser = SimpleTextBrowser(bing_api_key=os.environ["BING_API_KEY"])
+    # Default user agent
+    user_agent = "python-requests/" + requests.__version__
 
-    # print(browser.visit_page("bing: latest news on OpenAI"))
-    # input("Press Next to navigate to Micosoft wikipedia page...")
+    browser = SimpleTextBrowser(
+        bing_api_key=os.environ["BING_API_KEY"],
+        downloads_folder=os.getcwd(),
+        request_kwargs={
+            "headers": {"User-Agent": user_agent},
+        },
+    )
+
+    print(browser.visit_page("https://www.adamfourney.com/adam.jpg"))
+    input("Press Next to search Bing...")
+    print(browser.visit_page("bing: latest news on OpenAI"))
+    input("Press Next to fetch a text file...")
     print(browser.visit_page("https://www.adamfourney.com/papers/bibtex/chang_arxiv2023.txt"))
     input("Press Enter to fetch PDF...")
     print(browser.visit_page("https://arxiv.org/pdf/2306.04930.pdf"))
