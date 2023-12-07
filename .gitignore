@@ -171,3 +171,6 @@ test/my_tmp/*
 
 # Storage for the AgentEval output
 test/test_files/agenteval-in-out/out/
+
+# ENV VARIABLES
+.env
