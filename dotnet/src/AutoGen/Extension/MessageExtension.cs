@@ -99,7 +99,7 @@ namespace AutoGen.Extension
                 message.AdditionalProperties = new Dictionary<string, string>();
             }
 
-            message.AdditionalProperties["From"] = from;
+            message.AdditionalProperties["From"] = from!;
         }
     }
 }

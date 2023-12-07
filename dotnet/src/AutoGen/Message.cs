@@ -19,6 +19,13 @@ namespace AutoGen
             this.SetFrom(from);
         }
 
+        public Message(Message other)
+            : this(other.Role, other.Content, other.From)
+        {
+            this.SetFrom(other.From);
+            this.SetFunctionCall(other.FunctionCall);
+        }
+
         public string? From
         {
             get => this.GetFrom();

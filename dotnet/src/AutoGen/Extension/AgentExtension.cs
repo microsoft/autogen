@@ -121,7 +121,7 @@ namespace AutoGen
 
         public static IAgent RegisterReply(
             this IAgent agent,
-            Func<IEnumerable<Message>, CancellationToken?, Task<Message?>> replyFunc)
+            Func<IEnumerable<Message>, CancellationToken, Task<Message?>> replyFunc)
         {
             if (agent.Name == null)
             {

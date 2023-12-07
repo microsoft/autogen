@@ -25,7 +25,7 @@ namespace AutoGen
         public AutoReplyAgent(
             IAgent innerAgent,
             string name,
-            Func<IEnumerable<Message>, CancellationToken?, Task<Message?>> autoReplyFunc)
+            Func<IEnumerable<Message>, CancellationToken, Task<Message?>> autoReplyFunc)
         {
             InnerAgent = innerAgent;
             Name = name;
@@ -38,7 +38,7 @@ namespace AutoGen
         /// If the function returns a non-null value, the agent will not be called.
         /// Otherwise, the agent will be called.
         /// </summary>
-        public Func<IEnumerable<Message>, CancellationToken?, Task<Message?>> AutoReplyFunc { get; }
+        public Func<IEnumerable<Message>, CancellationToken, Task<Message?>> AutoReplyFunc { get; }
 
         public string? Name { get; }
 

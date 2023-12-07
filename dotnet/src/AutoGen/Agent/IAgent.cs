@@ -8,6 +8,8 @@ using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
 {
+    public delegate Task<string> FunctionExecutor(string args);
+
     public interface IAgent
     {
         public string? Name { get; }

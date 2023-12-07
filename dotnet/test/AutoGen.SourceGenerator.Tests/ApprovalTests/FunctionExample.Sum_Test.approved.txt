@@ -1,0 +1,16 @@
+{
+  "name": "Sum",
+  "description": "Sum function",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "args": {
+        "type": "object",
+        "description": "an array of double values"
+      }
+    },
+    "required": [
+      "args"
+    ]
+  }
+}
