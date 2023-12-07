@@ -82,7 +82,7 @@ class GroupChat:
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def select_speaker_prompt(self, agents: List[Agent]):
+    def select_speaker_prompt(self, agents: List[Agent]) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
 
