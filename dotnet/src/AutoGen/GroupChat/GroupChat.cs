@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI;
+using AutoGen.Extension;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
@@ -118,31 +118,36 @@ From admin:
             int maxRound = 10,
             CancellationToken ct = default)
         {
-            if (maxRound == 0)
+            var conversationHistory = new List<Message>();
+            if (conversationWithName != null)
             {
-                return conversationWithName ?? Enumerable.Empty<Message>();
+                conversationHistory.AddRange(conversationWithName);
             }
 
-            // sleep 10 seconds
-            await Task.Delay(1000);
-
-            if (conversationWithName == null)
+            var lastSpeaker = conversationHistory.LastOrDefault()?.GetFrom() switch
             {
-                conversationWithName = Enumerable.Empty<Message>();
+                null => this.agents.First(),
+                _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().From) ?? throw new Exception("The agent is not in the group chat"),
+            };
+            var round = 0;
+            while (round < maxRound)
+            {
+                var currentSpeaker = await this.SelectNextSpeakerAsync(conversationHistory) ?? this.admin;
+                var processedConversation = this.ProcessConversationForAgent(this.initializeMessages, conversationHistory);
+                var result = await currentSpeaker.GenerateReplyAsync(processedConversation) ?? throw new Exception("No result is returned.");
+                conversationHistory.Add(result);
+
+                // if message is terminate message, then terminate the conversation
+                if (result?.IsGroupChatTerminateMessage() ?? false)
+                {
+                    break;
+                }
+
+                lastSpeaker = currentSpeaker;
+                round++;
             }
 
-            var agent = await this.SelectNextSpeakerAsync(conversationWithName) ?? this.admin;
-            var processedConversation = this.ProcessConversationForAgent(this.initializeMessages, conversationWithName);
-            var result = await agent.GenerateReplyAsync(processedConversation) ?? throw new Exception("No result is returned.");
-            var updatedConversation = conversationWithName.Append(result);
-
-            // if message is terminate message, then terminate the conversation
-            if (result?.IsGroupChatTerminateMessage() ?? false)
-            {
-                return updatedConversation;
-            }
-
-            return await this.CallAsync(updatedConversation, maxRound - 1, ct);
+            return conversationHistory;
         }
     }
 }

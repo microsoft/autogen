@@ -39,15 +39,22 @@ namespace AutoGen.Tests
         {
             var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
             var config = new OpenAIConfig(key, "gpt-3.5-turbo");
-            var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
+
+            var llmConfig = new AssistantAgentConfig
+            {
+                FunctionDefinitions = new[]
+                {
+                    this.EchoAsyncFunction,
+                },
+                ConfigList = new[]
+                {
+                    config,
+                },
+            };
+
             var assistantAgent = new AssistantAgent(
                 name: "assistant",
-                innerAgent: agentWithFunction,
-                functionMaps: new Dictionary<string, Func<string, Task<string>>>
-                {
-                    { nameof(EchoAsync), this.EchoAsyncWrapper },
-                },
-                selfExecute: false);
+                llmConfig: llmConfig);
 
             await EchoFunctionCallTestAsync(assistantAgent);
             await RepeatWordTestAsync(assistantAgent);
@@ -57,6 +64,7 @@ namespace AutoGen.Tests
         public async Task AssistantAgentDefaultReplyTestAsync()
         {
             var assistantAgent = new AssistantAgent(
+                llmConfig: null,
                 name: "assistant",
                 defaultReply: "hello world");
 
@@ -72,24 +80,52 @@ namespace AutoGen.Tests
         {
             var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
             var config = new OpenAIConfig(key, "gpt-3.5-turbo");
-            var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
+            var llmConfig = new AssistantAgentConfig
+            {
+                FunctionDefinitions = new[]
+                {
+                    this.EchoAsyncFunction,
+                },
+                ConfigList = new[]
+                {
+                    config,
+                },
+            };
             var assistantAgent = new AssistantAgent(
                 name: "assistant",
-                innerAgent: agentWithFunction,
-                functionMaps: new Dictionary<string, Func<string, Task<string>>>
+                llmConfig: llmConfig,
+                functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
                     { nameof(EchoAsync), this.EchoAsyncWrapper },
-                },
-                selfExecute: true);
+                });
 
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
             await RepeatWordTestAsync(assistantAgent);
         }
 
+        [ApiKeyFact("OPENAI_API_KEY")]
+        public async Task GPTAgentFunctionCallSelfExecutionTestAsync()
+        {
+            var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
+            var config = new OpenAIConfig(key, "gpt-3.5-turbo");
+            var agent = new GPTAgent(
+                name: "gpt",
+                systemMessage: "You are a helpful AI assistant",
+                config: config,
+                temperature: 0,
+                functions: new[] { this.EchoAsyncFunction },
+                functionMap: new Dictionary<string, Func<string, Task<string>>>
+                {
+                    { nameof(EchoAsync), this.EchoAsyncWrapper },
+                });
+            await EchoFunctionCallExecutionTestAsync(agent);
+            await RepeatWordTestAsync(agent);
+        }
+
         /// <summary>
-        /// echo function
+        /// echo
         /// </summary>
-        /// <param name="message">message to repeat</param>
+        /// <param name="message">message to echo</param>
         [FunctionAttribution]
         public async Task<string> EchoAsync(string message)
         {
@@ -98,8 +134,8 @@ namespace AutoGen.Tests
 
         private async Task EchoFunctionCallTestAsync(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "call echo function");
-            var helloWorld = new Message(AuthorRole.User, "Hello world");
+            var message = new Message(AuthorRole.System, "You are a helpful AI assistant that call echo function");
+            var helloWorld = new Message(AuthorRole.User, "echo Hello world");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
@@ -111,8 +147,8 @@ namespace AutoGen.Tests
 
         private async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "call echo function");
-            var helloWorld = new Message(AuthorRole.User, "Hello world");
+            var message = new Message(AuthorRole.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new Message(AuthorRole.User, "echo Hello world");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
@@ -124,7 +160,7 @@ namespace AutoGen.Tests
 
         private async Task RepeatWordTestAsync(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "You repeat what user say");
+            var message = new Message(AuthorRole.System, "You repeat whatever from user");
             var helloWorld = new Message(AuthorRole.User, "Hello world");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });

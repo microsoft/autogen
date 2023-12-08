@@ -24,8 +24,7 @@ namespace AutoGen
         private readonly IAgent? innerAgent;
         private readonly string? defaultReply;
         private readonly HumanInputMode humanInputMode;
-        private readonly IDictionary<string, Func<string, Task<string>>>? functionMaps;
-        private readonly bool selfExecute;
+        private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
         private readonly string systemMessage;
 
         public AssistantAgent(
@@ -35,18 +34,57 @@ namespace AutoGen
             string? defaultReply = null,
             HumanInputMode humanInputMode = HumanInputMode.AUTO,
             Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
-            IDictionary<string, Func<string, Task<string>>>? functionMaps = null,
-            bool selfExecute = true)
+            IDictionary<string, Func<string, Task<string>>>? functionMap = null)
         {
             this.Name = name;
             this.defaultReply = defaultReply;
-            this.functionMaps = functionMaps;
+            this.functionMap = functionMap;
             this.humanInputMode = humanInputMode;
             this.innerAgent = innerAgent;
             this.IsTermination = isTermination;
             this.defaultReply = defaultReply;
-            this.selfExecute = selfExecute;
             this.systemMessage = systemMessage;
+        }
+
+        public AssistantAgent(
+            string name,
+            string systemMessage = "You are a helpful AI assistant",
+            AssistantAgentConfig? llmConfig = null,
+            Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+            HumanInputMode humanInputMode = HumanInputMode.AUTO,
+            IDictionary<string, Func<string, Task<string>>>? functionMap = null,
+            string? defaultReply = null)
+        {
+            this.Name = name;
+            this.defaultReply = defaultReply;
+            this.functionMap = functionMap;
+            this.humanInputMode = humanInputMode;
+            this.IsTermination = isTermination;
+            this.systemMessage = systemMessage;
+            this.innerAgent = llmConfig?.ConfigList != null ? this.CreateInnerAgentFromConfigList(llmConfig.ConfigList, llmConfig.FunctionDefinitions) : null;
+        }
+
+        private IAgent? CreateInnerAgentFromConfigList(IEnumerable<ILLMConfig> llmConfigs, IEnumerable<FunctionDefinition>? functions)
+        {
+            IAgent? agent = null;
+            foreach (var llmConfig in llmConfigs)
+            {
+                agent = agent switch
+                {
+                    null => llmConfig switch
+                    {
+                        AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, functions: functions),
+                        OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, functions: functions),
+                        _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
+                    },
+                    IAgent innerAgent => innerAgent.RegisterReply(async (messages, cancellationToken) =>
+                    {
+                        return await innerAgent.GenerateReplyAsync(messages, cancellationToken);
+                    }),
+                };
+            }
+
+            return agent;
         }
 
         public string? Name { get; }
@@ -147,7 +185,7 @@ namespace AutoGen
             // process function call
             agent = agent.RegisterReply(async (messages, cancellationToken) =>
             {
-                if (this.functionMaps != null && messages.Last()?.FunctionCall is FunctionCall fc && this.functionMaps.ContainsKey(fc.Name))
+                if (this.functionMap != null && messages.Last()?.FunctionCall is FunctionCall fc && this.functionMap.ContainsKey(fc.Name))
                 {
                     return await this.ExecuteFunctionCallAsync(messages.Last(), cancellationToken);
                 }
@@ -158,7 +196,7 @@ namespace AutoGen
             // process self execute
             agent = new PostProcessAgent(agent, agent.Name!, async (messages, currentMessage, cancellationToken) =>
             {
-                if (this.selfExecute && currentMessage.FunctionCall is FunctionCall fc)
+                if (this.functionMap != null && currentMessage.FunctionCall is FunctionCall fc)
                 {
                     return await this.ExecuteFunctionCallAsync(currentMessage, cancellationToken);
                 }
@@ -173,9 +211,9 @@ namespace AutoGen
 
         private async Task<Message> ExecuteFunctionCallAsync(Message message, CancellationToken cancellationToken)
         {
-            if (message.FunctionCall is FunctionCall fc && this.functionMaps != null)
+            if (message.FunctionCall is FunctionCall fc && this.functionMap != null)
             {
-                if (this.functionMaps.TryGetValue(fc.Name, out var func))
+                if (this.functionMap.TryGetValue(fc.Name, out var func))
                 {
                     var result = await func(fc.Arguments);
                     return new Message(AuthorRole.Assistant, result, from: this.Name)
@@ -185,7 +223,7 @@ namespace AutoGen
                 }
                 else
                 {
-                    var errorMessage = $"Function {fc.Name} is not available. Available functions are: {string.Join(", ", this.functionMaps.Select(f => f.Key))}";
+                    var errorMessage = $"Function {fc.Name} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
                     return new Message(AuthorRole.Assistant, errorMessage, from: this.Name)
                     {
                         FunctionCall = fc,

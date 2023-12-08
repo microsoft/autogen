@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentConfig.cs
+// AssistantAgentConfig.cs
 
 using System.Collections.Generic;
 using Azure.AI.OpenAI;
@@ -43,10 +43,14 @@ namespace AutoGen
         public string? ModelId { get; }
     }
 
-    public class AgentConfig
+    public class AssistantAgentConfig
     {
         public IEnumerable<FunctionDefinition>? FunctionDefinitions { get; set; }
 
-        //public IEnumerable<ILLMConfig>
+        public IEnumerable<ILLMConfig>? ConfigList { get; set; }
+
+        public float? Temperature { get; set; }
+
+        public int? Timeout { get; set; }
     }
 }

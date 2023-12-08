@@ -184,13 +184,17 @@ namespace AutoGen
                 {
                     yield return message;
                 }
+                else if (message.From is null)
+                {
+                    yield return message;
+                }
                 else if (message.From != agent.Name)
                 {
                     // add as user message
                     var content = message.Content ?? string.Empty;
                     content = @$"{content}
 <eof_msg>
-From {message.GetFrom()}
+From {message.From}
 round # {i++}";
                     yield return new Message(AuthorRole.User, content)
                     {

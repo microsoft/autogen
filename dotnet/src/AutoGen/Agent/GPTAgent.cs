@@ -17,13 +17,13 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
 
 namespace AutoGen
 {
-
     public class GPTAgent : IAgent
     {
         private readonly string _systemMessage;
         private readonly IEnumerable<FunctionDefinition>? _functions;
         private readonly float _temperature;
         private readonly int _maxTokens = 1024;
+        private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
 
         public GPTAgent(
             string name,
@@ -31,7 +31,8 @@ namespace AutoGen
             ILLMConfig config,
             float temperature = 0f,
             int maxTokens = 1024,
-            IEnumerable<FunctionDefinition>? functions = null)
+            IEnumerable<FunctionDefinition>? functions = null,
+            IDictionary<string, Func<string, Task<string>>>? functionMap = null)
         {
             ChatCompletion = config switch
             {
@@ -45,6 +46,7 @@ namespace AutoGen
             Name = name;
             _temperature = temperature;
             _maxTokens = maxTokens;
+            this.functionMap = functionMap;
         }
 
         public string? Name { get; }
@@ -65,9 +67,9 @@ namespace AutoGen
             }
 
             messages = this.ProcessMessages(messages);
-            foreach (var message in messages)
+            foreach (var msg in messages)
             {
-                chatHistory.Add(message);
+                chatHistory.Add(msg);
             }
 
             var setting = new OpenAIRequestSettings
@@ -87,19 +89,45 @@ namespace AutoGen
             }
 
             var res = await response.First().GetChatMessageAsync();
-
-            if (res is AzureOpenAIChatMessage msg && msg.InnerChatMessage is Azure.AI.OpenAI.ChatMessage oaiMessage)
+            Message message;
+            if (res is AzureOpenAIChatMessage aoaiMessage && aoaiMessage.InnerChatMessage is Azure.AI.OpenAI.ChatMessage oaiMessage)
             {
-                return new Message(AuthorRole.Assistant, oaiMessage.Content, from: this.Name)
+                message = new Message(AuthorRole.Assistant, oaiMessage.Content, from: this.Name)
                 {
                     FunctionCall = oaiMessage.FunctionCall,
                 };
             }
-
-            return new Message(AuthorRole.Assistant, res.Content, from: this.Name)
+            else
             {
-                FunctionCall = res.GetFunctionCall(),
-            };
+                message = new Message(AuthorRole.Assistant, res.Content, from: this.Name)
+                {
+                    FunctionCall = res.GetFunctionCall(),
+                };
+            }
+
+            if (this.functionMap != null && message.FunctionCall is FunctionCall fc)
+            {
+                if (this.functionMap.TryGetValue(fc.Name, out var func))
+                {
+                    var result = await func(fc.Arguments);
+                    return new Message(AuthorRole.Assistant, result, from: this.Name)
+                    {
+                        FunctionCall = fc,
+                    };
+                }
+                else
+                {
+                    var errorMessage = $"Function {fc.Name} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
+                    return new Message(AuthorRole.Assistant, errorMessage, from: this.Name)
+                    {
+                        FunctionCall = fc,
+                    };
+                }
+            }
+            else
+            {
+                return message;
+            }
         }
 
         private OpenAIFunction ToOpenAIFunction(FunctionDefinition functionDefinition)

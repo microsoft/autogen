@@ -42,6 +42,19 @@ Question #{question_index}:
 {message}";
         }
 
+        [FunctionAttribution]
+        public async Task<string> UpdateProgress(int correctAnswerCount)
+        {
+            if (correctAnswerCount >= 5)
+            {
+                return GroupChatExtension.TERMINATE;
+            }
+            else
+            {
+                return $@"the number of resolved question is {correctAnswerCount}";
+            }
+        }
+
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY")]
         public async Task AssistantAgentMathChatTestAsync()
@@ -51,26 +64,31 @@ Question #{question_index}:
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
             var model = "gpt-35-turbo-16k";
-            var gptAgent = new GPTAgent(
-                name: "GPT",
-                systemMessage: "You are a helpful AI assistant",
-                config: new AzureOpenAIConfig(endPoint, model, key),
-                temperature: 0);
-
-            var admin = new AssistantAgent(
+            var admin = new GPTAgent(
                 name: "Admin",
-                systemMessage: $@"You are admin. You ask teacher to create 5 math questions. You terminate the chat when student successfully resolve 5 math problems.",
-                innerAgent: gptAgent)
-                .RegisterReply(async (msgs, ct) =>
+                systemMessage: $@"You are admin. You ask teacher to create 5 math questions. You update progress after each question is answered.",
+                config: new AzureOpenAIConfig(endPoint, model, key),
+                temperature: 0,
+                functions: new[]
                 {
-                    // check if student successfully resolve 5 math problems
-                    if (msgs.Where(m => m.From == teacher.Name && m.Content?.Contains("[ANSWER_IS_CORRECT]") is true).Count() >= 5)
-                    {
-                        return new Message(AuthorRole.Assistant, GroupChatExtension.TERMINATE, from: "Admin");
-                    }
-
-                    return null;
+                    this.UpdateProgressFunction,
+                },
+                functionMap: new Dictionary<string, Func<string, Task<string>>>
+                {
+                    { this.UpdateProgressFunction.Name, this.UpdateProgressWrapper },
                 });
+
+            //var admin = gptAgent
+            //    .RegisterReply(async (msgs, ct) =>
+            //    {
+            //        // check if student successfully resolve 5 math problems
+            //        if (msgs.Where(m => m.From == teacher.Name && m.Content?.Contains("[ANSWER_IS_CORRECT]") is true).Count() >= 5)
+            //        {
+            //            return new Message(AuthorRole.Assistant, GroupChatExtension.TERMINATE, from: "Admin");
+            //        }
+
+            //        return null;
+            //    });
 
             await RunMathChatAsync(teacher, student, admin);
         }
@@ -80,30 +98,30 @@ Question #{question_index}:
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
             var model = "gpt-35-turbo-16k";
-            var gptAgent = new GPTAgent(
-                name: "GPT",
-                systemMessage: "You are a helpful AI assistant",
-                config: new AzureOpenAIConfig(endPoint, model, key),
-                temperature: 0,
-                functions: new[]
+            var config = new AzureOpenAIConfig(endPoint, model, key);
+            var llmConfig = new AssistantAgentConfig
+            {
+                ConfigList = new[]
+                {
+                    config,
+                },
+                FunctionDefinitions = new[]
                 {
                     this.CreateMathQuestionFunction,
-                    this.AnswerIsCorrectFunction,
-                });
+                    this.AnswerQuestionFunction,
+                },
+            };
 
             var teacher = new AssistantAgent(
                             name: "Teacher",
-                            systemMessage: $@"You are a preschool math teacher. Here's your workflow in pseudo code:
--workflow-
-create_math_question
-if answer is correct
-    answer_is_correct
-else
-    say 'try again'
--end-
+                            systemMessage: $@"You are a preschool math teacher.
+You create math question and ask student to answer it.
+Then you check if the answer is correct.
+If the answer is wrong, you ask student to fix it.
+If the answer is correct, you create another math question.
 ",
-                            innerAgent: gptAgent,
-                            functionMaps: new Dictionary<string, Func<string, Task<string>>>
+                            llmConfig: llmConfig,
+                            functionMap: new Dictionary<string, Func<string, Task<string>>>
                             {
                                 { this.CreateMathQuestionFunction.Name, this.CreateMathQuestionWrapper },
                                 { this.AnswerIsCorrectFunction.Name, this.AnswerIsCorrectWrapper },
@@ -117,15 +135,18 @@ else
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
             var model = "gpt-35-turbo-16k";
-            var gptAgent = new GPTAgent(
-                name: "GPT",
-                systemMessage: "You are a helpful AI assistant",
-                config: new AzureOpenAIConfig(endPoint, model, key),
-                temperature: 0,
-                functions: new[]
+            var config = new AzureOpenAIConfig(endPoint, model, key);
+            var llmConfig = new AssistantAgentConfig
+            {
+                FunctionDefinitions = new[]
                 {
-                     this.AnswerQuestionFunction,
-                });
+                    this.AnswerQuestionFunction,
+                },
+                ConfigList = new[]
+                {
+                    config,
+                },
+            };
             var student = new AssistantAgent(
                             name: "Student",
                             systemMessage: $@"You are a student. Here's your workflow in pseudo code:
@@ -143,8 +164,8 @@ Here are a few examples of fix_answer:
 -example 1-
 sorry, the answer should be 2, not 3
 ",
-                            innerAgent: gptAgent,
-                            functionMaps: new Dictionary<string, Func<string, Task<string>>>
+                            llmConfig: llmConfig,
+                            functionMap: new Dictionary<string, Func<string, Task<string>>>
                             {
                                 { this.AnswerQuestionFunction.Name, this.AnswerQuestionWrapper }
                             });
@@ -190,22 +211,22 @@ admin_terminate_chat
             }
 
             // check if there's five questions from teacher
-            chatHistory.Where(msg => msg.GetFrom() == teacher.Name && msg.Content?.Contains("[MATH_QUESTION]") is true)
+            chatHistory.Where(msg => msg.From == teacher.Name && msg.Content?.Contains("[MATH_QUESTION]") is true)
                     .Count()
-                    .Should().Be(5);
+                    .Should().BeGreaterThanOrEqualTo(5);
 
             // check if there's more than five answers from student (answer might be wrong)
-            chatHistory.Where(msg => msg.GetFrom() == student.Name && msg.Content?.Contains("[MATH_ANSWER]") is true)
+            chatHistory.Where(msg => msg.From == student.Name && msg.Content?.Contains("[MATH_ANSWER]") is true)
                     .Count()
                     .Should().BeGreaterThanOrEqualTo(5);
 
             // check if there's five answer_is_correct from teacher
-            chatHistory.Where(msg => msg.GetFrom() == teacher.Name && msg.Content?.Contains("[ANSWER_IS_CORRECT]") is true)
+            chatHistory.Where(msg => msg.From == teacher.Name && msg.Content?.Contains("[ANSWER_IS_CORRECT]") is true)
                     .Count()
-                    .Should().Be(5);
+                    .Should().BeGreaterThanOrEqualTo(5);
 
             // check if there's terminate chat message from admin
-            chatHistory.Where(msg => msg.GetFrom() == admin.Name && msg.IsGroupChatTerminateMessage())
+            chatHistory.Where(msg => msg.From == admin.Name && msg.IsGroupChatTerminateMessage())
                     .Count()
                     .Should().Be(1);
         }
