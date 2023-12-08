@@ -222,8 +222,23 @@ class SimpleTextBrowser:
                     for script in soup(["script", "style"]):
                         script.extract()
 
-                    # Convert to markdown
-                    webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+                    # Convert to markdown -- Wikipedia gets special attention to get a clean version of the page
+                    if url.startswith("https://en.wikipedia.org/"):
+                        body_elm = soup.find("div", {"id": "mw-content-text"})
+                        title_elm = soup.find("span", {"class": "mw-page-title-main"})
+
+                        if body_elm:
+                            # What's the title
+                            main_title = soup.title.string
+                            if title_elm and len(title_elm) > 0:
+                                main_title = title_elm.string
+                            webpage_text = (
+                                "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+                            )
+                        else:
+                            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+                    else:
+                        webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
 
                     # Convert newlines
                     webpage_text = re.sub(r"\r\n", "\n", webpage_text)

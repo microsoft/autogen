@@ -110,7 +110,7 @@ class WebSurferAgent(ConversableAgent):
             },
             {
                 "name": "visit_wikipedia",
-                "description": "Navigate directly to a wikipedia page on a given topic or title.",
+                "description": "Navigate to a wikipedia page and return its text.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -140,15 +140,31 @@ class WebSurferAgent(ConversableAgent):
         if self.summarization_client is not None:
             inner_llm_config["functions"].append(
                 {
-                    "name": "summarize_page",
-                    "description": "Answer a question or summarize the content found at a given url. If the url is not provided, the current page is summarized.",
+                    "name": "answer_from_page",
+                    "description": "Uses AI to read the page and directly answer a given question based on the content.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "question": {
                                 "type": "string",
-                                "description": "[Optional] The question to answer when producing the summary. (If omiitted, the entire page will be summarized)",
+                                "description": "The question to directly answer.",
                             },
+                            "url": {
+                                "type": "string",
+                                "description": "[Optional] The url of the page. (Defaults to the current page)",
+                            },
+                        },
+                    },
+                    "required": ["question"],
+                }
+            )
+            inner_llm_config["functions"].append(
+                {
+                    "name": "summarize_page",
+                    "description": "Uses AI to summarize the content found at a given url. If the url is not provided, the current page is summarized.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
                             "url": {
                                 "type": "string",
                                 "description": "[Optional] The url of the page to summarize. (Defaults to current page)",
@@ -158,27 +174,26 @@ class WebSurferAgent(ConversableAgent):
                     "required": [],
                 }
             )
-            # NOT QUITE READY YET
-            # inner_llm_config["functions"].append(
-            #    {
-            #        "name": "semantic_find_on_page",
-            #        "description": "Similar to standard Ctrl-F, semantic find-on-page will scroll to the part of the page most relevant to a question or query. It differs from standard find-on-page in that the match with the query terms need not be exact.",
-            #        "parameters": {
-            #            "type": "object",
-            #            "properties": {
-            #                "query": {
-            #                    "type": "string",
-            #                    "description": "[Optional] The query or search string to search for.",
-            #                },
-            #                "url": {
-            #                    "type": "string",
-            #                    "description": "[Optional] The url of the page on which to perform a semantic search. (Defaults to current page)",
-            #                },
-            #            },
-            #        },
-            #        "required": ["query"],
-            #    }
-            # )
+            inner_llm_config["functions"].append(
+                {
+                    "name": "find_in_page",
+                    "description": "Scroll to the part of the page most relevant to a question or query. An AI-enhanced version of Ctrl+F",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The query to search for, or the question to answer.",
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "[Optional] The url of the page on which to perform a semantic search. (Defaults to current page)",
+                            },
+                        },
+                    },
+                    "required": ["query"],
+                }
+            )
         else:  # Rely on old-school methods
             inner_llm_config["functions"].append(
                 {
@@ -384,14 +399,24 @@ class WebSurferAgent(ConversableAgent):
                 },
                 {
                     "role": "user",
-                    "content": f"The following document includes line numbers. On which line would I find the information most relevant to the query '{query}'? Print both the line number (formatted as \"[Line 5]\" for example, including square brackets), and the content of the line itself. Here is the document:\n\n{buffer}",
+                    "content": f"Consider the following document, which contains line number markings:\n\n{buffer}",
+                },
+                {
+                    "role": "user",
+                    "content": f"""Read the above document, and think about the answer to the question '{query}'. With this in mind, complete the following:
+
+The answer to the question or query is:
+The most relevant direct quote from the page is:
+This quote can be found on or near Line:""",
                 },
             ]
+            # print(json.dumps(messages, indent=4))
 
             response = self.summarization_client.create(context=None, messages=messages)
             response = self.summarization_client.extract_text_or_function_call(response)[0]
+            # print(response)
 
-            m = re.search(r"\[\s*Line\s+(\d+)\s*]", response)
+            m = re.search(r"[Ll]ine\:?\s+(\d+)", response)
             if m:
                 found_line = int(m.group(1))
                 return _find_on_page(lines[found_line - 1])
@@ -407,8 +432,9 @@ class WebSurferAgent(ConversableAgent):
                 "find_on_page": lambda find_string: _find_on_page(find_string),
                 "find_next_on_page": lambda: _find_next_on_page(),
                 "visit_wikipedia": lambda topic_or_title: _visit_wikipedia(topic_or_title),
-                "summarize_page": lambda question=None, url=None: _summarize_page(question, url),
-                "semantic_find_on_page": lambda query=None, url=None: _semantic_find_on_page(query, url),
+                "answer_from_page": lambda question=None, url=None: _summarize_page(question, url),
+                "summarize_page": lambda question=None, url=None: _summarize_page(None, url),
+                "find_in_page": lambda query=None, url=None: _semantic_find_on_page(query, url),
             }
         )
 
