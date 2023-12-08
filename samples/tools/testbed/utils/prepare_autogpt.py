@@ -4,7 +4,10 @@ import json
 import os
 import shutil
 
-data_paths = glob.glob("challenges/*/data.json")
+# fetch all the challenge data
+current_file_dir = os.path.dirname(os.path.abspath(__file__))
+challenge_path = os.path.join(os.path.dirname(current_file_dir), "scenarios/AutoGPT/challenges")
+data_paths = glob.glob(str(challenge_path) + "/*/data.json")
 
 for data_path in data_paths:
     print("Converting data path: ", data_path)
