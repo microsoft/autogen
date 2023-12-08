@@ -4,6 +4,8 @@
 
 AutoGen Studio is an Autogen-powered AI app (user interface) that can converse with you to help you conduct research, write and execute code, run saved skills, create new skills (explicitly and by demonstration), and adapt in response to your interactions.
 
+> Note: AutoGen Studio is meant to be an example/guide of how to build an AI app using the AutoGen framework. It is not meant to be a production-ready app.
+
 ### Capabilities / Roadmap
 
 Some of the capabilities supported by the app frontend include the following:
