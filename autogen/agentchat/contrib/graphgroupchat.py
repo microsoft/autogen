@@ -16,18 +16,18 @@ from typing import List, Dict
 
 
 class GraphGroupChat(GroupChat):
-    """(In preview) A group chat class that contains the following data fields:
-    - agents: a list of participating agents.
-    - messages: a list of messages in the group chat.
+    """The GraphGroupChat class inherits from the GroupChat class, and is designed to manage a group chat where the transition paths between agents are constrained by a directed graph.
+    This enables tighter control over the possible transitions between agents. Since graphs are expressive, they allow for precise control over the transitions between agents, facilitating the implementation of various organizational structures such as hierarchical, team-based, or quality review frameworks.
+    - agents: a list of participating agents. Inherited from GroupChat.
+    - messages: a list of messages in the group chat. Inherited from GroupChat.
     - graph: a networkx graph depicting who are the next speakers available.
-    - max_round: the maximum number of rounds.
-    - admin_name: the name of the admin agent if there is one. Default is "Admin".
-        KeyBoardInterrupt will make the admin agent take over.
-    - func_call_filter: whether to enforce function call filter. Default is True.
+    - max_round: the maximum number of rounds. Inherited from GroupChat.
+    - admin_name: the name of the admin agent if there is one. Default is "Admin". Inherited from GroupChat. KeyBoardInterrupt will make the admin agent take over.
+    - func_call_filter: whether to enforce function call filter. Default is True. Inherited from GroupChat.
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
-    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True.
+    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True. Inherited from GroupChat.
     """
 
     def __init__(
