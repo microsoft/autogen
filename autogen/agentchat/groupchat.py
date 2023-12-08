@@ -66,10 +66,15 @@ class GroupChat:
 
     def next_agent(self, agent: Agent, agents: List[Agent]) -> Agent:
         """Return the next agent in the list."""
+
+        # What index is the agent? (-1 if not present)
+        idx = self.agent_names.index(agent.name) if agent.name in self.agent_names else -1
+
+        # Return the next agent
         if agents == self.agents:
-            return agents[(self.agent_names.index(agent.name) + 1) % len(agents)]
+            return agents[(idx + 1) % len(agents)]
         else:
-            offset = self.agent_names.index(agent.name) + 1
+            offset = idx + 1
             for i in range(len(self.agents)):
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
