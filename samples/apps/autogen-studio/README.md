@@ -2,17 +2,17 @@
 
 ![ARA](./docs/ara_stockprices.png)
 
-AutoGen Studio is an Autogen-powered AI app (user interface) that can converse with you to help you conduct research, write and execute code, run saved skills, create new skills (explicitly and by demonstration), and adapt in response to your interactions.
+AutoGen Studio is an AutoGen-powered AI app (user interface) that can converse with you to help you accomplish tasks, write and execute code, run saved skills, create new skills (explicitly and by demonstration), and adapt in response to your interactions.
 
 ### Capabilities / Roadmap
 
 Some of the capabilities supported by the app frontend include the following:
 
-- [x] Select fron a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
-- [x] Modify agent configuration (e.g. temperature, model, agent system message, model etc) and chat with updated agent configurations.
+- [x] Select from a list of agents (currently supports two agent workflows based on `UserProxyAgent` and `AssistantAgent`) and modify their configuration (e.g. temperature, model, agent system message, model etc).
+- [x] Chat with agents and specify tasks.
 - [x] View agent messages and output files in the UI from agent runs.
-- [ ] Support for more complex agent workflows (e.g. `GroupChat` workflows)
-- [ ] Improved user experience (e.g., streaming intermediate model output, better summarization of agent responses, etc)
+- [ ] Support for more complex agent workflows (e.g. `GroupChat` workflows).
+- [ ] Improved user experience (e.g., streaming intermediate model output, better summarization of agent responses, etc).
 
 Project Structure:
 
