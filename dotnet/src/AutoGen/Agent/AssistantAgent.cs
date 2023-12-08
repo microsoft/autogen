@@ -61,20 +61,20 @@ namespace AutoGen
             this.humanInputMode = humanInputMode;
             this.IsTermination = isTermination;
             this.systemMessage = systemMessage;
-            this.innerAgent = llmConfig?.ConfigList != null ? this.CreateInnerAgentFromConfigList(llmConfig.ConfigList, llmConfig.FunctionDefinitions) : null;
+            this.innerAgent = llmConfig?.ConfigList != null ? this.CreateInnerAgentFromConfigList(llmConfig) : null;
         }
 
-        private IAgent? CreateInnerAgentFromConfigList(IEnumerable<ILLMConfig> llmConfigs, IEnumerable<FunctionDefinition>? functions)
+        private IAgent? CreateInnerAgentFromConfigList(AssistantAgentConfig config)
         {
             IAgent? agent = null;
-            foreach (var llmConfig in llmConfigs)
+            foreach (var llmConfig in config.ConfigList ?? Enumerable.Empty<ILLMConfig>())
             {
                 agent = agent switch
                 {
                     null => llmConfig switch
                     {
-                        AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, functions: functions),
-                        OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, functions: functions),
+                        AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0, functions: config.FunctionDefinitions),
+                        OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0, functions: config.FunctionDefinitions),
                         _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
                     },
                     IAgent innerAgent => innerAgent.RegisterReply(async (messages, cancellationToken) =>
