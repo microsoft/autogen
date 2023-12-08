@@ -109,7 +109,7 @@ class WebSurferAgent(ConversableAgent):
                 "required": ["url"],
             },
             {
-                "name": "wikipedia_lookup",
+                "name": "visit_wikipedia",
                 "description": "Navigate directly to a wikipedia page on a given topic or title.",
                 "parameters": {
                     "type": "object",
@@ -141,13 +141,13 @@ class WebSurferAgent(ConversableAgent):
             inner_llm_config["functions"].append(
                 {
                     "name": "summarize_page",
-                    "description": "Summarize the content found at a given url, with respect to an optional question. If the url is not provided, the current page is summarized.",
+                    "description": "Answer a question or summarize the content found at a given url. If the url is not provided, the current page is summarized.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "question": {
                                 "type": "string",
-                                "description": "[Optional] The question to answer with the summary. (If omiitted, the entire page will be summarized)",
+                                "description": "[Optional] The question to answer when producing the summary. (If omiitted, the entire page will be summarized)",
                             },
                             "url": {
                                 "type": "string",
@@ -158,26 +158,27 @@ class WebSurferAgent(ConversableAgent):
                     "required": [],
                 }
             )
-            inner_llm_config["functions"].append(
-                {
-                    "name": "semantic_find_on_page",
-                    "description": "Similar to standard Ctrl-F, semantic find-on-page will scroll to the part of the page most relevant to a question or query. It differs from standard find-on-page in that the match with the query terms need not be exact.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "[Optional] The query or search string to search for.",
-                            },
-                            "url": {
-                                "type": "string",
-                                "description": "[Optional] The url of the page on which to perform a semantic search. (Defaults to current page)",
-                            },
-                        },
-                    },
-                    "required": ["query"],
-                }
-            )
+            # NOT QUITE READY YET
+            # inner_llm_config["functions"].append(
+            #    {
+            #        "name": "semantic_find_on_page",
+            #        "description": "Similar to standard Ctrl-F, semantic find-on-page will scroll to the part of the page most relevant to a question or query. It differs from standard find-on-page in that the match with the query terms need not be exact.",
+            #        "parameters": {
+            #            "type": "object",
+            #            "properties": {
+            #                "query": {
+            #                    "type": "string",
+            #                    "description": "[Optional] The query or search string to search for.",
+            #                },
+            #                "url": {
+            #                    "type": "string",
+            #                    "description": "[Optional] The url of the page on which to perform a semantic search. (Defaults to current page)",
+            #                },
+            #            },
+            #        },
+            #        "required": ["query"],
+            #    }
+            # )
         else:  # Rely on old-school methods
             inner_llm_config["functions"].append(
                 {
@@ -240,7 +241,7 @@ class WebSurferAgent(ConversableAgent):
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
-        def _wikipedia_lookup(topic_or_title):
+        def _visit_wikipedia(topic_or_title):
             self.browser.visit_page(f"wikipedia: {topic_or_title}")
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
@@ -405,7 +406,7 @@ class WebSurferAgent(ConversableAgent):
                 "page_down": lambda: _page_down(),
                 "find_on_page": lambda find_string: _find_on_page(find_string),
                 "find_next_on_page": lambda: _find_next_on_page(),
-                "wikipedia_lookup": lambda topic_or_title: _wikipedia_lookup(topic_or_title),
+                "visit_wikipedia": lambda topic_or_title: _visit_wikipedia(topic_or_title),
                 "summarize_page": lambda question=None, url=None: _summarize_page(question, url),
                 "semantic_find_on_page": lambda query=None, url=None: _semantic_find_on_page(query, url),
             }

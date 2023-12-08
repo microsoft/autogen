@@ -33,7 +33,7 @@ class SimpleTextBrowser:
     def __init__(
         self,
         start_page: Optional[str] = "about:blank",
-        viewport_size: Optional[int] = 1024 * 16,  # 16Kb
+        viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict, None]] = None,
@@ -60,6 +60,8 @@ class SimpleTextBrowser:
         return self.history[-1]
 
     def set_address(self, uri_or_path):
+        self.history.append(uri_or_path)
+
         # Handle special URIs
         if uri_or_path == "about:blank":
             self.page_content = list()
@@ -72,7 +74,6 @@ class SimpleTextBrowser:
                 uri_or_path = urljoin(self.address, uri_or_path)
             self._fetch_page(uri_or_path)
 
-        self.history.append(uri_or_path)
         self.viewport_position = 0
         self.find_string = ""
         self.find_matches = list()
@@ -186,7 +187,7 @@ class SimpleTextBrowser:
         results = self._bing_api_call(title_or_topic + " Wikipedia")
         for page in results["webPages"]["value"]:
             if page["url"].startswith("https://en.wikipedia.org/wiki/"):
-                self._fetch_page(page["url"])
+                self.set_address(page["url"])
                 return
         self.page_title = f"Wikipedia page not found for '{title_or_topic}'"
         self.page_content = self.page_title
@@ -292,6 +293,8 @@ if __name__ == "__main__":
         },
     )
 
+    print(browser.visit_page("wikipedia: Microsoft"))
+    input("Press Next to search Bing...")
     print(browser.visit_page("https://www.adamfourney.com/adam.jpg"))
     input("Press Next to search Bing...")
     print(browser.visit_page("bing: latest news on OpenAI"))
