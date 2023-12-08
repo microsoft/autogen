@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "autogenstudio"
 authors = [
-  { name="Autogen Team", email="autogen@microsoft.com" },
+  { name="AutoGen Team", email="autogen@microsoft.com" },
 ]
-description = "Autogen Studio"
+description = "AutoGen Studio"
 readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.9"

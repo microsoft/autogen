@@ -37,7 +37,7 @@ class Message(object):
 # autogenflow data models
 @dataclass
 class ModelConfig:
-    """Data model for Model Config item in LLMConfig for Autogen"""
+    """Data model for Model Config item in LLMConfig for AutoGen"""
 
     model: str
     api_key: Optional[str] = None
@@ -48,7 +48,7 @@ class ModelConfig:
 
 @dataclass
 class LLMConfig:
-    """Data model for LLM Config for Autogen"""
+    """Data model for LLM Config for AutoGen"""
 
     config_list: List[Any] = field(default_factory=List)
     temperature: float = 0
@@ -58,7 +58,7 @@ class LLMConfig:
 
 @dataclass
 class AgentConfig:
-    """Data model for Agent Config for Autogen"""
+    """Data model for Agent Config for AutoGen"""
 
     name: str
     llm_config: Optional[Union[LLMConfig, bool]] = False
@@ -79,7 +79,7 @@ class AgentFlowSpec:
 
 @dataclass
 class AgentWorkFlowConfig:
-    """Data model for Flow Config for Autogen"""
+    """Data model for Flow Config for AutoGen"""
 
     name: str
     sender: AgentFlowSpec

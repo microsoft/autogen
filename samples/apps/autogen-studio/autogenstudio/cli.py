@@ -17,7 +17,7 @@ def ui(
     docs: bool = False,
 ):
     """
-    Launch the Autogen RA UI CLI .Pass in parameters host, port, workers, and reload to override the default values.
+    Launch the AutoGen Studio UI CLI .Pass in parameters host, port, workers, and reload to override the default values.
     """
 
     os.environ["AUTOGENUI_API_DOCS"] = str(docs)
@@ -34,10 +34,10 @@ def ui(
 @app.command()
 def version():
     """
-    Print the version of the Autogen RA UI CLI.
+    Print the version of the AutoGen Studio UI CLI.
     """
 
-    typer.echo(f"Autogen RA UI CLI version: {VERSION}")
+    typer.echo(f"AutoGen Studio UI CLI version: {VERSION}")
 
 
 def run():
