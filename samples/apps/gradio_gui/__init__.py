@@ -24,7 +24,7 @@ def install_dependencies():
         import gradio as gr
         import void_terminal
     except Exception:
-        try_install_deps(deps=["void-terminal>=0.0.11"])
+        try_install_deps(deps=["void-terminal>=0.0.12"])
         try_install_deps(deps=["gradio-stable-fork>=3.32.6"])
         return True
 
@@ -75,19 +75,20 @@ def init_config():
         void_terminal.set_conf(key="AUTO_CLEAR_TXT", value=True)
 
     # the following configurations only influence direct chat, not autogen
-    void_terminal.set_conf(key="API_KEY", value=llm_config["config_list"][0]["api_key"])
-    void_terminal.set_conf(key="LLM_MODEL", value=llm_config["config_list"][0]["model"])
+    llm_conf_instance = llm_config["config_list"][0]
+    void_terminal.set_conf(key="API_KEY", value=llm_conf_instance["api_key"])
+    void_terminal.set_conf(key="LLM_MODEL", value=llm_conf_instance["model"])
     # void_terminal.set_conf(key="API_KEY",value="sk-yourapikey")
     # void_terminal.set_conf(key="LLM_MODEL", value="gpt-3.5-turbo-16k")
-    if llm_config["config_list"][0].get("api_type", "") == "azure":
-        model = "azure-" + llm_config["config_list"][0]["model"]
-        base_url = llm_config["config_list"][0]["base_url"]
+    if llm_conf_instance.get("api_type", "") == "azure":
+        model = "azure-" + llm_conf_instance["model"]
+        base_url = llm_conf_instance["base_url"]
         AZURE_ENDPOINT = base_url.split("openai/deployments/")[0]
         AZURE_ENGINE = base_url.split("openai/deployments/")[-1].split("/chat/completions")[0]
         AZURE_CFG_ARRAY = {
             model: {
                 "AZURE_ENDPOINT": AZURE_ENDPOINT,
-                "AZURE_API_KEY": llm_config["config_list"][0]["api_key"],
+                "AZURE_API_KEY": llm_conf_instance["api_key"],
                 "AZURE_ENGINE": AZURE_ENGINE,
                 "AZURE_MODEL_MAX_TOKEN": 8192,
             },
