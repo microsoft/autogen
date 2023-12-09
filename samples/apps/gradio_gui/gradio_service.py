@@ -51,11 +51,8 @@ def main(plugins: dict):
     title_html = f'<h1 align="center">AutoGen</h1>{theme_declaration}'
     description = ""
     description += "</br></br>Instructions for normal conversation: 1. Enter question; 2. Click Submit"
-    description += "</br></br>Basic Function Area Usage Instructions: 1. Enter Text; 2. Click any button in the basic function area"
-    description += "</br></br>Instructions for function plugin area: 1. Enter path/question, Or upload a file; Click any function plugin area button"
-    description += "</br></br>VoidTerminal Usage Instructions: Click VoidTerminal, Then enter the command as prompted, Click VoidTerminal again"
-    description += "</br></br>How to save the conversation: Click the save current conversation button"
-    description += "</br></br>How to have a voice conversation: Please read the Wiki"
+    description += "</br></br>Instructions for Authgen: 1. Enter your demand; 2. Click Your Autogen plugin in the function plugin area"
+
 
     # Inquiry record, Python version recommended 3.9+（The newer the better）
     import logging
