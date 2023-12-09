@@ -80,12 +80,16 @@ class GroupChat:
                     return self.agents[(offset + i) % len(self.agents)]
 
     def select_speaker_msg(self, agents: List[Agent]) -> str:
-        """Return the message for selecting the next speaker."""
+        """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles(agents)}.
 
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+
+    def select_speaker_prompt(self, agents: List[Agent]) -> str:
+        """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
+        return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
 
     def manual_select_speaker(self, agents: List[Agent]) -> Union[Agent, None]:
         """Manually select the next speaker."""
@@ -170,15 +174,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = selector.generate_oai_reply(
-            self.messages
-            + [
-                {
-                    "role": "system",
-                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
-                }
-            ]
-        )
+        context = self.messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
+        final, name = selector.generate_oai_reply(context)
+
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
@@ -205,11 +203,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         roles = []
         for agent in agents:
-            if content_str(agent.system_message).strip() == "":
+            if agent.description.strip() == "":
                 logger.warning(
-                    f"The agent '{agent.name}' has an empty system_message, and may not work well with GroupChat."
+                    f"The agent '{agent.name}' has an empty description, and may not work well with GroupChat."
                 )
-            roles.append(f"{agent.name}: {agent.system_message}")
+            roles.append(f"{agent.name}: {agent.description}".strip())
         return "\n".join(roles)
 
     def _mentioned_agents(self, message_content: Union[str, List], agents: List[Agent]) -> Dict:
