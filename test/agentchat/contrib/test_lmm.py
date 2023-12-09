@@ -79,5 +79,53 @@ class TestMultimodalConversableAgent(unittest.TestCase):
         self.agent._print_received_message.assert_called_with(message_str, sender)
 
 
+@pytest.mark.skipif(skip, reason="Dependency not installed")
+def test_group_chat_with_lmm():
+    """
+    Tests the group chat functionality with two MultimodalConversable Agents.
+    Verifies that the chat is correctly limited by the max_round parameter.
+    Each agent is set to describe an image in a unique style, but the chat should not exceed the specified max_rounds.
+    """
+
+    # Configuration parameters
+    max_round = 5
+    max_consecutive_auto_reply = 10
+    llm_config = False
+
+    # Creating two MultimodalConversable Agents with different descriptive styles
+    agent1 = MultimodalConversableAgent(
+        name="image-explainer-1",
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+        llm_config=llm_config,
+        system_message="Your image description is poetic and engaging.",
+    )
+    agent2 = MultimodalConversableAgent(
+        name="image-explainer-2",
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+        llm_config=llm_config,
+        system_message="Your image description is factual and to the point.",
+    )
+
+    # Creating a user proxy agent for initiating the group chat
+    user_proxy = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="Ask both image explainer 1 and 2 for their description.",
+        human_input_mode="NEVER",  # Options: 'ALWAYS' or 'NEVER'
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+    )
+
+    # Setting up the group chat
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, user_proxy], messages=[], max_round=max_round)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    # Initiating the group chat and observing the number of rounds
+    user_proxy.initiate_chat(group_chat_manager, message=f"What do you see? <img {base64_encoded_image}>")
+
+    # Assertions to check if the number of rounds does not exceed max_round
+    assert all(len(arr) <= max_round for arr in agent1._oai_messages.values()), "Agent 1 exceeded max rounds"
+    assert all(len(arr) <= max_round for arr in agent2._oai_messages.values()), "Agent 2 exceeded max rounds"
+    assert all(len(arr) <= max_round for arr in user_proxy._oai_messages.values()), "User proxy exceeded max rounds"
+
+
 if __name__ == "__main__":
     unittest.main()

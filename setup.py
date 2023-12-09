@@ -14,7 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai~=1.2",
+    "openai~=1.2,<1.3",
     "diskcache",
     "termcolor",
     "flaml",
@@ -53,6 +53,7 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "gui": ["void-terminal>=0.0.11", "gradio-stable-fork>=3.32.6"],
         "lmm": ["replicate", "pillow"],
+        "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

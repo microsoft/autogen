@@ -1,5 +1,4 @@
 import os
-from autogen import oai
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
@@ -7,6 +6,7 @@ from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
 import pickle
+from tqdm import tqdm
 
 
 try:
@@ -63,7 +63,7 @@ class TeachableAgent(ConversableAgent):
             **kwargs,
         )
         # Register a custom reply function.
-        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, 1)
+        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, position=2)
 
         # Assemble the parameter settings.
         self._teach_config = {} if teach_config is None else teach_config
@@ -133,7 +133,7 @@ class TeachableAgent(ConversableAgent):
         print(colored("\nREVIEWING CHAT FOR USER TEACHINGS TO REMEMBER", "light_yellow"))
         # Look at each user turn.
         if len(self.user_comments) > 0:
-            for comment in self.user_comments:
+            for comment in tqdm(self.user_comments):
                 # Consider whether to store something from this user turn in the DB.
                 self.consider_memo_storage(comment)
         self.user_comments = []
