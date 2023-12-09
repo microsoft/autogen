@@ -57,6 +57,11 @@ namespace AutoGen
         {
             if (await AutoReplyFunc(messages, cancellationToken) is Message autoReply)
             {
+                if (autoReply.From == null)
+                {
+                    autoReply.From = Name;
+                }
+
                 return autoReply;
             }
             else

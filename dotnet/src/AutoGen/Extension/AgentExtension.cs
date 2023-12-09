@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.Extension;
-using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
@@ -174,74 +172,5 @@ namespace AutoGen
 
             return new AutoReplyAgent(agent, agent.Name, replyFunc);
         }
-
-        internal static IEnumerable<Message> ProcessMessages(this GPTAgent agent, IEnumerable<Message> messages)
-        {
-            var i = 0;
-            foreach (var message in messages)
-            {
-                if (message.Role == AuthorRole.System)
-                {
-                    yield return message;
-                }
-                else if (message.From is null)
-                {
-                    yield return message;
-                }
-                else if (message.From != agent.Name)
-                {
-                    // add as user message
-                    var content = message.Content ?? string.Empty;
-                    content = @$"{content}
-<eof_msg>
-From {message.From}
-round # {i++}";
-                    yield return new Message(AuthorRole.User, content)
-                    {
-                        From = message.From,
-                    };
-                }
-                else
-                {
-                    if (message.GetFunctionCall() is FunctionCall functionCall)
-                    {
-                        var functionCallMessage = new Message(AuthorRole.Assistant, null)
-                        {
-                            FunctionCall = functionCall,
-                        };
-
-                        i++;
-
-                        yield return functionCallMessage;
-
-                        var functionResultMessage = new Message(AuthorRole.Function, message.Content)
-                        {
-                            From = message.From,
-                            FunctionName = functionCall.Name,
-                        };
-
-                        yield return functionResultMessage;
-
-                        i++;
-                    }
-                    else
-                    {
-                        // add suffix
-                        var content = message.Content ?? string.Empty;
-                        content = @$"{content}
-<eof_msg>
-round # {i++}";
-
-                        var assistantMessage = new Message(AuthorRole.Assistant, content)
-                        {
-                            From = message.From,
-                        };
-
-                        yield return assistantMessage;
-                    }
-                }
-            }
-        }
-
     }
 }

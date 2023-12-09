@@ -20,7 +20,7 @@ namespace AutoGen.Tests
 
             var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0);
 
-            await RepeatWordTestAsync(agent);
+            await UpperCaseTest(agent);
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]
@@ -31,7 +31,7 @@ namespace AutoGen.Tests
             var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
-            await RepeatWordTestAsync(agentWithFunction);
+            await UpperCaseTest(agentWithFunction);
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]
@@ -57,7 +57,7 @@ namespace AutoGen.Tests
                 llmConfig: llmConfig);
 
             await EchoFunctionCallTestAsync(assistantAgent);
-            await RepeatWordTestAsync(assistantAgent);
+            await UpperCaseTest(assistantAgent);
         }
 
         [Fact]
@@ -100,7 +100,7 @@ namespace AutoGen.Tests
                 });
 
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
-            await RepeatWordTestAsync(assistantAgent);
+            await UpperCaseTest(assistantAgent);
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]
@@ -119,11 +119,11 @@ namespace AutoGen.Tests
                     { nameof(EchoAsync), this.EchoAsyncWrapper },
                 });
             await EchoFunctionCallExecutionTestAsync(agent);
-            await RepeatWordTestAsync(agent);
+            await UpperCaseTest(agent);
         }
 
         /// <summary>
-        /// echo
+        /// echo when asked.
         /// </summary>
         /// <param name="message">message to echo</param>
         [FunctionAttribution]
@@ -158,14 +158,14 @@ namespace AutoGen.Tests
             reply.FunctionCall!.Name.Should().Be(nameof(EchoAsync));
         }
 
-        private async Task RepeatWordTestAsync(IAgent agent)
+        private async Task UpperCaseTest(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "You repeat whatever from user");
-            var helloWorld = new Message(AuthorRole.User, "Hello world");
+            var message = new Message(AuthorRole.System, "You are a helpful AI assistant that convert user message to upper case");
+            var helloWorld = new Message(AuthorRole.User, "abcdefg");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
-            reply.Content.Should().Be("Hello world");
+            reply.Content.Should().Be("ABCDEFG");
             reply.Role.Should().Be(AuthorRole.Assistant);
             reply.From.Should().Be(agent.Name);
         }

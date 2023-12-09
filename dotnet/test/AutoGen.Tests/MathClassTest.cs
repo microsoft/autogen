@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.Extension;
 using FluentAssertions;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Xunit.Abstractions;
 
 namespace AutoGen.Tests
@@ -78,18 +77,6 @@ Question #{question_index}:
                     { this.UpdateProgressFunction.Name, this.UpdateProgressWrapper },
                 });
 
-            //var admin = gptAgent
-            //    .RegisterReply(async (msgs, ct) =>
-            //    {
-            //        // check if student successfully resolve 5 math problems
-            //        if (msgs.Where(m => m.From == teacher.Name && m.Content?.Contains("[ANSWER_IS_CORRECT]") is true).Count() >= 5)
-            //        {
-            //            return new Message(AuthorRole.Assistant, GroupChatExtension.TERMINATE, from: "Admin");
-            //        }
-
-            //        return null;
-            //    });
-
             await RunMathChatAsync(teacher, student, admin);
         }
 
@@ -108,7 +95,7 @@ Question #{question_index}:
                 FunctionDefinitions = new[]
                 {
                     this.CreateMathQuestionFunction,
-                    this.AnswerQuestionFunction,
+                    this.AnswerIsCorrectFunction,
                 },
             };
 

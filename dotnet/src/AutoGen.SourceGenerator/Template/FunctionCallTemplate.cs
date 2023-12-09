@@ -130,6 +130,7 @@ if (!String.IsNullOrEmpty(NameSpace)) {
 public string NameSpace {get; set;}
 public string ClassName {get; set;}
 public IEnumerable<FunctionContract> FunctionContracts {get; set;}
+public bool IsStatic {get; set;} = false;
 
     }
     #region Base class
