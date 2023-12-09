@@ -33,6 +33,7 @@ python -m pip install pyautogen[gui]
         # export OAI_CONFIG_LIST='/path/to/OAI_CONFIG_LIST'
         export OAI_CONFIG_LIST='./OAI_CONFIG_LIST'
         export AUTOGEN_USE_DOCKER='False'
+        export PATH_LOGGING='logs'
         export WEB_PORT=12345
         # for more environment variables options, please refer to the void terminal project
 
@@ -45,6 +46,7 @@ python -m pip install pyautogen[gui]
         # set OAI_CONFIG_LIST=/path/to/OAI_CONFIG_LIST
         set OAI_CONFIG_LIST=./OAI_CONFIG_LIST
         set AUTOGEN_USE_DOCKER=False
+        set PATH_LOGGING=logs
         set WEB_PORT=12345
         # for more environment variables options, please refer to the void terminal project
 
