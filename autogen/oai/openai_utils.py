@@ -413,7 +413,7 @@ def config_list_from_dotenv(
     return config_list
 
 
-def retrieve_assistants_by_name(client, name) -> str:
+def retrieve_assistants_by_name(client, name):
     """
     Return the assistants with the given name from OAI assistant API
     """

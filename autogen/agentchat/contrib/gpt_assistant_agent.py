@@ -59,9 +59,14 @@ class GPTAssistantAgent(ConversableAgent):
         if openai_assistant_id is None:
             # try to find assistant by name first
             candidate_assistants = retrieve_assistants_by_name(self._openai_client, name)
+            if len(candidate_assistants) > 0:
+                # Filter out candidates with the same name but different instructions, file IDs, and function names.
+                candidate_assistants = self.find_matching_assistant(
+                    candidate_assistants, instructions, llm_config.get("tools", []), llm_config.get("file_ids", [])
+                )
 
             if len(candidate_assistants) == 0:
-                logger.warning(f"assistant {name} does not exist, creating a new assistant")
+                logger.warning("assistant %s does not exist, creating a new assistant", name)
                 # create a new assistant
                 if instructions is None:
                     logger.warning(
@@ -76,11 +81,11 @@ class GPTAssistantAgent(ConversableAgent):
                     file_ids=llm_config.get("file_ids", []),
                 )
             else:
-                if len(candidate_assistants) > 1:
-                    logger.warning(
-                        f"Multiple assistants with name {name} found. Using the first assistant in the list. "
-                        f"Please specify the assistant ID in llm_config to use a specific assistant."
-                    )
+                logger.warning(
+                    "assistant %s already exists, using the first matching assistant: %s",
+                    name,
+                    candidate_assistants[0].__dict__,
+                )
                 self._openai_assistant = candidate_assistants[0]
         else:
             # retrieve an existing assistant
@@ -368,3 +373,48 @@ class GPTAssistantAgent(ConversableAgent):
         """Delete the assistant from OAI assistant API"""
         logger.warning("Permanently deleting assistant...")
         self._openai_client.beta.assistants.delete(self.assistant_id)
+
+    def find_matching_assistant(self, candidate_assistants, instructions, tools, file_ids):
+        """
+        Find the matching assistant from a list of candidate assistants.
+        Filter out candidates with the same name but different instructions, file IDs, and function names.
+        TODO: implement accurate match based on assistant metadata fields.
+        """
+        matching_assistants = []
+
+        # Preprocess the required tools for faster comparison
+        required_tool_types = set(tool.get("type") for tool in tools)
+        required_function_names = set(
+            tool.get("function", {}).get("name")
+            for tool in tools
+            if tool.get("type") not in ["code_interpreter", "retrieval"]
+        )
+        required_file_ids = set(file_ids)  # Convert file_ids to a set for unordered comparison
+
+        for assistant in candidate_assistants:
+            # Check if instructions are similar
+            if instructions and instructions != getattr(assistant, "instructions", None):
+                print("instructions not match")
+                print(instructions, getattr(assistant, "instructions", None))
+                continue
+
+            # Preprocess the assistant's tools
+            assistant_tool_types = set(tool.type for tool in assistant.tools)
+            assistant_function_names = set(tool.function.name for tool in assistant.tools if hasattr(tool, "function"))
+            assistant_file_ids = set(getattr(assistant, "file_ids", []))  # Convert to set for comparison
+
+            # Check if the tool types, function names, and file IDs match
+            if required_tool_types != assistant_tool_types or required_function_names != assistant_function_names:
+                print("tools not match")
+                print(required_tool_types, assistant_tool_types)
+                print(required_function_names, assistant_function_names)
+                continue
+            if required_file_ids != assistant_file_ids:
+                print("file_ids not match")
+                print(required_file_ids, assistant_file_ids)
+                continue
+
+            # Append assistant to matching list if all conditions are met
+            matching_assistants.append(assistant)
+
+        return matching_assistants
