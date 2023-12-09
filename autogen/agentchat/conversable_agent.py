@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import functools
 import json
 import logging
 from collections import defaultdict
@@ -133,9 +134,10 @@ class ConversableAgent(Agent):
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
-        self.register_reply([Agent, None], ConversableAgent.generate_async_function_call_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
@@ -631,6 +633,17 @@ class ConversableAgent(Agent):
         )
         return True, client.extract_text_or_function_call(response)[0]
 
+    async def a_generate_oai_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ) -> Tuple[bool, Union[str, Dict, None]]:
+        """Generate a reply using autogen.oai asynchronously."""
+        return await asyncio.get_event_loop().run_in_executor(
+            None, functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
+        )
+
     def generate_code_execution_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -697,7 +710,7 @@ class ConversableAgent(Agent):
             return True, func_return
         return False, None
 
-    async def generate_async_function_call_reply(
+    async def a_generate_function_call_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
