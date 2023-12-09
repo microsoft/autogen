@@ -19,7 +19,8 @@ The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ l
 To run the Testbed, simply execute
 ``python run_scenarios.py scenarios/Examples``
 
-The default is to run each scenario once time. To run each scenario 10 times, use:
+The default is to run each scenario once. To run each scenario 10 times, use:
+
 ``python run_scenarios.py --repeat 10 scenarios/Examples ``
 
 The run_scenarios.py script also allows a number of command-line arguments to control various parameters of execution. Type ``python run_scenarios.py -h`` to explore these options:
@@ -192,4 +193,26 @@ python utils/download_humaneval.py
 python ./run_scenarios.py scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
 python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
 cat human_eval_results_gpt35.csv
+```
+
+## (Example) Running GAIA
+
+The Testbed can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if it (nearly) exactly matches an unambiguously accepted answer.
+
+Accessing this scenario-type requires downloading and converting the GAIA dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance once with GPT-4:
+
+```
+# Clone the GAIA dataset repo (assuming a 'repos' folder in your home directory)
+cd ~/repos
+git clone https://huggingface.co/datasets/gaia-benchmark/GAIA
+
+# Expand GAIA
+cd ~/repos/autogen/samples/tools/testbed
+python ./utils/expand_gaia.py ~/repos/GAIA
+
+# Run GAIA
+python ./run_scenarios.py ./scenarios/GAIA/gaia_validation_level_1__two_agents_gpt4.jsonl
+
+# Compute Metrics
+python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
 ```

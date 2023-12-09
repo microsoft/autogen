@@ -10,9 +10,9 @@ import requests
 from regex import R
 
 from autogen.agentchat.agent import Agent
+from autogen.agentchat.contrib.img_utils import get_image_data, llava_formater
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
-from autogen.img_utils import get_image_data, llava_formater
 
 try:
     from termcolor import colored

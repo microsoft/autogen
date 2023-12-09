@@ -10,7 +10,7 @@ import requests
 try:
     from PIL import Image
 
-    from autogen.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
+    from autogen.agentchat.contrib.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
 except ImportError:
     skip = True
 else:
@@ -71,7 +71,7 @@ class TestLlavaFormater(unittest.TestCase):
         result = llava_formater(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.img_utils.get_image_data")
+    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
     def test_with_images(self, mock_get_image_data):
         """
         Test the llava_formater function with a prompt containing images.
@@ -84,7 +84,7 @@ class TestLlavaFormater(unittest.TestCase):
         result = llava_formater(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.img_utils.get_image_data")
+    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
     def test_with_ordered_images(self, mock_get_image_data):
         """
         Test the llava_formater function with ordered image tokens.
@@ -109,7 +109,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.img_utils.get_image_data")
+    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
     def test_with_images(self, mock_get_image_data):
         """
         Test the gpt4v_formatter function with a prompt containing images.
@@ -126,7 +126,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.img_utils.get_image_data")
+    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
     def test_multiple_images(self, mock_get_image_data):
         """
         Test the gpt4v_formatter function with a prompt containing multiple images.
