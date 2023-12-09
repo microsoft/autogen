@@ -13,6 +13,19 @@ def conversable_agent():
     )
 
 
+def test_truncation():
+    long_string = "This is a really long string." * 10000
+    truncation_agent = ConversableAgent(
+        "truncation_tester",
+        max_consecutive_auto_reply=0,
+        llm_config=False,
+        human_input_mode="NEVER",
+    )
+    mock_messages = [{"content": long_string}, {"content": long_string}]
+    truncated_messages = truncation_agent.truncate_messages_if_over_context_len(mock_messages, 5000)
+    assert truncated_messages[0]["content"] == ("This is a really long string." * 10000)[:5000]
+
+
 def test_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
