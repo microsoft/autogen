@@ -474,38 +474,5 @@ class OpenAIWrapper:
                 for choice in choices
             ]
 
-    @staticmethod
-    def ChatCompletionMessage_to_dict(response: ChatCompletionMessage) -> Dict:
-        """Convert the response to a dict.
-
-        Args:
-            response (ChatCompletionMessagen): The ChatCompletionMessage from openai.
-
-        Returns:
-            A dict of the response.
-        """
-        if not isinstance(response, ChatCompletionMessage):
-            return response
-
-        dict_msg = {
-            "content": response.content,
-            "role": response.role,
-        }
-        if response.function_call is not None:
-            dict_msg["function_call"] = dict(response.function_call)
-
-        # TODO: in the future openai may support tool call to Code Interpreter, doc retriever, etc.
-        if TOOL_ENABLED and response.tool_calls is not None:
-            dict_msg["tool_calls"] = [
-                {
-                    "type": tool_call.type,
-                    "id": tool_call.id,
-                    "function": dict(tool_call.function),
-                }
-                for tool_call in response.tool_calls
-            ]
-
-        return dict_msg
-
 
 # TODO: logging

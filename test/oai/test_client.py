@@ -71,49 +71,6 @@ def test_oai_tool_calling_extraction():
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_ChatCompletionMessage_to_dict():
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
-    )
-    client = OpenAIWrapper(config_list=config_list)
-
-    # test extract content
-    message = ChatCompletionMessage(role="assistant", content="hello", function_call=None)
-    assert isinstance(
-        client.ChatCompletionMessage_to_dict(message), dict
-    ), "ChatCompletionMessage_to_dict should return a dict"
-
-    # test extract function_call
-    message = ChatCompletionMessage(
-        role="assistant",
-        content="hello",
-        function_call={"arguments": '{"location":"San Francisco, CA","unit":"celsius"}', "name": "getCurrentWeather"},
-    )
-    assert isinstance(
-        client.ChatCompletionMessage_to_dict(message), dict
-    ), "ChatCompletionMessage_to_dict should return a dict"
-
-    # test extract tool_call
-    if TOOL_ENABLED:
-        message = ChatCompletionMessage(
-            role="assistant",
-            content="hello",
-            tool_calls=[
-                {
-                    "id": "call_DvkeGSplZjWLOCRIsoOFN9Bu",
-                    "type": "function",
-                    "function": {"name": "getCurrentWeather", "arguments": '{"location":"San Francisco"}'},
-                }
-            ],
-        )
-        assert isinstance(
-            client.ChatCompletionMessage_to_dict(message), dict
-        ), "ChatCompletionMessage_to_dict should return a dict"
-
-
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -183,7 +140,6 @@ def test_usage_summary():
 if __name__ == "__main__":
     test_aoai_chat_completion()
     test_oai_tool_calling_extraction()
-    test_ChatCompletionMessage_to_dict()
     test_chat_completion()
     test_completion()
     test_cost()
