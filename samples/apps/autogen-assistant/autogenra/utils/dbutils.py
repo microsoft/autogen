@@ -32,12 +32,12 @@ SESSIONS_TABLE_SQL = """
             """
 
 SKILLS_TABLE_SQL = """
-            CREATE TABLE IF NOT EXISTS sessions (
-                session_id TEXT NOT NULL,
+            CREATE TABLE IF NOT EXISTS skills (
+                skill_id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
                 flow_config TEXT,
-                UNIQUE (user_id, session_id)
+                UNIQUE (user_id, skill_id)
             )
             """
 GALLERY_TABLE_SQL = """
