@@ -173,12 +173,21 @@ class GPTAssistantAgent(ConversableAgent):
         else:
             return False, "No response from the assistant."
 
-    def _process_messages(self, assistant_thread: Thread, run: Run):
+    def _process_messages(self, assistant_thread: Thread, run: Run) -> dict:
         """
-        Processes and provides a response based on the run status.
+        Processes the status of a run and generates an appropriate response.
+
+        This method checks the status of a given run and generates a response
+        based on that status. The response is a dictionary with a 'role' and 'content' field.
+        The 'role' field is always 'assistant', and the 'content' field contains a message
+        related to the status of the run.
+
         Args:
-            assistant_thread: The thread object for the assistant.
-            run: The run object initiated with the OpenAI assistant.
+            assistant_thread (Thread): The Thread object associated with the current task.
+            run (Run): The Run object associated with the current task.
+
+        Returns:
+            dict: A dictionary containing the 'role' and 'content' of the response.
         """
         if run.status == "failed":
             logger.error(f"Run: {run.id} Thread: {assistant_thread.id}: failed...")
