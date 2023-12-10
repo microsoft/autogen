@@ -242,6 +242,8 @@ class GPTAssistantAgent(ConversableAgent):
             run: The run object initiated with the OpenAI assistant.
         """
         while True:
+            if self.check_for_cancellation():
+                self._cancel_run()
             run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
             if run.status == "in_progress" or run.status == "queued":
                 time.sleep(self.llm_config.get("check_every_ms", 1000) / 1000)
@@ -285,8 +287,7 @@ class GPTAssistantAgent(ConversableAgent):
                 }
 
                 run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
-                if self.check_for_cancellation():
-                    self._cancel_run()
+
             else:
                 run_info = json.dumps(run.dict(), indent=2)
                 raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
