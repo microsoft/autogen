@@ -48,7 +48,7 @@ def test_eval_math_responses():
         functions=functions,
     )
     print(response)
-    responses = client.extract_text_or_function_call(response)
+    responses = client.extract_text_or_completion_object(response)
     print(responses[0])
     function_call = responses[0].function_call
     name, arguments = function_call.name, json.loads(function_call.arguments)

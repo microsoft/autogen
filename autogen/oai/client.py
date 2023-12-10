@@ -10,7 +10,9 @@ from flaml.automl.logger import logger_formatter
 from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
 
+TOOL_ENABLED = False
 try:
+    import openai
     from openai import OpenAI, APIError
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
@@ -18,6 +20,8 @@ try:
     from openai.types.completion_usage import CompletionUsage
     import diskcache
 
+    if openai.__version__ >= "1.1.0":
+        TOOL_ENABLED = True
     ERROR = None
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
@@ -205,7 +209,7 @@ class OpenAIWrapper:
         ```python
         def yes_or_no_filter(context, response):
             return context.get("yes_or_no_choice", False) is False or any(
-                text in ["Yes.", "No."] for text in client.extract_text_or_function_call(response)
+                text in ["Yes.", "No."] for text in client.extract_text_or_completion_object(response)
             )
         ```
 
@@ -442,21 +446,33 @@ class OpenAIWrapper:
         return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
 
     @classmethod
-    def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
-        """Extract the text or function calls from a completion or chat response.
+    def extract_text_or_completion_object(
+        cls, response: ChatCompletion | Completion
+    ) -> Union[List[str], List[ChatCompletionMessage]]:
+        """Extract the text or ChatCompletion objects from a completion or chat response.
 
         Args:
             response (ChatCompletion | Completion): The response from openai.
 
         Returns:
-            A list of text or function calls in the responses.
+            A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
         choices = response.choices
         if isinstance(response, Completion):
             return [choice.text for choice in choices]
-        return [
-            choice.message if choice.message.function_call is not None else choice.message.content for choice in choices
-        ]
+
+        if TOOL_ENABLED:
+            return [
+                choice.message
+                if choice.message.function_call is not None or choice.message.tool_calls is not None
+                else choice.message.content
+                for choice in choices
+            ]
+        else:
+            return [
+                choice.message if choice.message.function_call is not None else choice.message.content
+                for choice in choices
+            ]
 
 
 # TODO: logging
