@@ -50,7 +50,7 @@ const FlowView = ({
           value={flowSpec.config.max_consecutive_auto_reply}
           control={
             <Slider
-              min={2}
+              min={0}
               max={30}
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}
