@@ -394,8 +394,7 @@ class GPTAssistantAgent(ConversableAgent):
         for assistant in candidate_assistants:
             # Check if instructions are similar
             if instructions and instructions != getattr(assistant, "instructions", None):
-                print("instructions not match")
-                print(instructions, getattr(assistant, "instructions", None))
+                logger.warning("instructions not match, skip assistant: %s", getattr(assistant, "instructions", None))
                 continue
 
             # Preprocess the assistant's tools
@@ -405,13 +404,14 @@ class GPTAssistantAgent(ConversableAgent):
 
             # Check if the tool types, function names, and file IDs match
             if required_tool_types != assistant_tool_types or required_function_names != assistant_function_names:
-                print("tools not match")
-                print(required_tool_types, assistant_tool_types)
-                print(required_function_names, assistant_function_names)
+                logger.warning(
+                    "tools not match, skip assistant: tools %s, functions %s",
+                    assistant_tool_types,
+                    assistant_function_names,
+                )
                 continue
             if required_file_ids != assistant_file_ids:
-                print("file_ids not match")
-                print(required_file_ids, assistant_file_ids)
+                logger.warning("file_ids not match, skip assistant: %s", assistant_file_ids)
                 continue
 
             # Append assistant to matching list if all conditions are met
