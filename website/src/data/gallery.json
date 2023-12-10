@@ -70,7 +70,7 @@
   },
   {
     "title": "AutoGen Monitoring and Observability",
-    "link": "https://docs.arize.com/phoenix/quickstart/llm-traces/AutoGen-support",
+    "link": "https://docs.arize.com/phoenix/quickstart/llm-traces/autogen-support",
     "description": "Documentation on monitoring and observability features for AutoGen.",
     "image": "default.png",
     "tags": ["extension"]
