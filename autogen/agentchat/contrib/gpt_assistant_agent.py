@@ -246,12 +246,24 @@ class GPTAssistantAgent(ConversableAgent):
                 response["content"] += message["content"]
             return response
 
-    def _get_run_response(self, assistant_thread, run):
+    def _get_run_response(self, assistant_thread: Thread, run: Run) -> dict:
         """
-        Waits for and processes the response of a run from the OpenAI assistant.
+        This method waits for a run initiated with the OpenAI assistant to complete,
+        and then processes its response.
+        It continuously checks for the status of the run. If the run is still in progress
+        or queued, it waits for a specified amount of time before checking again. If
+        the run is completed, cancelled, or expired, it stops waiting and processes the
+        response.
+
         Args:
-            assistant_thread: The thread object for the assistant.
-            run: The run object initiated with the OpenAI assistant.
+            assistant_thread (Thread): The thread object associated with the task.
+            run (Run): The run object that was initiated with the task.
+
+        Returns:
+            dict: The processed response from the run.
+
+        Raises:
+            Exception: If the run is cancelled due to a cancellation request.
         """
         while True:
             if self._check_for_cancellation():
