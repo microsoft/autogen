@@ -3,6 +3,9 @@ import json
 import time
 import logging
 
+from openai.types.beta.thread import Thread
+from openai.types.beta.threads.run import Run
+
 from autogen import OpenAIWrapper
 from autogen.oai.openai_utils import retrieve_assistants_by_name
 from autogen.agentchat.agent import Agent
@@ -170,7 +173,7 @@ class GPTAssistantAgent(ConversableAgent):
         else:
             return False, "No response from the assistant."
 
-    def _process_messages(self, assistant_thread, run):
+    def _process_messages(self, assistant_thread: Thread, run: Run):
         """
         Processes and provides a response based on the run status.
         Args:
