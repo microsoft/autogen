@@ -67,8 +67,6 @@ class SimpleTextBrowser:
             self.page_content = list()
         elif uri_or_path.startswith("bing:"):
             self._bing_search(uri_or_path[len("bing:") :].strip())
-        elif uri_or_path.startswith("wikipedia:"):
-            self._wikipedia_lookup(uri_or_path[len("wikipedia:") :].strip())
         else:
             if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
                 uri_or_path = urljoin(self.address, uri_or_path)
@@ -182,15 +180,6 @@ class SimpleTextBrowser:
         )
         if len(news_snippets) > 0:
             self.page_content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
-
-    def _wikipedia_lookup(self, title_or_topic):
-        results = self._bing_api_call(title_or_topic + " Wikipedia")
-        for page in results["webPages"]["value"]:
-            if page["url"].startswith("https://en.wikipedia.org/wiki/"):
-                self.set_address(page["url"])
-                return
-        self.page_title = f"Wikipedia page not found for '{title_or_topic}'"
-        self.page_content = self.page_title
 
     def _fetch_page(self, url):
         try:

@@ -16,15 +16,18 @@ logger = logging.getLogger(__name__)
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
-    DEFAULT_SURFER_PROMPT = (
+    DEFAULT_PROMPT = (
         "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
         + datetime.now().date().isoformat()
     )
 
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, answer questions from pages, and generate summaries, or even perform a semantic 'find-in-page' feature that scrolls to parts of the page that are relevant to a natural language query."
+
     def __init__(
         self,
         name,
-        system_message: Optional[Union[str, List]] = DEFAULT_SURFER_PROMPT,
+        system_message: Optional[Union[str, List]] = DEFAULT_PROMPT,
+        description: Optional[str] = DEFAULT_DESCRIPTION,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
@@ -81,14 +84,28 @@ class WebSurferAgent(ConversableAgent):
         inner_llm_config = copy.deepcopy(llm_config)
         inner_llm_config["functions"] = [
             {
-                "name": "bing_search",
-                "description": "Perform a search on Bing for a given query, then return the top results.",
+                "name": "informational_web_search",
+                "description": "Perform an INFORMATIONAL web search query then return the search results.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "The Bing web search query to perform.",
+                            "description": "The informational web search query to perform.",
+                        }
+                    },
+                },
+                "required": ["query"],
+            },
+            {
+                "name": "navigational_web_search",
+                "description": "Perform a NAVIGATIONAL web search query then immediately navigate to the top result. Useful, for example, to navigate to a particular Wikipedia article or other known destination. Equivalent to Google's \"I'm Feeling Lucky\" button.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The navigational web search query to perform.",
                         }
                     },
                 },
@@ -96,7 +113,7 @@ class WebSurferAgent(ConversableAgent):
             },
             {
                 "name": "visit_page",
-                "description": "Visit a webpage and return its text.",
+                "description": "Visit a webpage at a given URL and return its text.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -107,20 +124,6 @@ class WebSurferAgent(ConversableAgent):
                     },
                 },
                 "required": ["url"],
-            },
-            {
-                "name": "visit_wikipedia",
-                "description": "Navigate to a wikipedia page and return its text.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "topic_or_title": {
-                            "type": "string",
-                            "description": "The topic or title of the wikipedia page to visit.",
-                        }
-                    },
-                },
-                "required": ["topic_or_title"],
             },
             {
                 "name": "page_up",
@@ -177,7 +180,7 @@ class WebSurferAgent(ConversableAgent):
             inner_llm_config["functions"].append(
                 {
                     "name": "find_in_page",
-                    "description": "Scroll to the part of the page most relevant to a question or query. An AI-enhanced version of Ctrl+F",
+                    "description": "Scroll to the part of the page most relevant to a question or query. I.e., an AI-enhanced version of Ctrl+F",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -251,13 +254,20 @@ class WebSurferAgent(ConversableAgent):
             )
             return (header, self.browser.viewport)
 
-        def _bing_search(query):
+        def _informational_search(query):
             self.browser.visit_page(f"bing: {query}")
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
-        def _visit_wikipedia(topic_or_title):
-            self.browser.visit_page(f"wikipedia: {topic_or_title}")
+        def _navigational_search(query):
+            self.browser.visit_page(f"bing: {query}")
+
+            # Extract the first linl
+            m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
+            if m:
+                self.browser.visit_page(m.group(1))
+
+            # Return where we ended up
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
@@ -355,7 +365,11 @@ class WebSurferAgent(ConversableAgent):
             )
 
             response = self.summarization_client.create(context=None, messages=messages)
-            return self.summarization_client.extract_text_or_function_call(response)[0]
+            extracted_response = self.summarization_client.extract_text_or_completion_object(response)[0]
+            if not isinstance(extracted_response, str):
+                return str(extracted_response.model_dump(mode="dict")) # Not sure what to do here
+            else:
+                return extracted_response
 
         def _semantic_find_on_page(query, url):
             if url is not None and url != self.browser.address:
@@ -413,25 +427,27 @@ This quote can be found on or near Line:""",
             # print(json.dumps(messages, indent=4))
 
             response = self.summarization_client.create(context=None, messages=messages)
-            response = self.summarization_client.extract_text_or_function_call(response)[0]
-            # print(response)
+            extracted_response = self.summarization_client.extract_text_or_completion_object(response)[0]
+            if not isinstance(extracted_response, str):
+                return str(extracted_response.model_dump(mode="dict")) # Not sure what to do here
 
-            m = re.search(r"[Ll]ine\:?\s+(\d+)", response)
+            m = re.search(r"[Ll]ine\:?\s+(\d+)", extracted_response)
             if m:
                 found_line = int(m.group(1))
                 return _find_on_page(lines[found_line - 1])
             else:
-                return response
+                return extracted_response
+
 
         self._user_proxy.register_function(
             function_map={
-                "bing_search": lambda query: _bing_search(query),
+                "informational_web_search": lambda query: _informational_search(query),
+                "navigational_web_search": lambda query: _navigational_search(query),
                 "visit_page": lambda url: _visit_page(url),
                 "page_up": lambda: _page_up(),
                 "page_down": lambda: _page_down(),
                 "find_on_page": lambda find_string: _find_on_page(find_string),
                 "find_next_on_page": lambda: _find_next_on_page(),
-                "visit_wikipedia": lambda topic_or_title: _visit_wikipedia(topic_or_title),
                 "answer_from_page": lambda question=None, url=None: _summarize_page(question, url),
                 "summarize_page": lambda question=None, url=None: _summarize_page(None, url),
                 "find_in_page": lambda query=None, url=None: _semantic_find_on_page(query, url),
@@ -461,6 +477,9 @@ This quote can be found on or near Line:""",
         history = messages[0 : len(messages) - 1]
         for message in history:
             self._assistant.chat_messages[self._user_proxy].append(message)
+            
+        # Remind the agent where it is
+        self._user_proxy.send(f"Your browser is currently open to the page '{self.browser.page_title}' at the address '{self.browser.address}'.", self._assistant, request_reply=False, silent=True)
 
         self._user_proxy.send(messages[-1]["content"], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
