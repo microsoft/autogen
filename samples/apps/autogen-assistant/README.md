@@ -55,6 +55,11 @@ Project Structure:
       ```bash
       gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
       ```
+    - Navigate to the `samples/apps/autogen-assistant` directory and install the `autogenra` library in your current Python environment:
+
+      ```bash
+      pip install -e .
+      ```
 
 ### Running the Application
 
