@@ -235,9 +235,15 @@ class OpenAIWrapper:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
+
                     if response is not None:
+                        try:
+                            response.cost
+                        except AttributeError:
+                            # update atrribute if cost is not calculated
+                            response.cost = self.cost(response)
+                            cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
-                    if response is not None:
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
