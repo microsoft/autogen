@@ -367,7 +367,7 @@ class WebSurferAgent(ConversableAgent):
             response = self.summarization_client.create(context=None, messages=messages)
             extracted_response = self.summarization_client.extract_text_or_completion_object(response)[0]
             if not isinstance(extracted_response, str):
-                return str(extracted_response.model_dump(mode="dict")) # Not sure what to do here
+                return str(extracted_response.model_dump(mode="dict"))  # Not sure what to do here
             else:
                 return extracted_response
 
@@ -429,7 +429,7 @@ This quote can be found on or near Line:""",
             response = self.summarization_client.create(context=None, messages=messages)
             extracted_response = self.summarization_client.extract_text_or_completion_object(response)[0]
             if not isinstance(extracted_response, str):
-                return str(extracted_response.model_dump(mode="dict")) # Not sure what to do here
+                return str(extracted_response.model_dump(mode="dict"))  # Not sure what to do here
 
             m = re.search(r"[Ll]ine\:?\s+(\d+)", extracted_response)
             if m:
@@ -437,7 +437,6 @@ This quote can be found on or near Line:""",
                 return _find_on_page(lines[found_line - 1])
             else:
                 return extracted_response
-
 
         self._user_proxy.register_function(
             function_map={
@@ -477,9 +476,14 @@ This quote can be found on or near Line:""",
         history = messages[0 : len(messages) - 1]
         for message in history:
             self._assistant.chat_messages[self._user_proxy].append(message)
-            
+
         # Remind the agent where it is
-        self._user_proxy.send(f"Your browser is currently open to the page '{self.browser.page_title}' at the address '{self.browser.address}'.", self._assistant, request_reply=False, silent=True)
+        self._user_proxy.send(
+            f"Your browser is currently open to the page '{self.browser.page_title}' at the address '{self.browser.address}'.",
+            self._assistant,
+            request_reply=False,
+            silent=True,
+        )
 
         self._user_proxy.send(messages[-1]["content"], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
