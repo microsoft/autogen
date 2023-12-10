@@ -83,6 +83,10 @@ For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-executio
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
+## Simple Example in ChatGPT Style
+
+One [simple example](https://github.com/microsoft/autogen/blob/main/samples/simple_chat.py) of human chatting with an AutoGen agent in ChatGPT style.
+
 ## Multi-Agent Conversation Framework
 
 Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
