@@ -113,7 +113,7 @@ class GPTAssistantAgent(ConversableAgent):
         self._unread_index = defaultdict(int)
         self.register_reply([Agent, None], GPTAssistantAgent._invoke_assistant, position=2)
 
-    def check_for_cancellation(self):
+    def _check_for_cancellation(self):
         """
         Checks for cancellation used during _get_run_response
         """
@@ -242,7 +242,7 @@ class GPTAssistantAgent(ConversableAgent):
             run: The run object initiated with the OpenAI assistant.
         """
         while True:
-            if self.check_for_cancellation():
+            if self._check_for_cancellation():
                 self._cancel_run()
             run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
             if run.status == "in_progress" or run.status == "queued":
