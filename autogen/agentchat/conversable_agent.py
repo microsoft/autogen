@@ -628,7 +628,7 @@ class ConversableAgent(Agent):
 
         # TODO: line 301, line 271 is converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
-        if not isinstance(response, str):
+        if not isinstance(extracted_response, str):
             extracted_response = extracted_response.model_dump(mode="dict")
         return True, extracted_response
 
