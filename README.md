@@ -85,7 +85,7 @@ For LLM inference configurations, check the [FAQs](https://microsoft.github.io/a
 
 ## Simple Example in ChatGPT Style
 
-One [simple example](https://github.com/microsoft/autogen/blob/main/samples/simple_chat.py) of human chatting with an AutoGen agent in ChatGPT style.
+[Sample code]((https://github.com/microsoft/autogen/blob/main/samples/simple_chat.py)) allowing the user to chat with an AutoGen agent in ChatGPT style
 
 ## Multi-Agent Conversation Framework
 
