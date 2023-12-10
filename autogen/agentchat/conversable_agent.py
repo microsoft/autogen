@@ -631,7 +631,12 @@ class ConversableAgent(Agent):
         response = client.create(
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
-        return True, client.extract_text_or_function_call(response)[0]
+
+        # TODO: line 301, line 271 is converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
+        extracted_response = client.extract_text_or_completion_object(response)[0]
+        if not isinstance(extracted_response, str):
+            extracted_response = extracted_response.model_dump(mode="dict")
+        return True, extracted_response
 
     async def a_generate_oai_reply(
         self,
