@@ -151,5 +151,12 @@
     "description": "Tutorial on building vision-enabled AI agents using AutoGen and llava.",
     "image": "default.png",
     "tags": ["tools", "app"]
+  },
+  {
+    "title": "AutoGen + Chainlit chat interface with multi-agent conversation",
+    "link": "https://github.com/antoineross/Autogen-UI/tree/main",
+    "description": "Chainlit chat interface with multi-agent conversation between agents to complete a tasks",
+    "image": "default.png",
+    "tags": ["ui"]
   }
 ]
