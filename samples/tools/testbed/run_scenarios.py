@@ -90,9 +90,14 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                     expand_scenario(scenario_dir, instance, results_repetition)
 
                     # Append the config list to the ENV file
-                    config_list_json = json.dumps(config_list)
                     with open(os.path.join(results_repetition, "ENV"), "at") as fh:
+                        config_list_json = json.dumps(config_list)
                         fh.write(f"export OAI_CONFIG_LIST='{config_list_json}'\n")
+
+                        # If set, append the OpenAI API Key
+                        openai_api_key = os.environ.get("OPENAI_API_KEY")
+                        if openai_api_key is not None and len(openai_api_key.strip()) > 0:
+                            fh.write(f"export OPENAI_API_KEY='{openai_api_key}'\n")
 
                     # Run the scenario
                     if is_native:
