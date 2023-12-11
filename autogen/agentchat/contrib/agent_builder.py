@@ -9,14 +9,16 @@ from typing import Optional, List, Dict, Tuple, Union
 
 def _config_check(config: Dict):
     # check config loading
-    assert config.get('coding', None) is not None, "Missing \"coding\" in your config."
-    assert config.get('default_llm_config', None) is not None, "Missing \"default_llm_config\" in your config."
-    assert config.get('code_execution_config', None) is not None, "Missing \"code_execution_config\" in your config."
+    assert config.get("coding", None) is not None, 'Missing "coding" in your config.'
+    assert config.get("default_llm_config", None) is not None, 'Missing "default_llm_config" in your config.'
+    assert config.get("code_execution_config", None) is not None, 'Missing "code_execution_config" in your config.'
 
     for agent_config in config["agent_configs"]:
-        assert agent_config.get('name', None) is not None, "Missing agent \"name\" in your agent_configs."
-        assert agent_config.get('model', None) is not None, "Missing agent \"model\" in your agent_configs."
-        assert agent_config.get('system_message', None) is not None, "Missing agent \"system_message\" in your agent_configs."
+        assert agent_config.get("name", None) is not None, 'Missing agent "name" in your agent_configs.'
+        assert agent_config.get("model", None) is not None, 'Missing agent "model" in your agent_configs.'
+        assert (
+            agent_config.get("system_message", None) is not None
+        ), 'Missing agent "system_message" in your agent_configs.'
 
 
 class AgentBuilder:
@@ -150,7 +152,7 @@ class AgentBuilder:
         if len(config_list) == 0:
             raise RuntimeError(
                 f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_path}. "
-                f"If you would like to change this model, please specify the \"agent_model\" in the constructor."
+                f'If you would like to change this model, please specify the "agent_model" in the constructor.'
             )
         if "gpt-" in model_name_or_hf_repo:
             server_id = self.openai_server_name
@@ -306,7 +308,7 @@ class AgentBuilder:
             if len(config_list) == 0:
                 raise RuntimeError(
                     f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
-                    f"If you want to change this model, please specify the \"builder_model\" in the constructor."
+                    f'If you want to change this model, please specify the "builder_model" in the constructor.'
                 )
             build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
@@ -323,7 +325,7 @@ class AgentBuilder:
                 .choices[0]
                 .message.content
             )
-            agent_name_list = [agent_name.strip().replace(' ', '_') for agent_name in resp_agent_name.split(",")]
+            agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
             print(f"{agent_name_list} are generated.")
 
             agent_sys_msg_list = []
