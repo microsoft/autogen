@@ -112,7 +112,7 @@
   },
   {
     "title": "AutoGen + Flowise = Super AI Agents on No-Code Platform",
-    "link": "https://github.com/sugarforever/LangChain-Advanced/blob/main/Integrations/AutoGen/AutoGen_flowise_ai_agent.ipynb",
+    "link": "https://github.com/sugarforever/LangChain-Advanced/blob/main/Integrations/AutoGen/autogen_flowise_ai_agent.ipynb",
     "description": "Build super AI agents on a no-code platform using AutoGen and Flowise.",
     "image": "default.png",
     "tags": ["app"]
