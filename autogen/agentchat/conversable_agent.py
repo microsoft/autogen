@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import functools
 import json
 import logging
 from collections import defaultdict
@@ -54,6 +55,7 @@ class ConversableAgent(Agent):
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        description: Optional[str] = None,
     ):
         """
         Args:
@@ -95,11 +97,14 @@ class ConversableAgent(Agent):
                 for available options.
                 To disable llm-based auto reply, set to False.
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
+        self.description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
@@ -129,9 +134,10 @@ class ConversableAgent(Agent):
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
-        self.register_reply([Agent, None], ConversableAgent.generate_async_function_call_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
@@ -625,7 +631,23 @@ class ConversableAgent(Agent):
         response = client.create(
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
-        return True, client.extract_text_or_function_call(response)[0]
+
+        # TODO: line 301, line 271 is converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
+        extracted_response = client.extract_text_or_completion_object(response)[0]
+        if not isinstance(extracted_response, str):
+            extracted_response = extracted_response.model_dump(mode="dict")
+        return True, extracted_response
+
+    async def a_generate_oai_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ) -> Tuple[bool, Union[str, Dict, None]]:
+        """Generate a reply using autogen.oai asynchronously."""
+        return await asyncio.get_event_loop().run_in_executor(
+            None, functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
+        )
 
     def generate_code_execution_reply(
         self,
@@ -693,7 +715,7 @@ class ConversableAgent(Agent):
             return True, func_return
         return False, None
 
-    async def generate_async_function_call_reply(
+    async def a_generate_function_call_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
