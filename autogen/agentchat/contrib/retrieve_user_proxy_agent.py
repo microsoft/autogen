@@ -205,7 +205,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._search_string = ""  # the search string used in the current query
         self._db_mode = self._retrieve_config.get("db_mode")
         self._get_or_create = self._retrieve_config.get("get_or_create")
-        if self._db_mode and self._get_or_create:
+        if self._db_mode is not None and self._get_or_create is not None:
             logger.warning(
                 colored(
                     "Warning: db_mode and get_or_create are both set. get_or_create will be ignored. get_or_create is depricated",
