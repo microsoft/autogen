@@ -429,17 +429,13 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     raise ValueError("The index already exists. Please set db_mode to 'get' or 'recreate'.")
                 self.retriever.ingest_data(self._docs_path, overwrite=False)
 
-        elif self._get_or_create:
-            if not self.retriever.index_exists or self._get_or_create:
-                if not self.retriever.index_exists:
-                    logger.info("Trying to create index.")
-                    self.retriever.ingest_data(self._docs_path, overwrite=False)
-                else:
-                    logger.info("Trying to recreate index.")
-                    self.retriever.ingest_data(self._docs_path, overwrite=True)
-            else:
+        elif self._get_or_create is not None:
+            if self._get_or_create and self.retriever.index_exists:
                 logger.info("Trying to use existing collection.")
                 self.retriever.use_existing_index()
+            else:
+                logger.info("Trying to create index.")
+                self.retriever.ingest_data(self._docs_path, overwrite=False)
 
         results = self.retriever.query(
             texts=[problem],
