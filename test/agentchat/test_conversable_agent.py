@@ -275,6 +275,27 @@ def test_conversable_agent():
     with pytest.raises(KeyError):
         dummy_agent_1.last_message(dummy_agent_3)
 
+    # Check the description field
+    assert dummy_agent_1.description != dummy_agent_1.system_message
+    assert dummy_agent_2.description == dummy_agent_2.system_message
+
+    dummy_agent_4 = ConversableAgent(
+        name="dummy_agent_4",
+        system_message="The fourth dummy agent used for testing.",
+        llm_config=False,
+        human_input_mode="TERMINATE",
+    )
+    assert dummy_agent_4.description == "The fourth dummy agent used for testing."  # Same as system message
+
+    dummy_agent_5 = ConversableAgent(
+        name="dummy_agent_5",
+        system_message="",
+        description="The fifth dummy agent used for testing.",
+        llm_config=False,
+        human_input_mode="TERMINATE",
+    )
+    assert dummy_agent_5.description == "The fifth dummy agent used for testing."  # Same as system message
+
 
 def test_generate_reply():
     def add_num(num_to_be_added):

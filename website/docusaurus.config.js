@@ -63,8 +63,8 @@ module.exports = {
               docId: 'Ecosystem',
             },
             {
-              href: 'https://huggingface.co/spaces/thinkall/AutoGen_Playground',
-              label: 'PlayGround',
+              type: 'doc',
+              docId: 'Gallery',
             },
           ],
         },
