@@ -45,6 +45,7 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
+          pip install chromadb
           pip uninstall -y openai
       - name: Test RetrieveChat
         run: |
