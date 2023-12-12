@@ -91,7 +91,7 @@ def test_qdrant_filter():
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
 def test_qdrant_search():
     client = QdrantClient(":memory:")
-    create_qdrant_from_dir(test_dir, client=client)
+    create_qdrant_from_dir(str(test_dir), client=client)
 
     assert client.get_collection("all-my-documents")
 
