@@ -5,7 +5,7 @@ import autogen
 import json
 
 
-def test_groupchat_auto_select_speaker_func_call():
+def test_groupchat_select_speaker_func_call():
     agent1 = autogen.ConversableAgent(
         "alice",
         human_input_mode="NEVER",
@@ -26,17 +26,10 @@ def test_groupchat_auto_select_speaker_func_call():
     selector = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 
     # Action
-    selected_speaker, updated_agents, updated_last_speaker, updated_selector = groupchat.auto_select_speaker(
-        agents, last_speaker, selector
-    )
+    selected_speaker = groupchat.select_speaker(last_speaker, selector)
 
     # Assertion
     assert selected_speaker in agents
-    assert id(updated_agents) == id(agents)  # Same instances in memory
-    assert id(updated_selector) == id(selector)  # Same instances in memory
-
-    # Only last_speaker is updated
-    assert id(updated_last_speaker) != id(selected_speaker)  # Different instances in memory
 
 
 def test_expect_error_groupchat_graph_select_speaker():

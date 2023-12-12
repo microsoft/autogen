@@ -26,7 +26,7 @@ config_list = autogen.config_list_from_json(
     OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
 )
 
-# config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, filter_dict={"model": ["dev-oai-gpt4"]})
+#config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, filter_dict={"model": ["dev-oai-gpt4"]})
 
 # assert len(config_list) > 0
 
@@ -238,7 +238,7 @@ class TestGraphGroupChatSelectSpeakerOneAssistantAgentOneUserProxy:
         # Initiates the chat with Alice
         self.agents[0].initiate_chat(
             manager,
-            message="""Ask alice what is the largest single digit prime number.""",
+            message="""Ask alice what is the largest single digit prime number without code.""",
         )
 
         # Assert the messages contain 7

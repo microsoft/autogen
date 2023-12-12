@@ -119,44 +119,6 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
-    def auto_select_speaker(
-        self, agents: List[Agent], last_speaker: Agent, selector: ConversableAgent
-    ) -> (Agent, List[Agent], Agent, ConversableAgent):
-        # Encapsulating select_speaker_auto as a class method, so that it can be reused through inheritance in GraphGroupChat
-        # It returns the selected_agent, agents, last_speaker, and selector so as to preserve the states of the inputs from select_speaker
-        # Check that select_speaker has superseded this TODO
-        selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = selector.generate_oai_reply(
-            self.messages
-            + [
-                {
-                    "role": "system",
-                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
-                }
-            ]
-        )
-        if not final:
-            # the LLM client is None, thus no reply is generated. Use round robin instead.
-            return self.next_agent(last_speaker, agents), agents, last_speaker, selector
-
-        # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
-        mentions = self._mentioned_agents(name, agents)
-        if len(mentions) == 1:
-            name = next(iter(mentions))
-        else:
-            logger.warning(
-                f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
-            )
-
-        # Return the result
-        try:
-            return self.agent_by_name(name), agents, last_speaker, selector
-        except ValueError:
-            return self.next_agent(last_speaker, agents), agents, last_speaker, selector
-
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
-        """Select the next speaker."""
-
     def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
@@ -211,11 +173,12 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
                 f"GraphGroupChat select_speaker overrides GroupChat select_speaker. "
+            )
         else:
             selected_agent = None
         return selected_agent, agents
 
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
         selected_agent, agents = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
@@ -244,7 +207,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         except ValueError:
             return self.next_agent(last_speaker, agents)
 
-    async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent):
+    async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
         selected_agent, agents = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
@@ -273,9 +236,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
             )
 
-        # Since it is not manual nor round_robin nor random, it must be auto
-        auto_selected_speaker, agents, last_speaker, selector = self.auto_select_speaker(agents, last_speaker, selector)
-        return auto_selected_speaker
+        # Return the result
+        try:
+            return self.agent_by_name(name)
+        except ValueError:
+            return self.next_agent(last_speaker, agents)
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered

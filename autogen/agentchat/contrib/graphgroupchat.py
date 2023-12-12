@@ -30,6 +30,52 @@ class GraphGroupChat(GroupChat):
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True. Inherited from GroupChat.
     """
 
+    def check_graph_validity(self):
+        """
+        Check for the following
+        1. The graph has at least one node
+        2. The graph has at least one edge
+        3. The graph has at least one node with 'first_round_speaker' set to True
+        4. If self.allow_repeat_speaker is False, then the graph has no self-loops
+        5. Warning if there are isolated agent nodes
+        6. Warning if there are any agents in self.agents not in graph
+        """
+
+        # Check 1. The graph has at least one node
+        if len(self.graph.nodes) == 0:
+            raise ValueError("The graph has no nodes.")
+
+        # Check 2. The graph has at least one edge
+        if len(self.graph.edges) == 0:
+            raise ValueError("The graph has no edges.")
+
+        # Check 3. The graph has at least one node with 'first_round_speaker' set to True
+        first_round_speakers = [
+            agent
+            for agent in self.agents
+            if agent.name in self.graph.nodes and self.graph.nodes[agent.name].get("first_round_speaker", False)
+        ]
+        if not first_round_speakers:
+            raise ValueError("The graph has no nodes with 'first_round_speaker' set to True.")
+
+        # Check 4. If self.allow_repeat_speaker is False, then the graph has no self-loops
+        if not self.allow_repeat_speaker and any(
+            [self.graph.has_edge(agent.name, agent.name) for agent in self.agents]
+        ):
+            raise ValueError("The graph has self-loops, but self.allow_repeat_speaker is False.")
+
+        # Check 5. Warning if there are isolated agent nodes
+        if any([self.graph.degree(agent.name) == 0 for agent in self.agents]):
+            # Name the isolated agents
+            isolated_agents = [agent.name for agent in self.agents if self.graph.degree(agent.name) == 0]
+            logging.warning(f"The graph has isolated agents: {isolated_agents}")
+
+        # Check 6. Warning if there are any agents in self.agents not in graph
+        if any([agent.name not in self.graph.nodes for agent in self.agents]):
+            # Name the agents not in the graph
+            agents_not_in_graph = [agent.name for agent in self.agents if agent.name not in self.graph.nodes]
+            logging.warning(f"The graph has agents not in self.agents: {agents_not_in_graph}")
+
     def __init__(
         self,
         agents: List[Agent],
@@ -58,54 +104,8 @@ class GraphGroupChat(GroupChat):
         if not isinstance(self.graph, nx.DiGraph):
             raise ValueError("The graph must be a networkx DiGraph.")
 
-        def _check_graph_validity(self):
-            """
-            Check for the following
-            1. The graph has at least one node
-            2. The graph has at least one edge
-            3. The graph has at least one node with 'first_round_speaker' set to True
-            4. If self.allow_repeat_speaker is False, then the graph has no self-loops
-            5. Warning if there are isolated agent nodes
-            6. Warning if there are any agents in self.agents not in graph
-            """
-
-            # Check 1. The graph has at least one node
-            if len(self.graph.nodes) == 0:
-                raise ValueError("The graph has no nodes.")
-
-            # Check 2. The graph has at least one edge
-            if len(self.graph.edges) == 0:
-                raise ValueError("The graph has no edges.")
-
-            # Check 3. The graph has at least one node with 'first_round_speaker' set to True
-            first_round_speakers = [
-                agent
-                for agent in self.agents
-                if agent.name in self.graph.nodes and self.graph.nodes[agent.name].get("first_round_speaker", False)
-            ]
-            if not first_round_speakers:
-                raise ValueError("The graph has no nodes with 'first_round_speaker' set to True.")
-
-            # Check 4. If self.allow_repeat_speaker is False, then the graph has no self-loops
-            if not self.allow_repeat_speaker and any(
-                [self.graph.has_edge(agent.name, agent.name) for agent in self.agents]
-            ):
-                raise ValueError("The graph has self-loops, but self.allow_repeat_speaker is False.")
-
-            # Check 5. Warning if there are isolated agent nodes
-            if any([self.graph.degree(agent.name) == 0 for agent in self.agents]):
-                # Name the isolated agents
-                isolated_agents = [agent.name for agent in self.agents if self.graph.degree(agent.name) == 0]
-                logging.warning(f"The graph has isolated agents: {isolated_agents}")
-
-            # Check 6. Warning if there are any agents in self.agents not in graph
-            if any([agent.name not in self.graph.nodes for agent in self.agents]):
-                # Name the agents not in the graph
-                agents_not_in_graph = [agent.name for agent in self.agents if agent.name not in self.graph.nodes]
-                logging.warning(f"The graph has agents not in self.agents: {agents_not_in_graph}")
-
         # Run graph check
-        _check_graph_validity(self)
+        self.check_graph_validity()
 
     # All methods are from the GroupChat class, except for select_speaker
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
@@ -149,9 +149,13 @@ class GraphGroupChat(GroupChat):
             else:
                 if len(self.messages) > 1:
                     # 2. Using LLM to pick from eligible_speakers, given that there is some context in self.message
-                    next_speaker, self.agents, last_speaker, selector = self.auto_select_speaker(
-                        self.agents, last_speaker, selector
-                    )
+                    # auto speaker selection logic from groupchat
+                    selector.update_system_message(self.select_speaker_msg(self.agents))
+                    context = self.messages + [{"role": "system", "content": self.select_speaker_prompt(self.agents)}]
+                    final, name = selector.generate_oai_reply(context)
+                    if final:
+                        if self.agent_by_name(name):
+                            return self.agent_by_name(name)
 
                 if next_speaker is None:
                     # 3. Random (catch-all)
