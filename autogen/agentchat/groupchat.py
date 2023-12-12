@@ -333,7 +333,7 @@ class GroupChatManager(ConversableAgent):
 
         if self.send_introductions:
             # Broadcast the intro
-            intro = {"role": "user", "name": self.name, "content": groupchat.intro_msg()}
+            intro = {"role": "user", "name": self.name, "content": groupchat.introductions_msg()}
             for agent in groupchat.agents:
                 self.send(intro, agent, request_reply=False, silent=True)
             groupchat.append(intro)
