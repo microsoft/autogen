@@ -30,7 +30,7 @@ namespace AutoGen
             string name,
             string systemMessage,
             ILLMConfig config,
-            float temperature = 0f,
+            float temperature = 0.7f,
             int maxTokens = 1024,
             IEnumerable<FunctionDefinition>? functions = null,
             IDictionary<string, Func<string, Task<string>>>? functionMap = null)
@@ -85,7 +85,7 @@ namespace AutoGen
                 Functions = _functions?.ToList() ?? new List<FunctionDefinition>(),
             };
 
-            settings.StopSequences.Add("// round #");
+            settings.StopSequences.Add("<meta>");
 
             var response = await this.openAIClient.GetChatCompletionsAsync(this.modelName, settings, cancellationToken);
 
@@ -168,8 +168,10 @@ namespace AutoGen
                     // add as user message
                     var content = message.Content ?? string.Empty;
                     content = @$"{content}
-// round # {i++}
-// From {message.From}";
+<meta> // Some meta data, you can't see this in the chat history
+- Round # {i++}
+- From {message.From}
+</meta>";
                     yield return new Azure.AI.OpenAI.ChatMessage(ChatRole.User, content);
                 }
                 else
@@ -198,7 +200,9 @@ namespace AutoGen
                         // add suffix
                         var content = message.Content ?? string.Empty;
                         content = @$"{content}
-// round # {i++}";
+<meta> // Some meta data, you can't see this in the chat history
+- Round # {i++}
+</meta>";
                         var chatMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Assistant, content);
 
                         yield return chatMessage;

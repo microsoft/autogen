@@ -3,11 +3,13 @@
 
 using System.Collections.Generic;
 using Azure.AI.OpenAI;
+using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
 {
     public interface ILLMConfig
     {
+        IChatCompletion CreateChatCompletion();
     }
 
     public class OpenAIConfig : ILLMConfig
@@ -22,6 +24,11 @@ namespace AutoGen
 
 
         public string ModelId { get; }
+
+        public IChatCompletion CreateChatCompletion()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 
     public class AzureOpenAIConfig : ILLMConfig
@@ -41,6 +48,11 @@ namespace AutoGen
         public string ApiKey { get; }
 
         public string? ModelId { get; }
+
+        public IChatCompletion CreateChatCompletion()
+        {
+            throw new System.NotImplementedException();
+        }
     }
 
     public class AssistantAgentConfig
@@ -49,7 +61,7 @@ namespace AutoGen
 
         public IEnumerable<ILLMConfig>? ConfigList { get; set; }
 
-        public float? Temperature { get; set; }
+        public float? Temperature { get; set; } = 0.7f;
 
         public int? Timeout { get; set; }
     }

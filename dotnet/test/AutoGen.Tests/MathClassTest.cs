@@ -50,7 +50,9 @@ Question #{question_index}:
             }
             else
             {
-                return $@"the number of resolved question is {correctAnswerCount}";
+                return $@"// ignore this line [UPDATE_PROGRESS]
+the number of resolved question is {correctAnswerCount}
+teacher, please create the next math question";
             }
         }
 
@@ -67,7 +69,6 @@ Question #{question_index}:
                 name: "Admin",
                 systemMessage: $@"You are admin. You ask teacher to create 5 math questions. You update progress after each question is answered.",
                 config: new AzureOpenAIConfig(endPoint, model, key),
-                temperature: 0,
                 functions: new[]
                 {
                     this.UpdateProgressFunction,
@@ -174,22 +175,18 @@ sorry, the answer should be 2, not 3
             teacher.AddInitializeMessage($@"Hey I'm Teacher", group);
             student.AddInitializeMessage($@"Hey I'm Student", group);
             admin.AddInitializeMessage(@$"Here's the workflow for this group chat:
--group chat workflow-
-number_of_resolved_question = 0
-while number_of_resolved_question < 5:
-    admin_update_number_of_resolved_question
-    teacher_create_math_question
-    student_answer_question
-    teacher_check_answer
-    if answer is wrong:
-        student_fix_answer
-        
-admin_terminate_chat
--end-
+- admin: update process
+- teacher: create math question
+- student: answer question
+- teacher: check if answer is correct
+- if answer is wrong
+    - student: fix answer
+- if answer is correct
+    - admin: update process
 ", group);
 
             var groupChatManager = new GroupChatManager(group);
-            var chatHistory = await admin.SendAsync(groupChatManager, "the number of resolved question is 0", maxRound: 30);
+            var chatHistory = await admin.SendAsync(groupChatManager, "the number of resolved question is 0", maxRound: 50);
 
             // print chat history
             foreach (var message in chatHistory)
