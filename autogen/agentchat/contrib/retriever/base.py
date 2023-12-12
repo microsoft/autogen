@@ -39,6 +39,8 @@ class Retriever(ABC):
         self.must_break_at_empty_line = must_break_at_empty_line
         self.custom_text_split_function = custom_text_split_function
         self.client = client
+        self.custom_text_types = custom_text_types
+        self.recursive = recursive
 
         self.init_db()
 
@@ -60,12 +62,13 @@ class Retriever(ABC):
         pass
 
     @abstractmethod
-    def query(self, texts: List[str], top_k: int = 10, filter: Any = None):
+    def query(self, texts: List[str], top_k: int = 10, search_string: Any = None):
         """
         Query the database.
         Args:
-            query: query string or list of query strings
+            texts: list of texts to query
             top_k: number of results to return
+            search_string: string to filter the results
         """
         pass
 

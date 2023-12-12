@@ -142,7 +142,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
-        If you have set up a customized vector db, and it's not compatible with retriever, you can easily plug in it with below code.
+        If you want to set up a customized vector db, and it's not compatible with retriever, you can easily plug in it with below code.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(

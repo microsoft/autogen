@@ -64,7 +64,7 @@ class ChromaDB(Retriever):
     def use_existing_index(self):
         self.collection = self.client.get_collection(name=self.name, embedding_function=self.embedding_function)
 
-    def query(self, texts: List[str], top_k: int = 10, filter: str = None):
+    def query(self, texts: List[str], top_k: int = 10, search_string: str = None):
         # the collection's embedding function is always the default one, but we want to use the one we used to create the
         # collection. So we compute the embeddings ourselves and pass it to the query function.
 
@@ -73,7 +73,7 @@ class ChromaDB(Retriever):
         results = self.collection.query(
             query_embeddings=query_embeddings,
             n_results=top_k,
-            where_document={"$contains": filter} if filter else None,  # optional filter
+            where_document={"$contains": search_string} if search_string else None,  # optional filter
         )
         return results
 

@@ -53,7 +53,7 @@ class LanceDB(Retriever):
     def use_existing_index(self):
         self.table = self.db.open_table(self.name)
 
-    def query(self, texts: List[str], top_k: int = 10, filter: str = None):
+    def query(self, texts: List[str], top_k: int = 10, search_string: str = None):
         if self.db is None:
             self.init_db()
         texts = [texts] if isinstance(texts, str) else texts
@@ -62,8 +62,8 @@ class LanceDB(Retriever):
             query = self.embedding_function(text) if isinstance(self.embedding_function, Callable) else text
             print("query: ", query)
             result = self.table.search(query)
-            if filter is not None:
-                result = result.where(f"documents LIKE '%{filter}%'")
+            if search_string is not None:
+                result = result.where(f"documents LIKE '%{search_string}%'")
             result = result.limit(top_k).to_arrow().to_pydict()
             for k, v in result.items():
                 results[k].append(v)

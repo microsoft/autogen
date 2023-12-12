@@ -14,6 +14,10 @@ try:
     from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
+    import chromadb
+    from chromadb.utils import embedding_functions as ef
+
+    skip_test = False
 except ImportError:
     skip_test = True
 
@@ -41,14 +45,17 @@ def test_retrievechat():
         },
     )
 
+    sentence_transformer_ef = ef.SentenceTransformerEmbeddingFunction()
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
         max_consecutive_auto_reply=2,
         retrieve_config={
+            "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "docs_path": "./website/docs",
             "chunk_token_size": 2000,
             "model": config_list[0]["model"],
+            "embedding_function": sentence_transformer_ef,
             "get_or_create": True,
         },
     )
@@ -59,24 +66,6 @@ def test_retrievechat():
     ragproxyagent.initiate_chat(assistant, problem=code_problem, search_string="spark", silent=True)
 
     print(conversations)
-
-    # db_mode
-    ragproxyagent = RetrieveUserProxyAgent(
-        name="ragproxyagent",
-        human_input_mode="NEVER",
-        max_consecutive_auto_reply=2,
-        retrieve_config={
-            "docs_path": "./website/docs",
-            "chunk_token_size": 2000,
-            "model": config_list[0]["model"],
-            "db_mode": "recreate",
-        },
-    )
-
-    assistant.reset()
-
-    code_problem = "How can I use FLAML to perform a classification task, set use_spark=True, train 30 seconds and force cancel jobs if time limit is reached."
-    ragproxyagent.initiate_chat(assistant, problem=code_problem, search_string="spark", silent=True)
 
 
 @pytest.mark.skipif(
@@ -91,7 +80,7 @@ def test_retrieve_config(caplog):
         max_consecutive_auto_reply=2,
         retrieve_config={
             "chunk_token_size": 2000,
-            "db_mode": "recreate",
+            "get_or_create": True,
         },
     )
 
