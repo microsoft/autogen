@@ -58,7 +58,7 @@ Therefore, some changes are required for users of `pyautogen<0.2`.
 - MathChat is unsupported until it is tested in future release.
 - `autogen.Completion` and `autogen.ChatCompletion` are deprecated. The essential functionalities are moved to `autogen.OpenAIWrapper`:
 ```python
-from autogen import OpenAIWrapper
+from autogen.oai.client import OpenAIWrapper
 client = OpenAIWrapper(config_list=config_list)
 response = client.create(messages=[{"role": "user", "content": "2+2="}])
 print(client.extract_text_or_completion_object(response))

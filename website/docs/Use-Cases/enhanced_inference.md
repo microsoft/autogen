@@ -113,7 +113,7 @@ When chat models are used and `prompt` is given as the input to `autogen.Complet
 `autogen.OpenAIWrapper.create()` can be used to create completions for both chat and non-chat models, and both OpenAI API and Azure OpenAI API.
 
 ```python
-from autogen import OpenAIWrapper
+from autogen.oai.client import OpenAIWrapper
 # OpenAI endpoint
 client = OpenAIWrapper()
 # ChatCompletion
