@@ -31,6 +31,8 @@ class ChromaDB(Retriever):
         Args:
             data_dir: path to the directory containing the text files
         """
+        if overwrite is True and self.index_exists:
+            self.client.delete_collection(name=self.name)
 
         self.collection = self.client.create_collection(
             self.name,

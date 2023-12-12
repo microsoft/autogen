@@ -47,7 +47,7 @@ class LanceDB(Retriever):
             self.table.add(data)
         elif isinstance(self.embedding_function, Callable):
             pa_table = pa.Table.from_pylist(data)
-            data = with_embeddings(self.embedding_function, pa_table)
+            data = with_embeddings(self.embedding_function, pa_table, column="documents")
             self.table.add(data)
 
     def use_existing_index(self):
@@ -84,10 +84,10 @@ class LanceDB(Retriever):
 
             return Schema
         elif isinstance(embedding_function, Callable):
-            dim = embedding_function("test").shape[0]  # TODO: check this
+            dim = embedding_function("test")[0].shape[0]  # TODO: check this
             schema = pa.schema(
                 [
-                    pa.field("Vector", pa.list_(pa.float32(), dim)),
+                    pa.field("vector", pa.list_(pa.float32(), dim)),
                     pa.field("documents", pa.string()),
                     pa.field("ids", pa.string()),
                 ]

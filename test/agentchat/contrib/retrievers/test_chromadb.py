@@ -26,7 +26,7 @@ def test_chromadb(tmpdir):
     client = chromadb.PersistentClient(path=tmpdir)
     vectorstore = ChromaDB(path=tmpdir)
 
-    vectorstore.ingest_data(test_dir)
+    vectorstore.ingest_data(str(test_dir))
 
     assert client.get_collection("vectorstore")
 
@@ -41,3 +41,6 @@ def test_chromadb(tmpdir):
     assert vectorstore.collection is None
     vectorstore.use_existing_index()
     assert vectorstore.collection is not None
+
+    vectorstore.ingest_data(str(test_dir), overwrite=True)
+    vectorstore.query(["hello"])

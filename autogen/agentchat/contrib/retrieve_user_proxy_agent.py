@@ -92,6 +92,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 The dict can contain the following keys: "content", "role", "name", "function_call".
             retrieve_config (dict or None): config for the retrieve agent.
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
+                - retriever_type (Optional, str): the type of the retriever.
+                - retriever_path (Optional, str): the path to use for retriever-realted operations. Default is `~/autogen`.
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
                 - client (Optional, Any): the vectordb client/connection. If key not provided, the Retreiver class should handle it.
@@ -415,9 +417,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     f"db_mode {self._db_mode} is not supported. Possible values are 'get', 'recreate', 'create'."
                 )
             if self._db_mode == "get":
-                if (
-                    not self.retriever.index_exists
-                ):  # warn users if the index doesn't exist. Maybe we can even raise here
+                if not self.retriever.index_exists:
                     raise ValueError("The index doesn't exist. Please set db_mode to 'recreate' or 'create'.")
                 self.retriever.use_existing_index()
             elif self._db_mode == "recreate":
