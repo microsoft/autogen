@@ -3,6 +3,7 @@ Unit test for retrieve_utils.py
 """
 import os
 import sys
+from pathlib import Path
 import pytest
 
 try:
@@ -29,7 +30,7 @@ try:
 except ImportError:
     HAS_UNSTRUCTURED = False
 
-test_dir = os.path.join(os.path.dirname(__file__), "test_files")
+test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 expected_text = """AutoGen is an advanced tool designed to assist developers in harnessing the capabilities
 of Large Language Models (LLMs) for various applications. The primary purpose of AutoGen is to automate and
 simplify the process of building applications that leverage the power of LLMs, allowing for seamless

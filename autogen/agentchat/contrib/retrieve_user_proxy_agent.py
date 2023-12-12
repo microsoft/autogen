@@ -97,8 +97,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
                 - client (Optional, Any): the vectordb client/connection. If key not provided, the Retreiver class should handle it.
-                - docs_path (Optional, str): the path to the docs directory. It can also be the path to a single file,
-                    or the url to a single file. Default is None, which works only if the collection is already created.
+                - docs_path (Optional, Union[str, List[str]]): the path to the docs directory. It can also be the path to a single file,
+                    the url to a single file or a list of directories, files and urls.
+                    Default is None, which works only if the collection is already created.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
@@ -128,7 +129,6 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     Raises ValueError if:
                     * the collection doesn't exist and "get" is used.
                     * the collection already exists and "create" is used.
-
                 - get_or_create (Optional, bool): [Depricated] if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in retriever. Default is False. Will be set to False if docs_path is None.
                 - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.

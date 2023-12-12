@@ -31,7 +31,17 @@ TEXT_FORMATS = [
     "yml",
     "pdf",
 ]
-UNSTRUCTURED_FORMATS = ["docx", "doc", "odt", "pptx", "ppt", "xlsx", "eml", "msg", "epub"]
+UNSTRUCTURED_FORMATS = [
+    "docx",
+    "doc",
+    "odt",
+    "pptx",
+    "ppt",
+    "xlsx",
+    "eml",
+    "msg",
+    "epub",
+]  # These formats will be parsed by the 'unstructured' library, if installed.
 if HAS_UNSTRUCTURED:
     TEXT_FORMATS += UNSTRUCTURED_FORMATS
     TEXT_FORMATS = list(set(TEXT_FORMATS))
