@@ -41,6 +41,7 @@ class WebSurferAgent(ConversableAgent):
         super().__init__(
             name=name,
             system_message=system_message,
+            description=description,
             is_termination_msg=is_termination_msg,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
