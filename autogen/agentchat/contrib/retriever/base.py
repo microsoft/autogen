@@ -29,6 +29,9 @@ class Retriever(ABC):
             must_break_at_empty_line: chunk will only break at empty line if True. Default is True.
                     If chunk_mode is "one_line", this parameter will be ignored.
             custom_text_split_function: custom function to split the text into chunks
+            client: client to use to connect to the database
+            custom_text_types: custom text types to ingest
+            recursive: whether to recursively ingest the files in the directory
         """
         self.path = path
         self.name = name
