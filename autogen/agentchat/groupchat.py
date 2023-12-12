@@ -333,10 +333,11 @@ class GroupChatManager(ConversableAgent):
 
         if self.send_introductions:
             # Broadcast the intro
-            intro = {"role": "user", "name": self.name, "content": groupchat.introductions_msg()}
+            intro = groupchat.introductions_msg()
             for agent in groupchat.agents:
                 self.send(intro, agent, request_reply=False, silent=True)
-            groupchat.append(intro)
+            # NOTE: We do not also append to groupchat.messages,
+            # since groupchat handles its own introductions
 
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
@@ -388,6 +389,15 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+
+        if self.send_introductions:
+            # Broadcast the intro
+            intro = groupchat.introductions_msg()
+            for agent in groupchat.agents:
+                self.a_send(intro, agent, request_reply=False, silent=True)
+            # NOTE: We do not also append to groupchat.messages,
+            # since groupchat handles its own introductions
+
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
