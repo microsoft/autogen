@@ -91,6 +91,16 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
 
+    def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
+        """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
+        if agents is None:
+            agents = self.agents
+
+        return f"""Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:
+
+{self._participant_roles(agents)}
+"""
+
     def manual_select_speaker(self, agents: List[Agent]) -> Union[Agent, None]:
         """Manually select the next speaker."""
 
@@ -283,7 +293,8 @@ class GroupChatManager(ConversableAgent):
         # unlimited consecutive auto reply by default
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
-        system_message: Optional[Union[str, List]] = "Group chat manager.",
+        description: Optional[str] = "Group chat manager that helps to orchestrate conversations.",
+        send_introductions: Optional[bool] = False,
         **kwargs,
     ):
         if kwargs.get("llm_config") and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools")):
@@ -295,9 +306,12 @@ class GroupChatManager(ConversableAgent):
             name=name,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
-            system_message=system_message,
+            description=description,
             **kwargs,
         )
+
+        self.send_introductions = send_introductions
+
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
@@ -316,6 +330,14 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+
+        if self.send_introductions:
+            # Broadcast the intro
+            intro = {"role": "user", "name": self.name, "content": groupchat.intro_msg()}
+            for agent in groupchat.agents:
+                self.send(intro, agent, request_reply=False, silent=True)
+            groupchat.append(intro)
+
         for i in range(groupchat.max_round):
             # set the name to speaker's name if the role is not function
             if message["role"] != "function":
