@@ -168,3 +168,8 @@ Refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversabl
 ## How to get each agent message ?
 
 Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#chat_messages
+
+## When using autogen docker, is it always necessary to reinstall modules?
+
+The "use_docker" arg in an agent's code_execution_config will be set to the name of the image containing the change after execution, when the conversation finishes.
+You can save that image name. For a new conversation, you can set "use_docker" to the saved name of the image to start execution there.
