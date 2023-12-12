@@ -325,30 +325,33 @@ echo SCENARIO COMPLETE !#!#
         volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
     )
 
-    # Poll until the container is done, or we've timed out
+    # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
     start_time = time.time()
-    while container.status != "exited" and time.time() - start_time < timeout:
-        # Reload the container object
-        container.reload()
+    logs = container.logs(stream=True)
+    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt")
+    stopping = False
 
-    if container.status != "exited":
-        container.stop()
+    for chunk in logs:  # When streaming it should return a generator
+        # Stream the data to the log file and the console
+        chunk = chunk.decode("utf-8")
+        log_file.write(chunk)
+        log_file.flush()
+        sys.stdout.write(chunk)
+        sys.stdout.flush()
 
-        logs = container.logs().decode("utf-8").rstrip() + "\nDocker timed out.\n"
-        print(logs)
-        with open(os.path.join(work_dir, "console_log.txt"), "wt") as f:
-            f.write(logs)
+        # Check if we need to terminate
+        if not stopping and time.time() - start_time >= timeout:
+            container.stop()
 
-        container.remove()
-        return
+            # Don't exit the loop right away, as there are things we may still want to read from the logs
+            # but remember how we got here.
+            stopping = True
 
-    # get the container logs
-    logs = container.logs().decode("utf-8").rstrip() + "\n"
-    container.remove()
-
-    print(logs)
-    with open(os.path.join(work_dir, "console_log.txt"), "wt") as f:
-        f.write(logs)
+    if stopping:  # By now it has actually stopped.
+        log_file.write("\nDocker timed out.\n")
+        log_file.flush()
+        sys.stdout.write("\nDocker timed out.\n")
+        sys.stdout.flush()
 
 
 ###############################################################################
