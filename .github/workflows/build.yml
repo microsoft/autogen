@@ -30,8 +30,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
-      - name: Hide comment
-        uses: int128/hide-comment-action@v1
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
