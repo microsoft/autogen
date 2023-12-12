@@ -5,9 +5,6 @@ import pytest
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import config_list_from_json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
-
 try:
     from qdrant_client import QdrantClient
     from autogen.agentchat.contrib.qdrant_retrieve_user_proxy_agent import (
@@ -28,6 +25,9 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 
 
