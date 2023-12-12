@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 import pytest
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import config_list_from_json
@@ -27,7 +28,7 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
-test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
+test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 
 
 @pytest.mark.skipif(
