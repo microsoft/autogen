@@ -91,7 +91,7 @@ def test_retrieve_config(caplog):
         max_consecutive_auto_reply=2,
         retrieve_config={
             "chunk_token_size": 2000,
-            "get_or_create": True,
+            "db_mode": "recreate",
         },
     )
 
