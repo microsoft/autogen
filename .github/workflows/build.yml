@@ -30,12 +30,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
-      - uses: int128/hide-comment-action@v1
-        with:
-          authors: |
-            github-actions
-            github-actions[bot]
-          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
