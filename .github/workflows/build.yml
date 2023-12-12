@@ -31,6 +31,10 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
+      - uses: kanga333/comment-hider@master
+        name: Hide bot comments
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
