@@ -74,7 +74,6 @@ for data_path in data_paths:
         },
     }
     with open(os.path.join(save_path, f"{data['name']}_gpt35.jsonl"), "wt") as f:
-    # with open(f"{data['name']}_gpt35.jsonl", "wt") as f:
         f.write(json.dumps(record).strip() + "\n")
 
     record = {
@@ -100,5 +99,4 @@ for data_path in data_paths:
         },
     }
     with open(os.path.join(save_path, f"{data['name']}_gpt4.jsonl"), "wt") as f:
-    # with open(f"{data['name']}_gpt4.jsonl", "wt") as f:
         f.write(json.dumps(record).strip() + "\n")
