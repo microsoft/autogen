@@ -125,6 +125,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - db_mode (Optional, str): the mode to create the vector db. Possible values are "get", "recreate", "create". Default is "recreate" to
                     keep the workflow less error-prone. If "get", will try to get an existing collection. If "recreate", will recreate a collection
                     if the collection already exists. If "create", will create a collection if the collection doesn't exist.
+                    Raises ValueError if:
+                    * the collection doesn't exist and "get" is used.
+                    * the collection already exists and "create" is used.
+
                 - get_or_create (Optional, bool): [Depricated] if True, will create/recreate a collection for the retrieve chat.
                     This is the same as that used in retriever. Default is False. Will be set to False if docs_path is None.
                 - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
