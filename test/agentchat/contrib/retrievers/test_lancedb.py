@@ -1,13 +1,6 @@
 import numpy as np
 from pathlib import Path
 import pytest
-from autogen.agentchat.contrib.retriever.retrieve_utils import (
-    split_text_to_chunks,
-    extract_text_from_pdf,
-    split_files_to_chunks,
-    get_files_from_dir,
-    is_url,
-)
 
 try:
     from autogen.agentchat.contrib.retriever.lancedb import LanceDB
@@ -17,7 +10,7 @@ except ImportError:
 else:
     skip = False
 
-# test_dir is 2 directories above this file
+
 test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 
 
