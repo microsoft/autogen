@@ -2,9 +2,12 @@ name: Code formatting
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the main branch
-  push:
-    branches: [main]
-  pull_request: {}
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.pre-commit-config.yaml'
+      - 'autogen/**'
+      - 'samples/**'
 
 defaults:
   run:
