@@ -97,7 +97,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             agents = self.agents
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
 
-    def manual_select_speaker(self, agents: Optional[List[Agent]]) -> Union[Agent, None]:
+    def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
         if agents is None:
             agents = self.agents
