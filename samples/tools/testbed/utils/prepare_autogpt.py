@@ -52,11 +52,11 @@ for data_path in data_paths:
             # print(f"File copied from {os.path.join(workspace, 'custom_python', filename)} to {target_folder}")
 
     record = {
-        "id": data["eval_id"],
+        "id": data["name"],
         "template": "Templates/TwoAgents",
         "substitutions": {
             "scenario.py": {
-                "__MODEL__": "gpt-3.5-turbo-16k",
+                "__MODEL__": "gpt-35-turbo-16k",
                 "__TASK__": data["task"],
                 "__TARGET_FOLDER__": f"file/{data['name']}" if artifacts_in else "",
             },
@@ -73,11 +73,11 @@ for data_path in data_paths:
             },
         },
     }
-    with open(os.path.join(save_path, f"{data['name']}_gpt35.jsonl"), "wt") as f:
+    with open(os.path.join(save_path, "autogpt_twoagent_gpt35.jsonl"), "a") as f:
         f.write(json.dumps(record).strip() + "\n")
 
     record = {
-        "id": data["eval_id"],
+        "id": data["name"],
         "template": "Templates/TwoAgents",
         "substitutions": {
             "scenario.py": {
@@ -98,5 +98,5 @@ for data_path in data_paths:
             },
         },
     }
-    with open(os.path.join(save_path, f"{data['name']}_gpt4.jsonl"), "wt") as f:
+    with open(os.path.join(save_path, "autogpt_twoagent_gpt4.jsonl"), "a") as f:
         f.write(json.dumps(record).strip() + "\n")

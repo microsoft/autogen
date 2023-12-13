@@ -14,15 +14,13 @@ def collate(results_dir="results"):
     """
 
     all_results = list()
+    max_instances = 0
 
     for test_name in os.listdir(results_dir):
         test_path = os.path.join(results_dir, test_name)
 
         # Collect the results vector
-        max_instances = 0
         results = [test_name]
-        test_id = os.listdir(test_path)[0]
-        test_path = os.path.join(test_path, test_id)
 
         instance = 0
         instance_dir = os.path.join(test_path, str(instance))

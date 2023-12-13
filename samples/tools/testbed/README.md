@@ -227,9 +227,9 @@ Accessing this scenario-type requires converting tasks, running the Testbed, col
 # Convert tasks
 python utils/prepare_autogpt.py
 
-# Run all the scenarios, change the first argument into a specific jsonl if you wish to run a single scenario
-python run_scenarios.py scenarios/AutoGPT/
+# Run all the scenarios with GPT-4
+python run_scenarios.py scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
 
-# Compute metrics, the metrics script shares the same one with HumanEval
-python utils/collate_autogpt.py ./results/ | python metrics_human_eval.py
+# Compute metrics, the metric script shares the same one with HumanEval
+python utils/collate_autogpt.py ./results/autogpt_twoagent_gpt4 | python metrics_human_eval.py
 ```
