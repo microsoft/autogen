@@ -34,7 +34,7 @@ export interface ILLMConfig {
 
 export interface IAgentConfig {
   name: string;
-  llm_config?: ILLMConfig | boolean;
+  llm_config?: ILLMConfig | false;
   human_input_mode: string;
   max_consecutive_auto_reply: number;
   system_message: string | "";
@@ -45,10 +45,14 @@ export interface IAgentConfig {
 export interface IAgentFlowSpec {
   type: "assistant" | "userproxy" | "groupchat";
   config: IAgentConfig;
+  timestamp?: string;
+  id?: string;
+  skills?: Array<ISkill>;
 }
 
 export interface IFlowConfig {
   name: string;
+  description: string;
   sender: IAgentFlowSpec;
   receiver: IAgentFlowSpec;
   type: "default" | "groupchat";
@@ -71,9 +75,9 @@ export interface IMetadataFile {
 }
 
 export interface IChatSession {
-  session_id: string;
-  timestamp: string;
+  id: string;
   user_id: string;
+  timestamp: string;
   flow_config: IFlowConfig;
 }
 
@@ -83,4 +87,14 @@ export interface IGalleryItem {
   session: IChatSession;
   tags: Array<string>;
   timestamp: string;
+}
+
+export interface ISkill {
+  title: string;
+  file_name: string;
+  content: string;
+  id?: string;
+  timestamp?: string;
+  description?: string;
+  user_id?: string;
 }

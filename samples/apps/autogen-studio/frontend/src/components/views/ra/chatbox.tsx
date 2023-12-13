@@ -26,7 +26,7 @@ const ChatBox = ({
   editable = true,
 }: {
   initMessages: IMessage[] | null;
-  editable: boolean;
+  editable?: boolean;
 }) => {
   const session: IChatSession | null = useConfigStore((state) => state.session);
   const queryInputRef = React.useRef<HTMLInputElement>(null);
@@ -44,7 +44,9 @@ const ChatBox = ({
 
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
-  const flowConfig: IFlowConfig = useConfigStore((state) => state.flowConfig);
+  const workflowConfig: IFlowConfig | null = useConfigStore(
+    (state) => state.workflowConfig
+  );
 
   let pageHeight, chatMaxHeight;
   if (typeof window !== "undefined") {
@@ -88,7 +90,7 @@ const ChatBox = ({
       body: JSON.stringify({
         user_id: user?.email,
         msg_id: messageId,
-        session_id: session?.session_id,
+        session_id: session?.id,
       }),
     };
 
@@ -227,7 +229,7 @@ const ChatBox = ({
             } p-2 rounded  ${css}`}
           >
             {" "}
-            {items.length > 0 && <div className="   ">{menu}</div>}
+            {items.length > 0 && editable && <div className="   ">{menu}</div>}
             {isUser && (
               <>
                 <div className="inline-block">{message.text}</div>
@@ -319,7 +321,7 @@ const ChatBox = ({
       msg_id: userMessage.msg_id,
       user_id: user?.email || "",
       root_msg_id: "0",
-      session_id: session?.session_id || "",
+      session_id: session?.id || "",
     };
 
     console.log("messagePayload", messagePayload);
@@ -333,7 +335,7 @@ const ChatBox = ({
       },
       body: JSON.stringify({
         message: messagePayload,
-        flow_config: flowConfig,
+        flow_config: workflowConfig,
       }),
     };
     setLoading(true);

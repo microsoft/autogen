@@ -14,7 +14,6 @@ import { IMetadataFile } from "../../types";
 import Icon from "../../icons";
 
 const MetaDataView = ({ metadata }: { metadata: any | null }) => {
-  console.log(metadata);
   const serverUrl = getServerUrl();
   const renderFileContent = (file: IMetadataFile, i: number) => {
     const file_type = file.extension;

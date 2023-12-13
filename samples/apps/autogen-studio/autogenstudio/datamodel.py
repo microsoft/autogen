@@ -12,7 +12,7 @@ class Message(object):
     content: str
     root_msg_id: Optional[str] = None
     msg_id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    timestamp: Optional[str] = None
     personalize: Optional[bool] = False
     ra: Optional[str] = None
     code: Optional[str] = None
@@ -23,34 +23,36 @@ class Message(object):
         if self.msg_id is None:
             self.msg_id = str(uuid.uuid4())
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().isoformat()
 
     def dict(self):
         result = asdict(self)
-        result["timestamp"] = result["timestamp"].isoformat()
-        return result 
+        return result
+
 
 @dataclass
 class Skill(object):
-     
+
     title: str
     file_name: str
     content: str
     id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    description: Optional[str] = None
+    timestamp: Optional[str] = None
     user_id: Optional[str] = None
 
     def __post_init__(self):
         if self.id is None:
             self.id = str(uuid.uuid4())
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().isoformat()
         if self.user_id is None:
             self.user_id = "default"
 
     def dict(self):
-        return asdict(self)
-    
+        result = asdict(self)
+        return result
+
 
 # web api data models
 
@@ -89,6 +91,12 @@ class AgentConfig:
     is_termination_msg: Optional[Union[bool, str, Callable]] = None
     code_execution_config: Optional[Union[bool, str, Dict[str, Any]]] = None
 
+    def dict(self):
+        result = asdict(self)
+        if isinstance(result["llm_config"], LLMConfig):
+            result["llm_config"] = result["llm_config"].dict()
+        return result
+
 
 @dataclass
 class AgentFlowSpec:
@@ -97,17 +105,22 @@ class AgentFlowSpec:
     type: Literal["assistant", "userproxy", "groupchat"]
     config: AgentConfig = field(default_factory=AgentConfig)
     id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    timestamp: Optional[str] = None
     user_id: Optional[str] = None
-    
+    skills: Optional[Union[None, List[Skill]]] = None
+    description: Optional[str] = None
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().isoformat()
         if self.id is None:
             self.id = str(uuid.uuid4())
         if self.user_id is None:
             self.user_id = "default"
+
+    def dict(self):
+        result = asdict(self)
+        return result
 
 
 @dataclass
@@ -115,12 +128,13 @@ class AgentWorkFlowConfig:
     """Data model for Flow Config for AutoGen"""
 
     name: str
+    description: str
     sender: AgentFlowSpec
     receiver: Union[AgentFlowSpec, List[AgentFlowSpec]]
-    type: Literal["default", "groupchat"] = "default" 
+    type: Literal["default", "groupchat"] = "default"
     id: Optional[str] = None
     user_id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    timestamp: Optional[str] = None
 
     def __post_init__(self):
         if self.id is None:
@@ -128,30 +142,36 @@ class AgentWorkFlowConfig:
         if self.user_id is None:
             self.user_id = "default"
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().isoformat()
 
     def dict(self):
-        return asdict(self)
+        result = asdict(self)
+        result["sender"] = self.sender.dict()
+        if isinstance(self.receiver, list):
+            result["receiver"] = [r.dict() for r in self.receiver]
+        else:
+            result["receiver"] = self.receiver.dict()
+        return result
 
 
 @dataclass
 class Session(object):
     """Data model for AutoGen Chat Session"""
- 
+
     user_id: str
     id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    timestamp: Optional[str] = None
     flow_config: AgentWorkFlowConfig = None
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().isoformat()
         if self.id is None:
             self.id = str(uuid.uuid4())
 
     def dict(self):
         result = asdict(self)
-        result["timestamp"] = self.timestamp.isoformat()
+        result["flow_config"] = self.flow_config.dict()
         return result
 
 
@@ -159,22 +179,20 @@ class Session(object):
 class Gallery(object):
     """Data model for Gallery Item"""
 
-   
-    session: Session 
+    session: Session
     messages: List[Message]
-    tags: List[str] 
+    tags: List[str]
     id: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    timestamp: Optional[str] = None
 
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.now()
+            self.timestamp = datetime.now().isoformat()
         if self.id is None:
             self.id = str(uuid.uuid4())
 
     def dict(self):
         result = asdict(self)
-        result["timestamp"] = self.timestamp.isoformat()
         return result
 
 
@@ -198,6 +216,7 @@ class CreateSkillWebRequestModel(object):
     user_id: str
     skill: Skill
 
+
 @dataclass
 class DBWebRequestModel(object):
     user_id: str
@@ -205,3 +224,5 @@ class DBWebRequestModel(object):
     session: Optional[Session] = None
     skills: Optional[Union[str, List[str]]] = None
     tags: Optional[List[str]] = None
+    agent: Optional[AgentFlowSpec] = None
+    workflow: Optional[AgentWorkFlowConfig] = None

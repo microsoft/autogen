@@ -10,14 +10,16 @@ import {
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useRef, useState } from "react";
 import Icon from "./icons";
-import { Button, Input, Modal, Tooltip, message } from "antd";
+import { Button, Input, Modal, Select, Slider, Tooltip, message } from "antd";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { truncateText } from "./utils";
-import { IModelConfig } from "./types";
+import { IAgentFlowSpec, IFlowConfig, IModelConfig, ISkill } from "./types";
 import { ResizableBox } from "react-resizable";
+import debounce from "lodash.debounce";
+import TextArea from "antd/es/input/TextArea";
 
 interface CodeProps {
   node?: any;
@@ -730,6 +732,13 @@ export const ModelSelector = ({
           value={newModelConfig?.api_type}
           onChange={(e) => updateNewModelConfig("api_type", e.target.value)}
         />
+
+        <Input
+          className="mt-2"
+          placeholder="API Version (optional)"
+          value={newModelConfig?.api_version}
+          onChange={(e) => updateNewModelConfig("api_version", e.target.value)}
+        />
       </Modal>
     </div>
   );
@@ -839,5 +848,331 @@ export const PdfViewer = ({ url }: { url: string }) => {
         </object>
       )}
     </div>
+  );
+};
+
+export const AgentFlowSpecView = ({
+  title = "Agent Specification",
+  flowSpec,
+  setFlowSpec,
+}: {
+  title: string;
+  flowSpec: IAgentFlowSpec;
+  setFlowSpec: (newFlowSpec: IAgentFlowSpec) => void;
+  editMode?: boolean;
+}) => {
+  // Local state for the FlowView component
+  const [localFlowSpec, setLocalFlowSpec] =
+    React.useState<IAgentFlowSpec>(flowSpec);
+
+  // Event handlers for updating local state and propagating changes
+
+  const onControlChange = (value: any, key: string) => {
+    const updatedFlowSpec = {
+      ...localFlowSpec,
+      config: { ...localFlowSpec.config, [key]: value },
+    };
+    setLocalFlowSpec(updatedFlowSpec);
+    setFlowSpec(updatedFlowSpec);
+  };
+
+  const onDebouncedControlChange = React.useCallback(
+    debounce((value: any, key: string) => {
+      onControlChange(value, key);
+    }, 3000),
+    [onControlChange]
+  );
+
+  const llm_config = localFlowSpec.config.llm_config;
+
+  return (
+    <>
+      <div className="text-accent">{title}</div>
+      <GroupView title={flowSpec.config.name} className="mb-4">
+        <ControlRowView
+          title="Agent Name"
+          className="mt-4"
+          description="Name of the agent"
+          value={flowSpec.config.name}
+          control={
+            <Input
+              className="mt-2"
+              placeholder="Agent Name"
+              value={flowSpec.config.name}
+              onChange={(e) => {
+                onControlChange(e.target.value, "name");
+              }}
+            />
+          }
+        />
+
+        <ControlRowView
+          title="Max Consecutive Auto Reply"
+          className="mt-4"
+          description="Max consecutive auto reply messages before termination."
+          value={flowSpec.config.max_consecutive_auto_reply}
+          control={
+            <Slider
+              min={2}
+              max={30}
+              defaultValue={flowSpec.config.max_consecutive_auto_reply}
+              step={1}
+              onAfterChange={(value: any) => {
+                onControlChange(value, "max_consecutive_auto_reply");
+              }}
+            />
+          }
+        />
+
+        <ControlRowView
+          title="Human Input Mode"
+          description="Defines when to request human input"
+          value={flowSpec.config.human_input_mode}
+          control={
+            <Select
+              className="mt-2 w-full"
+              defaultValue={flowSpec.config.human_input_mode}
+              onChange={(value: any) => {
+                onControlChange(value, "human_input_mode");
+              }}
+              options={
+                [
+                  { label: "NEVER", value: "NEVER" },
+                  { label: "TERMINATE", value: "TERMINATE" },
+                  { label: "ALWAYS", value: "ALWAYS" },
+                ] as any
+              }
+            />
+          }
+        />
+
+        {llm_config && (
+          <ControlRowView
+            title="System Message"
+            className="mt-4"
+            description="Free text to control agent behavior"
+            value={flowSpec.config.system_message}
+            control={
+              <TextArea
+                className="mt-2 w-full"
+                value={flowSpec.config.system_message}
+                rows={3}
+                onChange={(e) => {
+                  onDebouncedControlChange(e.target.value, "system_message");
+                }}
+              />
+            }
+          />
+        )}
+
+        {llm_config && (
+          <ControlRowView
+            title="Model"
+            className="mt-4"
+            description="Defines which models are used for the agent."
+            value={llm_config?.config_list?.[0]?.model}
+            control={
+              <ModelSelector
+                className="mt-2 w-full"
+                configs={llm_config.config_list || []}
+                setConfigs={(config_list: IModelConfig[]) => {
+                  const llm_config = {
+                    ...flowSpec.config.llm_config,
+                    config_list,
+                  };
+                  onControlChange(llm_config, "llm_config");
+                }}
+              />
+            }
+          />
+        )}
+
+        {flowSpec.skills && (
+          <ControlRowView
+            title="Skills"
+            className="mt-4"
+            description="Defines which skills are used for the agent."
+            value={flowSpec.skills[0].title}
+            control={
+              <SkillSelector
+                className="mt-2 w-full"
+                skills={flowSpec.skills}
+                setSkills={(skills: ISkill[]) => {
+                  onControlChange(skills, "skills");
+                }}
+              />
+            }
+          />
+        )}
+      </GroupView>
+    </>
+  );
+};
+
+interface SkillSelectorProps {
+  skills: ISkill[];
+  setSkills: (skills: ISkill[]) => void;
+  className?: string;
+}
+
+export const SkillSelector: React.FC<SkillSelectorProps> = ({
+  skills,
+  setSkills,
+  className,
+}) => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newSkillTitle, setNewSkillTitle] = useState("");
+
+  const handleRemoveSkill = (index: number) => {
+    const updatedSkills = skills.filter((_, i) => i !== index);
+    setSkills(updatedSkills);
+  };
+
+  const handleAddSkill = () => {
+    const newSkill: ISkill = {
+      title: newSkillTitle,
+      file_name: "", // Would be the target file if needed
+      content: "", // Any other associated content
+    };
+    setSkills([...skills, newSkill]);
+    setNewSkillTitle("");
+    setIsModalVisible(false);
+  };
+
+  return (
+    <>
+      <div className={`${className}`}>
+        {skills.map((skill, index) => (
+          <div
+            key={skill.id || index}
+            className="mr-1 mb-1 p-1 px-2 rounded border"
+          >
+            <span>{skill.title}</span>
+            <XMarkIcon
+              role="button"
+              onClick={() => handleRemoveSkill(index)}
+              className="ml-1 text-primary hover:text-accent duration-300 w-4 h-4 inline-block"
+            />
+          </div>
+        ))}
+        <PlusIcon
+          role="button"
+          onClick={() => setIsModalVisible(true)}
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent w-4 h-4"
+        />
+      </div>
+
+      <Modal
+        title="Add Skill"
+        visible={isModalVisible}
+        onOk={handleAddSkill}
+        onCancel={() => setIsModalVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setIsModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleAddSkill}>
+            Add Skill
+          </Button>,
+        ]}
+      >
+        <Input
+          placeholder="Skill Title"
+          value={newSkillTitle}
+          onChange={(e) => setNewSkillTitle(e.target.value)}
+        />
+      </Modal>
+    </>
+  );
+};
+
+export const FlowConfigViewer = ({
+  flowConfig,
+  setFlowConfig,
+}: {
+  flowConfig: IFlowConfig;
+  setFlowConfig: (newFlowConfig: IFlowConfig) => void;
+}) => {
+  // Local state for sender and receiver FlowSpecs
+  const [senderFlowSpec, setSenderFlowSpec] = React.useState<IAgentFlowSpec>(
+    flowConfig.sender
+  );
+
+  const [localFlowConfig, setLocalFlowConfig] =
+    React.useState<IFlowConfig>(flowConfig);
+
+  const [receiverFlowSpec, setReceiverFlowSpec] =
+    React.useState<IAgentFlowSpec>(flowConfig.receiver);
+
+  // Update the local state and propagate changes to the parent component
+  const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec) => {
+    setSenderFlowSpec(newFlowSpec);
+    setFlowConfig({ ...flowConfig, sender: newFlowSpec });
+  };
+
+  const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec) => {
+    setReceiverFlowSpec(newFlowSpec);
+    setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
+  };
+
+  const updateFlowConfigName = (newName: string) => {
+    const updatedFlowConfig = { ...localFlowConfig, name: newName };
+    setLocalFlowConfig(updatedFlowConfig);
+    setFlowConfig(updatedFlowConfig);
+  };
+
+  // React.useEffect(() => {
+  //   setLocalFlowConfig(flowConfig);
+  // }, [flowConfig]);
+
+  return (
+    <>
+      {/* <div className="mb-2">{flowConfig.name}</div> */}
+      <ControlRowView
+        title="Workflow Name"
+        className="mt-4 mb-2"
+        description="Name of the workflow"
+        value={localFlowConfig.name}
+        control={
+          <Input
+            className="mt-2 w-full"
+            value={localFlowConfig.name}
+            onChange={(e) => updateFlowConfigName(e.target.value)}
+          />
+        }
+      />
+
+      <ControlRowView
+        title="Workflow Description"
+        className="mt-4 mb-2"
+        description="Description of the workflow"
+        value={localFlowConfig.description}
+        control={
+          <Input
+            className="mt-2 w-full"
+            value={localFlowConfig.description}
+            onChange={(e) => updateFlowConfigName(e.target.value)}
+          />
+        }
+      />
+      <div className="flex gap-3 ">
+        <div className="w-1/2">
+          <div className="">
+            <AgentFlowSpecView
+              title="Sender"
+              flowSpec={senderFlowSpec}
+              setFlowSpec={updateSenderFlowSpec}
+            />
+          </div>
+        </div>
+        <div className="w-1/2">
+          <AgentFlowSpecView
+            title="Receiver"
+            flowSpec={receiverFlowSpec}
+            setFlowSpec={updateReceiverFlowSpec}
+          />
+        </div>
+      </div>
+    </>
   );
 };

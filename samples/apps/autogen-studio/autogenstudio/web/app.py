@@ -14,9 +14,9 @@ from ..datamodel import (
     DeleteMessageWebRequestModel,
     Message,
     Session,
+    Skill,
 )
 from ..utils import (
-    create_skills_from_code,
     get_all_skills,
     load_messages,
     md5_hash,
@@ -31,6 +31,8 @@ from ..utils import (
     get_gallery,
     DBManager,
 )
+
+from ..utils import dbutils
 
 from ..chatmanager import AutoGenChatManager
 
@@ -54,14 +56,17 @@ app.add_middleware(
 
 
 root_file_path = os.path.dirname(os.path.abspath(__file__))
-folders = init_webserver_folders(root_file_path)  # init folders skills, workdir, static, files etc
+# init folders skills, workdir, static, files etc
+folders = init_webserver_folders(root_file_path)
 
 api = FastAPI(root_path="/api")
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
-app.mount("/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
-api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
+app.mount(
+    "/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
+api.mount(
+    "/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
 
 db_path = os.path.join(root_file_path, "database.sqlite")
@@ -72,11 +77,13 @@ chatmanager = AutoGenChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
-    user_history = load_messages(user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
+    user_history = load_messages(
+        user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
 
     # save incoming message to db
     save_message(message=message, dbmanager=dbmanager)
-    user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
+    user_dir = os.path.join(
+        folders["files_static_root"], "user", md5_hash(message.user_id))
     os.makedirs(user_dir, exist_ok=True)
 
     # load skills, append to chat
@@ -117,7 +124,8 @@ def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
     try:
-        user_history = load_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        user_history = load_messages(
+            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -177,15 +185,17 @@ async def create_user_session(req: DBWebRequestModel):
     # print(req.session, "**********" )
 
     try:
-        session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
-        user_sessions = create_session(user_id=req.user_id, session=session, dbmanager=dbmanager)
+        session = Session(user_id=req.session.user_id,
+                          flow_config=req.session.flow_config)
+        user_sessions = create_session(
+            user_id=req.user_id, session=session, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session created successfully",
             "data": user_sessions,
         }
     except Exception as ex_error:
-        print(ex_error)
+        print(traceback.format_exc())
         return {
             "status": False,
             "message": "Error occurred while creating session: " + str(ex_error),
@@ -195,10 +205,10 @@ async def create_user_session(req: DBWebRequestModel):
 @api.post("/sessions/publish")
 async def publish_user_session_to_gallery(req: DBWebRequestModel):
     """Create a new session for a user"""
-    print(req.session, "**********")
 
     try:
-        gallery_item = publish_session(req.session, tags=req.tags, dbmanager=dbmanager)
+        gallery_item = publish_session(
+            req.session, tags=req.tags, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session successfully published",
@@ -246,7 +256,8 @@ async def clear_db(req: DBWebRequestModel):
         delete_message(
             user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True
         )
-        sessions = delete_user_sessions(user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
+        sessions = delete_user_sessions(
+            user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": {
@@ -263,14 +274,22 @@ async def clear_db(req: DBWebRequestModel):
 
 
 @api.get("/skills")
-def get_skills(user_id: str):
-    skills = get_all_skills(os.path.join(folders["user_skills_dir"], md5_hash(user_id)), folders["global_skills_dir"])
+def get_user_skills(user_id: str):
 
-    return {
-        "status": True,
-        "message": "Skills retrieved successfully",
-        "data": skills,
-    }
+    try:
+        skills = dbutils.get_skills(user_id, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Skills retrieved successfully",
+            "data": skills,
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while retrieving skills: " + str(ex_error),
+        }
 
 
 @api.post("/skills")
@@ -279,20 +298,14 @@ def create_user_skills(req: CreateSkillWebRequestModel):
 
     Args:
         user_id (str): the user id
-        code (str):  code that represents the skill to be created
+        skills (Skill[]):  the skills to be created
 
     Returns:
         _type_: dict
     """
 
-    user_skills_dir = os.path.join(folders["user_skills_dir"], md5_hash(req.user_id))
-
     try:
-        create_skills_from_code(dest_dir=user_skills_dir, skills=req.skills)
-
-        skills = get_all_skills(
-            os.path.join(folders["user_skills_dir"], md5_hash(req.user_id)), folders["global_skills_dir"]
-        )
+        skills = dbutils.create_skill(skill=req.skill, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -305,4 +318,86 @@ def create_user_skills(req: CreateSkillWebRequestModel):
         return {
             "status": False,
             "message": "Error occurred while creating skills: " + str(ex_error),
+        }
+
+
+@api.get("/agents")
+def get_user_agents(user_id: str):
+
+    try:
+        agents = dbutils.get_agents(user_id, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Agents retrieved successfully",
+            "data": agents,
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while retrieving agents: " + str(ex_error),
+        }
+
+
+@api.post("/agents")
+def create_user_agents(req: DBWebRequestModel):
+    """Create a new agent for a user"""
+
+    try:
+        # Assuming the sender is the agent to be created
+        agent_flow_spec = req.session.flow_config.sender
+        agents = dbutils.create_agent(
+            agent_flow_spec=agent_flow_spec, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Agent created successfully",
+            "data": agents,
+        }
+
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while creating agent: " + str(ex_error),
+        }
+
+
+@api.get("/workflows")
+def get_user_workflows(user_id: str):
+    try:
+        workflows = dbutils.get_workflows(user_id, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Workflows retrieved successfully",
+            "data": workflows,
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while retrieving workflows: " + str(ex_error),
+        }
+
+
+@api.post("/workflows")
+def create_user_workflow(req: DBWebRequestModel):
+    """Create a new workflow for a user"""
+
+    try:
+        workflow = dbutils.create_workflow(
+            workflow=req.workflow, dbmanager=dbmanager)
+        return {
+            "status": True,
+            "message": "Workflow created successfully",
+            "data": workflow,
+        }
+
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while creating workflow: " + str(ex_error),
         }

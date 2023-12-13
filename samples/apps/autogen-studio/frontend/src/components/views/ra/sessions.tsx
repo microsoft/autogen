@@ -40,7 +40,7 @@ const SessionsView = ({}: any) => {
   const publishSessionUrl = `${serverUrl}/sessions/publish`;
 
   const sessions = useConfigStore((state) => state.sessions);
-  const flowConfig = useConfigStore((state) => state.flowConfig);
+  const workflowConfig = useConfigStore((state) => state.workflowConfig);
   const setSessions = useConfigStore((state) => state.setSessions);
   // const [session, setSession] =
   //   React.useState<IChatSession | null>(null);
@@ -59,10 +59,9 @@ const SessionsView = ({}: any) => {
     };
 
     const onSuccess = (data: any) => {
-      console.log(data);
       if (data && data.status) {
         message.success(data.message);
-        console.log("sesssions", data);
+        // console.log("sesssions", data);
         setSessions(data.data);
         if (data.data && data.data.length === 0) {
           createSession();
@@ -99,7 +98,6 @@ const SessionsView = ({}: any) => {
     };
 
     const onSuccess = (data: any) => {
-      console.log(data);
       if (data && data.status) {
         message.success(data.message);
         // setSessions(data.data);
@@ -132,7 +130,7 @@ const SessionsView = ({}: any) => {
         session === null
           ? {
               user_id: user?.email,
-              flow_config: flowConfig,
+              flow_config: workflowConfig,
               session_id: null,
             }
           : session,
@@ -146,9 +144,7 @@ const SessionsView = ({}: any) => {
       body: JSON.stringify(body),
     };
 
-    console.log("payload", body);
     const onSuccess = (data: any) => {
-      console.log(data);
       if (data && data.status) {
         message.success(data.message);
         setSessions(data.data);
@@ -173,7 +169,7 @@ const SessionsView = ({}: any) => {
   }, []);
 
   const sessionRows = sessions.map((data: IChatSession, index: number) => {
-    const isSelected = session?.session_id === data.session_id;
+    const isSelected = session?.id === data.id;
     const rowClass = isSelected
       ? "bg-accent text-white"
       : "bg-secondary text-primary";
@@ -186,7 +182,7 @@ const SessionsView = ({}: any) => {
             setSession(data);
           }}
         >
-          <div className="text-xs">{truncateText(data.session_id, 27)}</div>
+          <div className="text-xs">{truncateText(data.id, 27)}</div>
           <div className="text-xs text-right ">{timeAgo(data.timestamp)} </div>
         </div>
         <div className="flex mt-1 text-secondary">
@@ -195,7 +191,6 @@ const SessionsView = ({}: any) => {
           <div
             role="button"
             onClick={() => {
-              console.log("pubish session", data);
               publishSession();
             }}
             className="text-xs px-2  hover:text-accent cursor-pointer"
@@ -218,7 +213,6 @@ const SessionsView = ({}: any) => {
   return (
     <div className="  ">
       <div className="mb-2 relative">
-        <LoadingOverlay loading={loading} />
         <div className="">
           <div className="font-semibold mb-2 pb-1 border-b">Sessions </div>
           <div className="text-xs mb-2 pb-1  ">
@@ -229,8 +223,9 @@ const SessionsView = ({}: any) => {
             style={{
               maxHeight: "300px",
             }}
-            className="mb-4 overflow-y-scroll scroll rounded  "
+            className="mb-4 overflow-y-scroll scroll rounded relative "
           >
+            <LoadingOverlay loading={loading} />
             {sessionRows}
           </div>
           {(!sessions || sessions.length == 0) && (

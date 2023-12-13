@@ -1,10 +1,10 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import * as React from "react";
-import SkillsView from "./skills";
-import AgentsView from "./agents";
+import AgentsView from "./workflows";
 import SessionsView from "./sessions";
+import { useConfigStore } from "../../../hooks/store";
 
-const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
+const SideBarView = () => {
   const [isOpen, setIsOpen] = React.useState(true);
   const minWidth = isOpen ? "270px" : "50px";
 
@@ -14,12 +14,13 @@ const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
     sidebarMaxHeight = windowHeight - 180 + "px";
   }
 
+  const workflowConfig = useConfigStore((state) => state.workflowConfig);
+
   return (
     <div
       style={{
         minWidth: minWidth,
         maxWidth: minWidth,
-        // maxHeight: sidebarMaxHeight,
         height: "calc(100vh - 190px)",
       }}
       className="    "
@@ -27,13 +28,7 @@ const SideBarView = ({ setMessages, notify, skillup, config }: any) => {
       <div className=" transition overflow-hidden duration-300  flex flex-col   h-full p-2 overflow-y-scroll scroll rounded ">
         <div className={`${isOpen ? "" : "hidden"}  `}>
           <AgentsView />
-          <SessionsView config={config} />
-          <SkillsView
-            notify={notify}
-            setMessages={setMessages}
-            skillup={skillup}
-            config={config}
-          />
+          {workflowConfig && <SessionsView />}
         </div>
       </div>
       <div

@@ -1,12 +1,10 @@
 import { create } from "zustand";
-import { getDefaultConfigFlows } from "../components/utils";
+
 import { IChatMessage, IChatSession, IFlowConfig } from "../components/types";
 
 interface ConfigState {
-  flowConfigs: IFlowConfig[];
-  setFlowConfigs: (flowConfigs: IFlowConfig[]) => void;
-  flowConfig: IFlowConfig;
-  setFlowConfig: (flowConfig: IFlowConfig) => void;
+  workflowConfig: IFlowConfig | null;
+  setWorkflowConfig: (flowConfig: IFlowConfig) => void;
   messages: IChatMessage[] | null;
   setMessages: (messages: IChatMessage[]) => void;
   session: IChatSession | null;
@@ -16,10 +14,8 @@ interface ConfigState {
 }
 
 export const useConfigStore = create<ConfigState>()((set) => ({
-  flowConfigs: getDefaultConfigFlows(),
-  setFlowConfigs: (flowConfigs) => set({ flowConfigs }),
-  flowConfig: getDefaultConfigFlows()[0],
-  setFlowConfig: (flowConfig) => set({ flowConfig }),
+  workflowConfig: null,
+  setWorkflowConfig: (workflowConfig) => set({ workflowConfig }),
   messages: null,
   setMessages: (messages) => set({ messages }),
   session: null,

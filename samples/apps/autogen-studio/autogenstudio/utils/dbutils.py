@@ -4,7 +4,7 @@ import sqlite3
 import threading
 import os
 from typing import Any, List, Dict, Tuple
-from ..datamodel import Gallery, Message, Session
+from ..datamodel import AgentFlowSpec, AgentWorkFlowConfig, Gallery, Message, Session, Skill
 
 
 MESSAGES_TABLE_SQL = """
@@ -23,31 +23,61 @@ MESSAGES_TABLE_SQL = """
 
 SESSIONS_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS sessions (
-                session_id TEXT NOT NULL,
+                id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
                 flow_config TEXT,
-                UNIQUE (user_id, session_id)
+                UNIQUE (user_id, id)
             )
             """
 
 SKILLS_TABLE_SQL = """
-            CREATE TABLE IF NOT EXISTS sessions (
-                session_id TEXT NOT NULL,
+            CREATE TABLE IF NOT EXISTS skills (
+                id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
-                flow_config TEXT,
-                UNIQUE (user_id, session_id)
+                content TEXT,
+                title TEXT,
+                file_name TEXT,
+                UNIQUE (id, user_id)
             )
             """
+AGENTS_TABLE_SQL = """
+            CREATE TABLE IF NOT EXISTS agents (
+                
+                id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                timestamp DATETIME NOT NULL,
+                config TEXT,
+                type TEXT,
+                skills TEXT,
+                description TEXT,
+                UNIQUE (id, user_id)
+            )
+            """
+
+WORKFLOWS_TABLE_SQL = """
+            CREATE TABLE IF NOT EXISTS workflows (
+                id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                timestamp DATETIME NOT NULL,
+                sender TEXT,
+                receiver TEXT,
+                type TEXT,
+                name TEXT,
+                description TEXT,
+                UNIQUE (id, user_id)
+            )
+            """
+
 GALLERY_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS gallery (
-                gallery_id TEXT NOT NULL,
+                id TEXT NOT NULL,
                 session TEXT,
                 messages TEXT,
                 tags TEXT,
                 timestamp DATETIME NOT NULL,
-                UNIQUE ( gallery_id)
+                UNIQUE ( id)
             )
             """
 
@@ -69,18 +99,30 @@ class DBManager:
             path (str): The file path to the SQLite database file.
             **kwargs: Additional keyword arguments to pass to the sqlite3.connect method.
         """
+
         self.path = path
         # check if the database exists, if not create it
+        self.reset_db()
         if not os.path.exists(self.path):
             logger.info("Creating database")
             self.init_db(path=self.path, **kwargs)
 
         try:
-            self.conn = sqlite3.connect(self.path, check_same_thread=False, **kwargs)
+            self.conn = sqlite3.connect(
+                self.path, check_same_thread=False, **kwargs)
             self.cursor = self.conn.cursor()
         except Exception as e:
             logger.error("Error connecting to database: %s", e)
             raise e
+
+    def reset_db(self):
+        """
+        Reset the database by deleting the database file and creating a new one.
+        """
+        print("resetting db")
+        if os.path.exists(self.path):
+            os.remove(self.path)
+        self.init_db(path=self.path)
 
     def init_db(self, path: str = "database.sqlite", **kwargs: Any) -> None:
         """
@@ -106,6 +148,35 @@ class DBManager:
         # Create a gallery table
         self.cursor.execute(GALLERY_TABLE_SQL)
 
+        # Create a agents table
+        self.cursor.execute(AGENTS_TABLE_SQL)
+
+        # Create a workflows table
+        self.cursor.execute(WORKFLOWS_TABLE_SQL)
+
+        # init skills table with content of defaultskills.json in current directory
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, 'dbdefaults.json'), 'r', encoding='utf-8') as json_file:
+            data = json.load(json_file)
+            skills = data['skills']
+            agents = data['agents']
+            for skill in skills:
+                skill = Skill(**skill)
+
+                self.cursor.execute("INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)", (
+                    skill.id, "default", skill.timestamp, skill.content, skill.title, skill.file_name))
+            for agent in agents:
+                agent = AgentFlowSpec(**agent)
+                agent.skills = [skill.dict()
+                                for skill in agent.skills] if agent.skills else None
+                self.cursor.execute("INSERT INTO agents (id, user_id, timestamp, config, type, skills, description) VALUES (?, ?, ?, ?, ?, ?, ?)", (
+                    agent.id, "default", agent.timestamp, json.dumps(agent.config.dict()), agent.type, json.dumps(agent.skills), agent.description))
+
+            for workflow in data['workflows']:
+                workflow = AgentWorkFlowConfig(**workflow)
+                self.cursor.execute("INSERT INTO workflows (id, user_id, timestamp, sender, receiver, type, name, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (
+                    workflow.id, "default", workflow.timestamp, json.dumps(workflow.sender.dict()), json.dumps(workflow.receiver.dict()), workflow.type, workflow.name, workflow.description))
+
         # Commit the changes and close the connection
         self.conn.commit()
 
@@ -127,10 +198,12 @@ class DBManager:
                 result = self.cursor.fetchall()
                 self.commit()
                 if return_json:
-                    result = [dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
+                    result = [
+                        dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
                 return result
         except Exception as e:
-            logger.error("Error running query with query %s and args %s: %s", query, args, e)
+            logger.error(
+                "Error running query with query %s and args %s: %s", query, args, e)
             raise e
 
     def commit(self) -> None:
@@ -187,7 +260,7 @@ def load_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[d
 
 def get_sessions(user_id: str, dbmanager: DBManager) -> List[dict]:
     """
-    Load sessions for a specific user from the database, sorted by timestamp.
+    Load sessions for a specific user from the database, sorted by timestamp. 
 
     :param user_id: The ID of the user whose sessions are to be loaded
     :param dbmanager: The DBManager instance to interact with the database
@@ -211,9 +284,9 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a session
     """
-
-    query = "INSERT INTO sessions (user_id, session_id, timestamp, flow_config) VALUES (?, ?, ?,?)"
-    args = (session.user_id, session.session_id, session.timestamp, json.dumps(session.flow_config.dict()))
+    query = "INSERT INTO sessions (user_id, id, timestamp, flow_config) VALUES (?, ?, ?,?)"
+    args = (session.user_id, session.id, session.timestamp,
+            json.dumps(session.flow_config.dict()))
     dbmanager.query(query=query, args=args)
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
@@ -229,9 +302,10 @@ def publish_session(session: Session, dbmanager: DBManager, tags: List[str] = []
     :return: A gallery object containing the session and messages objects
     """
 
-    messages = load_messages(user_id=session.user_id, session_id=session.session_id, dbmanager=dbmanager)
+    messages = load_messages(user_id=session.user_id,
+                             session_id=session.id, dbmanager=dbmanager)
     gallery_item = Gallery(session=session, messages=messages, tags=tags)
-    query = "INSERT INTO gallery (gallery_id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
+    query = "INSERT INTO gallery (id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
     args = (
         gallery_item.id,
         json.dumps(gallery_item.session.dict()),
@@ -253,7 +327,7 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
     """
 
     if gallery_id:
-        query = "SELECT * FROM gallery WHERE gallery_id = ?"
+        query = "SELECT * FROM gallery WHERE id = ?"
         args = (gallery_id,)
     else:
         query = "SELECT * FROM gallery"
@@ -264,14 +338,54 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
     gallery = []
     for row in result:
         gallery_item = Gallery(
-            id=row["gallery_id"],
+            id=row["id"],
             session=Session(**json.loads(row["session"])),
-            messages=[Message(**message) for message in json.loads(row["messages"])],
+            messages=[Message(**message)
+                      for message in json.loads(row["messages"])],
             tags=json.loads(row["tags"]),
             timestamp=row["timestamp"],
         )
         gallery.append(gallery_item)
     return gallery
+
+
+def get_skills(user_id: str, dbmanager: DBManager) -> List[Skill]:
+    """
+    Load skills from the database, sorted by timestamp. Load skills where id = user_id or user_id = default.
+
+    :param user_id: The ID of the user whose skills are to be loaded
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of Skill objects
+    """
+
+    query = "SELECT * FROM skills WHERE user_id = ? OR user_id = ?"
+    args = (user_id, "default")
+    result = dbmanager.query(query=query, args=args, return_json=True)
+    # Sort by timestamp ascending
+    result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
+    skills = []
+    for row in result:
+        skill = Skill(**row)
+        skills.append(skill)
+    return skills
+
+
+def create_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
+    """
+    Create a new skill for a specific user in the database.
+
+    :param  skill: The Skill object containing skill data
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of dictionaries, each representing a skill
+    """
+
+    query = "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)"
+    args = (skill.id, skill.user_id, skill.timestamp,
+            skill.content, skill.title, skill.file_name)
+    dbmanager.query(query=query, args=args)
+    skills = get_skills(user_id=skill.user_id, dbmanager=dbmanager)
+
+    return skills
 
 
 def delete_user_sessions(user_id: str, session_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]:
@@ -321,5 +435,93 @@ def delete_message(
         query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ? AND session_id = ?"
         args = (user_id, msg_id, session_id)
         dbmanager.query(query=query, args=args)
-        messages = load_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        messages = load_messages(
+            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
         return messages
+
+
+def get_agents(user_id: str, dbmanager: DBManager) -> List[AgentFlowSpec]:
+    """
+    Load agents from the database, sorted by timestamp. Load agents where id = user_id or user_id = default.
+
+    :param user_id: The ID of the user whose agents are to be loaded
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of AgentFlowSpec objects
+    """
+
+    query = "SELECT * FROM agents WHERE user_id = ? OR user_id = ?"
+    args = (user_id, "default")
+    result = dbmanager.query(query=query, args=args, return_json=True)
+    # Sort by timestamp ascending
+    result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
+    agents = []
+    for row in result:
+        row["config"] = json.loads(row["config"])
+        row["skills"] = json.loads(row["skills"])
+        agent = AgentFlowSpec(**row)
+        agents.append(agent)
+    return agents
+
+
+def create_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[Dict[str, Any]]:
+    """
+    Create a new agent for a specific user in the database.
+
+    :param agent_flow_spec: The AgentFlowSpec object containing agent configuration
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of dictionaries, each representing an agent after insertion
+    """
+
+    query = "INSERT INTO agents (id, user_id, timestamp, config, type) VALUES (?, ?, ?, ?, ?)"
+    config_json = json.dumps(agent_flow_spec.config.dict())
+    args = (agent_flow_spec.id, agent_flow_spec.user_id,
+            agent_flow_spec.timestamp.isoformat(), config_json, agent_flow_spec.type)
+    dbmanager.query(query=query, args=args)
+    agents = get_agents(user_id=agent_flow_spec.user_id, dbmanager=dbmanager)
+    return agents
+
+
+def get_workflows(user_id: str, dbmanager: DBManager) -> List[Dict[str, Any]]:
+    """
+    Load workflows for a specific user from the database, sorted by timestamp.
+
+    :param user_id: The ID of the user whose workflows are to be loaded
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of dictionaries, each representing a workflow
+    """
+    query = "SELECT * FROM workflows WHERE user_id = ? OR user_id = ?"
+    args = (user_id, "default")
+    result = dbmanager.query(query=query, args=args, return_json=True)
+    # Sort by timestamp ascending
+    result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
+    workflows = []
+    for row in result:
+        row["sender"] = json.loads(row["sender"])
+        row["receiver"] = json.loads(row["receiver"])
+        workflow = AgentWorkFlowConfig(**row)
+        workflows.append(workflow)
+    return workflows
+
+
+def create_workflow(workflow: AgentWorkFlowConfig, dbmanager: DBManager) -> List[Dict[str, Any]]:
+    """
+    Create a new workflow for a specific user in the database.
+
+    :param workflow: The AgentWorkFlowConfig object containing workflow data
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of dictionaries, each representing a workflow after insertion
+    """
+    query = "INSERT INTO workflows (id, user_id, timestamp, sender, receiver, type, name, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    args = (
+        workflow.id,
+        workflow.user_id,
+        workflow.timestamp,
+        json.dumps(workflow.sender.dict()),
+        json.dumps([receiver.dict() for receiver in workflow.receiver] if isinstance(
+            workflow.receiver, list) else workflow.receiver.dict()),
+        workflow.type,
+        workflow.name,
+        workflow.description,
+    )
+    dbmanager.query(query=query, args=args)
+    return get_workflows(user_id=workflow.user_id, dbmanager=dbmanager)

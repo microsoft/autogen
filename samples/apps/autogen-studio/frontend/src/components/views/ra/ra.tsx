@@ -31,7 +31,7 @@ const RAView = () => {
 
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
-  const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${session?.session_id}`;
+  const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${session?.id}`;
 
   const fetchMessages = () => {
     setError(null);
@@ -48,7 +48,6 @@ const RAView = () => {
     const onSuccess = (data: any) => {
       // console.log(data);
       if (data && data.status) {
-        console.log("******* messages received ", data);
         setMessages(data.data);
         message.success(data.message);
       } else {
@@ -75,19 +74,11 @@ const RAView = () => {
     <div className="h-full   ">
       <div className="flex h-full   ">
         <div className="  mr-2  rounded">
-          <SideBarView
-            setMessages={setMessages}
-            skillup={skillup}
-            config={{ get: config, set: setConfig }}
-          />
+          <SideBarView />
         </div>
         <div className=" flex-1  ">
           {" "}
-          <ChatBox
-            config={{ get: config, set: setConfig }}
-            initMessages={messages}
-            skillup={skillup}
-          />
+          <ChatBox initMessages={messages} />
         </div>
       </div>
     </div>
