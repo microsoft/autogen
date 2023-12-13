@@ -13,6 +13,7 @@ from typing import Dict, Optional, Union, List, Tuple, Any
 
 logger = logging.getLogger(__name__)
 
+
 class GPTAssistantAgent(ConversableAgent):
     """
     An experimental AutoGen agent class that leverages the OpenAI Assistant API for conversational capabilities.
@@ -65,7 +66,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
 
             if len(candidate_assistants) == 0:
-                logger.warning("assistant %s does not exist, creating a new assistant", name)
+                logger.warning("Assistant %s does not exist, creating a new assistant", name)
                 # create a new assistant
                 if instructions is None:
                     logger.warning(
@@ -81,7 +82,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
             else:
                 logger.warning(
-                    "assistant %s already exists, using the first matching assistant: %s",
+                    "Assistant %s already exists, using the first matching assistant: %s",
                     name,
                     candidate_assistants[0].__dict__,
                 )
