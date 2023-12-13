@@ -1,14 +1,12 @@
 import re
 
-try:
-    import chromadb
-except ImportError:
-    raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
 from autogen.agentchat.agent import Agent
 from autogen.agentchat import UserProxyAgent
-from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, TEXT_FORMATS
+from autogen.agentchat.contrib.retriever.retrieve_utils import TEXT_FORMATS
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
+from autogen.agentchat.contrib.retriever import get_retriever
+
 from autogen import logger
 
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
@@ -94,12 +92,14 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 The dict can contain the following keys: "content", "role", "name", "function_call".
             retrieve_config (dict or None): config for the retrieve agent.
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
+                - retriever_type (Optional, str): the type of the retriever.
+                - retriever_path (Optional, str): the path to use for retriever-realted operations. Default is `~/autogen`.
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
-                - client (Optional, chromadb.Client): the chromadb client. If key not provided, a default client `chromadb.Client()`
-                    will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
+                - client (Optional, Any): the vectordb client/connection. If key not provided, the Retreiver class should handle it.
                 - docs_path (Optional, Union[str, List[str]]): the path to the docs directory. It can also be the path to a single file,
-                    the url to a single file or a list of directories, files and urls. Default is None, which works only if the collection is already created.
+                    the url to a single file or a list of directories, files and urls.
+                    Default is None, which works only if the collection is already created.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
@@ -123,8 +123,14 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
                     If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
                 - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
-                - get_or_create (Optional, bool): if True, will create/return a collection for the retrieve chat. This is the same as that used in chromadb.
-                    Default is False. Will raise ValueError if the collection already exists and get_or_create is False. Will be set to True if docs_path is None.
+                - db_mode (Optional, str): the mode to create the vector db. Possible values are "get", "recreate", "create". Default is "recreate" to
+                    keep the workflow less error-prone. If "get", will try to get an existing collection. If "recreate", will recreate a collection
+                    if the collection already exists. If "create", will create a collection if the collection doesn't exist.
+                    Raises ValueError if:
+                    * the collection doesn't exist and "get" is used.
+                    * the collection already exists and "create" is used.
+                - get_or_create (Optional, bool): [Depricated] if True, will create/recreate a collection for the retrieve chat.
+                    This is the same as that used in retriever. Default is False. Will be set to False if docs_path is None.
                 - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the token_count(int). the retrieve_config["model"] will be passed in the function.
                     Default is autogen.token_count_utils.count_token that uses tiktoken, which may not be accurate for non-OpenAI models.
@@ -136,7 +142,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
         Example of overriding retrieve_docs:
-        If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with below code.
+        If you want to set up a customized vector db, and it's not compatible with retriever, you can easily plug in it with below code.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
@@ -166,10 +172,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             human_input_mode=human_input_mode,
             **kwargs,
         )
-
+        self.retriever = None
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
+        self._retriever_type = self._retrieve_config.get("retriever_type")
+        self._retriever_path = self._retrieve_config.get("retriever_path", "~/autogen")
         self._task = self._retrieve_config.get("task", "default")
-        self._client = self._retrieve_config.get("client", chromadb.Client())
+        self._client = self._retrieve_config.get("client", None)
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         if "docs_path" not in self._retrieve_config:
@@ -188,7 +196,6 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.customized_prompt = self._retrieve_config.get("customized_prompt", None)
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
-        self._get_or_create = self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else True
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", count_token)
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._custom_text_types = self._retrieve_config.get("custom_text_types", TEXT_FORMATS)
@@ -202,6 +209,26 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
         self._search_string = ""  # the search string used in the current query
+        self._db_mode = self._retrieve_config.get("db_mode")
+        self._get_or_create = self._retrieve_config.get("get_or_create")
+        if self._db_mode is not None and self._get_or_create is not None:
+            logger.warning(
+                colored(
+                    "Warning: db_mode and get_or_create are both set. get_or_create will be ignored. get_or_create is depricated",
+                    "yellow",
+                )
+            )
+            self._get_or_create = None
+        elif self._db_mode is None and self._get_or_create is None:  # if both not set, set db_mode's default value
+            self._db_mode = "recreate"
+        elif self._get_or_create:
+            logger.warning(
+                colored(
+                    "Warning: get_or_create is depricated and will be removed from future versions. Use `db_mode` instead",
+                    "yellow",
+                )
+            )
+
         # update the termination message function
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
@@ -362,13 +389,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
     def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
         """Retrieve docs based on the given problem and assign the results to the class property `_results`.
-        In case you want to customize the retrieval process, such as using a different vector db whose APIs are not
-        compatible with chromadb or filter results with metadata, you can override this function. Just keep the current
-        parameters and add your own parameters with default values, and keep the results in below type.
 
         Type of the results: Dict[str, List[List[Any]]], should have keys "ids" and "documents", "ids" for the ids of
-        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional. Refer
-        to `chromadb.api.types.QueryResult` as an example.
+        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional.
             ids: List[string]
             documents: List[List[string]]
 
@@ -377,33 +400,51 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             n_results (int): the number of results to be retrieved. Default is 20.
             search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
         """
-        if not self._collection or not self._get_or_create:
-            print("Trying to create collection.")
-            self._client = create_vector_db_from_dir(
-                dir_path=self._docs_path,
+        if not self.retriever:
+            retriever_class = get_retriever(self._retriever_type)
+            self.retriever = retriever_class(
+                path=self._retriever_path,
+                name=self._collection_name,
+                embedding_model_name=self._embedding_model,
+                embedding_function=self._embedding_function,
                 max_tokens=self._chunk_token_size,
-                client=self._client,
-                collection_name=self._collection_name,
                 chunk_mode=self._chunk_mode,
                 must_break_at_empty_line=self._must_break_at_empty_line,
-                embedding_model=self._embedding_model,
-                get_or_create=self._get_or_create,
-                embedding_function=self._embedding_function,
                 custom_text_split_function=self.custom_text_split_function,
+                client=self._client,
                 custom_text_types=self._custom_text_types,
                 recursive=self._recursive,
             )
-            self._collection = True
-            self._get_or_create = True
+        if self._db_mode:
+            if self._db_mode not in ["get", "recreate", "create"]:
+                raise ValueError(
+                    f"db_mode {self._db_mode} is not supported. Possible values are 'get', 'recreate', 'create'."
+                )
+            if self._db_mode == "get":
+                if not self.retriever.index_exists:
+                    raise ValueError("The index doesn't exist. Please set db_mode to 'recreate' or 'create'.")
+                self.retriever.use_existing_index()
+            elif self._db_mode == "recreate":
+                logger.info("Trying to create index. If the index already exists, it will be recreated.")
+                self.retriever.ingest_data(self._docs_path, overwrite=True)
+            elif self._db_mode == "create":
+                logger.info("Trying to create index.")
+                if self.retriever.index_exists:
+                    raise ValueError("The index already exists. Please set db_mode to 'get' or 'recreate'.")
+                self.retriever.ingest_data(self._docs_path, overwrite=False)
 
-        results = query_vector_db(
-            query_texts=[problem],
-            n_results=n_results,
-            search_string=search_string,
-            client=self._client,
-            collection_name=self._collection_name,
-            embedding_model=self._embedding_model,
-            embedding_function=self._embedding_function,
+        elif self._get_or_create is not None:
+            if self._get_or_create and self.retriever.index_exists:
+                logger.info("Trying to use existing collection.")
+                self.retriever.use_existing_index()
+            else:
+                logger.info("Trying to create index.")
+                self.retriever.ingest_data(self._docs_path, overwrite=False)
+
+        results = self.retriever.query(
+            texts=[problem],
+            top_k=n_results,
+            filter=search_string,
         )
         self._search_string = search_string
         self._results = results

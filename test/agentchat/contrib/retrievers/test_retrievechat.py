@@ -1,10 +1,8 @@
 import pytest
 import os
 import sys
+from pathlib import Path
 import autogen
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     import openai
@@ -20,6 +18,9 @@ try:
     skip_test = False
 except ImportError:
     skip_test = True
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(
@@ -51,10 +52,10 @@ def test_retrievechat():
         human_input_mode="NEVER",
         max_consecutive_auto_reply=2,
         retrieve_config={
+            "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "docs_path": "./website/docs",
             "chunk_token_size": 2000,
             "model": config_list[0]["model"],
-            "client": chromadb.PersistentClient(path="/tmp/chromadb"),
             "embedding_function": sentence_transformer_ef,
             "get_or_create": True,
         },
