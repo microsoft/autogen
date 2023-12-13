@@ -45,7 +45,7 @@ class GPTAssistantAgent(ConversableAgent):
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
-            overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
+            overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             kwargs (dict): Additional configuration options for the agent.
                 - verbose (bool): If set to True, enables more detailed output from the assistant thread.
                 - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
@@ -66,7 +66,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
 
             if len(candidate_assistants) == 0:
-                logger.warning("Assistant %s does not exist, creating a new assistant", name)
+                logger.warning("No matching assistant found, creating a new assistant")
                 # create a new assistant
                 if instructions is None:
                     logger.warning(
@@ -82,8 +82,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
             else:
                 logger.warning(
-                    "Assistant %s already exists, using the first matching assistant: %s",
-                    name,
+                    "Matching assistant found, using the first matching assistant: %s",
                     candidate_assistants[0].__dict__,
                 )
                 self._openai_assistant = candidate_assistants[0]
