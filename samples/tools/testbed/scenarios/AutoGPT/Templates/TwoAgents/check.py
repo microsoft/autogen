@@ -54,6 +54,7 @@ def check():
 
     for file_path in matching_files:
         if eval_type == "python":
+            # copy the test file to working directory
             shutil.copy(f"../custom_python/{file_path}", "./")
             result = subprocess.run(
                 [sys.executable, file_path],

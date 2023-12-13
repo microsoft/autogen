@@ -49,14 +49,14 @@ for data_path in data_paths:
             os.makedirs(target_folder)
         for filename in os.listdir(os.path.join(workspace, "custom_python")):
             shutil.copy(os.path.join(workspace, "custom_python", filename), os.path.join(target_folder, filename))
-            print(f"File copied from {os.path.join(workspace, 'custom_python', filename)} to {target_folder}")
+            # print(f"File copied from {os.path.join(workspace, 'custom_python', filename)} to {target_folder}")
 
     record = {
         "id": data["eval_id"],
         "template": "Templates/TwoAgents",
         "substitutions": {
             "scenario.py": {
-                "__MODEL__": "gpt-35-turbo-16k-0613",
+                "__MODEL__": "gpt-3.5-turbo-16k",
                 "__TASK__": data["task"],
                 "__TARGET_FOLDER__": f"file/{data['name']}" if artifacts_in else "",
             },

@@ -1,6 +1,8 @@
 import argparse
 import os
 import re
+import subprocess
+import sys
 
 
 def collate(results_dir="results"):
@@ -33,8 +35,21 @@ def collate(results_dir="results"):
                         # Ideally we would have a more distinctive pattern.
                         results.append(str(len(re.findall(r"\n(.*?) \(to (.*?)\)\:\n", content))))
                     else:
-                        results.append("-1")
-
+                        # Sometimes the task actually succeeds, but the check.py isn't properly called
+                        result = subprocess.run(
+                            [sys.executable, "../check.py"],
+                            cwd=os.path.join(instance_dir, "coding"),
+                            capture_output=True,
+                            text=True,
+                        )
+                        if "error" in result.stderr or result.returncode != 0:
+                            results.append("-1")
+                        else:
+                            # The task actually succeeds.
+                            if "ALL TESTS PASSED!" in result.stdout:
+                                results.append(str(len(re.findall(r"\n(.*?) \(to (.*?)\)\:\n", content))))
+                            else:
+                                results.append("-1")
             else:
                 # Missing results will appear as blanks
                 results.append("")
