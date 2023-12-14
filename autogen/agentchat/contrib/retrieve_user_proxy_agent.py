@@ -450,17 +450,21 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._results = results
         print("doc_ids: ", results["ids"])
 
-    def generate_init_message(self, problem: str, n_results: int = 20, search_string: str = ""):
+    def generate_init_message(
+        self, problem: str = None, message: str = "", n_results: int = 20, search_string: str = ""
+    ):
         """Generate an initial message with the given problem and prompt.
 
         Args:
             problem (str): the problem to be solved.
+            message (str): the alternative variable for problem. If problem is not provided, message will be used.
             n_results (int): the number of results to be retrieved.
             search_string (str): only docs containing this string will be retrieved.
 
         Returns:
             str: the generated prompt ready to be sent to the assistant agent.
         """
+        problem = problem if problem is not None else message
         self._reset()
         self.retrieve_docs(problem, n_results, search_string)
         self.problem = problem
