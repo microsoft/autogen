@@ -104,10 +104,9 @@ class TestRetrieveUtils:
             path=db_path,
             name="mytestcollection",
             custom_text_split_function=custom_text_split_function,
-            use_existing=False,
             recursive=False,
         )
-        retriever.ingest_data(os.path.join(test_dir, "example.txt"))
+        retriever.ingest_data(os.path.join(test_dir, "example.txt"), overwrite=True)
         results = retriever.query(["autogen"], top_k=1)
         assert (
             "AutoGen is an advanced tool designed to assist developers in harnessing the capabilities"
@@ -115,9 +114,9 @@ class TestRetrieveUtils:
         )
 
     def test_retrieve_utils(self):
-        retriever = Retriever(path="/tmp/chromadb", name="autogen-docs", use_existing=False)
-        retriever.ingest_data("./website/docs")
-        results = retriever.query(["autogen"], top_k=4, filter="AutoGen")
+        retriever = Retriever(path="/tmp/chromadb", name="autogen-docs")
+        retriever.ingest_data("./website/docs", overwrite=True)
+        results = retriever.query(["autogen"], top_k=4, search_string="AutoGen")
 
         print(results["ids"][0])
         assert len(results["ids"][0]) == 4
@@ -204,6 +203,6 @@ class TestRetrieveUtils:
 if __name__ == "__main__":
     pytest.main()
 
-    db_path = "/tmp/test_retrieve_utils_chromadb.db"
+    db_path = ".vectordb"
     if os.path.exists(db_path):
         os.remove(db_path)  # Delete the database file after tests are finished

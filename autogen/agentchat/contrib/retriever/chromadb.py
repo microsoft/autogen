@@ -37,7 +37,7 @@ class ChromaDB(Retriever):
         self.collection = self.client.create_collection(
             self.name,
             embedding_function=self.embedding_function,
-            get_or_create=overwrite,
+            get_or_create=not overwrite,
             # https://github.com/nmslib/hnswlib#supported-distances
             # https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184
             # https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md
