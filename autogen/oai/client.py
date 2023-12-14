@@ -4,11 +4,11 @@ import inspect
 import logging
 import os
 import sys
+from ast import Import
 from typing import Callable, Dict, List, Optional, Union
 
 from flaml.automl.logger import logger_formatter
 
-from autogen.oai.gemini import GeminiClient
 from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
 
@@ -28,6 +28,14 @@ try:
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
+
+
+try:
+    from autogen.oai.gemini import GeminiClient
+except ImportError:
+    GeminiClient = object
+
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
