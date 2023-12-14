@@ -60,8 +60,8 @@ class AgentBuilder:
     def __init__(
         self,
         config_path: Optional[str] = "OAI_CONFIG_LIST",
-        builder_model: Optional[str] = "gpt-4-1106-preview",
-        agent_model: Optional[str] = "gpt-4-1106-preview",
+        builder_model: Optional[str] = "gpt-4",
+        agent_model: Optional[str] = "gpt-4",
         host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 600,
     ):
@@ -277,10 +277,10 @@ class AgentBuilder:
             coding = cached_configs["coding"]
             agent_configs = cached_configs["agent_configs"]
 
-        config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
-        build_manager = autogen.OpenAIWrapper(config_list=config_list)
-
         if use_api:
+            config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
+            build_manager = autogen.OpenAIWrapper(config_list=config_list)
+
             print("Generating agents...")
             resp_agent_name = (
                 build_manager.create(
@@ -323,6 +323,16 @@ class AgentBuilder:
                     {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
                 )
 
+            if coding is None:
+                resp = (
+                    build_manager.create(
+                        messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
+                    )
+                    .choices[0]
+                    .message.content
+                )
+                coding = True if resp == "YES" else False
+
         for config in agent_configs:
             print(f"Creating agent {config['name']} with backbone {config['model']}...")
             self._create_agent(
@@ -334,16 +344,6 @@ class AgentBuilder:
                 **kwargs,
             )
         agent_list = [agent_config[0] for agent_config in self.agent_procs_assign.values()]
-
-        if coding is None:
-            resp = (
-                build_manager.create(
-                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
-                )
-                .choices[0]
-                .message.content
-            )
-            coding = True if resp == "YES" else False
 
         if coding is True:
             print("Adding user console proxy...")
