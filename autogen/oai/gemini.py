@@ -108,7 +108,7 @@ class GeminiClient:
         completion_tokens = count_token(ans, model_name)
 
         response_oai = ChatCompletion(
-            id=random.randint(0, 1000),
+            id=str(random.randint(0, 1000)),
             model=model_name,
             created=time.time(),
             object="chat.completion",
