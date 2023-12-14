@@ -21,7 +21,6 @@ config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
     filter_dict={"model": ["gpt40613"]},
 )
-print(config_list)
 llm_config = {
     "cache_seed": 42,
     "config_list": config_list,

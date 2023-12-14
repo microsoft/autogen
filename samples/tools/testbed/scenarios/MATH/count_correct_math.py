@@ -40,7 +40,7 @@ if __name__ == "__main__":
         "--path",
         "-p",
         type=str,
-        default="samples/tools/testbed/scenarios/MATH/problems",
+        default="./results/problems/",
         help="Path to the problems directory",
     )
     # num trials
