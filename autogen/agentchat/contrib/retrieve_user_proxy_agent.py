@@ -93,7 +93,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             retrieve_config (dict or None): config for the retrieve agent.
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
                 - retriever_type (Optional, str): the type of the retriever.
-                - retriever_path (Optional, str): the path to use for retriever-realted operations. Default is `~/autogen`.
+                - retriever_path (Optional, str): the path to the folder where the database is stored. Default is `.vectordb`.
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
                     prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
                 - client (Optional, Any): the vectordb client/connection. If key not provided, the Retreiver class should handle it.
@@ -175,7 +175,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.retriever = None
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
         self._retriever_type = self._retrieve_config.get("retriever_type")
-        self._retriever_path = self._retrieve_config.get("retriever_path", "~/autogen")
+        self._retriever_path = self._retrieve_config.get("retriever_path", ".vectordb")
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", None)
         self._docs_path = self._retrieve_config.get("docs_path", None)
@@ -444,7 +444,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         results = self.retriever.query(
             texts=[problem],
             top_k=n_results,
-            filter=search_string,
+            search_string=search_string,
         )
         self._search_string = search_string
         self._results = results

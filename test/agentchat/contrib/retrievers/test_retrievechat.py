@@ -98,5 +98,5 @@ def test_retrieve_config(caplog):
 
 
 if __name__ == "__main__":
-    # test_retrievechat()
-    test_retrieve_config()
+    test_retrievechat()
+    # test_retrieve_config()

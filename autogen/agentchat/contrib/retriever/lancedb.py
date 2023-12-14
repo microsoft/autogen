@@ -60,7 +60,6 @@ class LanceDB(Retriever):
         results = defaultdict(list)
         for text in texts:
             query = self.embedding_function(text) if isinstance(self.embedding_function, Callable) else text
-            print("query: ", query)
             result = self.table.search(query)
             if search_string is not None:
                 result = result.where(f"documents LIKE '%{search_string}%'")
@@ -84,7 +83,7 @@ class LanceDB(Retriever):
 
             return Schema
         elif isinstance(embedding_function, Callable):
-            dim = embedding_function("test")[0].shape[0]  # TODO: check this
+            dim = len(embedding_function("test")[0])  # TODO: check this
             schema = pa.schema(
                 [
                     pa.field("vector", pa.list_(pa.float32(), dim)),

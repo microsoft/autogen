@@ -14,6 +14,8 @@ except ImportError:
     HAS_UNSTRUCTURED = False
 
 logger = logging.getLogger(__name__)
+AVILABLE_RETRIEVERS = ["lanchedb", "chromadb"]
+DEFAULT_RETRIEVER = "chromadb"
 TEXT_FORMATS = [
     "txt",
     "json",
@@ -219,10 +221,6 @@ def is_url(string: str):
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
-
-
-AVILABLE_RETRIEVERS = ["lanchedb", "chromadb"]
-DEFAULT_RETRIEVER = "lancedb"
 
 
 def get_retriever(type: Optional[str] = None):
