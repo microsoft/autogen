@@ -55,13 +55,13 @@ openai v1 is a total rewrite of the library with many breaking changes. For exam
 Therefore, some changes are required for users of `pyautogen<0.2`.
 
 - `api_base` -> `base_url`, `request_timeout` -> `timeout` in `llm_config` and `config_list`. `max_retry_period` and `retry_wait_time` are deprecated. `max_retries` can be set for each client.
-- MathChat, TeachableAgent are unsupported until they are tested in future release.
+- MathChat is unsupported until it is tested in future release.
 - `autogen.Completion` and `autogen.ChatCompletion` are deprecated. The essential functionalities are moved to `autogen.OpenAIWrapper`:
 ```python
 from autogen import OpenAIWrapper
 client = OpenAIWrapper(config_list=config_list)
 response = client.create(messages=[{"role": "user", "content": "2+2="}])
-print(client.extract_text_or_function_call(response))
+print(client.extract_text_or_completion_object(response))
 ```
 - Inference parameter tuning and inference logging features are currently unavailable in `OpenAIWrapper`. Logging will be added in a future release.
 Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function).
@@ -95,9 +95,9 @@ Example notebooks:
 
 - #### retrievechat
 
-`pyautogen<0.2` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
 ```bash
-pip install "pyautogen[retrievechat]<0.2"
+pip install "pyautogen[retrievechat]"
 ```
 
 RetrieveChat can handle various types of documents. By default, it can process
@@ -116,6 +116,17 @@ Example notebooks:
 [Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent)](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
 
 [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
+
+
+- #### TeachableAgent
+
+To use TeachableAgent, please install AutoGen with the [teachable] option.
+```bash
+pip install "pyautogen[teachable]"
+```
+
+Example notebook:  [Chatting with TeachableAgent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+
 
 
 - #### Large Multimodal Model (LMM) Agents

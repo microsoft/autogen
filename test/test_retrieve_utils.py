@@ -60,12 +60,34 @@ class TestRetrieveUtils:
         )
 
     def test_get_files_from_dir(self):
-        files = get_files_from_dir(test_dir)
+        files = get_files_from_dir(test_dir, recursive=False)
         assert all(os.path.isfile(file) for file in files)
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
         files = get_files_from_dir([pdf_file_path, txt_file_path])
         assert all(os.path.isfile(file) for file in files)
+        files = get_files_from_dir(
+            [
+                pdf_file_path,
+                txt_file_path,
+                os.path.join(test_dir, "..", "..", "website/docs"),
+                "https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
+            ],
+            recursive=True,
+        )
+        assert all(os.path.isfile(file) for file in files)
+        files = get_files_from_dir(
+            [
+                pdf_file_path,
+                txt_file_path,
+                os.path.join(test_dir, "..", "..", "website/docs"),
+                "https://raw.githubusercontent.com/microsoft/autogen/main/README.md",
+            ],
+            recursive=True,
+            types=["pdf", "txt"],
+        )
+        assert all(os.path.isfile(file) for file in files)
+        assert len(files) == 3
 
     def test_is_url(self):
         assert is_url("https://www.example.com")
@@ -168,6 +190,7 @@ class TestRetrieveUtils:
             collection_name="mytestcollection",
             custom_text_split_function=custom_text_split_function,
             get_or_create=True,
+            recursive=False,
         )
         results = query_vector_db(["autogen"], client=client, collection_name="mytestcollection", n_results=1)
         assert (
@@ -181,6 +204,7 @@ class TestRetrieveUtils:
             dir_path="./website/docs",
             client=client,
             collection_name="autogen-docs",
+            custom_text_types=["txt", "md", "rtf", "rst"],
             get_or_create=True,
         )
         results = query_vector_db(

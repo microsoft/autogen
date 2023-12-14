@@ -44,7 +44,7 @@ def test_ai_user_proxy_agent():
         llm_config={
             "config_list": config_list,
         },
-        # In the system message the "user" always refers to ther other agent.
+        # In the system message the "user" always refers to the other agent.
         system_message="You ask a user for help. You check the answer from the user and provide feedback.",
     )
     assistant.reset()

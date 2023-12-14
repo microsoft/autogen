@@ -1,5 +1,6 @@
+from typing import Callable, Dict, Literal, Optional, Union
+
 from .conversable_agent import ConversableAgent
-from typing import Callable, Dict, Optional, Union
 
 
 class AssistantAgent(ConversableAgent):
@@ -26,15 +27,18 @@ When you find an answer, verify the answer carefully. Include verifiable evidenc
 Reply "TERMINATE" in the end when everything is done.
     """
 
+    DEFAULT_DESCRIPTION = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills."
+
     def __init__(
         self,
         name: str,
         system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
-        llm_config: Optional[Union[Dict, bool]] = None,
+        llm_config: Optional[Union[Dict, Literal[False]]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
-        code_execution_config: Optional[Union[Dict, bool]] = False,
+        code_execution_config: Optional[Union[Dict, Literal[False]]] = False,
+        description: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -62,5 +66,12 @@ Reply "TERMINATE" in the end when everything is done.
             human_input_mode,
             code_execution_config=code_execution_config,
             llm_config=llm_config,
+            description=description,
             **kwargs,
         )
+
+        # Update the provided desciption if None, and we are using the default system_message,
+        # then use the default description.
+        if description is None:
+            if system_message == self.DEFAULT_SYSTEM_MESSAGE:
+                self.description = self.DEFAULT_DESCRIPTION
