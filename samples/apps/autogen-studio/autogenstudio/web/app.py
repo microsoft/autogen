@@ -14,25 +14,13 @@ from ..datamodel import (
     DeleteMessageWebRequestModel,
     Message,
     Session,
-    Skill,
 )
 from ..utils import (
-    get_all_skills,
-    load_messages,
     md5_hash,
-    save_message,
-    delete_message,
     init_webserver_folders,
-    get_skills_prompt,
-    get_sessions,
-    create_session,
-    delete_user_sessions,
-    publish_session,
-    get_gallery,
     DBManager,
+    dbutils
 )
-
-from ..utils import dbutils
 
 from ..chatmanager import AutoGenChatManager
 
@@ -77,34 +65,25 @@ chatmanager = AutoGenChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
-    user_history = load_messages(
+    user_history = dbutils.get_messages(
         user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
 
     # save incoming message to db
-    save_message(message=message, dbmanager=dbmanager)
+    dbutils.create_message(message=message, dbmanager=dbmanager)
     user_dir = os.path.join(
         folders["files_static_root"], "user", md5_hash(message.user_id))
     os.makedirs(user_dir, exist_ok=True)
-
-    # load skills, append to chat
-    skills = get_all_skills(
-        os.path.join(folders["user_skills_dir"], md5_hash(message.user_id)),
-        folders["global_skills_dir"],
-        dest_dir=os.path.join(user_dir, "scratch"),
-    )
-    skills_prompt = get_skills_prompt(skills)
 
     try:
         response_message: Message = chatmanager.chat(
             message=message,
             history=user_history,
             work_dir=user_dir,
-            skills_prompt=skills_prompt,
             flow_config=req.flow_config,
         )
 
         # save assistant response to db
-        save_message(message=response_message, dbmanager=dbmanager)
+        dbutils.create_message(message=response_message, dbmanager=dbmanager)
         response = {
             "status": True,
             "message": response_message.content,
@@ -124,7 +103,7 @@ def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
     try:
-        user_history = load_messages(
+        user_history = dbutils.get_messages(
             user_id=user_id, session_id=session_id, dbmanager=dbmanager)
 
         return {
@@ -143,7 +122,8 @@ def get_messages(user_id: str = None, session_id: str = None):
 @api.get("/gallery")
 def get_gallery_items(gallery_id: str = None):
     try:
-        gallery = get_gallery(gallery_id=gallery_id, dbmanager=dbmanager)
+        gallery = dbutils.get_gallery(
+            gallery_id=gallery_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": gallery,
@@ -164,7 +144,8 @@ def get_user_sessions(user_id: str = None):
         raise HTTPException(status_code=400, detail="user_id is required")
 
     try:
-        user_sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
+        user_sessions = dbutils.get_sessions(
+            user_id=user_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -187,7 +168,7 @@ async def create_user_session(req: DBWebRequestModel):
     try:
         session = Session(user_id=req.session.user_id,
                           flow_config=req.session.flow_config)
-        user_sessions = create_session(
+        user_sessions = dbutils.create_session(
             user_id=req.user_id, session=session, dbmanager=dbmanager)
         return {
             "status": True,
@@ -207,7 +188,7 @@ async def publish_user_session_to_gallery(req: DBWebRequestModel):
     """Create a new session for a user"""
 
     try:
-        gallery_item = publish_session(
+        gallery_item = dbutils.create_gallery(
             req.session, tags=req.tags, dbmanager=dbmanager)
         return {
             "status": True,
@@ -227,7 +208,7 @@ async def remove_message(req: DeleteMessageWebRequestModel):
     """Delete a message from the database"""
 
     try:
-        messages = delete_message(
+        messages = dbutils.delete_message(
             user_id=req.user_id, msg_id=req.msg_id, session_id=req.session_id, dbmanager=dbmanager
         )
         return {
@@ -253,10 +234,10 @@ async def clear_db(req: DBWebRequestModel):
     # delete_files_in_folder([user_files_dir])
 
     try:
-        delete_message(
+        dbutils.delete_message(
             user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True
         )
-        sessions = delete_user_sessions(
+        sessions = dbutils.delete_sessions(
             user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
         return {
             "status": True,

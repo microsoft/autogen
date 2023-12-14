@@ -395,4 +395,9 @@ export const examplePrompts = [
     prompt:
       "List out the top 5 rivers in africa and their length and return that as a markdown table. Do not try to write any code, just write the table",
   },
+  {
+    title: "Paint",
+    prompt:
+      "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
+  },
 ];

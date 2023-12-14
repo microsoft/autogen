@@ -324,8 +324,6 @@ const ChatBox = ({
       session_id: session?.id || "",
     };
 
-    console.log("messagePayload", messagePayload);
-
     const textUrl = `${serverUrl}/messages`;
     const postData = {
       method: "POST",

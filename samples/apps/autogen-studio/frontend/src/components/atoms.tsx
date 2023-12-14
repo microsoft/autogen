@@ -8,7 +8,7 @@ import {
   ArrowPathIcon,
   ArrowDownRightIcon,
 } from "@heroicons/react/24/outline";
-import React, { ReactNode, useRef, useState } from "react";
+import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
 import { Button, Input, Modal, Select, Slider, Tooltip, message } from "antd";
 import remarkGfm from "remark-gfm";
@@ -907,6 +907,23 @@ export const AgentFlowSpecView = ({
         />
 
         <ControlRowView
+          title="Agent Description"
+          className="mt-4"
+          description="Description of the agent"
+          value={flowSpec.description || ""}
+          control={
+            <Input
+              className="mt-2"
+              placeholder="Agent Description"
+              value={flowSpec.description}
+              onChange={(e) => {
+                onControlChange(e.target.value, "description");
+              }}
+            />
+          }
+        />
+
+        <ControlRowView
           title="Max Consecutive Auto Reply"
           className="mt-4"
           description="Max consecutive auto reply messages before termination."
@@ -999,6 +1016,7 @@ export const AgentFlowSpecView = ({
                 skills={flowSpec.skills}
                 setSkills={(skills: ISkill[]) => {
                   onControlChange(skills, "skills");
+                  console.log("sikkll updated");
                 }}
               />
             }
@@ -1021,10 +1039,17 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
   className,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showSkillModal, setShowSkillModal] = React.useState(false);
   const [newSkillTitle, setNewSkillTitle] = useState("");
 
+  const [localSkills, setLocalSkills] = useState<ISkill[]>(skills);
+  const [selectedSkill, setSelectedSkill] = useState<ISkill | null>(null);
+
+  const [skillCode, setSkillCode] = React.useState("");
+
   const handleRemoveSkill = (index: number) => {
-    const updatedSkills = skills.filter((_, i) => i !== index);
+    const updatedSkills = localSkills.filter((_, i) => i !== index);
+    setLocalSkills(updatedSkills);
     setSkills(updatedSkills);
   };
 
@@ -1034,20 +1059,56 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
       file_name: "", // Would be the target file if needed
       content: "", // Any other associated content
     };
-    setSkills([...skills, newSkill]);
-    setNewSkillTitle("");
-    setIsModalVisible(false);
+
+    const updatedSkills = [...localSkills, newSkill];
+    setLocalSkills(updatedSkills);
+    setSkills(updatedSkills);
   };
+
+  useEffect(() => {
+    if (selectedSkill) {
+      setShowSkillModal(true);
+    }
+  }, [selectedSkill]);
 
   return (
     <>
-      <div className={`${className}`}>
-        {skills.map((skill, index) => (
+      <Modal
+        title={selectedSkill?.title}
+        width={800}
+        open={showSkillModal}
+        onOk={() => {
+          setShowSkillModal(false);
+          setSelectedSkill(null);
+        }}
+        onCancel={() => {
+          setShowSkillModal(false);
+          setSelectedSkill(null);
+        }}
+      >
+        {selectedSkill && (
+          <div>
+            <div className="mb-2">{selectedSkill.file_name}</div>
+            <CodeBlock code={selectedSkill?.content} language="python" />
+          </div>
+        )}
+      </Modal>
+
+      <div className={`${className} flex flex-wrap gap-2 `}>
+        {localSkills.map((skill, index) => (
           <div
-            key={skill.id || index}
-            className="mr-1 mb-1 p-1 px-2 rounded border"
+            key={"skillitemrow" + index}
+            className=" mb-1 p-1 px-2 rounded border"
           >
-            <span>{skill.title}</span>
+            <span
+              role="button"
+              onClick={() => {
+                setSelectedSkill(skill);
+              }}
+              className=" inline-block "
+            >
+              {skill.title}
+            </span>
             <XMarkIcon
               role="button"
               onClick={() => handleRemoveSkill(index)}
@@ -1055,23 +1116,35 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
             />
           </div>
         ))}
-        <PlusIcon
+
+        <div
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
           role="button"
-          onClick={() => setIsModalVisible(true)}
-          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent w-4 h-4"
-        />
+          onClick={() => {
+            setIsModalVisible(true);
+          }}
+        >
+          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+        </div>
       </div>
 
       <Modal
         title="Add Skill"
-        visible={isModalVisible}
+        open={isModalVisible}
         onOk={handleAddSkill}
         onCancel={() => setIsModalVisible(false)}
         footer={[
           <Button key="back" onClick={() => setIsModalVisible(false)}>
             Cancel
           </Button>,
-          <Button key="submit" type="primary" onClick={handleAddSkill}>
+          <Button
+            key="submit"
+            type="primary"
+            onClick={() => {
+              handleAddSkill();
+              setIsModalVisible(false);
+            }}
+          >
             Add Skill
           </Button>,
         ]}
@@ -1080,6 +1153,16 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
           placeholder="Skill Title"
           value={newSkillTitle}
           onChange={(e) => setNewSkillTitle(e.target.value)}
+        />
+
+        <div className="mt-2 text-secondary text-sm ">Skill Code</div>
+        <TextArea
+          className="mt-2 w-full"
+          value={skillCode}
+          onChange={(e) => {
+            setSkillCode(e.target.value);
+          }}
+          rows={10}
         />
       </Modal>
     </>

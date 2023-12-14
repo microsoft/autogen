@@ -48,6 +48,7 @@ export interface IAgentFlowSpec {
   timestamp?: string;
   id?: string;
   skills?: Array<ISkill>;
+  description?: string;
 }
 
 export interface IFlowConfig {

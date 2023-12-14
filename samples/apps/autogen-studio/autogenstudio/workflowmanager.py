@@ -2,6 +2,7 @@ from typing import List, Optional
 from dataclasses import asdict
 import autogen
 from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
+from .utils import get_skills_from_prompt
 
 
 class AutoGenWorkFlowManager:
@@ -14,7 +15,6 @@ class AutoGenWorkFlowManager:
         config: AgentWorkFlowConfig,
         history: Optional[List[Message]] = None,
         work_dir: str = None,
-        assistant_prompt: str = None,
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
@@ -26,9 +26,10 @@ class AutoGenWorkFlowManager:
 
         """
         self.work_dir = work_dir or "work_dir"
-        self.assistant_prompt = assistant_prompt or ""
         self.sender = self.load(config.sender)
         self.receiver = self.load(config.receiver)
+
+        print("work_dir", self.work_dir)
 
         if history:
             self.populate_history(history)
@@ -86,6 +87,10 @@ class AutoGenWorkFlowManager:
         agent_spec.config.is_termination_msg = agent_spec.config.is_termination_msg or (
             lambda x: "TERMINATE" in x.get("content", "").rstrip()
         )
+        skills_prompt = ""
+        if agent_spec.skills:
+            skills_prompt = get_skills_from_prompt(
+                agent_spec.skills, self.work_dir)
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}
@@ -98,7 +103,7 @@ class AutoGenWorkFlowManager:
                 + "\n\n"
                 + agent_spec.config.system_message
                 + "\n\n"
-                + self.assistant_prompt
+                + skills_prompt
             )
 
         return agent_spec

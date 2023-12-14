@@ -102,7 +102,7 @@ class DBManager:
 
         self.path = path
         # check if the database exists, if not create it
-        self.reset_db()
+        # self.reset_db()
         if not os.path.exists(self.path):
             logger.info("Creating database")
             self.init_db(path=self.path, **kwargs)
@@ -219,7 +219,7 @@ class DBManager:
         self.conn.close()
 
 
-def save_message(message: Message, dbmanager: DBManager) -> None:
+def create_message(message: Message, dbmanager: DBManager) -> None:
     """
     Save a message in the database using the provided database manager.
 
@@ -240,7 +240,7 @@ def save_message(message: Message, dbmanager: DBManager) -> None:
     dbmanager.query(query=query, args=args)
 
 
-def load_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[dict]:
+def get_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[dict]:
     """
     Load messages for a specific user and session from the database, sorted by timestamp.
 
@@ -293,7 +293,7 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     return sessions
 
 
-def publish_session(session: Session, dbmanager: DBManager, tags: List[str] = []) -> Gallery:
+def create_gallery(session: Session, dbmanager: DBManager, tags: List[str] = []) -> Gallery:
     """
     Publish a session to the gallery table in the database. Fetches the session messages first, then saves session and messages object to the gallery database table.
     :param session: The Session object containing session data
@@ -302,8 +302,8 @@ def publish_session(session: Session, dbmanager: DBManager, tags: List[str] = []
     :return: A gallery object containing the session and messages objects
     """
 
-    messages = load_messages(user_id=session.user_id,
-                             session_id=session.id, dbmanager=dbmanager)
+    messages = get_messages(user_id=session.user_id,
+                            session_id=session.id, dbmanager=dbmanager)
     gallery_item = Gallery(session=session, messages=messages, tags=tags)
     query = "INSERT INTO gallery (id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
     args = (
@@ -388,7 +388,7 @@ def create_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
     return skills
 
 
-def delete_user_sessions(user_id: str, session_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]:
+def delete_sessions(user_id: str, session_id: str, dbmanager: DBManager, delete_all: bool = False) -> List[dict]:
     """
     Delete a specific session or all sessions for a user from the database.
 
@@ -435,7 +435,7 @@ def delete_message(
         query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ? AND session_id = ?"
         args = (user_id, msg_id, session_id)
         dbmanager.query(query=query, args=args)
-        messages = load_messages(
+        messages = get_messages(
             user_id=user_id, session_id=session_id, dbmanager=dbmanager)
         return messages
 
