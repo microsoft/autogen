@@ -1,5 +1,4 @@
 import base64
-import mimetypes
 import re
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple, Union

@@ -9,14 +9,18 @@ Resources:
 
 from __future__ import annotations
 
+import base64
 import os
 import pdb
 import random
+import re
 import time
+from io import BytesIO
 from typing import Any, Dict, List, Mapping, Union
 
 import google.generativeai as genai
 import httpx
+import requests
 from google.ai.generativelanguage import Content, Part
 from google.generativeai import ChatSession
 from openai import OpenAI, _exceptions, resources
@@ -25,10 +29,12 @@ from openai._types import NOT_GIVEN, NotGiven, Omit, ProxiesTypes, RequestOption
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
+from PIL import Image
 from proto.marshal.collections.repeated import RepeatedComposite
 from pydash import max_
 from typing_extensions import Self, override
 
+# from autogen.agentchat.contrib.img_utils import _to_pil, get_image_data
 from autogen.token_count_utils import count_token
 
 
@@ -74,11 +80,10 @@ class GeminiClient:
         if n_response > 1:
             print("Gemini only supports `n=1` for now. We only generate one response.")
 
-        # 1. Convert input
-        gemini_messages = oai_messages_to_gemini_messages(messages)
+        if "vision" not in model_name:
+            # A. create and call the chat model.
+            gemini_messages = oai_messages_to_gemini_messages(messages)
 
-        # 2. call gemini client
-        if model_name == "gemini-pro":
             # we use chat model by default
             model = genai.GenerativeModel(model_name)
             genai.configure(api_key=self.api_key)
@@ -89,20 +94,27 @@ class GeminiClient:
             # ans = response.text # failed. Not sure why.
             ans: str = chat.history[-1].parts[0].text
         elif model_name == "gemini-pro-vision":
+            # B. handle the vision model
             # Gemini's vision model does not support chat history yet
             model = genai.GenerativeModel(model_name)
             genai.configure(api_key=self.api_key)
             # chat = model.start_chat(history=gemini_messages[:-1])
             # response = chat.send_message(gemini_messages[-1])
-            history: List = [msg["parts"] for msg in gemini_messages]
-            history = sum(history)  # 2D list into 1D list
-            response = model.generate_content(history)
-            ans = response.text
+            user_message = oai_content_to_gemini_content(messages[-1]["content"])
+            if len(messages) > 2:
+                print(
+                    "Warning: Gemini's vision model does not support chat history yet.",
+                    "We only use the last message as the prompt.",
+                )
+
+            response = model.generate_content(user_message, stream=stream)
+            # pdb.set_trace()
+            # ans = response.text
+            ans = response._result.candidates[0].content.parts[0].text
 
         # 3. convert output
         message = ChatCompletionMessage(role="assistant", content=ans, function_call=None, tool_calls=None)
         choices = [Choice(finish_reason="stop", index=0, message=message)]
-        # choices = [Choice(finish_reason="stop", index=0,  text=ans)]
 
         prompt_tokens = count_token(params["messages"], model_name)
         completion_tokens = count_token(ans, model_name)
@@ -138,7 +150,9 @@ def oai_content_to_gemini_content(content: Union[str, List]) -> List:
             if msg["type"] == "text":
                 rst.append(Part(text=msg["text"]))
             elif msg["type"] == "image_url":
-                rst.append(Part(image=Part.Image(url=msg["image_url"]["url"])))
+                b64_img = get_image_data(msg["image_url"]["url"])
+                img = _to_pil(b64_img)
+                rst.append(img)
             else:
                 raise ValueError(f"Unsupported message type: {msg['type']}")
         else:
@@ -223,3 +237,37 @@ def count_gemini_tokens(ans: Union[str, Dict, List], model_name: str) -> int:
         return sum([count_gemini_tokens(msg, model_name) for msg in ans])
     else:
         raise ValueError(f"Unsupported message type: {type(ans)}")
+
+
+def _to_pil(data: str) -> Image.Image:
+    """
+    Converts a base64 encoded image data string to a PIL Image object.
+
+    This function first decodes the base64 encoded string to bytes, then creates a BytesIO object from the bytes,
+    and finally creates and returns a PIL Image object from the BytesIO object.
+
+    Parameters:
+        data (str): The base64 encoded image data string.
+
+    Returns:
+        Image.Image: The PIL Image object created from the input data.
+    """
+    return Image.open(BytesIO(base64.b64decode(data)))
+
+
+def get_image_data(image_file: str, use_b64=True) -> bytes:
+    if image_file.startswith("http://") or image_file.startswith("https://"):
+        response = requests.get(image_file)
+        content = response.content
+    elif re.match(r"data:image/(?:png|jpeg);base64,", image_file):
+        return re.sub(r"data:image/(?:png|jpeg);base64,", "", image_file)
+    else:
+        image = Image.open(image_file).convert("RGB")
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        content = buffered.getvalue()
+
+    if use_b64:
+        return base64.b64encode(content).decode("utf-8")
+    else:
+        return content

@@ -4,7 +4,6 @@ import inspect
 import logging
 import os
 import sys
-from ast import Import
 from typing import Callable, Dict, List, Optional, Union
 
 from flaml.automl.logger import logger_formatter
@@ -28,7 +27,6 @@ try:
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
-
 
 try:
     from autogen.oai.gemini import GeminiClient
@@ -270,7 +268,7 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
-                if client.api_type == "google":
+                if isinstance(client, GeminiClient):
                     response = client.call(params)
                 else:
                     response = self._completions_create(client, params)
