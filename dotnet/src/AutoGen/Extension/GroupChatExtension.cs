@@ -15,8 +15,10 @@ namespace AutoGen
 
         public static void AddInitializeMessage(this IAgent agent, string message, IGroupChat groupChat)
         {
-            var msg = new Message(AuthorRole.User, message);
-            msg.SetFrom(agent.Name);
+            var msg = new Message(AuthorRole.User, message)
+            {
+                From = agent.Name
+            };
 
             groupChat.AddInitializeMessage(msg);
         }

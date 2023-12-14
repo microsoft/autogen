@@ -105,13 +105,24 @@ namespace AutoGen
         public static async Task<IEnumerable<Message>> SendAsync(
             this IAgent agent,
             IAgent receiver,
-            string message,
+            string? message = null,
             IEnumerable<Message>? chatHistory = null,
             int maxRound = 10,
             CancellationToken ct = default)
         {
-            var msg = new Message(AuthorRole.Assistant, message, from: agent.Name);
-            chatHistory = new[] { msg }.Concat(chatHistory ?? Enumerable.Empty<Message>());
+            if (message != null)
+            {
+                var msg = new Message(AuthorRole.User, message)
+                {
+                    From = agent.Name,
+                };
+
+                chatHistory = new[] { msg }.Concat(chatHistory ?? Enumerable.Empty<Message>());
+            }
+            else
+            {
+                chatHistory = chatHistory ?? Enumerable.Empty<Message>();
+            }
 
             return await agent.SendAsync(receiver, chatHistory, maxRound, ct);
         }

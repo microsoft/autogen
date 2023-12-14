@@ -186,7 +186,7 @@ sorry, the answer should be 2, not 3
 ", group);
 
             var groupChatManager = new GroupChatManager(group);
-            var chatHistory = await admin.SendAsync(groupChatManager, "the number of resolved question is 0", maxRound: 50);
+            var chatHistory = await admin.SendAsync(groupChatManager, maxRound: 50);
 
             // print chat history
             foreach (var message in chatHistory)

@@ -167,11 +167,6 @@ namespace AutoGen
                 {
                     // add as user message
                     var content = message.Content ?? string.Empty;
-                    content = @$"{content}
-<meta> // Some meta data, you can't see this in the chat history
-- Round # {i++}
-- From {message.From}
-</meta>";
                     yield return new Azure.AI.OpenAI.ChatMessage(ChatRole.User, content);
                 }
                 else
@@ -199,10 +194,6 @@ namespace AutoGen
                     {
                         // add suffix
                         var content = message.Content ?? string.Empty;
-                        content = @$"{content}
-<meta> // Some meta data, you can't see this in the chat history
-- Round # {i++}
-</meta>";
                         var chatMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Assistant, content);
 
                         yield return chatMessage;

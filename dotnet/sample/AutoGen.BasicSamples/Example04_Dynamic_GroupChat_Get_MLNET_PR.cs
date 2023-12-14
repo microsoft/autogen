@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example04_Dynamic_GroupChat.cs
+// Example04_Dynamic_GroupChat_Get_MLNET_PR.cs
 
 using AgentChat.DotnetInteractiveService;
 using AutoGen;
@@ -7,8 +7,12 @@ using AutoGen.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using autogen = AutoGen.API;
+using GroupChat = AutoGen.GroupChat;
+using GroupChatExtension = AutoGen.GroupChatExtension;
+using IAgent = AutoGen.IAgent;
+using Message = AutoGen.Message;
 
-public static class Example04_Dynamic_GroupChat_Get_MLNET_PR
+public class Example04_Dynamic_GroupChat_Get_MLNET_PR
 {
     public static async Task RunAsync()
     {
@@ -34,7 +38,7 @@ public static class Example04_Dynamic_GroupChat_Get_MLNET_PR
         };
         var admin = new AssistantAgent(
             name: "admin",
-            systemMessage: @"You act as group admin that lead other agents to resolve task together. Here's the workflow you follow:
+            systemMessage: @"You act as group admin that lead other agents to resolve task together. DON'T WRITE CODE. Here's the workflow you follow:
 -workflow-
 if all_steps_are_resolved
     say [TERMINATE]
@@ -54,7 +58,7 @@ Here are some examples for resolve_step:
             llmConfig: adminConfig)
             .RegisterReply(async (msgs, ct) =>
             {
-                if (msgs.Where(m => m.From == "admin").Last().Content.Contains("TERMINATE"))
+                if (msgs.Where(m => m.From == "admin").LastOrDefault()?.Content.Contains("TERMINATE") ?? false)
                 {
                     // terminate the conversation
                     return new Message(AuthorRole.Assistant, GroupChatExtension.TERMINATE);
@@ -113,7 +117,6 @@ xxx
             ConfigList = gpt3Config,
             FunctionDefinitions = new[]
             {
-                dotnetInteractiveFunctions.RunCodeFunction,
                 dotnetInteractiveFunctions.InstallNugetPackagesFunction,
             },
         };
@@ -134,17 +137,41 @@ for any other case
             defaultReply: "NO_CODE_AVAILABLE",
             functionMap: new Dictionary<string, Func<string, Task<string>>>()
             {
-                { dotnetInteractiveFunctions.RunCodeFunction.Name, dotnetInteractiveFunctions.RunCodeWrapper},
                 { dotnetInteractiveFunctions.InstallNugetPackagesFunction.Name, dotnetInteractiveFunctions.InstallNugetPackagesWrapper },
             }).RegisterReply(async (msgs, ct) =>
             {
-                if (msgs.Where(m => m.From == "coder").Last().Content is string code && code.Contains("```csharp") && code.Contains("Main") && code.Contains("Program"))
+                // retrieve code from the last message
+                // if the last message is not from coder, ask coder to write code
+                var lastMessage = msgs.Last();
+                if (lastMessage.From != "coder")
                 {
-                    // refuse to run code that has Main() function
-                    return new Message(AuthorRole.Assistant, "I refuse to run code that has Main() function. Please convert it to top-level statement");
+                    return new Message(AuthorRole.Assistant, "coder, write code please");
                 }
 
-                return null;
+                // if the last message is from coder, retrieve the code between ```csharp and ```
+                var code = lastMessage.Content;
+                var codeStartIndex = code.IndexOf("```csharp");
+                var codeEndIndex = code.IndexOf("```", codeStartIndex + 1);
+                if (codeStartIndex < 0 || codeEndIndex < 0)
+                {
+                    return null;
+                }
+                else
+                {
+                    // refuse to run code that has Main() function
+                    if (code.Contains("Main") && code.Contains("Program"))
+                    {
+                        return new Message(AuthorRole.Assistant, "I refuse to run code that has Main() function. Please convert it to top-level statement");
+                    }
+                    else
+                    {
+                        code = code.Substring(codeStartIndex + 9, codeEndIndex - codeStartIndex - 9);
+                        // run code
+                        var runCodeResult = await dotnetInteractiveFunctions.RunCode(code);
+
+                        return new Message(AuthorRole.Assistant, runCodeResult);
+                    }
+                }
             });
 
         // create group chat
@@ -153,8 +180,8 @@ for any other case
             agents: new IAgent[] { coder, runner });
 
         admin.AddInitializeMessage("Welcome to the group chat! Work together to resolve my task.", groupChat);
-        coder.AddInitializeMessage("Hey I'm Coder", groupChat);
-        runner.AddInitializeMessage("Hey I'm Runner", groupChat);
+        coder.AddInitializeMessage("Hey I'm Coder, I write dotnet code.", groupChat);
+        runner.AddInitializeMessage("Hey I'm Runner, I run dotnet code from coder.", groupChat);
         admin.AddInitializeMessage($"The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.", groupChat);
         admin.AddInitializeMessage(@$"Here's the workflow for this group chat
 -groupchat workflow-
@@ -173,15 +200,32 @@ else
 
         // start group chat
         var groupChatManager = new GroupChatManager(groupChat);
-        var conversation = await admin.SendAsync(
-            receiver: groupChatManager,
-            message: "Here's the first step to resolve the task: Send a GET request to the GitHub API to retrieve the list of pull requests for the mlnet repo.",
-            maxRound: 100);
-
-        // print out the conversation
-        foreach (var msg in conversation)
+        var maxRound = 40;
+        IEnumerable<Message> conversationHistory = new List<Message>()
         {
-            Console.WriteLine(msg.FormatMessage());
+            new Message(AuthorRole.Assistant, "the number of resolved step is 0")
+            {
+                From = admin.Name,
+            },
+        };
+
+        while (maxRound > 0)
+        {
+            conversationHistory = await admin.SendAsync(
+                receiver: groupChatManager,
+                conversationHistory,
+                maxRound: 1);
+
+            // print out the last message
+            Console.WriteLine(conversationHistory.Last().FormatMessage());
+
+            // check if the last message is TERMINATE
+            if (conversationHistory.Last().IsGroupChatTerminateMessage())
+            {
+                break;
+            }
+
+            maxRound--;
         }
 
         // check if pr.txt exist in work dir
