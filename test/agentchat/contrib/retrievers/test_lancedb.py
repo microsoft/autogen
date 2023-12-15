@@ -19,10 +19,10 @@ def embedding_fcn(texts):
 
 
 @pytest.mark.skipif(skip, reason="lancedb is not installed")
-def test_lancedb(tmpdir):
+def test_lancedb(tmpdir=".db"):
     db = lancedb.connect(str(tmpdir))
     vectorstore = LanceDB(path=str(tmpdir))
-    vectorstore.ingest_data(str(test_dir))
+    vectorstore.ingest_data(str(test_dir), overwrite=True)
 
     assert "vectorstore" in db.table_names()
 
