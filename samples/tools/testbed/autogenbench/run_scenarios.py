@@ -52,7 +52,7 @@ def run_scenarios(
     files = []
 
     # Figure out which files or folders we are working with
-    if os.path.isfile(scenario):
+    if scenario == "-" or os.path.isfile(scenario):
         files.append(scenario)
     elif os.path.isdir(scenario):
         for f in os.listdir(scenario):
@@ -70,58 +70,71 @@ def run_scenarios(
 
     # Run all the scenario files
     for scenario_file in files:
-        scenario_name = os.path.basename(scenario_file).split(".")
-        scenario_name.pop()
-        scenario_name = ".".join(scenario_name)
+        scenario_name = None
+        scenario_dir = None
+        file_handle = None
 
-        scenario_dir = os.path.dirname(os.path.realpath(scenario_file))
+        # stdin
+        if scenario_file == "-":
+            scenario_name = "stdin"
+            scenario_dir = "."
+            file_handle = sys.stdin
+        else:
+            scenario_name = os.path.basename(scenario_file).split(".")
+            scenario_name.pop()
+            scenario_name = ".".join(scenario_name)
+            scenario_dir = os.path.dirname(os.path.realpath(scenario_file))
+            file_handle = open(scenario_file, "rt")
 
         # Each line in the scenario file is an instance. Run it.
-        with open(scenario_file) as fh:
-            for line in fh:
-                instance = json.loads(line)
+        for line in file_handle:
+            instance = json.loads(line)
 
-                # Create a folder to store the results
-                # Results base
-                if not os.path.isdir(results_dir):
-                    os.mkdir(results_dir)
+            # Create a folder to store the results
+            # Results base
+            if not os.path.isdir(results_dir):
+                os.mkdir(results_dir)
 
-                # Results for the scenario
-                results_scenario = os.path.join(results_dir, scenario_name)
-                if not os.path.isdir(results_scenario):
-                    os.mkdir(results_scenario)
+            # Results for the scenario
+            results_scenario = os.path.join(results_dir, scenario_name)
+            if not os.path.isdir(results_scenario):
+                os.mkdir(results_scenario)
 
-                # Results for the instance
-                results_instance = os.path.join(results_scenario, instance["id"])
-                if not os.path.isdir(results_instance):
-                    os.mkdir(results_instance)
+            # Results for the instance
+            results_instance = os.path.join(results_scenario, instance["id"])
+            if not os.path.isdir(results_instance):
+                os.mkdir(results_instance)
 
-                # Results for the repeats
-                for i in range(0, n_repeats):
-                    results_repetition = os.path.join(results_instance, str(i))
+            # Results for the repeats
+            for i in range(0, n_repeats):
+                results_repetition = os.path.join(results_instance, str(i))
 
-                    # Skip it if it already exists
-                    if os.path.isdir(results_repetition):
-                        print(f"Found folder {results_repetition} ... Skipping.")
-                        continue
-                    print(f"Running scenario {results_repetition}")
+                # Skip it if it already exists
+                if os.path.isdir(results_repetition):
+                    print(f"Found folder {results_repetition} ... Skipping.")
+                    continue
+                print(f"Running scenario {results_repetition}")
 
-                    # Expand the scenario
-                    expand_scenario(scenario_dir, instance, results_repetition)
+                # Expand the scenario
+                expand_scenario(scenario_dir, instance, results_repetition)
 
-                    # Prepare the environment (keys/values that need to be added)
-                    env = get_scenario_env(config_list)
+                # Prepare the environment (keys/values that need to be added)
+                env = get_scenario_env(config_list)
 
-                    # Run the scenario
-                    if is_native:
-                        run_scenario_natively(results_repetition, env)
-                    else:
-                        run_scenario_in_docker(
-                            results_repetition,
-                            env,
-                            requirements,
-                            docker_image=docker_image,
-                        )
+                # Run the scenario
+                if is_native:
+                    run_scenario_natively(results_repetition, env)
+                else:
+                    run_scenario_in_docker(
+                        results_repetition,
+                        env,
+                        requirements,
+                        docker_image=docker_image,
+                    )
+
+        # Close regular files
+        if scenario_file != "-":
+            file_handle.close()
 
 
 def expand_scenario(scenario_dir, scenario, output_dir):
@@ -455,7 +468,7 @@ def run_scenarios_cli(invocation_cmd="autogenbench run", cli_args=None):
 
     parser.add_argument(
         "scenario",
-        help="The JSONL scenario file to run. If a directory is specified, then all JSONL scenarios in the directory are run.",
+        help="The JSONL scenario file to run. If a directory is specified, then all JSONL scenarios in the directory are run. If set to '-', then read from stdin.",
     )
     parser.add_argument(
         "-c",
