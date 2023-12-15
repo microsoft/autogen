@@ -285,14 +285,6 @@ class AgentBuilder:
         """
         use_api = False
 
-        if code_execution_config is None:
-            code_execution_config = {
-                "last_n_messages": 2,
-                "work_dir": "groupchat",
-                "use_docker": False,
-                "timeout": 60,
-            }
-
         if cached_configs is None:
             use_api = True
             agent_configs = []
@@ -302,6 +294,15 @@ class AgentBuilder:
             default_llm_config = cached_configs["default_llm_config"]
             coding = cached_configs["coding"]
             agent_configs = cached_configs["agent_configs"]
+            code_execution_config = cached_configs['code_execution_config']
+
+        if code_execution_config is None:
+            code_execution_config = {
+                "last_n_messages": 2,
+                "work_dir": "groupchat",
+                "use_docker": False,
+                "timeout": 60,
+            }
 
         if use_api:
             config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
