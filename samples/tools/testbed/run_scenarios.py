@@ -15,6 +15,10 @@ IS_WIN32 = sys.platform == "win32"
 # Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
 GLOBAL_INCLUDES_DIR = "includes"
 
+# Name of the default ENV file
+ENV_FILE = "ENV.json"
+ENV_EXAMPLE_FILE = "ENV.json.example"
+
 
 def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, results_dir="results"):
     """
@@ -89,21 +93,14 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                     # Expand the scenario
                     expand_scenario(scenario_dir, instance, results_repetition)
 
-                    # Append the config list to the ENV file
-                    with open(os.path.join(results_repetition, "ENV"), "at") as fh:
-                        config_list_json = json.dumps(config_list)
-                        fh.write(f"export OAI_CONFIG_LIST='{config_list_json}'\n")
-
-                        # If set, append the OpenAI API Key
-                        openai_api_key = os.environ.get("OPENAI_API_KEY")
-                        if openai_api_key is not None and len(openai_api_key.strip()) > 0:
-                            fh.write(f"export OPENAI_API_KEY='{openai_api_key}'\n")
+                    # Prepare the environment (keys/values that need to be added)
+                    env = get_scenario_env(config_list)
 
                     # Run the scenario
                     if is_native:
-                        run_scenario_natively(results_repetition)
+                        run_scenario_natively(results_repetition, env)
                     else:
-                        run_scenario_in_docker(results_repetition, requirements)
+                        run_scenario_in_docker(results_repetition, requirements, env)
 
 
 def expand_scenario(scenario_dir, scenario, output_dir):
@@ -141,7 +138,7 @@ def expand_scenario(scenario_dir, scenario, output_dir):
         raise ValueError("expand_scenario expects an str or list for 'template'")
 
     # The global includes folder is always copied
-    shutil.copytree(GLOBAL_INCLUDES_DIR, output_dir, ignore=shutil.ignore_patterns("*.example"), dirs_exist_ok=False)
+    shutil.copytree(GLOBAL_INCLUDES_DIR, output_dir, dirs_exist_ok=False)
 
     # Expand other folders
     for items in copy_operations:
@@ -175,13 +172,40 @@ def expand_scenario(scenario_dir, scenario, output_dir):
                 fh.write(line)
 
 
-def run_scenario_natively(work_dir):
+def get_scenario_env(config_list):
+    """
+    Return a dictionary of environment variables needed to run a scenario.
+
+    Args:
+        config_list (list): An Autogen OAI_CONFIG_LIST to be used when running scenarios.
+
+    Returns: A dictionary of keys and values that need to be added to the system environment.
+    """
+    env = dict()
+    with open(ENV_FILE, "rt") as fh:
+        env = json.loads(fh.read())
+
+    config_list_json = json.dumps(config_list)
+    env["OAI_CONFIG_LIST"] = config_list_json
+
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    if openai_api_key is not None and len(openai_api_key.strip()) > 0:
+        env["OPENAI_API_KEY"] = openai_api_key
+
+    return env
+
+
+def run_scenario_natively(work_dir, env):
     """
     Run a scenario in the native environment.
 
     Args:
         work_dir (path): the path to the working directory previously created to house this sceario instance
     """
+
+    # Prepare the environment variables
+    full_env = os.environ.copy()
+    full_env.update(env)
 
     # Get the current working directory
     cwd = os.getcwd()
@@ -195,9 +219,6 @@ def run_scenario_natively(work_dir):
         f.write(
             """#
 export AUTOGEN_TESTBED_SETTING="Native"
-
-# Read the environment variables
-. ./ENV
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -213,7 +234,6 @@ fi
 python scenario.py
 
 # Clean up
-rm ENV
 if [ -d .cache ] ; then
     rm -Rf .cache
 fi
@@ -234,7 +254,7 @@ echo SCENARIO COMPLETE !#!#
 
     # Run the script and log the output
     with open("console_log.txt", "wb") as f:
-        process = subprocess.Popen(["sh", "run.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(["sh", "run.sh"], env=full_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for c in iter(lambda: process.stdout.read(1), b""):
             f.write(c)
             os.write(sys.stdout.fileno(), c)  # Write binary to stdout
@@ -244,7 +264,7 @@ echo SCENARIO COMPLETE !#!#
     return
 
 
-def run_scenario_in_docker(work_dir, requirements, timeout=600):
+def run_scenario_in_docker(work_dir, requirements, env, timeout=600):
     """
     Run a scenario in a Docker environment.
 
@@ -275,9 +295,6 @@ def run_scenario_in_docker(work_dir, requirements, timeout=600):
 export AUTOGEN_TESTBED_SETTING="Docker"
 umask 000
 
-# Read the environment variables
-. ./ENV
-
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
     . ./global_init.sh
@@ -293,7 +310,6 @@ pip install -r {requirements}
 python scenario.py
 
 # Clean up
-rm ENV
 if [ -d .cache ] ; then
     rm -Rf .cache
 fi
@@ -320,6 +336,7 @@ echo SCENARIO COMPLETE !#!#
         image,
         command=["sh", "run.sh"],
         working_dir="/workspace",
+        environment=env,
         detach=True,
         # get absolute path to the working directory
         volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
@@ -426,12 +443,10 @@ if __name__ == "__main__":
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), req_file)
 
     # Warn aboit a common error
-    env_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV")
-    example_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV.example")
-    if not os.path.isfile(env_file):
-        shutil.copyfile(example_file, env_file)
+    if not os.path.isfile(ENV_FILE):
+        shutil.copyfile(ENV_EXAMPLE_FILE, ENV_FILE)
         sys.stderr.write(
-            f"The environment file '{env_file}' does not exist (perhaps this is your first time setting up the testbed). A default environment file has been provided, but you may want to edit it to include your API keys and configurations.\n"
+            f"The environment json file '{ENV_FILE}' does not exist (perhaps this is your first time setting up the testbed). A default environment file has been provided, but you may want to edit it to include your API keys and configurations.\n"
         )
 
     run_scenarios(args.scenario, args.repeat, is_native, config_list, requirements)

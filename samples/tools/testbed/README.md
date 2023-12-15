@@ -8,7 +8,7 @@ This Testbed sample has been tested in, and is known to work with, Autogen versi
 
 Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
 
-For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV` file in the `includes` folder. A sample has been provided in ``includes/ENV.example``. Edit ``includes/ENV`` as needed.
+For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file current working folder. A sample has been provided in `ENV.json.example`. Edit `ENV.json` as needed.
 
 The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ library. **It will not run in codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/). To install the Python library:
 
@@ -158,26 +158,24 @@ For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
-2. Append the OAI_CONFIG_LIST to the ENV file so that autogen may access these secrets.
-3. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
-4. Apply any templating, as outlined in the prior section.
-5. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
+1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario.
+2. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
+3. Apply any templating, as outlined in the prior section.
+4. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
 
 
 ## Scenario Execution Algorithm
 
 Once the scenario has been expanded it is run (via run.sh). This script will execute the following steps:
 
-1. Read and set the ENV environment variables
-2. If a file named `global_init.sh` is present, run it.
-3. If a file named `scenario_init.sh` is present, run it.
-4. Install the requirements file (if running in Docker)
-5. Run the Autogen scenario via `python scenario.py`
-6. Clean up (delete cache, etc.)
-7. If a file named `scenario_finalize.sh` is present, run it.
-8. If a file named `global_finalize.sh` is present, run it.
-9. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
+1. If a file named `global_init.sh` is present, run it.
+2. If a file named `scenario_init.sh` is present, run it.
+3. Install the requirements file (if running in Docker)
+4. Run the Autogen scenario via `python scenario.py`
+5. Clean up (delete cache, etc.)
+6. If a file named `scenario_finalize.sh` is present, run it.
+7. If a file named `global_finalize.sh` is present, run it.
+8. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
 
 Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
 
