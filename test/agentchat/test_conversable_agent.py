@@ -1,5 +1,6 @@
 import pytest
 from autogen.agentchat import ConversableAgent
+from typing_extensions import Annotated
 
 
 @pytest.fixture
@@ -329,6 +330,125 @@ def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
 async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
     with pytest.raises(AssertionError):
         await conversable_agent.a_generate_reply(messages=None, sender=None)
+
+
+def test_update_function_signature_and_register_functions() -> None:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        agent = ConversableAgent(name="agent", llm_config={})
+
+        def exec_python(cell: str) -> None:
+            pass
+
+        def exec_sh(script: str) -> None:
+            pass
+
+        agent.update_function_signature(
+            {
+                "name": "python",
+                "description": "run cell in ipython and return the execution result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cell": {
+                            "type": "string",
+                            "description": "Valid Python cell to execute.",
+                        }
+                    },
+                    "required": ["cell"],
+                },
+            },
+            is_remove=False,
+        )
+
+        functions = agent.llm_config["functions"]
+        assert {f["name"] for f in functions} == {"python"}
+
+        agent.update_function_signature(
+            {
+                "name": "sh",
+                "description": "run a shell script and return the execution result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "type": "string",
+                            "description": "Valid shell script to execute.",
+                        }
+                    },
+                    "required": ["script"],
+                },
+            },
+            is_remove=False,
+        )
+
+        functions = agent.llm_config["functions"]
+        assert {f["name"] for f in functions} == {"python", "sh"}
+
+        # register the functions
+        agent.register_function(
+            function_map={
+                "python": exec_python,
+                "sh": exec_sh,
+            }
+        )
+        assert set(agent.function_map.keys()) == {"python", "sh"}
+        assert agent.function_map["python"] == exec_python
+        assert agent.function_map["sh"] == exec_sh
+
+
+def test_function_decorator():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        agent = ConversableAgent(name="agent", llm_config={})
+
+        @agent.function(name="python", description="run cell in ipython and return the execution result.")
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> None:
+            pass
+
+        expected = [
+            {
+                "description": "run cell in ipython and return the execution result.",
+                "name": "python",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cell": {
+                            "type": "string",
+                            "description": "Valid Python cell to execute.",
+                        }
+                    },
+                    "required": ["cell"],
+                },
+            }
+        ]
+
+        assert agent.llm_config["functions"] == expected, str(agent.llm_config["functions"])
+        assert agent.function_map == {"python": exec_python}
+
+        @agent.function(name="sh", description="run a shell script and return the execution result.")
+        def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> None:
+            pass
+
+        expected = expected + [
+            {
+                "name": "sh",
+                "description": "run a shell script and return the execution result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "type": "string",
+                            "description": "Valid shell script to execute.",
+                        }
+                    },
+                    "required": ["script"],
+                },
+            }
+        ]
+
+        assert agent.llm_config["functions"] == expected, agent.llm_config["functions"]
+        assert agent.function_map == {"python": exec_python, "sh": exec_sh}
 
 
 if __name__ == "__main__":

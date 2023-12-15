@@ -4,12 +4,13 @@ import functools
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from autogen import OpenAIWrapper
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from .agent import Agent
+from ..function_utils import get_function
 
 try:
     from termcolor import colored
@@ -20,6 +21,8 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class ConversableAgent(Agent):
@@ -1330,3 +1333,39 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
+
+    def function(self, *, name: Optional[str] = None, description: str) -> Callable[[F], F]:
+        """Decorator for registering a function to be used by an agent.
+
+        It is used to decorate a function to be registered to the agent. The function uses typing hints to
+        specify the arguments and return type. The function name is used as the default name for the function,
+        but a custom name can be provided. The function description is used to describe the function in the
+        agent's configuration.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used.
+            description (str): description of the function.
+            **kwargs: other keyword arguments.
+
+        Returns:
+            The original function
+
+        Examples:
+            >>> @agent.function(description="This is a function")
+            >>> def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int) -> str:
+            >>>     return a + str(b)
+
+        """
+
+        def decorator(func: F) -> F:
+            fname = name if name else func.__name__
+
+            f = get_function(func, name=fname, description=description)
+
+            if self.llm_config:
+                self.update_function_signature(f, is_remove=False)
+            self.register_function({fname: func})
+
+            return func
+
+        return decorator
