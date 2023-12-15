@@ -12,5 +12,3 @@ from .retrieve_utils import (
     is_url,
     get_retriever,
 )
-from .chromadb import ChromaDB
-from .lancedb import LanceDB
