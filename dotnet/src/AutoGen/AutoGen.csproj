@@ -5,6 +5,16 @@
     <RootNamespace>AutoGen</RootNamespace>
   </PropertyGroup>
 
+  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen</Title>
+    <Description>
+      cutting-edge LLM multi-agent framework
+    </Description>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="$(SemanticKernelVersion)" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AI.OpenAI" Version="$(SemanticKernelVersion)" />

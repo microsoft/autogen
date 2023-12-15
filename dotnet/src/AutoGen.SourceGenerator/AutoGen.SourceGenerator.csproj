@@ -12,7 +12,11 @@
 	<DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
   </PropertyGroup>
 
+  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+
+
 	<PropertyGroup>
+		<Title>AutoGen.SourceGenerator</Title>
 		<Description>Source generator for AutoGen. This package provides type-safe function call to AutoGen agents.</Description>
 	</PropertyGroup>
 
