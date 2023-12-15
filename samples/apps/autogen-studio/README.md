@@ -2,24 +2,27 @@
 
 ![ARA](./docs/ara_stockprices.png)
 
-AutoGen Studio is an AutoGen-powered AI app (user interface) that can converse with you to help you accomplish tasks, write and execute code, run saved skills, create new skills (explicitly and by demonstration), and adapt in response to your interactions.
+AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly prototype AI agents, enhance them with skills, compose them into workflows and interact with them to accomplish tasks. It is built on top of the [AutoGen](https://microsoft.github.io/autogen) framework, which is a toolkit for building AI agents.
 
-> Note: AutoGen Studio is meant to be an example/guide of how to build an AI app using the AutoGen framework. It is not meant to be a production-ready app.
+Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio)
+
+> **Note**: AutoGen Studio is meant to be an example/guide of how to build an AI app using the AutoGen framework. It is not meant to be a production-ready app.
 
 ### Capabilities / Roadmap
 
 Some of the capabilities supported by the app frontend include the following:
 
-- [x] Select from a list of agents (currently supports two agent workflows based on `UserProxyAgent` and `AssistantAgent`) and modify their configuration (e.g. temperature, model, agent system message, model etc).
-- [x] Chat with agents and specify tasks.
+- [x] Build / Configure agents (currently supports two agent workflows based on `UserProxyAgent` and `AssistantAgent`), modify their configuration (e.g. skills, temperature, model, agent system message, model etc) and compose them into workflows.
+- [x] Chat with agent works and specify tasks.
 - [x] View agent messages and output files in the UI from agent runs.
+- [x] Add interaction sessions to a gallery.
 - [ ] Support for more complex agent workflows (e.g. `GroupChat` workflows).
 - [ ] Improved user experience (e.g., streaming intermediate model output, better summarization of agent responses, etc).
 
 Project Structure:
 
 - _autogenstudio/_ code for the backend classes and web api (FastAPI)
-- _frontend/_ code for the webui, built with Gatsby and Tailwind
+- _frontend/_ code for the webui, built with Gatsby and TailwindCSS
 
 ### Installation
 
@@ -75,7 +78,7 @@ Now that you have AutoGen Studio installed and running, you are ready to explore
 
 ## Capabilities
 
-AutoGen Studio proposes some high-level concepts that help compose agents to solve tasks.
+AutoGen Studio proposes some high-level concepts.
 
 **Agent Workflow**: An agent workflow is a specification of a set of agents that can work together to accomplish a task. The simplest version of this is a setup with two agents – a user proxy agent (that represents a user i.e. it compiles code and prints result) and an assistant that can address task requests (e.g., generating plans, writing code, evaluating responses, proposing error recovery steps, etc.). A more complex flow could be a group chat where even more agents work towards a solution.
 
@@ -83,17 +86,17 @@ AutoGen Studio proposes some high-level concepts that help compose agents to sol
 
 **Skills**: Skills are functions (e.g., Python functions) that describe how to solve a task. In general, a good skill has a descriptive name (e.g. `generate_images`), extensive docstrings and good defaults (e.g., writing out files to disk for persistence and reuse). You can add new skills AutoGen Studio app via the provided UI. At inference time, these skills are made available to the assistant agent as they address your tasks.
 
-AutoGen Studio comes with 3 example skills: `fetch_profile`, `find_papers`, `generate_images`. Please feel free to review the repo to learn more about how they work.
+AutoGen Studio comes with 3 example skills: `fetch_profile`, `find_papers`, `generate_images`. The default skills, agents and workflows are based on the [dbdefaults.json](autogentstudio/utils/dbdefaults.json) file which is used to initialize the database.
 
 ## Example Usage
 
-Let us use a simple query demonstrating the capabilities of the research assistant.
+Consider the following query.
 
 ```
 Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png
 ```
 
-The agents responds by _writing and executing code_ to create a python program to generate the chart with the stock prices.
+The agent workflow responds by _writing and executing code_ to create a python program to generate the chart with the stock prices.
 
 > Note than there could be multiple turns between the `AssistantAgent` and the `UserProxyAgent` to produce and execute the code in order to complete the task.
 
@@ -105,13 +108,10 @@ The agents responds by _writing and executing code_ to create a python program t
 
 ## FAQ
 
-**Q: How can I add more skills in AutoGen Studio?**
-A: You can extend the capabilities of your agents by adding new Python functions. The AutoGen Studio interface also lets you directly paste functions that can be reused in the agent workflow.
+**Q: Where can I adjust the default skills, agent and workflow configurations?**
+A: You can modify agent configurations directly from the UI or by editing the [dbdefaults.json](autogentstudio/utils/dbdefaults.json) file which is used to initialize the database.
 
-**Q: Where can I adjust the agent configurations and settings?**
-A: You can modify agent configurations directly from the UI or by editing the default configurations in the `utils.py` file under the `get_default_agent_config()` method (assuming you are building your own UI).
-
-**Q: If I want to reset the conversation with an agent, how do I go about it?**
+**Q: If I want to reset the entire conversation with an agent, how do I go about it?**
 A: To reset your conversation history, you can delete the `database.sqlite` file. If you need to clear user-specific data, remove the relevant `autogenstudio/web/files/user/<user_id_md5hash>` folder.
 
 **Q: Is it possible to view the output and messages generated by the agents during interactions?**

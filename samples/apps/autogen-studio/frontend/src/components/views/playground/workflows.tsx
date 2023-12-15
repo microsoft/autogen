@@ -5,6 +5,7 @@ import { IFlowConfig, IStatus } from "../../types";
 import { useConfigStore } from "../../../hooks/store";
 import { fetchJSON, getServerUrl } from "../../utils";
 import { appContext } from "../../../hooks/provider";
+import { Link } from "gatsby";
 
 const AgentsWorkflowView = () => {
   const [error, setError] = React.useState<IStatus | null>({
@@ -91,6 +92,14 @@ const AgentsWorkflowView = () => {
             }
           />
         )}
+        <div className="mt-2 text-xs">
+          {" "}
+          Create new workflows{" "}
+          <span className="text-accent">
+            {" "}
+            <Link to="/build">here</Link>
+          </span>{" "}
+        </div>
       </div>
       {!workflowConfigs ||
         (workflowConfigs && workflowConfigs.length === 0 && (

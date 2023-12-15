@@ -1,2 +1,2 @@
-VERSION = "0.0.10a"
+VERSION = "0.0.11a"
 APP_NAME = "autogenstudio"
