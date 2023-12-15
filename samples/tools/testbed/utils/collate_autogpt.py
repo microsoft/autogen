@@ -1,26 +1,26 @@
-import os
-import json
-import re
-import sys
 import argparse
+import os
+import re
+import subprocess
+import sys
 
 
-def collate(results_dir):
+def collate(results_dir="results"):
     """
-    Collate the results of running human eval.
+    Collate the results of running AutoGPT test.
 
     Args:
-        results_dir (path): The folder where results are saved.
+        results_dir (str, optional): The folder where results are saved. Defaults to "results".
     """
 
     all_results = list()
     max_instances = 0
 
-    for test_id in os.listdir(results_dir):
-        test_path = os.path.join(results_dir, test_id)
+    for test_name in os.listdir(results_dir):
+        test_path = os.path.join(results_dir, test_name)
 
         # Collect the results vector
-        results = [test_id]
+        results = [test_name]
 
         instance = 0
         instance_dir = os.path.join(test_path, str(instance))
@@ -29,12 +29,25 @@ def collate(results_dir):
             if os.path.isfile(console_log):
                 with open(console_log, "rt") as fh:
                     content = fh.read()
-                    if "ALL TESTS PASSED !#!#" in content:
+                    if "ALL TESTS PASSED!" in content:
                         # Ideally we would have a more distinctive pattern.
                         results.append(str(len(re.findall(r"\n(.*?) \(to (.*?)\)\:\n", content))))
                     else:
-                        results.append("-1")
-
+                        # Sometimes the task actually succeeds, but the check.py isn't properly called
+                        result = subprocess.run(
+                            [sys.executable, "../check.py"],
+                            cwd=os.path.join(instance_dir, "coding"),
+                            capture_output=True,
+                            text=True,
+                        )
+                        if "error" in result.stderr or result.returncode != 0:
+                            results.append("-1")
+                        else:
+                            # The task actually succeeds.
+                            if "ALL TESTS PASSED!" in result.stdout:
+                                results.append(str(len(re.findall(r"\n(.*?) \(to (.*?)\)\:\n", content))))
+                            else:
+                                results.append("-1")
             else:
                 # Missing results will appear as blanks
                 results.append("")
@@ -48,7 +61,7 @@ def collate(results_dir):
         all_results.append(results)
 
     # Create a header
-    header = "TestId"
+    header = "TestName"
     for i in range(0, max_instances):
         header += ",Trial" + str(i)
     print(header)
@@ -60,7 +73,6 @@ def collate(results_dir):
         print(",".join(r))
 
 
-###############################################################################
 if __name__ == "__main__":
     script_path = os.path.realpath(__file__)
     script_name = os.path.basename(script_path)
@@ -68,19 +80,17 @@ if __name__ == "__main__":
 
     # Path to the default results directory
     # (relative to this script, up on directory, then into the results folder)
-    default_results_dir = os.path.realpath(
-        os.path.join(script_dir, os.path.pardir, "results", "human_eval_two_agents_gpt4")
-    )
+    default_results_dir = os.path.realpath(os.path.join(script_dir, os.path.pardir, "results"))
 
     parser = argparse.ArgumentParser(
         description=f"""
-{script_name} will collate the results of the HumanEval scenarios and output them to a CSV. The CSV format is as follows:
+{script_name} will collate the results of the AutoGPT scenarios and output them to a CSV. The CSV format is as follows:
 
-TestId,      Trial0, Trial1, ...,    TrialN
-HumanEval_1, x_10,   x_11,   ...,    X_1N
-HumanEval_2, x_20,   x_21,   ...,    X_2N
+TestName,      Trial0, Trial1, ...,    TrialN
+Test_1, x_10,   x_11,   ...,    X_1N
+Test_2, x_20,   x_21,   ...,    X_2N
 ...
-HumanEval_M, x_M0,   x_M1,   ...,    X_MN
+Test_M, x_M0,   x_M1,   ...,    X_MN
 
 
 Where x_ij is the number of AsssitantAgent conversation turns needed to pass all the tests for problem i, in Trial/repetition j. If the agent was not able to pass the tests by the end of the conversation, the value will be -1. If data for the trial is missing, the value will be an empty string "".
