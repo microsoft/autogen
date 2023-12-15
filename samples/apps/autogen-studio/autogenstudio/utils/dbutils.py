@@ -457,7 +457,7 @@ def get_agents(user_id: str, dbmanager: DBManager) -> List[AgentFlowSpec]:
     agents = []
     for row in result:
         row["config"] = json.loads(row["config"])
-        row["skills"] = json.loads(row["skills"])
+        row["skills"] = json.loads(row["skills"] or "[]")
         agent = AgentFlowSpec(**row)
         agents.append(agent)
     return agents
@@ -472,10 +472,10 @@ def create_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
     :return: A list of dictionaries, each representing an agent after insertion
     """
 
-    query = "INSERT INTO agents (id, user_id, timestamp, config, type) VALUES (?, ?, ?, ?, ?)"
+    query = "INSERT INTO agents (id, user_id, timestamp, config, type, description, skills) VALUES (?, ?, ?, ?, ?,?,?)"
     config_json = json.dumps(agent_flow_spec.config.dict())
     args = (agent_flow_spec.id, agent_flow_spec.user_id,
-            agent_flow_spec.timestamp.isoformat(), config_json, agent_flow_spec.type)
+            agent_flow_spec.timestamp, config_json, agent_flow_spec.type, agent_flow_spec.description, json.dumps([x.dict() for x in agent_flow_spec.skills]))
     dbmanager.query(query=query, args=args)
     agents = get_agents(user_id=agent_flow_spec.user_id, dbmanager=dbmanager)
     return agents

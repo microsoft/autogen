@@ -9,7 +9,7 @@ import {
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { navigate } from "gatsby";
-import ChatBox from "../ra/chatbox";
+import ChatBox from "../playground/chatbox";
 
 const GalleryView = ({ location }: any) => {
   const serverUrl = getServerUrl();

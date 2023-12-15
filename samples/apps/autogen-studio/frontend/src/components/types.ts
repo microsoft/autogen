@@ -49,6 +49,7 @@ export interface IAgentFlowSpec {
   id?: string;
   skills?: Array<ISkill>;
   description?: string;
+  user_id?: string;
 }
 
 export interface IFlowConfig {

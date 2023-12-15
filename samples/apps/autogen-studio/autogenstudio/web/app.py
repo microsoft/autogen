@@ -326,10 +326,8 @@ def create_user_agents(req: DBWebRequestModel):
     """Create a new agent for a user"""
 
     try:
-        # Assuming the sender is the agent to be created
-        agent_flow_spec = req.session.flow_config.sender
         agents = dbutils.create_agent(
-            agent_flow_spec=agent_flow_spec, dbmanager=dbmanager)
+            agent_flow_spec=req.agent, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -338,7 +336,7 @@ def create_user_agents(req: DBWebRequestModel):
         }
 
     except Exception as ex_error:
-        print(ex_error)
+        print(traceback.format_exc())
         return {
             "status": False,
             "message": "Error occurred while creating agent: " + str(ex_error),

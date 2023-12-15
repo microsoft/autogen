@@ -15,11 +15,18 @@ import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { truncateText } from "./utils";
-import { IAgentFlowSpec, IFlowConfig, IModelConfig, ISkill } from "./types";
+import { fetchJSON, getServerUrl, truncateText } from "./utils";
+import {
+  IAgentFlowSpec,
+  IFlowConfig,
+  IModelConfig,
+  ISkill,
+  IStatus,
+} from "./types";
 import { ResizableBox } from "react-resizable";
 import debounce from "lodash.debounce";
 import TextArea from "antd/es/input/TextArea";
+import { appContext } from "../hooks/provider";
 
 interface CodeProps {
   node?: any;
@@ -883,7 +890,7 @@ export const AgentFlowSpecView = ({
     [onControlChange]
   );
 
-  const llm_config = localFlowSpec.config.llm_config;
+  const llm_config = localFlowSpec.config.llm_config || { config_list: [] };
 
   return (
     <>
@@ -917,7 +924,12 @@ export const AgentFlowSpecView = ({
               placeholder="Agent Description"
               value={flowSpec.description}
               onChange={(e) => {
-                onControlChange(e.target.value, "description");
+                const updatedFlowSpec = {
+                  ...localFlowSpec,
+                  description: e.target.value,
+                };
+                setLocalFlowSpec(updatedFlowSpec);
+                setFlowSpec(updatedFlowSpec);
               }}
             />
           }
@@ -1004,24 +1016,28 @@ export const AgentFlowSpecView = ({
           />
         )}
 
-        {flowSpec.skills && (
+        {
           <ControlRowView
             title="Skills"
             className="mt-4"
-            description="Defines which skills are used for the agent."
-            value={flowSpec.skills[0].title}
+            description="Defines skills available to the agent."
+            value={(flowSpec.skills && flowSpec.skills[0]?.title) || ""}
             control={
               <SkillSelector
                 className="mt-2 w-full"
-                skills={flowSpec.skills}
+                skills={flowSpec.skills || []}
                 setSkills={(skills: ISkill[]) => {
-                  onControlChange(skills, "skills");
-                  console.log("sikkll updated");
+                  const updatedFlowSpec = {
+                    ...localFlowSpec,
+                    skills,
+                  };
+                  setLocalFlowSpec(updatedFlowSpec);
+                  setFlowSpec(updatedFlowSpec);
                 }}
               />
             }
           />
-        )}
+        }
       </GroupView>
     </>
   );
@@ -1040,12 +1056,10 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showSkillModal, setShowSkillModal] = React.useState(false);
-  const [newSkillTitle, setNewSkillTitle] = useState("");
+  const [newSkill, setNewSkill] = useState<ISkill | null>(null);
 
   const [localSkills, setLocalSkills] = useState<ISkill[]>(skills);
   const [selectedSkill, setSelectedSkill] = useState<ISkill | null>(null);
-
-  const [skillCode, setSkillCode] = React.useState("");
 
   const handleRemoveSkill = (index: number) => {
     const updatedSkills = localSkills.filter((_, i) => i !== index);
@@ -1054,15 +1068,12 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
   };
 
   const handleAddSkill = () => {
-    const newSkill: ISkill = {
-      title: newSkillTitle,
-      file_name: "", // Would be the target file if needed
-      content: "", // Any other associated content
-    };
-
-    const updatedSkills = [...localSkills, newSkill];
-    setLocalSkills(updatedSkills);
-    setSkills(updatedSkills);
+    if (newSkill) {
+      const updatedSkills = [...localSkills, newSkill];
+      setLocalSkills(updatedSkills);
+      setSkills(updatedSkills);
+      setNewSkill(null);
+    }
   };
 
   useEffect(() => {
@@ -1149,23 +1160,101 @@ export const SkillSelector: React.FC<SkillSelectorProps> = ({
           </Button>,
         ]}
       >
-        <Input
-          placeholder="Skill Title"
-          value={newSkillTitle}
-          onChange={(e) => setNewSkillTitle(e.target.value)}
-        />
-
-        <div className="mt-2 text-secondary text-sm ">Skill Code</div>
-        <TextArea
-          className="mt-2 w-full"
-          value={skillCode}
-          onChange={(e) => {
-            setSkillCode(e.target.value);
-          }}
-          rows={10}
-        />
+        <SkillLoader skill={newSkill} setSkill={setNewSkill} />
       </Modal>
     </>
+  );
+};
+
+export const SkillLoader = ({
+  skill,
+  setSkill,
+}: {
+  skill: ISkill | null;
+  setSkill: (skill: ISkill | null) => void;
+}) => {
+  const [skills, setSkills] = useState<ISkill[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = React.useState<IStatus | null>({
+    status: true,
+    message: "All good",
+  });
+  const serverUrl = getServerUrl();
+  const { user } = React.useContext(appContext);
+  const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
+
+  const fetchSkills = () => {
+    setError(null);
+    setLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        setSkills(data.data);
+        if (data.data.length > 0) {
+          setSkill(data.data[0]);
+        }
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(listSkillsUrl, payLoad, onSuccess, onError);
+  };
+
+  useEffect(() => {
+    fetchSkills();
+  }, []);
+
+  const skillOptions = skills.map((skill: ISkill, index: number) => ({
+    label: skill.title,
+    value: index,
+  }));
+  return (
+    <div className="relative">
+      <LoadingOverlay loading={loading} />
+      <ControlRowView
+        title="Skills"
+        description="Select an available skill"
+        value={skill?.title || skills[0]?.title}
+        control={
+          <>
+            {skills && (
+              <>
+                <Select
+                  className="mt-2 w-full"
+                  defaultValue={skill?.title || skills[0]?.title}
+                  value={skill?.title || skills[0]?.title}
+                  onChange={(value: any) => {
+                    setSkill(skills[value]);
+                  }}
+                  options={skillOptions}
+                />
+                {(skill || skills[0]) && (
+                  <CodeBlock
+                    className="mt-4"
+                    code={skill?.content || skills[0]?.content || ""}
+                    language="python"
+                  />
+                )}
+              </>
+            )}
+          </>
+        }
+      />
+    </div>
   );
 };
 

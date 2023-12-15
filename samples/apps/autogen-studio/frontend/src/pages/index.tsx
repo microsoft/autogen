@@ -1,7 +1,7 @@
 import * as React from "react";
 import Layout from "../components/layout";
 import { graphql } from "gatsby";
-import RAView from "../components/views/ra/ra";
+import RAView from "../components/views/playground/ra";
 
 // markup
 const IndexPage = ({ data }: any) => {
