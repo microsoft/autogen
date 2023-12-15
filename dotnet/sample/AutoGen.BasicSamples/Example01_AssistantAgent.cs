@@ -3,7 +3,6 @@
 
 using AutoGen;
 using FluentAssertions;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 using autogen = AutoGen.API;
 /// <summary>
 /// This example shows the basic usage of <see cref="AssistantAgent"/> class.
@@ -34,7 +33,7 @@ public static class Example01_AssistantAgent
         // to carry on the conversation, pass the previous conversation history to the next call
         var conversationHistory = new List<Message>
         {
-            new Message(AuthorRole.User, "hello world"), // first message
+            new Message(Role.User, "hello world"), // first message
             reply, // reply from assistant agent
         };
 

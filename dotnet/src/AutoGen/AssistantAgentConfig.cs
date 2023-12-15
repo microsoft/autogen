@@ -6,7 +6,6 @@ using Azure.AI.OpenAI;
 
 namespace AutoGen
 {
-
     public class AssistantAgentConfig
     {
         public IEnumerable<FunctionDefinition>? FunctionDefinitions { get; set; }

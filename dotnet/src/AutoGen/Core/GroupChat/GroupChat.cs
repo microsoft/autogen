@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.Extension;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
@@ -59,7 +58,7 @@ namespace AutoGen
         {
             var llm = this.admin.ChatCompletion ?? throw new Exception("Admin does not have a chat completion.");
             var agent_names = this.agents.Select(x => x.Name).ToList();
-            var systemMessage = new Message(AuthorRole.System,
+            var systemMessage = new Message(Role.System,
                 content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
 The available roles are:
 {string.Join(",", agent_names)}
@@ -87,7 +86,7 @@ From admin:
             var history = llm.CreateNewChat();
             foreach (var message in messages)
             {
-                history.Add(message);
+                history.Add(new ChatMessage(new AuthorRole(message.Role.ToString()), message.Content));
             }
 
             var response = await llm.GenerateMessageAsync(history, settings);
@@ -124,7 +123,7 @@ From admin:
                 conversationHistory.AddRange(conversationWithName);
             }
 
-            var lastSpeaker = conversationHistory.LastOrDefault()?.GetFrom() switch
+            var lastSpeaker = conversationHistory.LastOrDefault()?.From switch
             {
                 null => this.agents.First(),
                 _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().From) ?? throw new Exception("The agent is not in the group chat"),

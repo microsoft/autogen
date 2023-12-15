@@ -24,13 +24,13 @@ namespace AutoGen
             var userInput = System.Console.ReadLine();
             if (userInput != null)
             {
-                var message = new Message(AuthorRole.Assistant, userInput, from: this.Name);
+                var message = new Message(Role.Assistant, userInput, from: this.Name);
                 return Task.FromResult<Message>(message);
             }
             else
             {
                 userInput = string.Empty;
-                var message = new Message(AuthorRole.Assistant, userInput, from: this.Name);
+                var message = new Message(Role.Assistant, userInput, from: this.Name);
                 return Task.FromResult<Message>(message);
             }
         }

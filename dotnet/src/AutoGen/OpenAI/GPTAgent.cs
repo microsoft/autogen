@@ -8,7 +8,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.AzureSdk;
@@ -71,9 +70,9 @@ namespace AutoGen
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
             // add system message if there's no system message in messages
-            if (!messages.Any(m => m.Role == AuthorRole.System))
+            if (!messages.Any(m => m.Role == Role.System))
             {
-                messages = new[] { new Message(AuthorRole.System, _systemMessage) }.Concat(messages);
+                messages = new[] { new Message(Role.System, _systemMessage) }.Concat(messages);
             }
 
             var oaiMessages = this.ProcessMessages(messages);
@@ -96,26 +95,29 @@ namespace AutoGen
                 if (this.functionMap.TryGetValue(fc.Name, out var func))
                 {
                     var result = await func(fc.Arguments);
-                    return new Message(AuthorRole.Assistant, result, from: this.Name)
+                    return new Message(Role.Assistant, result, from: this.Name)
                     {
-                        FunctionCall = fc,
+                        FunctionName = fc.Name,
+                        FunctionArguments = fc.Arguments,
                     };
                 }
                 else
                 {
                     var errorMessage = $"Function {fc.Name} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-                    return new Message(AuthorRole.Assistant, errorMessage, from: this.Name)
+                    return new Message(Role.Assistant, errorMessage, from: this.Name)
                     {
-                        FunctionCall = fc,
+                        FunctionName = fc.Name,
+                        FunctionArguments = fc.Arguments,
                     };
                 }
             }
             else
             {
-                return new Message(AuthorRole.Assistant, oaiMessage.Content)
+                return new Message(Role.Assistant, oaiMessage.Content)
                 {
-                    FunctionCall = oaiMessage.FunctionCall,
                     From = this.Name,
+                    FunctionName = oaiMessage.FunctionCall?.Name,
+                    FunctionArguments = oaiMessage.FunctionCall?.Arguments,
                 };
             }
         }
@@ -159,7 +161,7 @@ namespace AutoGen
             var i = 0;
             foreach (var message in messages)
             {
-                if (message.Role == AuthorRole.System || message.From is null)
+                if (message.Role == Role.System || message.From is null)
                 {
                     yield return new Azure.AI.OpenAI.ChatMessage(message.Role.ToString(), message.Content);
                 }
@@ -171,11 +173,11 @@ namespace AutoGen
                 }
                 else
                 {
-                    if (message.GetFunctionCall() is FunctionCall functionCall)
+                    if (message.FunctionArguments is string functionArguments && message.FunctionName is string functionName)
                     {
                         var chatMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Assistant, null)
                         {
-                            FunctionCall = functionCall,
+                            FunctionCall = new FunctionCall(functionName, functionArguments),
                         };
 
                         i++;
@@ -184,7 +186,7 @@ namespace AutoGen
 
                         var functionResultMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Function, message.Content)
                         {
-                            Name = functionCall.Name,
+                            Name = functionName,
                         };
 
                         yield return functionResultMessage;

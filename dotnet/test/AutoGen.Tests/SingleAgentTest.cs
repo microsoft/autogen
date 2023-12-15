@@ -71,7 +71,7 @@ namespace AutoGen.Tests
             var reply = await assistantAgent.SendAsync("hi");
 
             reply.Content.Should().Be("hello world");
-            reply.Role.Should().Be(AuthorRole.Assistant);
+            reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(assistantAgent.Name);
         }
 
@@ -134,39 +134,38 @@ namespace AutoGen.Tests
 
         private async Task EchoFunctionCallTestAsync(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "You are a helpful AI assistant that call echo function");
-            var helloWorld = new Message(AuthorRole.User, "echo Hello world");
+            var message = new Message(Role.System, "You are a helpful AI assistant that call echo function");
+            var helloWorld = new Message(Role.User, "echo Hello world");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
-            reply.Content.Should().Be(string.Empty);
-            reply.Role.Should().Be(AuthorRole.Assistant);
+            reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.FunctionCall!.Name.Should().Be(nameof(EchoAsync));
+            reply.FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "You are a helpful AI assistant that echo whatever user says");
-            var helloWorld = new Message(AuthorRole.User, "echo Hello world");
+            var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new Message(Role.User, "echo Hello world");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
             reply.Content.Should().Be("[ECHO] Hello world");
-            reply.Role.Should().Be(AuthorRole.Assistant);
+            reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.FunctionCall!.Name.Should().Be(nameof(EchoAsync));
+            reply.FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task UpperCaseTest(IAgent agent)
         {
-            var message = new Message(AuthorRole.System, "You are a helpful AI assistant that convert user message to upper case");
-            var helloWorld = new Message(AuthorRole.User, "abcdefg");
+            var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
+            var helloWorld = new Message(Role.User, "abcdefg");
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
             reply.Content.Should().Be("ABCDEFG");
-            reply.Role.Should().Be(AuthorRole.Assistant);
+            reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
         }
     }

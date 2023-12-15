@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.Extension;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen.Tests
@@ -24,7 +23,7 @@ namespace AutoGen.Tests
         {
             // return the most recent message
             var lastMessage = conversation.Last();
-            lastMessage.SetFrom(this.Name);
+            lastMessage.From = this.Name;
 
             return Task.FromResult<Message>(lastMessage);
         }

@@ -20,13 +20,13 @@ namespace AutoGen
 
         public string Name { get; }
 
-        public string? DefaultReply { get; }
+        public string DefaultReply { get; } = string.Empty;
 
         public IChatCompletion? ChatCompletion => null;
 
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> conversation, CancellationToken ct = default)
         {
-            return new Message(AuthorRole.Assistant, DefaultReply, from: this.Name);
+            return new Message(Role.Assistant, DefaultReply, from: this.Name);
         }
     }
 }

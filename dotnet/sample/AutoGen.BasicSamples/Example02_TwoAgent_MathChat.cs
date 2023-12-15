@@ -42,7 +42,7 @@ If the answer is wrong, you ask student to fix it.",
                 // if teacher terminate the conversation, then terminate the conversation by returning [GROUP_CHAT_TERMINATE]
                 if (msgs.Last().Content.Contains("TERMINATE"))
                 {
-                    return new Message(AuthorRole.Assistant, GroupChatExtension.TERMINATE)
+                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE)
                     {
                         From = "student",
                     };

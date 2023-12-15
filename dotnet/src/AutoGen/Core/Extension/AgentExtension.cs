@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
 {
@@ -57,7 +56,7 @@ namespace AutoGen
             IEnumerable<Message>? chatHistory = null,
             CancellationToken ct = default)
         {
-            var msg = new Message(AuthorRole.User, message);
+            var msg = new Message(Role.User, message);
 
             return await agent.SendAsync(msg, chatHistory, ct);
         }
@@ -112,7 +111,7 @@ namespace AutoGen
         {
             if (message != null)
             {
-                var msg = new Message(AuthorRole.User, message)
+                var msg = new Message(Role.User, message)
                 {
                     From = agent.Name,
                 };
@@ -135,7 +134,7 @@ namespace AutoGen
             int maxRound = 10,
             CancellationToken ct = default)
         {
-            var chatMessage = new Message(AuthorRole.Assistant, msg, from: agent.Name);
+            var chatMessage = new Message(Role.Assistant, msg, from: agent.Name);
             chatHistory = new[] { chatMessage }.Concat(chatHistory ?? Enumerable.Empty<Message>());
 
             return await agent.SendMessageToGroupAsync(groupChat, chatHistory, maxRound, ct);

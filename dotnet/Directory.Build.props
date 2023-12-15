@@ -9,7 +9,7 @@
     <SignAssembly>True</SignAssembly>
     <DelaySign>false</DelaySign>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng/opensource.snk</AssemblyOriginatorKeyFile>
-    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <NoWarn>$(NoWarn);NU5104;CS1591</NoWarn>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

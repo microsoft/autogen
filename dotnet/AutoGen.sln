@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SourceGenerator", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SourceGenerator.Tests", "test\AutoGen.SourceGenerator.Tests\AutoGen.SourceGenerator.Tests.csproj", "{05A2FAD8-03B0-4B2F-82AF-2F6BF0F050E5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoGen.BasicSample", "sample\AutoGen.BasicSamples\AutoGen.BasicSample.csproj", "{7EBF916A-A7B1-4B74-AF10-D705B7A18F58}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.BasicSample", "sample\AutoGen.BasicSamples\AutoGen.BasicSample.csproj", "{7EBF916A-A7B1-4B74-AF10-D705B7A18F58}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{FBFEAD1F-29EB-4D99-A672-0CD8473E10B9}"
 EndProject

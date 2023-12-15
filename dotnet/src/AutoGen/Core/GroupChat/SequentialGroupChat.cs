@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.Extension;
 
 namespace AutoGen
 {
@@ -39,7 +38,7 @@ namespace AutoGen
                 conversationHistory.AddRange(conversationWithName);
             }
 
-            var lastSpeaker = conversationHistory.LastOrDefault()?.GetFrom() switch
+            var lastSpeaker = conversationHistory.LastOrDefault()?.From switch
             {
                 null => this.agents.First(),
                 _ => this.agents.FirstOrDefault(x => x.Name == conversationHistory.Last().From) ?? throw new Exception("The agent is not in the group chat"),

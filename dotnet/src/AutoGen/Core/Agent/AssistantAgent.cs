@@ -6,8 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.Extension;
-using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
@@ -96,9 +94,9 @@ namespace AutoGen
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
             // if there's no system message, add system message to the first of chat history
-            if (!messages.Any(m => m.Role == AuthorRole.System))
+            if (!messages.Any(m => m.Role == Role.System))
             {
-                var systemMessage = new Message(AuthorRole.System, this.systemMessage, from: this.Name);
+                var systemMessage = new Message(Role.System, this.systemMessage, from: this.Name);
                 messages = new[] { systemMessage }.Concat(messages);
             }
 
@@ -129,7 +127,7 @@ namespace AutoGen
                     });
 
                     var msg = await this.innerAgent.GenerateReplyAsync(updatedMessages, cancellationToken);
-                    msg.SetFrom(this.Name!);
+                    msg.From = this.Name;
 
                     return msg;
                 }
@@ -150,13 +148,13 @@ namespace AutoGen
                     var userInput = Console.ReadLine();
                     if (userInput != null && userInput.ToLower() != "exit")
                     {
-                        var message = new Message(AuthorRole.Assistant, userInput, from: this.Name);
+                        var message = new Message(Role.Assistant, userInput, from: this.Name);
                         return message;
                     }
                     else
                     {
                         userInput = string.Empty;
-                        var message = new Message(AuthorRole.Assistant, userInput, from: this.Name);
+                        var message = new Message(Role.Assistant, userInput, from: this.Name);
                         return message;
                     }
                 }
@@ -185,7 +183,7 @@ namespace AutoGen
             // process function call
             agent = agent.RegisterReply(async (messages, cancellationToken) =>
             {
-                if (this.functionMap != null && messages.Last()?.FunctionCall is FunctionCall fc && this.functionMap.ContainsKey(fc.Name))
+                if (this.functionMap != null && messages.Last()?.FunctionName is string functionName && messages.Last()?.FunctionArguments is string functionArguments && this.functionMap.ContainsKey(functionName))
                 {
                     return await this.ExecuteFunctionCallAsync(messages.Last(), cancellationToken);
                 }
@@ -196,7 +194,7 @@ namespace AutoGen
             // process self execute
             agent = new PostProcessAgent(agent, agent.Name!, async (messages, currentMessage, cancellationToken) =>
             {
-                if (this.functionMap != null && currentMessage.FunctionCall is FunctionCall fc)
+                if (this.functionMap != null && currentMessage.FunctionName is string functionName && currentMessage.FunctionArguments is string functionArguments && this.functionMap.ContainsKey(functionName))
                 {
                     return await this.ExecuteFunctionCallAsync(currentMessage, cancellationToken);
                 }
@@ -211,22 +209,24 @@ namespace AutoGen
 
         private async Task<Message> ExecuteFunctionCallAsync(Message message, CancellationToken cancellationToken)
         {
-            if (message.FunctionCall is FunctionCall fc && this.functionMap != null)
+            if (message.FunctionName is string functionName && message.FunctionArguments is string functionArguments && this.functionMap != null)
             {
-                if (this.functionMap.TryGetValue(fc.Name, out var func))
+                if (this.functionMap.TryGetValue(functionName, out var func))
                 {
-                    var result = await func(fc.Arguments);
-                    return new Message(AuthorRole.Assistant, result, from: this.Name)
+                    var result = await func(functionArguments);
+                    return new Message(Role.Assistant, result, from: this.Name)
                     {
-                        FunctionCall = fc,
+                        FunctionName = functionName,
+                        FunctionArguments = functionArguments,
                     };
                 }
                 else
                 {
-                    var errorMessage = $"Function {fc.Name} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-                    return new Message(AuthorRole.Assistant, errorMessage, from: this.Name)
+                    var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
+                    return new Message(Role.Assistant, errorMessage, from: this.Name)
                     {
-                        FunctionCall = fc,
+                        FunctionName = functionName,
+                        FunctionArguments = functionArguments,
                     };
                 }
             }

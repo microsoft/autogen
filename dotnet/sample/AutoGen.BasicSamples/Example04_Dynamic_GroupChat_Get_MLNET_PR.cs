@@ -5,7 +5,6 @@ using AgentChat.DotnetInteractiveService;
 using AutoGen;
 using AutoGen.Extension;
 using FluentAssertions;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 using autogen = AutoGen.API;
 using GroupChat = AutoGen.GroupChat;
 using GroupChatExtension = AutoGen.GroupChatExtension;
@@ -61,7 +60,7 @@ Here are some examples for resolve_step:
                 if (msgs.Where(m => m.From == "admin").LastOrDefault()?.Content.Contains("TERMINATE") ?? false)
                 {
                     // terminate the conversation
-                    return new Message(AuthorRole.Assistant, GroupChatExtension.TERMINATE);
+                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE);
                 }
 
                 return null;
@@ -145,7 +144,7 @@ for any other case
                 var lastMessage = msgs.Last();
                 if (lastMessage.From != "coder")
                 {
-                    return new Message(AuthorRole.Assistant, "coder, write code please");
+                    return new Message(Role.Assistant, "coder, write code please");
                 }
 
                 // if the last message is from coder, retrieve the code between ```csharp and ```
@@ -161,7 +160,7 @@ for any other case
                     // refuse to run code that has Main() function
                     if (code.Contains("Main") && code.Contains("Program"))
                     {
-                        return new Message(AuthorRole.Assistant, "I refuse to run code that has Main() function. Please convert it to top-level statement");
+                        return new Message(Role.Assistant, "I refuse to run code that has Main() function. Please convert it to top-level statement");
                     }
                     else
                     {
@@ -169,7 +168,7 @@ for any other case
                         // run code
                         var runCodeResult = await dotnetInteractiveFunctions.RunCode(code);
 
-                        return new Message(AuthorRole.Assistant, runCodeResult);
+                        return new Message(Role.Assistant, runCodeResult);
                     }
                 }
             });
@@ -203,7 +202,7 @@ else
         var maxRound = 40;
         IEnumerable<Message> conversationHistory = new List<Message>()
         {
-            new Message(AuthorRole.Assistant, "the number of resolved step is 0")
+            new Message(Role.Assistant, "the number of resolved step is 0")
             {
                 From = admin.Name,
             },

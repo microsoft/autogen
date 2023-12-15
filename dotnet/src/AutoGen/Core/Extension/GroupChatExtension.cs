@@ -3,8 +3,6 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using AutoGen.Extension;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 
 namespace AutoGen
 {
@@ -15,7 +13,7 @@ namespace AutoGen
 
         public static void AddInitializeMessage(this IAgent agent, string message, IGroupChat groupChat)
         {
-            var msg = new Message(AuthorRole.User, message)
+            var msg = new Message(Role.User, message)
             {
                 From = agent.Name
             };
@@ -84,13 +82,13 @@ namespace AutoGen
 
             return messagesToKeep.Select((x, i) =>
             {
-                var msg = @$"From {x.GetFrom()}:
+                var msg = @$"From {x.From}:
 {x.Content}
 <eof_msg>
 round # 
                 {i}";
 
-                return new Message(AuthorRole.User, content: msg);
+                return new Message(Role.User, content: msg);
             });
         }
     }
