@@ -294,7 +294,7 @@ class AgentBuilder:
             default_llm_config = cached_configs["default_llm_config"]
             coding = cached_configs["coding"]
             agent_configs = cached_configs["agent_configs"]
-            code_execution_config = cached_configs['code_execution_config']
+            code_execution_config = cached_configs["code_execution_config"]
 
         if code_execution_config is None:
             code_execution_config = {
