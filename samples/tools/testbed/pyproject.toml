@@ -20,6 +20,7 @@ classifiers = [
 dependencies = [
     "pyautogen",
     "docker",
+    "psutil",
 ]
 
 dynamic = ["version"]
@@ -44,4 +45,4 @@ exclude = ["*.tests*"]
 "Bug Tracker" = "https://github.com/microsoft/autogen/issues"
 
 [project.scripts]
-run_scenarios = "autogenbench.run_scenarios:main"
+autogenbench = "autogenbench.cli:main"
