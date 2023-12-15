@@ -14,10 +14,8 @@ def get_max_token_limit(model="gpt-3.5-turbo-0613"):
         "gpt-3.5-turbo-0613": 4096,
         "gpt-3.5-turbo-instruct": 4096,
         "gpt-3.5-turbo-16k": 16385,
+        "gpt-3.5-turbo-16k-0613": 16385,
         "gpt-3.5-turbo-1106": 16385,
-        "gpt-35-turbo": 4096,
-        "gpt-35-turbo-16k": 16385,
-        "gpt-35-turbo-instruct": 4096,
         "gpt-4": 8192,
         "gpt-4-32k": 32768,
         "gpt-4-32k-0314": 32768,  # deprecate in Sep
