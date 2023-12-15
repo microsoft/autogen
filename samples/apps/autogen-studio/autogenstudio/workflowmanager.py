@@ -89,8 +89,7 @@ class AutoGenWorkFlowManager:
         )
         skills_prompt = ""
         if agent_spec.skills:
-            skills_prompt = get_skills_from_prompt(
-                agent_spec.skills, self.work_dir)
+            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}

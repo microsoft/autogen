@@ -15,12 +15,7 @@ from ..datamodel import (
     Message,
     Session,
 )
-from ..utils import (
-    md5_hash,
-    init_webserver_folders,
-    DBManager,
-    dbutils
-)
+from ..utils import md5_hash, init_webserver_folders, DBManager, dbutils
 
 from ..chatmanager import AutoGenChatManager
 
@@ -51,10 +46,8 @@ api = FastAPI(root_path="/api")
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
-app.mount(
-    "/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
-api.mount(
-    "/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
+app.mount("/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
+api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
 
 db_path = os.path.join(root_file_path, "database.sqlite")
@@ -65,13 +58,11 @@ chatmanager = AutoGenChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
-    user_history = dbutils.get_messages(
-        user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
+    user_history = dbutils.get_messages(user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
 
     # save incoming message to db
     dbutils.create_message(message=message, dbmanager=dbmanager)
-    user_dir = os.path.join(
-        folders["files_static_root"], "user", md5_hash(message.user_id))
+    user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
     os.makedirs(user_dir, exist_ok=True)
 
     try:
@@ -103,8 +94,7 @@ def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
     try:
-        user_history = dbutils.get_messages(
-            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        user_history = dbutils.get_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -122,8 +112,7 @@ def get_messages(user_id: str = None, session_id: str = None):
 @api.get("/gallery")
 def get_gallery_items(gallery_id: str = None):
     try:
-        gallery = dbutils.get_gallery(
-            gallery_id=gallery_id, dbmanager=dbmanager)
+        gallery = dbutils.get_gallery(gallery_id=gallery_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": gallery,
@@ -144,8 +133,7 @@ def get_user_sessions(user_id: str = None):
         raise HTTPException(status_code=400, detail="user_id is required")
 
     try:
-        user_sessions = dbutils.get_sessions(
-            user_id=user_id, dbmanager=dbmanager)
+        user_sessions = dbutils.get_sessions(user_id=user_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -166,10 +154,8 @@ async def create_user_session(req: DBWebRequestModel):
     # print(req.session, "**********" )
 
     try:
-        session = Session(user_id=req.session.user_id,
-                          flow_config=req.session.flow_config)
-        user_sessions = dbutils.create_session(
-            user_id=req.user_id, session=session, dbmanager=dbmanager)
+        session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
+        user_sessions = dbutils.create_session(user_id=req.user_id, session=session, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session created successfully",
@@ -188,8 +174,7 @@ async def publish_user_session_to_gallery(req: DBWebRequestModel):
     """Create a new session for a user"""
 
     try:
-        gallery_item = dbutils.create_gallery(
-            req.session, tags=req.tags, dbmanager=dbmanager)
+        gallery_item = dbutils.create_gallery(req.session, tags=req.tags, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session successfully published",
@@ -237,8 +222,7 @@ async def clear_db(req: DBWebRequestModel):
         dbutils.delete_message(
             user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True
         )
-        sessions = dbutils.delete_sessions(
-            user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
+        sessions = dbutils.delete_sessions(user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": {
@@ -256,7 +240,6 @@ async def clear_db(req: DBWebRequestModel):
 
 @api.get("/skills")
 def get_user_skills(user_id: str):
-
     try:
         skills = dbutils.get_skills(user_id, dbmanager=dbmanager)
 
@@ -304,7 +287,6 @@ def create_user_skills(req: CreateSkillWebRequestModel):
 
 @api.get("/agents")
 def get_user_agents(user_id: str):
-
     try:
         agents = dbutils.get_agents(user_id, dbmanager=dbmanager)
 
@@ -326,8 +308,7 @@ def create_user_agents(req: DBWebRequestModel):
     """Create a new agent for a user"""
 
     try:
-        agents = dbutils.create_agent(
-            agent_flow_spec=req.agent, dbmanager=dbmanager)
+        agents = dbutils.create_agent(agent_flow_spec=req.agent, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -366,8 +347,7 @@ def create_user_workflow(req: DBWebRequestModel):
     """Create a new workflow for a user"""
 
     try:
-        workflow = dbutils.create_workflow(
-            workflow=req.workflow, dbmanager=dbmanager)
+        workflow = dbutils.create_workflow(workflow=req.workflow, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Workflow created successfully",

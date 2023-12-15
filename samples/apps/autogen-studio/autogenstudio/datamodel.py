@@ -32,7 +32,6 @@ class Message(object):
 
 @dataclass
 class Skill(object):
-
     title: str
     file_name: str
     content: str
