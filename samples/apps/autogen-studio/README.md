@@ -53,13 +53,13 @@ Project Structure:
       yarn build
       ```
 
-    For Windows users, to build the frontend, you may need alternative commands to build the frontend.
+For Windows users, to build the frontend, you may need alternative commands to build the frontend.
 
-        ```bash
+```bash
 
-        gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
 
-        ````
+```
 
 ### Running the Application
 
