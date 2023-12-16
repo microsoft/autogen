@@ -1,5 +1,6 @@
 import sys
-from .run_scenarios import run_scenarios_cli
+from .run_cmd import run_cli
+from .clone_cmd import clone_cli
 
 
 def main(cli_args=None):
@@ -29,13 +30,15 @@ def main(cli_args=None):
     #
     # We set up that structure here, for future use
     if len(cli_args) < 2:
-        run_scenarios_cli(invocation_cmd=invocation_cmd, cli_args=[])
+        run_cli(invocation_cmd=invocation_cmd, cli_args=[])
     elif cli_args[1] == "run":
-        run_scenarios_cli(invocation_cmd=invocation_cmd + " run", cli_args=cli_args[2:])
+        run_cli(invocation_cmd=invocation_cmd + " run", cli_args=cli_args[2:])
+    elif cli_args[1] == "clone":
+        clone_cli(invocation_cmd=invocation_cmd + " run", cli_args=cli_args[2:])
     elif cli_args[1] == "help":
-        run_scenarios_cli(invocation_cmd=invocation_cmd, cli_args=["--help"])
+        run_cli(invocation_cmd=invocation_cmd, cli_args=["--help"])
     else:
-        run_scenarios_cli(invocation_cmd=invocation_cmd, cli_args=cli_args[1:])
+        run_cli(invocation_cmd=invocation_cmd, cli_args=cli_args[1:])
 
 
 ###############################################################################

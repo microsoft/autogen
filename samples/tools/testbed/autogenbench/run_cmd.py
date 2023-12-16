@@ -466,7 +466,7 @@ def build_default_docker_image(docker_client, image_tag):
             sys.stdout.write(segment["stream"])
 
 
-def run_scenarios_cli(invocation_cmd="autogenbench run", cli_args=None):
+def run_cli(invocation_cmd="autogenbench run", cli_args=None):
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
