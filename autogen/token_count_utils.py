@@ -17,7 +17,6 @@ def get_max_token_limit(model="gpt-3.5-turbo-0613"):
         "gpt-3.5-turbo": 4096,
         "gpt-3.5-turbo-0301": 4096,
         "gpt-3.5-turbo-0613": 4096,
-        "gpt-3.5-turbo-1106": 16384,
         "gpt-3.5-turbo-instruct": 4096,
         "gpt-3.5-turbo-16k": 16385,
         "gpt-3.5-turbo-16k-0613": 16385,
@@ -105,13 +104,11 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
         tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
         tokens_per_name = -1  # if there's a name, the role is omitted
     elif "gpt-3.5-turbo" in model:
-        tokens = _num_token_from_messages(messages, model="gpt-3.5-turbo-0613")
-        logger.info(f"gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613: {tokens} tokens.")
-        return tokens
+        logger.info("gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613.")
+        return _num_token_from_messages(messages, model="gpt-3.5-turbo-0613")
     elif "gpt-4" in model:
-        tokens = _num_token_from_messages(messages, model="gpt-4-0613")
-        logger.info(f"gpt-4 may update over time. Returning num tokens assuming gpt-4-0613: {tokens} tokens.")
-        return tokens
+        logger.info("gpt-4 may update over time. Returning num tokens assuming gpt-4-0613.")
+        return _num_token_from_messages(messages, model="gpt-4-0613")
     else:
         raise NotImplementedError(
             f"""_num_token_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens."""
