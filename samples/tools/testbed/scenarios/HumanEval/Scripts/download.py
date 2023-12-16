@@ -124,5 +124,5 @@ def main():
             create_jsonl(f"r_human_eval_{t[0]}_{m[0]}", reduced_human_eval, t[1], m[1])
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and __package__ is None:
     main()
