@@ -116,7 +116,9 @@ def run_scenarios(
                 print(f"Running scenario {results_repetition}")
 
                 # Expand the scenario
-                expand_scenario(scenario_dir, instance, results_repetition)
+                expand_scenario(
+                    scenario_dir, instance, results_repetition, requirements
+                )
 
                 # Prepare the environment (keys/values that need to be added)
                 env = get_scenario_env(config_list)
@@ -128,7 +130,6 @@ def run_scenarios(
                     run_scenario_in_docker(
                         results_repetition,
                         env,
-                        requirements,
                         docker_image=docker_image,
                     )
 
@@ -137,7 +138,7 @@ def run_scenarios(
             file_handle.close()
 
 
-def expand_scenario(scenario_dir, scenario, output_dir):
+def expand_scenario(scenario_dir, scenario, output_dir, requirements):
     """
     Expand a scenario into a folder.
     Despite some awkwardness created by backwards compatibility and notational conveniences, expansion is conceptually simple.
@@ -199,6 +200,12 @@ def expand_scenario(scenario_dir, scenario, output_dir):
             else:
                 # Otherwuse use the filename provided
                 shutil.copyfile(src_path, dest_path)
+
+    # Copy the requirements file if specified
+    if requirements is not None:
+        shutil.copyfile(
+            requirements, pathlib.Path(os.path.join(output_dir, "requirements.txt"))
+        )
 
     # Expand templated files
     for templated_file in substitutions.keys():  # Keys are relative file paths
@@ -320,7 +327,7 @@ echo SCENARIO COMPLETE !#!#
     return
 
 
-def run_scenario_in_docker(work_dir, env, requirements, timeout=600, docker_image=None):
+def run_scenario_in_docker(work_dir, env, timeout=600, docker_image=None):
     """
     Run a scenario in a Docker environment.
 
@@ -363,7 +370,7 @@ def run_scenario_in_docker(work_dir, env, requirements, timeout=600, docker_imag
     # Prepare the run script
     with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
         f.write(
-            f"""#
+            """#
 export AUTOGEN_TESTBED_SETTING="Docker"
 umask 000
 
@@ -378,7 +385,7 @@ if [ -f scenario_init.sh ] ; then
 fi
 
 # Run the scenario
-pip install -r {requirements}
+pip install -r requirements.txt
 python scenario.py
 
 # Clean up
@@ -487,9 +494,7 @@ def run_scenarios_cli(invocation_cmd="autogenbench run", cli_args=None):
     parser.add_argument(
         "--requirements",
         type=str,
-        help="The requirements file to pip install before running the scenario. This file must be found in the '"
-        + BASE_TEMPLATE_PATH
-        + "' directory. (default: requirements.txt)",
+        help="The requirements file to pip install before running the scenario.",
         default=None,
     )
     parser.add_argument(
@@ -542,21 +547,11 @@ def run_scenarios_cli(invocation_cmd="autogenbench run", cli_args=None):
         if choice.strip().lower() != "yes":
             sys.exit("Received '" + choice + "'. Exiting.")
 
-    # What requirements file are we working with?
-    requirements = "requirements.txt"
-    if args.requirements is not None:
-        requirements = args.requirements
-
-    is_native = True if args.native else False
-    #    if not is_native:
-    #        # Import docker
-    #        import docker
-
     run_scenarios(
-        args.scenario,
-        args.repeat,
-        is_native,
-        config_list,
-        requirements,
+        scenario=args.scenario,
+        n_repeats=args.repeat,
+        is_native=True if args.native else False,
+        config_list=config_list,
+        requirements=args.requirements,
         docker_image=args.docker_image,
     )

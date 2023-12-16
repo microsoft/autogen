@@ -1,32 +1,49 @@
-# Autogen Testbed Environment
+# AutoGenBench
 
-The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen scenarios in a setting with tightly-controlled initial conditions. With each run, AutoGen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
-This Testbed sample has been tested in, and is known to work with, Autogen versions 0.1.14 and 0.2.0
+AutoGenBench is known to work with, all AutoGen 0.1.*, and 0.2.* versions.
 
-## Setup
+## Installation and Setup
 
-Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
+**To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the best way to do this is to git clone the [autogen](https://github.com/microsoft/autogen) repository then from the repository root, execute:
 
-For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file current working folder. A sample has been provided in `ENV.json.example`. Edit `ENV.json` as needed.
+```
+pip install -e samples/tools/testbed
+```
 
-The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ library. **It will not run in codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/). To install the Python library:
+or, from within the `samped/tools/testbed` folder (e.g., if reading this README):
 
-``pip install docker``
+```
+pip install -e .
+```
 
-## Running the Testbed
+After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directy, or the OAI_CONFIG_LIST environment variable. If neither are provided, it will user the environment variable OPENAI_API_KEY. This behavior can be overrriden using a command-line parameter described later.
 
-To run the Testbed, simply execute
-``python run_scenarios.py scenarios/Examples``
+For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
+
+```
+{
+    "BING_API_KEY": "xxxyyyzzz"
+}
+```
+
+AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
+
+
+## Running AutoGenBench
+
+To run the AutoGenBench, simply execute
+``autogenbench run scenarios/Examples``
 
 The default is to run each scenario once. To run each scenario 10 times, use:
 
-``python run_scenarios.py --repeat 10 scenarios/Examples ``
+``autogenbench run --repeat 10 scenarios/Examples ``
 
-The run_scenarios.py script also allows a number of command-line arguments to control various parameters of execution. Type ``python run_scenarios.py -h`` to explore these options:
+The `autogenbench` command-line tool allows a number of command-line arguments to control various parameters of execution. Type ``autogenbench -h`` to explore these options:
 
 ```
-run_scenarios.py will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.
+'autogenbench run' will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.
 
 positional arguments:
   scenario      The JSONL scenario file to run. If a directory is specified,
@@ -43,8 +60,7 @@ options:
                 The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
 
   --requirements REQUIREMENTS
-                The requirements file to pip install before running the scenario. This file must be found in
-                the 'includes' directory. (default: requirements.txt)
+                The requirements file to pip install before running the scenario.
 
   -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
                 The Docker image to use when running scenarios. Can not be used together with --native.
@@ -56,7 +72,7 @@ options:
 
 ## Results
 
-By default, the Testbed stores results in a folder heirarchy with the following template:
+By default, the AutoGenBench stores results in a folder heirarchy with the following template:
 
 ``./results/[scenario]/[instance_id]/[repetition]``
 
@@ -75,7 +91,6 @@ Within each folder, you will find the following files:
 
 - *timestamp.txt*: records the date and time of the run, along with the version of the pyautogen library installed
 - *console_log.txt*: all console output produced by Docker when running autogen. Read this like you would a regular console.
-- *chat_completions.json*: a log of all OpenAI ChatCompletions, as logged by `autogen.ChatCompletion.start_logging(compact=False)`
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
 - *./coding*: A directory containing all code written by Autogen, and all artifacts produced by that code.
 
@@ -156,13 +171,13 @@ In this example, the string `__MODEL__` will be replaced in the file `scenarios.
 
 ## Scenario Expansion Algorithm
 
-When the Testbed runs a scenario, it creates a local folder to share with Docker. As noted above, each instance and repetition gets its own folder along the path: ``./results/[scenario]/[instance_id]/[repetition]``
+When AutoGenBench runs a scenario, it creates a local folder to share with Docker. As noted above, each instance and repetition gets its own folder along the path: ``./results/[scenario]/[instance_id]/[repetition]``
 
 For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario.
+1. Pre-populate DEST_FOLDER with all the basic starter files for running a scenario.
 2. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
 3. Apply any templating, as outlined in the prior section.
 4. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
@@ -184,7 +199,10 @@ Once the scenario has been expanded it is run (via run.sh). This script will exe
 Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
 
 
-## (Example) Running HumanEval
+## Examples
+The following examples assume that you have cloned the [autogen](https://github.com/microsoft/autogen) GitHub repository.
+
+### (Example) Running HumanEval
 
 One sample Testbed scenario type is a variation of the classic [HumanEval](https://github.com/openai/human-eval) benchmark. In this scenario, agents are given access to the unit test results, and are able to continue to debug their code until the problem is solved or they run out of tokens or turns. We can then count how many turns it took to solve the problem (returning -1 if the problem remains unsolved by the end of the conversation, and "" if the run is missing).
 
@@ -192,16 +210,16 @@ Accessing this scenario-type requires downloading and converting the HumanEval d
 
 ```
 python utils/download_humaneval.py
-python ./run_scenarios.py scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
+autogenbench run scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
 python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
 cat human_eval_results_gpt35.csv
 ```
 
-## (Example) Running GAIA
+### (Example) Running GAIA
 
-The Testbed can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if it (nearly) exactly matches an unambiguously accepted answer.
+The AutoGenBench can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if it (nearly) exactly matches an unambiguously accepted answer.
 
-Accessing this scenario-type requires downloading and converting the GAIA dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance once with GPT-4:
+Accessing this scenario-type requires downloading and converting the GAIA dataset, configuring a Bing API key, running AutoGenBench, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance once with GPT-4:
 
 ```
 # Clone the GAIA dataset repo (assuming a 'repos' folder in your home directory)
@@ -212,16 +230,20 @@ git clone https://huggingface.co/datasets/gaia-benchmark/GAIA
 cd ~/repos/autogen/samples/tools/testbed
 python ./utils/expand_gaia.py ~/repos/GAIA
 
+
+# Configure the Bing API Key
+echo '{ "BING_API_KEY": "xxxyyyzzz" }' > ENV.json
+
 # Run GAIA
-python ./run_scenarios.py ./scenarios/GAIA/gaia_validation_level_1__two_agents_gpt4.jsonl
+autogenbench run ./scenarios/GAIA/gaia_validation_level_1__two_agents_gpt4.jsonl
 
 # Compute Metrics
 python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
 ```
 
-## (Example) Running tasks from AutoGPT
+### (Example) Running tasks from AutoGPT
 
-The Testbed supports running tasks proposed in [AutoGPT benchmark](https://github.com/Significant-Gravitas/AutoGPT/tree/master/benchmark/agbenchmark/challenges). In this scenario, the agents are prompted to handle a diverse range of tasks, including coding, question answering according to given tasks, web scraping. Similar to scenarios in HumanEval, the agents can call the unit test script to check if the task is successfully done.
+The AutoGenBench supports running tasks proposed in [AutoGPT benchmark](https://github.com/Significant-Gravitas/AutoGPT/tree/master/benchmark/agbenchmark/challenges). In this scenario, the agents are prompted to handle a diverse range of tasks, including coding, question answering according to given tasks, web scraping. Similar to scenarios in HumanEval, the agents can call the unit test script to check if the task is successfully done.
 
 Accessing this scenario-type requires converting tasks, running the Testbed, collating the results, and finally computing the metrics. The following commands will run each test instance with GPT-4:
 
@@ -230,7 +252,7 @@ Accessing this scenario-type requires converting tasks, running the Testbed, col
 python utils/prepare_autogpt.py
 
 # Run all the scenarios with GPT-4
-python run_scenarios.py scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
+autogenbench run scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
 
 # Compute metrics, the metric script shares the same one with HumanEval
 python utils/collate_autogpt.py ./results/autogpt_twoagent_gpt4 | python metrics_human_eval.py
