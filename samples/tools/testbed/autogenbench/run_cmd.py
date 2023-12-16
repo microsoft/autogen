@@ -470,7 +470,7 @@ def run_cli(invocation_cmd="autogenbench run", cli_args=None):
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
-        description=f"{invocation_cmd} will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.".strip(),
+        description=f"{invocation_cmd} will run the specified AutoGen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.".strip(),
     )
 
     parser.add_argument(

@@ -87,11 +87,12 @@ def clone_cli(invocation_cmd="autogenbench clone", cli_args=None):
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
-        description=f"{invocation_cmd} will clone the specified scenarios to the local directory.",
+        description=f"{invocation_cmd} will clone the specified scenario to the current working directory.",
     )
 
     parser.add_argument(
         "scenario",
+        #        nargs="?",
         help="The name of the scenario clone.",
     )
     parser.add_argument(
@@ -114,7 +115,10 @@ def clone_cli(invocation_cmd="autogenbench clone", cli_args=None):
             print(s)
         return 0
 
+    if not args.scenario:
+        parser.error("the following arguments are required: scenario")
+
     try:
         clone_scenario(args.scenario)
     except ValueError as e:
-        sys.exit(str(e) + "\nUse '--list' to see a list of available scenarios.")
+        parser.error(str(e) + "\nUse '--list' to see a list of available scenarios.")
