@@ -12,13 +12,13 @@ AutoGenBench is known to work with, all AutoGen 0.1.*, and 0.2.* versions.
 pip install -e samples/tools/testbed
 ```
 
-or, from within the `samped/tools/testbed` folder (e.g., if reading this README):
+or, from within the `samples/tools/testbed` folder (e.g., if reading this README):
 
 ```
 pip install -e .
 ```
 
-After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directy, or the OAI_CONFIG_LIST environment variable. If neither are provided, it will user the environment variable OPENAI_API_KEY. This behavior can be overrriden using a command-line parameter described later.
+After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. If neither are provided, it will user the environment variable OPENAI_API_KEY. This behavior can be overridden using a command-line parameter described later.
 
 For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
 
@@ -51,7 +51,7 @@ autogenbench clone --list
 
 ## Running AutoGenBench
 
-To run a benchmark (wich executes the tasks, but does not compute metrics), simply execute:
+To run a benchmark (which executes the tasks, but does not compute metrics), simply execute:
 ```
 cd [BENCHMARK]
 autogenbench run Tasks
@@ -101,7 +101,7 @@ options:
 
 ## Results
 
-By default, the AutoGenBench stores results in a folder heirarchy with the following template:
+By default, the AutoGenBench stores results in a folder hierarchy with the following template:
 
 ``./results/[scenario]/[instance_id]/[repetition]``
 
