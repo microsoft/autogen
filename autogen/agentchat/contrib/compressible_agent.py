@@ -259,7 +259,11 @@ Reply "TERMINATE" in the end when everything is done.
     def _get_valid_oai_message(self, message):
         """Convert a message into a valid OpenAI ChatCompletion message."""
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
-        oai_message = {k: message[k] for k in ("role", "content", "function_call", "tool_calls", "tool_call_id", "name", "context") if k in message and message[k] is not None}
+        oai_message = {
+            k: message[k]
+            for k in ("role", "content", "function_call", "tool_calls", "tool_call_id", "name", "context")
+            if k in message and message[k] is not None
+        }
         if "content" not in oai_message:
             if "function_call" in oai_message or "tool_calls" in oai_message:
                 oai_message["content"] = None  # if only function_call is provided, content will be set to None.
@@ -270,10 +274,6 @@ Reply "TERMINATE" in the end when everything is done.
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
-            if oai_message.get("function_call", False):
-                oai_message["function_call"] = dict(oai_message["function_call"])
-            if oai_message.get("tool_calls", False):
-                oai_message["tool_calls"] = [dict(call) for call in oai_message.get("tool_calls", [])]
 
         return oai_message
 
@@ -406,7 +406,9 @@ Reply "TERMINATE" in the end when everything is done.
                     if not (tool_call_id and function_name and function_args):
                         chat_to_compress += f"##TOOL_CALL## {tool_call['tool_call']}\n"
                     else:
-                        chat_to_compress += f"##TOOL_CALL## ToolCallId: {tool_call_id} \nName: {function_name}\nArgs: {function_args}\n"
+                        chat_to_compress += (
+                            f"##TOOL_CALL## ToolCallId: {tool_call_id} \nName: {function_name}\nArgs: {function_args}\n"
+                        )
 
         chat_to_compress = [{"role": "user", "content": chat_to_compress}]
 
@@ -449,5 +451,5 @@ Rules:
                     "role": "system",
                 },
             ]
-            + messages[len(messages) - leave_last_n :], # messages[len(messages) - 0 :] when leave_last_n = 0
+            + messages[len(messages) - leave_last_n :],  # messages[len(messages) - 0 :] when leave_last_n = 0
         )
