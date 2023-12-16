@@ -1323,7 +1323,14 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.description}
-            onChange={(e) => updateFlowConfigName(e.target.value)}
+            onChange={(e) => {
+              const updatedConfig = {
+                ...localFlowConfig,
+                description: e.target.value,
+              };
+              setLocalFlowConfig(updatedConfig);
+              setFlowConfig(updatedConfig);
+            }}
           />
         }
       />
