@@ -112,9 +112,9 @@ def main():
 
     templates = {
         "two_agents": "Templates/TwoAgents",
-        "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
-        "gc3_guardrails": "Templates/GroupChatThreeAgents_Guardrails",
-        "gc4": "Templates/GroupChatFourAgents",
+        # "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
+        # "gc3_guardrails": "Templates/GroupChatThreeAgents_Guardrails",
+        # "gc4": "Templates/GroupChatFourAgents",
     }
 
     # Create the various combinations of [models] x [templates]
