@@ -137,6 +137,8 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
@@ -467,7 +469,8 @@ class ConversableAgent(Agent):
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
         if not silent:
-            [self._print_received_message(each_message, sender) for each_message in message]
+            for each_message in message:
+                self._print_received_message(each_message, sender)
 
     def receive(
         self,
@@ -729,22 +732,13 @@ class ConversableAgent(Agent):
             messages = self._oai_messages[sender]
         message = messages[-1]
         if "function_call" in message and message["function_call"]:
+            func_call = message["function_call"]
+            func = self._function_map.get(func_call.get("name", None), None)
+            if asyncio.coroutines.iscoroutinefunction(func):
+                return False, None
+
             _, func_return = self.execute_function(message["function_call"])
             return True, func_return
-        if "tool_calls" in message and message["tool_calls"]:
-            tool_calls = message["tool_calls"]
-            tool_returns = []
-            for tool_call in tool_calls:
-                id = tool_call["id"]
-                function_call = tool_call.get("function", {})
-                _, func_return = self.execute_function(function_call)
-                tool_returns.append({
-                    "tool_call_id": id,
-                    "role": "tool",
-                    "name": func_return.get("name", ""),
-                    "content": func_return.get("content", "")
-                })
-            return True, tool_returns
         return False, None
 
     async def a_generate_function_call_reply(
@@ -761,11 +755,74 @@ class ConversableAgent(Agent):
         message = messages[-1]
         if "function_call" in message:
             func_call = message["function_call"]
-            func_name = func_call.get("name", "")
-            func = self._function_map.get(func_name, None)
-            if func and asyncio.coroutines.iscoroutinefunction(func):
+            func = self._function_map.get(func_call.get("name", None), None)
+            if asyncio.coroutines.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
+
+        return False, None
+
+    def generate_tool_calls_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ) -> Tuple[bool, Union[Dict, None]]:
+        """Generate a reply using function call."""
+        if config is None:
+            config = self
+        if messages is None:
+            messages = self._oai_messages[sender]
+        message = messages[-1]
+        if "tool_calls" in message and message["tool_calls"]:
+            tool_calls = message["tool_calls"]
+            tool_returns = []
+            for tool_call in tool_calls:
+                id = tool_call["id"]
+                function_call = tool_call.get("function", {})
+                func = self._function_map.get(function_call.get("name", None), None)
+                if asyncio.coroutines.iscoroutinefunction(func):
+                    continue
+                _, func_return = self.execute_function(function_call)
+                tool_returns.append({
+                    "tool_call_id": id,
+                    "role": "tool",
+                    "name": func_return.get("name", ""),
+                    "content": func_return.get("content", "")
+                })
+            return True, tool_returns
+        return False, None
+
+    async def _a_execute_tool_call(self, tool_call):
+        id = tool_call["id"]
+        function_call = tool_call.get("function", {})
+        _, func_return = await self.a_execute_function(function_call)
+        return {
+            "tool_call_id": id,
+            "role": "tool",
+            "name": func_return.get("name", ""),
+            "content": func_return.get("content", "")
+        }
+
+    async def a_generate_tool_calls_reply(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+    ) -> Tuple[bool, Union[Dict, None]]:
+        """Generate a reply using async function call."""
+        if config is None:
+            config = self
+        if messages is None:
+            messages = self._oai_messages[sender]
+        message = messages[-1]
+        async_tool_calls = []
+        for tool_call in message.get("tool_calls", []):
+            func = self._async_function_map.get(tool_call.get("function", {}).get("name", None), None)
+            if func and asyncio.coroutines.iscoroutinefunction(func):
+                async_tool_calls.append(self._a_execute_tool_call(tool_call))
+        if len(async_tool_calls) > 0:
+            return True, await asyncio.gather(*async_tool_calls)
 
         return False, None
 
