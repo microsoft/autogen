@@ -116,12 +116,6 @@ class GPTAssistantAgent(ConversableAgent):
         self._unread_index = defaultdict(int)
         self.register_reply([Agent, None], GPTAssistantAgent._invoke_assistant, position=2)
 
-    def _check_for_cancellation(self):
-        """
-        Checks for cancellation used during _get_run_response
-        """
-        return self.cancellation_requested
-
     def _invoke_assistant(
         self,
         messages: Optional[List[Dict]] = None,
@@ -165,7 +159,7 @@ class GPTAssistantAgent(ConversableAgent):
             # pass the latest system message as instructions
             instructions=self.system_message,
         )
-        self.cancellation_requested = False
+
         response = self._get_run_response(assistant_thread, run)
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
         if response["content"]:
@@ -263,11 +257,10 @@ class GPTAssistantAgent(ConversableAgent):
             dict: The processed response from the run.
 
         Raises:
-            Exception: If the run is cancelled due to a cancellation request.
+            Exception: If the run encounters an unexpected status.
         """
+        print(f"Getting run response for thread: {assistant_thread.id}, run: {run.id}")
         while True:
-            if self._check_for_cancellation():
-                self._cancel_run()
             run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
             if run.status == "in_progress" or run.status == "queued":
                 time.sleep(self.llm_config.get("check_every_ms", 1000) / 1000)
