@@ -449,5 +449,5 @@ Rules:
                     "role": "system",
                 },
             ]
-            + messages[-leave_last_n:],
+            + messages[len(messages) - leave_last_n :], # messages[len(messages) - 0 :] when leave_last_n = 0
         )

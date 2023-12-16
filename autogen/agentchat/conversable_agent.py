@@ -266,6 +266,19 @@ class ConversableAgent(Agent):
         """
         return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
 
+    @staticmethod
+    def _message_to_dict(message: Union[Dict, str]) -> Dict:
+        """Convert a message to a dictionary.
+        The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
+        """
+        if isinstance(message, str):
+            return {"content": message}
+        elif isinstance(message, dict):
+            return message
+        else:
+            return dict(message)
+
+
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
@@ -282,6 +295,7 @@ class ConversableAgent(Agent):
         Returns:
             bool: whether the message is appended to the ChatCompletion conversation.
         """
+        message = self._message_to_dict(message)
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
         oai_message = {k: message[k] for k in ("content", "function_call", "tool_calls", "tool_call_id", "name", "context") if k in message and message[k] is not None}
         if "content" not in oai_message:
@@ -295,8 +309,6 @@ class ConversableAgent(Agent):
                 tool_call["name"] = self._normalize_name(tool_call["name"])
 
         oai_message["role"] = message.get("role", role)
-        oai_message.setdefault("name", self.name if role == "user" else conversation_id.name)
-        oai_message["name"] = self._normalize_name(oai_message["name"])
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
@@ -312,7 +324,7 @@ class ConversableAgent(Agent):
 
     def send(
         self,
-        message: Union[Dict, str],
+        message: Union[List[Union[Dict, str]], Dict, str],
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -362,7 +374,7 @@ class ConversableAgent(Agent):
 
     async def a_send(
         self,
-        message: Union[Dict, str],
+        message: Union[List[Union[Dict, str]], Dict, str],
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -413,6 +425,7 @@ class ConversableAgent(Agent):
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
         print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
+        message = self._message_to_dict(message)
 
         if message.get("role") in ["function", "tool"]:
             func_print = f"***** Response from calling function \"{message['name']}\" *****"
@@ -460,10 +473,10 @@ class ConversableAgent(Agent):
 
         print("\n", "-" * 80, flush=True, sep="")
 
-    def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
+    def _process_received_message(self, message: Union[List[Union[Dict, str]], Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "user", sender) for each_message in message])
+        valid = all([self._append_oai_message(self._message_to_dict(each_message), "user", sender) for each_message in message])
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -474,7 +487,7 @@ class ConversableAgent(Agent):
 
     def receive(
         self,
-        message: Union[Dict, str],
+        message: Union[List[Union[Dict, str]], Dict, str],
         sender: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -510,7 +523,7 @@ class ConversableAgent(Agent):
 
     async def a_receive(
         self,
-        message: Union[Dict, str],
+        message: Union[List[Union[Dict, str]], Dict, str],
         sender: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -652,6 +665,7 @@ class ConversableAgent(Agent):
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
 
+        # TODO: line 270, 298, 428, 479 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
             extracted_response = extracted_response.model_dump(mode="dict")
@@ -1412,6 +1426,41 @@ class ConversableAgent(Agent):
 
         if len(self.llm_config["functions"]) == 0:
             del self.llm_config["functions"]
+
+        self.client = OpenAIWrapper(**self.llm_config)
+
+    def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
+        """update a tool_signature in the LLM configuration for tool_call.
+
+        Args:
+            tool_sig (str or dict): description/name of the tool to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools
+            is_remove: whether removing the tool from llm_config with name 'tool_sig'
+        """
+
+        if not self.llm_config:
+            error_msg = "To update a tool signature, agent must have an llm_config"
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+
+        if is_remove:
+            if "tools" not in self.llm_config.keys():
+                error_msg = "The agent config doesn't have tool {name}.".format(name=tool_sig)
+                logger.error(error_msg)
+                raise AssertionError(error_msg)
+            else:
+                self.llm_config["tools"] = [
+                    tool for tool in self.llm_config["tools"] if tool["function"]["name"] != tool_sig
+                ]
+        else:
+            if "tools" in self.llm_config.keys():
+                self.llm_config["tools"] = [
+                    tool for tool in self.llm_config["tools"] if tool.get("name") != tool_sig["name"]
+                ] + [tool_sig]
+            else:
+                self.llm_config["tools"] = [tool_sig]
+
+        if len(self.llm_config["tools"]) == 0:
+            del self.llm_config["tools"]
 
         self.client = OpenAIWrapper(**self.llm_config)
 
