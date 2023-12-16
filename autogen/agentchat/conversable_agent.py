@@ -77,7 +77,7 @@ class ConversableAgent(Agent):
                     the number of auto reply reaches the max_consecutive_auto_reply.
                 (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
-            function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions.
+            function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions, also used for tool calls.
             code_execution_config (dict or False): config for the code execution.
                 To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
                 - work_dir (Optional, str): The working directory for the code execution.
@@ -1026,8 +1026,9 @@ class ConversableAgent(Agent):
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
         2. generate_function_call_reply
-        3. generate_code_execution_reply
-        4. generate_oai_reply
+        3. generate_tool_calls_repl
+        4. generate_code_execution_reply
+        5. generate_oai_reply
         Every function returns a tuple (final, reply).
         When a function returns final=False, the next function will be checked.
         So by default, termination and human reply will be checked first.
@@ -1077,8 +1078,9 @@ class ConversableAgent(Agent):
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
         2. generate_function_call_reply
-        3. generate_code_execution_reply
-        4. generate_oai_reply
+        3. generate_tool_calls_reply
+        4. generate_code_execution_reply
+        5. generate_oai_reply
         Every function returns a tuple (final, reply).
         When a function returns final=False, the next function will be checked.
         So by default, termination and human reply will be checked first.
@@ -1322,10 +1324,10 @@ class ConversableAgent(Agent):
     async def a_execute_function(self, func_call):
         """Execute an async function call and return the result.
 
-        Override this function to modify the way async functions are executed.
+        Override this function to modify the way async functions and tools are executed.
 
         Args:
-            func_call: a dictionary extracted from openai message at key "function_call" with keys "name" and "arguments".
+            func_call: a dictionary extracted from openai message at key "function_call" or "tool_calls" with keys "name" and "arguments".
 
         Returns:
             A tuple of (is_exec_success, result_dict).
