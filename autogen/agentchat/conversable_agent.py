@@ -109,7 +109,7 @@ class ConversableAgent(Agent):
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
-            else (lambda x: x.get("role") in ["assistant", "user"] and content_str(x.get("content")) == "TERMINATE")
+            else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
 
         if llm_config is False:
@@ -312,10 +312,6 @@ class ConversableAgent(Agent):
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
-            if oai_message.get("function_call", False):
-                oai_message["function_call"] = dict(oai_message["function_call"])
-            if oai_message.get("tool_calls", False):
-                oai_message["tool_calls"] = [dict(call) for call in oai_message.get("tool_calls", [])]
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
