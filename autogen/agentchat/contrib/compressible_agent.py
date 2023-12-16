@@ -5,6 +5,7 @@ import copy
 import asyncio
 import logging
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions, num_tokens_from_tools
+from llmlingua import PromptCompressor
 
 try:
     from termcolor import colored
@@ -350,10 +351,7 @@ Reply "TERMINATE" in the end when everything is done.
 
         TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
         """
-        # 1. use the compression client
-        client = self.compress_client if config is None else config
-
-        # 2. stop if there is only one message in the list
+        # Stop if there is only one message in the list
         leave_last_n = self.compress_config.get("leave_last_n", 0)
         if leave_last_n + 1 >= len(messages):
             logger.warning(
@@ -361,7 +359,7 @@ Reply "TERMINATE" in the end when everything is done.
             )
             return False, None
 
-        # 3. put all history into one, except the first one
+        # Put all history into one, except the first one
         if self.compress_config["verbose"]:
             print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
 
@@ -418,27 +416,12 @@ Reply "TERMINATE" in the end when everything is done.
         chat_to_compress = [{"role": "user", "content": chat_to_compress}]
 
         if self.compress_config["verbose"]:
-            print(chat_to_compress[0]["content"])
+            print(chat_to_compress, colored("\n" + "*" * 80, "magenta"), flush=True)
 
-        # 4. use LLM to compress
-        compress_sys_msg = """You are a helpful assistant that will summarize and compress conversation history.
-Rules:
-1. Please summarize each of the message and reserve the exact titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
-2. Try to compress the content but reserve important information (a link, a specific number, etc.).
-3. Use words to summarize the code blocks or functions calls (##FUNCTION_CALL##) and their goals. For code blocks, please use ##CODE## to mark it.
-4. For returns from functions (##FUNCTION_RETURN##) or returns from code execution: summarize the content and indicate the status of the return (e.g. success, error, etc.).
-"""
-        try:
-            response = client.create(
-                context=None,
-                messages=[{"role": "system", "content": compress_sys_msg}] + chat_to_compress,
-            )
-        except Exception as e:
-            print(colored(f"Failed to compress the content due to {e}", "red"), flush=True)
-            return False, None
+        compressed_message = self.compressor(
+            messages=chat_to_compress, tail_messages=messages[len(messages) - leave_last_n :], config=config
+        )
 
-        compressed_message = self.client.extract_text_or_completion_object(response)[0]
-        assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
         if self.compress_config["verbose"]:
             print(
                 colored("*" * 30 + "Content after compressing:" + "*" * 30, "magenta"),
@@ -446,7 +429,9 @@ Rules:
             )
             print(compressed_message, colored("\n" + "*" * 80, "magenta"))
 
-        # 5. add compressed message to the first message and return
+        assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
+
+        # Add compressed message to the first message and return
         return (
             True,
             [
@@ -458,3 +443,33 @@ Rules:
             ]
             + messages[len(messages) - leave_last_n :],  # messages[len(messages) - 0 :] when leave_last_n = 0
         )
+
+    def compressor(
+        self, messages: List[str] | str, tail_messages: List[str] | str = [], config: Optional[Any] = None
+    ) -> str:
+        messages = messages if isinstance(messages, list) else [messages]
+        messages = [{"role": "user", "content": message} for message in messages]
+
+        # Use LLM to compress
+        compress_sys_msg = """You are a helpful assistant that will summarize and compress conversation history.
+Rules:
+1. Please summarize each of the message and reserve the exact titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
+2. Try to compress the content but reserve important information (a link, a specific number, etc.).
+3. Use words to summarize the code blocks or functions calls (##FUNCTION_CALL##) and their goals. For code blocks, please use ##CODE## to mark it.
+4. For returns from functions (##FUNCTION_RETURN##) or returns from code execution: summarize the content and indicate the status of the return (e.g. success, error, etc.).
+"""
+        try:
+            # Use the compression client
+            client = self.compress_client if config is None else config
+
+            response = client.create(
+                context=None,
+                messages=[{"role": "system", "content": compress_sys_msg}] + messages,
+            )
+        except Exception as e:
+            print(colored(f"Failed to compress the content due to {e}", "red"), flush=True)
+            return False, None
+
+        compressed_message = self.client.extract_text_or_completion_object(response)[0]
+
+        return compressed_message

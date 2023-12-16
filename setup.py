@@ -15,6 +15,7 @@ __version__ = version["__version__"]
 
 install_requires = [
     "openai~=1.3",
+    "llmlingua",
     "diskcache",
     "termcolor",
     "flaml",
