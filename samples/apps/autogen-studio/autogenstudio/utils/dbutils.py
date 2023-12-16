@@ -3,7 +3,7 @@ import logging
 import sqlite3
 import threading
 import os
-from typing import Any, List, Dict, Tuple
+from typing import Any, List, Dict, Optional, Tuple
 from ..datamodel import AgentFlowSpec, AgentWorkFlowConfig, Gallery, Message, Session, Skill
 
 
@@ -386,18 +386,34 @@ def get_skills(user_id: str, dbmanager: DBManager) -> List[Skill]:
     return skills
 
 
-def create_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
+def upsert_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
     """
-    Create a new skill for a specific user in the database.
+    Insert or update a skill for a specific user in the database.
+
+    If the skill with the given ID already exists, it will be updated with the new data.
+    Otherwise, a new skill will be created.
 
     :param  skill: The Skill object containing skill data
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a skill
     """
 
-    query = "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)"
-    args = (skill.id, skill.user_id, skill.timestamp, skill.content, skill.title, skill.file_name)
-    dbmanager.query(query=query, args=args)
+    existing_skill = get_item_by_field("skills", "id", skill.id, dbmanager)
+
+    if existing_skill:
+        updated_data = {
+            "user_id": skill.user_id,
+            "timestamp": skill.timestamp,
+            "content": skill.content,
+            "title": skill.title,
+            "file_name": skill.file_name,
+        }
+        update_item("skills", skill.id, updated_data, dbmanager)
+    else:
+        query = "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)"
+        args = (skill.id, skill.user_id, skill.timestamp, skill.content, skill.title, skill.file_name)
+        dbmanager.query(query=query, args=args)
+
     skills = get_skills(user_id=skill.user_id, dbmanager=dbmanager)
 
     return skills
@@ -477,27 +493,44 @@ def get_agents(user_id: str, dbmanager: DBManager) -> List[AgentFlowSpec]:
     return agents
 
 
-def create_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[Dict[str, Any]]:
+def upsert_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[Dict[str, Any]]:
     """
-    Create a new agent for a specific user in the database.
+    Insert or update an agent for a specific user in the database.
+
+    If the agent with the given ID already exists, it will be updated with the new data.
+    Otherwise, a new agent will be created.
 
     :param agent_flow_spec: The AgentFlowSpec object containing agent configuration
     :param dbmanager: The DBManager instance to interact with the database
-    :return: A list of dictionaries, each representing an agent after insertion
+    :return: A list of dictionaries, each representing an agent after insertion or update
     """
 
-    query = "INSERT INTO agents (id, user_id, timestamp, config, type, description, skills) VALUES (?, ?, ?, ?, ?,?,?)"
-    config_json = json.dumps(agent_flow_spec.config.dict())
-    args = (
-        agent_flow_spec.id,
-        agent_flow_spec.user_id,
-        agent_flow_spec.timestamp,
-        config_json,
-        agent_flow_spec.type,
-        agent_flow_spec.description,
-        json.dumps([x.dict() for x in agent_flow_spec.skills] if agent_flow_spec.skills else []),
-    )
-    dbmanager.query(query=query, args=args)
+    existing_agent = get_item_by_field("agents", "id", agent_flow_spec.id, dbmanager)
+
+    if existing_agent:
+        updated_data = {
+            "user_id": agent_flow_spec.user_id,
+            "timestamp": agent_flow_spec.timestamp,
+            "config": json.dumps(agent_flow_spec.config.dict()),
+            "type": agent_flow_spec.type,
+            "description": agent_flow_spec.description,
+            "skills": json.dumps([x.dict() for x in agent_flow_spec.skills] if agent_flow_spec.skills else []),
+        }
+        update_item("agents", agent_flow_spec.id, updated_data, dbmanager)
+    else:
+        query = "INSERT INTO agents (id, user_id, timestamp, config, type, description, skills) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        config_json = json.dumps(agent_flow_spec.config.dict())
+        args = (
+            agent_flow_spec.id,
+            agent_flow_spec.user_id,
+            agent_flow_spec.timestamp,
+            config_json,
+            agent_flow_spec.type,
+            agent_flow_spec.description,
+            json.dumps([x.dict() for x in agent_flow_spec.skills] if agent_flow_spec.skills else []),
+        )
+        dbmanager.query(query=query, args=args)
+
     agents = get_agents(user_id=agent_flow_spec.user_id, dbmanager=dbmanager)
     return agents
 
@@ -514,7 +547,7 @@ def get_workflows(user_id: str, dbmanager: DBManager) -> List[Dict[str, Any]]:
     args = (user_id, "default")
     result = dbmanager.query(query=query, args=args, return_json=True)
     # Sort by timestamp ascending
-    result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
+    result = sorted(result, key=lambda k: k["timestamp"], reverse=True)
     workflows = []
     for row in result:
         row["sender"] = json.loads(row["sender"])
@@ -524,28 +557,93 @@ def get_workflows(user_id: str, dbmanager: DBManager) -> List[Dict[str, Any]]:
     return workflows
 
 
-def create_workflow(workflow: AgentWorkFlowConfig, dbmanager: DBManager) -> List[Dict[str, Any]]:
+def get_item_by_field(table: str, field: str, value: Any, dbmanager: DBManager) -> Optional[Dict[str, Any]]:
+    query = f"SELECT * FROM {table} WHERE {field} = ?"
+    args = (value,)
+    result = dbmanager.query(query=query, args=args)
+    return result[0] if result else None
+
+
+def update_item(table: str, item_id: str, updated_data: Dict[str, Any], dbmanager: DBManager) -> None:
+    set_clause = ", ".join([f"{key} = ?" for key in updated_data.keys()])
+    query = f"UPDATE {table} SET {set_clause} WHERE id = ?"
+    args = (*updated_data.values(), item_id)
+    dbmanager.query(query=query, args=args)
+
+
+def delete_item_by_field(
+    table: str, field: str, value: Any, user_id: str, dbmanager: DBManager
+) -> List[Dict[str, Any]]:
     """
-    Create a new workflow for a specific user in the database.
+    Delete an item from the specified table based on a field and its value.
+
+    :param table: The name of the table in the database
+    :param field: The field name to filter the items by
+    :param value: The value of the field to match for deletion
+    :param dbmanager: The DBManager instance to interact with the database
+    """
+    query = f"DELETE FROM {table} WHERE {field} = ?"
+    args = (value,)
+    dbmanager.query(query=query, args=args)
+
+    if table == "agents":
+        return get_agents(user_id=user_id, dbmanager=dbmanager)
+    # elif table == "messages":
+    #     return get_messages(user_id=user_id, dbmanager=dbmanager)
+    elif table == "sessions":
+        return get_sessions(user_id=user_id, dbmanager=dbmanager)
+    elif table == "skills":
+        return get_skills(user_id=user_id, dbmanager=dbmanager)
+    elif table == "workflows":
+        return get_workflows(user_id=user_id, dbmanager=dbmanager)
+    else:
+        return []
+
+
+def upsert_workflow(workflow: AgentWorkFlowConfig, dbmanager: DBManager) -> List[Dict[str, Any]]:
+    """
+    Insert or update a workflow for a specific user in the database.
+
+    If the workflow with the given ID already exists, it will be updated with the new data.
+    Otherwise, a new workflow will be created.
 
     :param workflow: The AgentWorkFlowConfig object containing workflow data
     :param dbmanager: The DBManager instance to interact with the database
-    :return: A list of dictionaries, each representing a workflow after insertion
+    :return: A list of dictionaries, each representing a workflow after insertion or update
     """
-    query = "INSERT INTO workflows (id, user_id, timestamp, sender, receiver, type, name, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-    args = (
-        workflow.id,
-        workflow.user_id,
-        workflow.timestamp,
-        json.dumps(workflow.sender.dict()),
-        json.dumps(
-            [receiver.dict() for receiver in workflow.receiver]
-            if isinstance(workflow.receiver, list)
-            else workflow.receiver.dict()
-        ),
-        workflow.type,
-        workflow.name,
-        workflow.description,
-    )
-    dbmanager.query(query=query, args=args)
+    existing_workflow = get_item_by_field("workflows", "id", workflow.id, dbmanager)
+
+    if existing_workflow:
+        updated_data = {
+            "user_id": workflow.user_id,
+            "timestamp": workflow.timestamp,
+            "sender": json.dumps(workflow.sender.dict()),
+            "receiver": json.dumps(
+                [receiver.dict() for receiver in workflow.receiver]
+                if isinstance(workflow.receiver, list)
+                else workflow.receiver.dict()
+            ),
+            "type": workflow.type,
+            "name": workflow.name,
+            "description": workflow.description,
+        }
+        update_item("workflows", workflow.id, updated_data, dbmanager)
+    else:
+        query = "INSERT INTO workflows (id, user_id, timestamp, sender, receiver, type, name, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        args = (
+            workflow.id,
+            workflow.user_id,
+            workflow.timestamp,
+            json.dumps(workflow.sender.dict()),
+            json.dumps(
+                [receiver.dict() for receiver in workflow.receiver]
+                if isinstance(workflow.receiver, list)
+                else workflow.receiver.dict()
+            ),
+            workflow.type,
+            workflow.name,
+            workflow.description,
+        )
+        dbmanager.query(query=query, args=args)
+
     return get_workflows(user_id=workflow.user_id, dbmanager=dbmanager)

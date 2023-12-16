@@ -7,6 +7,7 @@ import {
   fetchJSON,
   getServerUrl,
   sampleWorkflowConfig,
+  timeAgo,
   truncateText,
 } from "../../utils";
 import { Card, FlowConfigViewer, LaunchButton } from "../../atoms";
@@ -27,8 +28,9 @@ const WorkflowView = ({}: any) => {
     React.useState<IFlowConfig | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
-  const [newWorkflow, setNewWorkflow] =
-    React.useState<IFlowConfig>(defaultConfig);
+  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
+    defaultConfig
+  );
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = React.useState(false);
@@ -62,7 +64,7 @@ const WorkflowView = ({}: any) => {
     fetchJSON(listWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveWorkFlow = () => {
+  const saveWorkFlow = (workflow: IFlowConfig) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -74,7 +76,7 @@ const WorkflowView = ({}: any) => {
       },
       body: JSON.stringify({
         user_id: user?.email,
-        workflow: newWorkflow,
+        workflow: workflow,
       }),
     };
 
@@ -121,7 +123,7 @@ const WorkflowView = ({}: any) => {
             }}
           >
             <div className="my-2"> {truncateText(workflow.name, 70)}</div>
-            {/* <div className="text-xs">{timeAgo(skill.timestamp || "")}</div> */}
+            <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
           </Card>
         </div>
       );
@@ -158,6 +160,9 @@ const WorkflowView = ({}: any) => {
         open={showWorkflowModal}
         onOk={() => {
           setShowWorkflowModal(false);
+          if (handler) {
+            handler(localWorkflow as IFlowConfig);
+          }
         }}
         onCancel={() => {
           setShowWorkflowModal(false);
@@ -181,58 +186,22 @@ const WorkflowView = ({}: any) => {
         setWorkflow={setSelectedWorkflow}
         showWorkflowModal={showWorkflowModal}
         setShowWorkflowModal={setShowWorkflowModal}
+        handler={(workflow: IFlowConfig) => {
+          saveWorkFlow(workflow);
+          setShowWorkflowModal(false);
+        }}
       />
 
-      {/* <Modal
-        title={
-          <div>
-            <PlusIcon className="w-5 h-5 inline-block mr-1" />
-            New Workflow
-          </div>
-        }
-        width={800}
-        open={showNewWorkflowModal}
-        onOk={() => {
-          saveWorkFlow();
+      <WorkflowModal
+        workflow={newWorkflow}
+        setWorkflow={setNewWorkflow}
+        showWorkflowModal={showNewWorkflowModal}
+        setShowWorkflowModal={setShowNewWorkflowModal}
+        handler={(workflow: IFlowConfig) => {
+          saveWorkFlow(workflow);
           setShowNewWorkflowModal(false);
         }}
-        onCancel={() => {
-          setShowNewWorkflowModal(false);
-        }}
-        footer={[
-          <Button
-            key="back"
-            onClick={() => {
-              setShowNewWorkflowModal(false);
-            }}
-          >
-            Back
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={loading}
-            onClick={() => {
-              saveWorkFlow();
-              setShowNewWorkflowModal(false);
-            }}
-          >
-            Save
-          </Button>,
-        ]}
-      >
-        <>
-          <div className="mb-2">Create new workflow </div>
-          {workflows && workflows.length > 0 && (
-            <div>
-              <FlowConfigViewer
-                flowConfig={newWorkflow}
-                setFlowConfig={setNewWorkflow}
-              />
-            </div>
-          )}
-        </>
-      </Modal> */}
+      />
 
       <div className="mb-2   relative">
         <div className="overflow-x-hidden scroll     rounded  ">

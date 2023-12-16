@@ -90,7 +90,7 @@ async def add_message(req: ChatWebRequestModel):
 
 
 @api.get("/messages")
-def get_messages(user_id: str = None, session_id: str = None):
+async def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
     try:
@@ -110,7 +110,7 @@ def get_messages(user_id: str = None, session_id: str = None):
 
 
 @api.get("/gallery")
-def get_gallery_items(gallery_id: str = None):
+async def get_gallery_items(gallery_id: str = None):
     try:
         gallery = dbutils.get_gallery(gallery_id=gallery_id, dbmanager=dbmanager)
         return {
@@ -127,7 +127,7 @@ def get_gallery_items(gallery_id: str = None):
 
 
 @api.get("/sessions")
-def get_user_sessions(user_id: str = None):
+async def get_user_sessions(user_id: str = None):
     """Return a list of all sessions for a user"""
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
@@ -239,7 +239,7 @@ async def clear_db(req: DBWebRequestModel):
 
 
 @api.get("/skills")
-def get_user_skills(user_id: str):
+async def get_user_skills(user_id: str):
     try:
         skills = dbutils.get_skills(user_id, dbmanager=dbmanager)
 
@@ -257,7 +257,7 @@ def get_user_skills(user_id: str):
 
 
 @api.post("/skills")
-def create_user_skills(req: CreateSkillWebRequestModel):
+async def create_user_skills(req: CreateSkillWebRequestModel):
     """_summary_
 
     Args:
@@ -269,7 +269,7 @@ def create_user_skills(req: CreateSkillWebRequestModel):
     """
 
     try:
-        skills = dbutils.create_skill(skill=req.skill, dbmanager=dbmanager)
+        skills = dbutils.upsert_skill(skill=req.skill, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -286,7 +286,7 @@ def create_user_skills(req: CreateSkillWebRequestModel):
 
 
 @api.get("/agents")
-def get_user_agents(user_id: str):
+async def get_user_agents(user_id: str):
     try:
         agents = dbutils.get_agents(user_id, dbmanager=dbmanager)
 
@@ -304,11 +304,11 @@ def get_user_agents(user_id: str):
 
 
 @api.post("/agents")
-def create_user_agents(req: DBWebRequestModel):
+async def create_user_agents(req: DBWebRequestModel):
     """Create a new agent for a user"""
 
     try:
-        agents = dbutils.create_agent(agent_flow_spec=req.agent, dbmanager=dbmanager)
+        agents = dbutils.upsert_agent(agent_flow_spec=req.agent, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -325,7 +325,7 @@ def create_user_agents(req: DBWebRequestModel):
 
 
 @api.get("/workflows")
-def get_user_workflows(user_id: str):
+async def get_user_workflows(user_id: str):
     try:
         workflows = dbutils.get_workflows(user_id, dbmanager=dbmanager)
 
@@ -343,11 +343,11 @@ def get_user_workflows(user_id: str):
 
 
 @api.post("/workflows")
-def create_user_workflow(req: DBWebRequestModel):
+async def create_user_workflow(req: DBWebRequestModel):
     """Create a new workflow for a user"""
 
     try:
-        workflow = dbutils.create_workflow(workflow=req.workflow, dbmanager=dbmanager)
+        workflow = dbutils.upsert_workflow(workflow=req.workflow, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Workflow created successfully",

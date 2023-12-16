@@ -3,7 +3,7 @@ import { Modal, message } from "antd";
 import * as React from "react";
 import { IAgentFlowSpec, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import { fetchJSON, getServerUrl, truncateText } from "../../utils";
+import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
 import {
   AgentFlowSpecView,
   Card,
@@ -153,7 +153,7 @@ const AgentsView = ({}: any) => {
             {" "}
             {truncateText(agent.description || "", 70)}
           </div>
-          {/* <div className="text-xs">{timeAgo(skill.timestamp || "")}</div> */}
+          <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
         </Card>
       </div>
     );
@@ -219,6 +219,11 @@ const AgentsView = ({}: any) => {
         setAgent={setSelectedAgent}
         setShowAgentModal={setShowAgentModal}
         showAgentModal={showAgentModal}
+        handler={(agent: IAgentFlowSpec | null) => {
+          if (agent) {
+            saveAgent(agent);
+          }
+        }}
       />
 
       <AgentModal
