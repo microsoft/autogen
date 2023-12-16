@@ -31,14 +31,43 @@ For some scenarios, additional keys may be required (e.g., keys for the Bing Sea
 AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
 
 
+## Cloning Benchmarks
+To clone an existing benchmark, simply run:
+```
+autogenbench clone [BENCHMARK]
+```
+
+For example,
+
+```
+autogenbench clone HumanEval
+```
+
+To see which existing benchmarks are available to clone, run:
+
+```
+autogenbench clone --list
+```
+
 ## Running AutoGenBench
 
-To run the AutoGenBench, simply execute
-``autogenbench run scenarios/Examples``
+To run a benchmark (wich executes the tasks, but does not compute metrics), simply execute:
+```
+cd [BENCHMARK]
+autogenbench run Tasks
+```
 
-The default is to run each scenario once. To run each scenario 10 times, use:
+For example,
+```
+cd HumanEval
+autogenbench run Tasks
+```
 
-``autogenbench run --repeat 10 scenarios/Examples ``
+The default is to run each task once. To run each scenario 10 times, use:
+
+```
+autogenbench run --repeat 10 Tasks
+```
 
 The `autogenbench` command-line tool allows a number of command-line arguments to control various parameters of execution. Type ``autogenbench -h`` to explore these options:
 
@@ -197,63 +226,3 @@ Once the scenario has been expanded it is run (via run.sh). This script will exe
 8. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
 
 Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
-
-
-## Examples
-The following examples assume that you have cloned the [autogen](https://github.com/microsoft/autogen) GitHub repository.
-
-### (Example) Running HumanEval
-
-One sample Testbed scenario type is a variation of the classic [HumanEval](https://github.com/openai/human-eval) benchmark. In this scenario, agents are given access to the unit test results, and are able to continue to debug their code until the problem is solved or they run out of tokens or turns. We can then count how many turns it took to solve the problem (returning -1 if the problem remains unsolved by the end of the conversation, and "" if the run is missing).
-
-Accessing this scenario-type requires downloading and converting the HumanEval dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance 3 times with GPT-3.5-Turbo-16k:
-
-```
-python utils/download_humaneval.py
-autogenbench run scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
-python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
-cat human_eval_results_gpt35.csv
-```
-
-### (Example) Running GAIA
-
-The AutoGenBench can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if it (nearly) exactly matches an unambiguously accepted answer.
-
-Accessing this scenario-type requires downloading and converting the GAIA dataset, configuring a Bing API key, running AutoGenBench, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance once with GPT-4:
-
-```
-# Clone the GAIA dataset repo (assuming a 'repos' folder in your home directory)
-cd ~/repos
-git clone https://huggingface.co/datasets/gaia-benchmark/GAIA
-
-# Expand GAIA
-cd ~/repos/autogen/samples/tools/testbed
-python ./utils/expand_gaia.py ~/repos/GAIA
-
-
-# Configure the Bing API Key
-echo '{ "BING_API_KEY": "xxxyyyzzz" }' > ENV.json
-
-# Run GAIA
-autogenbench run ./scenarios/GAIA/gaia_validation_level_1__two_agents_gpt4.jsonl
-
-# Compute Metrics
-python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
-```
-
-### (Example) Running tasks from AutoGPT
-
-The AutoGenBench supports running tasks proposed in [AutoGPT benchmark](https://github.com/Significant-Gravitas/AutoGPT/tree/master/benchmark/agbenchmark/challenges). In this scenario, the agents are prompted to handle a diverse range of tasks, including coding, question answering according to given tasks, web scraping. Similar to scenarios in HumanEval, the agents can call the unit test script to check if the task is successfully done.
-
-Accessing this scenario-type requires converting tasks, running the Testbed, collating the results, and finally computing the metrics. The following commands will run each test instance with GPT-4:
-
-```
-# Convert tasks
-python utils/prepare_autogpt.py
-
-# Run all the scenarios with GPT-4
-autogenbench run scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
-
-# Compute metrics, the metric script shares the same one with HumanEval
-python utils/collate_autogpt.py ./results/autogpt_twoagent_gpt4 | python metrics_human_eval.py
-```

@@ -3,6 +3,7 @@ import json
 import sys
 import argparse
 import requests
+import importlib.util
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -10,6 +11,15 @@ SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 SCENARIO_PATH = os.path.join(SCRIPT_DIR, "scenarios")
+
+
+def load_module(module_path):
+    module_name = os.path.basename(module_path).replace(".py", "")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def get_scenarios():
@@ -61,9 +71,7 @@ def clone_scenario(scenario):
     # Run any post-download scripts
     download_script = os.path.join(scenario, "Scripts", "download.py")
     if os.path.isfile(download_script):
-        with open(download_script, "rt") as fh:
-            pyscript = fh.read()
-            exec(pyscript)
+        load_module(download_script).main()
 
     # Print the success
     print(f"\n\nSuccessfully cloned '{scenario}'")
