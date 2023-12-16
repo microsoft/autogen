@@ -108,8 +108,7 @@ class DBManager:
             self.init_db(path=self.path, **kwargs)
 
         try:
-            self.conn = sqlite3.connect(
-                self.path, check_same_thread=False, **kwargs)
+            self.conn = sqlite3.connect(self.path, check_same_thread=False, **kwargs)
             self.cursor = self.conn.cursor()
         except Exception as e:
             logger.error("Error connecting to database: %s", e)
@@ -165,13 +164,11 @@ class DBManager:
 
                 self.cursor.execute(
                     "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)",
-                    (skill.id, "default", skill.timestamp,
-                     skill.content, skill.title, skill.file_name),
+                    (skill.id, "default", skill.timestamp, skill.content, skill.title, skill.file_name),
                 )
             for agent in agents:
                 agent = AgentFlowSpec(**agent)
-                agent.skills = [skill.dict()
-                                for skill in agent.skills] if agent.skills else None
+                agent.skills = [skill.dict() for skill in agent.skills] if agent.skills else None
                 self.cursor.execute(
                     "INSERT INTO agents (id, user_id, timestamp, config, type, skills, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
@@ -222,12 +219,10 @@ class DBManager:
                 result = self.cursor.fetchall()
                 self.commit()
                 if return_json:
-                    result = [
-                        dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
+                    result = [dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
                 return result
         except Exception as e:
-            logger.error(
-                "Error running query with query %s and args %s: %s", query, args, e)
+            logger.error("Error running query with query %s and args %s: %s", query, args, e)
             raise e
 
     def commit(self) -> None:
@@ -309,8 +304,7 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     :return: A list of dictionaries, each representing a session
     """
     query = "INSERT INTO sessions (user_id, id, timestamp, flow_config) VALUES (?, ?, ?,?)"
-    args = (session.user_id, session.id, session.timestamp,
-            json.dumps(session.flow_config.dict()))
+    args = (session.user_id, session.id, session.timestamp, json.dumps(session.flow_config.dict()))
     dbmanager.query(query=query, args=args)
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
@@ -326,8 +320,7 @@ def create_gallery(session: Session, dbmanager: DBManager, tags: List[str] = [])
     :return: A gallery object containing the session and messages objects
     """
 
-    messages = get_messages(user_id=session.user_id,
-                            session_id=session.id, dbmanager=dbmanager)
+    messages = get_messages(user_id=session.user_id, session_id=session.id, dbmanager=dbmanager)
     gallery_item = Gallery(session=session, messages=messages, tags=tags)
     query = "INSERT INTO gallery (id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
     args = (
@@ -364,8 +357,7 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
         gallery_item = Gallery(
             id=row["id"],
             session=Session(**json.loads(row["session"])),
-            messages=[Message(**message)
-                      for message in json.loads(row["messages"])],
+            messages=[Message(**message) for message in json.loads(row["messages"])],
             tags=json.loads(row["tags"]),
             timestamp=row["timestamp"],
         )
@@ -404,8 +396,7 @@ def create_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
     """
 
     query = "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)"
-    args = (skill.id, skill.user_id, skill.timestamp,
-            skill.content, skill.title, skill.file_name)
+    args = (skill.id, skill.user_id, skill.timestamp, skill.content, skill.title, skill.file_name)
     dbmanager.query(query=query, args=args)
     skills = get_skills(user_id=skill.user_id, dbmanager=dbmanager)
 
@@ -459,8 +450,7 @@ def delete_message(
         query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ? AND session_id = ?"
         args = (user_id, msg_id, session_id)
         dbmanager.query(query=query, args=args)
-        messages = get_messages(
-            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        messages = get_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
         return messages
 
 
@@ -505,8 +495,7 @@ def create_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
         config_json,
         agent_flow_spec.type,
         agent_flow_spec.description,
-        json.dumps([x.dict() for x in agent_flow_spec.skills]
-                   if agent_flow_spec.skills else []),
+        json.dumps([x.dict() for x in agent_flow_spec.skills] if agent_flow_spec.skills else []),
     )
     dbmanager.query(query=query, args=args)
     agents = get_agents(user_id=agent_flow_spec.user_id, dbmanager=dbmanager)
