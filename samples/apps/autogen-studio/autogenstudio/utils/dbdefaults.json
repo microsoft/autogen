@@ -1,0 +1,189 @@
+{
+  "agents": [
+    {
+      "type": "userproxy",
+      "description": "A user proxy agent that executes code.",
+      "config": {
+        "name": "userproxy",
+        "human_input_mode": "NEVER",
+        "max_consecutive_auto_reply": 5,
+        "system_message": "",
+        "llm_config": false,
+        "code_execution_config": {
+          "work_dir": null,
+          "use_docker": false
+        }
+      }
+    },
+    {
+      "type": "assistant",
+      "description": "A primary assistant agent that writes plans and code to solve tasks.",
+      "skills": [
+        {
+          "title": "find_papers_arxiv",
+          "description": "This skill finds relevant papers on arXiv given a query.",
+          "content": "import os\nimport re\nimport json\nimport hashlib\n\n\ndef search_arxiv(query, max_results=10):\n    \"\"\"\n    Searches arXiv for the given query using the arXiv API, then returns the search results. This is a helper function. In most cases, callers will want to use 'find_relevant_papers( query, max_results )' instead.\n\n    Args:\n        query (str): The search query.\n        max_results (int, optional): The maximum number of search results to return. Defaults to 10.\n\n    Returns:\n        jresults (list): A list of dictionaries. Each dictionary contains fields such as 'title', 'authors', 'summary', and 'pdf_url'\n\n    Example:\n        >>> results = search_arxiv(\"attention is all you need\")\n        >>> print(results)\n    \"\"\"\n\n    import arxiv\n\n    key = hashlib.md5((\"search_arxiv(\" + str(max_results) + \")\" + query).encode(\"utf-8\")).hexdigest()\n    # Create the cache if it doesn't exist\n    cache_dir = \".cache\"\n    if not os.path.isdir(cache_dir):\n        os.mkdir(cache_dir)\n\n    fname = os.path.join(cache_dir, key + \".cache\")\n\n    # Cache hit\n    if os.path.isfile(fname):\n        fh = open(fname, \"r\", encoding=\"utf-8\")\n        data = json.loads(fh.read())\n        fh.close()\n        return data\n\n    # Normalize the query, removing operator keywords\n    query = re.sub(r\"[^\\s\\w]\", \" \", query.lower())\n    query = re.sub(r\"\\s(and|or|not)\\s\", \" \", \" \" + query + \" \")\n    query = re.sub(r\"[^\\s\\w]\", \" \", query.lower())\n    query = re.sub(r\"\\s+\", \" \", query).strip()\n\n    search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)\n\n    jresults = list()\n    for result in search.results():\n        r = dict()\n        r[\"entry_id\"] = result.entry_id\n        r[\"updated\"] = str(result.updated)\n        r[\"published\"] = str(result.published)\n        r[\"title\"] = result.title\n        r[\"authors\"] = [str(a) for a in result.authors]\n        r[\"summary\"] = result.summary\n        r[\"comment\"] = result.comment\n        r[\"journal_ref\"] = result.journal_ref\n        r[\"doi\"] = result.doi\n        r[\"primary_category\"] = result.primary_category\n        r[\"categories\"] = result.categories\n        r[\"links\"] = [str(link) for link in result.links]\n        r[\"pdf_url\"] = result.pdf_url\n        jresults.append(r)\n\n    if len(jresults) > max_results:\n        jresults = jresults[0:max_results]\n\n    # Save to cache\n    fh = open(fname, \"w\")\n    fh.write(json.dumps(jresults))\n    fh.close()\n    return jresults\n",
+          "file_name": "find_papers_arxiv.py"
+        },
+        {
+          "title": "generate_images",
+          "description": "This skill generates images from a given query using OpenAI's DALL-E model and saves them to disk.",
+          "content": "from typing import List\nimport uuid\nimport requests  # to perform HTTP requests\nfrom pathlib import Path\n\nfrom openai import OpenAI\n\n\ndef generate_and_save_images(query: str, image_size: str = \"1024x1024\") -> List[str]:\n    \"\"\"\n    Function to paint, draw or illustrate images based on the users query or request. Generates images from a given query using OpenAI's DALL-E model and saves them to disk.  Use the code below anytime there is a request to create an image.\n\n    :param query: A natural language description of the image to be generated.\n    :param image_size: The size of the image to be generated. (default is \"1024x1024\")\n    :return: A list of filenames for the saved images.\n    \"\"\"\n\n    client = OpenAI()  # Initialize the OpenAI client\n    response = client.images.generate(model=\"dall-e-3\", prompt=query, n=1, size=image_size)  # Generate images\n\n    # List to store the file names of saved images\n    saved_files = []\n\n    # Check if the response is successful\n    if response.data:\n        for image_data in response.data:\n            # Generate a random UUID as the file name\n            file_name = str(uuid.uuid4()) + \".png\"  # Assuming the image is a PNG\n            file_path = Path(file_name)\n\n            img_url = image_data.url\n            img_response = requests.get(img_url)\n            if img_response.status_code == 200:\n                # Write the binary content to a file\n                with open(file_path, \"wb\") as img_file:\n                    img_file.write(img_response.content)\n                    print(f\"Image saved to {file_path}\")\n                    saved_files.append(str(file_path))\n            else:\n                print(f\"Failed to download the image from {img_url}\")\n    else:\n        print(\"No image data found in the response!\")\n\n    # Return the list of saved files\n    return saved_files\n\n\n# Example usage of the function:\n# generate_and_save_images(\"A cute baby sea otter\")\n",
+          "file_name": "generate_images.py"
+        }
+      ],
+      "config": {
+        "name": "primary_assistant",
+        "llm_config": {
+          "config_list": [
+            {
+              "model": "gpt-4-1106-preview"
+            },
+            {
+              "model": "gpt-3.5-turbo-16k"
+            },
+            {
+              "model": "TheBloke/zephyr-7B-alpha-AWQ",
+              "base_url": "http://localhost:8000/v1"
+            }
+          ],
+          "temperature": 0.1,
+          "timeout": 600,
+          "cache_seed": null
+        },
+        "human_input_mode": "NEVER",
+        "max_consecutive_auto_reply": 8,
+        "system_message": "You are a helpful assistant that can use available functions when needed to solve problems. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. IF A FAILURE OCCURRED (e.g., due to a missing library) AND SOME ADDITIONAL CODE WAS WRITTEN (e.g. code to install the library), ENSURE THAT THE ORIGINAL CODE TO ADDRESS THE TASK STILL GETS EXECUTED. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc. The summary MUST end with the word TERMINATE. If the  user request is pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
+      }
+    }
+  ],
+  "skills": [
+    {
+      "title": "find_papers_arxiv",
+      "description": "This skill finds relevant papers on arXiv given a query.",
+      "content": "import os\nimport re\nimport json\nimport hashlib\n\n\ndef search_arxiv(query, max_results=10):\n    \"\"\"\n    Searches arXiv for the given query using the arXiv API, then returns the search results. This is a helper function. In most cases, callers will want to use 'find_relevant_papers( query, max_results )' instead.\n\n    Args:\n        query (str): The search query.\n        max_results (int, optional): The maximum number of search results to return. Defaults to 10.\n\n    Returns:\n        jresults (list): A list of dictionaries. Each dictionary contains fields such as 'title', 'authors', 'summary', and 'pdf_url'\n\n    Example:\n        >>> results = search_arxiv(\"attention is all you need\")\n        >>> print(results)\n    \"\"\"\n\n    import arxiv\n\n    key = hashlib.md5((\"search_arxiv(\" + str(max_results) + \")\" + query).encode(\"utf-8\")).hexdigest()\n    # Create the cache if it doesn't exist\n    cache_dir = \".cache\"\n    if not os.path.isdir(cache_dir):\n        os.mkdir(cache_dir)\n\n    fname = os.path.join(cache_dir, key + \".cache\")\n\n    # Cache hit\n    if os.path.isfile(fname):\n        fh = open(fname, \"r\", encoding=\"utf-8\")\n        data = json.loads(fh.read())\n        fh.close()\n        return data\n\n    # Normalize the query, removing operator keywords\n    query = re.sub(r\"[^\\s\\w]\", \" \", query.lower())\n    query = re.sub(r\"\\s(and|or|not)\\s\", \" \", \" \" + query + \" \")\n    query = re.sub(r\"[^\\s\\w]\", \" \", query.lower())\n    query = re.sub(r\"\\s+\", \" \", query).strip()\n\n    search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)\n\n    jresults = list()\n    for result in search.results():\n        r = dict()\n        r[\"entry_id\"] = result.entry_id\n        r[\"updated\"] = str(result.updated)\n        r[\"published\"] = str(result.published)\n        r[\"title\"] = result.title\n        r[\"authors\"] = [str(a) for a in result.authors]\n        r[\"summary\"] = result.summary\n        r[\"comment\"] = result.comment\n        r[\"journal_ref\"] = result.journal_ref\n        r[\"doi\"] = result.doi\n        r[\"primary_category\"] = result.primary_category\n        r[\"categories\"] = result.categories\n        r[\"links\"] = [str(link) for link in result.links]\n        r[\"pdf_url\"] = result.pdf_url\n        jresults.append(r)\n\n    if len(jresults) > max_results:\n        jresults = jresults[0:max_results]\n\n    # Save to cache\n    fh = open(fname, \"w\")\n    fh.write(json.dumps(jresults))\n    fh.close()\n    return jresults\n",
+      "file_name": "find_papers_arxiv.py"
+    },
+    {
+      "title": "fetch_profile",
+      "description": "This skill fetches the text content from a personal website.",
+      "content": "from typing import Optional\nimport requests\nfrom bs4 import BeautifulSoup\n\n\ndef fetch_user_profile(url: str) -> Optional[str]:\n    \"\"\"\n    Fetches the text content from a personal website.\n\n    Given a URL of a person's personal website, this function scrapes\n    the content of the page and returns the text found within the <body>.\n\n    Args:\n        url (str): The URL of the person's personal website.\n\n    Returns:\n        Optional[str]: The text content of the website's body, or None if any error occurs.\n    \"\"\"\n    try:\n        # Send a GET request to the URL\n        response = requests.get(url)\n        # Check for successful access to the webpage\n        if response.status_code == 200:\n            # Parse the HTML content of the page using BeautifulSoup\n            soup = BeautifulSoup(response.text, \"html.parser\")\n            # Extract the content of the <body> tag\n            body_content = soup.find(\"body\")\n            # Return all the text in the body tag, stripping leading/trailing whitespaces\n            return \" \".join(body_content.stripped_strings) if body_content else None\n        else:\n            # Return None if the status code isn't 200 (success)\n            return None\n    except requests.RequestException:\n        # Return None if any request-related exception is caught\n        return None\n",
+      "file_name": "fetch_profile.py"
+    },
+    {
+      "title": "generate_images",
+      "description": "This skill generates images from a given query using OpenAI's DALL-E model and saves them to disk.",
+      "content": "from typing import List\nimport uuid\nimport requests  # to perform HTTP requests\nfrom pathlib import Path\n\nfrom openai import OpenAI\n\n\ndef generate_and_save_images(query: str, image_size: str = \"1024x1024\") -> List[str]:\n    \"\"\"\n    Function to paint, draw or illustrate images based on the users query or request. Generates images from a given query using OpenAI's DALL-E model and saves them to disk.  Use the code below anytime there is a request to create an image.\n\n    :param query: A natural language description of the image to be generated.\n    :param image_size: The size of the image to be generated. (default is \"1024x1024\")\n    :return: A list of filenames for the saved images.\n    \"\"\"\n\n    client = OpenAI()  # Initialize the OpenAI client\n    response = client.images.generate(model=\"dall-e-3\", prompt=query, n=1, size=image_size)  # Generate images\n\n    # List to store the file names of saved images\n    saved_files = []\n\n    # Check if the response is successful\n    if response.data:\n        for image_data in response.data:\n            # Generate a random UUID as the file name\n            file_name = str(uuid.uuid4()) + \".png\"  # Assuming the image is a PNG\n            file_path = Path(file_name)\n\n            img_url = image_data.url\n            img_response = requests.get(img_url)\n            if img_response.status_code == 200:\n                # Write the binary content to a file\n                with open(file_path, \"wb\") as img_file:\n                    img_file.write(img_response.content)\n                    print(f\"Image saved to {file_path}\")\n                    saved_files.append(str(file_path))\n            else:\n                print(f\"Failed to download the image from {img_url}\")\n    else:\n        print(\"No image data found in the response!\")\n\n    # Return the list of saved files\n    return saved_files\n\n\n# Example usage of the function:\n# generate_and_save_images(\"A cute baby sea otter\")\n",
+      "file_name": "generate_images.py"
+    }
+  ],
+  "workflows": [
+    {
+      "name": "General Agent Workflow",
+      "description": "This workflow is used for general purpose tasks.",
+      "sender": {
+        "type": "userproxy",
+        "config": {
+          "name": "userproxy",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 10,
+          "system_message": "",
+          "llm_config": false,
+          "code_execution_config": {
+            "work_dir": null,
+            "use_docker": false
+          }
+        }
+      },
+      "receiver": {
+        "type": "assistant",
+        "description": "Default assistant to generate plans and write code to solve tasks.",
+        "skills": [
+          {
+            "title": "find_papers_arxiv",
+            "description": "This skill finds relevant papers on arXiv given a query.",
+            "content": "import os\nimport re\nimport json\nimport hashlib\n\n\ndef search_arxiv(query, max_results=10):\n    \"\"\"\n    Searches arXiv for the given query using the arXiv API, then returns the search results. This is a helper function. In most cases, callers will want to use 'find_relevant_papers( query, max_results )' instead.\n\n    Args:\n        query (str): The search query.\n        max_results (int, optional): The maximum number of search results to return. Defaults to 10.\n\n    Returns:\n        jresults (list): A list of dictionaries. Each dictionary contains fields such as 'title', 'authors', 'summary', and 'pdf_url'\n\n    Example:\n        >>> results = search_arxiv(\"attention is all you need\")\n        >>> print(results)\n    \"\"\"\n\n    import arxiv\n\n    key = hashlib.md5((\"search_arxiv(\" + str(max_results) + \")\" + query).encode(\"utf-8\")).hexdigest()\n    # Create the cache if it doesn't exist\n    cache_dir = \".cache\"\n    if not os.path.isdir(cache_dir):\n        os.mkdir(cache_dir)\n\n    fname = os.path.join(cache_dir, key + \".cache\")\n\n    # Cache hit\n    if os.path.isfile(fname):\n        fh = open(fname, \"r\", encoding=\"utf-8\")\n        data = json.loads(fh.read())\n        fh.close()\n        return data\n\n    # Normalize the query, removing operator keywords\n    query = re.sub(r\"[^\\s\\w]\", \" \", query.lower())\n    query = re.sub(r\"\\s(and|or|not)\\s\", \" \", \" \" + query + \" \")\n    query = re.sub(r\"[^\\s\\w]\", \" \", query.lower())\n    query = re.sub(r\"\\s+\", \" \", query).strip()\n\n    search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.Relevance)\n\n    jresults = list()\n    for result in search.results():\n        r = dict()\n        r[\"entry_id\"] = result.entry_id\n        r[\"updated\"] = str(result.updated)\n        r[\"published\"] = str(result.published)\n        r[\"title\"] = result.title\n        r[\"authors\"] = [str(a) for a in result.authors]\n        r[\"summary\"] = result.summary\n        r[\"comment\"] = result.comment\n        r[\"journal_ref\"] = result.journal_ref\n        r[\"doi\"] = result.doi\n        r[\"primary_category\"] = result.primary_category\n        r[\"categories\"] = result.categories\n        r[\"links\"] = [str(link) for link in result.links]\n        r[\"pdf_url\"] = result.pdf_url\n        jresults.append(r)\n\n    if len(jresults) > max_results:\n        jresults = jresults[0:max_results]\n\n    # Save to cache\n    fh = open(fname, \"w\")\n    fh.write(json.dumps(jresults))\n    fh.close()\n    return jresults\n",
+            "file_name": "find_papers_arxiv.py"
+          },
+          {
+            "title": "generate_images",
+            "description": "This skill generates images from a given query using OpenAI's DALL-E model and saves them to disk.",
+            "content": "from typing import List\nimport uuid\nimport requests  # to perform HTTP requests\nfrom pathlib import Path\n\nfrom openai import OpenAI\n\n\ndef generate_and_save_images(query: str, image_size: str = \"1024x1024\") -> List[str]:\n    \"\"\"\n    Function to paint, draw or illustrate images based on the users query or request. Generates images from a given query using OpenAI's DALL-E model and saves them to disk.  Use the code below anytime there is a request to create an image.\n\n    :param query: A natural language description of the image to be generated.\n    :param image_size: The size of the image to be generated. (default is \"1024x1024\")\n    :return: A list of filenames for the saved images.\n    \"\"\"\n\n    client = OpenAI()  # Initialize the OpenAI client\n    response = client.images.generate(model=\"dall-e-3\", prompt=query, n=1, size=image_size)  # Generate images\n\n    # List to store the file names of saved images\n    saved_files = []\n\n    # Check if the response is successful\n    if response.data:\n        for image_data in response.data:\n            # Generate a random UUID as the file name\n            file_name = str(uuid.uuid4()) + \".png\"  # Assuming the image is a PNG\n            file_path = Path(file_name)\n\n            img_url = image_data.url\n            img_response = requests.get(img_url)\n            if img_response.status_code == 200:\n                # Write the binary content to a file\n                with open(file_path, \"wb\") as img_file:\n                    img_file.write(img_response.content)\n                    print(f\"Image saved to {file_path}\")\n                    saved_files.append(str(file_path))\n            else:\n                print(f\"Failed to download the image from {img_url}\")\n    else:\n        print(\"No image data found in the response!\")\n\n    # Return the list of saved files\n    return saved_files\n\n\n# Example usage of the function:\n# generate_and_save_images(\"A cute baby sea otter\")\n",
+            "file_name": "generate_images.py"
+          }
+        ],
+        "config": {
+          "name": "primary_assistant",
+          "llm_config": {
+            "config_list": [
+              {
+                "model": "gpt-4-1106-preview"
+              },
+              {
+                "model": "gpt-3.5-turbo-16k"
+              },
+              {
+                "model": "TheBloke/zephyr-7B-alpha-AWQ",
+                "base_url": "http://localhost:8000/v1"
+              }
+            ],
+            "temperature": 0.1,
+            "timeout": 600,
+            "cache_seed": null
+          },
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 15,
+          "system_message": "You are a helpful assistant that can use available functions when needed to solve problems. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. IF A FAILURE OCCURRED (e.g., due to a missing library) AND SOME ADDITIONAL CODE WAS WRITTEN (e.g. code to install the library), ENSURE THAT THE ORIGINAL CODE TO ADDRESS THE TASK STILL GETS EXECUTED. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
+        }
+      },
+      "type": "default"
+    },
+    {
+      "name": "Visualization Agent Workflow",
+      "description": "This workflow is used for visualization tasks.",
+      "sender": {
+        "type": "userproxy",
+        "description": "User proxy agent to execute code",
+        "config": {
+          "name": "userproxy",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 5,
+          "system_message": "",
+          "llm_config": false,
+          "code_execution_config": {
+            "work_dir": null,
+            "use_docker": false
+          }
+        }
+      },
+      "receiver": {
+        "type": "assistant",
+        "description": "Visualization assistant to create plans and write code to generate visualizations",
+        "config": {
+          "name": "visualization_assistant",
+          "llm_config": {
+            "config_list": [
+              {
+                "model": "gpt-4-1106-preview"
+              },
+              {
+                "model": "gpt-3.5-turbo-16k"
+              },
+              {
+                "model": "TheBloke/zephyr-7B-alpha-AWQ",
+                "base_url": "http://localhost:8000/v1"
+              }
+            ],
+            "temperature": 0.1,
+            "timeout": 600,
+            "cache_seed": null
+          },
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 4,
+          "system_message": "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The visualization should have an APPROPRIATE ASPECT RATIO e..g rectangular for time series data. The title must be bold. Importantly, if THE CHART IS A LINE CHART, you MUST ADD ALINE OF BEST FIT and ADD TEXT ON THE SLOPE OF EACH LINE. Note that today's date is 12/10/2023. At each point, do your best to determine if the user's request has been addressed and if so, respond with a summary. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request '. The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
+        }
+      },
+      "type": "default"
+    }
+  ]
+}

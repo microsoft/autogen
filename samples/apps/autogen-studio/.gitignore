@@ -1,0 +1,24 @@
+database.sqlite
+.cache/*
+autogenstudio/web/files/user/*
+autogenstudio/web/files/ui/*
+OAI_CONFIG_LIST
+scratch/
+autogenstudio/web/workdir/*
+autogenstudio/web/ui/*
+autogenstudio/web/skills/user/*
+.release.sh
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
