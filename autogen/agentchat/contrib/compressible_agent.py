@@ -115,10 +115,12 @@ Reply "TERMINATE" in the end when everything is done.
             self.llm_compress_config = False
             self.compress_client = None
         else:
-            self.llm_compress_config = self.llm_config.copy()
+            self.llm_compress_config = dict(self.llm_config, **self.compress_config.get("llm_config", {}))
             # remove functions
             if "functions" in self.llm_compress_config:
                 del self.llm_compress_config["functions"]
+            if "tools" in self.llm_compress_config:
+                del self.llm_compress_config["tools"]
             self.compress_client = OpenAIWrapper(**self.llm_compress_config)
 
         self._reply_func_list.clear()
@@ -256,17 +258,23 @@ Reply "TERMINATE" in the end when everything is done.
 
     def _get_valid_oai_message(self, message):
         """Convert a message into a valid OpenAI ChatCompletion message."""
-        oai_message = {k: message[k] for k in ("content", "function_call", "name", "context", "role") if k in message}
+        # create oai message to be appended to the oai conversation that can be passed to oai directly.
+        oai_message = {k: message[k] for k in ("role", "content", "function_call", "tool_calls", "tool_call_id", "name", "context") if k in message and message[k] is not None}
         if "content" not in oai_message:
-            if "function_call" in oai_message:
+            if "function_call" in oai_message or "tool_calls" in oai_message:
                 oai_message["content"] = None  # if only function_call is provided, content will be set to None.
             else:
                 raise ValueError(
                     "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
                 )
-        if "function_call" in oai_message:
+
+        if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
-            oai_message["function_call"] = dict(oai_message["function_call"])
+            if oai_message.get("function_call", False):
+                oai_message["function_call"] = dict(oai_message["function_call"])
+            if oai_message.get("tool_calls", False):
+                oai_message["tool_calls"] = [dict(call) for call in oai_message.get("tool_calls", [])]
+
         return oai_message
 
     def _print_compress_info(self, init_token_count, token_used, token_after_compression):
@@ -314,7 +322,7 @@ Reply "TERMINATE" in the end when everything is done.
                 # switching the role of the messages for the sender
                 for i in range(len(sender._oai_messages[self])):
                     cmsg = sender._oai_messages[self][i]
-                    if "function_call" in cmsg or cmsg["role"] == "user":
+                    if "function_call" in cmsg or "tool_calls" in cmsg or cmsg["role"] == "user":
                         cmsg["role"] = "assistant"
                     elif cmsg["role"] == "assistant":
                         cmsg["role"] = "user"
@@ -355,10 +363,18 @@ Reply "TERMINATE" in the end when everything is done.
         compressed_prompt = "Below is the compressed content from the previous conversation, evaluate the process and continue if necessary:\n"
         chat_to_compress = "To be compressed:\n"
 
+        # Tool and function responses must pair with their calls, so if we're keeping a return make sure to keep the call
+        while messages[-leave_last_n].get("role") in ["function", "tool"]:
+            leave_last_n += 1
+
         for m in messages[1 : len(messages) - leave_last_n]:  # 0, 1, 2, 3, 4
             # Handle function role
             if m.get("role") == "function":
                 chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"): \n{m['content']}\n"
+
+            # Handle tool role
+            elif m.get("role") == "tool":
+                chat_to_compress += f"##TOOL_RETURN## (from tool \"{m['name']}\", tool call id \"{m['tool_call_id']}\"): \n{m['content']}\n"
 
             # If name exists in the message
             elif "name" in m:
@@ -380,6 +396,17 @@ Reply "TERMINATE" in the end when everything is done.
                     chat_to_compress += f"##FUNCTION_CALL## {m['function_call']}\n"
                 else:
                     chat_to_compress += f"##FUNCTION_CALL## \nName: {function_name}\nArgs: {function_args}\n"
+
+            if "tool_calls" in m:
+                for tool_call in m["tool_calls"]:
+                    tool_call_id = tool_call.get("id")
+                    function_name = tool_call["function"].get("name")
+                    function_args = tool_call["function"].get("arguments")
+
+                    if not (tool_call_id and function_name and function_args):
+                        chat_to_compress += f"##TOOL_CALL## {tool_call['tool_call']}\n"
+                    else:
+                        chat_to_compress += f"##TOOL_CALL## ToolCallId: {tool_call_id} \nName: {function_name}\nArgs: {function_args}\n"
 
         chat_to_compress = [{"role": "user", "content": chat_to_compress}]
 
@@ -422,5 +449,5 @@ Rules:
                     "role": "system",
                 },
             ]
-            + messages[len(messages) - leave_last_n :],
+            + messages[-leave_last_n:],
         )

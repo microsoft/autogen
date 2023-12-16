@@ -3,6 +3,7 @@ import copy
 import functools
 import json
 import logging
+import re
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
@@ -108,7 +109,7 @@ class ConversableAgent(Agent):
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
-            else (lambda x: content_str(x.get("content")) == "TERMINATE")
+            else (lambda x: x.get("role") in ["assistant", "user"] and content_str(x.get("content")) == "TERMINATE")
         )
 
         if llm_config is False:
@@ -263,26 +264,13 @@ class ConversableAgent(Agent):
         """
         return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
 
-    @staticmethod
-    def _message_to_dict(message: Union[Dict, str]) -> Dict:
-        """Convert a message to a dictionary.
-
-        The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
-        """
-        if isinstance(message, str):
-            return {"content": message}
-        elif isinstance(message, dict):
-            return message
-        else:
-            return dict(message)
-
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
         If the message received is a string, it will be put in the "content" field of the new dictionary.
-        If the message received is a dictionary but does not have any of the two fields "content" or "function_call",
+        If the message received is a dictionary but does not have any of the three fields "content", "function_call", or "tool_calls",
             this message is not a valid ChatCompletion message.
-        If only "function_call" is provided, "content" will be set to None if not provided, and the role of the message will be forced "assistant".
+        If only "function_call" or "tool_calls" is provided, "content" will be set to None if not provided, and the role of the message will be forced "assistant".
 
         Args:
             message (dict or str): message to be appended to the ChatCompletion conversation.
@@ -292,21 +280,33 @@ class ConversableAgent(Agent):
         Returns:
             bool: whether the message is appended to the ChatCompletion conversation.
         """
-        message = self._message_to_dict(message)
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
-        oai_message = {k: message[k] for k in ("content", "function_call", "name", "context") if k in message}
+        oai_message = {k: message[k] for k in ("content", "function_call", "tool_calls", "tool_call_id", "name", "context") if k in message and message[k] is not None}
         if "content" not in oai_message:
-            if "function_call" in oai_message:
+            if "function_call" in oai_message or "tool_calls" in oai_message:
                 oai_message["content"] = None  # if only function_call is provided, content will be set to None.
             else:
                 return False
 
-        oai_message["role"] = "function" if message.get("role") == "function" else role
-        if "function_call" in oai_message:
+        for tool_call in oai_message.get("tool_calls", []):
+            if tool_call.get("name", False):
+                tool_call["name"] = self._normalize_name(tool_call["name"])
+
+        oai_message["role"] = message.get("role", role)
+        oai_message.setdefault("name", self.name if role == "user" else conversation_id.name)
+        oai_message["name"] = self._normalize_name(oai_message["name"])
+
+        if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
-            oai_message["function_call"] = dict(oai_message["function_call"])
+            if oai_message.get("function_call", False):
+                oai_message["function_call"] = dict(oai_message["function_call"])
+            if oai_message.get("tool_calls", False):
+                oai_message["tool_calls"] = [dict(call) for call in oai_message.get("tool_calls", [])]
         self._oai_messages[conversation_id].append(oai_message)
         return True
+
+    def _normalize_name(self, name):
+        return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
     def send(
         self,
@@ -349,7 +349,8 @@ class ConversableAgent(Agent):
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
-        valid = self._append_oai_message(message, "assistant", recipient)
+        message = [message] if not isinstance(message, list) else message
+        valid = all([self._append_oai_message(each_message, "user", recipient) for each_message in message])
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
@@ -398,7 +399,8 @@ class ConversableAgent(Agent):
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
-        valid = self._append_oai_message(message, "assistant", recipient)
+        message = [message] if not isinstance(message, list) else message
+        valid = all([self._append_oai_message(each_message, "user", recipient) for each_message in message])
         if valid:
             await recipient.a_receive(message, self, request_reply, silent)
         else:
@@ -409,9 +411,8 @@ class ConversableAgent(Agent):
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
         print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
-        message = self._message_to_dict(message)
 
-        if message.get("role") == "function":
+        if message.get("role") in ["function", "tool"]:
             func_print = f"***** Response from calling function \"{message['name']}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
@@ -426,7 +427,7 @@ class ConversableAgent(Agent):
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
                 print(content_str(content), flush=True)
-            if "function_call" in message:
+            if "function_call" in message and message["function_call"] is not None:
                 function_call = dict(message["function_call"])
                 func_print = (
                     f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
@@ -439,18 +440,34 @@ class ConversableAgent(Agent):
                     sep="",
                 )
                 print(colored("*" * len(func_print), "green"), flush=True)
+            if "tool_calls" in message and message["tool_calls"]:
+                for tool_call in message["tool_calls"]:
+                    id = tool_call.get("id", "(No id found)")
+                    function_call = dict(tool_call.get("function", {}))
+                    func_print = (
+                        f"***** Suggested tool Call ({id}): {function_call.get('name', '(No function name found)')} *****"
+                    )
+                    print(colored(func_print, "green"), flush=True)
+                    print(
+                        "Arguments: \n",
+                        function_call.get("arguments", "(No arguments found)"),
+                        flush=True,
+                        sep="",
+                    )
+                    print(colored("*" * len(func_print), "green"), flush=True)
+
         print("\n", "-" * 80, flush=True, sep="")
 
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
-        message = self._message_to_dict(message)
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
-        valid = self._append_oai_message(message, "user", sender)
+        message = [message] if not isinstance(message, list) else message
+        valid = all([self._append_oai_message(each_message, "user", sender) for each_message in message])
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
         if not silent:
-            self._print_received_message(message, sender)
+            [self._print_received_message(each_message, sender) for each_message in message]
 
     def receive(
         self,
@@ -632,10 +649,11 @@ class ConversableAgent(Agent):
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
 
-        # TODO: line 301, line 271 is converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
             extracted_response = extracted_response.model_dump(mode="dict")
+        if not isinstance(extracted_response, dict):
+            extracted_response = {"content": extracted_response}
         return True, extracted_response
 
     async def a_generate_oai_reply(
@@ -710,9 +728,23 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
-        if "function_call" in message:
+        if "function_call" in message and message["function_call"]:
             _, func_return = self.execute_function(message["function_call"])
             return True, func_return
+        if "tool_calls" in message and message["tool_calls"]:
+            tool_calls = message["tool_calls"]
+            tool_returns = []
+            for tool_call in tool_calls:
+                id = tool_call["id"]
+                function_call = tool_call.get("function", {})
+                _, func_return = self.execute_function(function_call)
+                tool_returns.append({
+                    "tool_call_id": id,
+                    "role": "tool",
+                    "name": func_return.get("name", ""),
+                    "content": func_return.get("content", "")
+                })
+            return True, tool_returns
         return False, None
 
     async def a_generate_function_call_reply(
@@ -817,7 +849,7 @@ class ConversableAgent(Agent):
         if reply or self._max_consecutive_auto_reply_dict[sender] == 0:
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender] = 0
-            return True, reply
+            return True, {"role": "user", "content": reply}
 
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
@@ -1180,6 +1212,8 @@ class ConversableAgent(Agent):
             result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
         """
         func_name = func_call.get("name", "")
+        # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
+        func_name = self._normalize_name(func_name)
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
@@ -1232,6 +1266,8 @@ class ConversableAgent(Agent):
             result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
         """
         func_name = func_call.get("name", "")
+        # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
+        func_name = self._normalize_name(func_name)
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
@@ -1277,7 +1313,7 @@ class ConversableAgent(Agent):
         Args:
             **context: any context information, and "message" parameter needs to be provided.
         """
-        return context["message"]
+        return {"content": context["message"]}
 
     def register_function(self, function_map: Dict[str, Callable]):
         """Register functions to the agent.
