@@ -6,6 +6,7 @@ import { useConfigStore } from "../../../hooks/store";
 import { fetchJSON, getServerUrl } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import { Link } from "gatsby";
+import { Square2StackIcon } from "@heroicons/react/24/outline";
 
 const AgentsWorkflowView = () => {
   const [error, setError] = React.useState<IStatus | null>({
@@ -68,7 +69,10 @@ const AgentsWorkflowView = () => {
 
   return (
     <div className=" mb-4 relative">
-      <div className="font-semibold pb-2 border-b">Agent Workflow </div>
+      <div className="font-semibold pb-2 border-b">
+        <Square2StackIcon className="h-5 w-5 inline-block mr-1" />
+        Workflow{" "}
+      </div>
       <div className="text-xs mt-2 mb-2 pb-1  ">
         {" "}
         Select or create an agent workflow.{" "}

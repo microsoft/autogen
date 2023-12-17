@@ -1,4 +1,8 @@
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  InformationCircleIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { Modal, message } from "antd";
 import * as React from "react";
 import { IAgentFlowSpec, IStatus } from "../../types";
@@ -28,7 +32,7 @@ const AgentsView = ({}: any) => {
   const [selectedAgent, setSelectedAgent] =
     React.useState<IAgentFlowSpec | null>(null);
 
-  const [showNewSkillModal, setShowNewSkillModal] = React.useState(false);
+  const [showNewAgentModal, setShowNewAgentModal] = React.useState(false);
 
   const [showAgentModal, setShowAgentModal] = React.useState(false);
 
@@ -176,30 +180,32 @@ const AgentsView = ({}: any) => {
   const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
     return (
       <div key={"agentrow" + i} className=" " style={{ width: "200px" }}>
-        <Card
-          className="h-full p-2 cursor-pointer"
-          title={agent.config.name}
-          onClick={() => {
-            setSelectedAgent(agent);
-            setShowAgentModal(true);
-          }}
-        >
-          <div className="my-2">
-            {" "}
-            {truncateText(agent.description || "", 70)}
-          </div>
-          <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
-        </Card>
-        <div className="text-right mt-2">
-          <div
-            role="button"
-            className="text-accent text-xs inline-block"
+        <div className="h-full">
+          <Card
+            className="h-full p-2 cursor-pointer"
+            title={agent.config.name}
             onClick={() => {
-              deleteAgent(agent);
+              setSelectedAgent(agent);
+              setShowAgentModal(true);
             }}
           >
-            <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-            <span className="text-xs"> delete</span>
+            <div className="my-2">
+              {" "}
+              {truncateText(agent.description || "", 70)}
+            </div>
+            <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
+          </Card>
+          <div className="text-right mt-2">
+            <div
+              role="button"
+              className="text-accent text-xs inline-block"
+              onClick={() => {
+                deleteAgent(agent);
+              }}
+            >
+              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+              <span className="text-xs"> delete</span>
+            </div>
           </div>
         </div>
       </div>
@@ -276,8 +282,8 @@ const AgentsView = ({}: any) => {
       <AgentModal
         agent={newAgent || sampleAgent}
         setAgent={setNewAgent}
-        setShowAgentModal={setShowNewSkillModal}
-        showAgentModal={showNewSkillModal}
+        setShowAgentModal={setShowNewAgentModal}
+        showAgentModal={showNewAgentModal}
         handler={(agent: IAgentFlowSpec | null) => {
           if (agent) {
             saveAgent(agent);
@@ -286,39 +292,42 @@ const AgentsView = ({}: any) => {
       />
 
       <div className="mb-2   relative">
-        <div className="overflow-x-hidden scroll     rounded  ">
-          <div className="font-semibold mb-2 pb-1 border-b">
-            {" "}
-            Agents ({agentRows.length}){" "}
+        <div className="     rounded  ">
+          <div className="flex mt-2 pb-2 mb-2 border-b">
+            <div className="flex-1 font-semibold mb-2 ">
+              {" "}
+              Agents ({agentRows.length}){" "}
+            </div>
+            <LaunchButton
+              className="text-sm p-2 px-3"
+              onClick={() => {
+                setShowNewAgentModal(true);
+              }}
+            >
+              {" "}
+              <PlusIcon className="w-5 h-5 inline-block mr-1" />
+              New Agent
+            </LaunchButton>
           </div>
+
           <div className="text-xs mb-2 pb-1  ">
             {" "}
             Configure an agent that can reused in your agent workflow{" "}
             {selectedAgent?.config.name}
           </div>
-          {agents && (
-            <div
-              style={{ height: "200px" }}
-              className="w-full scroll  overflow-auto relative"
-            >
+          {agents && agents.length > 0 && (
+            <div className="w-full  relative">
               <LoadingOverlay loading={loading} />
               <div className="   flex flex-wrap gap-3">{agentRows}</div>
             </div>
           )}
-        </div>
 
-        <div className="flex mt-2">
-          <div className="flex-1"></div>
-          <LaunchButton
-            className="text-sm p-2 px-3"
-            onClick={() => {
-              setShowNewSkillModal(true);
-            }}
-          >
-            {" "}
-            <PlusIcon className="w-5 h-5 inline-block mr-1" />
-            New Agent
-          </LaunchButton>
+          {agents && agents.length === 0 && (
+            <div className="text-sm border mt-4 rounded text-secondary p-2">
+              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+              No agents found. Please create a new agent.
+            </div>
+          )}
         </div>
       </div>
     </div>

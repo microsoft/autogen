@@ -1,30 +1,16 @@
 import {
-  ClockIcon,
+  GlobeAltIcon,
   PlusIcon,
-  QueueListIcon,
+  Square3Stack3DIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Modal, message } from "antd";
+import { message } from "antd";
 import * as React from "react";
 import { IChatSession, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import {
-  fetchJSON,
-  getSampleSkill,
-  getServerUrl,
-  timeAgo,
-  truncateText,
-} from "../../utils";
-import {
-  CodeBlock,
-  CollapseBox,
-  LaunchButton,
-  LoadBox,
-  LoadingOverlay,
-  MarkdownView,
-} from "../../atoms";
+import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
+import { LaunchButton, LoadingOverlay } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
-import TextArea from "antd/es/input/TextArea";
 
 const SessionsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -38,6 +24,7 @@ const SessionsView = ({}: any) => {
   const listSessionUrl = `${serverUrl}/sessions?user_id=${user?.email}`;
   const createSessionUrl = `${serverUrl}/sessions`;
   const publishSessionUrl = `${serverUrl}/sessions/publish`;
+  const deleteSessionUrl = `${serverUrl}/sessions/delete`;
 
   const sessions = useConfigStore((state) => state.sessions);
   const workflowConfig = useConfigStore((state) => state.workflowConfig);
@@ -46,6 +33,38 @@ const SessionsView = ({}: any) => {
   //   React.useState<IChatSession | null>(null);
   const session = useConfigStore((state) => state.session);
   const setSession = useConfigStore((state) => state.setSession);
+
+  const deleteSession = (session: IChatSession) => {
+    setError(null);
+    setLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user?.email,
+        session: session,
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        setSessions(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(deleteSessionUrl, payLoad, onSuccess, onError);
+  };
 
   const fetchSessions = () => {
     setError(null);
@@ -174,7 +193,10 @@ const SessionsView = ({}: any) => {
       ? "bg-accent text-white"
       : "bg-secondary text-primary";
     return (
-      <div key={"sessionsrow" + index} className="  mb-2 pb-1   ">
+      <div
+        key={"sessionsrow" + index}
+        className="  mb-2 pb-1  border-b border-dashed "
+      >
         <div
           className={`rounded p-2 cursor-pointer ${rowClass}`}
           role="button"
@@ -185,8 +207,18 @@ const SessionsView = ({}: any) => {
           <div className="text-xs">{truncateText(data.id, 27)}</div>
           <div className="text-xs text-right ">{timeAgo(data.timestamp)} </div>
         </div>
-        <div className="flex mt-1 text-secondary">
+        <div className="flex mt-2 text-secondary">
           <div className="flex-1"></div>
+          <div
+            role="button"
+            onClick={() => {
+              deleteSession(data);
+            }}
+            className="text-xs px-2  hover:text-accent cursor-pointer"
+          >
+            <TrashIcon className="w-4 h-4 inline-block mr-1 " />
+            delete{" "}
+          </div>
 
           <div
             role="button"
@@ -195,7 +227,7 @@ const SessionsView = ({}: any) => {
             }}
             className="text-xs px-2  hover:text-accent cursor-pointer"
           >
-            {" "}
+            <GlobeAltIcon className="w-4 h-4 inline-block mr-1 " />
             publish{" "}
           </div>
         </div>
@@ -214,7 +246,10 @@ const SessionsView = ({}: any) => {
     <div className="  ">
       <div className="mb-2 relative">
         <div className="">
-          <div className="font-semibold mb-2 pb-1 border-b">Sessions </div>
+          <div className="font-semibold mb-2 pb-1 border-b">
+            <Square3Stack3DIcon className="h-5 w-5 inline-block mr-1" />
+            Sessions{" "}
+          </div>
           <div className="text-xs mb-2 pb-1  ">
             {" "}
             Create a new session or select an existing session to view chat.

@@ -1334,6 +1334,33 @@ export const FlowConfigViewer = ({
           />
         }
       />
+
+      <ControlRowView
+        title="Summary Method"
+        description="Defines the method to summarize the conversation"
+        value={localFlowConfig.summary_method || "last"}
+        control={
+          <Select
+            className="mt-2 w-full"
+            defaultValue={localFlowConfig.summary_method || "last"}
+            onChange={(value: any) => {
+              const updatedConfig = {
+                ...localFlowConfig,
+                summary_method: value,
+              };
+              setLocalFlowConfig(updatedConfig);
+              setFlowConfig(updatedConfig);
+            }}
+            options={
+              [
+                { label: "last", value: "last" },
+                { label: "none", value: "none" },
+                { label: "llm", value: "llm" },
+              ] as any
+            }
+          />
+        }
+      />
       <div className="flex gap-3 ">
         <div className="w-1/2">
           <div className="">

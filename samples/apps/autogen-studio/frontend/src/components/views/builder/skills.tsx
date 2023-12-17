@@ -1,4 +1,8 @@
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  InformationCircleIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { Input, Modal, message } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
@@ -246,38 +250,43 @@ const SkillsView = ({}: any) => {
       </Modal>
 
       <div className="mb-2   relative">
-        <div className="overflow-x-hidden scroll     rounded  ">
-          <div className="font-semibold mb-2 pb-1 border-b">
-            {" "}
-            Skills ({skillRows.length}){" "}
+        <div className="">
+          <div className="flex mt-2 pb-2 mb-2 border-b">
+            <div className="flex-1 font-semibold mb-2 ">
+              {" "}
+              Skills ({skillRows.length}){" "}
+            </div>
+            <LaunchButton
+              className="text-sm p-2 px-3"
+              onClick={() => {
+                setShowNewSkillModal(true);
+              }}
+            >
+              {" "}
+              <PlusIcon className="w-5 h-5 inline-block mr-1" />
+              New Skill
+            </LaunchButton>
           </div>
           <div className="text-xs mb-2 pb-1  ">
             {" "}
             Skills are python functions that agents can use to solve tasks.{" "}
           </div>
-          {skills && (
+          {skills && skills.length > 0 && (
             <div
-              style={{ height: "200px" }}
-              className="w-full scroll  overflow-auto relative"
+              // style={{ height: "400px" }}
+              className="w-full  relative"
             >
               <LoadingOverlay loading={loading} />
               <div className="   flex flex-wrap gap-3">{skillRows}</div>
             </div>
           )}
-        </div>
 
-        <div className="flex mt-2">
-          <div className="flex-1"></div>
-          <LaunchButton
-            className="text-sm p-2 px-3"
-            onClick={() => {
-              setShowNewSkillModal(true);
-            }}
-          >
-            {" "}
-            <PlusIcon className="w-5 h-5 inline-block mr-1" />
-            New Skill
-          </LaunchButton>
+          {skills && skills.length === 0 && (
+            <div className="text-sm border mt-4 rounded text-secondary p-2">
+              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+              No skills found. Please create a new skill.
+            </div>
+          )}
         </div>
       </div>
     </div>

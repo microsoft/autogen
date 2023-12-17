@@ -168,29 +168,29 @@ const ChatBox = ({
       });
     }
 
-    if (messages.length - 1 === i) {
-      // items.push({
-      //   type: "divider",
-      // });
+    // if (messages.length - 1 === i) {
+    //   // items.push({
+    //   //   type: "divider",
+    //   // });
 
-      items.push({
-        label: (
-          <div
-            onClick={() => {
-              console.log("deleting", message);
-              deleteMessage(message.msg_id);
-            }}
-          >
-            <TrashIcon
-              title={"Delete message"}
-              className="h-4 w-4 mr-1 inline-block"
-            />
-            Delete Message
-          </div>
-        ),
-        key: "deletemessage",
-      });
-    }
+    //   items.push({
+    //     label: (
+    //       <div
+    //         onClick={() => {
+    //           console.log("deleting", message);
+    //           deleteMessage(message.msg_id);
+    //         }}
+    //       >
+    //         <TrashIcon
+    //           title={"Delete message"}
+    //           className="h-4 w-4 mr-1 inline-block"
+    //         />
+    //         Delete Message
+    //       </div>
+    //     ),
+    //     key: "deletemessage",
+    //   });
+    // }
 
     const menu = (
       <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">

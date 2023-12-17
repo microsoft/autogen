@@ -1,4 +1,8 @@
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  InformationCircleIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 import { Button, Modal, message } from "antd";
 import * as React from "react";
 import { IFlowConfig, IStatus } from "../../types";
@@ -10,7 +14,12 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import { Card, FlowConfigViewer, LaunchButton } from "../../atoms";
+import {
+  Card,
+  FlowConfigViewer,
+  LaunchButton,
+  LoadingOverlay,
+} from "../../atoms";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -148,26 +157,29 @@ const WorkflowView = ({}: any) => {
     (workflow: IFlowConfig, i: number) => {
       return (
         <div key={"workflowrow" + i} className=" " style={{ width: "200px" }}>
-          <Card
-            className="h-full p-2 cursor-pointer block"
-            title={workflow.name}
-            onClick={() => {
-              setSelectedWorkflow(workflow);
-            }}
-          >
-            <div className="my-2"> {truncateText(workflow.name, 70)}</div>
-            <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
-          </Card>
-          <div className="text-right mt-2">
-            <div
-              role="button"
-              className="text-accent text-xs inline-block"
+          <div className="h-full ">
+            {" "}
+            <Card
+              className="h-full block p-2 cursor-pointer"
+              title={workflow.name}
               onClick={() => {
-                deleteWorkFlow(workflow);
+                setSelectedWorkflow(workflow);
               }}
             >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
+              <div className="my-2"> {truncateText(workflow.name, 70)}</div>
+              <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
+            </Card>
+            <div className="text-right  mt-2">
+              <div
+                role="button"
+                className="text-accent text-xs inline-block"
+                onClick={() => {
+                  deleteWorkFlow(workflow);
+                }}
+              >
+                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                <span className="text-xs"> delete</span>
+              </div>
             </div>
           </div>
         </div>
@@ -249,37 +261,44 @@ const WorkflowView = ({}: any) => {
       />
 
       <div className="mb-2   relative">
-        <div className="overflow-x-hidden scroll     rounded  ">
-          <div className="font-semibold mb-2 pb-1 border-b">
-            {" "}
-            Workflows ({workflowRows.length}){" "}
+        <div className="     rounded  ">
+          <div className="flex mt-2 pb-2 mb-2 border-b">
+            <div className="flex-1 font-semibold mb-2 ">
+              {" "}
+              Workflows ({workflowRows.length}){" "}
+            </div>
+            <LaunchButton
+              className="-mt-2 text-sm p-2 px-3"
+              onClick={() => {
+                setShowNewWorkflowModal(true);
+              }}
+            >
+              {" "}
+              <PlusIcon className="w-5 h-5 inline-block mr-1" />
+              New Workflow
+            </LaunchButton>
           </div>
+
           <div className="text-xs mb-2 pb-1  ">
             {" "}
             Configure an agent workflow that can be used to handle tasks.
           </div>
-          {workflows && (
+          {workflows && workflows.length > 0 && (
             <div
-              style={{ height: "200px" }}
-              className="w-full scroll  overflow-auto relative"
+              // style={{ minHeight: "500px" }}
+              className="w-full relative"
             >
-              <div className="   flex flex-wrap gap-3">{workflowRows}</div>
+              <LoadingOverlay loading={loading} />
+              <div className="flex flex-wrap gap-3">{workflowRows}</div>
             </div>
           )}
-        </div>
 
-        <div className="flex mt-2">
-          <div className="flex-1"></div>
-          <LaunchButton
-            className="text-sm p-2 px-3"
-            onClick={() => {
-              setShowNewWorkflowModal(true);
-            }}
-          >
-            {" "}
-            <PlusIcon className="w-5 h-5 inline-block mr-1" />
-            New Workflow
-          </LaunchButton>
+          {workflows && workflows.length === 0 && (
+            <div className="text-sm border mt-4 rounded text-secondary p-2">
+              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+              No workflows found. Please create a new workflow.
+            </div>
+          )}
         </div>
       </div>
     </div>

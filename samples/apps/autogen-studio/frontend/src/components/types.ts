@@ -59,6 +59,7 @@ export interface IFlowConfig {
   receiver: IAgentFlowSpec;
   type: "default" | "groupchat";
   timestamp?: string;
+  summary_method?: "none" | "last" | "llm";
 }
 
 export interface IModelConfig {

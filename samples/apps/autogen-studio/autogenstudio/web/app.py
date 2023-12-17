@@ -197,6 +197,27 @@ async def publish_user_session_to_gallery(req: DBWebRequestModel):
         }
 
 
+@api.delete("/sessions/delete")
+async def delete_user_session(req: DBWebRequestModel):
+    """Delete a session for a user"""
+
+    try:
+        sessions = dbutils.delete_session(
+            session=req.session, dbmanager=dbmanager
+        )
+        return {
+            "status": True,
+            "message": "Session deleted successfully",
+            "data": sessions,
+        }
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while deleting session: " + str(ex_error),
+        }
+
+
 @api.post("/messages/delete")
 async def remove_message(req: DeleteMessageWebRequestModel):
     """Delete a message from the database"""
@@ -209,36 +230,6 @@ async def remove_message(req: DeleteMessageWebRequestModel):
             "status": True,
             "message": "Message deleted successfully",
             "data": messages,
-        }
-    except Exception as ex_error:
-        print(ex_error)
-        return {
-            "status": False,
-            "message": "Error occurred while deleting message: " + str(ex_error),
-        }
-
-
-@api.post("/cleardb")
-async def clear_db(req: DBWebRequestModel):
-    """Clear user conversation history database and files"""
-
-    # user_files_dir = os.path.join(folders["files_static_root"], "user", md5_hash(req.user_id))
-    # user_skills_dir = os.path.join(folders["user_skills_dir"], md5_hash(req.user_id))
-
-    # delete_files_in_folder([user_files_dir])
-
-    try:
-        dbutils.delete_message(
-            user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True
-        )
-        sessions = dbutils.delete_sessions(
-            user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
-        return {
-            "status": True,
-            "data": {
-                "sessions": sessions,
-            },
-            "message": "Messages and files cleared successfully",
         }
     except Exception as ex_error:
         print(ex_error)
