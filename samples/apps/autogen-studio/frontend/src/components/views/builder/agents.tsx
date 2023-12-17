@@ -25,8 +25,8 @@ const AgentsView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
-  const saveAgentsUrl = `${serverUrl}/agents/`;
-  const deleteAgentUrl = `${serverUrl}/agents/delete/`;
+  const saveAgentsUrl = `${serverUrl}/agents`;
+  const deleteAgentUrl = `${serverUrl}/agents/delete`;
 
   const [agents, setAgents] = React.useState<IAgentFlowSpec[] | null>([]);
   const [selectedAgent, setSelectedAgent] =

@@ -28,8 +28,8 @@ const SkillsView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
-  const saveSkillsUrl = `${serverUrl}/skills/`;
-  const deleteSkillsUrl = `${serverUrl}/skills/delete/`;
+  const saveSkillsUrl = `${serverUrl}/skills`;
+  const deleteSkillsUrl = `${serverUrl}/skills/delete`;
 
   const [skills, setSkills] = React.useState<ISkill[] | null>([]);
   const [selectedSkill, setSelectedSkill] = React.useState<any>(null);
