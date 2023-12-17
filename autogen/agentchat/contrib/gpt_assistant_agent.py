@@ -259,7 +259,7 @@ class GPTAssistantAgent(ConversableAgent):
         Raises:
             Exception: If the run encounters an unexpected status.
         """
-        print(f"Getting run response for thread: {assistant_thread.id}, run: {run.id}")
+        logger.info(f"Getting run response for thread: {assistant_thread.id}, run: {run.id}")
         while True:
             run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
             if run.status == "in_progress" or run.status == "queued":
