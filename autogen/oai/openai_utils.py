@@ -6,6 +6,8 @@ from typing import List, Optional, Dict, Set, Union
 import logging
 from dotenv import find_dotenv, load_dotenv
 
+from openai import OpenAI
+from openai.types.beta.assistant import Assistant
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 
@@ -413,7 +415,7 @@ def config_list_from_dotenv(
     return config_list
 
 
-def retrieve_assistants_by_name(client, name):
+def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
     """
     Return the assistants with the given name from OAI assistant API
     """
