@@ -1,4 +1,4 @@
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Modal, message } from "antd";
 import * as React from "react";
 import { IAgentFlowSpec, IStatus } from "../../types";
@@ -22,6 +22,7 @@ const AgentsView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
   const saveAgentsUrl = `${serverUrl}/agents/`;
+  const deleteAgentUrl = `${serverUrl}/agents/delete/`;
 
   const [agents, setAgents] = React.useState<IAgentFlowSpec[] | null>([]);
   const [selectedAgent, setSelectedAgent] =
@@ -55,6 +56,40 @@ const AgentsView = ({}: any) => {
   const [newAgent, setNewAgent] = React.useState<IAgentFlowSpec | null>(
     sampleAgent
   );
+
+  const deleteAgent = (agent: IAgentFlowSpec) => {
+    setError(null);
+    setLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user?.email,
+        agent: agent,
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        console.log("agents", data.data);
+        setAgents(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(deleteAgentUrl, payLoad, onSuccess, onError);
+  };
+
   const fetchAgent = () => {
     setError(null);
     setLoading(true);
@@ -155,6 +190,18 @@ const AgentsView = ({}: any) => {
           </div>
           <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
         </Card>
+        <div className="text-right mt-2">
+          <div
+            role="button"
+            className="text-accent text-xs inline-block"
+            onClick={() => {
+              deleteAgent(agent);
+            }}
+          >
+            <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+            <span className="text-xs"> delete</span>
+          </div>
+        </div>
       </div>
     );
   });
@@ -251,7 +298,7 @@ const AgentsView = ({}: any) => {
           </div>
           {agents && (
             <div
-              style={{ height: "160px" }}
+              style={{ height: "200px" }}
               className="w-full scroll  overflow-auto relative"
             >
               <LoadingOverlay loading={loading} />

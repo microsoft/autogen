@@ -211,17 +211,11 @@ class DeleteMessageWebRequestModel(object):
 
 
 @dataclass
-class CreateSkillWebRequestModel(object):
-    user_id: str
-    skill: Skill
-
-
-@dataclass
 class DBWebRequestModel(object):
     user_id: str
     msg_id: Optional[str] = None
     session: Optional[Session] = None
-    skills: Optional[Union[str, List[str]]] = None
+    skill: Optional[Skill] = None
     tags: Optional[List[str]] = None
     agent: Optional[AgentFlowSpec] = None
     workflow: Optional[AgentWorkFlowConfig] = None

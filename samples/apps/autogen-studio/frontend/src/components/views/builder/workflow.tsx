@@ -1,4 +1,4 @@
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button, Modal, message } from "antd";
 import * as React from "react";
 import { IFlowConfig, IStatus } from "../../types";
@@ -22,6 +22,7 @@ const WorkflowView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listWorkflowsUrl = `${serverUrl}/workflows?user_id=${user?.email}`;
   const saveWorkflowsUrl = `${serverUrl}/workflows/`;
+  const deleteWorkflowsUrl = `${serverUrl}/workflows/delete/`;
 
   const [workflows, setWorkflows] = React.useState<IFlowConfig[] | null>([]);
   const [selectedWorkflow, setSelectedWorkflow] =
@@ -62,6 +63,38 @@ const WorkflowView = ({}: any) => {
       setLoading(false);
     };
     fetchJSON(listWorkflowsUrl, payLoad, onSuccess, onError);
+  };
+
+  const deleteWorkFlow = (workflow: IFlowConfig) => {
+    setError(null);
+    setLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user?.email,
+        workflow: workflow,
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        setWorkflows(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(deleteWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
   const saveWorkFlow = (workflow: IFlowConfig) => {
@@ -116,7 +149,7 @@ const WorkflowView = ({}: any) => {
       return (
         <div key={"workflowrow" + i} className=" " style={{ width: "200px" }}>
           <Card
-            className="h-full p-2 cursor-pointer"
+            className="h-full p-2 cursor-pointer block"
             title={workflow.name}
             onClick={() => {
               setSelectedWorkflow(workflow);
@@ -125,6 +158,18 @@ const WorkflowView = ({}: any) => {
             <div className="my-2"> {truncateText(workflow.name, 70)}</div>
             <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
           </Card>
+          <div className="text-right mt-2">
+            <div
+              role="button"
+              className="text-accent text-xs inline-block"
+              onClick={() => {
+                deleteWorkFlow(workflow);
+              }}
+            >
+              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+              <span className="text-xs"> delete</span>
+            </div>
+          </div>
         </div>
       );
     }
@@ -215,7 +260,7 @@ const WorkflowView = ({}: any) => {
           </div>
           {workflows && (
             <div
-              style={{ height: "160px" }}
+              style={{ height: "200px" }}
               className="w-full scroll  overflow-auto relative"
             >
               <div className="   flex flex-wrap gap-3">{workflowRows}</div>

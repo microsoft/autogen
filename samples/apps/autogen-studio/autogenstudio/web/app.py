@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from ..datamodel import (
     ChatWebRequestModel,
     DBWebRequestModel,
-    CreateSkillWebRequestModel,
     DeleteMessageWebRequestModel,
     Message,
     Session,
@@ -46,8 +45,10 @@ api = FastAPI(root_path="/api")
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
-app.mount("/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
-api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
+app.mount(
+    "/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
+api.mount(
+    "/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
 
 db_path = os.path.join(root_file_path, "database.sqlite")
@@ -58,11 +59,13 @@ chatmanager = AutoGenChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
-    user_history = dbutils.get_messages(user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
+    user_history = dbutils.get_messages(
+        user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
 
     # save incoming message to db
     dbutils.create_message(message=message, dbmanager=dbmanager)
-    user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
+    user_dir = os.path.join(
+        folders["files_static_root"], "user", md5_hash(message.user_id))
     os.makedirs(user_dir, exist_ok=True)
 
     try:
@@ -94,7 +97,8 @@ async def get_messages(user_id: str = None, session_id: str = None):
     if user_id is None:
         raise HTTPException(status_code=400, detail="user_id is required")
     try:
-        user_history = dbutils.get_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        user_history = dbutils.get_messages(
+            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -112,7 +116,8 @@ async def get_messages(user_id: str = None, session_id: str = None):
 @api.get("/gallery")
 async def get_gallery_items(gallery_id: str = None):
     try:
-        gallery = dbutils.get_gallery(gallery_id=gallery_id, dbmanager=dbmanager)
+        gallery = dbutils.get_gallery(
+            gallery_id=gallery_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": gallery,
@@ -133,7 +138,8 @@ async def get_user_sessions(user_id: str = None):
         raise HTTPException(status_code=400, detail="user_id is required")
 
     try:
-        user_sessions = dbutils.get_sessions(user_id=user_id, dbmanager=dbmanager)
+        user_sessions = dbutils.get_sessions(
+            user_id=user_id, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -154,8 +160,10 @@ async def create_user_session(req: DBWebRequestModel):
     # print(req.session, "**********" )
 
     try:
-        session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
-        user_sessions = dbutils.create_session(user_id=req.user_id, session=session, dbmanager=dbmanager)
+        session = Session(user_id=req.session.user_id,
+                          flow_config=req.session.flow_config)
+        user_sessions = dbutils.create_session(
+            user_id=req.user_id, session=session, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session created successfully",
@@ -174,7 +182,8 @@ async def publish_user_session_to_gallery(req: DBWebRequestModel):
     """Create a new session for a user"""
 
     try:
-        gallery_item = dbutils.create_gallery(req.session, tags=req.tags, dbmanager=dbmanager)
+        gallery_item = dbutils.create_gallery(
+            req.session, tags=req.tags, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Session successfully published",
@@ -222,7 +231,8 @@ async def clear_db(req: DBWebRequestModel):
         dbutils.delete_message(
             user_id=req.user_id, msg_id=None, session_id=req.session.session_id, dbmanager=dbmanager, delete_all=True
         )
-        sessions = dbutils.delete_sessions(user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
+        sessions = dbutils.delete_sessions(
+            user_id=req.user_id, session_id=req.session.session_id, dbmanager=dbmanager)
         return {
             "status": True,
             "data": {
@@ -257,17 +267,7 @@ async def get_user_skills(user_id: str):
 
 
 @api.post("/skills")
-async def create_user_skills(req: CreateSkillWebRequestModel):
-    """_summary_
-
-    Args:
-        user_id (str): the user id
-        skills (Skill[]):  the skills to be created
-
-    Returns:
-        _type_: dict
-    """
-
+async def create_user_skills(req: DBWebRequestModel):
     try:
         skills = dbutils.upsert_skill(skill=req.skill, dbmanager=dbmanager)
 
@@ -282,6 +282,27 @@ async def create_user_skills(req: CreateSkillWebRequestModel):
         return {
             "status": False,
             "message": "Error occurred while creating skills: " + str(ex_error),
+        }
+
+
+@api.delete("/skills/delete")
+async def delete_user_skills(req: DBWebRequestModel):
+    """Delete a skill for a user"""
+
+    try:
+        skills = dbutils.delete_skill(req.skill, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Skill deleted successfully",
+            "data": skills,
+        }
+
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while deleting skill: " + str(ex_error),
         }
 
 
@@ -308,7 +329,8 @@ async def create_user_agents(req: DBWebRequestModel):
     """Create a new agent for a user"""
 
     try:
-        agents = dbutils.upsert_agent(agent_flow_spec=req.agent, dbmanager=dbmanager)
+        agents = dbutils.upsert_agent(
+            agent_flow_spec=req.agent, dbmanager=dbmanager)
 
         return {
             "status": True,
@@ -321,6 +343,28 @@ async def create_user_agents(req: DBWebRequestModel):
         return {
             "status": False,
             "message": "Error occurred while creating agent: " + str(ex_error),
+        }
+
+
+@api.delete("/agents/delete")
+async def delete_user_agent(req: DBWebRequestModel):
+    """Delete an agent for a user"""
+
+    try:
+        agents = dbutils.delete_agent(
+            agent=req.agent, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Agent deleted successfully",
+            "data": agents,
+        }
+
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while deleting agent: " + str(ex_error),
         }
 
 
@@ -347,7 +391,8 @@ async def create_user_workflow(req: DBWebRequestModel):
     """Create a new workflow for a user"""
 
     try:
-        workflow = dbutils.upsert_workflow(workflow=req.workflow, dbmanager=dbmanager)
+        workflow = dbutils.upsert_workflow(
+            workflow=req.workflow, dbmanager=dbmanager)
         return {
             "status": True,
             "message": "Workflow created successfully",
@@ -359,4 +404,25 @@ async def create_user_workflow(req: DBWebRequestModel):
         return {
             "status": False,
             "message": "Error occurred while creating workflow: " + str(ex_error),
+        }
+
+
+@api.delete("/workflows/delete")
+async def delete_user_workflow(req: DBWebRequestModel):
+    """Delete a workflow for a user"""
+
+    try:
+        workflow = dbutils.delete_workflow(
+            workflow=req.workflow, dbmanager=dbmanager)
+        return {
+            "status": True,
+            "message": "Workflow deleted successfully",
+            "data": workflow,
+        }
+
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while deleting workflow: " + str(ex_error),
         }

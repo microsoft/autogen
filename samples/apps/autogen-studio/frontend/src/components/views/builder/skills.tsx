@@ -1,4 +1,4 @@
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Input, Modal, message } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
@@ -25,6 +25,7 @@ const SkillsView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listSkillsUrl = `${serverUrl}/skills?user_id=${user?.email}`;
   const saveSkillsUrl = `${serverUrl}/skills/`;
+  const deleteSkillsUrl = `${serverUrl}/skills/delete/`;
 
   const [skills, setSkills] = React.useState<ISkill[] | null>([]);
   const [selectedSkill, setSelectedSkill] = React.useState<any>(null);
@@ -36,6 +37,38 @@ const SkillsView = ({}: any) => {
 
   const sampleSkill = getSampleSkill();
   const [skillCode, setSkillCode] = React.useState(sampleSkill);
+
+  const deleteSkill = (skill: ISkill) => {
+    setError(null);
+    setLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user?.email,
+        skill: skill,
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        setSkills(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(deleteSkillsUrl, payLoad, onSuccess, onError);
+  };
 
   const fetchSkills = () => {
     setError(null);
@@ -136,6 +169,19 @@ const SkillsView = ({}: any) => {
           <div className="my-2"> {truncateText(skill.content, 70)}</div>
           <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
         </Card>
+
+        <div className="text-right mt-2">
+          <div
+            role="button"
+            className="text-accent text-xs inline-block"
+            onClick={() => {
+              deleteSkill(skill);
+            }}
+          >
+            <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+            <span className="text-xs"> delete</span>
+          </div>
+        </div>
       </div>
     );
   });
@@ -211,7 +257,7 @@ const SkillsView = ({}: any) => {
           </div>
           {skills && (
             <div
-              style={{ height: "160px" }}
+              style={{ height: "200px" }}
               className="w-full scroll  overflow-auto relative"
             >
               <LoadingOverlay loading={loading} />
