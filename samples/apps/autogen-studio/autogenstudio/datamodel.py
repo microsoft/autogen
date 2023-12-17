@@ -135,8 +135,7 @@ class AgentWorkFlowConfig:
     user_id: Optional[str] = None
     timestamp: Optional[str] = None
     # how the agent message summary is generated. last: only last message is used, none: no summary,  llm: use llm to generate summary
-    summary_method: Optional[Literal["last",
-                                     "none", "llm"]] = "last"
+    summary_method: Optional[Literal["last", "none", "llm"]] = "last"
 
     def __post_init__(self):
         if self.id is None:
