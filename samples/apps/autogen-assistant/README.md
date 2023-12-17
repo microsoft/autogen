@@ -8,7 +8,7 @@ AutoGen Assistant is an Autogen-powered AI app (user interface) that can convers
 
 Some of the capabilities supported by the app frontend include the following:
 
-- [x] Select fron a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
+- [x] Select from a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
 - [x] Modify agent configuration (e.g. temperature, model, agent system message, model etc) and chat with updated agent configurations.
 - [x] View agent messages and output files in the UI from agent runs.
 - [ ] Support for more complex agent workflows (e.g. `GroupChat` workflows)
