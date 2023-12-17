@@ -53,6 +53,7 @@ class TeachableAgent(ConversableAgent):
                 - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
                 - recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
                 - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
+                - auto_learn (Optional, bool): False (default) to disable auto-learning from user comments. True to enable it. When auto-learning is enabled, the agent learns from the user comments at the end of each chat, before responding further.
             **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
         """
         super().__init__(
@@ -73,6 +74,7 @@ class TeachableAgent(ConversableAgent):
         self.prepopulate = self._teach_config.get("prepopulate", True)
         self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
         self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
+        self.auto_learn = self._teach_config.get("auto_learn", False)
 
         # Create the analyzer.
         if analyzer_llm_config is None:
@@ -105,6 +107,10 @@ class TeachableAgent(ConversableAgent):
             raise ValueError("TeachableAgent requires self.llm_config to be set in its base class.")
         if messages is None:
             messages = self._oai_messages[sender]  # In case of a direct call.
+
+        if self.auto_learn is True:
+            # Learn from the user comments from the last chat before responding further
+            self.learn_from_user_feedback()
 
         # Get the last user turn.
         last_message = messages[-1]
@@ -357,6 +363,7 @@ class MemoStore:
         results = self.vec_db.query(query_texts=[query_text], n_results=1)
         uid, input_text, distance = results["ids"][0][0], results["documents"][0][0], results["distances"][0][0]
         input_text_2, output_text = self.uid_text_dict[uid]
+        print(input_text, input_text_2)
         assert input_text == input_text_2
         if self.verbosity >= 1:
             print(
