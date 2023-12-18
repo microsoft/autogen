@@ -10,7 +10,11 @@ SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
-SCENARIO_PATH = os.path.join(SCRIPT_DIR, "scenarios")
+# Where are the manifests located?
+BRANCH = "testbed_cli"
+SCENARIOS = {
+    "HumanEval": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/HumanEval/MANIFEST.json"
+}
 
 
 def load_module(module_path):
@@ -26,21 +30,19 @@ def get_scenarios():
     """
     Return a list of scenarios.
     """
-    return [
-        f
-        for f in os.listdir(SCENARIO_PATH)
-        if os.path.isfile(os.path.join(SCENARIO_PATH, f))
-    ]
+    return SCENARIOS.keys()
 
 
 def clone_scenario(scenario):
     if scenario not in get_scenarios():
         raise ValueError(f"No such scenario '{scenario}'.")
 
-    # Read the scenario
+    # Download the manifest
+    print("Fetching manifest...")
     manifest = None
-    with open(os.path.join(SCENARIO_PATH, scenario), "rt") as fh:
-        manifest = json.loads(fh.read())
+    response = requests.get(SCENARIOS[scenario], stream=False)
+    response.raise_for_status()
+    manifest = json.loads(response.text)
 
     # Download the files
     for item in manifest["files"].items():
@@ -60,13 +62,9 @@ def clone_scenario(scenario):
         response.raise_for_status()
 
         # If the HTTP request returns a status code 200, proceed
-        if response.status_code == 200:
-            with open(path, "wb") as fh:
-                for chunk in response.iter_content(chunk_size=512):
-                    fh.write(chunk)
-        else:
-            pass
-            # Raise an Error
+        with open(path, "wb") as fh:
+            for chunk in response.iter_content(chunk_size=512):
+                fh.write(chunk)
 
     # Run any post-download scripts
     download_script = os.path.join(scenario, "Scripts", "download.py")
@@ -92,7 +90,7 @@ def clone_cli(invocation_cmd="autogenbench clone", cli_args=None):
 
     parser.add_argument(
         "scenario",
-        #        nargs="?",
+        nargs="?",
         help="The name of the scenario clone.",
     )
     parser.add_argument(
