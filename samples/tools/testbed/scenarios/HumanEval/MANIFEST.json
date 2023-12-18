@@ -1,0 +1,18 @@
+{
+    "files": {
+        "Templates/GroupChatThreeAgents_Guardrails/prompt.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatThreeAgents_Guardrails/prompt.txt",
+        "Templates/GroupChatThreeAgents_Guardrails/coding/my_tests.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatThreeAgents_Guardrails/coding/my_tests.py",
+        "Templates/GroupChatThreeAgents_Guardrails/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatThreeAgents_Guardrails/scenario.py",
+        "Templates/GroupChatThreeAgents_Distractor/prompt.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatThreeAgents_Distractor/prompt.txt",
+        "Templates/GroupChatThreeAgents_Distractor/coding/my_tests.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatThreeAgents_Distractor/coding/my_tests.py",
+        "Templates/GroupChatThreeAgents_Distractor/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatThreeAgents_Distractor/scenario.py",
+        "Templates/TwoAgents/prompt.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/TwoAgents/prompt.txt",
+        "Templates/TwoAgents/coding/my_tests.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/TwoAgents/coding/my_tests.py",
+        "Templates/TwoAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/TwoAgents/scenario.py",
+        "Templates/GroupChatFourAgents/prompt.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatFourAgents/prompt.txt",
+        "Templates/GroupChatFourAgents/coding/my_tests.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatFourAgents/coding/my_tests.py",
+        "Templates/GroupChatFourAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatFourAgents/scenario.py",
+        "README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/README.md",
+	"Scripts/download.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Scripts/download.py"
+    }
+}
