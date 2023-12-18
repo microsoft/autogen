@@ -1,5 +1,5 @@
 import pytest
-from autogen.agentchat import ConversableAgent
+from autogen.agentchat import ConversableAgent, UserProxyAgent
 from typing_extensions import Annotated
 
 
@@ -401,7 +401,9 @@ def test_function_decorator():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
         agent = ConversableAgent(name="agent", llm_config={})
+        user_proxy = UserProxyAgent(name="user_proxy")
 
+        @user_proxy.function()
         @agent.function(name="python", description="run cell in ipython and return the execution result.")
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> None:
             pass
@@ -422,10 +424,11 @@ def test_function_decorator():
                 },
             }
         ]
-
         assert agent.llm_config["functions"] == expected, str(agent.llm_config["functions"])
         assert agent.function_map == {"python": exec_python}
+        assert user_proxy.function_map == {"python": exec_python}, user_proxy.function_map
 
+        @user_proxy.function()
         @agent.function(name="sh", description="run a shell script and return the execution result.")
         def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> None:
             pass
@@ -449,6 +452,7 @@ def test_function_decorator():
 
         assert agent.llm_config["functions"] == expected, agent.llm_config["functions"]
         assert agent.function_map == {"python": exec_python, "sh": exec_sh}
+        assert user_proxy.function_map == {"python": exec_python, "sh": exec_sh}
 
 
 if __name__ == "__main__":

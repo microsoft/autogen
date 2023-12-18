@@ -1335,12 +1335,12 @@ class ConversableAgent(Agent):
         return self._function_map
 
     def function(
-            self,
-            *,
-            name: Optional[str] = None,
-            description: Optional[str] = None,
-            register_function: bool = True,
-        ) -> Callable[[F], F]:
+        self,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        register_function: bool = True,
+    ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
         It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
@@ -1358,15 +1358,17 @@ class ConversableAgent(Agent):
             The decorator for registering a function to be used by an agent.
 
         Examples:
-            >>> @agent2.function()
-            >>> @agent1.function(description="This is a very useful function")
-            >>> def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int) -> str:
-            >>>     return a + str(b)
+            ```
+            @agent2.function()
+            @agent1.function(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int) -> str:
+                 return a + str(b)
+            ```
 
         """
 
         def _decorator(func: F) -> F:
-            """ Decorator for registering a function to be used by an agent.
+            """Decorator for registering a function to be used by an agent.
 
             Args:
                 func: the function to be registered.
@@ -1379,17 +1381,20 @@ class ConversableAgent(Agent):
 
             """
             # name can be overwriten by the parameter, by default it is the same as function name
-            _name = name if name else func.__name__
+            if name:
+                func._name = name
+            elif not hasattr(func, "_name"):
+                func._name = func.__name__
 
             # description is propagated from the previous decorator, but it is mandatory for the first one
-            if not description:
+            if description:
+                func._description = description
+            else:
                 if not hasattr(func, "_description"):
                     raise ValueError("Function description is required, none found.")
-            else:
-                func._description = description
 
             # get JSON schema for the function
-            f = get_function_schema(func, name=_name, description=func._description)
+            f = get_function_schema(func, name=func._name, description=func._description)
 
             # register the function to the agent if there is LLM config, skip otherwise
             if self.llm_config:
@@ -1397,7 +1402,7 @@ class ConversableAgent(Agent):
 
             # register the function to the agent
             if register_function:
-                self.register_function({name: func})
+                self.register_function({func._name: func})
 
             return func
 
