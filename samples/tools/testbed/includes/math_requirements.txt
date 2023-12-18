@@ -1,5 +1,4 @@
 git+https://github.com/microsoft/autogen.git
-pandas
-beautifulsoup4
-requests
-pytest
+sympy
+matplotlib
+numpy
