@@ -20,6 +20,7 @@ install_requires = [
     "flaml",
     "python-dotenv",
     "tiktoken",
+    "pydantic>=1.10,<3", # could be both V1 and V2
 ]
 
 setuptools.setup(

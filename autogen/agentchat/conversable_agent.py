@@ -10,7 +10,7 @@ from autogen import OpenAIWrapper
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from .agent import Agent
-from ..function_utils import get_function
+from ..function_utils import get_function_schema
 
 try:
     from termcolor import colored
@@ -1334,38 +1334,71 @@ class ConversableAgent(Agent):
         """Return the function map."""
         return self._function_map
 
-    def function(self, *, name: Optional[str] = None, description: str) -> Callable[[F], F]:
-        """Decorator for registering a function to be used by an agent.
+    def function(
+            self,
+            *,
+            name: Optional[str] = None,
+            description: Optional[str] = None,
+            register_function: bool = True,
+        ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be used by an agent.
 
-        It is used to decorate a function to be registered to the agent. The function uses typing hints to
+        It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
         specify the arguments and return type. The function name is used as the default name for the function,
         but a custom name can be provided. The function description is used to describe the function in the
         agent's configuration.
 
         Args:
-            name (optional(str)): name of the function. If None, the function name will be used.
-            description (str): description of the function.
-            **kwargs: other keyword arguments.
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+            description (optional(str)): description of the function (default: None). It is mandatory
+                for the initial decorator, but the following ones can omit it.
+            register_function (bool): whether to register the function to the agent (default: True)
 
         Returns:
-            The original function
+            The decorator for registering a function to be used by an agent.
 
         Examples:
-            >>> @agent.function(description="This is a function")
+            >>> @agent2.function()
+            >>> @agent1.function(description="This is a very useful function")
             >>> def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int) -> str:
             >>>     return a + str(b)
 
         """
 
-        def decorator(func: F) -> F:
-            fname = name if name else func.__name__
+        def _decorator(func: F) -> F:
+            """ Decorator for registering a function to be used by an agent.
 
-            f = get_function(func, name=fname, description=description)
+            Args:
+                func: the function to be registered.
 
+            Returns:
+                The function to be registered, with the _description attribute set to the function description.
+
+            Raises:
+                ValueError: if the function description is not provided and not propagated by a previous decorator.
+
+            """
+            # name can be overwriten by the parameter, by default it is the same as function name
+            _name = name if name else func.__name__
+
+            # description is propagated from the previous decorator, but it is mandatory for the first one
+            if not description:
+                if not hasattr(func, "_description"):
+                    raise ValueError("Function description is required, none found.")
+            else:
+                func._description = description
+
+            # get JSON schema for the function
+            f = get_function_schema(func, name=_name, description=func._description)
+
+            # register the function to the agent if there is LLM config, skip otherwise
             if self.llm_config:
                 self.update_function_signature(f, is_remove=False)
-            self.register_function({fname: func})
+
+            # register the function to the agent
+            if register_function:
+                self.register_function({name: func})
 
             return func
 
-        return decorator
+        return _decorator

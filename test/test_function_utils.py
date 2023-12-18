@@ -1,23 +1,26 @@
 import inspect
+from typing import Dict, List, Optional, Tuple, get_type_hints
 
-from typing import get_type_hints
-import pytest
 from typing_extensions import Annotated
 
-from autogen.function_utils import Parameter, get_parameter, get_required_params, get_parameters, get_function
+from autogen.function_utils import (
+    get_function_schema,
+    get_parameter_json_schema,
+    get_parameters,
+    get_required_params,
+)
 
 
 def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1, *, d):
     pass
 
 
-def g(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1, *, d: str) -> str:
-    pass
-
-
-def test_get_parameter() -> None:
-    assert get_parameter("a", Annotated[str, "parameter a"]) == Parameter(type="string", description="parameter a")
-    assert get_parameter("b", str) == Parameter(type="string", description="b"), get_parameter("b", str)
+def test_get_parameter_json_schema() -> None:
+    assert get_parameter_json_schema("a", Annotated[str, "parameter a"]) == {
+        "type": "string",
+        "description": "parameter a",
+    }
+    assert get_parameter_json_schema("b", str) == {"type": "string", "description": "b"}
 
 
 def test_get_required_params() -> None:
@@ -34,8 +37,8 @@ def test_get_parameters() -> None:
         "type": "object",
         "properties": {
             "a": {"type": "string", "description": "Parameter a"},
-            "b": {"type": "int", "description": "b"},
-            "c": {"type": "float", "description": "Parameter c"},
+            "b": {"type": "integer", "description": "b"},
+            "c": {"type": "number", "description": "Parameter c"},
         },
         "required": ["a", "d"],
     }
@@ -43,6 +46,16 @@ def test_get_parameters() -> None:
     actual = get_parameters(required, hints).model_dump()
 
     assert actual == expected, actual
+
+
+def g(
+    a: Annotated[str, "Parameter a"],
+    b: int = 2,
+    c: Annotated[float, "Parameter c"] = 0.1,
+    *,
+    d: Dict[str, Tuple[Optional[int], List[float]]]
+) -> str:
+    pass
 
 
 def test_get_function() -> None:
@@ -53,14 +66,26 @@ def test_get_function() -> None:
             "type": "object",
             "properties": {
                 "a": {"type": "string", "description": "Parameter a"},
-                "b": {"type": "int", "description": "b"},
-                "c": {"type": "float", "description": "Parameter c"},
-                "d": {"type": "string", "description": "d"},
+                "b": {"type": "integer", "description": "b"},
+                "c": {"type": "number", "description": "Parameter c"},
+                "d": {
+                    "additionalProperties": {
+                        "maxItems": 2,
+                        "minItems": 2,
+                        "prefixItems": [
+                            {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                            {"items": {"type": "number"}, "type": "array"},
+                        ],
+                        "type": "array",
+                    },
+                    "type": "object",
+                    "description": "d",
+                },
             },
             "required": ["a", "d"],
         },
     }
 
-    actual = get_function(g, description="function g", name="fancy name for g")
+    actual = get_function_schema(g, description="function g", name="fancy name for g")
 
     assert actual == expected, actual

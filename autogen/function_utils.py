@@ -3,20 +3,14 @@ from typing import get_type_hints, Callable, Any, Dict, Union, List, Optional, T
 from typing_extensions import Annotated, Literal
 
 from pydantic import BaseModel, Field
-
-
-class Parameter(BaseModel):
-    """A parameter of a function as defined by the OpenAI API"""
-
-    type: Annotated[str, Field(description="Type of the parameter", examples=["float", "int", "string"])]
-    description: Annotated[str, Field(..., description="Description of the parameter")]
+from .pydantic import type2schema, JsonSchemaValue, model_dump
 
 
 class Parameters(BaseModel):
     """Parameters of a function as defined by the OpenAI API"""
 
     type: Literal["object"] = "object"
-    properties: Dict[str, Parameter]
+    properties: Dict[str, JsonSchemaValue]
     required: List[str]
 
 
@@ -28,25 +22,7 @@ class Function(BaseModel):
     parameters: Annotated[Parameters, Field(description="Parameters of the function")]
 
 
-# class Function(BaseModel):
-#     """A function as defined by the OpenAI API"""
-
-#     type: Literal["function"] = "function"
-#     function: FunctionInner
-
-
-# class Functions(BaseModel):
-#     """A list of functions the model may generate JSON inputs for as defined by the OpenAI API"""
-
-#     description: Literal[
-#         "A list of functions the model may generate JSON inputs for."
-#     ] = "A list of functions the model may generate JSON inputs for."
-#     type: Literal["array"] = "array"
-#     minItems: Literal[1] = 1
-#     items: Annotated[List[Function], Field(description="A list of functions the model may generate JSON inputs for.")]
-
-
-def get_parameter(k: str, v: Union[Annotated[Any, str], Type]) -> Parameter:
+def get_parameter_json_schema(k: str, v: Union[Annotated[Any, str], Type]) -> JsonSchemaValue:
     """Get a JSON schema for a parameter as defined by the OpenAI API
 
     Args:
@@ -57,26 +33,16 @@ def get_parameter(k: str, v: Union[Annotated[Any, str], Type]) -> Parameter:
         A Pydanitc model for the parameter
     """
 
-    def get_type(v: Union[Annotated[Any, str], Type]) -> str:
-        def get_type_representation(t: Type) -> str:
-            if t == str:
-                return "string"
-            else:
-                return t.__name__
-            pass
-
-        if hasattr(v, "__origin__"):
-            return get_type_representation(v.__origin__)
-        else:
-            return get_type_representation(v)
-
-    def get_description(k, v: Union[Annotated[Any, str], Type]) -> str:
+    def type2description(k: str, v: Union[Annotated[Any, str], Type]) -> str:
         if hasattr(v, "__metadata__"):
             return v.__metadata__[0]
         else:
             return k
 
-    return Parameter(type=get_type(v), description=get_description(k, v))
+    schema = type2schema(v)
+    schema["description"] = type2description(k, v)
+
+    return schema
 
 
 def get_required_params(signature: inspect.Signature) -> List[str]:
@@ -101,10 +67,12 @@ def get_parameters(required: List[str], hints: Dict[str, Union[Annotated[Any, st
     Returns:
         A Pydantic model for the parameters of the function
     """
-    return Parameters(properties={k: get_parameter(k, v) for k, v in hints.items() if k != "return"}, required=required)
+    return Parameters(
+        properties={k: get_parameter_json_schema(k, v) for k, v in hints.items() if k != "return"}, required=required
+    )
 
 
-def get_function(f: Callable[..., Any], *, name: Optional[str] = None, description: str) -> Dict[str, Any]:
+def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, description: str) -> Dict[str, Any]:
     """Get a JSON schema for a function as defined by the OpenAI API
 
     Args:
@@ -146,4 +114,4 @@ def get_function(f: Callable[..., Any], *, name: Optional[str] = None, descripti
         parameters=parameters,
     )
 
-    return function.model_dump()
+    return model_dump(function)
