@@ -106,7 +106,9 @@ def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0
         tokens_per_name = -1  # if there's a name, the role is omitted
     elif "gpt-3.5-turbo" in model:
         tokens = _num_token_from_messages(messages, model="gpt-3.5-turbo-0613")
-        logger.info(f"gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613: {tokens} tokens.")
+        logger.info(
+            f"gpt-3.5-turbo may update over time. Returning num tokens assuming gpt-3.5-turbo-0613: {tokens} tokens."
+        )
         return tokens
     elif "gpt-4" in model:
         tokens = _num_token_from_messages(messages, model="gpt-4-0613")
@@ -188,4 +190,34 @@ def num_tokens_from_functions(functions, model="gpt-3.5-turbo-0613") -> int:
         num_tokens += function_tokens
 
     num_tokens += 12
+    return num_tokens
+
+
+def num_tokens_from_tools(tools, model="gpt-3.5-turbo-0613") -> int:
+    """Return the number of tokens used by a list of tools.
+
+    Args:
+        tools: (list): List of tool descriptions that will be passed in model.
+        model: (str): Model name.
+
+    Returns:
+        int: Number of tokens from the tool descriptions.
+    """
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+    except KeyError:
+        print("Warning: model not found. Using cl100k_base encoding.")
+        encoding = tiktoken.get_encoding("cl100k_base")
+
+    num_tokens = 0
+    for tool in tools:
+        tool_tokens = sum([len(encoding.encode(key)) for key in tool.keys()])
+        tool_tokens += len(encoding.encode(tool["type"]))
+        if tool["type"] == "function":
+            tool_tokens += num_tokens_from_functions([tool["function"]], model=model)
+        else:
+            print(f"Warning: not supported tool type {tool['type']}")
+        num_tokens += tool_tokens
+
     return num_tokens

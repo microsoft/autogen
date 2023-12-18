@@ -4,7 +4,7 @@ from autogen import Agent, ConversableAgent
 import copy
 import asyncio
 import logging
-from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
+from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions, num_tokens_from_tools
 
 try:
     from termcolor import colored
@@ -26,7 +26,7 @@ class CompressibleAgent(ConversableAgent):
     The default system message is the same as AssistantAgent.
     `human_input_mode` is default to "NEVER"
     and `code_execution_config` is default to False.
-    This agent doesn't execute code or function call by default.
+    This agent doesn't execute code, function, or tool calls by default.
     """
 
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant.
@@ -116,7 +116,7 @@ Reply "TERMINATE" in the end when everything is done.
             self.compress_client = None
         else:
             self.llm_compress_config = dict(self.llm_config, **self.compress_config.get("llm_config", {}))
-            # remove functions
+            # remove functions and tools
             if "functions" in self.llm_compress_config:
                 del self.llm_compress_config["functions"]
             if "tools" in self.llm_compress_config:
@@ -215,8 +215,11 @@ Reply "TERMINATE" in the end when everything is done.
         func_count = 0
         if "functions" in self.llm_config:
             func_count = num_tokens_from_functions(self.llm_config["functions"], self.llm_config["model"])
+        tool_count = 0
+        if "tools" in self.llm_config:
+            tool_count = num_tokens_from_tools(self.llm_config["tools"], self.llm_config["model"])
 
-        return func_count + count_token(self._oai_system_message, self.llm_config["model"])
+        return func_count + tool_count + count_token(self._oai_system_message, self.llm_config["model"])
 
     def _manage_history_on_token_limit(self, messages, token_used, max_token_allowed, model):
         """Manage the message history with different modes when token limit is reached.
@@ -266,19 +269,21 @@ Reply "TERMINATE" in the end when everything is done.
         }
         if "content" not in oai_message:
             if "function_call" in oai_message or "tool_calls" in oai_message:
-                oai_message["content"] = None  # if only function_call is provided, content will be set to None.
+                oai_message[
+                    "content"
+                ] = None  # if only function_call or tool_calls is provided, content will be set to None.
             else:
                 raise ValueError(
                     "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
                 )
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
-            oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
+            oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function or tool calls.
 
         return oai_message
 
     def _print_compress_info(self, init_token_count, token_used, token_after_compression):
-        to_print = "Token Count (including {} tokens from system msg and function descriptions). Before compression : {} | After: {}".format(
+        to_print = "Token Count (including {} tokens from system msg and function/tool descriptions). Before compression : {} | After: {}".format(
             init_token_count,
             token_used,
             token_after_compression,
