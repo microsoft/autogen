@@ -24,9 +24,13 @@ https://github.com/microsoft/LLMLingua
 """
 
 from ast import Dict
+import atexit
+import functools
+import multiprocessing
 from typing import Any, List, Optional, Union
 from llmlingua import PromptCompressor
 from .compressible_agent import CompressibleAgent
+from .llm_lingua_fork import lingua_compressor, lingua_shutdown
 
 
 class LLMLinguaAgent(CompressibleAgent):
@@ -36,23 +40,24 @@ class LLMLinguaAgent(CompressibleAgent):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-
-        llm_config = self.compress_config.get("llm_config", {})
+        atexit.register(self.close)
 
         # use https://github.com/microsoft/LLMLingua
-        self.llm_lingua = PromptCompressor(**llm_config)
+        self.llm_lingua = None
 
-    def compressor(self, messages: List[Dict], tail_messages: List[Dict] = [], config: Any | None = None) -> str:
-        messages = [message.get("content", "") or "" for message in messages]
-        question_message = "\n\n".join([(message.get("content", "") or "") for message in tail_messages])
+    def compressor(self, messages: List[Dict], tail_messages: List[Dict] = [], config: Dict = None) -> str:
+        return lingua_compressor(
+            messages,
+            tail_messages,
+            dict(
+                {"system_message": self.system_message},
+                **(self.compress_config.get("llm_config", {})),
+                **(config or {}),
+            ),
+        )
 
-        compressed_message = self.llm_lingua.compress_prompt(
-            context=messages,
-            instruction=self.system_message,
-            question=question_message,
-            ratio=0.25,
-            rank_method="longllmlingua",
-            concate_question=False,
-        ).get("compressed_prompt", None)
+    def close(self):
+        lingua_shutdown()
 
-        return compressed_message
+    def __del__(self):
+        self.close()  # Ensure cleanup when object is destroyed
