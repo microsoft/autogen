@@ -1,3 +1,4 @@
+import inspect
 from typing import Callable, Dict, Optional, Union, Tuple, List, Any
 from autogen import OpenAIWrapper
 from autogen import Agent, ConversableAgent
@@ -30,18 +31,21 @@ class CompressibleAgent(ConversableAgent):
     This agent doesn't execute code, function, or tool calls by default.
     """
 
-    DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant.
-Solve tasks using your coding and language skills.
-In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
-    1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
-    2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
-Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
-When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
-If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
-If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
-When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
-Reply "TERMINATE" in the end when everything is done.
+    DEFAULT_SYSTEM_MESSAGE = inspect.cleandoc(
+        """
+        You are a helpful AI assistant.
+        Solve tasks using your coding and language skills.
+        In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
+            1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
+            2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
+        Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
+        When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
+        If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
+        If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
+        When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
+        Reply "TERMINATE" in the end when everything is done.
     """
+    )
     DEFAULT_COMPRESS_CONFIG = {
         "mode": "TERMINATE",
         "compress_function": None,
@@ -359,17 +363,49 @@ Reply "TERMINATE" in the end when everything is done.
             )
             return False, None
 
+        # Tool and function responses must pair with their calls, so if we're keeping a return make sure to keep the call
+        while messages[-leave_last_n].get("role") in ["function", "tool"]:
+            leave_last_n += 1
+
         # Put all history into one, except the first one
         if self.compress_config["verbose"]:
             print(colored("*" * 30 + "Start compressing the following content:" + "*" * 30, "magenta"), flush=True)
 
         compressed_prompt = "Below is the compressed content from the previous conversation, evaluate the process and continue if necessary:\n"
-        chat_to_compress = "To be compressed:\n"
 
-        # Tool and function responses must pair with their calls, so if we're keeping a return make sure to keep the call
-        while messages[-leave_last_n].get("role") in ["function", "tool"]:
-            leave_last_n += 1
+        chat_to_compress = self.chat_messages_to_compress(messages, leave_last_n, compressed_prompt)
 
+        if self.compress_config["verbose"]:
+            print(chat_to_compress[0]["content"], colored("\n" + "*" * 80, "magenta"), flush=True)
+
+        compressed_message = self.compressor(
+            messages=chat_to_compress, tail_messages=messages[len(messages) - leave_last_n :], config=config
+        )
+
+        if self.compress_config["verbose"]:
+            print(
+                colored("*" * 30 + "Content after compressing:" + "*" * 30, "magenta"),
+                flush=True,
+            )
+            print(compressed_message, colored("\n" + "*" * 80, "magenta"))
+
+        assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
+
+        # Add compressed message as the first message and return
+        return (
+            True,
+            [
+                messages[0],
+                {
+                    "content": compressed_prompt + compressed_message,
+                    "role": "system",
+                },
+            ]
+            + messages[len(messages) - leave_last_n :],  # messages[len(messages) - 0 :] when leave_last_n = 0
+        )
+
+    def chat_messages_to_compress(self, messages, leave_last_n, compressed_prompt):
+        chat_to_compress = ""
         for m in messages[1 : len(messages) - leave_last_n]:  # 0, 1, 2, 3, 4
             # Handle function role
             if m.get("role") == "function":
@@ -413,54 +449,28 @@ Reply "TERMINATE" in the end when everything is done.
                             f"##TOOL_CALL## ToolCallId: {tool_call_id} \nName: {function_name}\nArgs: {function_args}\n"
                         )
 
-        chat_to_compress = [{"role": "user", "content": chat_to_compress}]
+        return [{"role": "user", "content": chat_to_compress}]
 
-        if self.compress_config["verbose"]:
-            print(chat_to_compress, colored("\n" + "*" * 80, "magenta"), flush=True)
-
-        compressed_message = self.compressor(
-            messages=chat_to_compress, tail_messages=messages[len(messages) - leave_last_n :], config=config
-        )
-
-        if self.compress_config["verbose"]:
-            print(
-                colored("*" * 30 + "Content after compressing:" + "*" * 30, "magenta"),
-                flush=True,
-            )
-            print(compressed_message, colored("\n" + "*" * 80, "magenta"))
-
-        assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
-
-        # Add compressed message to the first message and return
-        return (
-            True,
-            [
-                messages[0],
-                {
-                    "content": compressed_prompt + compressed_message,
-                    "role": "system",
-                },
-            ]
-            + messages[len(messages) - leave_last_n :],  # messages[len(messages) - 0 :] when leave_last_n = 0
-        )
-
-    def compressor(
-        self, messages: List[str] | str, tail_messages: List[str] | str = [], config: Optional[Any] = None
-    ) -> str:
-        messages = messages if isinstance(messages, list) else [messages]
-        messages = [{"role": "user", "content": message} for message in messages]
-
+    def compressor(self, messages: List[Dict], tail_messages: List[Dict] = [], config: Optional[Any] = None) -> str:
         # Use LLM to compress
-        compress_sys_msg = """You are a helpful assistant that will summarize and compress conversation history.
-Rules:
-1. Please summarize each of the message and reserve the exact titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
-2. Try to compress the content but reserve important information (a link, a specific number, etc.).
-3. Use words to summarize the code blocks or functions calls (##FUNCTION_CALL##) and their goals. For code blocks, please use ##CODE## to mark it.
-4. For returns from functions (##FUNCTION_RETURN##) or returns from code execution: summarize the content and indicate the status of the return (e.g. success, error, etc.).
-"""
+        compress_sys_msg = self.llm_compress_config.get(
+            "system_message",
+            inspect.cleandoc(
+                """
+            You are a helpful assistant that will summarize and compress the conversation history.
+            Rules:
+            1. Please summarize each of the message and reserve the exact titles: ##USER##, ##ASSISTANT##, ##FUNCTION_CALL##, ##FUNCTION_RETURN##, ##SYSTEM##, ##<Name>(<Title>)## (e.g. ##Bob(ASSISTANT)##).
+            2. Try to compress the content but reserve important information (a link, a specific number, etc.).
+            3. Use words to summarize the code blocks or functions calls (##FUNCTION_CALL##) and their goals. For code blocks, please use ##CODE## to mark it.
+            4. For returns from functions (##FUNCTION_RETURN##) or returns from code execution: summarize the content and indicate the status of the return (e.g. success, error, etc.).
+        """
+            ),
+        )
         try:
             # Use the compression client
             client = self.compress_client if config is None else config
+
+            messages[0]["content"] = "To be compressed:\n" + messages[0]["content"]
 
             response = client.create(
                 context=None,
