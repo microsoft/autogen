@@ -8,7 +8,7 @@ AutoGen Assistant is an Autogen-powered AI app (user interface) that can convers
 
 Some of the capabilities supported by the app frontend include the following:
 
-- [x] Select fron a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
+- [x] Select from a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
 - [x] Modify agent configuration (e.g. temperature, model, agent system message, model etc) and chat with updated agent configurations.
 - [x] View agent messages and output files in the UI from agent runs.
 - [ ] Support for more complex agent workflows (e.g. `GroupChat` workflows)
@@ -46,18 +46,20 @@ Project Structure:
       ```bash
       npm install -g gatsby-cli
       npm install --global yarn
-      cd frontend
       yarn install
       yarn build
       ```
 
-    For Windows users, to build the frontend, you may need alternative commands to build the frontend.
+    - For Windows users, to build the frontend, you may need alternative commands to build the frontend.
 
-        ```bash
+      ```bash
+      gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
+      ```
+    - Navigate to the `samples/apps/autogen-assistant` directory and install the `autogenra` library in your current Python environment:
 
-        gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
-
-        ````
+      ```bash
+      pip install -e .
+      ```
 
 ### Running the Application
 

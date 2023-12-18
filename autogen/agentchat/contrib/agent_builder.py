@@ -2,10 +2,23 @@ import autogen
 import time
 import subprocess as sp
 import socket
-import os
 import json
 import hashlib
 from typing import Optional, List, Dict, Tuple, Union
+
+
+def _config_check(config: Dict):
+    # check config loading
+    assert config.get("coding", None) is not None, 'Missing "coding" in your config.'
+    assert config.get("default_llm_config", None) is not None, 'Missing "default_llm_config" in your config.'
+    assert config.get("code_execution_config", None) is not None, 'Missing "code_execution_config" in your config.'
+
+    for agent_config in config["agent_configs"]:
+        assert agent_config.get("name", None) is not None, 'Missing agent "name" in your agent_configs.'
+        assert agent_config.get("model", None) is not None, 'Missing agent "model" in your agent_configs.'
+        assert (
+            agent_config.get("system_message", None) is not None
+        ), 'Missing agent "system_message" in your agent_configs.'
 
 
 class AgentBuilder:
@@ -37,7 +50,8 @@ class AgentBuilder:
 
     Hint:
     # Considering the effort, the position in this task should be no more then {max_agents}, less is better.
-    # Answer the name of those positions/jobs, separated by comma and use "_" instead of space. For example: Product_manager,Programmer
+    # Answer the name of those positions/jobs.
+    # Separated names by comma and use "_" instead of space. For example: Product_manager,Programmer
     # Only return the list of positions.
     """
 
@@ -69,6 +83,7 @@ class AgentBuilder:
         Args:
             config_path: path of the OpenAI api configs.
             builder_model: specify a model as the backbone of build manager.
+            agent_model: specify a model as the backbone of participant agents.
             host: endpoint host.
             endpoint_building_timeout: timeout for building up an endpoint server.
         """
@@ -88,6 +103,12 @@ class AgentBuilder:
         for port in range(8000, 65535):
             if self._is_port_open(host, port):
                 self.open_ports.append(str(port))
+
+    def set_builder_model(self, model: str):
+        self.builder_model = model
+
+    def set_agent_model(self, model: str):
+        self.agent_model = model
 
     @staticmethod
     def _is_port_open(host, port):
@@ -128,6 +149,11 @@ class AgentBuilder:
             agent: a set-up agent.
         """
         config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [model_name_or_hf_repo]})
+        if len(config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_path}. "
+                f'If you would like to change this model, please specify the "agent_model" in the constructor.'
+            )
         if "gpt-" in model_name_or_hf_repo:
             server_id = self.openai_server_name
         else:
@@ -259,14 +285,6 @@ class AgentBuilder:
         """
         use_api = False
 
-        if code_execution_config is None:
-            code_execution_config = {
-                "last_n_messages": 2,
-                "work_dir": "groupchat",
-                "use_docker": False,
-                "timeout": 60,
-            }
-
         if cached_configs is None:
             use_api = True
             agent_configs = []
@@ -276,9 +294,23 @@ class AgentBuilder:
             default_llm_config = cached_configs["default_llm_config"]
             coding = cached_configs["coding"]
             agent_configs = cached_configs["agent_configs"]
+            code_execution_config = cached_configs["code_execution_config"]
+
+        if code_execution_config is None:
+            code_execution_config = {
+                "last_n_messages": 2,
+                "work_dir": "groupchat",
+                "use_docker": False,
+                "timeout": 60,
+            }
 
         if use_api:
             config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
+            if len(config_list) == 0:
+                raise RuntimeError(
+                    f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
+                    f'If you want to change this model, please specify the "builder_model" in the constructor.'
+                )
             build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
             print("Generating agents...")
@@ -294,8 +326,8 @@ class AgentBuilder:
                 .choices[0]
                 .message.content
             )
-            agent_name_list = resp_agent_name.split(",")
-            print(f"{resp_agent_name} are generated.")
+            agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
+            print(f"{agent_name_list} are generated.")
 
             agent_sys_msg_list = []
             for name in agent_name_list:
@@ -390,19 +422,31 @@ class AgentBuilder:
 
     def load(
         self,
-        filepath: str,
+        filepath: Optional[str] = None,
+        config_json: Optional[str] = None,
         **kwargs,
     ):
         """
         Load building configs and call the build function to complete building without calling online LLMs' api.
 
         Args:
-            filepath: filepath for the save config.
+            filepath: filepath or JSON string for the save config.
+            config_json: JSON string for the save config.
         """
-        try:
-            print(f"Loding config from {filepath}")
-            cached_configs = json.load(open(filepath))
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Config file {filepath} does not exist.")
+        # load json string.
+        if config_json is not None:
+            cached_configs = json.loads(config_json)
+            print("Loading config from JSON...")
+            _config_check(cached_configs)
+            return self.build(cached_configs=cached_configs, **kwargs)
 
-        return self.build(cached_configs=cached_configs, **kwargs)
+        # load from path.
+        if filepath is not None:
+            print(f"Loading config from {filepath}")
+            try:
+                with open(filepath) as f:
+                    cached_configs = json.load(f)
+            except FileNotFoundError as e:
+                raise FileNotFoundError(f"{filepath} does not exist.") from e
+            _config_check(cached_configs)
+            return self.build(cached_configs=cached_configs, **kwargs)
