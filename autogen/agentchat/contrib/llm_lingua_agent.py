@@ -23,6 +23,7 @@ https://github.com/microsoft/LLMLingua
 }
 """
 
+from ast import Dict
 from typing import Any, List, Optional, Union
 from llmlingua import PromptCompressor
 from .compressible_agent import CompressibleAgent
@@ -41,8 +42,8 @@ class LLMLinguaAgent(CompressibleAgent):
         # use https://github.com/microsoft/LLMLingua
         self.llm_lingua = PromptCompressor(**llm_config)
 
-    def compressor(self, messages: List[str] | str, tail_messages: List[str] | str, config: Any | None = None) -> str:
-        tail_messages = tail_messages if isinstance(tail_messages, list) else [tail_messages]
+    def compressor(self, messages: List[Dict], tail_messages: List[Dict] = [], config: Any | None = None) -> str:
+        messages = [message.get("content", "") or "" for message in messages]
         question_message = "\n\n".join([(message.get("content", "") or "") for message in tail_messages])
 
         compressed_message = self.llm_lingua.compress_prompt(
