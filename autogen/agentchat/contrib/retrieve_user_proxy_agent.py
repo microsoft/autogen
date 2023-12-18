@@ -458,8 +458,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         Args:
             problem (str): the problem to be solved.
             message (str): the alternative variable for problem. If problem is not provided, message will be used.
-            n_results (int): the number of results to be retrieved.
-            search_string (str): only docs containing this string will be retrieved.
+            n_results (int): the number of results to be retrieved. Default is 20.
+            search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
 
         Returns:
             str: the generated prompt ready to be sent to the assistant agent.
