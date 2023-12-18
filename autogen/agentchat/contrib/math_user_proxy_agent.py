@@ -397,8 +397,8 @@ class WolframAlphaAPIWrapper(BaseModel):
         try:
             import wolframalpha
 
-        except ImportError:
-            raise ImportError("wolframalpha is not installed. " "Please install it with `pip install wolframalpha`")
+        except ImportError as e:
+            raise ImportError("wolframalpha is not installed. Please install it with `pip install wolframalpha`") from e
         client = wolframalpha.Client(wolfram_alpha_appid)
         values["wolfram_client"] = client
 
