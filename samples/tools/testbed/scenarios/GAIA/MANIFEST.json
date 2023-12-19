@@ -1,5 +1,8 @@
 {
     "files": {
-        "README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/README.md"
+        "README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/README.md",
+        "Scripts/download.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Scripts/download.py",
+        "Templates/BasicTwoAgents/expected_answer.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Templates/BasicTwoAgents/expected_answer.txt",
+        "Templates/BasicTwoAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Templates/BasicTwoAgents/scenario.py"
     }
 }
