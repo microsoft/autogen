@@ -1,1 +1,0 @@
-git+https://github.com/microsoft/autogen.git

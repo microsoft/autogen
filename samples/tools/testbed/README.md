@@ -1,31 +1,78 @@
-# Autogen Testbed Environment
+# AutoGenBench
 
-The Autogen Testbed environment is a tool for repeatedly running a set of pre-defined Autogen scenarios in a setting with tightly-controlled initial conditions. With each run, Autogen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen scenarios in a setting with tightly-controlled initial conditions. With each run, AutoGen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
-This Testbed sample has been tested in, and is known to work with, Autogen versions 0.1.14 and 0.2.0
+AutoGenBench is known to work with, all AutoGen 0.1.*, and 0.2.* versions.
 
-## Setup
+## Installation and Setup
 
-Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
-
-For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV` file in the `includes` folder. A sample has been provided in ``includes/ENV.example``. Edit ``includes/ENV`` as needed.
-
-The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ library. **It will not run in codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/). To install the Python library:
-
-``pip install docker``
-
-## Running the Testbed
-
-To run the Testbed, simply execute
-``python run_scenarios.py scenarios/Examples``
-
-The default is to run each scenario once time. To run each scenario 10 times, use:
-``python run_scenarios.py --repeat 10 scenarios/Examples ``
-
-The run_scenarios.py script also allows a number of command-line arguments to control various parameters of execution. Type ``python run_scenarios.py -h`` to explore these options:
+**To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the best way to do this is to git clone the [autogen](https://github.com/microsoft/autogen) repository then from the repository root, execute:
 
 ```
-run_scenarios.py will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.
+pip install -e samples/tools/testbed
+```
+
+or, from within the `samples/tools/testbed` folder (e.g., if reading this README):
+
+```
+pip install -e .
+```
+
+After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. If neither are provided, it will user the environment variable OPENAI_API_KEY. This behavior can be overridden using a command-line parameter described later.
+
+For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
+
+```
+{
+    "BING_API_KEY": "xxxyyyzzz"
+}
+```
+
+AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
+
+
+## Cloning Benchmarks
+To clone an existing benchmark, simply run:
+```
+autogenbench clone [BENCHMARK]
+```
+
+For example,
+
+```
+autogenbench clone HumanEval
+```
+
+To see which existing benchmarks are available to clone, run:
+
+```
+autogenbench clone --list
+```
+
+## Running AutoGenBench
+
+To run a benchmark (which executes the tasks, but does not compute metrics), simply execute:
+```
+cd [BENCHMARK]
+autogenbench run Tasks
+```
+
+For example,
+```
+cd HumanEval
+autogenbench run Tasks
+```
+
+The default is to run each task once. To run each scenario 10 times, use:
+
+```
+autogenbench run --repeat 10 Tasks
+```
+
+The `autogenbench` command-line tool allows a number of command-line arguments to control various parameters of execution. Type ``autogenbench -h`` to explore these options:
+
+```
+'autogenbench run' will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.
 
 positional arguments:
   scenario      The JSONL scenario file to run. If a directory is specified,
@@ -42,8 +89,11 @@ options:
                 The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
 
   --requirements REQUIREMENTS
-                The requirements file to pip install before running the scenario. This file must be found in
-                the 'includes' directory. (default: requirements.txt)
+                The requirements file to pip install before running the scenario.
+
+  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
+                The Docker image to use when running scenarios. Can not be used together with --native.
+                (default: 'autogen/testbed:default', which will be created if not present)
 
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
@@ -51,7 +101,7 @@ options:
 
 ## Results
 
-By default, the Testbed stores results in a folder heirarchy with the following template:
+By default, the AutoGenBench stores results in a folder hierarchy with the following template:
 
 ``./results/[scenario]/[instance_id]/[repetition]``
 
@@ -70,7 +120,6 @@ Within each folder, you will find the following files:
 
 - *timestamp.txt*: records the date and time of the run, along with the version of the pyautogen library installed
 - *console_log.txt*: all console output produced by Docker when running autogen. Read this like you would a regular console.
-- *chat_completions.json*: a log of all OpenAI ChatCompletions, as logged by `autogen.ChatCompletion.start_logging(compact=False)`
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
 - *./coding*: A directory containing all code written by Autogen, and all artifacts produced by that code.
 
@@ -151,45 +200,29 @@ In this example, the string `__MODEL__` will be replaced in the file `scenarios.
 
 ## Scenario Expansion Algorithm
 
-When the Testbed runs a scenario, it creates a local folder to share with Docker. As noted above, each instance and repetition gets its own folder along the path: ``./results/[scenario]/[instance_id]/[repetition]``
+When AutoGenBench runs a scenario, it creates a local folder to share with Docker. As noted above, each instance and repetition gets its own folder along the path: ``./results/[scenario]/[instance_id]/[repetition]``
 
 For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
-2. Append the OAI_CONFIG_LIST to the ENV file so that autogen may access these secrets.
-3. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
-4. Apply any templating, as outlined in the prior section.
-5. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
+1. Pre-populate DEST_FOLDER with all the basic starter files for running a scenario.
+2. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
+3. Apply any templating, as outlined in the prior section.
+4. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
 
 
 ## Scenario Execution Algorithm
 
 Once the scenario has been expanded it is run (via run.sh). This script will execute the following steps:
 
-1. Read and set the ENV environment variables
-2. If a file named `global_init.sh` is present, run it.
-3. If a file named `scenario_init.sh` is present, run it.
-4. Install the requirements file (if running in Docker)
-5. Run the Autogen scenario via `python scenario.py`
-6. Clean up (delete cache, etc.)
-7. If a file named `scenario_finalize.sh` is present, run it.
-8. If a file named `global_finalize.sh` is present, run it.
-9. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
+1. If a file named `global_init.sh` is present, run it.
+2. If a file named `scenario_init.sh` is present, run it.
+3. Install the requirements file (if running in Docker)
+4. Run the Autogen scenario via `python scenario.py`
+5. Clean up (delete cache, etc.)
+6. If a file named `scenario_finalize.sh` is present, run it.
+7. If a file named `global_finalize.sh` is present, run it.
+8. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
 
 Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
-
-
-## (Example) Running HumanEval
-
-One sample Testbed scenario type is a variation of the classic [HumanEval](https://github.com/openai/human-eval) benchmark. In this scenario, agents are given access to the unit test results, and are able to continue to debug their code until the problem is solved or they run out of tokens or turns. We can then count how many turns it took to solve the problem (returning -1 if the problem remains unsolved by the end of the conversation, and "" if the run is missing).
-
-Accessing this scenario-type requires downloading and converting the HumanEval dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance 3 times with GPT-3.5-Turbo-16k:
-
-```
-python utils/download_humaneval.py
-python ./run_scenarios.py scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
-python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
-cat human_eval_results_gpt35.csv
-```
