@@ -70,10 +70,10 @@ def clone_scenario(scenario):
             for chunk in response.iter_content(chunk_size=512):
                 fh.write(chunk)
 
-    # Run any post-download scripts
-    download_script = os.path.join(scenario, "Scripts", "download.py")
-    if os.path.isfile(download_script):
-        load_module(download_script).main()
+    # Run any init_tasks scripts
+    init_tasks_script = os.path.join(scenario, "Scripts", "init_tasks.py")
+    if os.path.isfile(init_tasks_script):
+        load_module(init_tasks_script).main()
 
     # Print the success
     print(f"\n\nSuccessfully cloned '{scenario}'")

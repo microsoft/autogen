@@ -1,3 +1,10 @@
-The AutoGPT style tasks are contained in folder `challenges`.
+To run the benchmark with GPT-4,execute:
+```
+autogenbench run Tasks/autogpt__two_agents_gpt4.jsonl
+```
 
-Run `python ../../utils/prepare_autogpt.py` to convert the tasks to jsonl format compatible for evaluation.
+
+To run the benchmark with GPT-3.5-turbo-16k, execute:
+```
+autogenbench run Tasks/autogpt__two_agents_gpt35.jsonl
+```

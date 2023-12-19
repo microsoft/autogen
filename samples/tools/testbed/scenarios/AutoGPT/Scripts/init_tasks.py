@@ -57,7 +57,7 @@ def create_jsonl(name, template, model):
             if os.path.exists(custom_python):
                 template_cp_list.append(
                     [
-                        artifacts,
+                        custom_python,
                         "custom_python",
                     ]
                 )
@@ -93,6 +93,7 @@ def create_jsonl(name, template, model):
 def main():
     models = {
         "gpt4": "gpt-4",
+        "gpt35": "gpt-3.5-turbo-16k",
     }
 
     templates = {"two_agents": os.path.join(TEMPLATES_DIR, "TwoAgents")}

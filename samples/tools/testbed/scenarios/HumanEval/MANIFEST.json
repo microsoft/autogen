@@ -13,6 +13,6 @@
         "Templates/GroupChatFourAgents/coding/my_tests.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatFourAgents/coding/my_tests.py",
         "Templates/GroupChatFourAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Templates/GroupChatFourAgents/scenario.py",
         "README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/README.md",
-	"Scripts/download.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Scripts/download.py"
+	"Scripts/init_tasks.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/HumanEval/Scripts/init_tasks.py"
     }
 }

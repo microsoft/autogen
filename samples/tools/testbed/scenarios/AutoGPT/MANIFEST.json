@@ -1,7 +1,7 @@
 {
     "files": {
         "./README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/AutoGPT/./README.md",
-        "./Scripts/download.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/AutoGPT/./Scripts/download.py",
+        "./Scripts/init_tasks.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/AutoGPT/./Scripts/init_tasks.py",
         "./Templates/TwoAgents/check.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/AutoGPT/./Templates/TwoAgents/check.py",
         "./Templates/TwoAgents/should_contain.json.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/AutoGPT/./Templates/TwoAgents/should_contain.json.txt",
         "./Templates/TwoAgents/should_not_contain.json.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/AutoGPT/./Templates/TwoAgents/should_not_contain.json.txt",
