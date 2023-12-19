@@ -93,6 +93,9 @@ class ResponseCreator:
         context = extra_kwargs.get("context")
 
         # Try to load the response from cache
+        cache_token_usage = {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
+        token_usage = {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
+
         if cache_seed is not None:
             with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                 # Try to get the response from cache
@@ -104,24 +107,24 @@ class ResponseCreator:
                         response.cost
                     except AttributeError:
                         # update atrribute if cost is not calculated
-                        response.cost = self.cost(response)
+                        response.cost = client.cost(response)
                         cache.set(key, response)
-                    self._update_usage_summary(response, use_cache=True)
+                    cache_token_usage = client.get_usage(response)
                     # check the filter
                     pass_filter = filter_func is None or filter_func(context=context, response=response)
                     if pass_filter or is_last:
                         # Return the response if it passes the filter or it is the last client
                         response.config_id = client_id
                         response.pass_filter = pass_filter
-                        return response
+                        return response, token_usage, cache_token_usage
 
         response = client.create(params)
         if response is None:
-            return None
+            return None, token_usage, cache_token_usage
 
         # add cost calculation before caching no matter filter is passed or not
         response.cost = client.cost(response)
-        self._update_usage_summary(response, use_cache=False)
+        token_usage = client.get_usage(response)
         if cache_seed is not None:
             # Cache the response
             with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
@@ -133,8 +136,8 @@ class ResponseCreator:
             # Return the response if it passes the filter or it is the last client
             response.pass_filter = pass_filter
             response.config_id = client_id
-            return response
-        return None
+            return response, token_usage, cache_token_usage
+        return None, token_usage, cache_token_usage
 
 
 class Client(ABC):
@@ -146,6 +149,8 @@ class Client(ABC):
     This class is used to create a client that can be used by OpenAIWrapper.
     It mimicks the OpenAI class, but allows for custom clients to be used.
     """
+
+    RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost"]
 
     class ClientResponseProtocol(Protocol):
         class Choice(Protocol):
@@ -170,10 +175,19 @@ class Client(ABC):
     def cost(self, response: ClientResponseProtocol) -> float:
         pass
 
+    @staticmethod
+    def get_usage(response: ClientResponseProtocol) -> Dict:
+        return {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
+
+    @abstractmethod
+    def get_model(self) -> str:
+        pass
+
 
 class OpenAIClient(Client):
     def __init__(self, config: Dict):
         self.client = OpenAI(**config)
+        self.model = config.get("model", "unknown")
 
     def create(self, params):
         completions = self.client.chat.completions if "messages" in params else self.client.completions
@@ -251,6 +265,18 @@ class OpenAIClient(Client):
         if isinstance(tmp_price1K, tuple):
             return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
         return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
+
+    @staticmethod
+    def get_usage(response: Union[ChatCompletion, Completion]) -> Dict:
+        return {
+            "prompt_tokens": response.usage,
+            "completion_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+            "cost": response.cost,
+        }
+
+    def get_model(self) -> str:
+        return self.model
 
 
 class OpenAIWrapper:
@@ -416,13 +442,15 @@ class OpenAIWrapper:
             # process for azure
             self._process_for_azure(create_config, extra_kwargs, "extra")
             try:
-                response = self.response_creator.create(
+                response, total_usage, cache_total_usage = self.response_creator.create(
                     client=client,
                     client_id=i,
                     is_last=(i == last),
                     create_config=create_config,
                     extra_kwargs=extra_kwargs,
                 )
+
+                self._update_usage(total_usage, cache_total_usage, client.model)
 
                 if response is not None:
                     return response
@@ -435,32 +463,28 @@ class OpenAIWrapper:
                 if i == last:
                     raise
 
-    def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
-        """Update the usage summary.
+    def _update_usage(self, total_usage, cache_total_usage, model):
+        def update_usage(usage_summary, response_usage, model):
+            cost = response_usage["cost"]
+            prompt_tokens = response_usage["prompt_tokens"]
+            completion_tokens = response_usage["completion_tokens"]
+            total_tokens = response_usage["total_tokens"]
 
-        Usage is calculated no mattter filter is passed or not.
-        """
-
-        def update_usage(usage_summary):
             if usage_summary is None:
-                usage_summary = {"total_cost": response.cost}
+                usage_summary = {"total_cost": cost}
             else:
-                usage_summary["total_cost"] += response.cost
+                usage_summary["total_cost"] += cost
 
-            usage_summary[response.model] = {
-                "cost": usage_summary.get(response.model, {}).get("cost", 0) + response.cost,
-                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0)
-                + response.usage.prompt_tokens,
-                "completion_tokens": usage_summary.get(response.model, {}).get("completion_tokens", 0)
-                + response.usage.completion_tokens,
-                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0)
-                + response.usage.total_tokens,
+            usage_summary[model] = {
+                "cost": usage_summary.get(model, {}).get("cost", 0) + cost,
+                "prompt_tokens": usage_summary.get(model, {}).get("prompt_tokens", 0) + prompt_tokens,
+                "completion_tokens": usage_summary.get(model, {}).get("completion_tokens", 0) + completion_tokens,
+                "total_tokens": usage_summary.get(model, {}).get("total_tokens", 0) + total_tokens,
             }
             return usage_summary
 
-        self.total_usage_summary = update_usage(self.total_usage_summary)
-        if not use_cache:
-            self.actual_usage_summary = update_usage(self.actual_usage_summary)
+        self.total_usage_summary = update_usage(self.total_usage_summary, total_usage, model)
+        self.actual_usage_summary = update_usage(self.actual_usage_summary, cache_total_usage, model)
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
@@ -518,21 +542,6 @@ class OpenAIWrapper:
         """Clear the usage summary."""
         self.total_usage_summary = None
         self.actual_usage_summary = None
-
-    def cost(self, response: Union[ChatCompletion, Completion]) -> float:
-        """Calculate the cost of the response."""
-        model = response.model
-        if model not in oai_price1k:
-            # TODO: add logging to warn that the model is not found
-            return 0
-
-        n_input_tokens = response.usage.prompt_tokens
-        n_output_tokens = response.usage.completion_tokens
-        tmp_price1K = oai_price1k[model]
-        # First value is input token rate, second value is output token rate
-        if isinstance(tmp_price1K, tuple):
-            return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
-        return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
 
     @classmethod
     def extract_text_or_completion_object(
