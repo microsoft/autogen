@@ -17,10 +17,6 @@ except ImportError:
         return x
 
 
-verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-cache_seed = None  # Use an int to seed the response cache. Use None to disable caching.
-
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
 filter_dict={"model": ["gpt-4-1106-preview"]}
 # filter_dict={"model": ["gpt-3.5-turbo-1106"]}
@@ -39,17 +35,17 @@ def create_teachable_agent(reset_db=False):
 
     teachable_agent = ConversableAgent(
         name="teachableagent",
-        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
+        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": None},  # Disable caching.
     )
 
     teachability = Teachability(
-        verbosity=verbosity,
+        verbosity=0,  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
         reset_db=reset_db,
         path_to_db_dir="./tmp/interactive/teachable_agent_db",
-        recall_threshold=recall_threshold,
+        recall_threshold=1.5,  # Higher numbers allow more (but less relevant) memos to be recalled.
     )
 
-    teachability.add_capability_to_agent(teachable_agent)
+    teachability.add_to_agent(teachable_agent)
 
     return teachable_agent
 

@@ -20,7 +20,7 @@ class Teachability(AgentCapability):
     where the user is any caller (human or not) sending messages to the teachable agent.
     Teachability is designed to be composable with other agent abilities.
     To make any conversable agent teachable, instantiate both the agent and the Teachability class,
-    then pass the agent to teachability.add_capability_to_agent(agent)."""
+    then pass the agent to teachability.add_to_agent(agent)."""
 
     def __init__(
         self,
@@ -53,12 +53,12 @@ class Teachability(AgentCapability):
         # Create the memo store.
         self.memo_store = MemoStore(self.verbosity, reset_db, self.path_to_db_dir)
 
-    def add_capability_to_agent(self, agent: ConversableAgent):
+    def add_to_agent(self, agent: ConversableAgent):
         """Adds teachability to the given agent."""
         self.teachable_agent = agent
 
         # Register a hook for processing user messages.
-        agent.register_hook(agent_method=agent.process_user_text, capability_method=self.process_user_text)
+        agent.register_hook(hookable_method=agent.process_user_text, hook=self.process_user_text)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
@@ -85,37 +85,37 @@ class Teachability(AgentCapability):
         # Try to retrieve relevant memos from the DB.
         expanded_user_text = user_text
         if self.memo_store.last_memo_id > 0:
-            expanded_user_text = self.consider_memo_retrieval(user_text)
+            expanded_user_text = self._consider_memo_retrieval(user_text)
 
         # Try to store any user teachings in new memos to be used in the future.
-        self.consider_memo_storage(user_text)
+        self._consider_memo_storage(user_text)
 
         # Return the (possibly) expanded user text.
         return expanded_user_text
 
-    def consider_memo_storage(self, comment):
+    def _consider_memo_storage(self, comment):
         """Decides whether to store something from one user comment in the DB."""
         memo_added = False
 
         # Check for a problem-solution pair.
-        response = self.analyze(
+        response = self._analyze(
             comment,
             "Does any part of the TEXT ask the agent to perform a task or solve a problem? Answer with just one word, yes or no.",
         )
         if "yes" in response.lower():
             # Can we extract advice?
-            advice = self.analyze(
+            advice = self._analyze(
                 comment,
                 "Briefly copy any advice from the TEXT that may be useful for a similar but different task in the future. But if no advice is present, just respond with 'none'.",
             )
             if "none" not in advice.lower():
                 # Yes. Extract the task.
-                task = self.analyze(
+                task = self._analyze(
                     comment,
                     "Briefly copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.",
                 )
                 # Generalize the task.
-                general_task = self.analyze(
+                general_task = self._analyze(
                     task,
                     "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.",
                 )
@@ -126,18 +126,18 @@ class Teachability(AgentCapability):
                 memo_added = True
 
         # Check for information to be learned.
-        response = self.analyze(
+        response = self._analyze(
             comment,
             "Does the TEXT contain information that could be committed to memory? Answer with just one word, yes or no.",
         )
         if "yes" in response.lower():
             # Yes. What question would this information answer?
-            question = self.analyze(
+            question = self._analyze(
                 comment,
                 "Imagine that the user forgot this information in the TEXT. How would they ask you for this information? Include no other text in your response.",
             )
             # Extract the information.
-            answer = self.analyze(
+            answer = self._analyze(
                 comment, "Copy the information from the TEXT that should be committed to memory. Add no explanation."
             )
             # Add the question-answer pair to the vector DB.
@@ -149,18 +149,18 @@ class Teachability(AgentCapability):
         # Were any memos added?
         if memo_added:
             # Yes. Save them to disk.
-            self.memo_store.save_memos()
+            self.memo_store._save_memos()
 
-    def consider_memo_retrieval(self, comment):
+    def _consider_memo_retrieval(self, comment):
         """Decides whether to retrieve memos from the DB, and add them to the chat context."""
 
         # First, use the user comment directly as the lookup key.
         if self.verbosity >= 1:
             print(colored("\nLOOK FOR RELEVANT MEMOS, AS QUESTION-ANSWER PAIRS", "light_yellow"))
-        memo_list = self.retrieve_relevant_memos(comment)
+        memo_list = self._retrieve_relevant_memos(comment)
 
         # Next, if the comment involves a task, then extract and generalize the task before using it as the lookup key.
-        response = self.analyze(
+        response = self._analyze(
             comment,
             "Does any part of the TEXT ask the agent to perform a task or solve a problem? Answer with just one word, yes or no.",
         )
@@ -168,24 +168,24 @@ class Teachability(AgentCapability):
             if self.verbosity >= 1:
                 print(colored("\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS", "light_yellow"))
             # Extract the task.
-            task = self.analyze(
+            task = self._analyze(
                 comment, "Copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice."
             )
             # Generalize the task.
-            general_task = self.analyze(
+            general_task = self._analyze(
                 task,
                 "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.",
             )
             # Append any relevant memos.
-            memo_list.extend(self.retrieve_relevant_memos(general_task))
+            memo_list.extend(self._retrieve_relevant_memos(general_task))
 
         # De-duplicate the memo list.
         memo_list = list(set(memo_list))
 
         # Append the memos to the last user message.
-        return comment + self.concatenate_memo_texts(memo_list)
+        return comment + self._concatenate_memo_texts(memo_list)
 
-    def retrieve_relevant_memos(self, input_text):
+    def _retrieve_relevant_memos(self, input_text):
         """Returns semantically related memos from the DB."""
         memo_list = self.memo_store.get_related_memos(
             input_text, n_results=self.max_num_retrievals, threshold=self.recall_threshold
@@ -203,7 +203,7 @@ class Teachability(AgentCapability):
         memo_list = [memo[1] for memo in memo_list]
         return memo_list
 
-    def concatenate_memo_texts(self, memo_list):
+    def _concatenate_memo_texts(self, memo_list):
         """Concatenates the memo texts into a single string for inclusion in the chat context."""
         memo_texts = ""
         if len(memo_list) > 0:
@@ -215,7 +215,7 @@ class Teachability(AgentCapability):
             memo_texts = memo_texts + "\n" + info
         return memo_texts
 
-    def analyze(self, text_to_analyze, analysis_instructions):
+    def _analyze(self, text_to_analyze, analysis_instructions):
         """Asks TextAnalyzerAgent to analyze the given text according to specific instructions."""
         self.analyzer.reset()  # Clear the analyzer's list of messages.
         self.teachable_agent.send(
@@ -281,10 +281,8 @@ class MemoStore:
                 )
             )
 
-    def save_memos(self):
+    def _save_memos(self):
         """Saves self.uid_text_dict to disk."""
-        print(colored("\nSAVING MEMORY TO DISK", "light_green"))
-        print(colored("    Location = {}".format(self.path_to_dict), "light_green"))
         with open(self.path_to_dict, "wb") as file:
             pickle.dump(self.uid_text_dict, file)
 
@@ -294,7 +292,7 @@ class MemoStore:
         self.db_client.delete_collection("memos")
         self.vec_db = self.db_client.create_collection("memos")
         self.uid_text_dict = {}
-        self.save_memos()
+        self._save_memos()
 
     def add_input_output_pair(self, input_text, output_text):
         """Adds an input-output pair to the vector DB."""
@@ -383,4 +381,4 @@ class MemoStore:
         )
         for example in examples:
             self.add_input_output_pair(example["text"], example["label"])
-        self.save_memos()
+        self._save_memos()

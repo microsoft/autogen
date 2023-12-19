@@ -22,14 +22,6 @@ except ImportError:
         return x
 
 
-# Set verbosity levels to maximize code coverage.
-qa_verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-skill_verbosity = 3  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-
-assert_on_error = False  # GPT-4 nearly always succeeds on these unit tests, but GPT-3.5 is a bit less reliable.
-recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-cache_seed = None  # Use an int to seed the response cache. Use None to disable caching.
-
 # Specify the model to use by uncommenting one of the following lines.
 filter_dict={"model": ["gpt-4-1106-preview"]}
 # filter_dict={"model": ["gpt-4-0613"]}
@@ -48,17 +40,17 @@ def create_teachable_agent(reset_db=False, verbosity=0):
 
     teachable_agent = ConversableAgent(
         name="teachableagent",
-        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
+        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": None},  # Disable caching.
     )
 
     teachability = Teachability(
         verbosity=verbosity,
         reset_db=reset_db,
         path_to_db_dir="./tmp/teachable_agent_db",
-        recall_threshold=recall_threshold,
+        recall_threshold=1.5,  # Higher numbers allow more (but less relevant) memos to be recalled.
     )
 
-    teachability.add_capability_to_agent(teachable_agent)
+    teachability.add_to_agent(teachable_agent)
 
     return teachable_agent, teachability
 
@@ -68,8 +60,6 @@ def check_agent_response(teachable_agent, user, correct_answer):
     agent_response = user.last_message(teachable_agent)["content"]
     if correct_answer not in agent_response:
         print(colored(f"\nTEST FAILED:  EXPECTED ANSWER {correct_answer} NOT FOUND IN AGENT RESPONSE", "light_red"))
-        if assert_on_error:
-            assert correct_answer in agent_response
         return 1
     else:
         print(colored(f"\nTEST PASSED:  EXPECTED ANSWER {correct_answer} FOUND IN AGENT RESPONSE", "light_cyan"))
@@ -81,7 +71,7 @@ def use_question_answer_phrasing():
     print(colored("\nTEST QUESTION-ANSWER PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
     teachable_agent, teachability = create_teachable_agent(
-        reset_db=True, verbosity=qa_verbosity
+        reset_db=True, verbosity=0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
     )  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
@@ -114,7 +104,8 @@ def use_task_advice_pair_phrasing():
     print(colored("\nTEST TASK-ADVICE PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
     teachable_agent, teachability = create_teachable_agent(
-        reset_db=True, verbosity=skill_verbosity  # For a clean test, clear the teachable agent's memory.
+        reset_db=True,  # For a clean test, clear the teachable agent's memory.
+        verbosity=3  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
     )
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
@@ -187,7 +178,6 @@ def test_teachability_accuracy():
 
         # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
         teachability.prepopulate_db()
-
 
         # Tell the teachable agent something it wouldn't already know.
         user.initiate_chat(recipient=teachable_agent, message="My favorite color is teal.")
