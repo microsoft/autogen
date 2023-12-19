@@ -352,8 +352,6 @@ class CompressibleAgent(ConversableAgent):
         The first message (the initial prompt) will not be compressed.
         The rest of the messages will be compressed into one message, the model is asked to distinuish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
         Check out the compress_sys_msg.
-
-        TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
         """
         # Stop if there is only one message in the list
         leave_last_n = self.compress_config.get("leave_last_n", 0)
@@ -409,11 +407,11 @@ class CompressibleAgent(ConversableAgent):
         for m in messages[1 : len(messages) - leave_last_n]:  # 0, 1, 2, 3, 4
             # Handle function role
             if m.get("role") == "function":
-                chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"): \n{m['content']}\n"
+                chat_to_compress += f"##FUNCTION_RETURN## (from function \"{m['name']}\"):\n{m['content']}\n"
 
             # Handle tool role
             elif m.get("role") == "tool":
-                chat_to_compress += f"##TOOL_RETURN## (from tool \"{m['name']}\", tool call id \"{m['tool_call_id']}\"): \n{m['content']}\n"
+                chat_to_compress += f"##TOOL_RETURN## (from tool \"{m['name']}\", tool call id \"{m['tool_call_id']}\"):\n{m['content']}\n"
 
             # If name exists in the message
             elif "name" in m:
@@ -434,7 +432,7 @@ class CompressibleAgent(ConversableAgent):
                 if not function_name or not function_args:
                     chat_to_compress += f"##FUNCTION_CALL## {m['function_call']}\n"
                 else:
-                    chat_to_compress += f"##FUNCTION_CALL## \nName: {function_name}\nArgs: {function_args}\n"
+                    chat_to_compress += f"##FUNCTION_CALL##\nName: {function_name}\nArgs: {function_args}\n"
 
             if "tool_calls" in m:
                 for tool_call in m["tool_calls"]:
@@ -446,7 +444,7 @@ class CompressibleAgent(ConversableAgent):
                         chat_to_compress += f"##TOOL_CALL## {tool_call['tool_call']}\n"
                     else:
                         chat_to_compress += (
-                            f"##TOOL_CALL## ToolCallId: {tool_call_id} \nName: {function_name}\nArgs: {function_args}\n"
+                            f"##TOOL_CALL## ToolCallId: {tool_call_id}\nName: {function_name}\nArgs: {function_args}\n"
                         )
 
         return [{"role": "user", "content": chat_to_compress}]

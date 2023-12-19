@@ -1,3 +1,4 @@
+import inspect
 import pytest
 import sys
 import autogen
@@ -197,6 +198,84 @@ def test_mode_terminate():
         sender=user_proxy,
     )
     assert final, "Terminating the conversation at max token limit is not working."
+
+
+@pytest.mark.parametrize(
+    "messages, leave_last_n, compressed_prompt, expected",
+    [
+        # Primary thread test covering all message types
+        (
+            [
+                {"role": "system", "content": "System message, skipped"},
+                {"content": "compressed prompt: prior compressed content"},
+                {"role": "user", "content": "Start"},
+                {"role": "function", "name": "Function1", "content": "Content A"},
+                {"role": "tool", "name": "Tool1", "tool_call_id": "123", "content": "Content B"},
+                {"name": "User1", "role": "user", "content": "Content C"},
+                {"role": "system", "content": "System message"},
+                {"function_call": {"name": "Function2", "arguments": {"arg1": "value1"}}},
+                {
+                    "tool_calls": [
+                        {
+                            "id": "456",
+                            "type": "function",
+                            "function": {"name": "Function3", "arguments": {"arg2": "value2"}},
+                        },
+                        {
+                            "id": "457",
+                            "type": "function",
+                            "function": {"name": "Function4", "arguments": {"arg3": "value3"}},
+                        },
+                    ]
+                },
+                {"role": "assistant", "content": "End"},
+            ],
+            1,
+            "compressed prompt: ",
+            [
+                {
+                    "role": "user",
+                    "content": inspect.cleandoc(
+                        """
+
+                prior compressed content
+                ##USER## Start
+                ##FUNCTION_RETURN## (from function "Function1"):
+                Content A
+                ##TOOL_RETURN## (from tool "Tool1", tool call id "123"):
+                Content B
+                ##User1(USER)## Content C
+                ##SYSTEM## System message
+                ##FUNCTION_CALL##
+                Name: Function2
+                Args: {'arg1': 'value1'}
+                ##TOOL_CALL## ToolCallId: 456
+                Name: Function3
+                Args: {'arg2': 'value2'}
+                ##TOOL_CALL## ToolCallId: 457
+                Name: Function4
+                Args: {'arg3': 'value3'}
+            """
+                    )
+                    + "\n",
+                }
+            ],
+        ),
+        ([], 0, "compress this", [{"role": "user", "content": ""}]),
+    ],
+)
+def test_chat_messages_to_compress(messages, leave_last_n, compressed_prompt, expected):
+    assistant = CompressibleAgent(
+        name="assistant",
+        llm_config={
+            "timeout": 600,
+            "cache_seed": 43,
+            "config_list": config_list,
+        },
+        compress_config=True,
+    )
+    result = assistant.chat_messages_to_compress(messages, leave_last_n, compressed_prompt)
+    assert result == expected, "Compressed messages is not correct."
 
 
 if __name__ == "__main__":
