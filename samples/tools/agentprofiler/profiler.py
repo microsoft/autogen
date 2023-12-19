@@ -1,6 +1,5 @@
 import json
 import copy
-from logging import config
 from typing import Dict, List, Optional
 import autogen
 
@@ -67,7 +66,7 @@ def annotate_chat_history(
     chat_history: List[Dict[str, str]],
     codes: str = None,
     llm_config: Dict[str, str] = None,
-) -> None:
+) -> List[Dict[str, str]]:
     """
     Annotates the chat history with codes based on the role and content of each message.
 
@@ -91,7 +90,7 @@ def annotate_chat_history(
 
 
 if __name__ == "__main__":
-    chat_history = json.load(open("sample_data/chat_history.json"))["user_proxy"]
+    chat_history = json.load(open("sample_data/chat_history.json"))
 
     llm_config = autogen.config_list_from_json(
         "OAI_CONFIG_LIST",
