@@ -250,6 +250,7 @@ def create_vector_db_from_dir(
     custom_text_split_function: Callable = None,
     custom_text_types: List[str] = TEXT_FORMATS,
     recursive: bool = True,
+    extra_docs: bool = False,
 ) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
@@ -296,6 +297,10 @@ def create_vector_db_from_dir(
             metadata={"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32},  # ip, l2, cosine
         )
 
+        length = 0
+        if extra_docs:
+            length = len(collection.get()["ids"])
+
         if custom_text_split_function is not None:
             chunks = split_files_to_chunks(
                 get_files_from_dir(dir_path, custom_text_types, recursive),
@@ -314,7 +319,7 @@ def create_vector_db_from_dir(
             end_idx = i + min(40000, len(chunks) - i)
             collection.upsert(
                 documents=chunks[i:end_idx],
-                ids=[f"doc_{j}" for j in range(i, end_idx)],  # unique for each doc
+                ids=[f"doc_{j+length}" for j in range(i, end_idx)],  # unique for each doc
             )
     except ValueError as e:
         logger.warning(f"{e}")

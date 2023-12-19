@@ -171,6 +171,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", None)
+        self._extra_docs = self._retrieve_config.get("extra_docs", False)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         if "docs_path" not in self._retrieve_config:
             logger.warning(
@@ -392,6 +393,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 custom_text_split_function=self.custom_text_split_function,
                 custom_text_types=self._custom_text_types,
                 recursive=self._recursive,
+                extra_docs=self._extra_docs,
             )
             self._collection = True
             self._get_or_create = True
