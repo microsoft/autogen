@@ -24,28 +24,27 @@ class Teachability(AgentCapability):
 
     def __init__(
         self,
-        teach_config: Optional[Dict] = None,
+        verbosity: Optional[int] = 0,
+        reset_db: Optional[bool] = False,
+        path_to_db_dir: Optional[str] = "./tmp/teachable_agent_db",
+        recall_threshold: Optional[float] = 1.5,
+        max_num_retrievals: Optional[int] = 10,
         llm_config: Optional[Union[Dict, bool]] = None,
     ):
         """
         Args:
-            teach_config (dict or None): Additional parameters used by Teachability.
-                To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
-                - verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-                - reset_db (Optional, bool): True to clear the DB before starting. Default False.
-                - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
-                - recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
-                - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
+            verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+            reset_db (Optional, bool): True to clear the DB before starting. Default False.
+            path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
+            recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
+            max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
             llm_config (dict or False): llm inference configuration passed to TextAnalyzerAgent.
-                If None, Teachability expects to receive a valid llm_config from the teachable agent.
+                If None, TextAnalyzerAgent uses llm_config from the teachable agent.
         """
-        # Assemble the parameter settings.
-        self._teach_config = {} if teach_config is None else teach_config
-        self.verbosity = self._teach_config.get("verbosity", 0)
-        reset_db = self._teach_config.get("reset_db", False)
-        self.path_to_db_dir = self._teach_config.get("path_to_db_dir", "./tmp/teachable_agent_db")
-        self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
-        self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
+        self.verbosity = verbosity
+        self.path_to_db_dir = path_to_db_dir
+        self.recall_threshold = recall_threshold
+        self.max_num_retrievals = max_num_retrievals
         self.llm_config = llm_config
 
         self.analyzer = None
@@ -71,7 +70,7 @@ class Teachability(AgentCapability):
         self.analyzer = TextAnalyzerAgent(llm_config=self.llm_config)
 
         # Append extra info to the system message.
-        agent.update_system_message(agent.system_message + "\nYou have the ability to remember user teachings from prior chats.")
+        agent.update_system_message(agent.system_message + "\nYou've been given the special ability to remember user teachings from prior conversations.")
 
     def prepopulate_db(self):
         """Adds a few arbitrary memos to the DB."""

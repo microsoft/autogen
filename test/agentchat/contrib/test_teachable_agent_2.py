@@ -6,14 +6,9 @@ from autogen import ConversableAgent, config_list_from_json
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
-OLD = 0
-
 try:
     from openai import OpenAI
-    if OLD:
-        from autogen.agentchat.contrib.teachable_agent_2 import TeachableAgent
-    else:
-        from autogen.agentchat.contrib.capabilities.teachability import Teachability
+    from autogen.agentchat.contrib.capabilities.teachability import Teachability
 except ImportError:
     skip = True
 else:
@@ -51,34 +46,19 @@ def create_teachable_agent(reset_db=False, verbosity=0):
     # and OAI_CONFIG_LIST_sample
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC)
 
-    if OLD:
-        teachable_agent = TeachableAgent(
-            name="teachableagent",
-            llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
-            teach_config={
-                "verbosity": verbosity,
-                "reset_db": reset_db,
-                "path_to_db_dir": "./tmp/teachable_agent_db",
-                "recall_threshold": recall_threshold,
-            },
-        )
-        teachability = None
-    else:
-        teachable_agent = ConversableAgent(
-            name="teachableagent",
-            llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
-        )
+    teachable_agent = ConversableAgent(
+        name="teachableagent",
+        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
+    )
 
-        teachability = Teachability(
-            teach_config={
-                "verbosity": verbosity,
-                "reset_db": reset_db,
-                "path_to_db_dir": "./tmp/teachable_agent_db",
-                "recall_threshold": recall_threshold,
-            },
-        )
+    teachability = Teachability(
+        verbosity=verbosity,
+        reset_db=reset_db,
+        path_to_db_dir="./tmp/teachable_agent_db",
+        recall_threshold=recall_threshold,
+    )
 
-        teachability.add_capability_to_agent(teachable_agent)
+    teachability.add_capability_to_agent(teachable_agent)
 
     return teachable_agent, teachability
 
@@ -106,10 +86,7 @@ def use_question_answer_phrasing():
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
-    if OLD:
-        teachable_agent.prepopulate_db()
-    else:
-        teachability.prepopulate_db()
+    teachability.prepopulate_db()
 
     # Ask the teachable agent to do something using terminology it doesn't understand.
     user.initiate_chat(recipient=teachable_agent, message="What is the twist of 5 and 7?")
@@ -142,10 +119,7 @@ def use_task_advice_pair_phrasing():
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
     # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
-    if OLD:
-        teachable_agent.prepopulate_db()
-    else:
-        teachability.prepopulate_db()
+    teachability.prepopulate_db()
 
     # Ask the teachable agent to do something, and provide some helpful advice.
     user.initiate_chat(
@@ -212,10 +186,7 @@ def test_teachability_accuracy():
         user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
         # Prepopulate memory with a few arbitrary memos, just to make retrieval less trivial.
-        if OLD:
-            teachable_agent.prepopulate_db()
-        else:
-            teachability.prepopulate_db()
+        teachability.prepopulate_db()
 
 
         # Tell the teachable agent something it wouldn't already know.

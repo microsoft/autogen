@@ -1,5 +1,6 @@
 from autogen import UserProxyAgent, config_list_from_json
-from autogen.agentchat.contrib.teachable_agent_2 import TeachableAgent
+from autogen.agentchat.contrib.capabilities.teachability import Teachability
+from autogen import ConversableAgent
 
 import os
 import sys
@@ -35,16 +36,21 @@ def create_teachable_agent(reset_db=False):
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC)
-    teachable_agent = TeachableAgent(
+
+    teachable_agent = ConversableAgent(
         name="teachableagent",
         llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
-        teach_config={
-            "verbosity": verbosity,
-            "reset_db": reset_db,
-            "path_to_db_dir": "./tmp/interactive/teachable_agent_db",
-            "recall_threshold": recall_threshold,
-        },
     )
+
+    teachability = Teachability(
+        verbosity=verbosity,
+        reset_db=reset_db,
+        path_to_db_dir="./tmp/interactive/teachable_agent_db",
+        recall_threshold=recall_threshold,
+    )
+
+    teachability.add_capability_to_agent(teachable_agent)
+
     return teachable_agent
 
 
