@@ -31,7 +31,7 @@ Question #{question_index}:
         public async Task<string> AnswerQuestion(string answer)
         {
             return $@"// ignore this line [MATH_ANSWER]
-{answer}";
+The answer is {answer}, teacher please check answer";
         }
 
         [FunctionAttribution]
@@ -171,18 +171,13 @@ sorry, the answer should be 2, not 3
                     student,
                 });
 
-            admin.AddInitializeMessage($@"Welcome to the group chat!", group);
+            admin.AddInitializeMessage($@"Welcome to the group chat! I'm admin", group);
             teacher.AddInitializeMessage($@"Hey I'm Teacher", group);
             student.AddInitializeMessage($@"Hey I'm Student", group);
-            admin.AddInitializeMessage(@$"Here's the workflow for this group chat:
-- admin: update process
-- teacher: create math question
-- student: answer question
-- teacher: check if answer is correct
-- if answer is wrong
-    - student: fix answer
-- if answer is correct
-    - admin: update process
+            admin.AddInitializeMessage(@$"Teacher, please create pre-school math question for student and check answer.
+Student, for each question, please answer it and ask teacher to check if the answer is correct.
+I'll update the progress after each question is answered.
+The conversation will end after 5 correct answers.
 ", group);
 
             var groupChatManager = new GroupChatManager(group);

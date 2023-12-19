@@ -42,6 +42,7 @@ namespace AutoGen.Tests
 
             var llmConfig = new AssistantAgentConfig
             {
+                Temperature = 0,
                 FunctionDefinitions = new[]
                 {
                     this.EchoAsyncFunction,

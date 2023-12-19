@@ -104,7 +104,7 @@ namespace AutoGen
         public static async Task<IEnumerable<Message>> SendAsync(
             this IAgent agent,
             IAgent receiver,
-            string? message = null,
+            string message = null,
             IEnumerable<Message>? chatHistory = null,
             int maxRound = 10,
             CancellationToken ct = default)
