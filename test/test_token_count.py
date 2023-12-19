@@ -1,4 +1,10 @@
-from autogen.token_count_utils import count_token, num_tokens_from_functions, token_left, percentile_used
+from autogen.token_count_utils import (
+    count_token,
+    num_tokens_from_functions,
+    token_left,
+    percentile_used,
+    get_max_token_limit,
+)
 import pytest
 
 func1 = {
@@ -67,6 +73,14 @@ def test_count_token():
     assert percentile_used(text) == 10 / 4096
 
 
+def test_model_aliases():
+    assert get_max_token_limit("gpt35-turbo") == get_max_token_limit("gpt-3.5-turbo")
+    assert get_max_token_limit("gpt-35-turbo") == get_max_token_limit("gpt-3.5-turbo")
+    assert get_max_token_limit("gpt4") == get_max_token_limit("gpt-4")
+    assert get_max_token_limit("gpt4-32k") == get_max_token_limit("gpt-4-32k")
+
+
 if __name__ == "__main__":
-    test_num_tokens_from_functions()
-    test_count_token()
+    #    test_num_tokens_from_functions()
+    #    test_count_token()
+    test_model_aliases()

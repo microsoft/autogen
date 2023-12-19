@@ -19,7 +19,8 @@ The Testbed also requires Docker (Desktop or Engine) AND the __python docker__ l
 To run the Testbed, simply execute
 ``python run_scenarios.py scenarios/Examples``
 
-The default is to run each scenario once time. To run each scenario 10 times, use:
+The default is to run each scenario once. To run each scenario 10 times, use:
+
 ``python run_scenarios.py --repeat 10 scenarios/Examples ``
 
 The run_scenarios.py script also allows a number of command-line arguments to control various parameters of execution. Type ``python run_scenarios.py -h`` to explore these options:
@@ -44,6 +45,10 @@ options:
   --requirements REQUIREMENTS
                 The requirements file to pip install before running the scenario. This file must be found in
                 the 'includes' directory. (default: requirements.txt)
+
+  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
+                The Docker image to use when running scenarios. Can not be used together with --native.
+                (default: 'autogen/testbed:default', which will be created if not present)
 
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
@@ -192,4 +197,43 @@ python utils/download_humaneval.py
 python ./run_scenarios.py scenarios/HumanEval/human_eval_two_agents_gpt35.jsonl
 python utils/collate_human_eval.py ./results/human_eval_two_agents_gpt35 | python utils/metrics_human_eval.py > human_eval_results_gpt35.csv
 cat human_eval_results_gpt35.csv
+```
+
+## (Example) Running GAIA
+
+The Testbed can also be used to run the recently released [GAIA benchmark](https://huggingface.co/gaia-benchmark). This integration is presently experimental, and needs further validation. In this scenario, agents are presented with a series of questions that may include file references, or multi-modal input. Agents then must provide a `FINAL ANSWER`, which is considered correct if it (nearly) exactly matches an unambiguously accepted answer.
+
+Accessing this scenario-type requires downloading and converting the GAIA dataset, running the Testbed, collating the results, and finally computing the metrics. The following commands will accomplish this, running each test instance once with GPT-4:
+
+```
+# Clone the GAIA dataset repo (assuming a 'repos' folder in your home directory)
+cd ~/repos
+git clone https://huggingface.co/datasets/gaia-benchmark/GAIA
+
+# Expand GAIA
+cd ~/repos/autogen/samples/tools/testbed
+python ./utils/expand_gaia.py ~/repos/GAIA
+
+# Run GAIA
+python ./run_scenarios.py ./scenarios/GAIA/gaia_validation_level_1__two_agents_gpt4.jsonl
+
+# Compute Metrics
+python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
+```
+
+## (Example) Running tasks from AutoGPT
+
+The Testbed supports running tasks proposed in [AutoGPT benchmark](https://github.com/Significant-Gravitas/AutoGPT/tree/master/benchmark/agbenchmark/challenges). In this scenario, the agents are prompted to handle a diverse range of tasks, including coding, question answering according to given tasks, web scraping. Similar to scenarios in HumanEval, the agents can call the unit test script to check if the task is successfully done.
+
+Accessing this scenario-type requires converting tasks, running the Testbed, collating the results, and finally computing the metrics. The following commands will run each test instance with GPT-4:
+
+```
+# Convert tasks
+python utils/prepare_autogpt.py
+
+# Run all the scenarios with GPT-4
+python run_scenarios.py scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
+
+# Compute metrics, the metric script shares the same one with HumanEval
+python utils/collate_autogpt.py ./results/autogpt_twoagent_gpt4 | python metrics_human_eval.py
 ```
