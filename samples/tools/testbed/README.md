@@ -95,6 +95,10 @@ options:
                 The Docker image to use when running scenarios. Can not be used together with --native.
                 (default: 'autogen/testbed:default', which will be created if not present)
 
+  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
+                The Docker image to use when running scenarios. Can not be used together with --native.
+                (default: 'autogen/testbed:default', which will be created if not present)
+
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
 ```

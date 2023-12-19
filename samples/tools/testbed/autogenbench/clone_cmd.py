@@ -17,6 +17,7 @@ SCENARIOS = {
     "HumanEval": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/HumanEval/MANIFEST.json",
     "GAIA": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/GAIA/MANIFEST.json",
     "AutoGPT": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/AutoGPT/MANIFEST.json",
+    "MATH": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/MATH/MANIFEST.json",
 }
 
 
