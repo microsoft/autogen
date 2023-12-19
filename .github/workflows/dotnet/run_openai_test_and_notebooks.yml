@@ -17,7 +17,10 @@ jobs:
       run:
         working-directory: dotnet
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
