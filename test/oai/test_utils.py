@@ -1,10 +1,12 @@
+import json
+import logging
 import os
 import sys
-import json
-import pytest
-import logging
 import tempfile
 from unittest import mock
+
+import pytest
+
 import autogen  # noqa: E402
 
 KEY_LOC = "notebook"
@@ -64,7 +66,21 @@ def test_config_list_from_json():
     config_list_3 = autogen.config_list_from_json(
         OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"model": ["gpt4", "gpt-4-32k"]}
     )
+
     assert all(config.get("model") in ["gpt4", "gpt-4-32k"] for config in config_list_3)
+
+    # Test: the env variable is set to a file path with folder name inside.
+    config_list_4 = autogen.config_list_from_json(
+        os.path.join(KEY_LOC, OAI_CONFIG_LIST), filter_dict={"model": ["gpt4", "gpt-4-32k"]}
+    )
+    assert config_list_3 == config_list_4
+
+    # Test: the env variable is set to a file path.
+    fd, temp_name = tempfile.mkstemp()
+    json.dump(config_list, os.fdopen(fd, "w+"), indent=4)
+    os.environ["config_list_test"] = temp_name
+    config_list_5 = autogen.config_list_from_json("config_list_test")
+    assert config_list_5 == config_list_2
 
     del os.environ["config_list_test"]
     os.remove(json_file)

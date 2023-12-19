@@ -1,11 +1,12 @@
-import os
 import json
+import logging
+import os
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Dict, Set, Union
-import logging
-from dotenv import find_dotenv, load_dotenv
+from typing import Dict, List, Optional, Set, Union
 
+from dotenv import find_dotenv, load_dotenv
+from genericpath import isdir
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 
@@ -248,8 +249,9 @@ def config_list_from_json(
     """Get a list of configs from a json parsed from an env variable or a file.
 
     Args:
-        env_or_file (str): The env variable name or file name.
-        file_location (str, optional): The file location.
+        env_or_file (str): The env variable name, or file name, or the env
+            variable for the file name.
+        file_location (str, optional): The folder where the config file sits in.
         filter_dict (dict, optional): The filter dict with keys corresponding to a field in each config,
             and values corresponding to lists of acceptable values for each key.
             e.g.,
@@ -263,10 +265,20 @@ def config_list_from_json(
     Returns:
         list: A list of configs for openai api calls.
     """
-    json_str = os.environ.get(env_or_file)
-    if json_str:
+    env_str = os.environ.get(env_or_file)
+
+    if env_str:
+        # The environment variable exists. We should use information from it.
+        if os.path.exists(env_str):
+            # It is a file location, and we need to load the json from the file.
+            json_str = open(env_str).read()
+        else:
+            # Else, it should be a JSON string by itself.
+            json_str = env_str
         config_list = json.loads(json_str)
     else:
+        # The environment variable does not exist.
+        # So, `env_or_file` is a filename. We should use the file location.
         config_list_path = os.path.join(file_location, env_or_file)
         try:
             with open(config_list_path) as json_file:
