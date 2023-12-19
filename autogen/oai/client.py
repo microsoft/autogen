@@ -191,7 +191,7 @@ class OpenAIWrapper:
     def create(self, **config):
         """Make a completion for a given config using openai's clients.
         Besides the kwargs allowed in openai's client, we allow the following additional kwargs.
-        The config in each client will be overriden by the config.
+        The config in each client will be overridden by the config.
 
         Args:
             - context (Dict | None): The context to instantiate the prompt or messages. Default to None.
