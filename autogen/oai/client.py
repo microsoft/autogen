@@ -561,6 +561,12 @@ class OpenAIWrapper:
         if isinstance(response, Completion):
             return [choice.text for choice in choices]
 
+        if not isinstance(response, ChatCompletion) and not isinstance(response, Completion):
+            return [
+                choice.message if choice.message.function_call is not None else choice.message.content
+                for choice in choices
+            ]
+
         if TOOL_ENABLED:
             return [
                 choice.message
