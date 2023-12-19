@@ -20,7 +20,6 @@ classifiers = [
 dependencies = [
     "pyautogen",
     "docker",
-    "psutil",
 ]
 
 dynamic = ["version"]

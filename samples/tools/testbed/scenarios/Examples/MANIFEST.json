@@ -1,0 +1,10 @@
+{
+    "files": {
+        "Templates/TwoAgents/scenario_finalize.sh": "https://raw.githubusercontent.com/microsoft/autogen/main/samples/tools/testbed/scenarios/Examples/Templates/TwoAgents/scenario_finalize.sh",
+        "Templates/TwoAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/main/samples/tools/testbed/scenarios/Examples/Templates/TwoAgents/scenario.py",
+        "Templates/TwoAgents/scenario_init.sh": "https://raw.githubusercontent.com/microsoft/autogen/main/samples/tools/testbed/scenarios/Examples/Templates/TwoAgents/scenario_init.sh",
+        "Tasks/default_two_agents_gpt35.jsonl": "https://raw.githubusercontent.com/microsoft/autogen/main/samples/tools/testbed/scenarios/Examples/default_two_agents_gpt35.jsonl",
+        "Tasks/default_two_agents_gpt4.jsonl": "https://raw.githubusercontent.com/microsoft/autogen/main/samples/tools/testbed/scenarios/Examples/default_two_agents_gpt4.jsonl",
+        "README.md": "https://raw.githubusercontent.com/microsoft/autogen/main/samples/tools/testbed/scenarios/Examples/README.md"
+    }
+}
