@@ -4,7 +4,9 @@ import json
 import os
 import shutil
 
-data_paths = glob.glob("challenges/*/data.json")
+current_file_dir = os.path.dirname(os.path.abspath(__file__))
+challenge_path = os.path.join(os.path.dirname(current_file_dir), "scenarios/AutoGPT/challenges")
+data_paths = glob.glob(str(challenge_path) + "/*/data.json")
 
 for data_path in data_paths:
     print("Converting data path: ", data_path)
@@ -29,21 +31,32 @@ for data_path in data_paths:
         should_not_contain_base64.append(encoded_word)
 
     # copy all the files needed to 'coding' directory
+    # 1. 'artifacts_in' directory: all the files needed for QA
+    save_path = os.path.join(os.path.dirname(current_file_dir), "scenarios/AutoGPT")
     artifacts_in = False
     if os.path.exists(os.path.join(workspace, "artifacts_in")):
         artifacts_in = True
-        target_folder = os.path.join("Templates/TwoAgents/coding/file", data["name"])
+        target_folder = os.path.join(save_path, "Templates/TwoAgents/coding/file", data["name"])
         if os.path.exists(target_folder):
             shutil.rmtree(target_folder)
         shutil.copytree(os.path.join(workspace, "artifacts_in"), target_folder)
         # print(f"All the artifacts are copied from {os.path.join(workspace, 'artifacts_in')} to {target_folder}")
 
+    # 2. 'custom_python' directory: all the files needed for testing python code
+    if os.path.exists(os.path.join(workspace, "custom_python")):
+        target_folder = os.path.join(save_path, "Templates/TwoAgents/custom_python")
+        if not os.path.exists(target_folder):
+            os.makedirs(target_folder)
+        for filename in os.listdir(os.path.join(workspace, "custom_python")):
+            shutil.copy(os.path.join(workspace, "custom_python", filename), os.path.join(target_folder, filename))
+            # print(f"File copied from {os.path.join(workspace, 'custom_python', filename)} to {target_folder}")
+
     record = {
-        "id": data["eval_id"],
+        "id": data["name"],
         "template": "Templates/TwoAgents",
         "substitutions": {
             "scenario.py": {
-                "__MODEL__": "gpt-3.5-turbo-16k",
+                "__MODEL__": "gpt-35-turbo-16k",
                 "__TASK__": data["task"],
                 "__TARGET_FOLDER__": f"file/{data['name']}" if artifacts_in else "",
             },
@@ -60,11 +73,11 @@ for data_path in data_paths:
             },
         },
     }
-    with open(f"{data['name']}_gpt35.jsonl", "wt") as f:
+    with open(os.path.join(save_path, "autogpt_twoagent_gpt35.jsonl"), "a") as f:
         f.write(json.dumps(record).strip() + "\n")
 
     record = {
-        "id": data["eval_id"],
+        "id": data["name"],
         "template": "Templates/TwoAgents",
         "substitutions": {
             "scenario.py": {
@@ -85,5 +98,5 @@ for data_path in data_paths:
             },
         },
     }
-    with open(f"{data['name']}_gpt4.jsonl", "wt") as f:
+    with open(os.path.join(save_path, "autogpt_twoagent_gpt4.jsonl"), "a") as f:
         f.write(json.dumps(record).strip() + "\n")

@@ -46,6 +46,10 @@ options:
                 The requirements file to pip install before running the scenario. This file must be found in
                 the 'includes' directory. (default: requirements.txt)
 
+  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
+                The Docker image to use when running scenarios. Can not be used together with --native.
+                (default: 'autogen/testbed:default', which will be created if not present)
+
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
 ```
@@ -215,4 +219,21 @@ python ./run_scenarios.py ./scenarios/GAIA/gaia_validation_level_1__two_agents_g
 
 # Compute Metrics
 python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
+```
+
+## (Example) Running tasks from AutoGPT
+
+The Testbed supports running tasks proposed in [AutoGPT benchmark](https://github.com/Significant-Gravitas/AutoGPT/tree/master/benchmark/agbenchmark/challenges). In this scenario, the agents are prompted to handle a diverse range of tasks, including coding, question answering according to given tasks, web scraping. Similar to scenarios in HumanEval, the agents can call the unit test script to check if the task is successfully done.
+
+Accessing this scenario-type requires converting tasks, running the Testbed, collating the results, and finally computing the metrics. The following commands will run each test instance with GPT-4:
+
+```
+# Convert tasks
+python utils/prepare_autogpt.py
+
+# Run all the scenarios with GPT-4
+python run_scenarios.py scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
+
+# Compute metrics, the metric script shares the same one with HumanEval
+python utils/collate_autogpt.py ./results/autogpt_twoagent_gpt4 | python metrics_human_eval.py
 ```
