@@ -77,15 +77,14 @@ def check():
             )
 
     for content in files_contents:
-        # print("\033[1;34mScoring content:\033[0m", content)
         score = scoring(content, should_contain, should_not_contain)
         scores.append(score)
 
     if 1.0 in scores:
-        print("ALL TESTS PASSED!\n\nTERMINATE.")
+        print("ALL TESTS PASSED !#!#\n\nTERMINATE")
     else:
-        print("Test failed.")
+        print("TEST FAILED !#!#")
 
 
-if __name__ == "__main__" and __package__ is None:
+if __name__ == "__main__":
     check()
