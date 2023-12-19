@@ -61,7 +61,7 @@ Therefore, some changes are required for users of `pyautogen<0.2`.
 from autogen import OpenAIWrapper
 client = OpenAIWrapper(config_list=config_list)
 response = client.create(messages=[{"role": "user", "content": "2+2="}])
-print(client.extract_text_or_function_call(response))
+print(client.extract_text_or_completion_object(response))
 ```
 - Inference parameter tuning and inference logging features are currently unavailable in `OpenAIWrapper`. Logging will be added in a future release.
 Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function).

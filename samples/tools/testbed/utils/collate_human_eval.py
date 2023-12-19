@@ -1,11 +1,7 @@
 import os
-import errno
-import shutil
-import subprocess
 import json
+import re
 import sys
-import time
-import pathlib
 import argparse
 
 
@@ -14,7 +10,7 @@ def collate(results_dir):
     Collate the results of running human eval.
 
     Args:
-        results_dir (path): The folder were results were be saved.
+        results_dir (path): The folder where results are saved.
     """
 
     all_results = list()
@@ -23,7 +19,7 @@ def collate(results_dir):
     for test_id in os.listdir(results_dir):
         test_path = os.path.join(results_dir, test_id)
 
-        # Collect the reslts vector
+        # Collect the results vector
         results = [test_id]
 
         instance = 0
@@ -34,9 +30,8 @@ def collate(results_dir):
                 with open(console_log, "rt") as fh:
                     content = fh.read()
                     if "ALL TESTS PASSED !#!#" in content:
-                        results.append(
-                            str(content.count("assistant (to user_proxy):"))
-                        )  # The number of assistant replies (which is also equal to the number of GPT calls in this case)
+                        # Ideally we would have a more distinctive pattern.
+                        results.append(str(len(re.findall(r"\n(.*?) \(to (.*?)\)\:\n", content))))
                     else:
                         results.append("-1")
 

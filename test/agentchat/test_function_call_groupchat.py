@@ -54,7 +54,18 @@ def test_function_call_groupchat():
         llm_config=llm_config,
     )
     groupchat = autogen.GroupChat(agents=[user_proxy, coder], messages=[], max_round=7)
-    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    # pass in llm_config with functions
+    with pytest.raises(
+        ValueError,
+        match="GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in.",
+    ):
+        manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    # pass in llm_config without functions
+    llm_config_manager = llm_config.copy()
+    del llm_config_manager["functions"]
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_manager)
 
     user_proxy.initiate_chat(manager, message="Let's start the game!")
 

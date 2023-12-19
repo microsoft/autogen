@@ -5,6 +5,8 @@ import {
   XMarkIcon,
   ClipboardIcon,
   PlusIcon,
+  ArrowPathIcon,
+  ArrowDownRightIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useRef, useState } from "react";
 import Icon from "./icons";
@@ -15,6 +17,7 @@ import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { truncateText } from "./utils";
 import { IModelConfig } from "./types";
+import { ResizableBox } from "react-resizable";
 
 interface CodeProps {
   node?: any;
@@ -36,6 +39,7 @@ interface IProps {
   open?: boolean;
   hoverable?: boolean;
   onClick?: () => void;
+  loading?: boolean;
 }
 
 export const SectionHeader = ({
@@ -136,6 +140,7 @@ export const Card = ({
           </div>
         )}
         <div>{subtitle}</div>
+        {children}
       </div>
     </div>
   );
@@ -274,30 +279,86 @@ export const GroupView = ({ children, title, className = "" }: any) => {
   );
 };
 
-export const ExpandView = ({ children, className = "" }: any) => {
+export const ExpandView = ({
+  children,
+  icon = null,
+  className = "",
+  title = "Detail View",
+}: any) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  let windowAspect = 1;
+  if (typeof window !== "undefined") {
+    windowAspect = window.innerWidth / window.innerHeight;
+  }
+  const minImageWidth = 400;
   return (
-    <div className={`  rounded mb-6  border-secondary ${className}`}>
+    <div
+      style={{
+        minHeight: "100px",
+      }}
+      className={`h-full    rounded mb-6  border-secondary ${className}`}
+    >
       <div
         role="button"
         onClick={() => {
           setIsOpen(true);
         }}
-        className="text-xs mb-2 break-words"
+        className="text-xs mb-2 h-full w-full break-words"
       >
-        {children}
+        {icon ? icon : children}
       </div>
       {isOpen && (
         <Modal
+          title={title}
           width={800}
           open={isOpen}
           onCancel={() => setIsOpen(false)}
           footer={null}
         >
+          {/* <ResizableBox
+            // handle={<span className="text-accent">resize</span>}
+            lockAspectRatio={false}
+            handle={
+              <div className="absolute right-0 bottom-0 cursor-se-resize  font-semibold boprder p-3 bg-secondary">
+                <ArrowDownRightIcon className="h-4 w-4 inline-block" />
+              </div>
+            }
+            width={800}
+            height={minImageWidth * windowAspect}
+            minConstraints={[minImageWidth, minImageWidth * windowAspect]}
+            maxConstraints={[900, 900 * windowAspect]}
+            className="overflow-auto w-full rounded select-none "
+          > */}
           {children}
+          {/* </ResizableBox> */}
         </Modal>
       )}
     </div>
+  );
+};
+
+export const LoadingOverlay = ({ children, loading }: IProps) => {
+  return (
+    <>
+      {loading && (
+        <>
+          <div
+            className="absolute inset-0 bg-secondary flex"
+            style={{ opacity: 0.5 }}
+          >
+            {/* Overlay background */}
+          </div>
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ pointerEvents: "none" }}
+          >
+            {/* Center BounceLoader without inheriting the opacity */}
+            <BounceLoader />
+          </div>
+        </>
+      )}
+      <div className="relative">{children}</div>
+    </>
   );
 };
 
@@ -327,6 +388,7 @@ export const MarkdownView = ({
             onClick={() => {
               setCodeVisible(!codeVisible);
             }}
+            className="  flex-1 mr-4  "
           >
             {!codeVisible && (
               <div className=" text-white hover:text-accent duration-300">
@@ -343,7 +405,7 @@ export const MarkdownView = ({
               </div>
             )}
           </div>
-          <div className="flex-1"></div>
+          {/* <div className="flex-1"></div> */}
           <div>
             {showCopied && (
               <div className="inline-block text-sm       text-white">
@@ -669,6 +731,113 @@ export const ModelSelector = ({
           onChange={(e) => updateNewModelConfig("api_type", e.target.value)}
         />
       </Modal>
+    </div>
+  );
+};
+
+export const BounceLoader = ({
+  className,
+  title = "",
+}: {
+  className?: string;
+  title?: string;
+}) => {
+  return (
+    <div>
+      <div className="inline-flex gap-2">
+        <span className="  rounded-full bg-accent h-2 w-2  inline-block"></span>
+        <span className="animate-bounce rounded-full bg-accent h-3 w-3  inline-block"></span>
+        <span className=" rounded-full bg-accent h-2 w-2  inline-block"></span>
+      </div>
+      <span className="  text-sm">{title}</span>
+    </div>
+  );
+};
+
+export const ImageLoader = ({
+  src,
+  className = "",
+}: {
+  src: string;
+  className?: string;
+}) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div className="w-full rounded relative">
+      {isLoading && (
+        <div className="absolute h-24 inset-0 flex items-center justify-center">
+          <BounceLoader title=" loading .." />{" "}
+        </div>
+      )}
+      <img
+        alt="Dynamic content"
+        src={src}
+        className={`w-full rounded ${
+          isLoading ? "opacity-0" : "opacity-100"
+        } ${className}`}
+        onLoad={() => setIsLoading(false)}
+      />
+    </div>
+  );
+};
+
+export const CodeLoader = ({
+  url,
+  className,
+}: {
+  url: string;
+  className?: string;
+}) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [code, setCode] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch(url)
+      .then((response) => response.text())
+      .then((data) => {
+        setCode(data);
+        setIsLoading(false);
+      });
+  }, [url]);
+
+  return (
+    <div className={`w-full rounded relative ${className}`}>
+      {isLoading && (
+        <div className="absolute h-24 inset-0 flex items-center justify-center">
+          <BounceLoader />
+        </div>
+      )}
+
+      {!isLoading && <CodeBlock code={code || ""} language={"python"} />}
+    </div>
+  );
+};
+
+export const PdfViewer = ({ url }: { url: string }) => {
+  const [loading, setLoading] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    // Assuming the URL is directly usable as the source for the <object> tag
+    setLoading(false);
+    // Note: No need to handle the creation and cleanup of a blob URL or converting file content as it's not provided anymore.
+  }, [url]);
+
+  // Render the PDF viewer
+  return (
+    <div className="h-full">
+      {loading && <p>Loading PDF...</p>}
+      {!loading && (
+        <object
+          className="w-full rounded"
+          data={url}
+          type="application/pdf"
+          width="100%"
+          height="450px"
+        >
+          <p>PDF cannot be displayed.</p>
+        </object>
+      )}
     </div>
   );
 };

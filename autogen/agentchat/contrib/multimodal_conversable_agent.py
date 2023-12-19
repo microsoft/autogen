@@ -1,8 +1,9 @@
+import copy
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
-from autogen.img_utils import gpt4v_formatter
+from autogen.agentchat.contrib.img_utils import gpt4v_formatter
 
 try:
     from termcolor import colored
@@ -41,18 +42,13 @@ class MultimodalConversableAgent(ConversableAgent):
             *args,
             **kwargs,
         )
-
+        # call the setter to handle special format.
         self.update_system_message(system_message)
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
-            else (lambda x: any([item["text"] == "TERMINATE" for item in x.get("content") if item["type"] == "text"]))
+            else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
-
-    @property
-    def system_message(self) -> List:
-        """Return the system message."""
-        return self._oai_system_message[0]["content"]
 
     def update_system_message(self, system_message: Union[Dict, List, str]):
         """Update the system message.
@@ -64,44 +60,29 @@ class MultimodalConversableAgent(ConversableAgent):
         self._oai_system_message[0]["role"] = "system"
 
     @staticmethod
-    def _message_to_dict(message: Union[Dict, List, str]):
-        """Convert a message to a dictionary.
+    def _message_to_dict(message: Union[Dict, List, str]) -> Dict:
+        """Convert a message to a dictionary. This implementation
+        handles the GPT-4V formatting for easier prompts.
 
-        The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
+        The message can be a string, a dictionary, or a list of dictionaries:
+            - If it's a string, it will be cast into a list and placed in the 'content' field.
+            - If it's a list, it will be directly placed in the 'content' field.
+            - If it's a dictionary, it is already in message dict format. The 'content' field of this dictionary
+            will be processed using the gpt4v_formatter.
         """
         if isinstance(message, str):
             return {"content": gpt4v_formatter(message)}
         if isinstance(message, list):
             return {"content": message}
-        else:
+        if isinstance(message, dict):
+            assert "content" in message, "The message dict must have a `content` field"
+            if isinstance(message["content"], str):
+                message = copy.deepcopy(message)
+                message["content"] = gpt4v_formatter(message["content"])
+            try:
+                content_str(message["content"])
+            except (TypeError, ValueError) as e:
+                print("The `content` field should be compatible with the content_str function!")
+                raise e
             return message
-
-    def _print_received_message(self, message: Union[Dict, str], sender: Agent):
-        # print the message received
-        print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
-        if message.get("role") == "function":
-            func_print = f"***** Response from calling function \"{message['name']}\" *****"
-            print(colored(func_print, "green"), flush=True)
-            print(content_str(message["content"]), flush=True)
-            print(colored("*" * len(func_print), "green"), flush=True)
-        else:
-            content = message.get("content")
-            if content is not None:
-                if "context" in message:
-                    content = OpenAIWrapper.instantiate(
-                        content,
-                        message["context"],
-                        self.llm_config and self.llm_config.get("allow_format_str_template", False),
-                    )
-                print(content_str(content), flush=True)
-            if "function_call" in message:
-                func_print = f"***** Suggested function Call: {message['function_call'].get('name', '(No function name found)')} *****"
-                print(colored(func_print, "green"), flush=True)
-                print(
-                    "Arguments: \n",
-                    message["function_call"].get("arguments", "(No arguments found)"),
-                    flush=True,
-                    sep="",
-                )
-                print(colored("*" * len(func_print), "green"), flush=True)
-        print("\n", "-" * 80, flush=True, sep="")
+        raise ValueError(f"Unsupported message type: {type(message)}")

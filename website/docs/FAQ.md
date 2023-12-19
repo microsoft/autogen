@@ -52,7 +52,7 @@ When you call `initiate_chat` the conversation restarts by default. You can use 
 
 ## How do we decide what LLM is used for each agent? How many agents can be used? How do we decide how many agents in the group?
 
-Each agent can be customized. You can use LLMs, tools or human behind each agent. If you use an LLM for an agent, use the one best suited for its role. There is no limit of the number of agents, but start from a small number like 2, 3. The more capable is the LLM and the fewer roles you need, the fewer agents you need.
+Each agent can be customized. You can use LLMs, tools, or humans behind each agent. If you use an LLM for an agent, use the one best suited for its role. There is no limit of the number of agents, but start from a small number like 2, 3. The more capable is the LLM and the fewer roles you need, the fewer agents you need.
 
 The default user proxy agent doesn't use LLM. If you'd like to use an LLM in UserProxyAgent, the use case could be to simulate user's behavior.
 

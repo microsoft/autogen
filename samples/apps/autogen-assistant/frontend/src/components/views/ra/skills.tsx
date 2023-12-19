@@ -14,6 +14,7 @@ import {
   CollapseBox,
   LaunchButton,
   LoadBox,
+  LoadingOverlay,
   MarkdownView,
 } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
@@ -25,6 +26,7 @@ const SkillsView = ({ setMessages, skillup }: any) => {
     status: true,
     message: "All good",
   });
+  const setSessions = useConfigStore((state) => state.setSessions);
 
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
@@ -43,6 +45,8 @@ const SkillsView = ({ setMessages, skillup }: any) => {
   const sampleSkill = getSampleSkill();
   const [skillCode, setSkillCode] = React.useState(sampleSkill);
 
+  const session = useConfigStore((state) => state.session);
+
   // console.log("skukkup", skillup);
 
   const clearDb = () => {
@@ -56,6 +60,7 @@ const SkillsView = ({ setMessages, skillup }: any) => {
       },
       body: JSON.stringify({
         user_id: user?.email,
+        session: session,
       }),
     };
     console.log("payload", payLoad);
@@ -64,6 +69,7 @@ const SkillsView = ({ setMessages, skillup }: any) => {
       if (data && data.status) {
         message.success(data.message);
         setMessages([]);
+        setSessions(data.data?.sessions);
       } else {
         message.error(data.message);
       }
@@ -102,8 +108,8 @@ const SkillsView = ({ setMessages, skillup }: any) => {
       console.log(data);
       if (data && data.status) {
         message.success(data.message);
-        console.log("skills", data.skills);
-        setSkills(data.skills);
+        console.log("skills", data.data);
+        setSkills(data.data);
       } else {
         message.error(data.message);
       }
@@ -144,8 +150,8 @@ const SkillsView = ({ setMessages, skillup }: any) => {
       console.log(data);
       if (data && data.status) {
         message.success(data.message);
-        console.log("skills", data.skills);
-        setSkills(data.skills);
+        console.log("skills", data.data);
+        setSkills(data.data);
       } else {
         message.error(data.message);
       }
@@ -282,7 +288,8 @@ const SkillsView = ({ setMessages, skillup }: any) => {
         </>
       </Modal>
 
-      <div className="mb-2">
+      <div className="mb-2   relative">
+        <LoadingOverlay loading={loading} />
         <div
           style={{
             maxHeight: skillsMaxHeight,

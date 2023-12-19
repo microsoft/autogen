@@ -26,6 +26,7 @@ class GPTAssistantAgent(ConversableAgent):
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         overwrite_instructions: bool = False,
+        **kwargs,
     ):
         """
         Args:
@@ -45,6 +46,9 @@ class GPTAssistantAgent(ConversableAgent):
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
+            kwargs (dict): Additional configuration options for the agent.
+                - verbose (bool): If set to True, enables more detailed output from the assistant thread.
+                - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
         """
         # Use AutoGen OpenAIWrapper to create a client
         oai_wrapper = OpenAIWrapper(**llm_config)
@@ -100,11 +104,9 @@ class GPTAssistantAgent(ConversableAgent):
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
 
+        self._verbose = kwargs.pop("verbose", False)
         super().__init__(
-            name=name,
-            system_message=instructions,
-            human_input_mode="NEVER",
-            llm_config=llm_config,
+            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
         )
 
         # lazily create threads
@@ -209,7 +211,7 @@ class GPTAssistantAgent(ConversableAgent):
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function
-                    is_exec_success, tool_response = self.execute_function(function.dict())
+                    is_exec_success, tool_response = self.execute_function(function.dict(), self._verbose)
                     tool_response["metadata"] = {
                         "tool_call_id": tool_call.id,
                         "run_id": run.id,

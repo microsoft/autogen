@@ -23,7 +23,8 @@ const Header = ({ meta, link }: any) => {
   const user_id = user ? user.username : "unknown";
 
   const links: any[] = [
-    // { name: "Gallery", href: "/" },
+    { name: "Home", href: "/" },
+    { name: "Gallery", href: "/gallery" },
     // { name: "Data Explorer", href: "/explorer" },
   ];
 

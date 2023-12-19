@@ -403,7 +403,7 @@ Rules:
             print(colored(f"Failed to compress the content due to {e}", "red"), flush=True)
             return False, None
 
-        compressed_message = self.client.extract_text_or_function_call(response)[0]
+        compressed_message = self.client.extract_text_or_completion_object(response)[0]
         assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
         if self.compress_config["verbose"]:
             print(
