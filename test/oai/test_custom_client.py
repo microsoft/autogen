@@ -57,7 +57,7 @@ def test_custom_client():
             response.cost = TEST_COST
             return TEST_COST
 
-        def get_model(self) -> str:
+        def get_model_name(self) -> str:
             return self.model
 
     config_list = [

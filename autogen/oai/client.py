@@ -180,14 +180,14 @@ class Client(ABC):
         return {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
 
     @abstractmethod
-    def get_model(self) -> str:
+    def get_model_name(self) -> str:
         pass
 
 
 class OpenAIClient(Client):
     def __init__(self, config: Dict):
         self.client = OpenAI(**config)
-        self.model = config.get("model", "unknown")
+        self.model_name = config.get("model", "unknown")
 
     def create(self, params):
         completions = self.client.chat.completions if "messages" in params else self.client.completions
@@ -275,8 +275,8 @@ class OpenAIClient(Client):
             "cost": response.cost,
         }
 
-    def get_model(self) -> str:
-        return self.model
+    def get_model_name(self) -> str:
+        return self.model_name
 
 
 class OpenAIWrapper:
@@ -450,7 +450,7 @@ class OpenAIWrapper:
                     extra_kwargs=extra_kwargs,
                 )
 
-                self._update_usage(total_usage, cache_total_usage, client.model)
+                self._update_usage(total_usage, cache_total_usage, client.get_model_name())
 
                 if response is not None:
                     return response
