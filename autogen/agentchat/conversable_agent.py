@@ -141,6 +141,12 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
+        # New agent capabilities can be added through hooks registered to specific hookable methods.
+        # Registered hooks are kept in lists, one per hookable method, and are called in the order they are registered.
+        self.hooks = {
+            self.process_user_text: []
+        }
+
     def register_reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
@@ -952,6 +958,8 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        messages = self.process_user_text(messages)  # Let all capability hooks process the user's last message.
+
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
@@ -1002,6 +1010,8 @@ class ConversableAgent(Agent):
 
         if messages is None:
             messages = self._oai_messages[sender]
+
+        messages = self.process_user_text(messages)  # Let all capability hooks process the user's last message.
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1330,3 +1340,55 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
+
+    def register_hook(self, agent_method: Callable, capability_method: Callable):
+        """Registers a hook to be called by a hookable method, in order to add a capability to the agent.
+
+        Args:
+            agent_method: A hookable method implemented by ConversableAgent.
+            capability_method: A hook implemented by a subclass of AgentCapability.
+        """
+        assert agent_method in self.hooks, f"{agent_method} is not a hookable method."
+        hook_list = self.hooks[agent_method]
+        assert capability_method in hook_list, f"{capability_method} is already registered as a hook."
+        hook_list.append(capability_method)
+
+    def process_user_text(self, messages):
+        """Calls any registered capability hooks to process the user's last message."""
+
+        # Check for hooks.
+        hook_list = self.hooks[self.process_user_text]
+        if len(hook_list) == 0:
+            return messages  # No hooks registered.
+
+        # Check for a simple text message from the user.
+        if messages is None:
+            return None  # No message to process.
+        if len(messages) == 0:
+            return messages  # No message to process.
+        last_message = messages[-1]
+        if last_message["role"] != "user":
+            return messages  # Last message is not from the user.
+        if "function_call" in last_message:
+            return messages  # Last message is a function call.
+        if "context" in last_message:
+            return messages  # Last message contains a context key.
+        if "content" not in last_message:
+            return messages  # Last message has no content.
+        user_text = last_message["content"]
+        if not isinstance(user_text, str):
+            return messages  # Last message content is not a string.
+        if user_text == "exit":
+            return messages  # Last message is an exit command.
+
+        # Give each hook an opportunity to use and expand the user's message.
+        expanded_user_text = user_text
+        for hook in hook_list:
+            expanded_user_text = hook(expanded_user_text)
+        if expanded_user_text == user_text:
+            return messages  # No hooks actually modified the user's message.
+
+        # Replace the last user message with the expanded one.
+        messages = messages.copy()
+        messages[-1]["content"] = expanded_user_text
+        return messages
