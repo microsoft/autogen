@@ -22,11 +22,15 @@ class TestOrganizeFiles(unittest.TestCase):
 
     def test_organize_files(self):
         # Call the organize_files.py script using subprocess
-        subprocess.call(["python", "organize_files.py", "--directory_path=" + self.test_dir])
+        subprocess.call(
+            ["python", "organize_files.py", "--directory_path=" + self.test_dir]
+        )
 
         # Check if the files have been moved to the correct directories
         for file_name, directory in self.file_types.items():
-            self.assertTrue(os.path.isfile(os.path.join(self.test_dir, directory, file_name)))
+            self.assertTrue(
+                os.path.isfile(os.path.join(self.test_dir, directory, file_name))
+            )
 
     def tearDown(self):
         # Delete test directory and its contents

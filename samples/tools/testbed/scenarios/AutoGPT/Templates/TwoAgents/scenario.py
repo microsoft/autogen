@@ -1,3 +1,7 @@
+# We would like to gracefully handle any exception
+# ruff: noqa: E722
+
+import traceback
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 import testbed_utils
 
@@ -5,9 +9,10 @@ import testbed_utils
 testbed_utils.init()
 
 work_dir = "coding"
-target_folder = "__TARGET_FOLDER__"  # path to the arifact folder
 
-config_list = config_list_from_json("OAI_CONFIG_LIST", filter_dict={"model": ["__MODEL__"]})
+config_list = config_list_from_json(
+    "OAI_CONFIG_LIST", filter_dict={"model": ["__MODEL__"]}
+)
 
 assistant = AssistantAgent(
     "assistant",
@@ -25,31 +30,29 @@ user_proxy = UserProxyAgent(
         "use_docker": False,
     },
     max_consecutive_auto_reply=5,
-    # default_auto_reply="TERMINATE",
 )
 
-if target_folder:
-    # The tasks involves reading from a file then do sth to it.
-    message = """
-    Here is the task description: __TASK__ The file you needed is located in this directory: '__TARGET_FOLDER__'. You should save the output files in the current directory: './'
-    Run the following command to check if all the unit tests have passed:
-    ```bash
-    python ../check.py
-    ```
-    You should refine the code and results until all the tests have passed.
-    """
-else:
-    message = """
-    Here is the task description: __TASK__
-    Run the following command to check if all the unit tests have passed:
-    ```bash
-    python ../check.py
-    ```
-    You should refine the code and results until all the tests have passed.
-    """
-user_proxy.initiate_chat(
-    assistant,
-    message=message,
+message = """
+__TASK__
+""".strip()
+
+# Solve the task
+try:
+    user_proxy.initiate_chat(
+        assistant,
+        message=message,
+    )
+except:
+    traceback.print_exc()
+
+# Check the results
+assistant.send(
+    "```bash\npython ../check.py\n```",
+    user_proxy,
+    request_reply=False,
+    silent=True,
 )
+reply = user_proxy.generate_reply(sender=assistant)
+print(reply)
 
 testbed_utils.finalize(agents=[assistant, user_proxy])

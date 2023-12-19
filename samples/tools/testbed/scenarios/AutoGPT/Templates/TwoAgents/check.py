@@ -1,16 +1,21 @@
-import base64
+# Disable ruff linter for incomplete template files
+# ruff: noqa: F821
+
 import glob
 import os
 import subprocess
 import sys
 import shutil
+import json
 
 
 def scoring(content: str, should_contain: list, should_not_contain: list):
-    print("\033[1;34mScoring content:\033[0m", content)
+    is_case_sensitive = __CASE_SENSITIVE__
+
+    print("\033[1;34mScoring content:\033[0m\n", content)
     if should_contain:
         for should_contain_word in should_contain:
-            if not "__CASE_SENSITIVE__" == "True":
+            if not is_case_sensitive:
                 should_contain_word = should_contain_word.lower()
                 content = content.lower()
             if should_contain_word not in content:
@@ -19,10 +24,9 @@ def scoring(content: str, should_contain: list, should_not_contain: list):
 
     if should_not_contain:
         for should_not_contain_word in should_not_contain:
-            if not "__CASE_SENSITIVE__" == "True":
+            if not is_case_sensitive:
                 should_not_contain_word = should_not_contain_word.lower()
                 content = content.lower()
-            # print_content = f"\033[1;34mWord that should not exist\033[0m - {should_not_contain_word}:"
             if should_not_contain_word in content:
                 return 0.0
     return 1.0
@@ -35,15 +39,13 @@ def check():
     file_pattern = "__FILE_PATTERN__"
     eval_type = "__EVAL_TYPE__"
 
-    with open("../should_contain.txt", "r") as f:
-        should_contain = eval(f.read())
+    with open("../should_contain.json.txt", "r") as f:
+        should_contain = json.loads(f.read())
         assert type(should_contain) == list, "TERMINATE\n"
-        should_contain = [base64.b64decode(encoded).decode("utf-8") for encoded in should_contain]
 
-    with open("../should_not_contain.txt", "r") as f:
-        should_not_contain = eval(f.read())
+    with open("../should_not_contain.json.txt", "r") as f:
+        should_not_contain = json.loads(f.read())
         assert type(should_not_contain) == list, "TERMINATE\n"
-        should_not_contain = [base64.b64decode(encoded).decode("utf-8") for encoded in should_not_contain]
 
     # Check if file pattern is a file extension
     if file_pattern.startswith("."):
@@ -85,4 +87,5 @@ def check():
         print("Test failed.")
 
 
-check()
+if __name__ == "__main__" and __package__ is None:
+    check()
