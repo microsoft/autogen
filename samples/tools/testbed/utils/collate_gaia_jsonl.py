@@ -26,6 +26,12 @@ def collate(results_dir, instance=0):
 
         instance_dir = os.path.join(test_path, str(instance))
         console_log_file = os.path.join(instance_dir, "console_log.txt")
+        expected_answer_file = os.path.join(instance_dir, "expected_answer.txt")
+
+        expected_answer = ""
+        if os.path.isfile(expected_answer_file):
+            with open(expected_answer_file, "rt") as fh:
+                expected_answer = fh.read().strip()
 
         final_answer = ""
         if os.path.isfile(console_log_file):
@@ -37,12 +43,7 @@ def collate(results_dir, instance=0):
                 if m:
                     final_answer = normalize_answer(m.group(1))
 
-        # Clean up the GAIA logs so they don't have the Docker setup preamble
-        m = re.search(r"^.*?\r?\n(user_proxy \(to assistant\).*$)", console_log, re.DOTALL)
-        if m:
-            console_log = m.group(1)
-
-        print(json.dumps({"task_id": test_id, "model_answer": final_answer, "reasoning_trace": console_log}))
+        print(test_id + "\t" + expected_answer + "\t" + final_answer)
 
 
 ###############################################################################
@@ -54,7 +55,12 @@ if __name__ == "__main__":
     # Path to the default results directory
     # (relative to this script, up on directory, then into the results folder)
     default_results_dir = os.path.realpath(
-        os.path.join(script_dir, os.path.pardir, "results", "gaia_validation_level_1__two_agents_gpt4")
+        os.path.join(
+            script_dir,
+            os.path.pardir,
+            "results",
+            "gaia_validation_level_1__two_agents_gpt4",
+        )
     )
 
     parser = argparse.ArgumentParser(

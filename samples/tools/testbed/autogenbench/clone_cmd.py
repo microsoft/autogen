@@ -113,8 +113,10 @@ def clone_cli(invocation_cmd="autogenbench clone", cli_args=None):
 
     # Chekc if we are just printing a list
     if args.list:
+        print("The following scenarios / benchmarks are available:\n")
         for s in get_scenarios():
-            print(s)
+            print(f"  {s}")
+        print()
         return 0
 
     if not args.scenario:
