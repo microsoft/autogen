@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Dict, List, Union
 
 import tiktoken
@@ -8,21 +9,26 @@ logger = logging.getLogger(__name__)
 
 
 def get_max_token_limit(model="gpt-3.5-turbo-0613"):
+    # Handle common azure model names/aliases
+    model = re.sub(r"^gpt\-?35", "gpt-3.5", model)
+    model = re.sub(r"^gpt4", "gpt-4", model)
+
     max_token_limit = {
         "gpt-3.5-turbo": 4096,
         "gpt-3.5-turbo-0301": 4096,
         "gpt-3.5-turbo-0613": 4096,
         "gpt-3.5-turbo-instruct": 4096,
-        "gpt-3.5-turbo-16k": 16384,
-        "gpt-35-turbo": 4096,
-        "gpt-35-turbo-16k": 16384,
-        "gpt-35-turbo-instruct": 4096,
+        "gpt-3.5-turbo-16k": 16385,
+        "gpt-3.5-turbo-16k-0613": 16385,
+        "gpt-3.5-turbo-1106": 16385,
         "gpt-4": 8192,
         "gpt-4-32k": 32768,
         "gpt-4-32k-0314": 32768,  # deprecate in Sep
         "gpt-4-0314": 8192,  # deprecate in Sep
         "gpt-4-0613": 8192,
         "gpt-4-32k-0613": 32768,
+        "gpt-4-1106-preview": 128000,
+        "gpt-4-vision-preview": 128000,
     }
     return max_token_limit[model]
 
