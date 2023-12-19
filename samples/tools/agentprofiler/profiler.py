@@ -59,7 +59,11 @@ Only respond with codes that apply. Codes should be separated by commas.
         client = autogen.OpenAIWrapper()
 
     response = client.create(cache_seed=None, messages=[{"role": "user", "content": prompt}])
-    return client.extract_text_or_function_call(response)
+    extracted_response = client.extract_text_or_completion_object(response)[0]
+    if not isinstance(extracted_response, str):
+        raise ValueError(str(extracted_response))
+    else:
+        return extracted_response
 
 
 def annotate_chat_history(
