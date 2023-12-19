@@ -9,6 +9,36 @@ from dotenv import find_dotenv, load_dotenv
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 
+oai_price1k = {
+    "text-ada-001": 0.0004,
+    "text-babbage-001": 0.0005,
+    "text-curie-001": 0.002,
+    "code-cushman-001": 0.024,
+    "code-davinci-002": 0.1,
+    "text-davinci-002": 0.02,
+    "text-davinci-003": 0.02,
+    "gpt-3.5-turbo-instruct": (0.0015, 0.002),
+    "gpt-3.5-turbo-0301": (0.0015, 0.002),  # deprecate in Sep
+    "gpt-3.5-turbo-0613": (0.0015, 0.002),
+    "gpt-3.5-turbo-16k": (0.003, 0.004),
+    "gpt-3.5-turbo-16k-0613": (0.003, 0.004),
+    "gpt-35-turbo": (0.0015, 0.002),
+    "gpt-35-turbo-16k": (0.003, 0.004),
+    "gpt-35-turbo-instruct": (0.0015, 0.002),
+    "gpt-4": (0.03, 0.06),
+    "gpt-4-32k": (0.06, 0.12),
+    "gpt-4-0314": (0.03, 0.06),  # deprecate in Sep
+    "gpt-4-32k-0314": (0.06, 0.12),  # deprecate in Sep
+    "gpt-4-0613": (0.03, 0.06),
+    "gpt-4-32k-0613": (0.06, 0.12),
+    # 11-06
+    "gpt-3.5-turbo": (0.001, 0.002),
+    "gpt-3.5-turbo-1106": (0.001, 0.002),
+    "gpt-35-turbo-1106": (0.001, 0.002),
+    "gpt-4-1106-preview": (0.01, 0.03),
+    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+}
+
 
 def get_key(config):
     """Get a unique identifier of a configuration.
@@ -381,3 +411,15 @@ def config_list_from_dotenv(
 
     logging.info(f"Models available: {[config['model'] for config in config_list]}")
     return config_list
+
+
+def retrieve_assistants_by_name(client, name) -> str:
+    """
+    Return the assistants with the given name from OAI assistant API
+    """
+    assistants = client.beta.assistants.list()
+    candidate_assistants = []
+    for assistant in assistants.data:
+        if assistant.name == name:
+            candidate_assistants.append(assistant)
+    return candidate_assistants

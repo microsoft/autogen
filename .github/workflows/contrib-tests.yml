@@ -34,10 +34,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
-      - name: Install qdrant_client when python-version is 3.10
-        if: matrix.python-version == '3.10' || matrix.python-version == '3.8'
+      - name: Install qdrant_client when python-version is 3.8 and 3.10
+        if: matrix.python-version == '3.8' || matrix.python-version == '3.10'
         run: |
           pip install qdrant_client[fastembed]
+      - name: Install unstructured when python-version is 3.9 and 3.11 and not windows
+        if: (matrix.python-version == '3.9' || matrix.python-version == '3.11') && matrix.os != 'windows-2019'
+        run: |
+          pip install unstructured[all-docs]
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
@@ -57,6 +61,7 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+
   CompressionTest:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -79,9 +84,21 @@ jobs:
           pip install -e .
           pip uninstall -y openai
       - name: Test Compression
-        if: matrix.python-version != '3.10'
+        if: matrix.python-version != '3.10'   # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_compressible_agent.py
+      - name: Coverage
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
 
   GPTAssistantAgent:
     runs-on: ${{ matrix.os }}
@@ -105,6 +122,93 @@ jobs:
           pip install -e .
           pip uninstall -y openai
       - name: Test GPTAssistantAgent
-        if: matrix.python-version != '3.10'
+        if: matrix.python-version != '3.11'  # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_gpt_assistant.py
+      - name: Coverage
+        if: matrix.python-version == '3.11'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_gpt_assistant.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  TeachableAgent:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for TeachableAgent
+        run: |
+          pip install -e .[teachable]
+          pip uninstall -y openai
+      - name: Test TeachableAgent
+        if: matrix.python-version != '3.9'  # diversify the python versions
+        run: |
+          pytest test/agentchat/contrib/test_teachable_agent.py
+      - name: Coverage
+        if: matrix.python-version == '3.9'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.9'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  LMMTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for LMM
+        run: |
+          pip install -e .[lmm]
+          pip uninstall -y openai
+      - name: Test LMM and LLaVA
+        run: |
+          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
+      - name: Coverage
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests

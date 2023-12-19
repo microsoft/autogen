@@ -5,6 +5,7 @@ import time
 import logging
 
 from autogen import OpenAIWrapper
+from autogen.oai.openai_utils import retrieve_assistants_by_name
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.assistant_agent import AssistantAgent
@@ -25,10 +26,11 @@ class GPTAssistantAgent(ConversableAgent):
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         overwrite_instructions: bool = False,
+        **kwargs,
     ):
         """
         Args:
-            name (str): name of the agent.
+            name (str): name of the agent. It will be used to find the existing assistant by name. Please remember to delete an old assistant with the same name if you intend to create a new assistant with the same name.
             instructions (str): instructions for the OpenAI assistant configuration.
             When instructions is not None, the system message of the agent will be
             set to the provided instructions and used in the assistant run, irrespective
@@ -44,6 +46,9 @@ class GPTAssistantAgent(ConversableAgent):
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
+            kwargs (dict): Additional configuration options for the agent.
+                - verbose (bool): If set to True, enables more detailed output from the assistant thread.
+                - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
         """
         # Use AutoGen OpenAIWrapper to create a client
         oai_wrapper = OpenAIWrapper(**llm_config)
@@ -52,20 +57,31 @@ class GPTAssistantAgent(ConversableAgent):
         self._openai_client = oai_wrapper._clients[0]
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
-            logger.warning("assistant_id was None, creating a new assistant")
-            # create a new assistant
-            if instructions is None:
-                logger.warning(
-                    "No instructions were provided for new assistant. Using default instructions from AssistantAgent.DEFAULT_SYSTEM_MESSAGE."
+            # try to find assistant by name first
+            candidate_assistants = retrieve_assistants_by_name(self._openai_client, name)
+
+            if len(candidate_assistants) == 0:
+                logger.warning(f"assistant {name} does not exist, creating a new assistant")
+                # create a new assistant
+                if instructions is None:
+                    logger.warning(
+                        "No instructions were provided for new assistant. Using default instructions from AssistantAgent.DEFAULT_SYSTEM_MESSAGE."
+                    )
+                    instructions = AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                self._openai_assistant = self._openai_client.beta.assistants.create(
+                    name=name,
+                    instructions=instructions,
+                    tools=llm_config.get("tools", []),
+                    model=llm_config.get("model", "gpt-4-1106-preview"),
+                    file_ids=llm_config.get("file_ids", []),
                 )
-                instructions = AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-            self._openai_assistant = self._openai_client.beta.assistants.create(
-                name=name,
-                instructions=instructions,
-                tools=llm_config.get("tools", []),
-                model=llm_config.get("model", "gpt-4-1106-preview"),
-                file_ids=llm_config.get("file_ids", []),
-            )
+            else:
+                if len(candidate_assistants) > 1:
+                    logger.warning(
+                        f"Multiple assistants with name {name} found. Using the first assistant in the list. "
+                        f"Please specify the assistant ID in llm_config to use a specific assistant."
+                    )
+                self._openai_assistant = candidate_assistants[0]
         else:
             # retrieve an existing assistant
             self._openai_assistant = self._openai_client.beta.assistants.retrieve(openai_assistant_id)
@@ -88,14 +104,12 @@ class GPTAssistantAgent(ConversableAgent):
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
 
+        self._verbose = kwargs.pop("verbose", False)
         super().__init__(
-            name=name,
-            system_message=instructions,
-            human_input_mode="NEVER",
-            llm_config=llm_config,
+            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
         )
 
-        # lazly create thread
+        # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
@@ -197,7 +211,7 @@ class GPTAssistantAgent(ConversableAgent):
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function
-                    is_exec_success, tool_response = self.execute_function(function.dict())
+                    is_exec_success, tool_response = self.execute_function(function.dict(), self._verbose)
                     tool_response["metadata"] = {
                         "tool_call_id": tool_call.id,
                         "run_id": run.id,

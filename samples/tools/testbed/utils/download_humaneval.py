@@ -10,58 +10,110 @@ import json
 import os
 import base64
 
+URL = "https://github.com/openai/human-eval/raw/master/data/HumanEval.jsonl.gz"
 
-script_path = os.path.realpath(__file__)
-script_name = os.path.basename(script_path)
-script_dir = os.path.dirname(script_path)
+SCRIPT_PATH = os.path.realpath(__file__)
+SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
+SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
-# Directory where scenarios are stored
-scenarios_dir = os.path.realpath(os.path.join(script_dir, os.path.pardir, "scenarios"))
-print("Saving HumanEval scenarios to: " + scenarios_dir)
-
-
-# URL of the file to download
-url = "https://github.com/openai/human-eval/raw/master/data/HumanEval.jsonl.gz"
-
-# Send a HTTP request to the URL of the file
-response = requests.get(url)
-
-# Ensure we raise an error if the download failed
-response.raise_for_status()
-
-# Create a BytesIO object from the response content
-buffer = io.BytesIO(response.content)
-
-# Create a scenario file
-fh_gpt4 = open(os.path.join(scenarios_dir, "human_eval_two_agents_gpt4.jsonl"), "wt")
-fh_gpt35 = open(os.path.join(scenarios_dir, "human_eval_two_agents_gpt35.jsonl"), "wt")
-
-# Open the buffer as a .gz file and read it line by line
-with gzip.GzipFile(fileobj=buffer) as f_in:
-    for line in f_in:
-        # Parse each line as JSON
-        data = json.loads(line)
-        print("Converting: " + data["task_id"])
-
-        # Write the GPT-4 scenario
-        # Prompts and tests are saved in base 64 to greatly simplify escaping them as they
-        # move through the various formats and scripts. I welcome a better, more readable, alternative.
-        record = {
-            "id": data["task_id"].replace("/", "_"),
-            "template": "human_eval_two_agents.py",
-            "values": {
-                "__MODEL__": "gpt-4",
-                "__PROMPT_BASE64__": base64.b64encode(data["prompt"].encode("utf-8")).decode("utf-8"),
-                "__ENTRY_POINT__": data["entry_point"],
-                "__TEST_BASE64__": base64.b64encode(data["test"].encode("utf-8")).decode("utf-8"),
-            },
-        }
-        fh_gpt4.write(json.dumps(record).strip() + "\n")
-
-        # Write the GPT 3.5 Version
-        record["values"]["__MODEL__"] = "gpt-3.5-turbo-16k"
-        fh_gpt35.write(json.dumps(record).strip() + "\n")
+# A selected subset of HumanEval problems to work with during development
+REDUCED_SET = [
+    "HumanEval/2",
+    "HumanEval/26",
+    "HumanEval/32",
+    "HumanEval/33",
+    "HumanEval/36",
+    "HumanEval/38",
+    "HumanEval/41",
+    "HumanEval/50",
+    "HumanEval/56",
+    "HumanEval/65",
+    "HumanEval/67",
+    "HumanEval/84",
+    "HumanEval/85",
+    "HumanEval/86",
+    "HumanEval/89",
+    "HumanEval/99",
+    "HumanEval/104",
+    "HumanEval/113",
+    "HumanEval/115",
+    "HumanEval/120",
+    "HumanEval/124",
+    "HumanEval/126",
+    "HumanEval/132",
+    "HumanEval/135",
+    "HumanEval/140",
+    "HumanEval/146",
+]
 
 
-fh_gpt4.close()
-fh_gpt35.close()
+def download_human_eval():
+    """Download the HumanEval dataset, un-gzips it, and returns a list of its parsed JSON objects."""
+
+    # Send a HTTP request to the URL of the file
+    response = requests.get(URL)
+
+    # Ensure we raise an error if the download failed
+    response.raise_for_status()
+
+    # Create a BytesIO object from the response content
+    buffer = io.BytesIO(response.content)
+
+    # Read the file, line by line, populating a list of parsed JSON objects
+    results = []
+    with gzip.GzipFile(fileobj=buffer) as f_in:
+        for line in f_in:
+            # Parse each line as JSON
+            results.append(json.loads(line))
+
+    return results
+
+
+def create_jsonl(name, tasks, template, model):
+    """Creates a JSONL scenario file with a given name, list of HumanEval tasks, template path, and model."""
+
+    scenarios_dir = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir, "scenarios", "HumanEval"))
+
+    with open(os.path.join(scenarios_dir, name + ".jsonl"), "wt") as fh:
+        for task in tasks:
+            print(f"Converting: [{name}] {task['task_id']}")
+
+            record = {
+                "id": task["task_id"].replace("/", "_"),
+                "template": template,
+                "substitutions": {
+                    "scenario.py": {
+                        "__MODEL__": model,
+                        "__ENTRY_POINT__": task["entry_point"],
+                        "__SELECTION_METHOD__": "auto",
+                    },
+                    "prompt.txt": {"__PROMPT__": task["prompt"]},
+                    "coding/my_tests.py": {"__TEST__": task["test"]},
+                },
+            }
+
+            fh.write(json.dumps(record).strip() + "\n")
+
+
+###############################################################################
+if __name__ == "__main__":
+    human_eval = download_human_eval()
+    reduced_human_eval = [t for t in human_eval if t["task_id"] in REDUCED_SET]
+
+    models = {
+        "gpt4": "gpt-4",
+        "gpt35": "gpt-3.5-turbo-16k",
+    }
+
+    templates = {
+        "two_agents": "Templates/TwoAgents",
+        "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
+        "gc3_guardrails": "Templates/GroupChatThreeAgents_Guardrails",
+        "gc4": "Templates/GroupChatFourAgents",
+    }
+
+    # Create the various combinations of [models] x [templates]
+    for m in models.items():
+        for t in templates.items():
+            create_jsonl(f"human_eval_{t[0]}_{m[0]}", human_eval, t[1], m[1])
+            create_jsonl(f"r_human_eval_{t[0]}_{m[0]}", reduced_human_eval, t[1], m[1])
