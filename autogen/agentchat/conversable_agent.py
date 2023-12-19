@@ -1350,7 +1350,7 @@ class ConversableAgent(Agent):
         """
         assert agent_method in self.hooks, f"{agent_method} is not a hookable method."
         hook_list = self.hooks[agent_method]
-        assert capability_method in hook_list, f"{capability_method} is already registered as a hook."
+        assert capability_method not in hook_list, f"{capability_method} is already registered as a hook."
         hook_list.append(capability_method)
 
     def process_user_text(self, messages):

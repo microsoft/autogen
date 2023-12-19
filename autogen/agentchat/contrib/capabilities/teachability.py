@@ -49,12 +49,14 @@ class Teachability(AgentCapability):
         self.llm_config = llm_config
 
         self.analyzer = None
+        self.teachable_agent = None
 
         # Create the memo store.
         self.memo_store = MemoStore(self.verbosity, reset_db, self.path_to_db_dir)
 
     def add_capability_to_agent(self, agent: ConversableAgent):
         """Adds teachability to the given agent."""
+        self.teachable_agent = agent
 
         # Register a hook for processing user messages.
         agent.register_hook(agent_method=agent.process_user_text, capability_method=self.process_user_text)
@@ -68,8 +70,8 @@ class Teachability(AgentCapability):
         # Create the analyzer agent.
         self.analyzer = TextAnalyzerAgent(llm_config=self.llm_config)
 
-        # Append extra info to the system prompt.
-        agent.system_prompt = agent.system_prompt + "\nYou have the ability to remember user teachings from prior chats."
+        # Append extra info to the system message.
+        agent.update_system_message(agent.system_message + "\nYou have the ability to remember user teachings from prior chats.")
 
     def prepopulate_db(self):
         """Adds a few arbitrary memos to the DB."""
@@ -216,23 +218,18 @@ class Teachability(AgentCapability):
 
     def analyze(self, text_to_analyze, analysis_instructions):
         """Asks TextAnalyzerAgent to analyze the given text according to specific instructions."""
-        if self.verbosity >= 2:
-            # Use the messaging mechanism so that the analyzer's messages are included in the printed chat.
-            self.analyzer.reset()  # Clear the analyzer's list of messages.
-            self.send(
-                recipient=self.analyzer, message=text_to_analyze, request_reply=False
-            )  # Put the message in the analyzer's list.
-            self.send(recipient=self.analyzer, message=analysis_instructions, request_reply=True)  # Request the reply.
-            return self.last_message(self.analyzer)["content"]
-        else:
-            # TODO: This is not an encouraged usage pattern. It breaks the conversation-centric design.
-            # consider using the arg "silent"
-            # Use the analyzer's method directly, to leave analyzer message out of the printed chat.
-            return self.analyzer.analyze_text(text_to_analyze, analysis_instructions)
+        self.analyzer.reset()  # Clear the analyzer's list of messages.
+        self.teachable_agent.send(
+            recipient=self.analyzer, message=text_to_analyze, request_reply=False, silent=(self.verbosity < 2)
+        )  # Put the message in the analyzer's list.
+        self.teachable_agent.send(
+            recipient=self.analyzer, message=analysis_instructions, request_reply=True, silent=(self.verbosity < 2)
+        )  # Request the reply.
+        return self.teachable_agent.last_message(self.analyzer)["content"]
 
 
 class MemoStore:
-    """(Experimental)
+    """
     Provides memory storage and retrieval for a teachable agent, using a vector database.
     Each DB entry (called a memo) is a pair of strings: an input text and an output text.
     The input text might be a question, or a task to perform.
