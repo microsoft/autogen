@@ -5,9 +5,13 @@ lingua_compressor forks, memoizes, and then utilizes llmlingua.prompt_compressor
 lingua_shotdown signals the forked process to shutdown
 """
 
+import logging
 import multiprocessing
 from typing import Dict, List
 from llmlingua.prompt_compressor import PromptCompressor
+
+
+logger = logging.getLogger(__name__)
 
 
 llm_lingua = None
@@ -39,39 +43,47 @@ def forked_lingua_compressor(messages: List[Dict], tail_messages: List[Dict] = [
     return compressed_message
 
 
-def process_wrapper(task_queue, result_queue):
+def process_wrapper(
+    pipe,
+):
     while True:
-        task = task_queue.get()
-        if task is None:  # Termination signal
-            break
-        args, kwargs = task
-        print("calling forked_lingua_compressor from subprocess")
-        result = forked_lingua_compressor(*args, **kwargs)
-        result_queue.put(result)
+        try:
+            task = pipe.recv()
+            if task is None:  # Termination signal
+                break
+            args, kwargs = task
+            logger.info("calling forked_lingua_compressor from subprocess")
+            result = forked_lingua_compressor(*args, **kwargs)
+        except Exception as e:
+            pipe.send((False, e))
+            continue
+
+        pipe.send((True, result))
 
 
 def start_process():
-    task_queue = multiprocessing.Queue()
-    result_queue = multiprocessing.Queue()
-    process = multiprocessing.Process(target=process_wrapper, args=(task_queue, result_queue))
+    parent_pipe, child_pipe = multiprocessing.Pipe()
+    process = multiprocessing.Process(target=process_wrapper, args=(child_pipe,))
     process.start()
-    return task_queue, result_queue, process
+    return parent_pipe, process
 
 
-task_queue, result_queue, process = None, None, None
+parent_pipe, process = None, None
 
 
 def lingua_compressor(*args, **kwargs):
-    global task_queue, result_queue, process
+    global parent_pipe, process
     if process is None:
-        task_queue, result_queue, process = start_process()
-    task_queue.put((args, kwargs))
-    result = result_queue.get()
-    return result
+        parent_pipe, process = start_process()
+    parent_pipe.send((args, kwargs))
+    result = parent_pipe.recv()
+    if not result[0]:
+        raise result[1]
+    return result[1]
 
 
 def lingua_shutdown():
-    global task_queue, process
+    global parent_pipe, process
     if process is not None:
-        task_queue.put(None)
+        parent_pipe.send(None)
         process.join()
