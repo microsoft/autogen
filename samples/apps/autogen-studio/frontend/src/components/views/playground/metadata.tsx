@@ -5,6 +5,7 @@ import {
   CodeLoader,
   CollapseBox,
   ExpandView,
+  GroupView,
   ImageLoader,
   MarkdownView,
   PdfViewer,
@@ -120,11 +121,23 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
 
   const files = (metadata.files || []).map(renderFile);
 
-  const messages = (metadata.messages || []).map((message: any, i: number) => (
-    <div className="border-b border-dashed" key={"messagerow" + i}>
-      <MarkdownView data={message?.content} className="text-sm" />
-    </div>
-  ));
+  const messages = (metadata.messages || []).map((message: any, i: number) => {
+    return (
+      <div className="borpder-b mb-2 border-dashed" key={"messagerow" + i}>
+        <GroupView
+          title={
+            <div className="rounded p-1 px-2 inline-block text-xs bg-secondary">
+              <span className="font-semibold">{message.sender}</span> ( to{" "}
+              {message.recipient} )
+            </div>
+          }
+          className="m"
+        >
+          <MarkdownView data={message.message?.content} className="text-sm" />
+        </GroupView>
+      </div>
+    );
+  });
 
   const hasContent = files.length > 0;
   const hasMessages = messages.length > 0;

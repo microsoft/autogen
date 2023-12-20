@@ -69,7 +69,8 @@ def get_file_type(file_path: str) -> str:
     }
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg",
+                        ".gif", ".bmp", ".tiff", ".svg", ".webp"}
 
     # Supported PDF extension
     PDF_EXTENSION = ".pdf"
@@ -108,7 +109,8 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     try:
         with open(file_path, "rb") as file:
             file_content = file.read()
-            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
+            base64_encoded_content = base64.b64encode(
+                file_content).decode("utf-8")
     except Exception as e:
         raise IOError(f"An error occurred while reading the file: {e}")
 
@@ -156,7 +158,8 @@ def get_modified_files(
                 while os.path.exists(dest_file_path):
                     base, extension = os.path.splitext(file)
                     # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
+                    dest_file_path = os.path.join(
+                        dest_dir, f"{base}_{copy_idx}{extension}")
                     copy_idx += 1
 
                 # Copying the modified file to the destination directory
@@ -164,7 +167,8 @@ def get_modified_files(
 
                 # Extract user id from the dest_dir and file path
                 uid = dest_dir.split("/")[-1]
-                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
+                relative_file_path = os.path.relpath(
+                    dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
                 file_dict = {
                     "path": f"files/user/{uid}/{relative_file_path}",
@@ -219,7 +223,8 @@ def skill_from_folder(folder: str) -> List[Dict[str, str]]:
                 skill_file_path = os.path.join(root, file)
                 with open(skill_file_path, "r", encoding="utf-8") as f:
                     skill_content = f.read()
-                skills.append({"name": skill_name, "content": skill_content, "file_name": file})
+                skills.append(
+                    {"name": skill_name, "content": skill_content, "file_name": file})
     return skills
 
 
@@ -381,7 +386,8 @@ def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
             },
             max_consecutive_auto_reply=10,
             llm_config=llm_config,
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+            is_termination_msg=lambda x: x.get(
+                "content", "").rstrip().endswith("TERMINATE"),
         ),
     )
 
@@ -421,10 +427,11 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
     # Regex pattern to capture code blocks enclosed in triple backticks.
     code_block_regex = r"```[\s\S]*?```"
 
-    for i, message in enumerate(messages):
+    for i, row in enumerate(messages):
+        message = row["message"]
         if message["role"] == "user" and "execution succeeded" in message["content"]:
-            if i > 0 and messages[i - 1]["role"] == "assistant":
-                prev_content = messages[i - 1]["content"]
+            if i > 0 and messages[i - 1]["message"]["role"] == "assistant":
+                prev_content = messages[i - 1]["message"]["content"]
                 # Find all matches for code blocks
                 code_blocks = re.findall(code_block_regex, prev_content)
                 # Add the code blocks with backticks
@@ -463,7 +470,8 @@ def create_skills_from_code(dest_dir: str, skills: Union[str, List[str]]) -> Non
                 raise ValueError("No top-level function definition found.")
 
             # Sanitize the function name for use as a file name
-            function_name = "".join(ch for ch in function_name if ch.isalnum() or ch == "_")
+            function_name = "".join(
+                ch for ch in function_name if ch.isalnum() or ch == "_")
             skill_file_name = f"{function_name}.py"
 
         except (ValueError, SyntaxError):

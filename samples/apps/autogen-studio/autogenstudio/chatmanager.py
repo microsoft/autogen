@@ -20,7 +20,8 @@ class AutoGenChatManager:
             flow_config = get_default_agent_config(scratch_dir)
 
         # print("Flow config: ", flow_config)
-        flow = AutoGenWorkFlowManager(config=flow_config, history=history, work_dir=scratch_dir)
+        flow = AutoGenWorkFlowManager(
+            config=flow_config, history=history, work_dir=scratch_dir)
         message_text = message.content.strip()
 
         output = ""
@@ -29,18 +30,19 @@ class AutoGenChatManager:
         metadata = {}
         flow.run(message=f"{message_text}", clear_history=False)
 
-        agent_chat_messages = flow.receiver.chat_messages[flow.sender][len(history) :]
-        metadata["messages"] = agent_chat_messages
+        metadata["messages"] = flow.agent_history
 
         output = ""
 
         if flow_config.summary_method == "last":
-            successful_code_blocks = extract_successful_code_blocks(agent_chat_messages)
+            successful_code_blocks = extract_successful_code_blocks(
+                flow.agent_history)
+            last_message = flow.agent_history[-1]["message"]["content"]
             successful_code_blocks = "\n\n".join(successful_code_blocks)
             output = (
-                (flow.sender.last_message()["content"] + "\n" + successful_code_blocks)
+                (last_message + "\n" + successful_code_blocks)
                 if successful_code_blocks
-                else flow.sender.last_message()["content"]
+                else last_message
             )
         elif flow_config.summary_method == "llm":
             output = ""
@@ -50,7 +52,8 @@ class AutoGenChatManager:
         metadata["code"] = ""
         end_time = time.time()
         metadata["time"] = end_time - start_time
-        modified_files = get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir)
+        modified_files = get_modified_files(
+            start_time, end_time, scratch_dir, dest_dir=work_dir)
         metadata["files"] = modified_files
 
         print("Modified files: ", len(modified_files))
