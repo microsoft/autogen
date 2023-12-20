@@ -278,7 +278,6 @@ class ConversableAgent(Agent):
         else:
             return dict(message)
 
-
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
@@ -297,7 +296,11 @@ class ConversableAgent(Agent):
         """
         message = self._message_to_dict(message)
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
-        oai_message = {k: message[k] for k in ("content", "function_call", "tool_calls", "tool_call_id", "name", "context") if k in message and message[k] is not None}
+        oai_message = {
+            k: message[k]
+            for k in ("content", "function_call", "tool_calls", "tool_call_id", "name", "context")
+            if k in message and message[k] is not None
+        }
         if "content" not in oai_message:
             if "function_call" in oai_message or "tool_calls" in oai_message:
                 oai_message["content"] = None  # if only function_call is provided, content will be set to None.
@@ -455,9 +458,7 @@ class ConversableAgent(Agent):
                 for tool_call in message["tool_calls"]:
                     id = tool_call.get("id", "(No id found)")
                     function_call = dict(tool_call.get("function", {}))
-                    func_print = (
-                        f"***** Suggested tool Call ({id}): {function_call.get('name', '(No function name found)')} *****"
-                    )
+                    func_print = f"***** Suggested tool Call ({id}): {function_call.get('name', '(No function name found)')} *****"
                     print(colored(func_print, "green"), flush=True)
                     print(
                         "Arguments: \n",
@@ -472,7 +473,9 @@ class ConversableAgent(Agent):
     def _process_received_message(self, message: Union[List[Union[Dict, str]], Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(self._message_to_dict(each_message), "user", sender) for each_message in message])
+        valid = all(
+            [self._append_oai_message(self._message_to_dict(each_message), "user", sender) for each_message in message]
+        )
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -794,12 +797,14 @@ class ConversableAgent(Agent):
                 if asyncio.coroutines.iscoroutinefunction(func):
                     continue
                 _, func_return = self.execute_function(function_call)
-                tool_returns.append({
-                    "tool_call_id": id,
-                    "role": "tool",
-                    "name": func_return.get("name", ""),
-                    "content": func_return.get("content", "")
-                })
+                tool_returns.append(
+                    {
+                        "tool_call_id": id,
+                        "role": "tool",
+                        "name": func_return.get("name", ""),
+                        "content": func_return.get("content", ""),
+                    }
+                )
             return True, tool_returns
         return False, None
 
@@ -811,7 +816,7 @@ class ConversableAgent(Agent):
             "tool_call_id": id,
             "role": "tool",
             "name": func_return.get("name", ""),
-            "content": func_return.get("content", "")
+            "content": func_return.get("content", ""),
         }
 
     async def a_generate_tool_calls_reply(
@@ -916,7 +921,26 @@ class ConversableAgent(Agent):
         if reply or self._max_consecutive_auto_reply_dict[sender] == 0:
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender] = 0
-            return True, {"role": "user", "content": reply}
+            # User provided a custom response, return function and tool failures indicating user interruption
+            tool_returns = []
+            if message.get("function_call", False):
+                tool_returns.append(
+                    {
+                        "role": "function",
+                        "name": message["function_call"].get("name", ""),
+                        "content": "USER INTERRUPTED",
+                    }
+                )
+
+            if message.get("tool_calls", False):
+                tool_returns.extend(
+                    [
+                        {"role": "tool", "tool_call_id": tool_call.get("id", ""), "content": "USER INTERRUPTED"}
+                        for tool_call in message["tool_calls"]
+                    ]
+                )
+
+            return True, tool_returns + [{"role": "user", "content": reply}]
 
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
@@ -1001,9 +1025,28 @@ class ConversableAgent(Agent):
 
         # send the human reply
         if reply or self._max_consecutive_auto_reply_dict[sender] == 0:
+            # User provided a custom response, return function and tool results indicating user interruption
             # reset the consecutive_auto_reply_counter
             self._consecutive_auto_reply_counter[sender] = 0
-            return True, reply
+            tool_returns = []
+            if message.get("function_call", False):
+                tool_returns.append(
+                    {
+                        "role": "function",
+                        "name": message["function_call"].get("name", ""),
+                        "content": "USER INTERRUPTED",
+                    }
+                )
+
+            if message.get("tool_calls", False):
+                tool_returns.extend(
+                    [
+                        {"role": "tool", "tool_call_id": tool_call.get("id", ""), "content": "USER INTERRUPTED"}
+                        for tool_call in message["tool_calls"]
+                    ]
+                )
+
+            return True, tool_returns + [{"role": "user", "content": reply}]
 
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
