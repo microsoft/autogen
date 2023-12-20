@@ -4,7 +4,7 @@ import sys
 import argparse
 import errno
 from autogen import config_list_from_json
-from profiler import annotate_chat_history
+from .profiler import annotate_chat_history
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)

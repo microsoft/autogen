@@ -20,7 +20,6 @@ SCENARIO_DIR = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir))
 TEMPLATES_DIR = os.path.join(SCENARIO_DIR, "Templates")
 TASKS_DIR = os.path.join(SCENARIO_DIR, "Tasks")
 DOWNLOADS_DIR = os.path.join(SCENARIO_DIR, "Downloads")
-PROBLEMS_DIR = os.path.join(DOWNLOADS_DIR, "SelectedProblems")
 
 SELECTED_PROBLEMS = [
     "MATH/test/algebra/2144.json",
@@ -44,13 +43,13 @@ SELECTED_PROBLEMS = [
 
 
 def download_math():
-    """Download the MATH dataset (if not already downloaded)."""
+    """Download the MATH dataset (if not already downloaded).
+    Return a JSON dictionary of selected problems."""
+
+    selected_problems = dict()
 
     if not os.path.isdir(DOWNLOADS_DIR):
         os.mkdir(DOWNLOADS_DIR)
-
-    if not os.path.isdir(PROBLEMS_DIR):
-        os.mkdir(PROBLEMS_DIR)
 
     tar_file = os.path.join(DOWNLOADS_DIR, "MATH.tar")
 
@@ -69,37 +68,38 @@ def download_math():
     for member in tar.getmembers():
         if member.name in SELECTED_PROBLEMS:
             print(f"Extracting: {member.name}")
-            fname = os.path.basename(member.name)
             content = tar.extractfile(member).read()
-            with open(os.path.join(PROBLEMS_DIR, fname), "wb") as fh:
-                fh.write(content)
+            selected_problems[member.name] = json.loads(content)
+
+    return selected_problems
 
 
-def create_jsonl(name, tasks, template, model):
-    """Creates a JSONL scenario file with a given name, list of HumanEval tasks, template path, and model."""
+def create_jsonl(name, problems, template, model):
+    """Creates a JSONL scenario file with a given name, dictionary of MATH problems, template path, and model."""
 
     # Create a task directory if it doesn't exist
-    scenario_dir = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir))
-    task_dir = os.path.join(scenario_dir, "Tasks")
-    if not os.path.isdir(task_dir):
-        os.mkdir(task_dir)
+    if not os.path.isdir(TASKS_DIR):
+        os.mkdir(TASKS_DIR)
 
     # Create the jsonl file
-    with open(os.path.join(task_dir, name + ".jsonl"), "wt") as fh:
-        for task in tasks:
-            print(f"Converting: [{name}] {task['task_id']}")
+    with open(os.path.join(TASKS_DIR, name + ".jsonl"), "wt") as fh:
+        for item in problems.items():
+            data = item[1]
+
+            task_id = (
+                item[0].replace("MATH/", "").replace(".json", "").replace("/", "_")
+            )
+            print(f"Converting: [{item[0]}] {task_id}")
 
             record = {
-                "id": task["task_id"].replace("/", "_"),
+                "id": task_id,
                 "template": os.path.join(os.path.pardir, template),
                 "substitutions": {
                     "scenario.py": {
                         "__MODEL__": model,
-                        "__ENTRY_POINT__": task["entry_point"],
-                        "__SELECTION_METHOD__": "auto",
                     },
-                    "prompt.txt": {"__PROMPT__": task["prompt"]},
-                    "coding/my_tests.py": {"__TEST__": task["test"]},
+                    "prompt.txt": {"__PROMPT__": data["problem"]},
+                    "expected_answer.txt": {"__ANSWER__": data["solution"]},
                 },
             }
 
@@ -108,16 +108,21 @@ def create_jsonl(name, tasks, template, model):
 
 ###############################################################################
 def main():
-    download_math()
-    sys.exit(0)
+    problems = download_math()
+
+    models = {
+        "gpt4": "gpt-4",
+        "gpt35": "gpt-3.5-turbo-16k",
+    }
+
+    templates = {
+        "two_agents": "Templates/TwoAgents",
+    }
 
     # Create the various combinations of [models] x [templates]
-
-
-#    for m in models.items():
-#        for t in templates.items():
-#            create_jsonl(f"human_eval_{t[0]}_{m[0]}", human_eval, t[1], m[1])
-#            create_jsonl(f"r_human_eval_{t[0]}_{m[0]}", reduced_human_eval, t[1], m[1])
+    for m in models.items():
+        for t in templates.items():
+            create_jsonl(f"math_{t[0]}_{m[0]}", problems, t[1], m[1])
 
 
 if __name__ == "__main__" and __package__ is None:

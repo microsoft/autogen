@@ -1,44 +1,42 @@
 import os
 import json
 import autogen
-
 import testbed_utils
 
 testbed_utils.init()
-
 
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read()
 
 ANSWER = ""
-with open("answer.txt", "rt") as fh:
+with open("expected_answer.txt", "rt") as fh:
     ANSWER = fh.read()
 
 
 ####################
 config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
-    filter_dict={"model": ["gpt40613"]},
+    filter_dict={"model": ["__MODEL__"]},
 )
-llm_config = {
-    "cache_seed": 42,
-    "config_list": config_list,
-    "timeout": 600,
-}
-code_execution_config = {
-    "work_dir": "coding",
-    "use_docker": False,  # set to True or image name like "python:3" to use docker
-}
-# ---------between "user" and "assistant"---------
-assistant = autogen.AssistantAgent(name="assistant", llm_config=llm_config)
+llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
+
+assistant = autogen.AssistantAgent(
+    "assistant",
+    llm_config=llm_config,
+    is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+)
+
 user_proxy = autogen.UserProxyAgent(
-    name="user",
+    "user_proxy",
     human_input_mode="NEVER",
-    code_execution_config=code_execution_config,
+    is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+    code_execution_config={
+        "work_dir": "coding",
+        "use_docker": False,
+    },
     max_consecutive_auto_reply=10,
-    is_termination_msg=lambda x: x.get("content", "")
-    and (x.get("content", "").rstrip().endswith("TERMINATE") or x.get("content", "").rstrip().endswith("TERMINATE.")),
+    default_auto_reply="TERMINATE",
 )
 
 user_proxy.initiate_chat(assistant, message=PROMPT)
@@ -74,22 +72,34 @@ Please do the following:
     - "The answer is incorrect. Correct Answer: <ground truth answer> | Answer extracted: <answer extracted>."
     - "The reply doesn't contain an answer." """
 
-answer_checker = autogen.AssistantAgent(name="checker", llm_config=llm_config, system_message=check_sys_msg)
+answer_checker = autogen.AssistantAgent(
+    name="checker", llm_config=llm_config, system_message=check_sys_msg
+)
 checker_proxy = autogen.UserProxyAgent(
-    name="checker_proxy",
+    "checker_proxy",
     human_input_mode="NEVER",
-    code_execution_config=code_execution_config,
+    code_execution_config={
+        "work_dir": "coding",
+        "use_docker": False,
+    },
     max_consecutive_auto_reply=5,
+    default_auto_reply="TERMINATE",
     is_termination_msg=lambda x: x.get("content", "").lower()
     and (
         "the answer is correct" in x.get("content", "").lower()
         or "the answer is incorrect" in x.get("content", "").lower()
         or "the reply doesn't contain an answer" in x.get("content", "").lower()
-        or "the answer is approximated but should be correct" in x.get("content", "").lower()
+        or "the answer is approximated but should be correct"
+        in x.get("content", "").lower()
     ),
 )
 
-message_to_check = "Problem: " + PROMPT + f"\n\nReply: {response_with_ans}\n\nGround truth answer: " + ANSWER
+message_to_check = (
+    "Problem: "
+    + PROMPT
+    + f"\n\nReply: {response_with_ans}\n\nGround truth answer: "
+    + ANSWER
+)
 checker_proxy.initiate_chat(answer_checker, message=message_to_check)
 
 

@@ -18,18 +18,23 @@ def main(args):
                 with open(checker_file_path, "r") as file:
                     checker_messages = json.load(file)
 
-                    check_result = checker_messages["checker_proxy"][-1]["content"].lower()
+                    check_result = checker_messages["checker_proxy"][-1][
+                        "content"
+                    ].lower()
 
                     if (
                         "the answer is correct" in check_result
-                        or "the answer is approximated but should be correct" in check_result
+                        or "the answer is approximated but should be correct"
+                        in check_result
                     ):
                         correct_count[i] += 1
                         # print(f"{problem_name} | Correct")
                     # else:
                     # print(f"{problem_name} | Wrong")
 
-        print(f"{stars}\nTrial {i} | Total Correct: {correct_count[i]} | Total Problems: {len(os.listdir(args.path))}")
+        print(
+            f"{stars}\nTrial {i} | Total Correct: {correct_count[i]} | Total Problems: {len(os.listdir(args.path))}"
+        )
 
 
 if __name__ == "__main__":
