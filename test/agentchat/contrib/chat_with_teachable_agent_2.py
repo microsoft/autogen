@@ -41,7 +41,7 @@ def create_teachable_agent(reset_db=False):
     teachability = Teachability(
         verbosity=0,  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
         reset_db=reset_db,
-        path_to_db_dir="./tmp/interactive/teachable_agent_db",
+        path_to_db_dir="./tmp/interactive/teachability_db",
         recall_threshold=1.5,  # Higher numbers allow more (but less relevant) memos to be recalled.
     )
 

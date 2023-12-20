@@ -46,7 +46,7 @@ def create_teachable_agent(reset_db=False, verbosity=0):
     teachability = Teachability(
         verbosity=verbosity,
         reset_db=reset_db,
-        path_to_db_dir="./tmp/teachable_agent_db",
+        path_to_db_dir="./tmp/teachability_db",
         recall_threshold=1.5,  # Higher numbers allow more (but less relevant) memos to be recalled.
     )
 
