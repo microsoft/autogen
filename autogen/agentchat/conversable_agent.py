@@ -1,10 +1,11 @@
 import asyncio
 import copy
 import functools
+import inspect
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from autogen import OpenAIWrapper
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
@@ -1337,45 +1338,34 @@ class ConversableAgent(Agent):
         """Return the function map."""
         return self._function_map
 
-    class WrappedFunction:
-        """Wrap the function to dump the return value to json."""
+    def _wrap_function(self, func: F) -> F:
+        """Wrap the function to dump the return value to json.
 
-        def __init__(self, func: Callable[..., Any]):
-            """Initialize the wrapped function.
+        Handles both sync and async functions.
 
-            Args:
-                func: the function to be wrapped.
+        Args:
+            func: the function to be wrapped.
 
-            """
-            self._func = func
+        Returns:
+            The wrapped function.
+        """
 
-        def __call__(self, *args, **kwargs):
-            """Wrap the function to dump the return value to json.
-
-            Args:
-                *args: positional arguments.
-                **kwargs: keyword arguments.
-
-            Returns:
-                str: the return value of the wrapped function if string or JSON encoded string of returned object otherwise.
-            """
-            # call the original function
-            retval = self._func(*args, **kwargs)
-            # if the return value is a string, return it directly
-            # otherwise, dump the return value to json
+        @functools.wraps(func)
+        def _wrapped_func(*args, **kwargs):
+            retval = func(*args, **kwargs)
             return retval if isinstance(retval, str) else model_dump_json(retval)
 
-        def __eq__(self, rhs) -> bool:
-            """Check if the wrapped function is equal to another function.
+        @functools.wraps(func)
+        async def _a_wrapped_func(*args, **kwargs):
+            retval = await func(*args, **kwargs)
+            return retval if isinstance(retval, str) else model_dump_json(retval)
 
-            Args:
-                rhs: the function to compare with.
+        wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
 
-            Returns:
-                bool: whether the wrapped function is equal to another function.
+        # needed for testing
+        wrapped_func._origin = func
 
-            """
-            return isinstance(rhs, self.__class__) and (self._func == rhs._func)
+        return wrapped_func
 
     def function(
         self,
@@ -1445,7 +1435,7 @@ class ConversableAgent(Agent):
 
             # register the function to the agent
             if register_function:
-                self.register_function({func._name: ConversableAgent.WrappedFunction(func)})
+                self.register_function({func._name: self._wrap_function(func)})
 
             return func
 

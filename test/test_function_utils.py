@@ -59,6 +59,16 @@ def g(
     pass
 
 
+async def a_g(
+    a: Annotated[str, "Parameter a"],
+    b: int = 2,
+    c: Annotated[float, "Parameter c"] = 0.1,
+    *,
+    d: Dict[str, Tuple[Optional[int], List[float]]]
+) -> str:
+    pass
+
+
 def test_get_function_schema_no_return_type() -> None:
     expected = (
         "The return type of a function must be annotated as either 'str', a subclass of "
@@ -100,5 +110,7 @@ def test_get_function_schema() -> None:
     }
 
     actual = get_function_schema(g, description="function g", name="fancy name for g")
+    assert actual == expected, actual
 
+    actual = get_function_schema(a_g, description="function g", name="fancy name for g")
     assert actual == expected, actual

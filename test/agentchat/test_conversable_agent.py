@@ -1,3 +1,4 @@
+from typing import Any, Callable, Dict
 import pytest
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from typing_extensions import Annotated
@@ -397,6 +398,10 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["sh"] == exec_sh
 
 
+def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:
+    return {k: v._origin for k, v in d.items()}
+
+
 def test_function_decorator():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
@@ -424,14 +429,15 @@ def test_function_decorator():
                 },
             }
         ]
-        expected_function_map = {"python": ConversableAgent.WrappedFunction(exec_python)}
+
+        expected_function_map = {"python": exec_python}
         assert agent.llm_config["functions"] == expected, str(agent.llm_config["functions"])
-        assert agent.function_map == expected_function_map, agent.function_map
-        assert user_proxy.function_map == expected_function_map, user_proxy.function_map
+        assert get_origin(agent.function_map) == expected_function_map, agent.function_map
+        assert get_origin(user_proxy.function_map) == expected_function_map, user_proxy.function_map
 
         @user_proxy.function()
         @agent.function(name="sh", description="run a shell script and return the execution result.")
-        def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> None:
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> None:
             pass
 
         expected = expected + [
@@ -452,12 +458,12 @@ def test_function_decorator():
         ]
 
         expected_function_map = {
-            "python": ConversableAgent.WrappedFunction(exec_python),
-            "sh": ConversableAgent.WrappedFunction(exec_sh),
+            "python": exec_python,
+            "sh": exec_sh,
         }
         assert agent.llm_config["functions"] == expected, agent.llm_config["functions"]
-        assert agent.function_map == expected_function_map
-        assert user_proxy.function_map == expected_function_map
+        assert get_origin(agent.function_map) == expected_function_map
+        assert get_origin(user_proxy.function_map) == expected_function_map
 
 
 if __name__ == "__main__":
