@@ -1297,8 +1297,7 @@ class ConversableAgent(Agent):
         """update a function_signature in the LLM configuration for function_call.
 
         Args:
-            func_sig (str or dict): description/name of the function to update/remove to the model.
-                See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
+            func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
             is_remove: whether removing the funciton from llm_config with name 'func_sig'
         """
 
