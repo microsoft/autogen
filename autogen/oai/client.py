@@ -92,10 +92,10 @@ class ResponseCreator:
         filter_func = extra_kwargs.get("filter_func")
         context = extra_kwargs.get("context")
 
-        # Try to load the response from cache
-        cache_token_usage = {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
-        token_usage = {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
+        total_usage = None
+        actual_usage = None
 
+        # Try to load the response from cache
         if cache_seed is not None:
             with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                 # Try to get the response from cache
@@ -109,22 +109,23 @@ class ResponseCreator:
                         # update atrribute if cost is not calculated
                         response.cost = client.cost(response)
                         cache.set(key, response)
-                    cache_token_usage = client.get_usage(response)
+                    total_usage = client.get_usage(response)
                     # check the filter
                     pass_filter = filter_func is None or filter_func(context=context, response=response)
                     if pass_filter or is_last:
                         # Return the response if it passes the filter or it is the last client
                         response.config_id = client_id
                         response.pass_filter = pass_filter
-                        return response, token_usage, cache_token_usage
+                        return response, actual_usage, total_usage
 
         response = client.create(params)
         if response is None:
-            return None, token_usage, cache_token_usage
+            return None, actual_usage, total_usage
 
         # add cost calculation before caching no matter filter is passed or not
         response.cost = client.cost(response)
-        token_usage = client.get_usage(response)
+        actual_usage = client.get_usage(response)
+        total_usage = actual_usage.copy() if actual_usage is not None else total_usage
         if cache_seed is not None:
             # Cache the response
             with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
@@ -136,8 +137,8 @@ class ResponseCreator:
             # Return the response if it passes the filter or it is the last client
             response.pass_filter = pass_filter
             response.config_id = client_id
-            return response, token_usage, cache_token_usage
-        return None, token_usage, cache_token_usage
+            return response, actual_usage, total_usage
+        return None, actual_usage, total_usage
 
 
 class Client(ABC):
@@ -150,7 +151,7 @@ class Client(ABC):
     It mimicks the OpenAI class, but allows for custom clients to be used.
     """
 
-    RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost"]
+    RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
 
     class ClientResponseProtocol(Protocol):
         class Choice(Protocol):
@@ -162,6 +163,7 @@ class Client(ABC):
         config_id: int
         cost: float
         pass_filter: bool
+        model: str
 
     def update(self, config: Dict):
         # update with anything here
@@ -177,17 +179,12 @@ class Client(ABC):
 
     @staticmethod
     def get_usage(response: ClientResponseProtocol) -> Dict:
-        return {key: 0 for key in Client.RESPONSE_USAGE_KEYS}
-
-    @abstractmethod
-    def get_model_name(self) -> str:
-        pass
+        return None
 
 
 class OpenAIClient(Client):
     def __init__(self, config: Dict):
         self.client = OpenAI(**config)
-        self.model_name = config.get("model", "unknown")
 
     def create(self, params):
         completions = self.client.chat.completions if "messages" in params else self.client.completions
@@ -269,14 +266,12 @@ class OpenAIClient(Client):
     @staticmethod
     def get_usage(response: Union[ChatCompletion, Completion]) -> Dict:
         return {
-            "prompt_tokens": response.usage,
+            "prompt_tokens": response.usage.prompt_tokens,
             "completion_tokens": response.usage.completion_tokens,
             "total_tokens": response.usage.total_tokens,
             "cost": response.cost,
+            "model": response.model,
         }
-
-    def get_model_name(self) -> str:
-        return self.model_name
 
 
 class OpenAIWrapper:
@@ -442,7 +437,7 @@ class OpenAIWrapper:
             # process for azure
             self._process_for_azure(create_config, extra_kwargs, "extra")
             try:
-                response, total_usage, cache_total_usage = self.response_creator.create(
+                response, actual_usage, total_usage = self.response_creator.create(
                     client=client,
                     client_id=i,
                     is_last=(i == last),
@@ -450,7 +445,7 @@ class OpenAIWrapper:
                     extra_kwargs=extra_kwargs,
                 )
 
-                self._update_usage(total_usage, cache_total_usage, client.get_model_name())
+                self._update_usage(actual_usage=actual_usage, total_usage=total_usage)
 
                 if response is not None:
                     return response
@@ -463,8 +458,9 @@ class OpenAIWrapper:
                 if i == last:
                     raise
 
-    def _update_usage(self, total_usage, cache_total_usage, model):
-        def update_usage(usage_summary, response_usage, model):
+    def _update_usage(self, actual_usage, total_usage):
+        def update_usage(usage_summary, response_usage):
+            model = response_usage["model"]
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]
             completion_tokens = response_usage["completion_tokens"]
@@ -483,8 +479,10 @@ class OpenAIWrapper:
             }
             return usage_summary
 
-        self.total_usage_summary = update_usage(self.total_usage_summary, total_usage, model)
-        self.actual_usage_summary = update_usage(self.actual_usage_summary, cache_total_usage, model)
+        if total_usage is not None:
+            self.total_usage_summary = update_usage(self.total_usage_summary, total_usage)
+        if actual_usage is not None:
+            self.actual_usage_summary = update_usage(self.actual_usage_summary, actual_usage)
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""

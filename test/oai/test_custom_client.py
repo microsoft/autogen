@@ -50,15 +50,13 @@ def test_custom_client():
                 choice.message.content = TEST_CUSTOM_RESPONSE
                 choice.message.function_call = None
                 response.choices.append(choice)
+                response.model = self.model
                 return response
 
         def cost(self, response) -> float:
             """Calculate the cost of the response."""
             response.cost = TEST_COST
             return TEST_COST
-
-        def get_model_name(self) -> str:
-            return self.model
 
     config_list = [
         {
