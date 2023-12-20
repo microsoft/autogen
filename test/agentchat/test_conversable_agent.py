@@ -424,9 +424,10 @@ def test_function_decorator():
                 },
             }
         ]
+        expected_function_map = {"python": ConversableAgent.WrappedFunction(exec_python)}
         assert agent.llm_config["functions"] == expected, str(agent.llm_config["functions"])
-        assert agent.function_map == {"python": exec_python}
-        assert user_proxy.function_map == {"python": exec_python}, user_proxy.function_map
+        assert agent.function_map == expected_function_map, agent.function_map
+        assert user_proxy.function_map == expected_function_map, user_proxy.function_map
 
         @user_proxy.function()
         @agent.function(name="sh", description="run a shell script and return the execution result.")
@@ -450,9 +451,13 @@ def test_function_decorator():
             }
         ]
 
+        expected_function_map = {
+            "python": ConversableAgent.WrappedFunction(exec_python),
+            "sh": ConversableAgent.WrappedFunction(exec_sh),
+        }
         assert agent.llm_config["functions"] == expected, agent.llm_config["functions"]
-        assert agent.function_map == {"python": exec_python, "sh": exec_sh}
-        assert user_proxy.function_map == {"python": exec_python, "sh": exec_sh}
+        assert agent.function_map == expected_function_map
+        assert user_proxy.function_map == expected_function_map
 
 
 if __name__ == "__main__":

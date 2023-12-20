@@ -4,12 +4,14 @@ import functools
 import json
 import logging
 from collections import defaultdict
+from functools import wraps
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from autogen import OpenAIWrapper
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from .agent import Agent
+from ..pydantic import model_dump_json
 from ..function_utils import get_function_schema
 
 try:
@@ -19,6 +21,8 @@ except ImportError:
     def colored(x, *args, **kwargs):
         return x
 
+
+__all__ = ("ConversableAgent",)
 
 logger = logging.getLogger(__name__)
 
@@ -1294,7 +1298,8 @@ class ConversableAgent(Agent):
         """update a function_signature in the LLM configuration for function_call.
 
         Args:
-            func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
+            func_sig (str or dict): description/name of the function to update/remove to the model.
+                See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
             is_remove: whether removing the funciton from llm_config with name 'func_sig'
         """
 
@@ -1333,6 +1338,46 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
+
+    class WrappedFunction:
+        """Wrap the function to dump the return value to json."""
+
+        def __init__(self, func: Callable[..., Any]):
+            """Initialize the wrapped function.
+
+            Args:
+                func: the function to be wrapped.
+
+            """
+            self._func = func
+
+        def __call__(self, *args, **kwargs):
+            """Wrap the function to dump the return value to json.
+
+            Args:
+                *args: positional arguments.
+                **kwargs: keyword arguments.
+
+            Returns:
+                str: the return value of the wrapped function if string or JSON encoded string of returned object otherwise.
+            """
+            # call the original function
+            retval = self._func(*args, **kwargs)
+            # if the return value is a string, return it directly
+            # otherwise, dump the return value to json
+            return retval if isinstance(retval, str) else model_dump_json(retval)
+
+        def __eq__(self, rhs) -> bool:
+            """Check if the wrapped function is equal to another function.
+
+            Args:
+                rhs: the function to compare with.
+
+            Returns:
+                bool: whether the wrapped function is equal to another function.
+
+            """
+            return isinstance(rhs, self.__class__) and (self._func == rhs._func)
 
     def function(
         self,
@@ -1402,7 +1447,7 @@ class ConversableAgent(Agent):
 
             # register the function to the agent
             if register_function:
-                self.register_function({func._name: func})
+                self.register_function({func._name: ConversableAgent.WrappedFunction(func)})
 
             return func
 

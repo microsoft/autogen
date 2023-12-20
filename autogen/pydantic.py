@@ -3,11 +3,11 @@ from typing import Any, Dict, Type
 from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
 
-__all__ = ("JsonSchemaValue", "model_dump", "type2schema")
+__all__ = ("JsonSchemaValue", "model_dump", "model_dump_json", "type2schema")
 
-PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
+PYDANTIC_V1 = PYDANTIC_VERSION.startswith("1.")
 
-if PYDANTIC_V2:
+if not PYDANTIC_V1:
     from pydantic import TypeAdapter
     from pydantic.json_schema import JsonSchemaValue
 
@@ -33,6 +33,17 @@ if PYDANTIC_V2:
 
         """
         return model.model_dump()
+
+    def model_dump_json(model: BaseModel) -> str:
+        """Convert a pydantic model to a JSON string
+
+        Args:
+            model (BaseModel): The model to convert
+
+        Returns:
+            str: The JSON string representation of the model
+        """
+        return model.model_dump_json()
 
 
 # Remove this once we drop support for pydantic 1.x
@@ -66,3 +77,14 @@ else:
 
         """
         return model.dict()
+
+    def model_dump_json(model: BaseModel) -> str:
+        """Convert a pydantic model to a JSON string
+
+        Args:
+            model (BaseModel): The model to convert
+
+        Returns:
+            str: The JSON string representation of the model
+        """
+        return model.json()

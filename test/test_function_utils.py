@@ -1,7 +1,8 @@
 import inspect
 from typing import Dict, List, Optional, Tuple, get_type_hints
-
 from typing_extensions import Annotated
+
+import pytest
 
 from autogen.function_utils import (
     get_function_schema,
@@ -58,7 +59,19 @@ def g(
     pass
 
 
-def test_get_function() -> None:
+def test_get_function_schema_no_return_type() -> None:
+    expected = (
+        "The return type of a function must be annotated as either 'str', a subclass of "
+        + "'pydantic.BaseModel' or an union of the previous ones."
+    )
+
+    with pytest.raises(TypeError) as e:
+        get_function_schema(f, description="function g")
+
+    assert str(e.value) == expected, str(e.value)
+
+
+def test_get_function_schema() -> None:
     expected = {
         "description": "function g",
         "name": "fancy name for g",

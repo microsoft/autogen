@@ -91,18 +91,33 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
         def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1) -> None:
             pass
 
-        get_function(f, description="function f")
-        # {'type': 'function', 'function': {'description': 'function f', 'name': 'f', 'parameters': {'type': 'object', 'properties': {'a': {'type': 'str', 'description': 'Parameter a'}, 'b': {'type': 'int', 'description': 'b'}, 'c': {'type': 'float', 'description': 'Parameter c'}}, 'required': ['a']}}}
-        ```
+        get_function_schema(f, description="function f")
+
+        #   {'type': 'function',
+        #    'function': {'description': 'function f',
+        #        'name': 'f',
+        #        'parameters': {'type': 'object',
+        #           'properties': {'a': {'type': 'str', 'description': 'Parameter a'},
+        #               'b': {'type': 'int', 'description': 'b'},
+        #               'c': {'type': 'float', 'description': 'Parameter c'}},
+        #           'required': ['a']}}}
+            ```
 
     """
     signature = inspect.signature(f)
     hints = get_type_hints(f, include_extras=True)
 
-    if set(signature.parameters.keys()).union({"return"}) != set(hints.keys()).union({"return"}):
-        missing = [f"'{x}'" for x in set(signature.parameters.keys()) - set(hints.keys())]
+    if "return" not in hints:
         raise TypeError(
-            f"All parameters of a function '{f.__name__}' must be annotated. The annotations are missing for parameters: {', '.join(missing)}"
+            "The return type of a function must be annotated as either 'str', a subclass of "
+            + "'pydantic.BaseModel' or an union of the previous ones."
+        )
+
+    if set(signature.parameters.keys()).union({"return"}) != set(hints.keys()).union({"return"}):
+        [f"'{x}'" for x in set(signature.parameters.keys()) - set(hints.keys())]
+        raise TypeError(
+            f"All parameters of a function '{f.__name__}' must be annotated. "
+            + "The annotations are missing for parameters: {', '.join(missing)}"
         )
 
     fname = name if name else f.__name__
