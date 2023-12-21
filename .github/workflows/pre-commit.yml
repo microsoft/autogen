@@ -7,6 +7,8 @@ on:  # Trigger the workflow on push or pull request, but only for the main branc
       - '.pre-commit-config.yaml'
       - 'autogen/**'
       - 'samples/**'
+  merge_group:
+    types: [checks_requested]
 
 defaults:
   run:
