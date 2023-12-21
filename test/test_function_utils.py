@@ -4,16 +4,46 @@ from typing_extensions import Annotated
 
 import pytest
 
+from autogen.pydantic import PYDANTIC_V1, model_dump
 from autogen.function_utils import (
     get_function_schema,
     get_parameter_json_schema,
     get_parameters,
     get_required_params,
+    get_typed_signature,
+    get_typed_annotation,
+    get_typed_return_annotation,
 )
 
 
 def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1, *, d):
     pass
+
+
+def g(
+    a: Annotated[str, "Parameter a"],
+    b: int = 2,
+    c: Annotated[float, "Parameter c"] = 0.1,
+    *,
+    d: Dict[str, Tuple[Optional[int], List[float]]]
+) -> str:
+    pass
+
+
+def test_get_typed_annotation() -> None:
+    globalns = getattr(f, "__globals__", {})
+    assert get_typed_annotation(str, globalns) == str
+    assert get_typed_annotation("float", globalns) == float
+
+
+def test_get_typed_signature() -> None:
+    assert get_typed_signature(f).parameters == inspect.signature(f).parameters
+    assert get_typed_signature(g).parameters == inspect.signature(g).parameters
+
+
+def test_get_typed_return_annotation() -> None:
+    assert get_typed_return_annotation(f) is None
+    assert get_typed_return_annotation(g) == str
 
 
 def test_get_parameter_json_schema() -> None:
@@ -30,9 +60,10 @@ def test_get_required_params() -> None:
 
 
 def test_get_parameters() -> None:
-    hints = get_type_hints(f, include_extras=True)
-    signature = inspect.signature(f)
-    required = get_required_params(signature)
+    typed_signature = get_typed_signature(f)
+    param_annotations = {k: v.annotation for k, v in typed_signature.parameters.items()}
+    param_annotations.pop("d")
+    required = ["a", "c"]
 
     expected = {
         "type": "object",
@@ -41,22 +72,13 @@ def test_get_parameters() -> None:
             "b": {"type": "integer", "description": "b"},
             "c": {"type": "number", "description": "Parameter c"},
         },
-        "required": ["a", "d"],
+        "required": ["a", "c"],
     }
 
-    actual = get_parameters(required, hints).model_dump()
+    actual = model_dump(get_parameters(required, param_annotations))
+    # actual = get_parameters(required, hints).model_dump()
 
     assert actual == expected, actual
-
-
-def g(
-    a: Annotated[str, "Parameter a"],
-    b: int = 2,
-    c: Annotated[float, "Parameter c"] = 0.1,
-    *,
-    d: Dict[str, Tuple[Optional[int], List[float]]]
-) -> str:
-    pass
 
 
 async def a_g(
@@ -82,7 +104,7 @@ def test_get_function_schema_no_return_type() -> None:
 
 
 def test_get_function_schema() -> None:
-    expected = {
+    expected_v2 = {
         "description": "function g",
         "name": "fancy name for g",
         "parameters": {
@@ -109,8 +131,40 @@ def test_get_function_schema() -> None:
         },
     }
 
+    # the difference is that the v1 version does not handle Union types (Optional is Union[T, None])
+    expected_v1 = {
+        "description": "function g",
+        "name": "fancy name for g",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "a": {"type": "string", "description": "Parameter a"},
+                "b": {"type": "integer", "description": "b"},
+                "c": {"type": "number", "description": "Parameter c"},
+                "d": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": [{"type": "integer"}, {"type": "array", "items": {"type": "number"}}],
+                    },
+                    "description": "d",
+                },
+            },
+            "required": ["a", "d"],
+        },
+    }
+
     actual = get_function_schema(g, description="function g", name="fancy name for g")
-    assert actual == expected, actual
+
+    if PYDANTIC_V1:
+        assert actual == expected_v1, actual
+    else:
+        assert actual == expected_v2, actual
 
     actual = get_function_schema(a_g, description="function g", name="fancy name for g")
-    assert actual == expected, actual
+    if PYDANTIC_V1:
+        assert actual == expected_v1, actual
+    else:
+        assert actual == expected_v2, actual

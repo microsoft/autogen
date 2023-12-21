@@ -410,7 +410,7 @@ def test_function_decorator():
 
         @user_proxy.function()
         @agent.function(name="python", description="run cell in ipython and return the execution result.")
-        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> None:
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
             pass
 
         expected = [
@@ -437,7 +437,7 @@ def test_function_decorator():
 
         @user_proxy.function()
         @agent.function(name="sh", description="run a shell script and return the execution result.")
-        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> None:
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
             pass
 
         expected = expected + [

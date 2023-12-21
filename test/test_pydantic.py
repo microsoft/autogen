@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union, get_type_hints
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from autogen.pydantic import model_dump, type2schema
+from autogen.pydantic import model_dump, model_dump_json, type2schema
 
 
 def test_type2schema() -> None:
@@ -31,3 +31,11 @@ def test_model_dump() -> None:
         b: int = 2
 
     assert model_dump(A(a="aaa")) == {"a": "aaa", "b": 2}
+
+
+def test_model_dump_json() -> None:
+    class A(BaseModel):
+        a: str
+        b: int = 2
+
+    assert model_dump_json(A(a="aaa")) == '{"a": "aaa", "b": 2}'

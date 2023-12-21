@@ -1,4 +1,5 @@
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Tuple, Type, Union, get_args
+from typing_extensions import get_origin
 
 from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
@@ -9,9 +10,10 @@ PYDANTIC_V1 = PYDANTIC_VERSION.startswith("1.")
 
 if not PYDANTIC_V1:
     from pydantic import TypeAdapter
+    from pydantic._internal._typing_extra import eval_type_lenient as evaluate_forwardref
     from pydantic.json_schema import JsonSchemaValue
 
-    def type2schema(t: Type) -> JsonSchemaValue:
+    def type2schema(t: Optional[Type]) -> JsonSchemaValue:
         """Convert a type to a JSON schema
 
         Args:
@@ -49,10 +51,11 @@ if not PYDANTIC_V1:
 # Remove this once we drop support for pydantic 1.x
 else:
     from pydantic import schema_of
+    from pydantic.typing import evaluate_forwardref as evaluate_forwardref
 
     JsonSchemaValue = Dict[str, Any]
 
-    def type2schema(t: Type) -> JsonSchemaValue:
+    def type2schema(t: Optional[Type]) -> JsonSchemaValue:
         """Convert a type to a JSON schema
 
         Args:
@@ -61,9 +64,26 @@ else:
         Returns:
             JsonSchemaValue: The JSON schema
         """
+        if PYDANTIC_V1:
+            if t is None:
+                return {"type": "null"}
+            elif get_origin(t) is Union:
+                return {"anyOf": [type2schema(tt) for tt in get_args(t)]}
+            elif get_origin(t) in [Tuple, tuple]:
+                prefixItems = [type2schema(tt) for tt in get_args(t)]
+                return {
+                    "maxItems": len(prefixItems),
+                    "minItems": len(prefixItems),
+                    "prefixItems": prefixItems,
+                    "type": "array",
+                }
+
         d = schema_of(t)
         if "title" in d:
             d.pop("title")
+        if "description" in d:
+            d.pop("description")
+
         return d
 
     def model_dump(model: BaseModel) -> Dict[str, Any]:
