@@ -11,7 +11,7 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 # Where are the manifests located?
 BRANCH = "testbed_cli"
-URL_PREFIX = (f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/",)
+URL_PREFIX = f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/"
 SCENARIOS = {
     "Examples": "samples/tools/testbed/scenarios/Examples/MANIFEST.json",
     "HumanEval": "samples/tools/testbed/scenarios/HumanEval/MANIFEST.json",

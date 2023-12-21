@@ -1,11 +1,11 @@
 {
     "files": {
-        "./README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/README.md",
-        "./Scripts/init_tasks.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/Scripts/init_tasks.py",
-        "./Scripts/custom_tabulate.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/Scripts/custom_tabulate.py",
-        "./Scripts/count_correct_math.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/Scripts/count_correct_math.py",
-        "./Templates/TwoAgents/prompt.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/prompt.txt",
-        "./Templates/TwoAgents/expected_answer.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/expected_answer.txt",
-        "./Templates/TwoAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/scenario.py"
+        "README.md": "samples/tools/testbed/scenarios/MATH/README.md",
+        "Scripts/init_tasks.py": "samples/tools/testbed/scenarios/MATH/Scripts/init_tasks.py",
+        "Scripts/custom_tabulate.py": "samples/tools/testbed/scenarios/MATH/Scripts/custom_tabulate.py",
+        "Scripts/count_correct_math.py": "samples/tools/testbed/scenarios/MATH/Scripts/count_correct_math.py",
+        "Templates/TwoAgents/prompt.txt": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/prompt.txt",
+        "Templates/TwoAgents/expected_answer.txt": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/expected_answer.txt",
+        "Templates/TwoAgents/scenario.py": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/scenario.py"
     }
 }
