@@ -10,7 +10,7 @@ import requests
 try:
     from PIL import Image
 
-    from autogen.agentchat.contrib.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
+    from autogen.agentchat.contrib.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formatter
 except ImportError:
     skip = True
 else:
@@ -68,7 +68,7 @@ class TestLlavaFormater(unittest.TestCase):
         """
         prompt = "This is a test."
         expected_output = (prompt, [])
-        result = llava_formater(prompt)
+        result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
     @patch("autogen.agentchat.contrib.img_utils.get_image_data")
@@ -81,7 +81,7 @@ class TestLlavaFormater(unittest.TestCase):
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
         expected_output = ("This is a test with an image <image>.", [raw_encoded_image])
-        result = llava_formater(prompt)
+        result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
     @patch("autogen.agentchat.contrib.img_utils.get_image_data")
@@ -94,7 +94,7 @@ class TestLlavaFormater(unittest.TestCase):
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
         expected_output = ("This is a test with an image <image 0>.", [raw_encoded_image])
-        result = llava_formater(prompt, order_image_tokens=True)
+        result = llava_formatter(prompt, order_image_tokens=True)
         self.assertEqual(result, expected_output)
 
 
