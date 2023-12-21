@@ -38,4 +38,4 @@ def test_model_dump_json() -> None:
         a: str
         b: int = 2
 
-    assert model_dump_json(A(a="aaa")) == '{"a": "aaa", "b": 2}'
+    assert model_dump_json(A(a="aaa")).replace(" ", "") == '{"a":"aaa","b":2}'
