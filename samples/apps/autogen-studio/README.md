@@ -46,7 +46,7 @@ Project Structure:
       pip install -e .
       ```
 
-    - Navigate to the `samples/apps/autogen-assistant/frontend` directory, install dependencies, and build the UI:
+    - Navigate to the `samples/apps/autogen-studio/frontend` directory, install dependencies, and build the UI:
 
       ```bash
       npm install -g gatsby-cli
