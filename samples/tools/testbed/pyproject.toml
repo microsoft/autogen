@@ -21,6 +21,7 @@ dependencies = [
     "pyautogen",
     "docker",
     "huggingface_hub",
+    "tabulate",
 ]
 
 dynamic = ["version"]

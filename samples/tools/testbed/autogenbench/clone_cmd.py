@@ -11,12 +11,13 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 # Where are the manifests located?
 BRANCH = "testbed_cli"
+URL_PREFIX = (f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/",)
 SCENARIOS = {
-    "Examples": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/Examples/MANIFEST.json",
-    "HumanEval": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/HumanEval/MANIFEST.json",
-    "GAIA": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/GAIA/MANIFEST.json",
-    "AutoGPT": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/AutoGPT/MANIFEST.json",
-    "MATH": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/MATH/MANIFEST.json",
+    "Examples": "samples/tools/testbed/scenarios/Examples/MANIFEST.json",
+    "HumanEval": "samples/tools/testbed/scenarios/HumanEval/MANIFEST.json",
+    "GAIA": "samples/tools/testbed/scenarios/GAIA/MANIFEST.json",
+    "AutoGPT": "samples/tools/testbed/scenarios/AutoGPT/MANIFEST.json",
+    "MATH": "samples/tools/testbed/scenarios/MATH/MANIFEST.json",
 }
 
 
@@ -27,6 +28,16 @@ def get_scenarios():
     return SCENARIOS.keys()
 
 
+def _expand_url(url_fragment):
+    """
+    If the url is a relative path, append the URL_PREFIX, otherwise return it whole.
+    """
+    if url_fragment.startswith("http://") or url_fragment.startswith("https://"):
+        return url_fragment
+    else:
+        return URL_PREFIX + url_fragment
+
+
 def clone_scenario(scenario):
     if scenario not in get_scenarios():
         raise ValueError(f"No such scenario '{scenario}'.")
@@ -34,14 +45,14 @@ def clone_scenario(scenario):
     # Download the manifest
     print("Fetching manifest...")
     manifest = None
-    response = requests.get(SCENARIOS[scenario], stream=False)
+    response = requests.get(_expand_url(SCENARIOS[scenario]), stream=False)
     response.raise_for_status()
     manifest = json.loads(response.text)
 
     # Download the files
     for item in manifest["files"].items():
         path = item[0]
-        raw_url = item[1]
+        raw_url = _expand_url(item[1])
         dir_name = os.path.join(scenario, os.path.dirname(path))
         file_name = os.path.basename(path)
         path = os.path.join(dir_name, file_name)
