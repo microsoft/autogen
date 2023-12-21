@@ -2,6 +2,7 @@ import sys
 from .run_cmd import run_cli
 from .clone_cmd import clone_cli
 from .profile_cmd import profile_cli
+from .tabulate_cmd import tabulate_cli
 
 
 def main(cli_args=None):
@@ -20,6 +21,11 @@ def main(cli_args=None):
             "command": "run",
             "description": "run a given benchmark configuration",
             "function": run_cli,
+        },
+        {
+            "command": "tabulate",
+            "description": "tabulate the results of a previous run",
+            "function": tabulate_cli,
         },
         {
             "command": "profile",
@@ -87,7 +93,9 @@ Additionally, you can use the --help option with any command for further command
                 sys.exit(0)
 
     # Command not found
-    sys.stderr.write(f"Invlaid command '{cli_args[0]}'. Available command include: {commands_list}\n")
+    sys.stderr.write(
+        f"Invlaid command '{cli_args[0]}'. Available command include: {commands_list}\n"
+    )
     sys.exit(2)
 
 

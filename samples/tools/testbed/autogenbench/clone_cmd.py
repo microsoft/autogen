@@ -1,9 +1,8 @@
 import os
 import json
-import sys
 import argparse
 import requests
-import importlib.util
+from .load_module import load_module
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -19,15 +18,6 @@ SCENARIOS = {
     "AutoGPT": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/AutoGPT/MANIFEST.json",
     "MATH": f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/samples/tools/testbed/scenarios/MATH/MANIFEST.json",
 }
-
-
-def load_module(module_path):
-    module_name = os.path.basename(module_path).replace(".py", "")
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 def get_scenarios():
