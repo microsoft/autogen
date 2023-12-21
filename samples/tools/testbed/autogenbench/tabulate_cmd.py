@@ -9,7 +9,7 @@ SCRIPT_PATH = os.path.realpath(__file__)
 SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
-TABULATE_FILE = "tabulate.py"
+TABULATE_FILE = "custom_tabulate.py"
 
 SUCCESS_STRINGS = [
     "ALL TESTS PASSED !#!#",
