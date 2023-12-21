@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union, get_type_hints
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from autogen.pydantic import model_dump, model_dump_json, type2schema
+from autogen._pydantic import model_dump, model_dump_json, type2schema
 
 
 def test_type2schema() -> None:

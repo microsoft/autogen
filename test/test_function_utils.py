@@ -1,12 +1,15 @@
 import inspect
 from typing import Dict, List, Optional, Tuple, get_type_hints
 from typing_extensions import Annotated
+import unittest.mock
 
 import pytest
 
-from autogen.pydantic import PYDANTIC_V1, model_dump
+from autogen._pydantic import PYDANTIC_V1, model_dump
 from autogen.function_utils import (
     get_function_schema,
+    get_missing_annotations,
+    get_param_annotations,
     get_parameter_json_schema,
     get_parameters,
     get_required_params,
@@ -25,7 +28,17 @@ def g(
     b: int = 2,
     c: Annotated[float, "Parameter c"] = 0.1,
     *,
-    d: Dict[str, Tuple[Optional[int], List[float]]]
+    d: Dict[str, Tuple[Optional[int], List[float]]],
+) -> str:
+    pass
+
+
+async def a_g(
+    a: Annotated[str, "Parameter a"],
+    b: int = 2,
+    c: Annotated[float, "Parameter c"] = 0.1,
+    *,
+    d: Dict[str, Tuple[Optional[int], List[float]]],
 ) -> str:
     pass
 
@@ -59,48 +72,106 @@ def test_get_required_params() -> None:
     assert get_required_params(inspect.signature(g)) == ["a", "d"]
 
 
-def test_get_parameters() -> None:
+def test_get_param_annotations() -> None:
+    def f(a: Annotated[str, "Parameter a"], b=1, c: Annotated[float, "Parameter c"] = 1.0):
+        pass
+
+    expected = {"a": Annotated[str, "Parameter a"], "c": Annotated[float, "Parameter c"]}
+
     typed_signature = get_typed_signature(f)
-    param_annotations = {k: v.annotation for k, v in typed_signature.parameters.items()}
-    param_annotations.pop("d")
-    required = ["a", "c"]
+    param_annotations = get_param_annotations(typed_signature)
+
+    assert param_annotations == expected, param_annotations
+
+
+def test_get_missing_annotations() -> None:
+    def _f1(a: str, b=2):
+        pass
+
+    missing, unannotated_with_default = get_missing_annotations(get_typed_signature(_f1), ["a"])
+    assert missing == set()
+    assert unannotated_with_default == {"b"}
+
+    def _f2(a: str, b) -> str:
+        "ok"
+
+    missing, unannotated_with_default = get_missing_annotations(get_typed_signature(_f2), ["a", "b"])
+    assert missing == {"b"}
+    assert unannotated_with_default == set()
+
+    def _f3() -> None:
+        pass
+
+    missing, unannotated_with_default = get_missing_annotations(get_typed_signature(_f3), [])
+    assert missing == set()
+    assert unannotated_with_default == set()
+
+
+def test_get_parameters() -> None:
+    def f(a: Annotated[str, "Parameter a"], b=1, c: Annotated[float, "Parameter c"] = 1.0):
+        pass
+
+    typed_signature = get_typed_signature(f)
+    param_annotations = get_param_annotations(typed_signature)
+    required = get_required_params(typed_signature)
 
     expected = {
         "type": "object",
         "properties": {
             "a": {"type": "string", "description": "Parameter a"},
-            "b": {"type": "integer", "description": "b"},
             "c": {"type": "number", "description": "Parameter c"},
         },
-        "required": ["a", "c"],
+        "required": ["a"],
     }
 
     actual = model_dump(get_parameters(required, param_annotations))
-    # actual = get_parameters(required, hints).model_dump()
 
     assert actual == expected, actual
 
 
-async def a_g(
-    a: Annotated[str, "Parameter a"],
-    b: int = 2,
-    c: Annotated[float, "Parameter c"] = 0.1,
-    *,
-    d: Dict[str, Tuple[Optional[int], List[float]]]
-) -> str:
-    pass
-
-
 def test_get_function_schema_no_return_type() -> None:
+    def f(a: Annotated[str, "Parameter a"], b: int, c: float = 0.1):
+        pass
+
     expected = (
-        "The return type of a function must be annotated as either 'str', a subclass of "
-        + "'pydantic.BaseModel' or an union of the previous ones."
+        "The return type of the function 'f' is not annotated. Although annotating it is "
+        + "optional, the function should return either a string, a subclass of 'pydantic.BaseModel'."
+    )
+
+    with unittest.mock.patch("autogen.function_utils.logger.warning") as mock_logger_warning:
+        get_function_schema(f, description="function g")
+
+        mock_logger_warning.assert_called_once_with(expected)
+
+
+def test_get_function_schema_unannotated_with_default() -> None:
+    with unittest.mock.patch("autogen.function_utils.logger.warning") as mock_logger_warning:
+
+        def f(
+            a: Annotated[str, "Parameter a"], b=2, c: Annotated[float, "Parameter c"] = 0.1, d="whatever", e=None
+        ) -> str:
+            return "ok"
+
+        get_function_schema(f, description="function f")
+
+        mock_logger_warning.assert_called_once_with(
+            "The following parameters of the function 'f' with default values are not annotated: 'b', 'd', 'e'."
+        )
+
+
+def test_get_function_schema_missing() -> None:
+    def f(a: Annotated[str, "Parameter a"], b, c: Annotated[float, "Parameter c"] = 0.1) -> float:
+        pass
+
+    expected = (
+        "All parameters of the function 'f' without default values must be annotated. "
+        + "The annotations are missing for the following parameters: 'b'"
     )
 
     with pytest.raises(TypeError) as e:
-        get_function_schema(f, description="function g")
+        get_function_schema(f, description="function f")
 
-    assert str(e.value) == expected, str(e.value)
+    assert str(e.value) == expected, e.value
 
 
 def test_get_function_schema() -> None:

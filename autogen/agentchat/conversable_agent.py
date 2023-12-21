@@ -11,7 +11,7 @@ from autogen import OpenAIWrapper
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from .agent import Agent
-from ..pydantic import model_dump_json
+from .._pydantic import model_dump_json
 from ..function_utils import get_function_schema
 
 try:
@@ -1367,12 +1367,11 @@ class ConversableAgent(Agent):
 
         return wrapped_func
 
-    def function(
+    def register_for_llm(
         self,
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        register_function: bool = True,
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
@@ -1385,17 +1384,17 @@ class ConversableAgent(Agent):
             name (optional(str)): name of the function. If None, the function name will be used (default: None).
             description (optional(str)): description of the function (default: None). It is mandatory
                 for the initial decorator, but the following ones can omit it.
-            register_function (bool): whether to register the function to the agent (default: True)
 
         Returns:
             The decorator for registering a function to be used by an agent.
 
         Examples:
             ```
-            @agent2.function()
-            @agent1.function(description="This is a very useful function")
-            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int) -> str:
-                 return a + str(b)
+            @user_proxy.register_for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
             ```
 
         """
@@ -1430,12 +1429,60 @@ class ConversableAgent(Agent):
             f = get_function_schema(func, name=func._name, description=func._description)
 
             # register the function to the agent if there is LLM config, skip otherwise
-            if self.llm_config:
-                self.update_function_signature(f, is_remove=False)
+            if self.llm_config is None:
+                raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
-            # register the function to the agent
-            if register_function:
-                self.register_function({func._name: self._wrap_function(func)})
+            self.update_function_signature(f, is_remove=False)
+
+            return func
+
+        return _decorator
+
+    def register_for_execution(
+        self,
+        name: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be executed by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register_for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14):
+                 return a + str(b * c)
+            ```
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a function to be used by an agent.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered, with the _description attribute set to the function description.
+
+            Raises:
+                ValueError: if the function description is not provided and not propagated by a previous decorator.
+
+            """
+            # name can be overwriten by the parameter, by default it is the same as function name
+            if name:
+                func._name = name
+            elif not hasattr(func, "_name"):
+                func._name = func.__name__
+
+            self.register_function({func._name: self._wrap_function(func)})
 
             return func
 

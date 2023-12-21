@@ -402,14 +402,14 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
     return {k: v._origin for k, v in d.items()}
 
 
-def test_function_decorator():
+def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
-        user_proxy = UserProxyAgent(name="user_proxy")
+        agent2 = ConversableAgent(name="agent2", llm_config={})
+        agent1 = ConversableAgent(name="agent1", llm_config={})
 
-        @user_proxy.function()
-        @agent.function(name="python", description="run cell in ipython and return the execution result.")
+        @agent2.register_for_llm()
+        @agent1.register_for_llm(name="python", description="run cell in ipython and return the execution result.")
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
             pass
 
@@ -430,13 +430,11 @@ def test_function_decorator():
             }
         ]
 
-        expected_function_map = {"python": exec_python}
-        assert agent.llm_config["functions"] == expected, str(agent.llm_config["functions"])
-        assert get_origin(agent.function_map) == expected_function_map, agent.function_map
-        assert get_origin(user_proxy.function_map) == expected_function_map, user_proxy.function_map
+        assert agent1.llm_config["functions"] == expected
+        assert agent2.llm_config["functions"] == expected
 
-        @user_proxy.function()
-        @agent.function(name="sh", description="run a shell script and return the execution result.")
+        @agent2.register_for_llm()
+        @agent1.register_for_llm(name="sh", description="run a shell script and return the execution result.")
         async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
             pass
 
@@ -457,11 +455,36 @@ def test_function_decorator():
             }
         ]
 
+        assert agent1.llm_config["functions"] == expected
+        assert agent2.llm_config["functions"] == expected
+
+
+def test_register_for_execution():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        agent = ConversableAgent(name="agent", llm_config={})
+        user_proxy = UserProxyAgent(name="user_proxy")
+
+        @user_proxy.register_for_execution()
+        @agent.register_for_execution()
+        @agent.register_for_llm(name="python", description="run cell in ipython and return the execution result.")
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]):
+            pass
+
+        expected_function_map = {"python": exec_python}
+        assert get_origin(agent.function_map) == expected_function_map, agent.function_map
+        assert get_origin(user_proxy.function_map) == expected_function_map, user_proxy.function_map
+
+        @agent.register_for_execution()
+        @agent.register_for_llm(description="run a shell script and return the execution result.")
+        @user_proxy.register_for_execution(name="sh")
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]):
+            pass
+
         expected_function_map = {
             "python": exec_python,
             "sh": exec_sh,
         }
-        assert agent.llm_config["functions"] == expected, agent.llm_config["functions"]
         assert get_origin(agent.function_map) == expected_function_map
         assert get_origin(user_proxy.function_map) == expected_function_map
 

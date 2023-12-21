@@ -1,9 +1,13 @@
 import inspect
-from typing import get_type_hints, Callable, Any, Dict, Union, List, Optional, Type, ForwardRef
+from typing import Set, Tuple, get_type_hints, Callable, Any, Dict, Union, List, Optional, Type, ForwardRef
 from typing_extensions import Annotated, Literal
 
 from pydantic import BaseModel, Field
-from .pydantic import type2schema, JsonSchemaValue, evaluate_forwardref, model_dump
+from ._pydantic import type2schema, JsonSchemaValue, evaluate_forwardref, model_dump
+
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 def get_typed_annotation(annotation: Any, globalns: Dict[str, Any]) -> Any:
@@ -63,6 +67,20 @@ def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
 
     globalns = getattr(call, "__globals__", {})
     return get_typed_annotation(annotation, globalns)
+
+
+def get_param_annotations(typed_signature: inspect.Signature) -> Dict[int, Union[Annotated[Type, str], Type]]:
+    """Get the type annotations of the parameters of a function
+
+    Args:
+        typed_signature: The signature of the function with type annotations
+
+    Returns:
+        A dictionary of the type annotations of the parameters of the function
+    """
+    return {
+        k: v.annotation for k, v in typed_signature.parameters.items() if v.annotation is not inspect.Signature.empty
+    }
 
 
 class Parameters(BaseModel):
@@ -127,9 +145,28 @@ def get_parameters(required: List[str], param_annotations: Dict[str, Union[Annot
         A Pydantic model for the parameters of the function
     """
     return Parameters(
-        properties={k: get_parameter_json_schema(k, v) for k, v in param_annotations.items() if k != "return"},
+        properties={
+            k: get_parameter_json_schema(k, v) for k, v in param_annotations.items() if v is not inspect.Signature.empty
+        },
         required=required,
     )
+
+
+def get_missing_annotations(typed_signature: inspect.Signature, required: List[str]) -> Tuple[Set[str], Set[str]]:
+    """Get the missing annotations of a function
+
+    Ignores the parameters with default values as they are not required to be annotated, but logs a warning.
+    Args:
+        typed_signature: The signature of the function with type annotations
+        required: The required parameters of the function
+
+    Returns:
+        A set of the missing annotations of the function
+    """
+    all_missing = {k for k, v in typed_signature.parameters.items() if v.annotation is inspect.Signature.empty}
+    missing = all_missing.intersection(set(required))
+    unannotated_with_default = all_missing.difference(missing)
+    return missing, unannotated_with_default
 
 
 def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, description: str) -> Dict[str, Any]:
@@ -165,26 +202,32 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
 
     """
     typed_signature = get_typed_signature(f)
+    required = get_required_params(typed_signature)
     param_annotations = {k: v.annotation for k, v in typed_signature.parameters.items()}
     return_annotation = get_typed_return_annotation(f)
-    missing_annotations = [k for k, v in param_annotations.items() if v is inspect.Signature.empty]
+    missing, unannotated_with_default = get_missing_annotations(typed_signature, required)
 
     if return_annotation is None:
-        raise TypeError(
-            "The return type of a function must be annotated as either 'str', a subclass of "
-            + "'pydantic.BaseModel' or an union of the previous ones."
+        logger.warning(
+            f"The return type of the function '{f.__name__}' is not annotated. Although annotating it is "
+            + "optional, the function should return either a string, a subclass of 'pydantic.BaseModel'."
         )
 
-    if missing_annotations != []:
-        [f"'{k}'" for k in missing_annotations]
+    if unannotated_with_default != set():
+        unannotated_with_default_s = [f"'{k}'" for k in sorted(unannotated_with_default)]
+        logger.warning(
+            f"The following parameters of the function '{f.__name__}' with default values are not annotated: "
+            + f"{', '.join(unannotated_with_default_s)}."
+        )
+
+    if missing != set():
+        missing_s = [f"'{k}'" for k in sorted(missing)]
         raise TypeError(
-            f"All parameters of a function '{f.__name__}' must be annotated. "
-            + "The annotations are missing for parameters: {', '.join(missing)}"
+            f"All parameters of the function '{f.__name__}' without default values must be annotated. "
+            + f"The annotations are missing for the following parameters: {', '.join(missing_s)}"
         )
 
     fname = name if name else f.__name__
-
-    required = get_required_params(typed_signature)
 
     parameters = get_parameters(required, param_annotations)
 
