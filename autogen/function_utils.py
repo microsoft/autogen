@@ -7,6 +7,15 @@ from .pydantic import type2schema, JsonSchemaValue, evaluate_forwardref, model_d
 
 
 def get_typed_annotation(annotation: Any, globalns: Dict[str, Any]) -> Any:
+    """Get the type annotation of a parameter.
+
+    Args:
+        annotation: The annotation of the parameter
+        globalns: The global namespace of the function
+
+    Returns:
+        The type annotation of the parameter
+    """
     if isinstance(annotation, str):
         annotation = ForwardRef(annotation)
         annotation = evaluate_forwardref(annotation, globalns, globalns)
@@ -14,6 +23,14 @@ def get_typed_annotation(annotation: Any, globalns: Dict[str, Any]) -> Any:
 
 
 def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
+    """Get the signature of a function with type annotations.
+
+    Args:
+        call: The function to get the signature for
+
+    Returns:
+        The signature of the function with type annotations
+    """
     signature = inspect.signature(call)
     globalns = getattr(call, "__globals__", {})
     typed_params = [
@@ -30,6 +47,14 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
 
 
 def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
+    """Get the return annotation of a function.
+
+    Args:
+        call: The function to get the return annotation for
+
+    Returns:
+        The return annotation of the function
+    """
     signature = inspect.signature(call)
     annotation = signature.return_annotation
 
