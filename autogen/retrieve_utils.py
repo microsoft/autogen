@@ -275,7 +275,7 @@ def create_vector_db_from_dir(
             Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
         custom_text_types (Optional, List[str]): a list of file types to be processed. Default is TEXT_FORMATS.
         recursive (Optional, bool): whether to search documents recursively in the dir_path. Default is True.
-
+        extra_docs (Optional, bool): whether to add more documents in the collection. Default is False
     Returns:
         API: the chromadb client.
     """
