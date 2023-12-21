@@ -94,7 +94,7 @@ const Header = ({ meta, link }: any) => {
                     return (
                       <div
                         key={index + "linkrow"}
-                        className={`text-primary  items-center hover:text-accent hovder:bg-secondary px-1 pt-1 block   text-sm font-medium `}
+                        className={`text-primary  items-center hover:text-accent hover:bg-secondary px-1 pt-1 block   text-sm font-medium `}
                       >
                         <Link
                           className="hover:text-accent h-full flex flex-col"

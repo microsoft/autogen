@@ -23,7 +23,7 @@ func1 = {
 }
 func2 = {
     "name": "query_wolfram",
-    "description": "Return the API query result from the Wolfram Alpha. the ruturn is a tuple of (result, is_success).",
+    "description": "Return the API query result from the Wolfram Alpha. the return is a tuple of (result, is_success).",
     "parameters": {
         "type": "object",
         "properties": {},
