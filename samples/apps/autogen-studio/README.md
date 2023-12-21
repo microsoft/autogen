@@ -6,7 +6,7 @@ AutoGen Studio is an AutoGen-powered AI app (user interface) to help you rapidly
 
 Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio)
 
-> **Note**: AutoGen Studio is meant to be an example/guide of how to build an AI app using the AutoGen framework. It is not meant to be a production-ready app.
+> **Note**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is not meant to be a production-ready app.
 
 ### Capabilities / Roadmap
 
