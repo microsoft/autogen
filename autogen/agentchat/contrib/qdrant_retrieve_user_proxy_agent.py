@@ -226,7 +226,7 @@ def create_qdrant_from_dir(
             ids=[(j + length) for j in range(i, end_idx)],
             parallel=parallel,
         )
-        
+
     # Create a payload index for the document field
     # Enables highly efficient payload filtering. Reference: https://qdrant.tech/documentation/concepts/indexing/#indexing
     # Creating an index requires additional computational resources and memory.
