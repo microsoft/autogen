@@ -35,7 +35,7 @@ class Teachability(AgentCapability):
         Args:
             verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
             reset_db (Optional, bool): True to clear the DB before starting. Default False.
-            path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
+            path_to_db_dir (Optional, str): path to the directory where this particular agent's DB is stored. Default "./tmp/teachable_agent_db"
             recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
             max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
             llm_config (dict or False): llm inference configuration passed to TextAnalyzerAgent.

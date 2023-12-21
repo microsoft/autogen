@@ -141,11 +141,8 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
-        # New agent capabilities can be added through hooks registered to specific hookable methods.
-        # A hook is a method of a subclass of AgentCapability.
-        # A hookable method is a method of ConversableAgent that is written to call registered hooks.
-        # More hookable methods will be added over time to support various agent capabilities.
         # Registered hooks are kept in lists, indexed by hookable method, and are called in their order of registration.
+        # Hookable methods will be added over time to support new agent capabilities.
         self.hook_lists = {
             self.process_user_text: []  # This is currently the only hookable method.
         }
@@ -1345,7 +1342,11 @@ class ConversableAgent(Agent):
         return self._function_map
 
     def register_hook(self, hookable_method: Callable, hook: Callable):
-        """Registers a hook to be called by a hookable method, in order to add a capability to the agent.
+        """
+        Registers a hook to be called by a hookable method, in order to add a capability to the agent.
+        A hook is a method of a subclass of AgentCapability.
+        A hookable method is a method of ConversableAgent that is written to call registered hooks,
+        which are kept in lists (each list indexed by hookable method) and are called in their order of registration.
 
         Args:
             hookable_method: A hookable method implemented by ConversableAgent.
@@ -1368,8 +1369,6 @@ class ConversableAgent(Agent):
         if len(messages) == 0:
             return messages  # No message to process.
         last_message = messages[-1]
-        if last_message["role"] != "user":
-            return messages  # Last message is not from the user.
         if "function_call" in last_message:
             return messages  # Last message is a function call.
         if "context" in last_message:
