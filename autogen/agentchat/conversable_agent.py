@@ -1410,6 +1410,7 @@ class ConversableAgent(Agent):
 
             Raises:
                 ValueError: if the function description is not provided and not propagated by a previous decorator.
+                RuntimeError: if the LLM config is not set up before registering a function.
 
             """
             # name can be overwriten by the parameter, by default it is the same as function name
@@ -1428,7 +1429,7 @@ class ConversableAgent(Agent):
             # get JSON schema for the function
             f = get_function_schema(func, name=func._name, description=func._description)
 
-            # register the function to the agent if there is LLM config, skip otherwise
+            # register the function to the agent if there is LLM config, raise an exception otherwise
             if self.llm_config is None:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
