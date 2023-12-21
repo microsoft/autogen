@@ -72,6 +72,14 @@ def test_agentchat_function_call(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
+def test_agentchat_function_call_async(save=False):
+    run_notebook("agentchat_function_call_async.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
 def _test_agentchat_MathChat(save=False):
     run_notebook("agentchat_MathChat.ipynb", save=save)
 

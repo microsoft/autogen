@@ -187,7 +187,7 @@ def _test_n_agents_less_than_3(method):
         messages=[],
         max_round=6,
         speaker_selection_method=method,
-        allow_repeat_speaker=True if method == "random" else False,
+        allow_repeat_speaker=[agent1, agent2] if method == "random" else False,
     )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
     agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
@@ -434,7 +434,7 @@ if __name__ == "__main__":
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    # test_speaker_selection_method()
+    test_speaker_selection_method()
     # test_n_agents_less_than_3()
     # test_agent_mentions()
     # test_termination()
