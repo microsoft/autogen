@@ -45,7 +45,7 @@ class AgentBuilder:
     AGENT_NAME_PROMPT = """To complete the following task, what positions/jobs should be set to maximize efficiency?
 
     TASK: {task}
-    
+
     Hint:
     # Considering the effort, the position in this task should be no more than {max_agents}; less is better.
     # Answer the names of those positions/jobs.
@@ -57,11 +57,11 @@ class AgentBuilder:
 
     TASK: {task}
     POSITION: {position}
-    
+
     Modify the following position requirement, making it more suitable for the above task and position:
-    
+
     REQUIREMENT: {default_sys_msg}
-    
+
     Hint:
     # Your answer should be natural, starting from "As a ...".
     # People in this position will work in a group chat, solving task together with other people with different positions.
@@ -74,12 +74,12 @@ class AgentBuilder:
     AGENT_SEARCHING_PROMPT = """Considering the following task:
 
     TASK: {task}
-    
+
     What following agents should be involved to the task?
-    
-    AGENT LIST: 
+
+    AGENT LIST:
     {agent_list}
-    
+
     Hint:
     # You should consider if the agent's name and profile match the task.
     # Considering the effort, you should select less then {max_agents} agents; less is better.
@@ -95,7 +95,7 @@ class AgentBuilder:
         host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 600,
         max_tokens: Optional[int] = 945,
-        max_agents: Optional[int] = 5
+        max_agents: Optional[int] = 5,
     ):
         """
         Args:
@@ -379,25 +379,27 @@ class AgentBuilder:
             )
             coding = True if resp == "YES" else False
 
-        self.cached_configs.update({
-            "building_task": building_task,
-            "agent_configs": agent_configs,
-            "coding": coding,
-            "default_llm_config": default_llm_config,
-            "code_execution_config": code_execution_config,
-        })
+        self.cached_configs.update(
+            {
+                "building_task": building_task,
+                "agent_configs": agent_configs,
+                "coding": coding,
+                "default_llm_config": default_llm_config,
+                "code_execution_config": code_execution_config,
+            }
+        )
 
         return self._build_agents(use_oai_assistant, **kwargs)
 
     def build_from_library(
-            self,
-            building_task: str,
-            library_path: str,
-            default_llm_config: Dict,
-            coding: Optional[bool] = True,
-            code_execution_config: Optional[Dict] = None,
-            use_oai_assistant: Optional[bool] = False,
-            **kwargs
+        self,
+        building_task: str,
+        library_path: str,
+        default_llm_config: Dict,
+        coding: Optional[bool] = True,
+        code_execution_config: Optional[Dict] = None,
+        use_oai_assistant: Optional[bool] = False,
+        **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents from a library.
@@ -434,13 +436,12 @@ class AgentBuilder:
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
-        with open(library_path, 'r') as f:
+        with open(library_path, "r") as f:
             agent_library = json.load(f)
 
         print(f"Looking for suitable agents in {library_path}...")
         agent_profiles = [
-            (f"No.{i + 1} AGENT's NAME: {agent['name']}\n"
-             f"No.{i + 1} AGENT's PROFILE: {agent['system_message']}\n\n")
+            (f"No.{i + 1} AGENT's NAME: {agent['name']}\n" f"No.{i + 1} AGENT's PROFILE: {agent['system_message']}\n\n")
             for i, agent in enumerate(agent_library)
         ]
         resp_agent_name = (
@@ -449,9 +450,7 @@ class AgentBuilder:
                     {
                         "role": "user",
                         "content": self.AGENT_SEARCHING_PROMPT.format(
-                            task=building_task,
-                            agent_list="".join(agent_profiles),
-                            max_agents=self.max_agents
+                            task=building_task, agent_list="".join(agent_profiles), max_agents=self.max_agents
                         ),
                     }
                 ]
@@ -485,20 +484,20 @@ class AgentBuilder:
             )
             coding = True if resp == "YES" else False
 
-        self.cached_configs.update({
-            "building_task": building_task,
-            "agent_configs": agent_configs,
-            "coding": coding,
-            "default_llm_config": default_llm_config,
-            "code_execution_config": code_execution_config,
-        })
+        self.cached_configs.update(
+            {
+                "building_task": building_task,
+                "agent_configs": agent_configs,
+                "coding": coding,
+                "default_llm_config": default_llm_config,
+                "code_execution_config": code_execution_config,
+            }
+        )
 
         return self._build_agents(use_oai_assistant, **kwargs)
 
     def _build_agents(
-            self,
-            use_oai_assistant: Optional[bool] = False,
-            **kwargs
+        self, use_oai_assistant: Optional[bool] = False, **kwargs
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents with generated configs.
@@ -596,26 +595,28 @@ class AgentBuilder:
         default_llm_config = cached_configs["default_llm_config"]
         coding = cached_configs["coding"]
 
-        if kwargs['code_execution_config'] is not None:
+        if kwargs["code_execution_config"] is not None:
             # for test
-            self.cached_configs.update({
-                "building_task": cached_configs['building_task'],
-                "agent_configs": agent_configs,
-                "coding": coding,
-                "default_llm_config": default_llm_config,
-                "code_execution_config": kwargs['code_execution_config'],
-            })
-            del kwargs['code_execution_config']
+            self.cached_configs.update(
+                {
+                    "building_task": cached_configs["building_task"],
+                    "agent_configs": agent_configs,
+                    "coding": coding,
+                    "default_llm_config": default_llm_config,
+                    "code_execution_config": kwargs["code_execution_config"],
+                }
+            )
+            del kwargs["code_execution_config"]
             return self._build_agents(use_oai_assistant, **kwargs)
         else:
             code_execution_config = cached_configs["code_execution_config"]
-            self.cached_configs.update({
-                "building_task": cached_configs['building_task'],
-                "agent_configs": agent_configs,
-                "coding": coding,
-                "default_llm_config": default_llm_config,
-                "code_execution_config": code_execution_config,
-            })
+            self.cached_configs.update(
+                {
+                    "building_task": cached_configs["building_task"],
+                    "agent_configs": agent_configs,
+                    "coding": coding,
+                    "default_llm_config": default_llm_config,
+                    "code_execution_config": code_execution_config,
+                }
+            )
             return self._build_agents(use_oai_assistant, **kwargs)
-
-

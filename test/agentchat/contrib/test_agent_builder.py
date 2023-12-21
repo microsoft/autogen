@@ -25,6 +25,7 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
+
 def _config_check(config):
     # check config loading
     assert config.get("coding", None) is not None
@@ -64,8 +65,9 @@ def test_build():
     assert len(agent_list) <= builder.max_agents
 
     # check system message
-    for cfg in agent_config['agent_configs']:
-        assert "TERMINATE" in cfg['system_message']
+    for cfg in agent_config["agent_configs"]:
+        assert "TERMINATE" in cfg["system_message"]
+
 
 @pytest.mark.skipif(
     not OPENAI_INSTALLED,
@@ -95,8 +97,9 @@ def test_build_from_library():
     assert len(agent_list) <= builder.max_agents
 
     # check system message
-    for cfg in agent_config['agent_configs']:
-        assert "TERMINATE" in cfg['system_message']
+    for cfg in agent_config["agent_configs"]:
+        assert "TERMINATE" in cfg["system_message"]
+
 
 @pytest.mark.skipif(
     not OPENAI_INSTALLED,
@@ -138,7 +141,7 @@ def test_load():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
-    configs = json.load(open(config_save_path, 'r'))
+    json.load(open(config_save_path, "r"))
 
     agent_list, loaded_agent_configs = builder.load(
         config_save_path,
