@@ -2,6 +2,7 @@
     "files": {
         "README.md": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/README.md",
         "Scripts/init_tasks.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Scripts/init_tasks.py",
+        "Scripts/custom_tabulate.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Scripts/custom_tabulate.py",
         "Templates/BasicTwoAgents/expected_answer.txt": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Templates/BasicTwoAgents/expected_answer.txt",
         "Templates/BasicTwoAgents/scenario.py": "https://raw.githubusercontent.com/microsoft/autogen/testbed_cli/samples/tools/testbed/scenarios/GAIA/Templates/BasicTwoAgents/scenario.py"
     }

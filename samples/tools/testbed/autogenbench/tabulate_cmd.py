@@ -69,6 +69,8 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
     invocation_cmd = args[0]
     args = args[1:]
 
+    warning = f"CAUTION: '{invocation_cmd}' is in early preview and is not thoroughly tested.\nPlease do not cite values from these calculations in academic work without first inspecting and verifying the results in the run logs yourself."
+
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
@@ -130,6 +132,9 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
             while len(str_row) < max_instances + 1:
                 str_row.append("")
             print(",".join(str_row))
+
+        # Print out alpha-version warning
+        sys.stderr.write("\n" + warning + "\n\n")
     else:
         # Create a header
         header = ["\nTask Id"]
@@ -178,6 +183,9 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
         table.extend(footer)
 
         print(tb.tabulate(table, headers=header))
+
+        # Print out alpha-version warning
+        sys.stderr.write("\n" + warning + "\n\n")
 
 
 def tabulate_cli(args):
