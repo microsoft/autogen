@@ -1,8 +1,6 @@
 import os
-import json
 import sys
-import requests
-import importlib.util
+import argparse
 import tabulate as tb
 from .load_module import load_module
 
@@ -31,7 +29,6 @@ def find_tabulate_module(search_dir, stop_dir=None):
 
     while True:
         path = os.path.join(search_dir, TABULATE_FILE)
-        print(path)
         if os.path.isfile(path):
             return path
 
@@ -72,65 +69,36 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
     invocation_cmd = args[0]
     args = args[1:]
 
-    # Get bare areguments (not starting with "-")
-    bare_args = []
-    option_args = []
-    for arg in args:
-        if arg.startswith("-"):
-            option_args.append(arg)
-        else:
-            bare_args.append(arg)
+    # Prepare the argument parser
+    parser = argparse.ArgumentParser(
+        prog=invocation_cmd,
+        description=f"{invocation_cmd} will tabulate the results of a previous run.",
+    )
 
-    # Check for help requests
-    if "-h" in args or "--help" in args:
-        sys.stderr.write(f"usage: {invocation_cmd} [-c] [--csv] RUNLOGS\n")
-        sys.stderr.write(
-            "where RUNLOGS is the path pointing to the results or logs of a previous run\n"
-        )
-        sys.stderr.write(
-            """
-options:
-  -c, --csv         output the tabulation in CSV format
-"""
-        )
-        sys.exit(0)
+    parser.add_argument(
+        "runlogs",
+        help="The path where the run's logs are stored.",
+    )
+    parser.add_argument(
+        "-c",
+        "--csv",
+        action="store_true",
+        help="Output the results in CSV format.",
+    )
 
-    # Check if the runlogs argument is None
-    if len(bare_args) == 0:
-        sys.stderr.write(f"usage: {invocation_cmd} [-c] [--csv] RUNLOGS\n")
-        sys.stderr.write(
-            "where RUNLOGS is the path pointing to the results or logs of a previous run\n"
-        )
-        sys.stderr.write(f"{invocation_cmd}: missing argument RUNLOGS\n")
-        sys.exit(2)
+    parsed_args = parser.parse_args(args)
 
-    # Check if the runlogs argument is None
-    if len(bare_args) > 1:
-        sys.stderr.write(f"usage: {invocation_cmd} [-c] [--csv] RUNLOGS\n")
-        sys.stderr.write(
-            "where RUNLOGS is the path pointing to the results or logs of a previous run\n"
-        )
-        sys.stderr.write(f"{invocation_cmd}: too many arguments\n")
-        sys.exit(2)
-
-    runlogs = bare_args[0]
-
-    # Check if we are outputting to CSV
-    output_csv = False
-    if "-c" in args or "--csv" in args:
-        output_csv = True
-
-    # Ok, the most basic tabulation to look for SUCCESS_STRINGS in the console_log.txt of each task
     all_results = list()
     max_instances = 0
 
     for task_id in sorted(
-        os.listdir(runlogs), key=lambda s: os.path.getmtime(os.path.join(runlogs, s))
+        os.listdir(parsed_args.runlogs),
+        key=lambda s: os.path.getmtime(os.path.join(parsed_args.runlogs, s)),
     ):
         if task_id in exclude_dir_names:
             continue
 
-        task_path = os.path.join(runlogs, task_id)
+        task_path = os.path.join(parsed_args.runlogs, task_id)
 
         if not os.path.isdir(task_path):
             continue
@@ -150,7 +118,7 @@ options:
         # Buffer the results
         all_results.append(results)
 
-    if output_csv:
+    if parsed_args.csv:
         # Create a header
         header = ["Task Id"]
         for i in range(0, max_instances):
@@ -212,12 +180,15 @@ options:
         print(tb.tabulate(table, headers=header))
 
 
-def tabulate_cli(invocation_cmd="autogenbench tabulate", cli_args=None):
+def tabulate_cli(args):
+    invocation_cmd = args[0]
+    args = args[1:]
+
     # We won't assume much about the arguments, letting the dynamically-loaded
     # tabulate modules parse the arguments however they want. But, we will use
     # bare arguments (not starting a "-"), to help us find what module to load.
     module_path = find_tabulate_module(os.getcwd(), stop_dir=os.getcwd())
-    for arg in reversed(cli_args):
+    for arg in reversed(args):
         if module_path is not None:
             break
         if arg.startswith("-"):
@@ -227,7 +198,7 @@ def tabulate_cli(invocation_cmd="autogenbench tabulate", cli_args=None):
     # Load the module and hand over control
     if module_path is None:
         sys.stderr.write("Using default tabulation method.\n\n")
-        default_tabulate([invocation_cmd] + cli_args)
+        default_tabulate([invocation_cmd] + args)
     else:
         sys.stderr.write(f"Using tabulation method defined in '{module_path}'\n\n")
-        load_module(module_path).main([invocation_cmd] + cli_args)
+        load_module(module_path).main([invocation_cmd] + args)

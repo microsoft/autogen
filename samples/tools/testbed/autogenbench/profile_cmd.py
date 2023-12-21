@@ -26,7 +26,10 @@ def run_profiler(logs_path, config_list):
     print(json.dumps(labels, indent=4))
 
 
-def profile_cli(invocation_cmd="autogenbench profile", cli_args=None):
+def profile_cli(args):
+    invocation_cmd = args[0]
+    args = args[1:]
+
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
@@ -47,19 +50,16 @@ def profile_cli(invocation_cmd="autogenbench profile", cli_args=None):
         default="OAI_CONFIG_LIST",
     )
 
-    # In most cases just parse args from sys.arv[1:], which is the parse_args default
-    args = None
-    if cli_args is None:
-        args = parser.parse_args()
-    else:
-        args = parser.parse_args(cli_args)
+    parsed_args = parser.parse_args(args)
 
-    if not args.runlogs:
+    if not parsed_args.runlogs:
         parser.error("the following arguments are required: runlogs")
 
     # Load the OAI_CONFIG_LIST
-    config_list = config_list_from_json(env_or_file=args.config)
+    config_list = config_list_from_json(env_or_file=parsed_args.config)
     if len(config_list) == 0:
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
+        raise FileNotFoundError(
+            errno.ENOENT, os.strerror(errno.ENOENT), parsed_args.config
+        )
 
-    run_profiler(args.runlogs, config_list)
+    run_profiler(parsed_args.runlogs, config_list)

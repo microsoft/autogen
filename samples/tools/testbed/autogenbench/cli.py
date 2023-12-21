@@ -5,9 +5,9 @@ from .profile_cmd import profile_cli
 from .tabulate_cmd import tabulate_cli
 
 
-def main(cli_args=None):
-    if cli_args is None:
-        cli_args = sys.argv[1:]
+def main(args=None):
+    if args is None:
+        args = sys.argv[:]  # Shallow copy
 
     invocation_cmd = "autogenbench"
 
@@ -76,25 +76,24 @@ Additionally, you can use the --help option with any command for further command
 
 """.strip()
 
-    if len(cli_args) == 0:
+    if len(args) < 2:
         sys.stderr.write(usage_text + "\n")
         sys.exit(2)
 
     for command in commands:
-        if cli_args[0].lower() == command["command"]:
+        if args[1].lower() == command["command"]:
             if command["function"] is None:
                 sys.stderr.write(help_text + "\n")
                 sys.exit(0)
             else:
                 command["function"](
-                    invocation_cmd=invocation_cmd + " " + command["command"],
-                    cli_args=cli_args[1:],
+                    [invocation_cmd + " " + command["command"]] + args[2:]
                 )
                 sys.exit(0)
 
     # Command not found
     sys.stderr.write(
-        f"Invlaid command '{cli_args[0]}'. Available command include: {commands_list}\n"
+        f"Invlaid command '{args[1]}'. Available command include: {commands_list}\n"
     )
     sys.exit(2)
 

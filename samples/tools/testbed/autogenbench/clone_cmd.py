@@ -75,7 +75,10 @@ def clone_scenario(scenario):
             break
 
 
-def clone_cli(invocation_cmd="autogenbench clone", cli_args=None):
+def clone_cli(args):
+    invocation_cmd = args[0]
+    args = args[1:]
+
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
@@ -94,25 +97,20 @@ def clone_cli(invocation_cmd="autogenbench clone", cli_args=None):
         help="List the scenarios available for download.",
     )
 
-    # In most cases just parse args from sys.arv[1:], which is the parse_args default
-    args = None
-    if cli_args is None:
-        args = parser.parse_args()
-    else:
-        args = parser.parse_args(cli_args)
+    parsed_args = parser.parse_args(args)
 
     # Chekc if we are just printing a list
-    if args.list:
+    if parsed_args.list:
         print("The following scenarios / benchmarks are available:\n")
         for s in get_scenarios():
             print(f"  {s}")
         print()
         return 0
 
-    if not args.scenario:
+    if not parsed_args.scenario:
         parser.error("the following arguments are required: scenario")
 
     try:
-        clone_scenario(args.scenario)
+        clone_scenario(parsed_args.scenario)
     except ValueError as e:
         parser.error(str(e) + "\nUse '--list' to see a list of available scenarios.")

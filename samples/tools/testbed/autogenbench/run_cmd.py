@@ -466,7 +466,10 @@ def build_default_docker_image(docker_client, image_tag):
             sys.stdout.write(segment["stream"])
 
 
-def run_cli(invocation_cmd="autogenbench run", cli_args=None):
+def run_cli(args):
+    invocation_cmd = args[0]
+    args = args[1:]
+
     # Prepare the argument parser
     parser = argparse.ArgumentParser(
         prog=invocation_cmd,
@@ -512,32 +515,29 @@ def run_cli(invocation_cmd="autogenbench run", cli_args=None):
         help="Run the scenarios natively rather than in docker. NOTE: This is not advisable, and should be done with great caution.",
     )
 
-    # In most cases just parse args from sys.arv[1:], which is the parse_args default
-    args = None
-    if cli_args is None:
-        args = parser.parse_args()
-    else:
-        args = parser.parse_args(cli_args)
+    parsed_args = parser.parse_args(args)
 
     # Load the OAI_CONFIG_LIST
-    config_list = config_list_from_json(env_or_file=args.config)
+    config_list = config_list_from_json(env_or_file=parsed_args.config)
     if len(config_list) == 0:
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
+        raise FileNotFoundError(
+            errno.ENOENT, os.strerror(errno.ENOENT), parsed_args.config
+        )
 
     # Don't allow both --docker-image and --native on the same command
-    if args.docker_image is not None and args.native:
+    if parsed_args.docker_image is not None and parsed_args.native:
         sys.exit(
             "The options --native and --docker-image can not be used together. Exiting."
         )
 
     # Warn if running natively
-    if args.native:
+    if parsed_args.native:
         if IS_WIN32:
             sys.exit(
                 "Running scenarios with --native is not supported in Windows. Exiting."
             )
 
-        if args.requirements is not None:
+        if parsed_args.requirements is not None:
             sys.exit("--requirements is not compatible with --native. Exiting.")
 
         choice = input(
@@ -548,10 +548,10 @@ def run_cli(invocation_cmd="autogenbench run", cli_args=None):
             sys.exit("Received '" + choice + "'. Exiting.")
 
     run_scenarios(
-        scenario=args.scenario,
-        n_repeats=args.repeat,
-        is_native=True if args.native else False,
+        scenario=parsed_args.scenario,
+        n_repeats=parsed_args.repeat,
+        is_native=True if parsed_args.native else False,
         config_list=config_list,
-        requirements=args.requirements,
-        docker_image=args.docker_image,
+        requirements=parsed_args.requirements,
+        docker_image=parsed_args.docker_image,
     )
