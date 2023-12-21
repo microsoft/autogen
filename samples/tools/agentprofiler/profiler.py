@@ -13,41 +13,52 @@ completed or the goal was accomplished, e.g., this maybe indicated through succe
 execution, TERMINATE messsages, etc"
 """
 
+# maps codes to descriptions
+# the keys define the label space
+# and the descriptions define the label descriptions
+EXAMPLE_STATE_SPACE = {
+    "USER_REQUEST": "The message shows the *user* requesting a task that needs to be completed",
+    "SUGGESTING-CODE": "The assistant is suggesting code",
+    "CODE-EXECUTION": "The user shared results of code execution, e.g., results, logs, error trace",
+    "TASK-COMPLETED": "The message from either user or assistant indicates that provided task was completed or the goal was accomplished, e.g., this maybe indicated through successful code execution, TERMINATE messsages, etc",
+}
 
-def annotate_message(role: str, content: str, codes: str, llm_config: Optional[Dict] = None) -> str:
+
+def state_space_to_str(state_space: Dict[str, str]) -> str:
+    """
+    Converts a state space to a string.
+
+    Args:
+        state_space (Dict[str, str]): A dictionary mapping codes to descriptions.
+
+    Returns:
+        str: A string representation of the state space.
+    """
+    return "\n".join([f"{k}: {v}" for k, v in state_space.items()])
+
+
+def annotate_message(role: str, content: str, state_space: Dict[str, str], llm_config: Optional[Dict] = None) -> str:
     """
     Annotates a message by performing qualitative coding.
 
     Args:
         role (str): The role of the agent (user or assistant) sending the message.
         content (str): The content of the message.
+        state_space (Dict[str, str]): A dictionary mapping codes to descriptions.
         llm_config (Optional[Dict], optional): Configuration for the OpenAIWrapper. Defaults to None.
-        codes (List[str], optional): A prompt containing the codes of interest. Defaults to None.
+
 
     Returns:
         str: The extracted text or function call from the OpenAIWrapper response.
     """
 
-    if codes is None:
-        codes = EXAMPLE_CODES
+    if state_space is None:
+        state_space = EXAMPLE_STATE_SPACE
 
-    prompt = f"""You are a helpful assistant that is expert at qualitative analysis of text documents.
+    state_space_str = state_space_to_str(state_space)
 
-Given a message an agent (user or assistant), perform
-qualitative coding with the following steps:
-- Read the message to understand the context.
-- Apply descriptive coding to categorize each message’s content. You must choose between the following
-codes and respond with a comma separated list of unique codes:
-{codes}
-
-Be careful when you use codes. Do not confuse codes for user/assistant.
-
-Message from *{role}*: {content}
- """
-
-    if codes is not None:
-        prompt = f"""Which of the following codes apply to the message:
-codes: {codes}
+    prompt = f"""Which of the following codes apply to the message:
+codes: {state_space_str}
 
 role: {content}
 
@@ -59,12 +70,12 @@ Only respond with codes that apply. Codes should be separated by commas.
         client = autogen.OpenAIWrapper()
 
     response = client.create(cache_seed=None, messages=[{"role": "user", "content": prompt}])
-    return client.extract_text_or_function_call(response)
+    return client.extract_text_or_completion_object(response)
 
 
 def annotate_chat_history(
     chat_history: List[Dict[str, str]],
-    codes: str = None,
+    state_space: Dict[str, str] = None,
     llm_config: Dict[str, str] = None,
 ) -> List[Dict[str, str]]:
     """
@@ -72,7 +83,7 @@ def annotate_chat_history(
 
     Args:
         chat_history (List[Dict[str, str]]): A list of JSON objects representing the chat history. Each JSON object should have 'role' and 'content' keys.
-        codes (List[str], optional): A prompt containing the codes of interest. Defaults to None.
+        state_space (Dict[str, str], optional): A dictionary mapping codes to descriptions. Defaults to None.
         llm_config (Dict[str, str], optional): The configuration for the language model. Defaults to None.
 
     Returns:
@@ -84,7 +95,7 @@ def annotate_chat_history(
     for message in chat_history_annotated:
         role = message.get("role")
         content = message.get("content")
-        message["codes"] = annotate_message(role, content, llm_config=llm_config, codes=codes)
+        message["codes"] = annotate_message(role, content, llm_config=llm_config, state_space=state_space)
 
     return chat_history_annotated
 

@@ -18,6 +18,10 @@ llm_config = config_list_from_json(
 # Annotate chat history
 annotated_chat_history = annotate_chat_history(chat_history, llm_config=llm_config)
 
+# Save the new JSON to disk
+with open(os.path.join(data_dir, "chat_history_annotated.json"), "w") as file:
+    json.dump(annotated_chat_history, file, indent=4)
+
 # Visualize annotated chat history
 draw_profiler_graph(
     annotated_chat_history,
