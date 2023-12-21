@@ -302,10 +302,10 @@ class MemoStore:
         if self.verbosity >= 1:
             print(
                 colored(
-                    "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
+                    "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}\n".format(
                         self.last_memo_id, input_text, output_text
                     ),
-                    "light_green",
+                    "light_yellow",
                 )
             )
         if self.verbosity >= 3:
@@ -323,7 +323,7 @@ class MemoStore:
                     "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                         input_text, output_text, distance
                     ),
-                    "light_green",
+                    "light_yellow",
                 )
             )
         return input_text, output_text, distance
@@ -346,7 +346,7 @@ class MemoStore:
                             "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                                 input_text, output_text, distance
                             ),
-                            "light_green",
+                            "light_yellow",
                         )
                     )
                 memos.append((input_text, output_text, distance))
