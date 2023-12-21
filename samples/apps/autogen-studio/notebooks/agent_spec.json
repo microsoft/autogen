@@ -1,5 +1,6 @@
 {
   "name": "General Agent Workflow",
+  "description": "A general agent workflow",
   "sender": {
     "type": "userproxy",
     "config": {
