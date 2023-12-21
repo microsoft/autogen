@@ -10,7 +10,7 @@ def collate(results_dir):
     Collate the results of running human eval.
 
     Args:
-        results_dir (path): The folder were results were be saved.
+        results_dir (path): The folder where results are saved.
     """
 
     all_results = list()
@@ -19,7 +19,7 @@ def collate(results_dir):
     for test_id in os.listdir(results_dir):
         test_path = os.path.join(results_dir, test_id)
 
-        # Collect the reslts vector
+        # Collect the results vector
         results = [test_id]
 
         instance = 0
