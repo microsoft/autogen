@@ -76,6 +76,61 @@ By adopting the conversation-driven control with both programming language and n
 - LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call.
   By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls.
 
+  We register functions to enable function calls using the following to function decorators:
+
+  1. [`ConversableAgent.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) is used to register the function in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registrated function, but the actual execution will be performed by a UserProxy agent.
+
+  2. [`ConversableAgent.register_for_execution`](../reference/agentchat/conversable_agent#register_for_execution) is used to register the function in the `function_map` of a UserProxy agent.
+
+  The following examples illustrates the process of registering a custom function for currency exchange calculation:
+
+  ``` python
+  from typing_extensions import Annotated
+  from somewhere import exchange_rate
+
+  @user_proxy.register_for_execution()
+  @agent.register_for_llm(description="Currency exchange calculator.")
+  def currency_calculator(
+    base_amount: Annotated[float, "Amount of currency in base_currency"],
+    base_currency: Annotated[Literal["USD", "EUR"], "Base currency"] = "USD",
+    quote_currency: Annotated[Literal["USD", "EUR"], "Quote currency"] = "EUR",
+  ) -> str:
+    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    return f"{quote_amount} {quote_currency}"
+  ```
+
+  Notice the use of [Annotated](https://docs.python.org/3/library/typing.html?highlight=annotated#typing.Annotated) to specify the type and the description of each parameter. The return value of the function must be either string or serializable to string using the [`json.dumps()`](https://docs.python.org/3/library/json.html#json.dumps) or [`Pydantic` model dump to JSON](https://docs.pydantic.dev/latest/concepts/serialization/#modelmodel_dump_json) (both version 1.x and 2.x are supported). The following example shows an alternative way of specifying our currency exchange calculator as follows:
+
+  ``` python
+  from typing_extensions import Annotated
+  from somewhere import exchange_rate
+  from pydantic import BaseModel, Field
+
+  class Currency(BaseModel):
+    currency: Literal["USD", "EUR"]
+    amount: float
+
+  @user_proxy.register_for_execution()
+  @agent.register_for_llm(description="Currency exchange calculator.")
+
+  def currency_calculator(
+    base_amount: Annotated[float, "Amount of currency in base_currency"],
+    base_currency: Annotated[Literal["USD", "EUR"], "Base currency"] = "USD",
+    quote_currency: Annotated[Literal["USD", "EUR"], "Quote currency"] = "EUR",
+  ) -> Currency:
+    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    return Currency(amount=quote_amount, currency=quote_currency)
+  ```
+
+  For complete examples, please check the following:
+
+  - Currenct calculator example - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_currency_calculator.ipynb)
+
+  - Use Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call.ipynb)
+
+  - Use Tools via Sync and Async Function Calling - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_async.ipynb)
+
+
 ### Diverse Applications Implemented with AutoGen
 
 The figure below shows six examples of applications built using AutoGen.
