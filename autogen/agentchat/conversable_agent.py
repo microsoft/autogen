@@ -1426,7 +1426,10 @@ class ConversableAgent(Agent):
         Args:
             **context: any context information, and "message" parameter needs to be provided.
         """
-        return {"content": context["message"]}
+        message = context["message"]
+        if isinstance(message, str) or isinstance(message, list):
+            message = {"content": message}
+        return message
 
     def register_function(self, function_map: Dict[str, Callable]):
         """Register functions to the agent.
