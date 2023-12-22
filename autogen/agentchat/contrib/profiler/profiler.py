@@ -62,7 +62,9 @@ def annotate_message(
     prompt = f"""Which of the following codes apply to the message:
 codes: {state_space_str}
 
-role: {content}
+role: {role}
+
+content: {content}
 
 Only respond with codes that apply. Codes should be separated by commas.
 """
