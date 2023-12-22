@@ -115,7 +115,7 @@ def annotate_chat_history(
     chat_history_annotated = copy.deepcopy(chat_history)
 
     for message in chat_history_annotated:
-        role = message.get("role")
+        role = message.get("name") if "name" in message else message.get("role")
         content = message.get("content")
         codes = annotate_message(role, content, llm_config=llm_config, state_space=state_space)
         if collate_codes is True:
