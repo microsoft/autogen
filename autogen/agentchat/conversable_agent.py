@@ -676,7 +676,7 @@ class ConversableAgent(Agent):
                 else:
                     messages_to_scan += 1
 
-        # iterate through the last n messages reversly
+        # iterate through the last n messages reversely
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
         for i in range(min(len(messages), messages_to_scan)):
@@ -1292,7 +1292,7 @@ class ConversableAgent(Agent):
 
         Args:
             func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
-            is_remove: whether removing the funciton from llm_config with name 'func_sig'
+            is_remove: whether removing the function from llm_config with name 'func_sig'
         """
 
         if not self.llm_config:

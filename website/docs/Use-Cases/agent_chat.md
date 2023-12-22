@@ -54,7 +54,7 @@ user_proxy.initiate_chat(
 )
 ```
 
-After the initialization step, the conversation could proceed automatically. Find a visual illustration of how the user_proxy and assistant collaboratively solve the above task autonmously below:
+After the initialization step, the conversation could proceed automatically. Find a visual illustration of how the user_proxy and assistant collaboratively solve the above task autonomously below:
 ![Agent Chat Example](images/agent_example.png)
 
 1. The assistant receives a message from the user_proxy, which contains the task description.
