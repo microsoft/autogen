@@ -69,8 +69,8 @@ def download_human_eval():
     return results
 
 
-def create_jsonl(name, tasks, template, model):
-    """Creates a JSONL scenario file with a given name, list of HumanEval tasks, template path, and model."""
+def create_jsonl(name, tasks, template):
+    """Creates a JSONL scenario file with a given name, list of HumanEval tasks, and template path."""
 
     # Create a task directory if it doesn't exist
     scenario_dir = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir))
@@ -88,7 +88,6 @@ def create_jsonl(name, tasks, template, model):
                 "template": os.path.join(os.path.pardir, template),
                 "substitutions": {
                     "scenario.py": {
-                        "__MODEL__": model,
                         "__ENTRY_POINT__": task["entry_point"],
                         "__SELECTION_METHOD__": "auto",
                     },
@@ -105,11 +104,6 @@ def main():
     human_eval = download_human_eval()
     reduced_human_eval = [t for t in human_eval if t["task_id"] in REDUCED_SET]
 
-    models = {
-        "gpt4": "gpt-4",
-        "gpt35": "gpt-3.5-turbo-16k",
-    }
-
     templates = {
         "two_agents": "Templates/TwoAgents",
         # "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
@@ -118,10 +112,9 @@ def main():
     }
 
     # Create the various combinations of [models] x [templates]
-    for m in models.items():
-        for t in templates.items():
-            create_jsonl(f"human_eval_{t[0]}_{m[0]}", human_eval, t[1], m[1])
-            create_jsonl(f"r_human_eval_{t[0]}_{m[0]}", reduced_human_eval, t[1], m[1])
+    for t in templates.items():
+        create_jsonl(f"human_eval_{t[0]}", human_eval, t[1])
+        create_jsonl(f"r_human_eval_{t[0]}", reduced_human_eval, t[1])
 
 
 if __name__ == "__main__" and __package__ is None:

@@ -35,7 +35,7 @@ def run_scenarios(
     config_list,
     requirements,
     docker_image=None,
-    results_dir="results",
+    results_dir="Results",
 ):
     """
     Run a set testbed scenarios a given number of times.
@@ -495,6 +495,13 @@ def run_cli(args):
         default=1,
     )
     parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        help="Filters the config_list to include only models matching the provided model name (default: None, which is all models).",
+        default=None,
+    )
+    parser.add_argument(
         "--requirements",
         type=str,
         help="The requirements file to pip install before running the scenario.",
@@ -518,11 +525,22 @@ def run_cli(args):
     parsed_args = parser.parse_args(args)
 
     # Load the OAI_CONFIG_LIST
-    config_list = config_list_from_json(env_or_file=parsed_args.config)
-    if len(config_list) == 0:
-        raise FileNotFoundError(
-            errno.ENOENT, os.strerror(errno.ENOENT), parsed_args.config
+    config_list = []
+    if parsed_args.model is not None:
+        config_list = config_list_from_json(
+            env_or_file=parsed_args.config,
+            filter_dict={"model": [parsed_args.model]},
         )
+        if len(config_list) == 0:
+            sys.exit(
+                f"The model configuration list is empty. This may be because the '{parsed_args.config}' file or environment variable could not be found, or because the model filter '{parsed_args.model}' returned 0 results."
+            )
+    else:
+        config_list = config_list_from_json(env_or_file=parsed_args.config)
+        if len(config_list) == 0:
+            sys.exit(
+                f"The model configuration list is empty. This is likely because the '{parsed_args.config}' file or environment variable could not be found."
+            )
 
     # Don't allow both --docker-image and --native on the same command
     if parsed_args.docker_image is not None and parsed_args.native:

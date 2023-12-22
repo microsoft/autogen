@@ -34,8 +34,8 @@ def download_gaia():
     )
 
 
-def create_jsonl(name, tasks, files_dir, template, model):
-    """Creates a JSONL scenario file with a given name, template path, and model."""
+def create_jsonl(name, tasks, files_dir, template):
+    """Creates a JSONL scenario file with a given name, and template path."""
 
     if not os.path.isdir(TASKS_DIR):
         os.mkdir(TASKS_DIR)
@@ -59,7 +59,6 @@ def create_jsonl(name, tasks, files_dir, template, model):
                 "template": template_cp_list,
                 "substitutions": {
                     "scenario.py": {
-                        "__MODEL__": model,
                         "__FILE_NAME__": task["file_name"],
                         "__PROMPT__": task["Question"],
                     },
@@ -97,10 +96,6 @@ def main():
             data = json.loads(line)
             gaia_test_tasks[data["Level"] - 1].append(data)
 
-    models = {
-        "gpt4": "gpt-4",
-    }
-
     templates = {"two_agents": os.path.join(TEMPLATES_DIR, "BasicTwoAgents")}
 
     # Add coding directories if needed (these are usually empty and left out of the repo)
@@ -110,50 +105,43 @@ def main():
             os.mkdir(code_dir_path)
 
     # Create the various combinations of [models] x [templates]
-    for m in models.items():
-        for t in templates.items():
-            create_jsonl(
-                f"gaia_validation_level_1__{t[0]}_{m[0]}",
-                gaia_validation_tasks[0],
-                gaia_validation_files,
-                t[1],
-                m[1],
-            )
-            create_jsonl(
-                f"gaia_validation_level_2__{t[0]}_{m[0]}",
-                gaia_validation_tasks[1],
-                gaia_validation_files,
-                t[1],
-                m[1],
-            )
-            create_jsonl(
-                f"gaia_validation_level_3__{t[0]}_{m[0]}",
-                gaia_validation_tasks[2],
-                gaia_validation_files,
-                t[1],
-                m[1],
-            )
-            create_jsonl(
-                f"gaia_test_level_1__{t[0]}_{m[0]}",
-                gaia_test_tasks[0],
-                gaia_test_files,
-                t[1],
-                m[1],
-            )
-            create_jsonl(
-                f"gaia_test_level_2__{t[0]}_{m[0]}",
-                gaia_test_tasks[1],
-                gaia_test_files,
-                t[1],
-                m[1],
-            )
-            create_jsonl(
-                f"gaia_test_level_3__{t[0]}_{m[0]}",
-                gaia_test_tasks[2],
-                gaia_test_files,
-                t[1],
-                m[1],
-            )
+    for t in templates.items():
+        create_jsonl(
+            f"gaia_validation_level_1__{t[0]}",
+            gaia_validation_tasks[0],
+            gaia_validation_files,
+            t[1],
+        )
+        create_jsonl(
+            f"gaia_validation_level_2__{t[0]}",
+            gaia_validation_tasks[1],
+            gaia_validation_files,
+            t[1],
+        )
+        create_jsonl(
+            f"gaia_validation_level_3__{t[0]}",
+            gaia_validation_tasks[2],
+            gaia_validation_files,
+            t[1],
+        )
+        create_jsonl(
+            f"gaia_test_level_1__{t[0]}",
+            gaia_test_tasks[0],
+            gaia_test_files,
+            t[1],
+        )
+        create_jsonl(
+            f"gaia_test_level_2__{t[0]}",
+            gaia_test_tasks[1],
+            gaia_test_files,
+            t[1],
+        )
+        create_jsonl(
+            f"gaia_test_level_3__{t[0]}",
+            gaia_test_tasks[2],
+            gaia_test_files,
+            t[1],
+        )
 
 
 if __name__ == "__main__" and __package__ is None:

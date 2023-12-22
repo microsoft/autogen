@@ -15,10 +15,7 @@ with open("expected_answer.txt", "rt") as fh:
 
 
 ####################
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    filter_dict={"model": ["__MODEL__"]},
-)
+config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
 
 assistant = autogen.AssistantAgent(

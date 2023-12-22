@@ -56,6 +56,13 @@ Where:
 - `autogenbench run Tasks/r_human_eval_two_agents.jsonl` runs the tasks defined in `Tasks/r_human_eval_two_agents.jsonl`
 - `autogenbench tablue results/r_human_eval_two_agents` tabulates the results of the run
 
+Each of these commands has extensive in-line help via:
+
+- `autogenbench --help`
+- `autogenbench clone --help`
+- `autogenbench run --help`
+- `autogenbench tabulate --help`
+
 **NOTE:** If you are running `autogenbench` from within the repository, you don’t need to run `autogenbench clone`. Instead, navigate to the appropriate scenario folder (e.g., `scenarios/HumanEval`) and run the `Scripts/init_tasks.py` file.
 
 More details of each command are provided in the sections that follow.
@@ -116,6 +123,9 @@ options:
 
   -c CONFIG, --config CONFIG
                 The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
+
+  -m MODEL, --model MODEL
+                Filters the config_list to include only models matching the provided model name (default: None, which is all models).
 
   --requirements REQUIREMENTS
                 The requirements file to pip install before running the scenario.

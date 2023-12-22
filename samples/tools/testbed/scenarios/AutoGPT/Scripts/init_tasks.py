@@ -20,8 +20,8 @@ TASKS_DIR = os.path.join(SCENARIO_DIR, "Tasks")
 CHALLENGES_DIR = os.path.join(SCENARIO_DIR, "Challenges")
 
 
-def create_jsonl(name, template, model):
-    """Creates a JSONL scenario file with a given name, template path, and model."""
+def create_jsonl(name, template):
+    """Creates a JSONL scenario file with a given name, and template path."""
 
     if not os.path.isdir(TASKS_DIR):
         os.mkdir(TASKS_DIR)
@@ -67,7 +67,6 @@ def create_jsonl(name, template, model):
                 "template": template_cp_list,
                 "substitutions": {
                     "scenario.py": {
-                        "__MODEL__": model,
                         "__TASK__": data["task"],
                     },
                     "check.py": {
@@ -91,11 +90,6 @@ def create_jsonl(name, template, model):
 
 ###############################################################################
 def main():
-    models = {
-        "gpt4": "gpt-4",
-        "gpt35": "gpt-3.5-turbo-16k",
-    }
-
     templates = {"two_agents": os.path.join(TEMPLATES_DIR, "TwoAgents")}
 
     # Add coding directories if needed (these are usually empty and left out of the repo)
@@ -105,13 +99,11 @@ def main():
             os.mkdir(code_dir_path)
 
     # Create the various combinations of [models] x [templates]
-    for m in models.items():
-        for t in templates.items():
-            create_jsonl(
-                f"autogpt__{t[0]}_{m[0]}",
-                t[1],
-                m[1],
-            )
+    for t in templates.items():
+        create_jsonl(
+            f"autogpt__{t[0]}",
+            t[1],
+        )
 
 
 if __name__ == "__main__" and __package__ is None:

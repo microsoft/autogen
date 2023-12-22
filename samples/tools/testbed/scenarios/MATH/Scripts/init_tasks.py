@@ -74,8 +74,8 @@ def download_math():
     return selected_problems
 
 
-def create_jsonl(name, problems, template, model):
-    """Creates a JSONL scenario file with a given name, dictionary of MATH problems, template path, and model."""
+def create_jsonl(name, problems, template):
+    """Creates a JSONL scenario file with a given name, dictionary of MATH problems, and template path."""
 
     # Create a task directory if it doesn't exist
     if not os.path.isdir(TASKS_DIR):
@@ -95,9 +95,6 @@ def create_jsonl(name, problems, template, model):
                 "id": task_id,
                 "template": os.path.join(os.path.pardir, template),
                 "substitutions": {
-                    "scenario.py": {
-                        "__MODEL__": model,
-                    },
                     "prompt.txt": {"__PROMPT__": data["problem"]},
                     "expected_answer.txt": {"__ANSWER__": data["solution"]},
                 },
@@ -110,19 +107,12 @@ def create_jsonl(name, problems, template, model):
 def main():
     problems = download_math()
 
-    models = {
-        "gpt4": "gpt-4",
-        "gpt35": "gpt-3.5-turbo-16k",
-    }
-
     templates = {
         "two_agents": "Templates/TwoAgents",
     }
 
-    # Create the various combinations of [models] x [templates]
-    for m in models.items():
-        for t in templates.items():
-            create_jsonl(f"math_{t[0]}_{m[0]}", problems, t[1], m[1])
+    for t in templates.items():
+        create_jsonl(f"math_{t[0]}", problems, t[1])
 
 
 if __name__ == "__main__" and __package__ is None:

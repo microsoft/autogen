@@ -6,10 +6,7 @@ import testbed_utils
 testbed_utils.init()
 ##############################
 
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    filter_dict={"model": ["__MODEL__"]},
-)
+config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 
 assistant = autogen.AssistantAgent(
     "assistant",
