@@ -27,7 +27,7 @@ def collate(results_dir):
     for test_id in os.listdir(results_dir):
         test_path = os.path.join(results_dir, test_id)
 
-        # Collect the reslts vector
+        # Collect the results vector
         results = [test_id]
 
         instance = 0
@@ -35,7 +35,7 @@ def collate(results_dir):
         while os.path.isdir(instance_dir):
             expected_answer_file = os.path.join(instance_dir, "expected_answer.txt")
             if not os.path.isfile(expected_answer_file):
-                # Expected ansewr is missing
+                # Expected answer is missing
                 results.append("")
 
                 instance += 1
