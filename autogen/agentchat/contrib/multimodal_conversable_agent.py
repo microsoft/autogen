@@ -16,9 +16,14 @@ except ImportError:
 from autogen.code_utils import content_str
 
 DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant."""
+DEFAULT_MODEL = "gpt-4-vision-preview"
 
 
 class MultimodalConversableAgent(ConversableAgent):
+    DEFAULT_CONFIG = {
+        "model": DEFAULT_MODEL,
+    }
+
     def __init__(
         self,
         name: str,
