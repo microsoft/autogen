@@ -126,18 +126,3 @@ def annotate_chat_history(
         message["codes"] = codes
 
     return chat_history_annotated
-
-
-if __name__ == "__main__":
-    chat_history = json.load(open("sample_data/chat_history.json"))
-
-    llm_config = autogen.config_list_from_json(
-        "OAI_CONFIG_LIST",
-        filter_dict={"model": ["gpt-4"]},
-    )[0]
-
-    labels = annotate_chat_history(chat_history, llm_config=llm_config)
-
-    # Save the new JSON to disk
-    with open("sample_data/chat_history_annotated.json", "w") as file:
-        json.dump(labels, file, indent=2)
