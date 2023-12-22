@@ -7,6 +7,7 @@
         "Templates/TwoAgents/should_contain.json.txt": "samples/tools/testbed/scenarios/AutoGPT/Templates/TwoAgents/should_contain.json.txt",
         "Templates/TwoAgents/should_not_contain.json.txt": "samples/tools/testbed/scenarios/AutoGPT/Templates/TwoAgents/should_not_contain.json.txt",
         "Templates/TwoAgents/scenario.py": "samples/tools/testbed/scenarios/AutoGPT/Templates/TwoAgents/scenario.py",
+        "Templates/TwoAgents/scenario_init.sh": "samples/tools/testbed/scenarios/AutoGPT/Templates/TwoAgents/scenario_init.sh",
         "Challenges/1_sort_csv/data.json": "samples/tools/testbed/scenarios/AutoGPT/Challenges/1_sort_csv/data.json",
         "Challenges/1_sort_csv/artifacts_in/input.csv": "samples/tools/testbed/scenarios/AutoGPT/Challenges/1_sort_csv/artifacts_in/input.csv",
         "Challenges/2_combine_csv/data.json": "samples/tools/testbed/scenarios/AutoGPT/Challenges/2_combine_csv/data.json",

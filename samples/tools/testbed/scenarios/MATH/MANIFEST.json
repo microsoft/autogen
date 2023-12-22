@@ -5,6 +5,7 @@
         "Scripts/custom_tabulate.py": "samples/tools/testbed/scenarios/MATH/Scripts/custom_tabulate.py",
         "Templates/TwoAgents/prompt.txt": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/prompt.txt",
         "Templates/TwoAgents/expected_answer.txt": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/expected_answer.txt",
-        "Templates/TwoAgents/scenario.py": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/scenario.py"
+        "Templates/TwoAgents/scenario.py": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/scenario.py",
+        "Templates/TwoAgents/scenario_init.sh": "samples/tools/testbed/scenarios/MATH/Templates/TwoAgents/scenario_init.sh"
     }
 }
