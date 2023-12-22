@@ -169,7 +169,7 @@ export const ColorTween = (
   endColor: string,
   percent: number
 ) => {
-  // exaple startColor = "#ff0000" endColor = "#0000ff" percent = 0.5
+  // example startColor = "#ff0000" endColor = "#0000ff" percent = 0.5
   const start = {
     r: parseInt(startColor.substring(1, 3), 16),
     g: parseInt(startColor.substring(3, 5), 16),
