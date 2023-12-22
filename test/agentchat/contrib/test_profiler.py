@@ -4,19 +4,25 @@ import os
 import pytest
 from autogen import config_list_from_json
 
-from autogen.agentchat.contrib.profiler import (
-    state_space_to_str,
-    annotate_message,
-    annotate_chat_history,
-    EXAMPLE_STATE_SPACE,
-)
+try:
+    from autogen.agentchat.contrib.profiler import (
+        state_space_to_str,
+        annotate_message,
+        annotate_chat_history,
+        EXAMPLE_STATE_SPACE,
+    )
+except ImportError:
+    skip = True
+else:
+    skip = False
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    sys.platform in ["darwin", "win32"] or skip is True,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_state_space_to_str():
@@ -29,7 +35,7 @@ def test_state_space_to_str():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    sys.platform in ["darwin", "win32"] or skip is True,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_annotate_message():
@@ -43,7 +49,7 @@ def test_annotate_message():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
+    sys.platform in ["darwin", "win32"] or skip is True,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 def test_annotate_chat_history():
