@@ -6,8 +6,14 @@ from typing import List, Optional, Dict, Set, Union
 import logging
 from dotenv import find_dotenv, load_dotenv
 
-from openai import OpenAI
-from openai.types.beta.assistant import Assistant
+try:
+    from openai import OpenAI
+    from openai.types.beta.assistant import Assistant
+
+    ERROR = None
+except ImportError:
+    ERROR = ImportError("Please install openai>=1 to use autogen.OpenAIWrapper.")
+    OpenAI = object
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 
@@ -419,6 +425,8 @@ def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
     """
     Return the assistants with the given name from OAI assistant API
     """
+    if ERROR:
+        raise ERROR
     assistants = client.beta.assistants.list()
     candidate_assistants = []
     for assistant in assistants.data:
