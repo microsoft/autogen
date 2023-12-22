@@ -3,8 +3,7 @@
         "Templates/TwoAgents/scenario_finalize.sh": "samples/tools/testbed/scenarios/Examples/Templates/TwoAgents/scenario_finalize.sh",
         "Templates/TwoAgents/scenario.py": "samples/tools/testbed/scenarios/Examples/Templates/TwoAgents/scenario.py",
         "Templates/TwoAgents/scenario_init.sh": "samples/tools/testbed/scenarios/Examples/Templates/TwoAgents/scenario_init.sh",
-        "Tasks/default_two_agents_gpt35.jsonl": "samples/tools/testbed/scenarios/Examples/Tasks/default_two_agents_gpt35.jsonl",
-        "Tasks/default_two_agents_gpt4.jsonl": "samples/tools/testbed/scenarios/Examples/Tasks/default_two_agents_gpt4.jsonl",
+        "Tasks/default_two_agents.jsonl": "samples/tools/testbed/scenarios/Examples/Tasks/default_two_agents.jsonl",
         "README.md": "samples/tools/testbed/scenarios/Examples/README.md"
     }
 }
