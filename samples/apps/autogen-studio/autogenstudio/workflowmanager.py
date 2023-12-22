@@ -1,8 +1,10 @@
+import os
+import shutil
 from typing import List, Optional
 from dataclasses import asdict
 import autogen
 from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
-from .utils import get_skills_from_prompt
+from .utils import get_skills_from_prompt, clear_folder
 from datetime import datetime
 
 
@@ -16,6 +18,7 @@ class AutoGenWorkFlowManager:
         config: AgentWorkFlowConfig,
         history: Optional[List[Message]] = None,
         work_dir: str = None,
+        clear_work_dir: bool = True,
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
@@ -27,11 +30,12 @@ class AutoGenWorkFlowManager:
 
         """
         self.work_dir = work_dir or "work_dir"
+        if clear_work_dir:
+            clear_folder(self.work_dir)
+
         self.sender = self.load(config.sender)
         self.receiver = self.load(config.receiver)
         self.agent_history = []
-
-        print("work_dir", self.work_dir)
 
         if history:
             self.populate_history(history)
@@ -104,7 +108,9 @@ class AutoGenWorkFlowManager:
         )
         skills_prompt = ""
         if agent_spec.skills:
-            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
+            # get skill prompt, also write skills to a file named skills.py
+            skills_prompt = get_skills_from_prompt(
+                agent_spec.skills, self.work_dir)
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}
@@ -136,10 +142,12 @@ class AutoGenWorkFlowManager:
         agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "assistant":
             agent = autogen.AssistantAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         elif agent_spec.type == "userproxy":
             agent = autogen.UserProxyAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         else:
             raise ValueError(f"Unknown agent type: {agent_spec.type}")
         return agent

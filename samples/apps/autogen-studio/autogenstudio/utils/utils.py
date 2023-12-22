@@ -19,6 +19,20 @@ def md5_hash(text: str) -> str:
     return hashlib.md5(text.encode()).hexdigest()
 
 
+def clear_folder(folder_path: str) -> None:
+    """
+    Clear the contents of a folder.
+
+    :param folder_path: The path to the folder to clear.
+    """
+    for file in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, file)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
+
 def get_file_type(file_path: str) -> str:
     """
 
@@ -69,7 +83,8 @@ def get_file_type(file_path: str) -> str:
     }
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg",
+                        ".gif", ".bmp", ".tiff", ".svg", ".webp"}
 
     # Supported PDF extension
     PDF_EXTENSION = ".pdf"
@@ -108,7 +123,8 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     try:
         with open(file_path, "rb") as file:
             file_content = file.read()
-            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
+            base64_encoded_content = base64.b64encode(
+                file_content).decode("utf-8")
     except Exception as e:
         raise IOError(f"An error occurred while reading the file: {e}")
 
@@ -156,7 +172,8 @@ def get_modified_files(
                 while os.path.exists(dest_file_path):
                     base, extension = os.path.splitext(file)
                     # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
+                    dest_file_path = os.path.join(
+                        dest_dir, f"{base}_{copy_idx}{extension}")
                     copy_idx += 1
 
                 # Copying the modified file to the destination directory
@@ -164,7 +181,8 @@ def get_modified_files(
 
                 # Extract user id from the dest_dir and file path
                 uid = dest_dir.split("/")[-1]
-                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
+                relative_file_path = os.path.relpath(
+                    dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
                 file_dict = {
                     "path": f"files/user/{uid}/{relative_file_path}",
@@ -203,89 +221,6 @@ def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
     return folders
 
 
-def skill_from_folder(folder: str) -> List[Dict[str, str]]:
-    """
-    Given a folder, return a dict of the skill (name, python file content). Only python files are considered.
-
-    :param folder: The folder to search for skills
-    :return: A list of dictionaries, each representing a skill
-    """
-
-    skills = []
-    for root, dirs, files in os.walk(folder):
-        for file in files:
-            if file.endswith(".py"):
-                skill_name = file.split(".")[0]
-                skill_file_path = os.path.join(root, file)
-                with open(skill_file_path, "r", encoding="utf-8") as f:
-                    skill_content = f.read()
-                skills.append({"name": skill_name, "content": skill_content, "file_name": file})
-    return skills
-
-
-def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir: str = None) -> List[Dict[str, str]]:
-    """
-    Get all skills from the user and global skills directories. If dest_dir, copy all skills to dest_dir.
-
-    :param user_skills_path: The path to the user skills directory
-    :param global_skills_path: The path to the global skills directory
-    :param dest_dir: The destination directory to copy all skills to
-    :return: A dictionary of user and global skills
-    """
-    user_skills = skill_from_folder(user_skills_path)
-    os.makedirs(user_skills_path, exist_ok=True)
-    global_skills = skill_from_folder(global_skills_path)
-    skills = {
-        "user": user_skills,
-        "global": global_skills,
-    }
-
-    if dest_dir:
-        # chcek if dest_dir exists
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
-        # copy all skills to dest_dir
-        for skill in user_skills + global_skills:
-            skill_file_path = os.path.join(dest_dir, skill["file_name"])
-            with open(skill_file_path, "w", encoding="utf-8") as f:
-                f.write(skill["content"])
-
-    return skills
-
-
-def get_skills_prompt(skills: List[Dict[str, str]]) -> str:
-    """
-    Get a prompt with the content of all skills.
-
-    :param skills: A dictionary of user and global skills
-    :return: A string containing the content of all skills
-    """
-    user_skills = skills["user"]
-    global_skills = skills["global"]
-    all_skills = user_skills + global_skills
-
-    prompt = """
-
-While solving the task you may use functions in the files below.
-To use a function from a file in code, import the file and then use the function.
-If you need to install python packages, write shell code to
-install via pip and use --quiet option.
-
-         """
-    for skill in all_skills:
-        prompt += f"""
-
-##### Begin of {skill["file_name"]} #####
-
-{skill["content"]}
-
-#### End of {skill["file_name"]} ####
-
-        """
-
-    return prompt
-
-
 def get_skills_from_prompt(skills: List[Skill], work_dir: str) -> str:
     """
     Create a prompt with the content of all skills and write the skills to a file named skills.py in the work_dir.
@@ -297,12 +232,12 @@ def get_skills_from_prompt(skills: List[Skill], work_dir: str) -> str:
     instruction = """
 
 While solving the task you may use functions below which will be available in a file called skills.py .
-To use a function skill.py in code, import the function from skills.py  and then use the function.
+To use a function skill.py in code, IMPORT THE FUNCTION FROM skills.py  and then use the function.
 If you need to install python packages, write shell code to
 install via pip and use --quiet option.
 
          """
-    prompt = ""
+    prompt = ""  # filename:  skills.py
     for skill in skills:
         prompt += f"""
 
@@ -318,8 +253,14 @@ install via pip and use --quiet option.
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
-    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-        f.write(prompt)
+    # check if skills.py exist. if exists, append to the file, else create a new file and write to it
+
+    if os.path.exists(os.path.join(work_dir, "skills.py")):
+        with open(os.path.join(work_dir, "skills.py"), "a", encoding="utf-8") as f:
+            f.write(prompt)
+    else:
+        with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
+            f.write(prompt)
 
     return instruction + prompt
 
@@ -381,7 +322,8 @@ def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
             },
             max_consecutive_auto_reply=10,
             llm_config=llm_config,
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+            is_termination_msg=lambda x: x.get(
+                "content", "").rstrip().endswith("TERMINATE"),
         ),
     )
 
@@ -432,55 +374,3 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
                 successful_code_blocks.extend(code_blocks)
 
     return successful_code_blocks
-
-
-def create_skills_from_code(dest_dir: str, skills: Union[str, List[str]]) -> None:
-    """
-    Create skills from a list of code blocks.
-    Parameters:
-    dest_dir (str): The destination directory to copy all skills to.
-    skills (Union[str, List[str]]): A list of strings containing code blocks.
-    """
-
-    # Ensure skills is a list
-    if isinstance(skills, str):
-        skills = [skills]
-
-    # Check if dest_dir exists
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
-
-    for skill in skills:
-        # Attempt to parse the code and extract the top-level function name
-        try:
-            parsed = ast.parse(skill)
-            function_name = None
-            for node in parsed.body:
-                if isinstance(node, ast.FunctionDef):
-                    function_name = node.name
-                    break
-
-            if function_name is None:
-                raise ValueError("No top-level function definition found.")
-
-            # Sanitize the function name for use as a file name
-            function_name = "".join(ch for ch in function_name if ch.isalnum() or ch == "_")
-            skill_file_name = f"{function_name}.py"
-
-        except (ValueError, SyntaxError):
-            skill_file_name = "new_skill.py"
-
-        # If the generated/sanitized name already exists, append an index
-        skill_file_path = os.path.join(dest_dir, skill_file_name)
-        index = 1
-        while os.path.exists(skill_file_path):
-            base, ext = os.path.splitext(skill_file_name)
-            if base.endswith(f"_{index - 1}"):
-                base = base.rsplit("_", 1)[0]
-
-            skill_file_path = os.path.join(dest_dir, f"{base}_{index}{ext}")
-            index += 1
-
-        # Write the skill to the file
-        with open(skill_file_path, "w", encoding="utf-8") as f:
-            f.write(skill)
