@@ -5,6 +5,7 @@ import pytest
 import logging
 import tempfile
 from unittest import mock
+from unittest.mock import patch
 import autogen  # noqa: E402
 
 KEY_LOC = "notebook"
@@ -75,6 +76,39 @@ def test_config_list_openai_aoai():
     # and ensuring the API types in the loaded configurations are as expected.
     config_list = autogen.config_list_openai_aoai(key_file_path=KEY_LOC)
     assert all(config.get("api_type") in [None, "open_ai", "azure"] for config in config_list)
+
+
+@patch('os.environ', {
+    'OPENAI_API_KEY': 'test_openai_key',
+    'OPENAI_API_BASE': 'https://api.openai.com',
+    'AZURE_OPENAI_API_KEY': 'test_aoai_key',
+    'AZURE_OPENAI_API_BASE': 'https://api.azure.com'
+})
+def test_config_list_openai_aoai_env_vars():
+    # Test the config_list_openai_aoai function with environment variables set
+    configs = autogen.oai.openai_utils.config_list_openai_aoai()
+    assert len(configs) == 2
+    assert {'api_key': 'test_openai_key', 'base_url': 'https://api.openai.com'} in configs
+    assert {'api_key': 'test_aoai_key', 'base_url': 'https://api.azure.com', 'api_type': 'azure',
+            'api_version': '2023-08-01-preview'} in configs
+
+
+@patch('os.environ', {
+    'OPENAI_API_KEY': 'test_openai_key\ntest_openai_key2',
+    'OPENAI_API_BASE': 'https://api.openai.com\nhttps://api.openai.com/v2',
+    'AZURE_OPENAI_API_KEY': 'test_aoai_key\ntest_aoai_key2',
+    'AZURE_OPENAI_API_BASE': 'https://api.azure.com\nhttps://api.azure.com/v2'
+})
+def test_config_list_openai_aoai_env_vars_multi():
+    # Test the config_list_openai_aoai function with multiple environment variable values (new line separated)
+    configs = autogen.oai.openai_utils.config_list_openai_aoai()
+    assert len(configs) == 4
+    assert {'api_key': 'test_openai_key', 'base_url': 'https://api.openai.com'} in configs
+    assert {'api_key': 'test_openai_key2', 'base_url': 'https://api.openai.com/v2'} in configs
+    assert {'api_key': 'test_aoai_key', 'base_url': 'https://api.azure.com', 'api_type': 'azure',
+            'api_version': '2023-08-01-preview'} in configs
+    assert {'api_key': 'test_aoai_key2', 'base_url': 'https://api.azure.com/v2', 'api_type': 'azure',
+            'api_version': '2023-08-01-preview'} in configs
 
 
 def test_config_list_from_dotenv(mock_os_environ, caplog):
@@ -158,6 +192,25 @@ def test_config_list_from_dotenv(mock_os_environ, caplog):
             config["model"] != "gpt-4" for config in config_list
         ), "gpt-4 configuration found, but was not expected"
         assert "API key not found or empty for model gpt-4" in caplog.text
+
+
+@patch('os.environ', {
+    'OPENAI_API_KEY': 'test_openai_key\ntest_openai_key2',
+    'OPENAI_API_BASE': 'https://api.openai.com',
+})
+def test_api_keys_base_urls_length_mismatch():
+    api_keys = ['key1', 'key2']
+    base_urls = ['https://api.service1.com']  # Shorter than api_keys
+
+    with pytest.raises(AssertionError) as exc_info:
+        autogen.get_config_list(api_keys, base_urls)
+
+    assert str(exc_info.value) == "The length of api_keys must match the length of base_urls"
+
+    with pytest.raises(AssertionError) as exc_info:
+        autogen.config_list_openai_aoai(api_keys, base_urls)
+
+    assert str(exc_info.value) == "The length of api_keys must match the length of base_urls"
 
 
 if __name__ == "__main__":
