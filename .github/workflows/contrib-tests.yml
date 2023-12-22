@@ -232,7 +232,7 @@ jobs:
           pip install pytest
       - name: Install packages and dependencies for Profiler
         run: |
-          pip install -e .
+          pip install -e .[profiler]
           pip uninstall -y openai
       - name: Test Profiler
         if: matrix.python-version != '3.9'  # diversify the python versions
