@@ -34,7 +34,7 @@ Let's first look into an overview of the suggested task taxonomy that a multi-ag
    * _The optimal solution exits_ - these are tasks where only one solution is possible. For example, if you ask your assistant to turn on the light, the success of this task is clearly defined, and there is only one way to accomplish it.
    * _Multiple solutions exist_ - increasingly, we observe situations where multiple trajectories of agent behavior can lead to either success or failure. In such cases, it is crucial to differentiate between the various successful and unsuccessful trajectories. For example, when you ask the agent to suggest you a food recipe or tell you a joke.
 
-In our `AgentEval` framework, we are currently focusing on tasks where _Success is clearly defined_. Next, we will introduce the suggeted framework.
+In our `AgentEval` framework, we are currently focusing on tasks where _Success is clearly defined_. Next, we will introduce the suggested framework.
 
 ## `AgentEval` Framework
 
@@ -93,8 +93,8 @@ Then, after running QuantifierAgent, we obtained the results presented in Fig. 3
 
 Lighter colors represent estimates for failed cases, and brighter colors show how discovered criteria were quantified.
 
-![Fig.3: Results based on overall mathp roblems dataset `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
-<p align="center"><em>Fig.3 presents results based on overall mathproblems datase `_s` stands for successful cases, `_f` - stands for failed cases</em></p>
+![Fig.3: Results based on overall math problems dataset `_s` stands for successful cases, `_f` - stands for failed cases](img/math-problems-plot.png)
+<p align="center"><em>Fig.3 presents results based on overall math problems dataset `_s` stands for successful cases, `_f` - stands for failed cases</em></p>
 
 We note that while applying agentEval to math problems, the agent was not exposed to any ground truth information about the problem. As such, this figure illustrates an estimated performance of the three different agents, namely, Autogen (blue), Gpt-4 (red), and ReAct (green). We observe that by comparing the performance of any of the three agents in successful cases (dark bars of any color) versus unsuccessful cases (lighter version of the same bar), we note that AgentEval was able to assign higher quantification to successful cases than that of failed ones. This observation verifies AgentEval's ability for task utility prediction. Additionally, AgentEval allows us to go beyond just a binary definition of success, enabling a more in-depth comparison between successful and failed cases.
 

@@ -136,7 +136,7 @@ class OpenAIWrapper:
         return create_config, extra_kwargs
 
     def _client(self, config, openai_config):
-        """Create a client with the given config to overrdie openai_config,
+        """Create a client with the given config to override openai_config,
         after removing extra kwargs.
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
@@ -244,7 +244,7 @@ class OpenAIWrapper:
                         try:
                             response.cost
                         except AttributeError:
-                            # update atrribute if cost is not calculated
+                            # update attribute if cost is not calculated
                             response.cost = self.cost(response)
                             cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
@@ -349,7 +349,7 @@ class OpenAIWrapper:
     def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
         """Update the usage summary.
 
-        Usage is calculated no mattter filter is passed or not.
+        Usage is calculated no matter filter is passed or not.
         """
 
         def update_usage(usage_summary):
