@@ -20,5 +20,5 @@ To interpret the resulting chart, look for patterns in the agent's activities. F
 
 ## Example Usage
 
-[Two Agents](../../../../notebook/agentchat_profiler.ipynb)
-[Group Chat](../../../../notebook/agentchat_profiler_groupchat.ipynb)
+- [Two Agents](../../../../notebook/agentchat_profiler.ipynb)
+- [Group Chat](../../../../notebook/agentchat_profiler_groupchat.ipynb)
