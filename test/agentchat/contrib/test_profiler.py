@@ -1,18 +1,33 @@
 import sys
 import os
 from typing import List
+import pytest
 from autogen import config_list_from_json
-from autogen.agentchat.contrib.profiler import (
-    state_space_to_str,
-    annotate_message,
-    annotate_chat_history,
-    EXAMPLE_STATE_SPACE,
-)
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
+try:
+    import openai
+    import matplotlib.pyplot as plt
 
+    from autogen.agentchat.contrib.profiler import (
+        state_space_to_str,
+        annotate_message,
+        annotate_chat_history,
+        EXAMPLE_STATE_SPACE,
+    )
+
+    skip_test = False
+except ImportError:
+    skip_test = True
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_state_space_to_str():
     # Test the state_space_to_str function
     result = state_space_to_str(EXAMPLE_STATE_SPACE, filter_by_role=None)
@@ -22,6 +37,10 @@ def test_state_space_to_str():
     assert isinstance(result, str), "Expected result to be a string"
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_annotate_message():
     # Test the annotate_message function
     role = "user"
@@ -32,6 +51,10 @@ def test_annotate_message():
     assert isinstance(result, list), "Expected result to be a list of strings"
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
 def test_annotate_chat_history():
     # Test the annotate_chat_history function
     chat_history = [{"role": "user", "content": "Write a program to print hello world"}]
