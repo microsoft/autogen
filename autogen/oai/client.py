@@ -336,6 +336,7 @@ class OpenAIWrapper:
                         message=ChatCompletionMessage(
                             role="assistant", content=response_contents[i], function_call=None
                         ),
+                        logprobs=None,
                     )
                 )
         else:
