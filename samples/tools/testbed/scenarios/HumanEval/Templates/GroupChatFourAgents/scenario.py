@@ -20,10 +20,7 @@ with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read()
 
 # Ok, now get autogen to solve it.
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    filter_dict={"model": ["__MODEL__"]},
-)
+config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 
 assistant = autogen.AssistantAgent(
     "coder",
@@ -112,4 +109,6 @@ run_tests(__ENTRY_POINT__)
 )
 
 ##############################
-testbed_utils.finalize(agents=[assistant, user_proxy, guardrails_agent, distractor_agent, manager])
+testbed_utils.finalize(
+    agents=[assistant, user_proxy, guardrails_agent, distractor_agent, manager]
+)
