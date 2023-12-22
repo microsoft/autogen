@@ -1,8 +1,10 @@
 from collections import defaultdict
-import openai
 import json
 import time
 import logging
+
+from openai.types.beta.thread import Thread
+from openai.types.beta.threads.run import Run
 
 from autogen import OpenAIWrapper
 from autogen.oai.openai_utils import retrieve_assistants_by_name
@@ -112,7 +114,7 @@ class GPTAssistantAgent(ConversableAgent):
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
-        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
+        self.register_reply([Agent, None], GPTAssistantAgent._invoke_assistant, position=2)
 
     def _invoke_assistant(
         self,
@@ -131,7 +133,6 @@ class GPTAssistantAgent(ConversableAgent):
         Returns:
             A tuple containing a boolean indicating success and the assistant's reply.
         """
-
         if messages is None:
             messages = self._oai_messages[sender]
         unread_index = self._unread_index[sender] or 0
@@ -159,55 +160,122 @@ class GPTAssistantAgent(ConversableAgent):
             instructions=self.system_message,
         )
 
-        run_response_messages = self._get_run_response(assistant_thread, run)
-        assert len(run_response_messages) > 0, "No response from the assistant."
-
-        response = {
-            "role": run_response_messages[-1]["role"],
-            "content": "",
-        }
-        for message in run_response_messages:
-            # just logging or do something with the intermediate messages?
-            # if current response is not empty and there is more, append new lines
-            if len(response["content"]) > 0:
-                response["content"] += "\n\n"
-            response["content"] += message["content"]
-
+        response = self._get_run_response(assistant_thread, run)
         self._unread_index[sender] = len(self._oai_messages[sender]) + 1
-        return True, response
+        if response["content"]:
+            return True, response
+        else:
+            return False, "No response from the assistant."
 
-    def _get_run_response(self, thread, run):
+    def _process_messages(self, assistant_thread: Thread, run: Run) -> dict:
         """
-        Waits for and processes the response of a run from the OpenAI assistant.
+        Processes the status of a run and generates an appropriate response.
+
+        This method checks the status of a given run and generates a response
+        based on that status. The response is a dictionary with a 'role' and 'content' field.
+        The 'role' field is always 'assistant', and the 'content' field contains a message
+        related to the status of the run.
 
         Args:
-            run: The run object initiated with the OpenAI assistant.
+            assistant_thread (Thread): The Thread object associated with the current task.
+            run (Run): The Run object associated with the current task.
 
         Returns:
-            Updated run object, status of the run, and response messages.
+            dict: A dictionary containing the 'role' and 'content' of the response.
         """
-        while True:
-            run = self._wait_for_run(run.id, thread.id)
-            if run.status == "completed":
-                response_messages = self._openai_client.beta.threads.messages.list(thread.id, order="asc")
+        if run.status == "failed":
+            logger.error(f"Run: {run.id} Thread: {assistant_thread.id}: failed...")
+            if run.last_error:
+                response = {
+                    "role": "assistant",
+                    "content": str(run.last_error),
+                }
+            else:
+                response = {
+                    "role": "assistant",
+                    "content": "Failed",
+                }
+            return response
+        elif run.status == "expired":
+            logger.warn(f"Run: {run.id} Thread: {assistant_thread.id}: expired...")
+            response = {
+                "role": "assistant",
+                "content": "Expired",
+            }
+            return response
+        elif run.status == "cancelled":
+            logger.warn(f"Run: {run.id} Thread: {assistant_thread.id}: cancelled...")
+            response = {
+                "role": "assistant",
+                "content": "Cancelled",
+            }
+            return response
+        elif run.status == "completed":
+            logger.info(f"Run: {run.id} Thread: {assistant_thread.id}: completed...")
+            response_messages = self._openai_client.beta.threads.messages.list(assistant_thread.id, order="asc")
+            new_messages = []
+            for msg in response_messages:
+                if msg.run_id == run.id:
+                    for content in msg.content:
+                        if content.type == "text":
+                            new_messages.append(
+                                {"role": msg.role, "content": self._format_assistant_message(content.text)}
+                            )
+                        elif content.type == "image_file":
+                            new_messages.append(
+                                {
+                                    "role": msg.role,
+                                    "content": f"Recieved file id={content.image_file.file_id}",
+                                }
+                            )
+            response = {
+                "role": new_messages[-1]["role"],
+                "content": "",
+            }
+            for message in new_messages:
+                # just logging or do something with the intermediate messages?
+                # if current response is not empty and there is more, append new lines
+                if len(response["content"]) > 0:
+                    response["content"] += "\n\n"
+                response["content"] += message["content"]
+            return response
 
-                new_messages = []
-                for msg in response_messages:
-                    if msg.run_id == run.id:
-                        for content in msg.content:
-                            if content.type == "text":
-                                new_messages.append(
-                                    {"role": msg.role, "content": self._format_assistant_message(content.text)}
-                                )
-                            elif content.type == "image_file":
-                                new_messages.append(
-                                    {
-                                        "role": msg.role,
-                                        "content": f"Recieved file id={content.image_file.file_id}",
-                                    }
-                                )
-                return new_messages
+    def _get_run_response(self, assistant_thread: Thread, run: Run) -> dict:
+        """
+        This method waits for a run initiated with the OpenAI assistant to complete,
+        and then processes its response.
+        It continuously checks for the status of the run. If the run is still in progress
+        or queued, it waits for a specified amount of time before checking again. If
+        the run is completed, cancelled, or expired, it stops waiting and processes the
+        response.
+
+        Args:
+            assistant_thread (Thread): The thread object associated with the task.
+            run (Run): The run object that was initiated with the task.
+
+        Returns:
+            dict: The processed response from the run.
+
+        Raises:
+            Exception: If the run encounters an unexpected status.
+        """
+        logger.info(f"Getting run response for thread: {assistant_thread.id}, run: {run.id}")
+        while True:
+            run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
+            if run.status == "in_progress" or run.status == "queued":
+                time.sleep(self.llm_config.get("check_every_ms", 1000) / 1000)
+                run = self._openai_client.beta.threads.runs.retrieve(run.id, thread_id=assistant_thread.id)
+            elif (
+                run.status == "completed"
+                or run.status == "cancelled"
+                or run.status == "expired"
+                or run.status == "failed"
+            ):
+                return self._process_messages(assistant_thread, run)
+            elif run.status == "cancelling":
+                logger.warn(f"Run: {run.id} Thread: {assistant_thread.id}: cancelling...")
             elif run.status == "requires_action":
+                logger.info(f"Run: {run.id} Thread: {assistant_thread.id}: required action...")
                 actions = []
                 for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                     function = tool_call.function
@@ -215,11 +283,11 @@ class GPTAssistantAgent(ConversableAgent):
                     tool_response["metadata"] = {
                         "tool_call_id": tool_call.id,
                         "run_id": run.id,
-                        "thread_id": thread.id,
+                        "thread_id": assistant_thread.id,
                     }
 
                     logger.info(
-                        "Intermediate executing(%s, Sucess: %s) : %s",
+                        "Intermediate executing(%s, Success: %s) : %s",
                         tool_response["name"],
                         is_exec_success,
                         tool_response["content"],
@@ -232,38 +300,33 @@ class GPTAssistantAgent(ConversableAgent):
                         for action in actions
                     ],
                     "run_id": run.id,
-                    "thread_id": thread.id,
+                    "thread_id": assistant_thread.id,
                 }
 
                 run = self._openai_client.beta.threads.runs.submit_tool_outputs(**submit_tool_outputs)
+
             else:
                 run_info = json.dumps(run.dict(), indent=2)
                 raise ValueError(f"Unexpected run status: {run.status}. Full run info:\n\n{run_info})")
 
-    def _wait_for_run(self, run_id: str, thread_id: str) -> Any:
+    def _cancel_run(self, run_id: str, thread_id: str):
         """
-        Waits for a run to complete or reach a final state.
+        Cancels a run.
 
         Args:
             run_id: The ID of the run.
             thread_id: The ID of the thread associated with the run.
-
-        Returns:
-            The updated run object after completion or reaching a final state.
         """
-        in_progress = True
-        while in_progress:
-            run = self._openai_client.beta.threads.runs.retrieve(run_id, thread_id=thread_id)
-            in_progress = run.status in ("in_progress", "queued")
-            if in_progress:
-                time.sleep(self.llm_config.get("check_every_ms", 1000) / 1000)
-        return run
+        try:
+            self._openai_client.beta.threads.runs.cancel(run_id=run_id, thread_id=thread_id)
+            logger.info(f"Run: {run_id} Thread: {thread_id}: successfully sent cancellation signal.")
+        except Exception as e:
+            logger.error(f"Run: {run_id} Thread: {thread_id}: failed to send cancellation signal: {e}")
 
     def _format_assistant_message(self, message_content):
         """
         Formats the assistant's message to include annotations and citations.
         """
-
         annotations = message_content.annotations
         citations = []
 

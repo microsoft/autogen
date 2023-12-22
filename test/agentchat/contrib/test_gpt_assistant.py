@@ -1,6 +1,7 @@
 import pytest
 import os
 import sys
+from unittest.mock import Mock
 import autogen
 from autogen import OpenAIWrapper
 
@@ -246,9 +247,44 @@ def test_assistant_retrieval():
     assert candidate_first == candidate_second
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_process_messages_not_complete():
+    # Create a mock assistant thread and run
+    mock_thread = Mock()
+    mock_thread.id = "thread1"
+
+    mock_run = Mock()
+    gt_map = {
+        ("failed", "Here is the last error message"): "Here is the last error message",
+        ("failed", None): "Failed",
+        ("expired", None): "Expired",
+        ("cancelled", None): "Cancelled",
+    }
+
+    for (status, last_error), expected_content in gt_map.items():
+        mock_run.status = status
+        mock_run.last_error = last_error
+
+        instance = GPTAssistantAgent(
+            "assistant",
+            llm_config={
+                "config_list": config_list,
+            },
+        )
+
+        # Call _process_messages and assert it returns the correct response
+        response = instance._process_messages(mock_thread, mock_run)
+        instance.delete_assistant()
+        assert response == {"role": "assistant", "content": expected_content}
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
     test_gpt_assistant_instructions_overwrite()
     test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
+    test_process_messages_not_complete()
