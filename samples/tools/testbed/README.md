@@ -1,26 +1,35 @@
 # AutoGenBench
 
-AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen scenarios in a setting with tightly-controlled initial conditions. With each run, AutoGen will start from a blank slate, working out what code needs to be written, and what libraries or dependencies to install. The results of each run are logged, and can be ingested by analysis or metrics scripts (see the HumanEval example later in this README). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen tasks in a setting with tightly-controlled initial conditions. With each run, AutoGenBench will start from a blank slate. The agents being evaluated will need to work out what code needs to be written, and what libraries or dependencies to install, to solve tasks. The results of each run are logged, and can be ingested by analysis or metrics scripts (such as `autogenbench tabulate`) By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
-AutoGenBench is known to work with, all AutoGen 0.1.*, and 0.2.* versions.
+AutoGenBench is known to work with all AutoGen 0.1.*, and 0.2.* versions.
 
 ## Installation and Setup
 
-**To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the best way to do this is to git clone the [autogen](https://github.com/microsoft/autogen) repository then from the repository root, execute:
+**To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the easiest way to do this is to install it via `pip`:
 
 ```
-pip install -e samples/tools/testbed
+pip install autogenbench
 ```
 
-or, from within the `samples/tools/testbed` folder (e.g., if reading this README):
+If you would prefer working from source code (e.g., for development, or to utilize an alternate branch), simply clone the [AutoGen](https://github.com/microsoft/autogen) repository, then install `autogenbench` via:
 
 ```
-pip install -e .
+pip install -e autogen/samples/tools/testbed
 ```
 
-After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. If neither are provided, it will user the environment variable OPENAI_API_KEY. This behavior can be overridden using a command-line parameter described later.
+After installation, you must configure your API keys. As with other AutoGen applications, AutoGenBench will look for the OpenAI keys in the OAI_CONFIG_LIST file in the current working directory, or the OAI_CONFIG_LIST environment variable. This behavior can be overridden using a command-line parameter described later.
 
-For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
+If you will be running multiple benchmarks, it is often most convenient to leverage the environment variable option. You can load your keys into the environment variable by executing:
+
+```
+export OAI_CONFIG_LIST=$(cat ./OAI_CONFIG_LIST)
+```
+
+If an OAI_CONFIG_LIST is *not* provided (by means of file or environment variable), AutoGenBench will use the OPENAI_API_KEY environment variable instead.
+
+
+For some benchmark scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV.json` file in the current working folder. An example `ENV.json` file is provided below:
 
 ```
 {
@@ -28,8 +37,28 @@ For some scenarios, additional keys may be required (e.g., keys for the Bing Sea
 }
 ```
 
+## Docker Requirement
 AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
 
+
+## A Typical Session
+Once AutoGenBench and necessary keys are installed, a typical session will look as follows:
+
+```
+autogenbench clone HumanEval
+cd HumanEval
+autogenbench run Tasks/r_human_eval_two_agents.jsonl
+autogenbench tabulate results/r_human_eval_two_agents
+```
+
+Where:
+- `autogenbench clone HumanEval` downloads and expands the HumanEval benchmark scenario.
+- `autogenbench run Tasks/r_human_eval_two_agents.jsonl` runs the tasks defined in `Tasks/r_human_eval_two_agents.jsonl`
+- `autogenbench tablue results/r_human_eval_two_agents` tabulates the results of the run
+
+**NOTE:** If you are running `autogenbench` from within the repository, you don’t need to run `autogenbench clone`. Instead, navigate to the appropriate scenario folder (e.g., `scenarios/HumanEval`) and run the `Scripts/init_tasks.py` file.
+
+More details of each command are provided in the sections that follow.
 
 ## Cloning Benchmarks
 To clone an existing benchmark, simply run:
@@ -95,10 +124,6 @@ options:
                 The Docker image to use when running scenarios. Can not be used together with --native.
                 (default: 'autogen/testbed:default', which will be created if not present)
 
-  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
-                The Docker image to use when running scenarios. Can not be used together with --native.
-                (default: 'autogen/testbed:default', which will be created if not present)
-
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
 ```
@@ -107,18 +132,18 @@ options:
 
 By default, the AutoGenBench stores results in a folder hierarchy with the following template:
 
-``./results/[scenario]/[instance_id]/[repetition]``
+``./results/[scenario]/[task_id]/[instance_id]``
 
 For example, consider the following folders:
 
-``./results/default_two_agents_gpt35/two_agent_stocks/0``
-``./results/default_two_agents_gpt35/two_agent_stocks/1``
+``./results/default_two_agents/two_agent_stocks/0``
+``./results/default_two_agents/two_agent_stocks/1``
 
 ...
 
-``./results/default_two_agents_gpt35/two_agent_stocks/9``
+``./results/default_two_agents/two_agent_stocks/9``
 
-This folder holds the results for the ``two_agent_stocks`` instance of the ``default_two_agents_gpt35`` scenario. The ``0`` folder contains the results of the first run. The ``1`` folder contains the results of the second run, and so on. You can think of the _instance_ as mapping to a prompt, or a unique set of parameters, while the _scenario_ defines the template in which those parameters are input.
+This folder holds the results for the ``two_agent_stocks`` task of the ``default_two_agents`` tasks file. The ``0`` folder contains the results of the first instance / run. The ``1`` folder contains the results of the second run, and so on. You can think of the _task_id_ as mapping to a prompt, or a unique set of parameters, while the _instance_id_ defines a specific attempt or run.
 
 Within each folder, you will find the following files:
 
@@ -127,106 +152,6 @@ Within each folder, you will find the following files:
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
 - *./coding*: A directory containing all code written by Autogen, and all artifacts produced by that code.
 
-## Scenario Templating
+## Contributing or defining new tasks or benchmarks
 
-All scenarios are stored in JSONL files (in subdirectories under `./scenarios`). Each line of a scenario file is a JSON object. The schema varies slightly based on if "template" specifies a _file_ or a _directory_.
-
-If "template" points to a _file_, the format is:
-```
-{
-   "id": string,
-   "template": filename,
-   "substitutions" {
-       "find_string1": replace_string1,
-       "find_string2": replace_string2,
-       ...
-       "find_stringN": replace_stringN
-   }
-}
-```
-
-For example:
-
-```
-{
-    "id": "two_agent_stocks_gpt4",
-    "template": "default_two_agents.py",
-    "substitutions": {
-        "\__MODEL\__": "gpt-4",
-        "\__PROMPT\__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
-    }
-}
-```
-
-
-If "template" points to a _directory_, the format is:
-
-```
-{
-   "id": string,
-   "template": dirname,
-   "substitutions" {
-       "filename1": {
-       	   "find_string1_1": replace_string1_1,
-           "find_string1_2": replace_string1_2,
-           ...
-           "find_string1_M": replace_string1_N
-       }
-       "filename2": {
-       	   "find_string2_1": replace_string2_1,
-           "find_string2_2": replace_string2_2,
-           ...
-           "find_string2_N": replace_string2_N
-       }
-   }
-}
-```
-
-For example:
-
-```
-{
-    "id": "two_agent_stocks_gpt4",
-    "template": "default_two_agents",
-    "substitutions": {
-	"scenario.py": {
-            "\__MODEL\__": "gpt-4",
-	},
-	"prompt.txt": {
-            "\__PROMPT\__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
-        }
-    }
-}
-```
-
-In this example, the string `__MODEL__` will be replaced in the file `scenarios.py`, while the string `__PROMPT__` will be replaced in the `prompt.txt` file.
-
-
-## Scenario Expansion Algorithm
-
-When AutoGenBench runs a scenario, it creates a local folder to share with Docker. As noted above, each instance and repetition gets its own folder along the path: ``./results/[scenario]/[instance_id]/[repetition]``
-
-For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
-
-The algorithm for populating the `DEST_FOLDER` is as follows:
-
-1. Pre-populate DEST_FOLDER with all the basic starter files for running a scenario.
-2. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
-3. Apply any templating, as outlined in the prior section.
-4. Write a run.sh file to DEST_FOLDER that will be executed by Docker when it is loaded.
-
-
-## Scenario Execution Algorithm
-
-Once the scenario has been expanded it is run (via run.sh). This script will execute the following steps:
-
-1. If a file named `global_init.sh` is present, run it.
-2. If a file named `scenario_init.sh` is present, run it.
-3. Install the requirements file (if running in Docker)
-4. Run the Autogen scenario via `python scenario.py`
-5. Clean up (delete cache, etc.)
-6. If a file named `scenario_finalize.sh` is present, run it.
-7. If a file named `global_finalize.sh` is present, run it.
-8. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
-
-Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
+If you would like to develop -- or even contribute -- your own tasks or benchmarks, please review the [contributor's guide](CONTRIBUTING.md) for complete technical details.
