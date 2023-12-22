@@ -37,7 +37,9 @@ def state_space_to_str(state_space: Dict[str, str]) -> str:
     return "\n".join([f"{k}: {v}" for k, v in state_space.items()])
 
 
-def annotate_message(role: str, content: str, state_space: Dict[str, str], llm_config: Optional[Dict] = None) -> str:
+def annotate_message(
+    role: str, content: str, state_space: Dict[str, str], llm_config: Optional[Dict] = None
+) -> List[str]:
     """
     Annotates a message by performing qualitative coding.
 
@@ -49,7 +51,7 @@ def annotate_message(role: str, content: str, state_space: Dict[str, str], llm_c
 
 
     Returns:
-        str: The extracted text or function call from the OpenAIWrapper response.
+        codes: A list of codes that apply to the message.
     """
 
     if state_space is None:
@@ -68,9 +70,9 @@ Only respond with codes that apply. Codes should be separated by commas.
         client = autogen.OpenAIWrapper(**llm_config)
     else:
         client = autogen.OpenAIWrapper()
-
     response = client.create(cache_seed=None, messages=[{"role": "user", "content": prompt}])
-    return client.extract_text_or_completion_object(response)
+    response = client.extract_text_or_completion_object(response)[0]
+    return [code.strip() for code in response.split(",")]
 
 
 def annotate_chat_history(
