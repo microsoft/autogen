@@ -290,6 +290,12 @@ fi
 
 # Run the scenario
 python scenario.py
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
+else
+    echo SCENARIO.PY COMPLETE !#!#
+fi
 
 # Clean up
 if [ -d .cache ] ; then
@@ -306,7 +312,7 @@ if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
-echo SCENARIO COMPLETE !#!#
+echo RUN COMPLETE !#!#
 """
         )
 
@@ -387,6 +393,12 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 python scenario.py
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
+else
+    echo SCENARIO.PY COMPLETE !#!#
+fi
 
 # Clean up
 if [ -d .cache ] ; then
@@ -403,7 +415,7 @@ if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
-echo SCENARIO COMPLETE !#!#
+echo RUN.SH COMPLETE !#!#
 """
         )
 

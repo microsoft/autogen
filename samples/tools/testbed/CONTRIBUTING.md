@@ -114,10 +114,11 @@ Once the task has been instantiated it is run (via run.sh). This script will exe
 2. If a file named `scenario_init.sh` is present, run it.
 3. Install the requirements.txt file (if running in Docker)
 4. Run the task via `python scenario.py`
-5. Clean up (delete cache, etc.)
-6. If a file named `scenario_finalize.sh` is present, run it.
-7. If a file named `global_finalize.sh` is present, run it.
-8. echo "SCENARIO COMPLETE !#!#", signaling that all steps completed.
+5. If the scenario.py exited cleanly (exit code 0), then print "SCENARIO.PY COMPLETE !#!#"
+6. Clean up (delete cache, etc.)
+7. If a file named `scenario_finalize.sh` is present, run it.
+8. If a file named `global_finalize.sh` is present, run it.
+9. echo "RUN COMPLETE !#!#", signaling that all steps completed.
 
 Notably, this means that scenarios can add custom init and teardown logic by including `scenario_init.sh` and `scenario_finalize.sh` files.
 
@@ -140,6 +141,12 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 python scenario.py
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
+else
+    echo SCENARIO.PY COMPLETE !#!#
+fi
 
 # Clean up
 if [ -d .cache ] ; then
@@ -156,7 +163,7 @@ if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
-echo SCENARIO COMPLETE !#!#
+echo RUN.SH COMPLETE !#!#
 ```
 
 Be warned that this listing is provided here for illustration purposes, and may vary over time. The source of truth are the `run.sh` files found in the ``./results/[taskset]/[task_id]/[instance_id]`` folders.
