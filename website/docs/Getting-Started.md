@@ -44,7 +44,7 @@ The figure below shows an example conversation flow with AutoGen.
 * [Documentation](/docs/Use-Cases/agent_chat).
 
 #### Enhanced LLM Inferences
-Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalites like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
+Autogen also helps maximize the utility out of the expensive LLMs such as ChatGPT and GPT-4. It offers enhanced LLM inference with powerful functionalities like tuning, caching, error handling, templating. For example, you can optimize generations by LLM with your own tuning data, success metrics and budgets.
 ```python
 # perform tuning for openai<1
 config, analysis = autogen.Completion.tune(
