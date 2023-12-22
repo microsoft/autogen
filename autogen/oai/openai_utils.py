@@ -6,8 +6,7 @@ from typing import List, Optional, Dict, Set, Union
 import logging
 from dotenv import find_dotenv, load_dotenv
 
-
-NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
+NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version", "custom_client"]
 
 oai_price1k = {
     "text-ada-001": 0.0004,
@@ -49,16 +48,13 @@ def get_key(config):
     Returns:
         tuple: A unique identifier which can be used as a key for a dict.
     """
+    import json
+
     copied = False
     for key in NON_CACHE_KEY:
         if key in config:
             config, copied = config.copy() if not copied else config, True
             config.pop(key)
-    # if isinstance(config, dict):
-    #     return tuple(get_key(x) for x in sorted(config.items()))
-    # if isinstance(config, list):
-    #     return tuple(get_key(x) for x in config)
-    # return config
     return json.dumps(config, sort_keys=True)
 
 
