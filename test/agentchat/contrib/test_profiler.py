@@ -1,9 +1,7 @@
 import sys
 import os
-from typing import List
 import pytest
 from autogen import config_list_from_json
-
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
@@ -15,10 +13,10 @@ try:
         annotate_chat_history,
         EXAMPLE_STATE_SPACE,
     )
-
-    skip_test = False
 except ImportError:
     skip_test = True
+else:
+    skip_test = False
 
 
 @pytest.mark.skipif(
