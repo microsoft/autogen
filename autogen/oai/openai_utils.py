@@ -14,6 +14,7 @@ try:
 except ImportError:
     ERROR = ImportError("Please install openai>=1 to use autogen.OpenAIWrapper.")
     OpenAI = object
+    Assistant = object
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 
