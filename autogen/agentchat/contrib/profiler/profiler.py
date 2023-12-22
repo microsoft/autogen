@@ -81,6 +81,7 @@ def annotate_chat_history(
     chat_history: List[Dict[str, str]],
     state_space: Dict[str, str] = None,
     llm_config: Dict[str, str] = None,
+    collate_codes: bool = False,
 ) -> List[Dict[str, str]]:
     """
     Annotates the chat history with codes based on the role and content of each message.
@@ -99,7 +100,13 @@ def annotate_chat_history(
     for message in chat_history_annotated:
         role = message.get("role")
         content = message.get("content")
-        message["codes"] = annotate_message(role, content, llm_config=llm_config, state_space=state_space)
+        codes = annotate_message(role, content, llm_config=llm_config, state_space=state_space)
+        if collate_codes is True:
+            # sort the codes alphabetically
+            codes = sorted(codes)
+            codes = [", ".join(codes)]
+
+        message["codes"] = codes
 
     return chat_history_annotated
 
