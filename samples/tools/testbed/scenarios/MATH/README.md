@@ -14,8 +14,6 @@ By default, only a small subset (17 of 5000) MATH problems are exposed. Edit `Sc
 *Note*: Scoring is done by prompting the LLM (ideally GPT-4) with both the proposed answer and the ground truth answer, and asking the LLM to grade itself.
 
 ## References
-**Measuring Mathematical Problem Solving With the MATH Dataset**
-
-Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, Jacob Steinhardt
-
+**Measuring Mathematical Problem Solving With the MATH Dataset**<br/>
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, Jacob Steinhardt<br/>
 [https://arxiv.org/abs/2103.03874](https://arxiv.org/abs/2103.03874)
