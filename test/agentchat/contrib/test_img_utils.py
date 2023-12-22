@@ -10,7 +10,7 @@ import requests
 try:
     from PIL import Image
 
-    from autogen.agentchat.contrib.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formater
+    from autogen.agentchat.contrib.img_utils import extract_img_paths, get_image_data, gpt4v_formatter, llava_formatter
 except ImportError:
     skip = True
 else:
@@ -64,37 +64,37 @@ class TestGetImageData(unittest.TestCase):
 class TestLlavaFormater(unittest.TestCase):
     def test_no_images(self):
         """
-        Test the llava_formater function with a prompt containing no images.
+        Test the llava_formatter function with a prompt containing no images.
         """
         prompt = "This is a test."
         expected_output = (prompt, [])
-        result = llava_formater(prompt)
+        result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
     @patch("autogen.agentchat.contrib.img_utils.get_image_data")
     def test_with_images(self, mock_get_image_data):
         """
-        Test the llava_formater function with a prompt containing images.
+        Test the llava_formatter function with a prompt containing images.
         """
         # Mock the get_image_data function to return a fixed string.
         mock_get_image_data.return_value = raw_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
         expected_output = ("This is a test with an image <image>.", [raw_encoded_image])
-        result = llava_formater(prompt)
+        result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
     @patch("autogen.agentchat.contrib.img_utils.get_image_data")
     def test_with_ordered_images(self, mock_get_image_data):
         """
-        Test the llava_formater function with ordered image tokens.
+        Test the llava_formatter function with ordered image tokens.
         """
         # Mock the get_image_data function to return a fixed string.
         mock_get_image_data.return_value = raw_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
         expected_output = ("This is a test with an image <image 0>.", [raw_encoded_image])
-        result = llava_formater(prompt, order_image_tokens=True)
+        result = llava_formatter(prompt, order_image_tokens=True)
         self.assertEqual(result, expected_output)
 
 
