@@ -46,18 +46,20 @@ Project Structure:
       ```bash
       npm install -g gatsby-cli
       npm install --global yarn
-      cd frontend
       yarn install
       yarn build
       ```
 
-    For Windows users, to build the frontend, you may need alternative commands to build the frontend.
+    - For Windows users, to build the frontend, you may need alternative commands to build the frontend.
 
-        ```bash
+      ```bash
+      gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
+      ```
+    - Navigate to the `samples/apps/autogen-assistant` directory and install the `autogenra` library in your current Python environment:
 
-        gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
-
-        ````
+      ```bash
+      pip install -e .
+      ```
 
 ### Running the Application
 
