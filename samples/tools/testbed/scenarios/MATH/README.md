@@ -15,5 +15,7 @@ By default, only a small subset (17 of 5000) MATH problems are exposed. Edit `Sc
 
 ## References
 **Measuring Mathematical Problem Solving With the MATH Dataset**
+
 Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, Jacob Steinhardt
+
 [https://arxiv.org/abs/2103.03874](https://arxiv.org/abs/2103.03874)
