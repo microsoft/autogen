@@ -203,7 +203,7 @@ class GPTAssistantAgent(ConversableAgent):
                                 new_messages.append(
                                     {
                                         "role": msg.role,
-                                        "content": f"Recieved file id={content.image_file.file_id}",
+                                        "content": f"Received file id={content.image_file.file_id}",
                                     }
                                 )
                 return new_messages
@@ -219,7 +219,7 @@ class GPTAssistantAgent(ConversableAgent):
                     }
 
                     logger.info(
-                        "Intermediate executing(%s, Sucess: %s) : %s",
+                        "Intermediate executing(%s, Success: %s) : %s",
                         tool_response["name"],
                         is_exec_success,
                         tool_response["content"],
