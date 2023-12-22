@@ -1,6 +1,20 @@
+import functools
 import inspect
-from typing import Set, Tuple, get_type_hints, Callable, Any, Dict, Union, List, Optional, Type, ForwardRef
-from typing_extensions import Annotated, Literal
+from typing import (
+    Set,
+    Tuple,
+    Callable,
+    Any,
+    Dict,
+    Union,
+    List,
+    Optional,
+    Type,
+    ForwardRef,
+    TypeVar,
+)
+from typing_extensions import Annotated, Literal, get_args, get_origin
+
 
 from pydantic import BaseModel, Field
 from ._pydantic import type2schema, JsonSchemaValue, evaluate_forwardref, model_dump
@@ -8,6 +22,8 @@ from ._pydantic import type2schema, JsonSchemaValue, evaluate_forwardref, model_
 from logging import getLogger
 
 logger = getLogger(__name__)
+
+T = TypeVar("T")
 
 
 def get_typed_annotation(annotation: Any, globalns: Dict[str, Any]) -> Any:
@@ -203,7 +219,8 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
     """
     typed_signature = get_typed_signature(f)
     required = get_required_params(typed_signature)
-    param_annotations = {k: v.annotation for k, v in typed_signature.parameters.items()}
+    # param_annotations = {k: v.annotation for k, v in typed_signature.parameters.items()}
+    param_annotations = get_param_annotations(typed_signature)
     return_annotation = get_typed_return_annotation(f)
     missing, unannotated_with_default = get_missing_annotations(typed_signature, required)
 
@@ -238,3 +255,55 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
     )
 
     return model_dump(function)
+
+
+def get_load_param_if_needed_function(t: Any) -> Optional[Callable[[T, Type], BaseModel]]:
+    """Get a function to load a parameter if it is a Pydantic model
+
+    Args:
+        t: The type annotation of the parameter
+
+    Returns:
+        A function to load the parameter if it is a Pydantic model, otherwise None
+
+    """
+    if get_origin(t) is Annotated:
+        return get_load_param_if_needed_function(get_args(t)[0])
+
+    def load_base_model(v: Dict[str, Any], t: Type[BaseModel]) -> BaseModel:
+        return t(**v)
+
+    return load_base_model if isinstance(t, type) and issubclass(t, BaseModel) else None
+
+
+def load_basemodels_if_needed(func: Callable[..., Any]) -> Callable[..., Any]:
+    """A decorator to load the parameters of a function if they are Pydantic models
+
+    Args:
+        func: The function with annotated parameters
+
+    Returns:
+        A function that loads the parameters before calling the original function
+
+    """
+    # get the type annotations of the parameters
+    typed_signature = get_typed_signature(func)
+    param_annotations = get_param_annotations(typed_signature)
+
+    # get functions for loading BaseModels when needed based on the type annotations
+    kwargs_mapping = {k: get_load_param_if_needed_function(t) for k, t in param_annotations.items()}
+
+    # remove the None values
+    kwargs_mapping = {k: f for k, f in kwargs_mapping.items() if f is not None}
+
+    # a function that loads the parameters before calling the original function
+    @functools.wraps(func)
+    def load_parameters_if_needed(*args, **kwargs):
+        # load the BaseModels if needed
+        for k, f in kwargs_mapping.items():
+            kwargs[k] = f(kwargs[k], param_annotations[k])
+
+        # call the original function
+        return func(*args, **kwargs)
+
+    return load_parameters_if_needed

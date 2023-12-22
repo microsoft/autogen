@@ -1,7 +1,8 @@
 import inspect
-from typing import Dict, List, Optional, Tuple, get_type_hints
+from typing import Dict, List, Literal, Optional, Tuple, get_type_hints
 from typing_extensions import Annotated
 import unittest.mock
+from pydantic import BaseModel, Field
 
 import pytest
 
@@ -16,6 +17,8 @@ from autogen.function_utils import (
     get_typed_signature,
     get_typed_annotation,
     get_typed_return_annotation,
+    get_load_param_if_needed_function,
+    load_basemodels_if_needed,
 )
 
 
@@ -239,3 +242,38 @@ def test_get_function_schema() -> None:
         assert actual == expected_v1, actual
     else:
         assert actual == expected_v2, actual
+
+
+CurrencySymbol = Literal["USD", "EUR"]
+
+
+class Currency(BaseModel):
+    currency: Annotated[CurrencySymbol, Field(..., description="Currency code")]
+    amount: Annotated[float, Field(100.0, description="Amount of money in the currency")]
+
+
+def test_get_load_param_if_needed_function() -> None:
+    assert get_load_param_if_needed_function(CurrencySymbol) is None
+    assert get_load_param_if_needed_function(Currency)({"currency": "USD", "amount": 123.45}, Currency) == Currency(
+        currency="USD", amount=123.45
+    )
+
+    f = get_load_param_if_needed_function(Annotated[Currency, "amount and a symbol of a currency"])
+    actual = f({"currency": "USD", "amount": 123.45}, Currency)
+    expected = Currency(currency="USD", amount=123.45)
+    assert actual == expected, actual
+
+
+def test_load_basemodels_if_needed() -> None:
+    @load_basemodels_if_needed
+    def f(
+        base: Annotated[Currency, "Base currency"],
+        quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+    ) -> Tuple[Currency, CurrencySymbol]:
+        return base, quote_currency
+
+    actual = f(base={"currency": "USD", "amount": 123.45}, quote_currency="EUR")
+    assert isinstance(actual[0], Currency)
+    assert actual[0].amount == 123.45
+    assert actual[0].currency == "USD"
+    assert actual[1] == "EUR"

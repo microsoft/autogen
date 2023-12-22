@@ -7,12 +7,12 @@ import logging
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from autogen import OpenAIWrapper
-from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from .. import OpenAIWrapper
+from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from .agent import Agent
 from .._pydantic import model_dump_json
-from ..function_utils import get_function_schema
+from ..function_utils import get_function_schema, load_basemodels_if_needed
 
 try:
     from termcolor import colored
@@ -1350,11 +1350,13 @@ class ConversableAgent(Agent):
             The wrapped function.
         """
 
+        @load_basemodels_if_needed
         @functools.wraps(func)
         def _wrapped_func(*args, **kwargs):
             retval = func(*args, **kwargs)
             return retval if isinstance(retval, str) else model_dump_json(retval)
 
+        @load_basemodels_if_needed
         @functools.wraps(func)
         async def _a_wrapped_func(*args, **kwargs):
             retval = await func(*args, **kwargs)

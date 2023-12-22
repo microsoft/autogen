@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Literal
+from pydantic import BaseModel, Field
 import pytest
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from typing_extensions import Annotated
@@ -396,6 +397,41 @@ def test_update_function_signature_and_register_functions() -> None:
         assert set(agent.function_map.keys()) == {"python", "sh"}
         assert agent.function_map["python"] == exec_python
         assert agent.function_map["sh"] == exec_sh
+
+
+def test__wrap_function():
+    CurrencySymbol = Literal["USD", "EUR"]
+
+    class Currency(BaseModel):
+        currency: Annotated[CurrencySymbol, Field(..., description="Currency code")]
+        amount: Annotated[float, Field(100.0, description="Amount of money in the currency")]
+
+    Currency(currency="USD", amount=100.0)
+
+    def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
+        if base_currency == quote_currency:
+            return 1.0
+        elif base_currency == "USD" and quote_currency == "EUR":
+            return 1 / 1.1
+        elif base_currency == "EUR" and quote_currency == "USD":
+            return 1.1
+        else:
+            raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
+
+    agent = ConversableAgent(name="agent", llm_config={})
+
+    @agent._wrap_function
+    def currency_calculator(
+        base: Annotated[Currency, "Base currency"],
+        quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+    ) -> Currency:
+        quote_amount = exchange_rate(base.currency, quote_currency) * base.amount
+        return Currency(amount=quote_amount, currency=quote_currency)
+
+    assert (
+        currency_calculator(base={"currency": "USD", "amount": 110.11}, quote_currency="EUR")
+        == '{"currency":"EUR","amount":100.1}'
+    )
 
 
 def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:

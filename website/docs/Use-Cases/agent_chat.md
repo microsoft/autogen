@@ -107,19 +107,20 @@ By adopting the conversation-driven control with both programming language and n
   from somewhere import exchange_rate
   from pydantic import BaseModel, Field
 
+  CurrencySymbol = Literal["USD", "EUR"]
+
   class Currency(BaseModel):
-    currency: Literal["USD", "EUR"]
+    currency: CurrencySymbol
     amount: float
 
   @user_proxy.register_for_execution()
   @agent.register_for_llm(description="Currency exchange calculator.")
 
   def currency_calculator(
-    base_amount: Annotated[float, "Amount of currency in base_currency"],
-    base_currency: Annotated[Literal["USD", "EUR"], "Base currency"] = "USD",
-    quote_currency: Annotated[Literal["USD", "EUR"], "Quote currency"] = "EUR",
+    base: Currency,
+    quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
   ) -> Currency:
-    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    quote_amount = exchange_rate(base.currency, quote_currency) * base.amount
     return Currency(amount=quote_amount, currency=quote_currency)
   ```
 
