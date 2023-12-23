@@ -85,6 +85,8 @@ def get_file_type(file_path: str) -> str:
     # Supported image extensions
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg",
                         ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    # Supported (web) video extensions
+    VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".avi", ".wmv"}
 
     # Supported PDF extension
     PDF_EXTENSION = ".pdf"
@@ -99,6 +101,8 @@ def get_file_type(file_path: str) -> str:
         file_type = "image"
     elif file_extension == PDF_EXTENSION:
         file_type = "pdf"
+    elif file_extension in VIDEO_EXTENSIONS:
+        file_type = "video"
     else:
         file_type = "unknown"
 

@@ -1,4 +1,8 @@
-import { DocumentTextIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import {
+  DocumentTextIcon,
+  PhotoIcon,
+  VideoCameraIcon,
+} from "@heroicons/react/24/outline";
 import * as React from "react";
 import {
   CodeBlock,
@@ -21,6 +25,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     const is_image = ["image"].includes(file.type);
     const is_code = ["code"].includes(file.type);
     const is_pdf = ["pdf"].includes(file.type);
+    const is_video = ["video"].includes(file.type);
     const file_name = file.name || "unknown";
     const file_path = file.path || "unknown";
 
@@ -56,6 +61,34 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
         </div>
       );
       icon = fileView;
+    } else if (is_video) {
+      fileView = (
+        <div className="mb-2">
+          {fileTitle}
+          <video controls className="w-full rounded">
+            <source
+              src={`${serverUrl}/${file_path}`}
+              type={`video/${file_type}`}
+            />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      );
+
+      // Update icon to show a video-related icon
+      icon = (
+        <div className="   relative rounded   h-full">
+          <div className="absolute rounded p-2 bg-secondary top-0 ">
+            {fileTitle}
+          </div>
+          <div
+            style={{ minHeight: "150px" }}
+            className="bg-secondary h-full w-full rounded  flex items-center justify-center text-primary "
+          >
+            <VideoCameraIcon className="h-14 w-14" />
+          </div>
+        </div>
+      );
     } else if (is_code) {
       fileView = (
         <div className="h">
