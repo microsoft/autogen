@@ -53,7 +53,7 @@ class AgentBuilder:
     # Only return the list of positions.
     """
 
-    AGENT_SYS_MSG_PROMPT = """Considering the following position and corresponding task:
+    AGENT_SYS_MSG_PROMPT = """Considering the following position and task:
 
     TASK: {task}
     POSITION: {position}
@@ -310,7 +310,7 @@ class AgentBuilder:
         """
         if code_execution_config is None:
             code_execution_config = {
-                "last_n_messages": 2,
+                "last_n_messages": 1,
                 "work_dir": "groupchat",
                 "use_docker": False,
                 "timeout": 60,
@@ -420,7 +420,7 @@ class AgentBuilder:
         """
         if code_execution_config is None:
             code_execution_config = {
-                "last_n_messages": 2,
+                "last_n_messages": 1,
                 "work_dir": "groupchat",
                 "use_docker": False,
                 "timeout": 60,
@@ -441,7 +441,7 @@ class AgentBuilder:
 
         print(f"Looking for suitable agents in {library_path}...")
         agent_profiles = [
-            (f"No.{i + 1} AGENT's NAME: {agent['name']}\n" f"No.{i + 1} AGENT's PROFILE: {agent['system_message']}\n\n")
+            f"No.{i + 1} AGENT's NAME: {agent['name']}\nNo.{i + 1} AGENT's PROFILE: {agent['profile']}\n\n"
             for i, agent in enumerate(agent_library)
         ]
         resp_agent_name = (
@@ -461,13 +461,35 @@ class AgentBuilder:
         agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
         print(f"{agent_name_list} are selected.")
 
-        # search system message from library
-        agent_sys_msg_list = []
+        # search profile from library
+        agent_profile_list = []
         for name in agent_name_list:
             for agent in agent_library:
                 if agent["name"] == name:
-                    agent_sys_msg_list.append(agent["system_message"])
+                    agent_profile_list.append(agent["profile"])
                     break
+
+        # generate system message from profile
+        agent_sys_msg_list = []
+        for name, profile in list(zip(agent_name_list, agent_profile_list)):
+            print(f"Preparing configuration for {name}...")
+            resp_agent_sys_msg = (
+                build_manager.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": self.AGENT_SYS_MSG_PROMPT.format(
+                                task=building_task,
+                                position=f"{name}\nPOSITION PROFILE: {profile}",
+                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+                            ),
+                        }
+                    ]
+                )
+                .choices[0]
+                .message.content
+            )
+            agent_sys_msg_list.append(resp_agent_sys_msg)
 
         for i in range(len(agent_name_list)):
             agent_configs.append(
