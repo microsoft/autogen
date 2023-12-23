@@ -56,13 +56,13 @@ def test_build():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
 
     # check number of agents
-    assert len(agent_list) <= builder.max_agents
+    assert len(agent_config['agent_configs']) <= builder.max_agents
 
     # check system message
     for cfg in agent_config["agent_configs"]:
@@ -74,7 +74,7 @@ def test_build():
     reason="do not run when dependency is not installed",
 )
 def test_build_from_library():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4-1106-preview", agent_model="gpt-4")
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -88,7 +88,7 @@ def test_build_from_library():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -120,7 +120,7 @@ def test_save():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
@@ -149,7 +149,7 @@ def test_load():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     print(loaded_agent_configs)
@@ -171,7 +171,7 @@ def test_clear_agent():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     builder.clear_all_agents()
