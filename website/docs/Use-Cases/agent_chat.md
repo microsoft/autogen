@@ -77,7 +77,7 @@ By adopting the conversation-driven control with both programming language and n
 - LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call.
   By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls.
 
-  We register functions to enable function calls using the following to function decorators:
+  We register functions to enable function calls using the following two function decorators:
 
   1. [`ConversableAgent.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) is used to register the function in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registrated function, but the actual execution will be performed by a UserProxy agent.
 
