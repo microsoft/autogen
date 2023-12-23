@@ -62,7 +62,7 @@ def test_build():
     _config_check(agent_config)
 
     # check number of agents
-    assert len(agent_config['agent_configs']) <= builder.max_agents
+    assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # check system message
     for cfg in agent_config["agent_configs"]:
