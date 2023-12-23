@@ -65,7 +65,7 @@ Links to notebook examples:
    - AgentEval: A Multi-Agent System for Assess Utility of LLM-powered Applications - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agenteval_cq_math.ipynb)
 1. **Automatic Agent Building**
    - Automatically Build Multi-agent System with AgentBuilder - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_basic.ipynb)
-   - Automatically Build Multi-agent System with AgentBuilder from library - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_agent_library.ipynb)
+   - Automatically Build Multi-agent System from Agent Library - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_agent_library.ipynb)
 
 ## Enhanced Inferences
 ### Utilities
