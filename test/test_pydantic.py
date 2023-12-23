@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Union, get_type_hints
+from typing import Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated

@@ -1,25 +1,12 @@
 import functools
 import inspect
-from typing import (
-    Set,
-    Tuple,
-    Callable,
-    Any,
-    Dict,
-    Union,
-    List,
-    Optional,
-    Type,
-    ForwardRef,
-    TypeVar,
-)
-from typing_extensions import Annotated, Literal, get_args, get_origin
-
+from logging import getLogger
+from typing import Any, Callable, Dict, ForwardRef, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel, Field
-from ._pydantic import type2schema, JsonSchemaValue, evaluate_forwardref, model_dump
+from typing_extensions import Annotated, Literal, get_args, get_origin
 
-from logging import getLogger
+from ._pydantic import JsonSchemaValue, evaluate_forwardref, model_dump, type2schema
 
 logger = getLogger(__name__)
 

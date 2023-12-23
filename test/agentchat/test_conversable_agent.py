@@ -1,8 +1,10 @@
 from typing import Any, Callable, Dict, Literal
-from pydantic import BaseModel, Field
+
 import pytest
-from autogen.agentchat import ConversableAgent, UserProxyAgent
+from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+
+from autogen.agentchat import ConversableAgent, UserProxyAgent
 
 
 @pytest.fixture

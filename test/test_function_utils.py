@@ -1,23 +1,23 @@
 import inspect
-from typing import Dict, List, Literal, Optional, Tuple, get_type_hints
-from typing_extensions import Annotated
 import unittest.mock
-from pydantic import BaseModel, Field
+from typing import Dict, List, Literal, Optional, Tuple
 
 import pytest
+from pydantic import BaseModel, Field
+from typing_extensions import Annotated
 
 from autogen._pydantic import PYDANTIC_V1, model_dump
 from autogen.function_utils import (
     get_function_schema,
+    get_load_param_if_needed_function,
     get_missing_annotations,
     get_param_annotations,
     get_parameter_json_schema,
     get_parameters,
     get_required_params,
-    get_typed_signature,
     get_typed_annotation,
     get_typed_return_annotation,
-    get_load_param_if_needed_function,
+    get_typed_signature,
     load_basemodels_if_needed,
 )
 

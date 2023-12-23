@@ -8,11 +8,10 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
-from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
-
-from .agent import Agent
 from .._pydantic import model_dump_json
+from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 from ..function_utils import get_function_schema, load_basemodels_if_needed
+from .agent import Agent
 
 try:
     from termcolor import colored
