@@ -5,6 +5,7 @@ import pytest
 from autogen import config_list_from_json
 
 try:
+    import openai
     from autogen.agentchat.contrib.profiler import (
         state_space_to_str,
         annotate_message,
