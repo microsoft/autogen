@@ -126,7 +126,7 @@ By adopting the conversation-driven control with both programming language and n
 
   For complete examples, please check the following:
 
-  - Currenct calculator example - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_currency_calculator.ipynb)
+  - Currency calculator example - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_currency_calculator.ipynb)
 
   - Use Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call.ipynb)
 
