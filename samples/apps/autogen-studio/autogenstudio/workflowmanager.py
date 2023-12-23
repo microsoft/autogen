@@ -107,8 +107,7 @@ class AutoGenWorkFlowManager:
         skills_prompt = ""
         if agent_spec.skills:
             # get skill prompt, also write skills to a file named skills.py
-            skills_prompt = get_skills_from_prompt(
-                agent_spec.skills, self.work_dir)
+            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}
@@ -140,12 +139,10 @@ class AutoGenWorkFlowManager:
         agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "assistant":
             agent = autogen.AssistantAgent(**asdict(agent_spec.config))
-            agent.register_reply(
-                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         elif agent_spec.type == "userproxy":
             agent = autogen.UserProxyAgent(**asdict(agent_spec.config))
-            agent.register_reply(
-                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         else:
             raise ValueError(f"Unknown agent type: {agent_spec.type}")
         return agent
