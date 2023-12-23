@@ -129,7 +129,7 @@ const GalleryView = ({ location }: any) => {
           </div>
           <div className="text-xs">
             {" "}
-            {item.messages.length} messsage{item.messages.length > 1 && "s"}
+            {item.messages.length} message{item.messages.length > 1 && "s"}
           </div>
           <div className="my-2 border-t border-dashed w-full pt-2 inline-flex gap-2 ">
             <TagsView tags={item.tags} />{" "}
