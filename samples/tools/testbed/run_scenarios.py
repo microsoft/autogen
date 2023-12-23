@@ -119,7 +119,7 @@ def expand_scenario(scenario_dir, scenario, output_dir):
 
     template = scenario["template"]
 
-    # Either key works for finding the substiturions list. "values" may be deprecated in the future
+    # Either key works for finding the substitutions list. "values" may be deprecated in the future
     substitutions = scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
 
     # Older versions are only one-level deep. Convert them,
@@ -159,7 +159,7 @@ def expand_scenario(scenario_dir, scenario, output_dir):
                 # If the destination is a directory, use the same filename
                 shutil.copyfile(src_path, os.path.join(dest_path, os.path.basename(src_path)))
             else:
-                # Otherwuse use the filename provided
+                # Otherwise use the filename provided
                 shutil.copyfile(src_path, dest_path)
 
     # Expand templated files
@@ -184,7 +184,7 @@ def run_scenario_natively(work_dir):
     Run a scenario in the native environment.
 
     Args:
-        work_dir (path): the path to the working directory previously created to house this sceario instance
+        work_dir (path): the path to the working directory previously created to house this scenario instance
     """
 
     # Get the current working directory
@@ -253,7 +253,7 @@ def run_scenario_in_docker(work_dir, requirements, timeout=600, docker_image=Non
     Run a scenario in a Docker environment.
 
     Args:
-        work_dir (path): the path to the working directory previously created to house this sceario instance
+        work_dir (path): the path to the working directory previously created to house this scenario instance
         timeout (Optional, int): the number of seconds to allow a Docker container to run before timing out
     """
 
@@ -462,7 +462,7 @@ if __name__ == "__main__":
         if not os.path.isfile(req_file):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), req_file)
 
-    # Warn aboit a common error
+    # Warn about a common error
     env_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV")
     example_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV.example")
     if not os.path.isfile(env_file):
