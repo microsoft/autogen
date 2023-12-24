@@ -20,6 +20,7 @@ from autogen.function_utils import (
     get_typed_return_annotation,
     get_typed_signature,
     load_basemodels_if_needed,
+    serialize_to_str,
 )
 
 
@@ -358,3 +359,17 @@ def test_load_basemodels_if_needed() -> None:
     assert actual[0].amount == 123.45
     assert actual[0].currency == "USD"
     assert actual[1] == "EUR"
+
+
+def test_serialize_to_json():
+    assert serialize_to_str("abc") == "abc"
+    assert serialize_to_str(123) == "123"
+    assert serialize_to_str([123, 456]) == "[123, 456]"
+    assert serialize_to_str({"a": 1, "b": 2.3}) == '{"a": 1, "b": 2.3}'
+
+    class A(BaseModel):
+        a: int
+        b: float
+        c: str
+
+    assert serialize_to_str(A(a=1, b=2.3, c="abc")) == '{"a":1,"b":2.3,"c":"abc"}'

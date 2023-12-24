@@ -1,12 +1,13 @@
 import functools
 import inspect
+import json
 from logging import getLogger
 from typing import Any, Callable, Dict, ForwardRef, List, Optional, Set, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Literal, get_args, get_origin
 
-from ._pydantic import JsonSchemaValue, evaluate_forwardref, model_dump, type2schema
+from ._pydantic import JsonSchemaValue, evaluate_forwardref, model_dump, model_dump_json, type2schema
 
 logger = getLogger(__name__)
 
@@ -320,3 +321,12 @@ def load_basemodels_if_needed(func: Callable[..., Any]) -> Callable[..., Any]:
         return func(*args, **kwargs)
 
     return load_parameters_if_needed
+
+
+def serialize_to_str(x: Any) -> str:
+    if isinstance(x, str):
+        return x
+    elif isinstance(x, BaseModel):
+        return model_dump_json(x)
+    else:
+        return json.dumps(x)
