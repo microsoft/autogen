@@ -49,7 +49,7 @@ if not PYDANTIC_V1:
 
 
 # Remove this once we drop support for pydantic 1.x
-else:
+else:  # pragma: no cover
     from pydantic import schema_of
     from pydantic.typing import evaluate_forwardref as evaluate_forwardref
 
