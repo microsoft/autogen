@@ -250,7 +250,7 @@ def get_all_skills(user_skills_path: str, global_skills_path: str, dest_dir: str
     }
 
     if dest_dir:
-        # chcek if dest_dir exists
+        # check if dest_dir exists
         if not os.path.exists(dest_dir):
             os.makedirs(dest_dir)
         # copy all skills to dest_dir
