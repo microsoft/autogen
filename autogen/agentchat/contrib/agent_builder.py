@@ -446,7 +446,7 @@ class AgentBuilder:
             try:
                 with open(filepath) as f:
                     cached_configs = json.load(f)
-            except FileNotFoundError:
-                raise FileNotFoundError(f"{filepath} does not exist.")
+            except FileNotFoundError as e:
+                raise FileNotFoundError(f"{filepath} does not exist.") from e
             _config_check(cached_configs)
             return self.build(cached_configs=cached_configs, **kwargs)

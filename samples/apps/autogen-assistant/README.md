@@ -8,7 +8,7 @@ AutoGen Assistant is an Autogen-powered AI app (user interface) that can convers
 
 Some of the capabilities supported by the app frontend include the following:
 
-- [x] Select fron a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
+- [x] Select from a list of agents (current support for two agent workflows - `UserProxyAgent` and `AssistantAgent`)
 - [x] Modify agent configuration (e.g. temperature, model, agent system message, model etc) and chat with updated agent configurations.
 - [x] View agent messages and output files in the UI from agent runs.
 - [ ] Support for more complex agent workflows (e.g. `GroupChat` workflows)
@@ -46,18 +46,20 @@ Project Structure:
       ```bash
       npm install -g gatsby-cli
       npm install --global yarn
-      cd frontend
       yarn install
       yarn build
       ```
 
-    For Windows users, to build the frontend, you may need alternative commands to build the frontend.
+    - For Windows users, to build the frontend, you may need alternative commands to build the frontend.
 
-        ```bash
+      ```bash
+      gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
+      ```
+    - Navigate to the `samples/apps/autogen-assistant` directory and install the `autogenra` library in your current Python environment:
 
-        gatsby clean && rmdir /s /q ..\\autogenra\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenra\\web\\ui
-
-        ````
+      ```bash
+      pip install -e .
+      ```
 
 ### Running the Application
 
@@ -75,7 +77,7 @@ Now that you have AutoGen Assistant installed and running, you are ready to expl
 
 This demo focuses on the research assistant use case with some generalizations:
 
-- **Skills**: The agent is provided with a list of skills that it can leverage while attempting to address a user's query. Each skill is a python function that may be in any file in a folder made availabe to the agents. We separate the concept of global skills available to all agents `backend/files/global_utlis_dir` and user level skills `backend/files/user/<user_hash>/utils_dir`, relevant in a multi user environment. Agents are aware skills as they are appended to the system message. A list of example skills is available in the `backend/global_utlis_dir` folder. Modify the file or create a new file with a function in the same directory to create new global skills.
+- **Skills**: The agent is provided with a list of skills that it can leverage while attempting to address a user's query. Each skill is a python function that may be in any file in a folder made available to the agents. We separate the concept of global skills available to all agents `backend/files/global_utlis_dir` and user level skills `backend/files/user/<user_hash>/utils_dir`, relevant in a multi user environment. Agents are aware skills as they are appended to the system message. A list of example skills is available in the `backend/global_utlis_dir` folder. Modify the file or create a new file with a function in the same directory to create new global skills.
 
 - **Conversation Persistence**: Conversation history is persisted in an sqlite database `database.sqlite`.
 
