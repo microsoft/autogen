@@ -32,11 +32,9 @@ class AgentBuilder:
     """
 
     openai_server_name = "openai"
-    max_tokens = 945
-    max_agents = 5  # maximum number of agents build manager can create.
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
-    or use program may help the following task become easier?
+    or coding may help the following task become easier?
 
     TASK: {task}
 
@@ -44,31 +42,49 @@ class AgentBuilder:
     # Answer only YES or NO.
     """
 
-    AGENT_NAME_PROMPT = """To complete the following task, what positions/jobs should be set to maximize the efficiency?
+    AGENT_NAME_PROMPT = """To complete the following task, what positions/jobs should be set to maximize efficiency?
 
     TASK: {task}
 
     Hint:
-    # Considering the effort, the position in this task should be no more then {max_agents}, less is better.
-    # Answer the name of those positions/jobs.
-    # Separated names by comma and use "_" instead of space. For example: Product_manager,Programmer
+    # Considering the effort, the position in this task should be no more than {max_agents}; less is better.
+    # Answer the names of those positions/jobs.
+    # Separate names by commas and use "_" instead of space. For example, Product_manager,Programmer
     # Only return the list of positions.
     """
 
-    AGENT_SYS_MSG_PROMPT = """Considering the following position and corresponding task:
+    AGENT_SYS_MSG_PROMPT = """Considering the following position and task:
 
     TASK: {task}
     POSITION: {position}
 
-    Modify the following position requirement, let it more suitable for the above task and position:
+    Modify the following position requirement, making it more suitable for the above task and position:
 
     REQUIREMENT: {default_sys_msg}
 
     Hint:
+    # Your answer should be natural, starting from "As a ...".
+    # People in this position will work in a group chat, solving task together with other people with different positions.
+    # You should let them reply "TERMINATE" when they think the task has been completed (the leader's need has been satisfied).
     # The modified requirement should not contain the code interpreter skill.
     # Coding skill is limited to Python.
     # Your answer should omit the word "REQUIREMENT".
-    # Your should let them reply "TERMINATE" in the end when the task complete (user's need has been satisfied).
+    """
+
+    AGENT_SEARCHING_PROMPT = """Considering the following task:
+
+    TASK: {task}
+
+    What following agents should be involved to the task?
+
+    AGENT LIST:
+    {agent_list}
+
+    Hint:
+    # You should consider if the agent's name and profile match the task.
+    # Considering the effort, you should select less then {max_agents} agents; less is better.
+    # Separate agent names by commas and use "_" instead of space. For example, Product_manager,Programmer
+    # Only return the list of agent names.
     """
 
     def __init__(
@@ -78,6 +94,8 @@ class AgentBuilder:
         agent_model: Optional[str] = "gpt-4",
         host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 600,
+        max_tokens: Optional[int] = 945,
+        max_agents: Optional[int] = 5,
     ):
         """
         Args:
@@ -86,6 +104,8 @@ class AgentBuilder:
             agent_model: specify a model as the backbone of participant agents.
             host: endpoint host.
             endpoint_building_timeout: timeout for building up an endpoint server.
+            max_tokens: max tokens for each agent.
+            max_agents: max agents for each task.
         """
         self.host = host
         self.builder_model = builder_model
@@ -99,6 +119,9 @@ class AgentBuilder:
         self.agent_procs: Dict[str, Tuple[sp.Popen, str]] = {}
         self.agent_procs_assign: Dict[str, Tuple[autogen.ConversableAgent, str]] = {}
         self.cached_configs: Dict = {}
+
+        self.max_tokens = max_tokens
+        self.max_agents = max_agents
 
         for port in range(8000, 65535):
             if self._is_port_open(host, port):
@@ -265,105 +288,253 @@ class AgentBuilder:
     def build(
         self,
         building_task: Optional[str] = None,
-        default_llm_config: Optional[Dict] = None,
         coding: Optional[bool] = None,
-        cached_configs: Optional[Dict] = None,
-        use_oai_assistant: Optional[bool] = False,
         code_execution_config: Optional[Dict] = None,
+        default_llm_config: Optional[Dict] = None,
+        use_oai_assistant: Optional[bool] = False,
         **kwargs,
-    ):
+    ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Auto build agents based on the building task.
 
         Args:
             building_task: instruction that helps build manager (gpt-4) to decide what agent should be built.
-            default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             coding: use to identify if the user proxy (a code interpreter) should be added.
-            cached_configs: previously saved agent configs.
-            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
             code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
+            default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
+            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+
+        Returns:
+            agent_list: a list of agents.
+            cached_configs: cached configs.
         """
-        use_api = False
-
-        if cached_configs is None:
-            use_api = True
-            agent_configs = []
-            self.building_task = building_task
-        else:
-            self.building_task = building_task = cached_configs["building_task"]
-            default_llm_config = cached_configs["default_llm_config"]
-            coding = cached_configs["coding"]
-            agent_configs = cached_configs["agent_configs"]
-            code_execution_config = cached_configs["code_execution_config"]
-
         if code_execution_config is None:
             code_execution_config = {
-                "last_n_messages": 2,
+                "last_n_messages": 1,
                 "work_dir": "groupchat",
                 "use_docker": False,
                 "timeout": 60,
             }
 
-        if use_api:
-            config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
-            if len(config_list) == 0:
-                raise RuntimeError(
-                    f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
-                    f'If you want to change this model, please specify the "builder_model" in the constructor.'
-                )
-            build_manager = autogen.OpenAIWrapper(config_list=config_list)
+        agent_configs = []
+        self.building_task = building_task
 
-            print("Generating agents...")
-            resp_agent_name = (
+        config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
+        if len(config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
+                f'If you want to change this model, please specify the "builder_model" in the constructor.'
+            )
+        build_manager = autogen.OpenAIWrapper(config_list=config_list)
+
+        print("Generating agents...")
+        resp_agent_name = (
+            build_manager.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents),
+                    }
+                ]
+            )
+            .choices[0]
+            .message.content
+        )
+        agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
+        print(f"{agent_name_list} are generated.")
+
+        agent_sys_msg_list = []
+        for name in agent_name_list:
+            print(f"Preparing configuration for {name}...")
+            resp_agent_sys_msg = (
                 build_manager.create(
                     messages=[
                         {
                             "role": "user",
-                            "content": self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents),
+                            "content": self.AGENT_SYS_MSG_PROMPT.format(
+                                task=building_task,
+                                position=name,
+                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+                            ),
                         }
                     ]
                 )
                 .choices[0]
                 .message.content
             )
-            agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
-            print(f"{agent_name_list} are generated.")
+            agent_sys_msg_list.append(resp_agent_sys_msg)
 
-            agent_sys_msg_list = []
-            for name in agent_name_list:
-                print(f"Preparing configuration for {name}...")
-                resp_agent_sys_msg = (
-                    build_manager.create(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": self.AGENT_SYS_MSG_PROMPT.format(
-                                    task=building_task,
-                                    position=name,
-                                    default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-                                ),
-                            }
-                        ]
-                    )
-                    .choices[0]
-                    .message.content
-                )
-                agent_sys_msg_list.append(resp_agent_sys_msg)
+        for i in range(len(agent_name_list)):
+            agent_configs.append(
+                {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
+            )
 
-            for i in range(len(agent_name_list)):
-                agent_configs.append(
-                    {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
+        if coding is None:
+            resp = (
+                build_manager.create(
+                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
                 )
+                .choices[0]
+                .message.content
+            )
+            coding = True if resp == "YES" else False
 
-            if coding is None:
-                resp = (
-                    build_manager.create(
-                        messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
-                    )
-                    .choices[0]
-                    .message.content
+        self.cached_configs.update(
+            {
+                "building_task": building_task,
+                "agent_configs": agent_configs,
+                "coding": coding,
+                "default_llm_config": default_llm_config,
+                "code_execution_config": code_execution_config,
+            }
+        )
+
+        return self._build_agents(use_oai_assistant, **kwargs)
+
+    def build_from_library(
+        self,
+        building_task: str,
+        library_path: str,
+        default_llm_config: Dict,
+        coding: Optional[bool] = True,
+        code_execution_config: Optional[Dict] = None,
+        use_oai_assistant: Optional[bool] = False,
+        **kwargs,
+    ) -> Tuple[List[autogen.ConversableAgent], Dict]:
+        """
+        Build agents from a library.
+        The library is a list of agent configs, which contains the name and system_message for each agent.
+        We use a build manager to decide what agent in that library should be involved to the task.
+
+        Args:
+            building_task: instruction that helps build manager (gpt-4) to decide what agent should be built.
+            library_path: path of agent library.
+            default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
+            coding: use to identify if the user proxy (a code interpreter) should be added.
+            code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
+            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+
+        Returns:
+            agent_list: a list of agents.
+            cached_configs: cached configs.
+        """
+        if code_execution_config is None:
+            code_execution_config = {
+                "last_n_messages": 1,
+                "work_dir": "groupchat",
+                "use_docker": False,
+                "timeout": 60,
+            }
+
+        agent_configs = []
+
+        config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
+        if len(config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
+                f'If you want to change this model, please specify the "builder_model" in the constructor.'
+            )
+        build_manager = autogen.OpenAIWrapper(config_list=config_list)
+
+        with open(library_path, "r") as f:
+            agent_library = json.load(f)
+
+        print(f"Looking for suitable agents in {library_path}...")
+        agent_profiles = [
+            f"No.{i + 1} AGENT's NAME: {agent['name']}\nNo.{i + 1} AGENT's PROFILE: {agent['profile']}\n\n"
+            for i, agent in enumerate(agent_library)
+        ]
+        resp_agent_name = (
+            build_manager.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": self.AGENT_SEARCHING_PROMPT.format(
+                            task=building_task, agent_list="".join(agent_profiles), max_agents=self.max_agents
+                        ),
+                    }
+                ]
+            )
+            .choices[0]
+            .message.content
+        )
+        agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
+        print(f"{agent_name_list} are selected.")
+
+        # search profile from library
+        agent_profile_list = []
+        for name in agent_name_list:
+            for agent in agent_library:
+                if agent["name"] == name:
+                    agent_profile_list.append(agent["profile"])
+                    break
+
+        # generate system message from profile
+        agent_sys_msg_list = []
+        for name, profile in list(zip(agent_name_list, agent_profile_list)):
+            print(f"Preparing configuration for {name}...")
+            resp_agent_sys_msg = (
+                build_manager.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": self.AGENT_SYS_MSG_PROMPT.format(
+                                task=building_task,
+                                position=f"{name}\nPOSITION PROFILE: {profile}",
+                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+                            ),
+                        }
+                    ]
                 )
-                coding = True if resp == "YES" else False
+                .choices[0]
+                .message.content
+            )
+            agent_sys_msg_list.append(resp_agent_sys_msg)
+
+        for i in range(len(agent_name_list)):
+            agent_configs.append(
+                {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
+            )
+
+        if coding is None:
+            resp = (
+                build_manager.create(
+                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
+                )
+                .choices[0]
+                .message.content
+            )
+            coding = True if resp == "YES" else False
+
+        self.cached_configs.update(
+            {
+                "building_task": building_task,
+                "agent_configs": agent_configs,
+                "coding": coding,
+                "default_llm_config": default_llm_config,
+                "code_execution_config": code_execution_config,
+            }
+        )
+
+        return self._build_agents(use_oai_assistant, **kwargs)
+
+    def _build_agents(
+        self, use_oai_assistant: Optional[bool] = False, **kwargs
+    ) -> Tuple[List[autogen.ConversableAgent], Dict]:
+        """
+        Build agents with generated configs.
+
+        Args:
+            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+
+        Returns:
+            agent_list: a list of agents.
+            cached_configs: cached configs.
+        """
+        agent_configs = self.cached_configs["agent_configs"]
+        default_llm_config = self.cached_configs["default_llm_config"]
+        coding = self.cached_configs["coding"]
+        code_execution_config = self.cached_configs["code_execution_config"]
 
         for config in agent_configs:
             print(f"Creating agent {config['name']} with backbone {config['model']}...")
@@ -388,16 +559,6 @@ class AgentBuilder:
                     human_input_mode="NEVER",
                 )
             ] + agent_list
-
-        self.cached_configs.update(
-            {
-                "building_task": building_task,
-                "agent_configs": agent_configs,
-                "coding": coding,
-                "default_llm_config": default_llm_config,
-                "code_execution_config": code_execution_config,
-            }
-        )
 
         return agent_list, self.cached_configs.copy()
 
@@ -424,29 +585,60 @@ class AgentBuilder:
         self,
         filepath: Optional[str] = None,
         config_json: Optional[str] = None,
+        use_oai_assistant: Optional[bool] = False,
         **kwargs,
-    ):
+    ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Load building configs and call the build function to complete building without calling online LLMs' api.
 
         Args:
             filepath: filepath or JSON string for the save config.
             config_json: JSON string for the save config.
+            use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+
+        Returns:
+            agent_list: a list of agents.
+            cached_configs: cached configs.
         """
         # load json string.
         if config_json is not None:
-            cached_configs = json.loads(config_json)
             print("Loading config from JSON...")
-            _config_check(cached_configs)
-            return self.build(cached_configs=cached_configs, **kwargs)
+            cached_configs = json.loads(config_json)
 
         # load from path.
         if filepath is not None:
             print(f"Loading config from {filepath}")
-            try:
-                with open(filepath) as f:
-                    cached_configs = json.load(f)
-            except FileNotFoundError as e:
-                raise FileNotFoundError(f"{filepath} does not exist.") from e
-            _config_check(cached_configs)
-            return self.build(cached_configs=cached_configs, **kwargs)
+            with open(filepath) as f:
+                cached_configs = json.load(f)
+
+        _config_check(cached_configs)
+
+        agent_configs = cached_configs["agent_configs"]
+        default_llm_config = cached_configs["default_llm_config"]
+        coding = cached_configs["coding"]
+
+        if kwargs["code_execution_config"] is not None:
+            # for test
+            self.cached_configs.update(
+                {
+                    "building_task": cached_configs["building_task"],
+                    "agent_configs": agent_configs,
+                    "coding": coding,
+                    "default_llm_config": default_llm_config,
+                    "code_execution_config": kwargs["code_execution_config"],
+                }
+            )
+            del kwargs["code_execution_config"]
+            return self._build_agents(use_oai_assistant, **kwargs)
+        else:
+            code_execution_config = cached_configs["code_execution_config"]
+            self.cached_configs.update(
+                {
+                    "building_task": cached_configs["building_task"],
+                    "agent_configs": agent_configs,
+                    "coding": coding,
+                    "default_llm_config": default_llm_config,
+                    "code_execution_config": code_execution_config,
+                }
+            )
+            return self._build_agents(use_oai_assistant, **kwargs)

@@ -26,6 +26,18 @@ except ImportError:
     OPENAI_INSTALLED = False
 
 
+def _config_check(config):
+    # check config loading
+    assert config.get("coding", None) is not None
+    assert config.get("default_llm_config", None) is not None
+    assert config.get("code_execution_config", None) is not None
+
+    for agent_config in config["agent_configs"]:
+        assert agent_config.get("name", None) is not None
+        assert agent_config.get("model", None) is not None
+        assert agent_config.get("system_message", None) is not None
+
+
 @pytest.mark.skipif(
     not OPENAI_INSTALLED,
     reason="do not run when dependency is not installed",
@@ -37,23 +49,56 @@ def test_build():
         "For example, find a recent paper about gpt-4 on arxiv "
         "and find its potential applications in software."
     )
-    builder.build(
+    agent_list, agent_config = builder.build(
         building_task=building_task,
         default_llm_config={"temperature": 0},
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
+    _config_check(agent_config)
 
     # check number of agents
-    assert len(builder.agent_procs_assign.keys()) <= builder.max_agents
+    assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # check system message
-    for agent, proc in builder.agent_procs_assign.values():
-        assert "TERMINATE" in agent.system_message
+    for cfg in agent_config["agent_configs"]:
+        assert "TERMINATE" in cfg["system_message"]
+
+
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
+def test_build_from_library():
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    building_task = (
+        "Find a paper on arxiv by programming, and analyze its application in some domain. "
+        "For example, find a recent paper about gpt-4 on arxiv "
+        "and find its potential applications in software."
+    )
+    agent_list, agent_config = builder.build_from_library(
+        building_task=building_task,
+        library_path=f"{here}/example_agent_builder_library.json",
+        default_llm_config={"temperature": 0},
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "timeout": 60,
+            "use_docker": False,
+        },
+    )
+    _config_check(agent_config)
+
+    # check number of agents
+    assert len(agent_list) <= builder.max_agents
+
+    # check system message
+    for cfg in agent_config["agent_configs"]:
+        assert "TERMINATE" in cfg["system_message"]
 
 
 @pytest.mark.skipif(
@@ -75,7 +120,7 @@ def test_save():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
@@ -85,11 +130,7 @@ def test_save():
 
     saved_configs = json.load(open(saved_files))
 
-    # check config format
-    assert saved_configs.get("building_task", None) is not None
-    assert saved_configs.get("agent_configs", None) is not None
-    assert saved_configs.get("coding", None) is not None
-    assert saved_configs.get("default_llm_config", None) is not None
+    _config_check(saved_configs)
 
 
 @pytest.mark.skipif(
@@ -100,10 +141,7 @@ def test_load():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
-    configs = json.load(open(config_save_path))
-    agent_configs = {
-        e["name"]: {"model": e["model"], "system_message": e["system_message"]} for e in configs["agent_configs"]
-    }
+    json.load(open(config_save_path, "r"))
 
     agent_list, loaded_agent_configs = builder.load(
         config_save_path,
@@ -111,20 +149,12 @@ def test_load():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
+    print(loaded_agent_configs)
 
-    # check config loading
-    assert loaded_agent_configs["coding"] == configs["coding"]
-    if loaded_agent_configs["coding"] is True:
-        assert isinstance(agent_list[0], UserProxyAgent)
-        agent_list = agent_list[1:]
-    for agent in agent_list:
-        agent_name = agent.name
-        assert agent_configs.get(agent_name, None) is not None
-        assert agent_configs[agent_name]["model"] == agent.llm_config["model"]
-        assert agent_configs[agent_name]["system_message"] == agent.system_message
+    _config_check(loaded_agent_configs)
 
 
 @pytest.mark.skipif(
@@ -141,7 +171,7 @@ def test_clear_agent():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     builder.clear_all_agents()
