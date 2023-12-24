@@ -8,6 +8,7 @@ from typing_extensions import Annotated
 
 from autogen._pydantic import PYDANTIC_V1, model_dump
 from autogen.function_utils import (
+    get_default_values,
     get_function_schema,
     get_load_param_if_needed_function,
     get_missing_annotations,
@@ -63,16 +64,44 @@ def test_get_typed_return_annotation() -> None:
 
 
 def test_get_parameter_json_schema() -> None:
-    assert get_parameter_json_schema("a", Annotated[str, "parameter a"]) == {
+    assert get_parameter_json_schema("c", str, {}) == {"type": "string", "description": "c"}
+    assert get_parameter_json_schema("c", str, {"c": "ccc"}) == {"type": "string", "description": "c", "default": "ccc"}
+
+    assert get_parameter_json_schema("a", Annotated[str, "parameter a"], {}) == {
         "type": "string",
         "description": "parameter a",
     }
-    assert get_parameter_json_schema("b", str) == {"type": "string", "description": "b"}
+    assert get_parameter_json_schema("a", Annotated[str, "parameter a"], {"a": "3.14"}) == {
+        "type": "string",
+        "description": "parameter a",
+        "default": "3.14",
+    }
+
+    class B(BaseModel):
+        b: float
+        c: str
+
+    expected = {
+        "description": "b",
+        "properties": {"b": {"title": "B", "type": "number"}, "c": {"title": "C", "type": "string"}},
+        "required": ["b", "c"],
+        "title": "B",
+        "type": "object",
+    }
+    assert get_parameter_json_schema("b", B, {}) == expected
+
+    expected["default"] = {"b": 1.2, "c": "3.4"}
+    assert get_parameter_json_schema("b", B, {"b": B(b=1.2, c="3.4")}) == expected
 
 
 def test_get_required_params() -> None:
     assert get_required_params(inspect.signature(f)) == ["a", "d"]
     assert get_required_params(inspect.signature(g)) == ["a", "d"]
+
+
+def test_get_default_values() -> None:
+    assert get_default_values(inspect.signature(f)) == {"b": 2, "c": 0.1}
+    assert get_default_values(inspect.signature(g)) == {"b": 2, "c": 0.1}
 
 
 def test_get_param_annotations() -> None:
@@ -117,17 +146,18 @@ def test_get_parameters() -> None:
     typed_signature = get_typed_signature(f)
     param_annotations = get_param_annotations(typed_signature)
     required = get_required_params(typed_signature)
+    default_values = get_default_values(typed_signature)
 
     expected = {
         "type": "object",
         "properties": {
             "a": {"type": "string", "description": "Parameter a"},
-            "c": {"type": "number", "description": "Parameter c"},
+            "c": {"type": "number", "description": "Parameter c", "default": 1.0},
         },
         "required": ["a"],
     }
 
-    actual = model_dump(get_parameters(required, param_annotations))
+    actual = model_dump(get_parameters(required, param_annotations, default_values))
 
     assert actual == expected, actual
 
@@ -185,8 +215,8 @@ def test_get_function_schema() -> None:
             "type": "object",
             "properties": {
                 "a": {"type": "string", "description": "Parameter a"},
-                "b": {"type": "integer", "description": "b"},
-                "c": {"type": "number", "description": "Parameter c"},
+                "b": {"type": "integer", "description": "b", "default": 2},
+                "c": {"type": "number", "description": "Parameter c", "default": 0.1},
                 "d": {
                     "additionalProperties": {
                         "maxItems": 2,
@@ -213,8 +243,8 @@ def test_get_function_schema() -> None:
             "type": "object",
             "properties": {
                 "a": {"type": "string", "description": "Parameter a"},
-                "b": {"type": "integer", "description": "b"},
-                "c": {"type": "number", "description": "Parameter c"},
+                "b": {"type": "integer", "description": "b", "default": 2},
+                "c": {"type": "number", "description": "Parameter c", "default": 0.1},
                 "d": {
                     "type": "object",
                     "additionalProperties": {
@@ -250,6 +280,57 @@ CurrencySymbol = Literal["USD", "EUR"]
 class Currency(BaseModel):
     currency: Annotated[CurrencySymbol, Field(..., description="Currency code")]
     amount: Annotated[float, Field(100.0, description="Amount of money in the currency")]
+
+
+def test_get_function_schema_pydantic() -> None:
+    def currency_calculator(
+        base: Annotated[Currency, "Base currency: amount and currency symbol"],
+        quote_currency: Annotated[CurrencySymbol, "Quote currency symbol (default: 'EUR')"] = "EUR",
+    ) -> Currency:
+        pass
+
+    expected = {
+        "description": "Currency exchange calculator.",
+        "name": "currency_calculator",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "properties": {
+                        "currency": {
+                            "description": "Currency code",
+                            "enum": ["USD", "EUR"],
+                            "title": "Currency",
+                            "type": "string",
+                        },
+                        "amount": {
+                            "default": 100.0,
+                            "description": "Amount of money in the currency",
+                            "title": "Amount",
+                            "type": "number",
+                        },
+                    },
+                    "required": ["currency"],
+                    "title": "Currency",
+                    "type": "object",
+                    "description": "Base currency: amount and currency symbol",
+                },
+                "quote_currency": {
+                    "enum": ["USD", "EUR"],
+                    "type": "string",
+                    "default": "EUR",
+                    "description": "Quote currency symbol (default: 'EUR')",
+                },
+            },
+            "required": ["base"],
+        },
+    }
+
+    actual = get_function_schema(
+        currency_calculator, description="Currency exchange calculator.", name="currency_calculator"
+    )
+
+    assert actual == expected, actual
 
 
 def test_get_load_param_if_needed_function() -> None:
