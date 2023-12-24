@@ -36,7 +36,7 @@ FILTER_DICT = {
     }
 }
 
-JSON_SAMPLE = '''
+JSON_SAMPLE = """
 [
     {
         "model": "gpt-3.5-turbo",
@@ -59,7 +59,7 @@ JSON_SAMPLE = '''
         "base_url": "http://localhost:1234/v1"
     }
 ]
-'''
+"""
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def mock_os_environ():
 
 
 def test_config_list_from_json():
-    with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False) as tmp_file:
         json_data = json.loads(JSON_SAMPLE)
         tmp_file.write(JSON_SAMPLE)
         tmp_file.flush()
@@ -108,58 +108,80 @@ def test_config_list_openai_aoai():
         aoai_base_file = os.path.join(temp_dir, "base_aoai.txt")
 
         # Write sample data to the temporary files
-        with open(openai_key_file, 'w') as f:
+        with open(openai_key_file, "w") as f:
             f.write("sk-testkeyopenai123\nsk-testkeyopenai456")
-        with open(aoai_key_file, 'w') as f:
+        with open(aoai_key_file, "w") as f:
             f.write("sk-testkeyaoai456")
-        with open(openai_base_file, 'w') as f:
+        with open(openai_base_file, "w") as f:
             f.write("https://api.openai.com/v1\nhttps://api.openai.com/v1")
-        with open(aoai_base_file, 'w') as f:
+        with open(aoai_base_file, "w") as f:
             f.write("https://api.azure.com/v1")
 
         # Pass the temporary directory as a parameter to the function
         config_list = autogen.config_list_openai_aoai(key_file_path=temp_dir)
         assert len(config_list) == 3
         expected_config_list = [
-            {'api_key': 'sk-testkeyopenai123', 'base_url': 'https://api.openai.com/v1'},
-            {'api_key': 'sk-testkeyopenai456', 'base_url': 'https://api.openai.com/v1'},
-            {'api_key': 'sk-testkeyaoai456', 'base_url': 'https://api.azure.com/v1', 'api_type': 'azure',
-             'api_version': '2023-08-01-preview'}
+            {"api_key": "sk-testkeyopenai123", "base_url": "https://api.openai.com/v1"},
+            {"api_key": "sk-testkeyopenai456", "base_url": "https://api.openai.com/v1"},
+            {
+                "api_key": "sk-testkeyaoai456",
+                "base_url": "https://api.azure.com/v1",
+                "api_type": "azure",
+                "api_version": "2023-08-01-preview",
+            },
         ]
         assert config_list == expected_config_list
 
 
-@patch('os.environ', {
-    'OPENAI_API_KEY': 'test_openai_key',
-    'OPENAI_API_BASE': 'https://api.openai.com',
-    'AZURE_OPENAI_API_KEY': 'test_aoai_key',
-    'AZURE_OPENAI_API_BASE': 'https://api.azure.com'
-})
+@patch(
+    "os.environ",
+    {
+        "OPENAI_API_KEY": "test_openai_key",
+        "OPENAI_API_BASE": "https://api.openai.com",
+        "AZURE_OPENAI_API_KEY": "test_aoai_key",
+        "AZURE_OPENAI_API_BASE": "https://api.azure.com",
+    },
+)
 def test_config_list_openai_aoai_env_vars():
     # Test the config_list_openai_aoai function with environment variables set
     configs = autogen.oai.openai_utils.config_list_openai_aoai()
     assert len(configs) == 2
-    assert {'api_key': 'test_openai_key', 'base_url': 'https://api.openai.com'} in configs
-    assert {'api_key': 'test_aoai_key', 'base_url': 'https://api.azure.com', 'api_type': 'azure',
-            'api_version': '2023-08-01-preview'} in configs
+    assert {"api_key": "test_openai_key", "base_url": "https://api.openai.com"} in configs
+    assert {
+        "api_key": "test_aoai_key",
+        "base_url": "https://api.azure.com",
+        "api_type": "azure",
+        "api_version": "2023-08-01-preview",
+    } in configs
 
 
-@patch('os.environ', {
-    'OPENAI_API_KEY': 'test_openai_key\ntest_openai_key2',
-    'OPENAI_API_BASE': 'https://api.openai.com\nhttps://api.openai.com/v2',
-    'AZURE_OPENAI_API_KEY': 'test_aoai_key\ntest_aoai_key2',
-    'AZURE_OPENAI_API_BASE': 'https://api.azure.com\nhttps://api.azure.com/v2'
-})
+@patch(
+    "os.environ",
+    {
+        "OPENAI_API_KEY": "test_openai_key\ntest_openai_key2",
+        "OPENAI_API_BASE": "https://api.openai.com\nhttps://api.openai.com/v2",
+        "AZURE_OPENAI_API_KEY": "test_aoai_key\ntest_aoai_key2",
+        "AZURE_OPENAI_API_BASE": "https://api.azure.com\nhttps://api.azure.com/v2",
+    },
+)
 def test_config_list_openai_aoai_env_vars_multi():
     # Test the config_list_openai_aoai function with multiple environment variable values (new line separated)
     configs = autogen.oai.openai_utils.config_list_openai_aoai()
     assert len(configs) == 4
-    assert {'api_key': 'test_openai_key', 'base_url': 'https://api.openai.com'} in configs
-    assert {'api_key': 'test_openai_key2', 'base_url': 'https://api.openai.com/v2'} in configs
-    assert {'api_key': 'test_aoai_key', 'base_url': 'https://api.azure.com', 'api_type': 'azure',
-            'api_version': '2023-08-01-preview'} in configs
-    assert {'api_key': 'test_aoai_key2', 'base_url': 'https://api.azure.com/v2', 'api_type': 'azure',
-            'api_version': '2023-08-01-preview'} in configs
+    assert {"api_key": "test_openai_key", "base_url": "https://api.openai.com"} in configs
+    assert {"api_key": "test_openai_key2", "base_url": "https://api.openai.com/v2"} in configs
+    assert {
+        "api_key": "test_aoai_key",
+        "base_url": "https://api.azure.com",
+        "api_type": "azure",
+        "api_version": "2023-08-01-preview",
+    } in configs
+    assert {
+        "api_key": "test_aoai_key2",
+        "base_url": "https://api.azure.com/v2",
+        "api_type": "azure",
+        "api_version": "2023-08-01-preview",
+    } in configs
 
 
 def test_config_list_from_dotenv(mock_os_environ, caplog):
@@ -245,13 +267,16 @@ def test_config_list_from_dotenv(mock_os_environ, caplog):
         assert "API key not found or empty for model gpt-4" in caplog.text
 
 
-@patch('os.environ', {
-    'OPENAI_API_KEY': 'test_openai_key\ntest_openai_key2',
-    'OPENAI_API_BASE': 'https://api.openai.com',
-})
+@patch(
+    "os.environ",
+    {
+        "OPENAI_API_KEY": "test_openai_key\ntest_openai_key2",
+        "OPENAI_API_BASE": "https://api.openai.com",
+    },
+)
 def test_api_keys_base_urls_length_mismatch():
-    api_keys = ['key1', 'key2']
-    base_urls = ['https://api.service1.com']  # Shorter than api_keys
+    api_keys = ["key1", "key2"]
+    base_urls = ["https://api.service1.com"]  # Shorter than api_keys
 
     with pytest.raises(AssertionError) as exc_info:
         autogen.get_config_list(api_keys, base_urls)
