@@ -287,10 +287,10 @@ class AgentBuilder:
 
     def build(
         self,
-        building_task: Optional[str] = None,
+        building_task: str,
+        default_llm_config: Dict,
         coding: Optional[bool] = None,
         code_execution_config: Optional[Dict] = None,
-        default_llm_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
         **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
