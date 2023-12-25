@@ -108,10 +108,6 @@ class TeachableAgent(ConversableAgent):
         if messages is None:
             messages = self._oai_messages[sender]  # In case of a direct call.
 
-        if self.auto_learn is True:
-            # Learn from the user comments from the last chat before responding further
-            self.learn_from_user_feedback()
-
         # Get the last user turn.
         last_message = messages[-1]
         user_text = last_message["content"]
@@ -122,6 +118,11 @@ class TeachableAgent(ConversableAgent):
 
         # Keep track of this user turn as a potential source of memos later.
         self.user_comments.append(user_text)
+
+        if self.auto_learn is True:
+            # Learn from the user comments from the last chat before responding further
+            self.learn_from_user_feedback()
+            self.memo_store.close()
 
         # Consider whether to retrieve something from the DB.
         if self.memo_store.last_memo_id > 0:
@@ -176,7 +177,7 @@ class TeachableAgent(ConversableAgent):
         # Check for information to be learned.
         response = self.analyze(
             comment,
-            "Does the TEXT contain information that could be committed to memory? Answer with just one word, yes or no.",
+            "Does the TEXT contain information that could be committed to memory or should be remembered for future use? E.g., facts about the user or otherwise. Answer with just one word, yes or no.",
         )
         if "yes" in response.lower():
             # Yes. What question would this information answer?
@@ -186,7 +187,8 @@ class TeachableAgent(ConversableAgent):
             )
             # Extract the information.
             answer = self.analyze(
-                comment, "Copy the information from the TEXT that should be committed to memory. Add no explanation."
+                comment,
+                "Copy the information from the TEXT that should be committed to memory. Add in the format <context>-<answer>. The context should specify what the user asked or requested.",
             )
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
