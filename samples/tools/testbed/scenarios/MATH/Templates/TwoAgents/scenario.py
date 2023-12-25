@@ -69,9 +69,7 @@ Please do the following:
     - "The answer is incorrect. Correct Answer: <ground truth answer> | Answer extracted: <answer extracted>."
     - "The reply doesn't contain an answer." """
 
-answer_checker = autogen.AssistantAgent(
-    name="checker", llm_config=llm_config, system_message=check_sys_msg
-)
+answer_checker = autogen.AssistantAgent(name="checker", llm_config=llm_config, system_message=check_sys_msg)
 checker_proxy = autogen.UserProxyAgent(
     "checker_proxy",
     human_input_mode="NEVER",
@@ -86,17 +84,11 @@ checker_proxy = autogen.UserProxyAgent(
         "the answer is correct" in x.get("content", "").lower()
         or "the answer is incorrect" in x.get("content", "").lower()
         or "the reply doesn't contain an answer" in x.get("content", "").lower()
-        or "the answer is approximated but should be correct"
-        in x.get("content", "").lower()
+        or "the answer is approximated but should be correct" in x.get("content", "").lower()
     ),
 )
 
-message_to_check = (
-    "Problem: "
-    + PROMPT
-    + f"\n\nReply: {response_with_ans}\n\nGround truth answer: "
-    + ANSWER
-)
+message_to_check = "Problem: " + PROMPT + f"\n\nReply: {response_with_ans}\n\nGround truth answer: " + ANSWER
 checker_proxy.initiate_chat(answer_checker, message=message_to_check)
 
 

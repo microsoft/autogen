@@ -78,9 +78,7 @@ def create_jsonl(name, template):
                         "__CONTAIN__": json.dumps(should_contain),  # Double-encoded
                     },
                     "should_not_contain.json.txt": {
-                        "__NO_CONTAIN__": json.dumps(
-                            should_not_contain
-                        ),  # Double-encoded
+                        "__NO_CONTAIN__": json.dumps(should_not_contain),  # Double-encoded
                     },
                 },
             }

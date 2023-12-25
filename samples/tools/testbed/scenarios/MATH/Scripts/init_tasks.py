@@ -86,9 +86,7 @@ def create_jsonl(name, problems, template):
         for item in problems.items():
             data = item[1]
 
-            task_id = (
-                item[0].replace("MATH/", "").replace(".json", "").replace("/", "_")
-            )
+            task_id = item[0].replace("MATH/", "").replace(".json", "").replace("/", "_")
             print(f"Converting: [{item[0]}] {task_id}")
 
             record = {
