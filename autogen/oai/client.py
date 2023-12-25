@@ -331,7 +331,7 @@ class OpenAIWrapper:
             )
             for i in range(len(response_contents)):
                 try:
-                    # OpenAI versions 0.1.5 and above
+                    # OpenAI versions 1.5.0 and above
                     choice = Choice(
                         index=i,
                         finish_reason=finish_reasons[i],
@@ -341,7 +341,7 @@ class OpenAIWrapper:
                         logprobs=None,
                     )
                 except ValidationError:
-                    # OpenAI version up to 0.1.4
+                    # OpenAI versions below 1.5.0
                     choice = Choice(
                         index=i,
                         finish_reason=finish_reasons[i],
