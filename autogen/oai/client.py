@@ -330,7 +330,7 @@ class OpenAIWrapper:
                 ),
             )
             for i in range(len(response_contents)):
-                if OPENAIVERSION >= "1.5":
+                if OPENAIVERSION >= "1.5":  # pragma: no cover
                     # OpenAI versions 1.5.0 and above
                     choice = Choice(
                         index=i,
