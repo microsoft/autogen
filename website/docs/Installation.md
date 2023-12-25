@@ -33,7 +33,7 @@ conda deactivate
 
 ### Option 3: poetry
 
-Another option is with `poetry`, which is a dependency manager for Python. 
+Another option is with `poetry`, which is a dependency manager for Python.
 
 [Poetry](https://python-poetry.org/docs/) is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you. Poetry offers a lockfile to ensure repeatable installs, and can build your project for distribution.
 
