@@ -1,11 +1,9 @@
 import os
 import sys
+from pathlib import Path
 import pytest
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import config_list_from_json
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from qdrant_client import QdrantClient
@@ -27,7 +25,10 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
-test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+test_dir = Path(__file__).parent.parent.parent.parent / "test_files"
 
 
 @pytest.mark.skipif(
@@ -90,7 +91,7 @@ def test_qdrant_filter():
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
 def test_qdrant_search():
     client = QdrantClient(":memory:")
-    create_qdrant_from_dir(test_dir, client=client)
+    create_qdrant_from_dir(str(test_dir), client=client)
 
     assert client.get_collection("all-my-documents")
 

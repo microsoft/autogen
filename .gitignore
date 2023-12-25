@@ -171,3 +171,9 @@ test/my_tmp/*
 
 # Storage for the AgentEval output
 test/test_files/agenteval-in-out/out/
+
+# default vectordb path
+.vectordb/
+
+# default code execution path
+autogen/extensions/*
