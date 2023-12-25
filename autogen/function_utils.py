@@ -127,8 +127,6 @@ def get_parameter_json_schema(
     schema = type2schema(v)
     if k in default_values:
         dv = default_values[k]
-        if isinstance(dv, BaseModel):
-            dv = model_dump(dv)
         schema["default"] = dv
 
     schema["description"] = type2description(k, v)

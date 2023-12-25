@@ -91,7 +91,7 @@ def test_get_parameter_json_schema() -> None:
     }
     assert get_parameter_json_schema("b", B, {}) == expected
 
-    expected["default"] = {"b": 1.2, "c": "3.4"}
+    expected["default"] = B(b=1.2, c="3.4")
     assert get_parameter_json_schema("b", B, {"b": B(b=1.2, c="3.4")}) == expected
 
 
