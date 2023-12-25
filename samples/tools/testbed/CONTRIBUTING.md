@@ -1,6 +1,6 @@
 # Contributing to AutoGenBench
 
-As part of the broader AutoGen project, AutoGenBench welcomes community contributions. Contributions are subject to AutoGen's [contribution guidelines](https://microsoft.github.io/autogen/docs/Contribute), as well as a few additional AutoGenBench-specific requirements that will be outlined here. You may also wish to develop your own private benchmark scenarios and the guidance in this document will help with such efforts as well. Below you will find the general requirements, followed by a detailed technical description.
+As part of the broader AutoGen project, AutoGenBench welcomes community contributions. Contributions are subject to AutoGen's [contribution guidelines](https://microsoft.github.io/autogen/docs/Contribute), as well as a few additional AutoGenBench-specific requirements outlined here. You may also wish to develop your own private benchmark scenarios and the guidance in this document will help with such efforts as well. Below you will find the general requirements, followed by a detailed technical description.
 
 ## General Contribution Requirements
 We ask that all contributions to AutoGenBench adhere to the following:
@@ -204,7 +204,7 @@ First, provide a `MANIFEST.json` file in the root of your benchmark. An example 
 }
 ```
 
-The keys of the `files` dictionary are local paths, relative to your benchamrk's root directory. The values are relative paths in the AutoGen GitHub repository (relative to `https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/`), where {BRANCH} is defined in `autogenbench/clone_cmd.py`.
+The keys of the `files` dictionary are local paths, relative to your benchmark's root directory. The values are relative paths in the AutoGen GitHub repository (relative to `https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/`), where {BRANCH} is defined in `autogenbench/clone_cmd.py`.
 
 #### SCENARIOS dictionary
 Second, you must add an entry to the `SCENARIOS` dictionary in `autogenbranch/clone_cmd.py`.
