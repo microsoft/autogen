@@ -73,6 +73,8 @@ Specifically, we introduce three function calls to manipulate the current functi
 These calls add, remove, and revise functions in the existing function list, respectively.
 This practice could fully leverages the function calling capabilities of GPT-4 and outputs structured functions with more stable signatures and code implementation.
 Below is the JSON schema of these function calls:
+
+1. `add_function`: Add one new function that may be used in the future tasks.
 ```python
 ADD_FUNC = {
     "type": "function",
@@ -107,7 +109,10 @@ ADD_FUNC = {
         }
     }
 }
+```
 
+2. `revise_function`: Revise one existing function (code implementation, function signature) in the current function list according to the conversation history and performance.
+```python
 REVISE_FUNC = {
     "type": "function",
     "function": {
@@ -141,7 +146,10 @@ REVISE_FUNC = {
         }
     }
 }
+```
 
+3. `remove_function`: Remove one existing function in the current function list. It is used to remove the functions that are not useful (redundant) in the future tasks.
+```python
 REMOVE_FUNC = {
     "type": "function",
     "function": {
