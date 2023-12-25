@@ -14,7 +14,7 @@ from autogen.token_count_utils import count_token
 TOOL_ENABLED = False
 try:
     import openai
-    from openai import OpenAI, APIError
+    from openai import OpenAI, APIError, __version__ as OPENAIVERSION
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
     from openai.types.completion import Completion
@@ -330,7 +330,7 @@ class OpenAIWrapper:
                 ),
             )
             for i in range(len(response_contents)):
-                try:
+                if OPENAIVERSION >= "1.5":
                     # OpenAI versions 1.5.0 and above
                     choice = Choice(
                         index=i,
@@ -340,7 +340,7 @@ class OpenAIWrapper:
                         ),
                         logprobs=None,
                     )
-                except ValidationError:
+                else:
                     # OpenAI versions below 1.5.0
                     choice = Choice(
                         index=i,
