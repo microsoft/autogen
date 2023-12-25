@@ -23,7 +23,7 @@ func1 = {
 }
 func2 = {
     "name": "query_wolfram",
-    "description": "Return the API query result from the Wolfram Alpha. the ruturn is a tuple of (result, is_success).",
+    "description": "Return the API query result from the Wolfram Alpha. the return is a tuple of (result, is_success).",
     "parameters": {
         "type": "object",
         "properties": {},
@@ -46,7 +46,7 @@ func3 = {
 
 
 @pytest.mark.parametrize(
-    "input_functions, expected_count", [([func1], 44), ([func2], 47), ([func3], 45), ([func1, func2], 79)]
+    "input_functions, expected_count", [([func1], 44), ([func2], 46), ([func3], 45), ([func1, func2], 78)]
 )
 def test_num_tokens_from_functions(input_functions, expected_count):
     assert num_tokens_from_functions(input_functions) == expected_count
