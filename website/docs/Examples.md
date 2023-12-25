@@ -47,6 +47,7 @@ Links to notebook examples:
 1. **Agent Teaching and Learning**
    - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teaching.ipynb)
    - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+   - Agent Optimizer - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb)
 
 1. **Multi-Agent Chat with OpenAI Assistants in the loop**
    - Hello-World Chat with OpenAi Assistant in AutoGen - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_twoagents_basic.ipynb)
