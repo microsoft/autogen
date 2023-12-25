@@ -1,14 +1,15 @@
 import asyncio
 import copy
 import functools
+import inspect
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from autogen import OpenAIWrapper
-from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
-
+from .. import OpenAIWrapper
+from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 
 try:
@@ -19,7 +20,11 @@ except ImportError:
         return x
 
 
+__all__ = ("ConversableAgent",)
+
 logger = logging.getLogger(__name__)
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class ConversableAgent(Agent):
@@ -1330,3 +1335,157 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
+
+    def _wrap_function(self, func: F) -> F:
+        """Wrap the function to dump the return value to json.
+
+        Handles both sync and async functions.
+
+        Args:
+            func: the function to be wrapped.
+
+        Returns:
+            The wrapped function.
+        """
+
+        @load_basemodels_if_needed
+        @functools.wraps(func)
+        def _wrapped_func(*args, **kwargs):
+            retval = func(*args, **kwargs)
+
+            return serialize_to_str(retval)
+
+        @load_basemodels_if_needed
+        @functools.wraps(func)
+        async def _a_wrapped_func(*args, **kwargs):
+            retval = await func(*args, **kwargs)
+            return serialize_to_str(retval)
+
+        wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
+
+        # needed for testing
+        wrapped_func._origin = func
+
+        return wrapped_func
+
+    def register_for_llm(
+        self,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be used by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
+        specify the arguments and return type. The function name is used as the default name for the function,
+        but a custom name can be provided. The function description is used to describe the function in the
+        agent's configuration.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+            description (optional(str)): description of the function (default: None). It is mandatory
+                for the initial decorator, but the following ones can omit it.
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register_for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a function to be used by an agent.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered, with the _description attribute set to the function description.
+
+            Raises:
+                ValueError: if the function description is not provided and not propagated by a previous decorator.
+                RuntimeError: if the LLM config is not set up before registering a function.
+
+            """
+            # name can be overwriten by the parameter, by default it is the same as function name
+            if name:
+                func._name = name
+            elif not hasattr(func, "_name"):
+                func._name = func.__name__
+
+            # description is propagated from the previous decorator, but it is mandatory for the first one
+            if description:
+                func._description = description
+            else:
+                if not hasattr(func, "_description"):
+                    raise ValueError("Function description is required, none found.")
+
+            # get JSON schema for the function
+            f = get_function_schema(func, name=func._name, description=func._description)
+
+            # register the function to the agent if there is LLM config, raise an exception otherwise
+            if self.llm_config is None:
+                raise RuntimeError("LLM config must be setup before registering a function for LLM.")
+
+            self.update_function_signature(f, is_remove=False)
+
+            return func
+
+        return _decorator
+
+    def register_for_execution(
+        self,
+        name: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be executed by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register_for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14):
+                 return a + str(b * c)
+            ```
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a function to be used by an agent.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered, with the _description attribute set to the function description.
+
+            Raises:
+                ValueError: if the function description is not provided and not propagated by a previous decorator.
+
+            """
+            # name can be overwriten by the parameter, by default it is the same as function name
+            if name:
+                func._name = name
+            elif not hasattr(func, "_name"):
+                func._name = func.__name__
+
+            self.register_function({func._name: self._wrap_function(func)})
+
+            return func
+
+        return _decorator
