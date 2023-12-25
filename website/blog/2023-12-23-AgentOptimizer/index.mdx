@@ -22,7 +22,9 @@ In traditional ML pipeline, we train a model by updating its parameter according
 Here, we take an initial step towards the agent training. 
 Inspired by the [function calling](https://platform.openai.com/docs/guides/function-calling) capabilities provided by OpenAI, 
 we draw an analogy between model parameters and agent functions/skills, and update agent’s functions/skills based on its historical performance on the training set. 
-As an agentic way of training an agent, our approach help enhance the agents’ abilities without requiring access to the LLMs parameters. 
+Specifically, we propose to use the function calling capabilities to formulate the actions that optimize the agents’ functions as a set of function calls, 
+to support iteratively **adding, revising, and removing** existing functions. 
+As an agentic way of training an agent, our approach helps enhance the agents’ abilities without requiring access to the LLMs parameters.
 
 ## AgentOptimizer
 
@@ -42,7 +44,11 @@ This method takes the assistant-userproxy pair and actions as input. It updates 
 For AssistantAgent, it first uses [update_function_signature](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#update_function_signature) to update the function signatures. 
 Then, it updates the functions in the MathUserproxyAgent with the corresponding code implementation gained from `step()`.
 
-## Pseydocode for the optimization process
+Sometimes, the function signatures (JSON schema) returned by the `step()` may not be valid, and the generated code may also face syntax errors. 
+**AgentOptimizer** includes mechanisms to check the (1) validity of the function signatures and (2) code implementation before updating the functions.
+Moreover, it also includes mechanisms to check whether each action is feasible, such as avoiding the removal of a function that is not in the current functions due to hallucination.
+
+## Pseudocode for the optimization process
 
 The optimization process is as follows:
 
@@ -66,7 +72,7 @@ we leverage the function calling capabilities provided by OpenAI to formulate th
 Specifically, we introduce three function calls to manipulate the current functions at each step: `add_function`, `remove_function`, and `revise_function`. 
 These calls add, remove, and revise functions in the existing function list, respectively. 
 This practice could fully leverages the function calling capabilities of GPT-4 and outputs structured functions with more stable signatures and code implementation.
-Below is the JSON schema of the "add_function":
+Below is the JSON schema of these function calls:
 ```python
 ADD_FUNC = {
     "type": "function",
@@ -98,6 +104,58 @@ ADD_FUNC = {
                 }
             },
             "required": ["name", "description", "arguments", "packages", "code"]
+        }
+    }
+}
+
+REVISE_FUNC = {
+    "type": "function",
+    "function": {
+        "name": "revise_function",
+        "description": "Revise a function in the context of the conversation. Necessary Python packages must be declared. The name of the function MUST be the same with the function name in the code you generated.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the function in the code implementation."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A short description of the function."
+                },
+                "arguments": {
+                    "type": "string",
+                    "description": "JSON schema of arguments encoded as a string. Please note that the JSON schema only supports specific types including string, integer, object, array, boolean. (do not have float type) For example: { \"url\": { \"type\": \"string\", \"description\": \"The URL\", }}. Please avoid the error 'array schema missing items' when using array type."
+                },
+                "packages": {
+                    "type": "string",
+                    "description": "A list of package names imported by the function, and that need to be installed with pip prior to invoking the function. This solves ModuleNotFoundError. It should be string, not list."
+                },
+                "code": {
+                    "type": "string",
+                    "description": "The implementation in Python. Do not include the function declaration."
+                }
+            },
+            "required": ["name", "description", "arguments", "packages", "code"]
+        }
+    }
+}
+
+REMOVE_FUNC = {
+    "type": "function",
+    "function": {
+        "name": "remove_function",
+        "description": "Remove one function in the context of the conversation. Once remove one function, the assistant will not use this function in future conversation.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The name of the function in the code implementation."
+                }
+            },
+            "required": ["name"]
         }
     }
 }
