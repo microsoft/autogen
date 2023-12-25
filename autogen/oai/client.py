@@ -6,6 +6,7 @@ from typing import List, Optional, Dict, Callable, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
+from pydantic import ValidationError
 
 from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
@@ -329,15 +330,27 @@ class OpenAIWrapper:
                 ),
             )
             for i in range(len(response_contents)):
-                response.choices.append(
-                    Choice(
+                try:
+                    # OpenAI versions 0.1.5 and above
+                    choice = Choice(
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role="assistant", content=response_contents[i], function_call=None
+                        ),
+                        logprobs=None,
+                    )
+                except ValidationError:
+                    # OpenAI version up to 0.1.4
+                    choice = Choice(
                         index=i,
                         finish_reason=finish_reasons[i],
                         message=ChatCompletionMessage(
                             role="assistant", content=response_contents[i], function_call=None
                         ),
                     )
-                )
+
+                response.choices.append(choice)
         else:
             # If streaming is not enabled or using functions, send a regular chat completion request
             # Functions are not supported, so ensure streaming is disabled
