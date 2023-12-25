@@ -4,6 +4,7 @@ from pydantic import BaseModel, Extra, root_validator
 from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 from time import sleep
 
+from autogen._pydantic import PYDANTIC_V1
 from autogen.agentchat import Agent, UserProxyAgent
 from autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
 from autogen.math_utils import get_answer
@@ -384,7 +385,8 @@ class WolframAlphaAPIWrapper(BaseModel):
     class Config:
         """Configuration for this pydantic object."""
 
-        extra = Extra.forbid
+        if PYDANTIC_V1:
+            extra = Extra.forbid
 
     @root_validator(skip_on_failure=True)
     def validate_environment(cls, values: Dict) -> Dict:

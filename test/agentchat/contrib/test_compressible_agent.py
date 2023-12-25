@@ -139,7 +139,7 @@ def test_mode_customized():
     sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
 )
-def test_compress_messsage():
+def test_compress_message():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
@@ -281,5 +281,5 @@ def test_chat_messages_to_compress(messages, leave_last_n, compressed_prompt, ex
 if __name__ == "__main__":
     test_mode_compress()
     test_mode_customized()
-    test_compress_messsage()
+    test_compress_message()
     test_mode_terminate()

@@ -10,7 +10,7 @@ import requests
 from regex import R
 
 from autogen.agentchat.agent import Agent
-from autogen.agentchat.contrib.img_utils import get_image_data, llava_formater
+from autogen.agentchat.contrib.img_utils import get_image_data, llava_formatter
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
 
@@ -162,7 +162,7 @@ def llava_call(prompt: str, llm_config: dict) -> str:
     Makes a call to the LLaVA service to generate text based on a given prompt
     """
 
-    prompt, images = llava_formater(prompt, order_image_tokens=False)
+    prompt, images = llava_formatter(prompt, order_image_tokens=False)
 
     for im in images:
         if len(im) == 0:
