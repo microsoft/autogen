@@ -10,28 +10,28 @@ tags: [LLM, research]
 
 
 **TL;DR:**
-Introducing **AgentOptimizer**, a new class for training LLM agents in the era of LLMs as a service. 
-**AgentOptimizer** is able to prompt autogen agents to iteratively optimize its function/skills according to the historical conversation and performance. 
-Checkout one implementation for **AgentOptimizer** on [MATH](https://github.com/hendrycks/math) dataset 
+Introducing **AgentOptimizer**, a new class for training LLM agents in the era of LLMs as a service.
+**AgentOptimizer** is able to prompt autogen agents to iteratively optimize its function/skills according to the historical conversation and performance.
+Checkout one implementation for **AgentOptimizer** on [MATH](https://github.com/hendrycks/math) dataset
 [here](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb).
 
 Paper is coming soon!
 
 ## Introduction
-In traditional ML pipeline, we train a model by updating its parameter according to the loss on the training set, while in the era of LLM agents, how should we train an agent? 
-Here, we take an initial step towards the agent training. 
-Inspired by the [function calling](https://platform.openai.com/docs/guides/function-calling) capabilities provided by OpenAI, 
-we draw an analogy between model parameters and agent functions/skills, and update agent’s functions/skills based on its historical performance on the training set. 
-Specifically, we propose to use the function calling capabilities to formulate the actions that optimize the agents’ functions as a set of function calls, 
-to support iteratively **adding, revising, and removing** existing functions. 
+In traditional ML pipeline, we train a model by updating its parameter according to the loss on the training set, while in the era of LLM agents, how should we train an agent?
+Here, we take an initial step towards the agent training.
+Inspired by the [function calling](https://platform.openai.com/docs/guides/function-calling) capabilities provided by OpenAI,
+we draw an analogy between model parameters and agent functions/skills, and update agent’s functions/skills based on its historical performance on the training set.
+Specifically, we propose to use the function calling capabilities to formulate the actions that optimize the agents’ functions as a set of function calls,
+to support iteratively **adding, revising, and removing** existing functions.
 As an agentic way of training an agent, our approach helps enhance the agents’ abilities without requiring access to the LLMs parameters.
 
 ## AgentOptimizer
 
-**AgentOptimizer** is a class designed to optimize the agents by improving their function calls. 
+**AgentOptimizer** is a class designed to optimize the agents by improving their function calls.
 It contains two core methods:
 
-1. `step()`: `step()` takes three inputs, the previous conversation history (history), the statistical information of solving previous problems (statistic), and the current functions (current_functions). 
+1. `step()`: `step()` takes three inputs, the previous conversation history (history), the statistical information of solving previous problems (statistic), and the current functions (current_functions).
 
 ```python
 actions, updated_functions = AgentOptimizer.step(history, statistic, current_functions)
@@ -39,12 +39,12 @@ actions, updated_functions = AgentOptimizer.step(history, statistic, current_fun
 
 It has two outputs `actions` and `updated_functions`. `actions` is a series of actions to manipulate the current functions. And `updated_functions` is the updated functions after the actions are applied (including code implementation).
 
-2. `update_function_call()`: 
+2. `update_function_call()`:
 This method takes the assistant-userproxy pair and actions as input. It updates the functions registered in these agents according to the actions from `step()`.
-For AssistantAgent, it first uses [update_function_signature](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#update_function_signature) to update the function signatures. 
+For AssistantAgent, it first uses [update_function_signature](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#update_function_signature) to update the function signatures.
 Then, it updates the functions in the MathUserproxyAgent with the corresponding code implementation gained from `step()`.
 
-Sometimes, the function signatures (JSON schema) returned by the `step()` may not be valid, and the generated code may also face syntax errors. 
+Sometimes, the function signatures (JSON schema) returned by the `step()` may not be valid, and the generated code may also face syntax errors.
 **AgentOptimizer** includes mechanisms to check the (1) validity of the function signatures and (2) code implementation before updating the functions.
 Moreover, it also includes mechanisms to check whether each action is feasible, such as avoiding the removal of a function that is not in the current functions due to hallucination.
 
@@ -59,18 +59,18 @@ for - in range(EPOCH):
     AgentOptimizer.update_function_call(actions)
 ```
 
-Given a prepared training dataset, the agents iteratively solve problems from the training set to obtain conversation history and statistical information. 
-The functions are then improved using AgentOptimizer. 
-Each iteration can be regarded as one training step analogous to traditional machine learning, with the optimization elements being the functions that agents have. 
+Given a prepared training dataset, the agents iteratively solve problems from the training set to obtain conversation history and statistical information.
+The functions are then improved using AgentOptimizer.
+Each iteration can be regarded as one training step analogous to traditional machine learning, with the optimization elements being the functions that agents have.
 After EPOCH iterations, the agents are expected to obtain better functions that may be used in future tasks
 
 
 ## The implementation technology behind the AgentOptimizer
 
-To obtain stable and structured function signatures and code implementations from AgentOptimizer, 
-we leverage the function calling capabilities provided by OpenAI to formulate the actions that manipulate the functions as a set of function calls. 
-Specifically, we introduce three function calls to manipulate the current functions at each step: `add_function`, `remove_function`, and `revise_function`. 
-These calls add, remove, and revise functions in the existing function list, respectively. 
+To obtain stable and structured function signatures and code implementations from AgentOptimizer,
+we leverage the function calling capabilities provided by OpenAI to formulate the actions that manipulate the functions as a set of function calls.
+Specifically, we introduce three function calls to manipulate the current functions at each step: `add_function`, `remove_function`, and `revise_function`.
+These calls add, remove, and revise functions in the existing function list, respectively.
 This practice could fully leverages the function calling capabilities of GPT-4 and outputs structured functions with more stable signatures and code implementation.
 Below is the JSON schema of these function calls:
 ```python
@@ -164,9 +164,8 @@ REMOVE_FUNC = {
 
 ## Limitation & Future work
 
-1. Unlike gradient descent in traditional machine learning training processes, each optimization step does not necessarily lead to better performance on the training set. 
+1. Unlike gradient descent in traditional machine learning training processes, each optimization step does not necessarily lead to better performance on the training set.
 When the training epoch is small, the agent’s performance may even decrease. One urgent task is to design a better mechanism to guide the optimization process.
-2. The [Current implementation](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb) of AgentOptimizer is mainly for illustration purpose and is just a proof of concept. 
-It is not formally integrated into the autogen with a general interface like optimizing any kinds of agents in any tasks. 
+2. The [Current implementation](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb) of AgentOptimizer is mainly for illustration purpose and is just a proof of concept.
+It is not formally integrated into the autogen with a general interface like optimizing any kinds of agents in any tasks.
 Currently, it only supports the optimization the agents in [MATH](https://github.com/hendrycks/math) dataset. We will integrate it into autogen with more general interface in the future.
-
