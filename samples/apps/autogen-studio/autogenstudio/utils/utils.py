@@ -128,7 +128,7 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
             file_content = file.read()
             base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
     except Exception as e:
-        raise IOError(f"An error occurred while reading the file: {e}")
+        raise IOError(f"An error occurred while reading the file: {e}") from e
 
     return base64_encoded_content, file_type
 
