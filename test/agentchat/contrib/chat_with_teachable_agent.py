@@ -35,7 +35,7 @@ def create_teachable_agent(reset_db=False):
 
     # Start by instantiating any agent that inherits from ConversableAgent.
     teachable_agent = ConversableAgent(
-        name="teachableagent",
+        name="teachable_agent",
         llm_config={"config_list": config_list, "timeout": 120, "cache_seed": None},  # Disable caching.
     )
 
