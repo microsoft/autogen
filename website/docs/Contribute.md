@@ -125,7 +125,6 @@ The first workflow is required to pass for all PRs (and it doesn't do any OpenAI
 #### Run non-OpenAI tests
 
 To run the subset of the tests not depending on `openai` (and not calling LLMs)):
-- Create an empty file `OAI_CONFIG_LIST`, add `[]` (make it a valid JSON with empty collection)
 - Install `pytest`
 - Remove `openai` library, this is required to skip the tests which check for `openai` presence ([`pytest.mark.skipif`](https://github.com/microsoft/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19))
 - Run the tests from the `test` folder. Make sure they all pass, this is required for [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml) checks to pass
