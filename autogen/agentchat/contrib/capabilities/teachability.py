@@ -57,8 +57,8 @@ class Teachability(AgentCapability):
         """Adds teachability to the given agent."""
         self.teachable_agent = agent
 
-        # Register a hook for processing user messages.
-        agent.register_hook(hookable_method=agent.process_user_text, hook=self.process_user_text)
+        # Register a hook for processing the last message.
+        agent.register_hook(hookable_method=agent.process_last_message, hook=self.process_last_message)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
@@ -76,22 +76,22 @@ class Teachability(AgentCapability):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
-    def process_user_text(self, user_text):
+    def process_last_message(self, text):
         """
-        Appends any relevant memos to the user text, and stores user teachings in new memos.
+        Appends any relevant memos to the message text, and stores any apparent teachings in new memos.
         Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.
         """
 
         # Try to retrieve relevant memos from the DB.
-        expanded_user_text = user_text
+        expanded_text = text
         if self.memo_store.last_memo_id > 0:
-            expanded_user_text = self._consider_memo_retrieval(user_text)
+            expanded_text = self._consider_memo_retrieval(text)
 
         # Try to store any user teachings in new memos to be used in the future.
-        self._consider_memo_storage(user_text)
+        self._consider_memo_storage(text)
 
-        # Return the (possibly) expanded user text.
-        return expanded_user_text
+        # Return the (possibly) expanded message text.
+        return expanded_text
 
     def _consider_memo_storage(self, comment):
         """Decides whether to store something from one user comment in the DB."""
@@ -154,7 +154,7 @@ class Teachability(AgentCapability):
     def _consider_memo_retrieval(self, comment):
         """Decides whether to retrieve memos from the DB, and add them to the chat context."""
 
-        # First, use the user comment directly as the lookup key.
+        # First, use the comment directly as the lookup key.
         if self.verbosity >= 1:
             print(colored("\nLOOK FOR RELEVANT MEMOS, AS QUESTION-ANSWER PAIRS", "light_yellow"))
         memo_list = self._retrieve_relevant_memos(comment)
@@ -182,7 +182,7 @@ class Teachability(AgentCapability):
         # De-duplicate the memo list.
         memo_list = list(set(memo_list))
 
-        # Append the memos to the last user message.
+        # Append the memos to the text of the last message.
         return comment + self._concatenate_memo_texts(memo_list)
 
     def _retrieve_relevant_memos(self, input_text):
@@ -211,7 +211,7 @@ class Teachability(AgentCapability):
             for memo in memo_list:
                 info = info + "- " + memo + "\n"
             if self.verbosity >= 1:
-                print(colored("\nMEMOS APPENDED TO LAST USER MESSAGE...\n" + info + "\n", "light_yellow"))
+                print(colored("\nMEMOS APPENDED TO LAST MESSAGE...\n" + info + "\n", "light_yellow"))
             memo_texts = memo_texts + "\n" + info
         return memo_texts
 

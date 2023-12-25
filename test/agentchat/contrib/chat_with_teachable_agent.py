@@ -1,5 +1,6 @@
 from autogen import UserProxyAgent, config_list_from_json
-from autogen.agentchat.contrib.teachable_agent import TeachableAgent
+from autogen.agentchat.contrib.capabilities.teachability import Teachability
+from autogen import ConversableAgent
 
 import os
 import sys
@@ -16,14 +17,12 @@ except ImportError:
         return x
 
 
-verbosity = 0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-recall_threshold = 1.5  # Higher numbers allow more (but less relevant) memos to be recalled.
-cache_seed = None  # Use an int to seed the response cache. Use None to disable caching.
-
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
+filter_dict={"model": ["gpt-4-1106-preview"]}
+# filter_dict={"model": ["gpt-3.5-turbo-1106"]}
 # filter_dict = {"model": ["gpt-4-0613"]}
 # filter_dict = {"model": ["gpt-3.5-turbo-0613"]}
-filter_dict = {"model": ["gpt-4"]}
+# filter_dict = {"model": ["gpt-4"]}
 # filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
 
@@ -33,16 +32,24 @@ def create_teachable_agent(reset_db=False):
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC)
-    teachable_agent = TeachableAgent(
+
+    # Start by instantiating any agent that inherits from ConversableAgent.
+    teachable_agent = ConversableAgent(
         name="teachableagent",
-        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": cache_seed},
-        teach_config={
-            "verbosity": verbosity,
-            "reset_db": reset_db,
-            "path_to_db_dir": "./tmp/interactive/teachable_agent_db",
-            "recall_threshold": recall_threshold,
-        },
+        llm_config={"config_list": config_list, "timeout": 120, "cache_seed": None},  # Disable caching.
     )
+
+    # Instantiate the Teachability capability. Its parameters are all optional.
+    teachability = Teachability(
+        verbosity=0,  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+        reset_db=reset_db,
+        path_to_db_dir="./tmp/interactive/teachability_db",
+        recall_threshold=1.5,  # Higher numbers allow more (but less relevant) memos to be recalled.
+    )
+
+    # Now add the Teachability capability to the agent.
+    teachability.add_to_agent(teachable_agent)
+
     return teachable_agent
 
 
@@ -56,12 +63,6 @@ def interact_freely_with_user():
 
     # Start the chat.
     teachable_agent.initiate_chat(user, message="Greetings, I'm a teachable user assistant! What's on your mind today?")
-
-    # Let the teachable agent remember things that should be learned from this chat.
-    teachable_agent.learn_from_user_feedback()
-
-    # Wrap up.
-    teachable_agent.close_db()
 
 
 if __name__ == "__main__":

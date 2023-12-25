@@ -141,10 +141,10 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
-        # Registered hooks are kept in lists, indexed by hookable method, and are called in their order of registration.
-        # Hookable methods will be added over time to support new agent capabilities.
+        # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
+        # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {
-            self.process_user_text: []  # This is currently the only hookable method.
+            self.process_last_message: []  # This is currently the only hookable method.
         }
 
     def register_reply(
@@ -958,7 +958,7 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        messages = self.process_user_text(messages)  # Call the hookable method for processing the user's last message.
+        messages = self.process_last_message(messages)  # Call the hookable method for processing the last message.
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1011,7 +1011,7 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        messages = self.process_user_text(messages)  # Call the hookable method for processing the user's last message.
+        messages = self.process_last_message(messages)  # Call the hookable method for processing the last message.
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1344,9 +1344,7 @@ class ConversableAgent(Agent):
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
-        A hook is a method of a subclass of AgentCapability.
-        A hookable method is a method of ConversableAgent that is written to call registered hooks,
-        which are kept in lists (each list indexed by hookable method) and are called in their order of registration.
+        Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
 
         Args:
             hookable_method: A hookable method implemented by ConversableAgent.
@@ -1357,11 +1355,14 @@ class ConversableAgent(Agent):
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
 
-    def process_user_text(self, messages):
-        """Calls any registered capability hooks to process the user's last message."""
+    def process_last_message(self, messages):
+        """
+        Calls any registered capability hooks to use and potentially modify the text of the last message,
+        as long as the last message is not a function call or exit command.
+        """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists[self.process_user_text]
+        hook_list = self.hook_lists[self.process_last_message]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:
