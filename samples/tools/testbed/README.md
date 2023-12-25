@@ -2,7 +2,7 @@
 
 AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen tasks in a setting with tightly-controlled initial conditions. With each run, AutoGenBench will start from a blank slate. The agents being evaluated will need to work out what code needs to be written, and what libraries or dependencies to install, to solve tasks. The results of each run are logged, and can be ingested by analysis or metrics scripts (such as `autogenbench tabulate`) By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
-AutoGenBench is known to work with all AutoGen 0.1.*, and 0.2.* versions.
+AutoGenBench works with all AutoGen 0.1.*, and 0.2.* versions.
 
 ## Installation and Setup
 
