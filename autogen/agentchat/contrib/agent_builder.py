@@ -4,6 +4,7 @@ import subprocess as sp
 import socket
 import json
 import hashlib
+import chromadb
 from typing import Optional, List, Dict, Tuple, Union
 
 
@@ -399,6 +400,7 @@ class AgentBuilder:
         coding: Optional[bool] = True,
         code_execution_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
+        embedding_similarity_selection: Optional[bool] = False,
         **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
@@ -413,6 +415,7 @@ class AgentBuilder:
             coding: use to identify if the user proxy (a code interpreter) should be added.
             code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+            embedding_similarity_selection: use embedding similarity to select agents from library.
 
         Returns:
             agent_list: a list of agents.
@@ -440,34 +443,56 @@ class AgentBuilder:
             agent_library = json.load(f)
 
         print(f"Looking for suitable agents in {library_path}...")
-        agent_profiles = [
-            f"No.{i + 1} AGENT's NAME: {agent['name']}\nNo.{i + 1} AGENT's PROFILE: {agent['profile']}\n\n"
-            for i, agent in enumerate(agent_library)
-        ]
-        resp_agent_name = (
-            build_manager.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": self.AGENT_SEARCHING_PROMPT.format(
-                            task=building_task, agent_list="".join(agent_profiles), max_agents=self.max_agents
-                        ),
-                    }
-                ]
+        if embedding_similarity_selection:
+            chroma_client = chromadb.Client()
+            collection = chroma_client.create_collection(name="agent_list")
+            collection.add(
+                documents=[agent['profile'] for agent in agent_library],
+                metadatas=[{"source": "agent_profile"} for _ in range(len(agent_library))],
+                ids=[f"agent_{i}" for i in range(len(agent_library))]
             )
-            .choices[0]
-            .message.content
-        )
-        agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
-        print(f"{agent_name_list} are selected.")
+            agent_profile_list = collection.query(
+                query_texts=[building_task],
+                n_results=self.max_agents
+            )['documents'][0]
 
-        # search profile from library
-        agent_profile_list = []
-        for name in agent_name_list:
-            for agent in agent_library:
-                if agent["name"] == name:
-                    agent_profile_list.append(agent["profile"])
-                    break
+            # search name from library
+            agent_name_list = []
+            for profile in agent_profile_list:
+                for agent in agent_library:
+                    if agent["profile"] == profile:
+                        agent_name_list.append(agent["name"])
+                        break
+            chroma_client.delete_collection(collection.name)
+            print(f"{agent_name_list} are selected.")
+        else:
+            agent_profiles = [
+                f"No.{i + 1} AGENT's NAME: {agent['name']}\nNo.{i + 1} AGENT's PROFILE: {agent['profile']}\n\n"
+                for i, agent in enumerate(agent_library)
+            ]
+            resp_agent_name = (
+                build_manager.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": self.AGENT_SEARCHING_PROMPT.format(
+                                task=building_task, agent_list="".join(agent_profiles), max_agents=self.max_agents
+                            ),
+                        }
+                    ]
+                )
+                .choices[0]
+                .message.content
+            )
+            agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
+
+            # search profile from library
+            agent_profile_list = []
+            for name in agent_name_list:
+                for agent in agent_library:
+                    if agent["name"] == name:
+                        agent_profile_list.append(agent["profile"])
+                        break
 
         # generate system message from profile
         agent_sys_msg_list = []

@@ -56,7 +56,7 @@ def test_build():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     _config_check(agent_config)
@@ -73,7 +73,7 @@ def test_build():
     not OPENAI_INSTALLED,
     reason="do not run when dependency is not installed",
 )
-def test_build_from_library():
+def test_build_from_library_api():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -88,13 +88,46 @@ def test_build_from_library():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     _config_check(agent_config)
 
     # check number of agents
-    assert len(agent_list) <= builder.max_agents
+    assert len(agent_config["agent_configs"]) <= builder.max_agents
+
+    # check system message
+    for cfg in agent_config["agent_configs"]:
+        assert "TERMINATE" in cfg["system_message"]
+
+
+@pytest.mark.skipif(
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
+)
+def test_build_from_library_embed():
+    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    building_task = (
+        "Find a paper on arxiv by programming, and analyze its application in some domain. "
+        "For example, find a recent paper about gpt-4 on arxiv "
+        "and find its potential applications in software."
+    )
+    agent_list, agent_config = builder.build_from_library(
+        building_task=building_task,
+        library_path=f"{here}/example_agent_builder_library.json",
+        default_llm_config={"temperature": 0},
+        embedding_similarity_selection=True,
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "timeout": 60,
+            "use_docker": "python:3",
+        },
+    )
+    _config_check(agent_config)
+
+    # check number of agents
+    assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # check system message
     for cfg in agent_config["agent_configs"]:
@@ -120,7 +153,7 @@ def test_save():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
@@ -149,7 +182,7 @@ def test_load():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     print(loaded_agent_configs)
@@ -171,7 +204,7 @@ def test_clear_agent():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     builder.clear_all_agents()
