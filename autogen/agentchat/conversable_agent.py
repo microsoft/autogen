@@ -477,9 +477,7 @@ class ConversableAgent(Agent):
     def _process_received_message(self, message: Union[List[Union[Dict, str]], Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         message = [message] if not isinstance(message, list) else message
-        valid = all(
-            [self._append_oai_message(self._message_to_dict(each_message), "user", sender) for each_message in message]
-        )
+        valid = all([self._append_oai_message(each_message, "user", sender) for each_message in message])
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
