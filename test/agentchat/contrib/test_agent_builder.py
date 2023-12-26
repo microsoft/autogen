@@ -26,6 +26,7 @@ except ImportError:
 # chromadb required
 try:
     import chromadb
+
     CHROMADB_INSTALLED = True
 except ImportError:
     CHROMADB_INSTALLED = False
