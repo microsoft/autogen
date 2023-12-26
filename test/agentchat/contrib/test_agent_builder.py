@@ -73,7 +73,7 @@ def test_build():
     not OPENAI_INSTALLED,
     reason="do not run when dependency is not installed",
 )
-def test_build_from_library_api():
+def test_build_from_library():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
@@ -100,18 +100,9 @@ def test_build_from_library_api():
     for cfg in agent_config["agent_configs"]:
         assert "TERMINATE" in cfg["system_message"]
 
+    builder.clear_all_agents()
 
-@pytest.mark.skipif(
-    not OPENAI_INSTALLED,
-    reason="do not run when dependency is not installed",
-)
-def test_build_from_library_embed():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
-    building_task = (
-        "Find a paper on arxiv by programming, and analyze its application in some domain. "
-        "For example, find a recent paper about gpt-4 on arxiv "
-        "and find its potential applications in software."
-    )
+    # test embedding similarity selection
     agent_list, agent_config = builder.build_from_library(
         building_task=building_task,
         library_path=f"{here}/example_agent_builder_library.json",
