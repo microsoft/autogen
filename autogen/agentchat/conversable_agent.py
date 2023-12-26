@@ -312,7 +312,10 @@ class ConversableAgent(Agent):
             if function.get("name", False):
                 function["name"] = self._normalize_name(function["name"])
 
-        oai_message["role"] = message.get("role", role)
+        if message.get("role") in ["function", "tool"]:
+            oai_message["role"] = message.get("role")
+        else:
+            oai_message["role"] = role
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
