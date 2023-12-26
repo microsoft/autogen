@@ -447,14 +447,13 @@ class AgentBuilder:
             chroma_client = chromadb.Client()
             collection = chroma_client.create_collection(name="agent_list")
             collection.add(
-                documents=[agent['profile'] for agent in agent_library],
+                documents=[agent["profile"] for agent in agent_library],
                 metadatas=[{"source": "agent_profile"} for _ in range(len(agent_library))],
-                ids=[f"agent_{i}" for i in range(len(agent_library))]
+                ids=[f"agent_{i}" for i in range(len(agent_library))],
             )
-            agent_profile_list = collection.query(
-                query_texts=[building_task],
-                n_results=self.max_agents
-            )['documents'][0]
+            agent_profile_list = collection.query(query_texts=[building_task], n_results=self.max_agents)["documents"][
+                0
+            ]
 
             # search name from library
             agent_name_list = []
