@@ -666,7 +666,7 @@ class ConversableAgent(Agent):
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
 
-        # TODO: line 270, 298, 428, 479 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
+        # TODO: line 270, 297, 431 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
             extracted_response = extracted_response.model_dump(mode="dict")
