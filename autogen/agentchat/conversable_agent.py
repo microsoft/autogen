@@ -11,6 +11,7 @@ from .. import OpenAIWrapper
 from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
+from .._pydantic import model_dump
 
 try:
     from termcolor import colored
@@ -640,7 +641,7 @@ class ConversableAgent(Agent):
         # TODO: line 301, line 271 is converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
-            extracted_response = extracted_response.model_dump(mode="dict")
+            extracted_response = model_dump(extracted_response)
         return True, extracted_response
 
     async def a_generate_oai_reply(
