@@ -13,7 +13,7 @@ tags: [LLM, research]
 Introducing **AgentOptimizer**, a new class for training LLM agents in the era of LLMs as a service.
 **AgentOptimizer** is able to prompt autogen agents to iteratively optimize its function/skills according to the historical conversation and performance.
 Checkout one implementation for **AgentOptimizer** on [MATH](https://github.com/hendrycks/math) dataset
-[here](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb).
+[here](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_agentoptimizer.ipynb).
 
 Paper is coming soon!
 
@@ -174,6 +174,6 @@ REMOVE_FUNC = {
 
 1. Unlike gradient descent in traditional machine learning training processes, each optimization step does not necessarily lead to better performance on the training set.
 When the training epoch is small, the agent’s performance may even decrease. One urgent task is to design a better mechanism to guide the optimization process.
-2. The [Current implementation](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb) of AgentOptimizer is mainly for illustration purpose and is just a proof of concept.
+2. The [Current implementation](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_agentoptimizer.ipynb) of AgentOptimizer is mainly for illustration purpose and is just a proof of concept.
 It is not formally integrated into the autogen with a general interface like optimizing any kinds of agents in any tasks.
 Currently, it only supports optimizing the multi-agent system in solving problems from [MATH](https://github.com/hendrycks/math) dataset. We will integrate it into autogen with more general interface in the future.
