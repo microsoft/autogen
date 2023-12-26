@@ -364,7 +364,7 @@ class ConversableAgent(Agent):
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "user", recipient) for each_message in message])
+        valid = all([self._append_oai_message(each_message, "assistant", recipient) for each_message in message])
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
