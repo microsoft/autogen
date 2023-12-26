@@ -445,7 +445,7 @@ class ConversableAgent(Agent):
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
                 print(content_str(content), flush=True)
-            if "function_call" in message and message["function_call"] is not None:
+            if "function_call" in message and message["function_call"]:
                 function_call = dict(message["function_call"])
                 func_print = (
                     f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
