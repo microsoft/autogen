@@ -770,7 +770,8 @@ class ConversableAgent(Agent):
         message = messages[-1]
         if "function_call" in message:
             func_call = message["function_call"]
-            func = self._function_map.get(func_call.get("name", None), None)
+            func_name = func_call.get("name", None)
+            func = self._function_map.get(func_name, None)
             if asyncio.coroutines.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
