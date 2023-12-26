@@ -18,20 +18,20 @@ Checkout one implementation for **AgentOptimizer** on [MATH](https://github.com/
 Paper is coming soon!
 
 ## Introduction
-In traditional ML pipeline, we train a model by updating its parameter according to the loss on the training set, while in the era of LLM agents, how should we train an agent?
+In traditional ML pipeline, we train a model by updating its weights according to the loss on the training set, while in the era of LLM agents, how should we train an agent?
 Here, we take an initial step towards the agent training.
 Inspired by the [function calling](https://platform.openai.com/docs/guides/function-calling) capabilities provided by OpenAI,
-we draw an analogy between model parameters and agent functions/skills, and update agent’s functions/skills based on its historical performance on the training set.
+we draw an analogy between model weights and agent functions/skills, and update an agent’s functions/skills based on its historical performance on a training set.
 Specifically, we propose to use the function calling capabilities to formulate the actions that optimize the agents’ functions as a set of function calls,
 to support iteratively **adding, revising, and removing** existing functions.
-As an agentic way of training an agent, our approach helps enhance the agents’ abilities without requiring access to the LLMs parameters.
+As an agentic way of training an agent, our approach helps enhance the agents’ abilities without requiring access to the LLMs weights.
 
 ## AgentOptimizer
 
 **AgentOptimizer** is a class designed to optimize the agents by improving their function calls.
 It contains two core methods:
 
-1. `step()`: `step()` takes three inputs, the previous conversation history (history), the statistical information of solving previous problems (statistic), and the current functions (current_functions).
+1. `step()`: `step()` takes three inputs, including the previous conversation history (history), the statistical information of solving previous problems (statistic), and the current functions (current_functions).
 
 ```python
 actions, updated_functions = AgentOptimizer.step(history, statistic, current_functions)
@@ -40,7 +40,7 @@ actions, updated_functions = AgentOptimizer.step(history, statistic, current_fun
 It has two outputs `actions` and `updated_functions`. `actions` is a series of actions to manipulate the current functions. And `updated_functions` is the updated functions after the actions are applied (including code implementation).
 
 2. `update_function_call()`:
-This method takes the assistant-userproxy pair and actions as input. It updates the functions registered in these agents according to the actions from `step()`.
+This method takes the agents and actions as input. It updates the functions registered in these agents according to the actions from `step()`.
 For AssistantAgent, it first uses [update_function_signature](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#update_function_signature) to update the function signatures.
 Then, it updates the functions in the MathUserproxyAgent with the corresponding code implementation gained from `step()`.
 
@@ -176,4 +176,4 @@ REMOVE_FUNC = {
 When the training epoch is small, the agent’s performance may even decrease. One urgent task is to design a better mechanism to guide the optimization process.
 2. The [Current implementation](https://github.com/microsoft/autogen/blob/main/notebook/agent_optimizer.ipynb) of AgentOptimizer is mainly for illustration purpose and is just a proof of concept.
 It is not formally integrated into the autogen with a general interface like optimizing any kinds of agents in any tasks.
-Currently, it only supports the optimization the agents in [MATH](https://github.com/hendrycks/math) dataset. We will integrate it into autogen with more general interface in the future.
+Currently, it only supports optimizing the multi-agent system in solving problems from [MATH](https://github.com/hendrycks/math) dataset. We will integrate it into autogen with more general interface in the future.
