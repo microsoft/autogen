@@ -23,6 +23,13 @@ try:
 except ImportError:
     OPENAI_INSTALLED = False
 
+# chromadb required
+try:
+    import chromadb
+    CHROMADB_INSTALLED = True
+except ImportError:
+    CHROMADB_INSTALLED = False
+
 
 def _config_check(config):
     # check config loading
@@ -54,7 +61,7 @@ def test_build():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -68,7 +75,7 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    not OPENAI_INSTALLED,
+    not OPENAI_INSTALLED or not CHROMADB_INSTALLED,
     reason="do not run when dependency is not installed",
 )
 def test_build_from_library():
@@ -86,7 +93,7 @@ def test_build_from_library():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -110,7 +117,7 @@ def test_build_from_library():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -142,7 +149,7 @@ def test_save():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
@@ -171,7 +178,7 @@ def test_load():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     print(loaded_agent_configs)
@@ -193,7 +200,7 @@ def test_clear_agent():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     builder.clear_all_agents()

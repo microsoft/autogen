@@ -4,8 +4,7 @@ import subprocess as sp
 import socket
 import json
 import hashlib
-import chromadb
-from typing import Optional, List, Dict, Tuple, Union
+from typing import Optional, List, Dict, Tuple
 
 
 def _config_check(config: Dict):
@@ -421,6 +420,8 @@ class AgentBuilder:
             agent_list: a list of agents.
             cached_configs: cached configs.
         """
+        import chromadb
+
         if code_execution_config is None:
             code_execution_config = {
                 "last_n_messages": 1,
