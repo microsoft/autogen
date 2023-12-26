@@ -963,7 +963,9 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        messages = self.process_last_message(messages)  # Call the hookable method for processing the last message.
+        # Call the hookable method that gives registered hooks a chance to process the last message.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_last_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1016,7 +1018,9 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        messages = self.process_last_message(messages)  # Call the hookable method for processing the last message.
+        # Call the hookable method that gives registered hooks a chance to process the last message.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_last_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
