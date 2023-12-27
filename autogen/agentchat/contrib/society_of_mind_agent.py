@@ -102,12 +102,7 @@ class SocietyOfMindAgent(ConversableAgent):
         for agent in self._group_chat.agents:
             agent.reset()
             for message in external_history:
-                attributed_message = message.copy()
-                if "name" in attributed_message and attributed_message["name"] != agent.name:
-                    attributed_message["role"] = "assistant"
-                else:
-                    attributed_message["role"] = "user"
-                self.chat_manager.send(message["content"], agent, request_reply=False, silent=True)
+                self.chat_manager.send(message, agent, request_reply=False, silent=True)
 
-        self.initiate_chat(self.chat_manager, message=messages[-1]["content"], clear_history=False)
+        self.initiate_chat(self.chat_manager, message=messages[-1], clear_history=False)
         return True, self.response_preparer(self, self._group_chat.messages)

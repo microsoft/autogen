@@ -109,10 +109,24 @@ def test_society_of_mind_agent():
     )  # Prior external conversation + everything *including* the termination message
 
     assert agent1.chat_messages[group_chat_manager][0]["content"] == "An external message to kick things off."
+    assert agent1.chat_messages[group_chat_manager][0]["role"] == "user"
+    assert group_chat_manager.chat_messages[agent1][0]["role"] == "assistant"
+
     assert agent1.chat_messages[group_chat_manager][1]["content"] == "This is sam speaking."
+    assert agent1.chat_messages[group_chat_manager][1]["role"] == "user"
+    assert group_chat_manager.chat_messages[agent1][1]["role"] == "assistant"
+
     assert agent1.chat_messages[group_chat_manager][2]["content"] == "A second message to see how things go."
+    assert agent1.chat_messages[group_chat_manager][2]["role"] == "user"
+    assert group_chat_manager.chat_messages[agent1][2]["role"] == "assistant"
+
     assert agent1.chat_messages[group_chat_manager][3]["content"] == "This is alice speaking."
+    assert agent1.chat_messages[group_chat_manager][3]["role"] == "assistant"
+    assert group_chat_manager.chat_messages[agent1][3]["role"] == "user"
+
     assert agent1.chat_messages[group_chat_manager][4]["content"] == "This is bob speaking."
+    assert agent1.chat_messages[group_chat_manager][4]["role"] == "user"
+    assert group_chat_manager.chat_messages[agent1][4]["role"] == "assistant"
 
     for i in range(0, 5):
         assert (
@@ -182,5 +196,5 @@ def test_custom_preparer():
 
 
 if __name__ == "__main__":
-    # test_society_of_mind_agent()
+    test_society_of_mind_agent()
     test_custom_preparer()
