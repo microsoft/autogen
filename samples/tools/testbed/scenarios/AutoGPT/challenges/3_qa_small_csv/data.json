@@ -28,5 +28,5 @@
         ]
     },
     "name": "AnswerQuestionSmallCsv",
-    "task": "Read and analyze 'file1.csv', then answer the quetion: How much was spent on utilities in total? Write the answer in file 'output.txt'."
+    "task": "Read and analyze 'file1.csv', then answer the question: How much was spent on utilities in total? Write the answer in file 'output.txt'."
 }

@@ -46,7 +46,7 @@ def problem_to_json():
     with open("problems.jsonl", "w") as f:
         for i, problem in enumerate(problems):
             # a = {
-            #     'id': f'problem{i}',
+            #     'id': problem{i}',
             #     'template': 'scenario.py',
             #     'substitutions': {
             #         '__PROMPT__': problem,

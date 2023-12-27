@@ -138,7 +138,7 @@ def test_mode_custom():
     not OPENAI_INSTALLED,
     reason="do not run if dependency is not installed",
 )
-def test_compress_messsage():
+def test_compress_message():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
@@ -202,5 +202,5 @@ def test_mode_terminate():
 if __name__ == "__main__":
     test_mode_compress()
     test_mode_custom()
-    test_compress_messsage()
+    test_compress_message()
     test_mode_terminate()
