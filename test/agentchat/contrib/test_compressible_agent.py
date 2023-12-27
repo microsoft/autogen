@@ -8,12 +8,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
+models = ["gpt-3.5-turbo", "gpt-35-turbo", "gpt-3.5-turbo-16k", "gpt-35-turbo-16k"]
 
 config_list = autogen.config_list_from_json(
     OAI_CONFIG_LIST,
     file_location=KEY_LOC,
     filter_dict={
-        "model": ["gpt-3.5-turbo", "gpt-35-turbo", "gpt-3.5-turbo-16k", "gpt-35-turbo-16k"],
+        "model": models,
     },
 )
 
@@ -38,7 +39,7 @@ def test_mode_compress():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
-            "model": config_list[0],
+            "model": models[0],
         },
         compress_config={
             "mode": "COMPRESS",
@@ -77,7 +78,7 @@ def test_mode_customized():
                 "timeout": 600,
                 "cache_seed": 43,
                 "config_list": config_list,
-                "model": config_list[0],
+                "model": models[0],
             },
             compress_config={
                 "mode": "CUSTOMIZED",
@@ -147,7 +148,7 @@ def test_compress_message():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
-            "model": config_list[0],
+            "model": models[0],
         },
         compress_config={
             "mode": "COMPRESS",
@@ -179,7 +180,7 @@ def test_mode_terminate():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
-            "model": config_list[0],
+            "model": models[0],
         },
         compress_config=True,
     )
