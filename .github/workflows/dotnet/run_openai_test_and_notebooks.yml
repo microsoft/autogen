@@ -10,7 +10,7 @@ env:
 
 jobs:
   build:
-    environment: dotnet_openai
+    environment: dotnet
     name: run-openai-test-and-notebooks
     runs-on: ubuntu-latest
     defaults:
