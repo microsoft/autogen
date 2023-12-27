@@ -2,7 +2,7 @@
 LLM Lingua dependencies complain about forking after being instantiated. So pre-fork LLM Lingua to isolate it from autogen forking
 
 lingua_compressor forks, memoizes, and then utilizes llmlingua.prompt_compressor
-lingua_shotdown signals the forked process to shutdown
+lingua_shutdown signals the forked process to shutdown
 """
 
 import logging

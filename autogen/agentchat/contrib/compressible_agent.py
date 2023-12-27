@@ -6,7 +6,6 @@ import copy
 import asyncio
 import logging
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions, num_tokens_from_tools
-from llmlingua import PromptCompressor
 
 try:
     from termcolor import colored
