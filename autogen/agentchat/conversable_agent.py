@@ -43,9 +43,7 @@ class ConversableAgent(Agent):
     To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
-    DEFAULT_CONFIG = {
-        "model": DEFAULT_MODEL,
-    }
+    DEFAULT_CONFIG = {}  # An empty configuration
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
     llm_config: Union[Dict, Literal[False]]

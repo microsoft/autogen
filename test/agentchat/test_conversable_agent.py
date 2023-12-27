@@ -609,9 +609,22 @@ def test_register_for_execution():
         assert get_origin(user_proxy_1.function_map) == expected_function_map
 
 
+def test_no_llm_config():
+    agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
+    agent2 = ConversableAgent(
+        name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
+    )
+    try:
+        agent1.initiate_chat(agent2, message="hi")
+        assert False  # We should not get here!
+    except TypeError as e:
+        assert "Missing required arguments" in str(e)
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
     # test_generate_code_execution_reply()
-    test_conversable_agent()
+    # test_conversable_agent()
+    test_no_llm_config()
