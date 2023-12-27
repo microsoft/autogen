@@ -394,12 +394,12 @@ class AgentBuilder:
     def build_from_library(
         self,
         building_task: str,
-        library_path: str,
+        library_path_or_json: str,
         default_llm_config: Dict,
         coding: Optional[bool] = True,
         code_execution_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
-        embedding_similarity_selection: Optional[bool] = False,
+        embedding_model: Optional[str] = None,
         **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
@@ -409,18 +409,21 @@ class AgentBuilder:
 
         Args:
             building_task: instruction that helps build manager (gpt-4) to decide what agent should be built.
-            library_path: path of agent library.
+            library_path_or_json: path or JSON string config of agent library.
             default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             coding: use to identify if the user proxy (a code interpreter) should be added.
             code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
-            embedding_similarity_selection: use embedding similarity to select agents from library.
+            embedding_model: a Sentence-Transformers model use for embedding similarity to select agents from library.
+                if None, an openai model will be prompted to select agents. As reference, chromadb use "all-mpnet-base-
+                v2" as default.
 
         Returns:
             agent_list: a list of agents.
             cached_configs: cached configs.
         """
         import chromadb
+        from chromadb.utils import embedding_functions
 
         if code_execution_config is None:
             code_execution_config = {
@@ -440,13 +443,21 @@ class AgentBuilder:
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
-        with open(library_path, "r") as f:
-            agent_library = json.load(f)
+        try:
+            agent_library = json.loads(library_path_or_json)
+        except json.decoder.JSONDecodeError:
+            with open(library_path_or_json, "r") as f:
+                agent_library = json.load(f)
 
-        print(f"Looking for suitable agents in {library_path}...")
-        if embedding_similarity_selection:
+        print(f"Looking for suitable agents in library...")
+        if embedding_model is not None:
             chroma_client = chromadb.Client()
-            collection = chroma_client.create_collection(name="agent_list")
+            collection = chroma_client.create_collection(
+                name="agent_list",
+                embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(
+                    model_name=embedding_model
+                ),
+            )
             collection.add(
                 documents=[agent["profile"] for agent in agent_library],
                 metadatas=[{"source": "agent_profile"} for _ in range(len(agent_library))],
