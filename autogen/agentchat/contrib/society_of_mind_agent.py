@@ -5,19 +5,34 @@ from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAI
 
 
 class SocietyOfMindAgent(ConversableAgent):
-    """(In preview) A single agent that runs a Group Chat as an inner monologue."""
+    """(In preview) A single agent that runs a Group Chat as an inner monologue.
+    At the end of the conversation (termination for any reason), the SocietyOfMindAgent
+    applies the response_preparer method on the entire inner monologue message history to
+    extract a final answer for the reply.
+
+    Most arguments are inherited from ConversableAgent. New arguments are:
+        chat_manager (GroupChatManager): the group chat manager that will be running the inner monologue
+        response_preparer (Optional, Callable): A function reference of the form:
+                    f( self: SocietyOfMindAgent, messages: List[Dict])
+                Where self is this SocietyOfMindAgent, and messages is a list of inner-monologue messages. The
+                function should return a string representing the final response (extracted or prepared) from
+                that history. The default response_preparer deterministically returns the last message in the
+                inner-monolgue, but strips out any termination signals.
+    """
 
     def __init__(
         self,
         name: str,
         chat_manager: GroupChatManager,
-        response_preparer: Optional[Callable] = lambda messages: messages[-1]["content"].replace("TERMINATE", ""),
+        response_preparer: Optional[Union[str, Callable]] = lambda self, messages: messages[-1]["content"]
+        .replace("TERMINATE", "")
+        .strip(),
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
-        llm_config: Optional[Union[Dict, Literal[False]]] = None,
+        llm_config: Optional[Union[Dict, Literal[False]]] = False,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
     ):
         super().__init__(
@@ -35,7 +50,8 @@ class SocietyOfMindAgent(ConversableAgent):
         self.update_chat_manager(chat_manager)
         self.response_preparer = response_preparer
 
-        self.register_reply([Agent, None], SocietyOfMindAgent.generate_group_reply)
+        self._reply_func_list = []
+        self.register_reply([Agent, None], SocietyOfMindAgent.generate_inner_monologue_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
@@ -53,7 +69,8 @@ class SocietyOfMindAgent(ConversableAgent):
         """
         self._chat_manager = chat_manager
 
-        # Awkward, but read the GroupChat object from the callback
+        # Awkward, but due to object cloning, there's no better way to do this
+        # Read the GroupChat object from the callback
         self._group_chat = None
         if self._chat_manager is not None:
             for item in self._chat_manager._reply_func_list:
@@ -61,22 +78,22 @@ class SocietyOfMindAgent(ConversableAgent):
                     self._group_chat = item["config"]
                     break
 
-    def generate_group_reply(
+    def generate_inner_monologue_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[OpenAIWrapper] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
-        """Generate a reply using autogen.oai."""
+        """Generate a reply by running the group chat"""
         if self.chat_manager is None:
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # TODO: Need a cleaner way of doing this to preserve context
+        # We want to clear the inner monolgue, keeping only the exteranl chat for context.
         # Reset all the counters and histories, then populate agents with necesssary context from the extennal chat
         self.chat_manager.reset()
-        self.update_chat_manager(self.chat_manager)  # Update the group_chat reference
+        self.update_chat_manager(self.chat_manager)
 
         external_history = []
         if len(messages) > 1:
@@ -84,13 +101,13 @@ class SocietyOfMindAgent(ConversableAgent):
 
         for agent in self._group_chat.agents:
             agent.reset()
-            # Give each agent external context
             for message in external_history:
-                agent.receive(message, self.chat_manager, request_reply=False, silent=True)
-        # for message in external_history:
-        #    self._group_chat.append(message)
+                attributed_message = message.copy()
+                if "name" in attributed_message and attributed_message["name"] != agent.name:
+                    attributed_message["role"] = "assistant"
+                else:
+                    attributed_message["role"] = "user"
+                self.chat_manager.send(message["content"], agent, request_reply=False, silent=True)
 
-        # Always send to the first agent in the list
-        first_agent = self._group_chat.agents[0]
-        first_agent.initiate_chat(self.chat_manager, message=messages[-1]["content"], clear_history=False)
-        return True, self.response_preparer(self._group_chat.messages)
+        self.initiate_chat(self.chat_manager, message=messages[-1]["content"], clear_history=False)
+        return True, self.response_preparer(self, self._group_chat.messages)
