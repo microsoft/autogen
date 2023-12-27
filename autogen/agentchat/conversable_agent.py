@@ -1,16 +1,18 @@
 import asyncio
 import copy
 import functools
+import inspect
 import json
 import logging
 import re
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from autogen import OpenAIWrapper
-from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
-
+from .. import OpenAIWrapper
+from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
+from .._pydantic import model_dump
 
 try:
     from termcolor import colored
@@ -20,7 +22,11 @@ except ImportError:
         return x
 
 
+__all__ = ("ConversableAgent",)
+
 logger = logging.getLogger(__name__)
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class ConversableAgent(Agent):
@@ -312,7 +318,10 @@ class ConversableAgent(Agent):
             if function.get("name", False):
                 function["name"] = self._normalize_name(function["name"])
 
-        oai_message["role"] = message.get("role", role)
+        if message.get("role") in ["function", "tool"]:
+            oai_message["role"] = message.get("role")
+        else:
+            oai_message["role"] = role
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
@@ -364,7 +373,7 @@ class ConversableAgent(Agent):
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "user", recipient) for each_message in message])
+        valid = all([self._append_oai_message(each_message, "assistant", recipient) for each_message in message])
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
@@ -442,7 +451,7 @@ class ConversableAgent(Agent):
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
                 print(content_str(content), flush=True)
-            if "function_call" in message and message["function_call"] is not None:
+            if "function_call" in message and message["function_call"]:
                 function_call = dict(message["function_call"])
                 func_print = (
                     f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
@@ -474,9 +483,7 @@ class ConversableAgent(Agent):
     def _process_received_message(self, message: Union[List[Union[Dict, str]], Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         message = [message] if not isinstance(message, list) else message
-        valid = all(
-            [self._append_oai_message(self._message_to_dict(each_message), "user", sender) for each_message in message]
-        )
+        valid = all([self._append_oai_message(each_message, "user", sender) for each_message in message])
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -665,10 +672,10 @@ class ConversableAgent(Agent):
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
 
-        # TODO: line 270, 298, 428, 479 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
+        # TODO: line 270, 297, 431 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
-            extracted_response = extracted_response.model_dump(mode="dict")
+            extracted_response = model_dump(extracted_response)
         if not isinstance(extracted_response, dict):
             extracted_response = {"content": extracted_response}
         return True, extracted_response
@@ -711,7 +718,7 @@ class ConversableAgent(Agent):
                 else:
                     messages_to_scan += 1
 
-        # iterate through the last n messages reversly
+        # iterate through the last n messages reversely
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
         for i in range(min(len(messages), messages_to_scan)):
@@ -769,7 +776,8 @@ class ConversableAgent(Agent):
         message = messages[-1]
         if "function_call" in message:
             func_call = message["function_call"]
-            func = self._function_map.get(func_call.get("name", None), None)
+            func_name = func_call.get("name", None)
+            func = self._function_map.get(func_name, None)
             if asyncio.coroutines.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
@@ -1426,7 +1434,10 @@ class ConversableAgent(Agent):
         Args:
             **context: any context information, and "message" parameter needs to be provided.
         """
-        return {"content": context["message"]}
+        message = context["message"]
+        if isinstance(message, str) or isinstance(message, list):
+            message = {"content": message}
+        return message
 
     def register_function(self, function_map: Dict[str, Callable]):
         """Register functions to the agent.
@@ -1441,7 +1452,7 @@ class ConversableAgent(Agent):
 
         Args:
             func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
-            is_remove: whether removing the funciton from llm_config with name 'func_sig'
+            is_remove: whether removing the function from llm_config with name 'func_sig'
         """
 
         if not self.llm_config:
@@ -1514,3 +1525,157 @@ class ConversableAgent(Agent):
     def function_map(self) -> Dict[str, Callable]:
         """Return the function map."""
         return self._function_map
+
+    def _wrap_function(self, func: F) -> F:
+        """Wrap the function to dump the return value to json.
+
+        Handles both sync and async functions.
+
+        Args:
+            func: the function to be wrapped.
+
+        Returns:
+            The wrapped function.
+        """
+
+        @load_basemodels_if_needed
+        @functools.wraps(func)
+        def _wrapped_func(*args, **kwargs):
+            retval = func(*args, **kwargs)
+
+            return serialize_to_str(retval)
+
+        @load_basemodels_if_needed
+        @functools.wraps(func)
+        async def _a_wrapped_func(*args, **kwargs):
+            retval = await func(*args, **kwargs)
+            return serialize_to_str(retval)
+
+        wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
+
+        # needed for testing
+        wrapped_func._origin = func
+
+        return wrapped_func
+
+    def register_for_llm(
+        self,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be used by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
+        specify the arguments and return type. The function name is used as the default name for the function,
+        but a custom name can be provided. The function description is used to describe the function in the
+        agent's configuration.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+            description (optional(str)): description of the function (default: None). It is mandatory
+                for the initial decorator, but the following ones can omit it.
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register_for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a function to be used by an agent.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered, with the _description attribute set to the function description.
+
+            Raises:
+                ValueError: if the function description is not provided and not propagated by a previous decorator.
+                RuntimeError: if the LLM config is not set up before registering a function.
+
+            """
+            # name can be overwriten by the parameter, by default it is the same as function name
+            if name:
+                func._name = name
+            elif not hasattr(func, "_name"):
+                func._name = func.__name__
+
+            # description is propagated from the previous decorator, but it is mandatory for the first one
+            if description:
+                func._description = description
+            else:
+                if not hasattr(func, "_description"):
+                    raise ValueError("Function description is required, none found.")
+
+            # get JSON schema for the function
+            f = get_function_schema(func, name=func._name, description=func._description)
+
+            # register the function to the agent if there is LLM config, raise an exception otherwise
+            if self.llm_config is None:
+                raise RuntimeError("LLM config must be setup before registering a function for LLM.")
+
+            self.update_function_signature(f, is_remove=False)
+
+            return func
+
+        return _decorator
+
+    def register_for_execution(
+        self,
+        name: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be executed by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register_for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14):
+                 return a + str(b * c)
+            ```
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a function to be used by an agent.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered, with the _description attribute set to the function description.
+
+            Raises:
+                ValueError: if the function description is not provided and not propagated by a previous decorator.
+
+            """
+            # name can be overwriten by the parameter, by default it is the same as function name
+            if name:
+                func._name = name
+            elif not hasattr(func, "_name"):
+                func._name = func.__name__
+
+            self.register_function({func._name: self._wrap_function(func)})
+
+            return func
+
+        return _decorator
