@@ -790,7 +790,7 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
-        """Generate a reply using function call."""
+        """Generate a reply using tool call."""
         if config is None:
             config = self
         if messages is None:
