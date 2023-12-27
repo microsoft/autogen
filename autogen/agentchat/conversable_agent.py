@@ -1077,7 +1077,7 @@ class ConversableAgent(Agent):
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
         2. generate_function_call_reply
-        3. generate_tool_calls_repl
+        3. generate_tool_calls_reply
         4. generate_code_execution_reply
         5. generate_oai_reply
         Every function returns a tuple (final, reply).
