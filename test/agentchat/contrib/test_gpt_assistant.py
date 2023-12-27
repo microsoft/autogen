@@ -222,17 +222,46 @@ def test_assistant_retrieval():
 
     name = "For test_assistant_retrieval"
 
+    function_1_schema = {
+        "name": "call_function_1",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "description": "This is a test function 1",
+    }
+    function_2_schema = {
+        "name": "call_function_1",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "description": "This is a test function 2",
+    }
+
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    current_file_path = os.path.abspath(__file__)
+    file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+    file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+
+    all_llm_config = {
+        "tools": [
+            {"type": "function", "function": function_1_schema},
+            {"type": "function", "function": function_2_schema},
+            {"type": "retrieval"},
+            {"type": "code_interpreter"},
+        ],
+        "file_ids": [file_1.id, file_2.id],
+        "config_list": config_list,
+    }
+
+    name = "For test_gpt_assistant_chat"
+
     assistant_first = GPTAssistantAgent(
         name,
         instructions="This is a test",
-        llm_config={"config_list": config_list},
+        llm_config=all_llm_config,
     )
     candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
 
     assistant_second = GPTAssistantAgent(
         name,
         instructions="This is a test",
-        llm_config={"config_list": config_list},
+        llm_config=all_llm_config,
     )
     candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
 
@@ -243,7 +272,125 @@ def test_assistant_retrieval():
         # Not found error is expected because the same assistant can not be deleted twice
         pass
 
+    openai_client.files.delete(file_1.id)
+    openai_client.files.delete(file_2.id)
+
     assert candidate_first == candidate_second
+    assert len(candidate_first) == 1
+
+    candidates = retrieve_assistants_by_name(openai_client, name)
+    assert len(candidates) == 0
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_test,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_assistant_mismatch_retrieval():
+    """Test function to check if the GPTAssistantAgent can filter out the mismatch assistant"""
+
+    name = "For test_assistant_retrieval"
+
+    function_1_schema = {
+        "name": "call_function",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "description": "This is a test function 1",
+    }
+    function_2_schema = {
+        "name": "call_function",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "description": "This is a test function 2",
+    }
+    function_3_schema = {
+        "name": "call_function_other",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "description": "This is a test function 3",
+    }
+
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    current_file_path = os.path.abspath(__file__)
+    file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+    file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
+
+    all_llm_config = {
+        "tools": [
+            {"type": "function", "function": function_1_schema},
+            {"type": "function", "function": function_2_schema},
+            {"type": "retrieval"},
+            {"type": "code_interpreter"},
+        ],
+        "file_ids": [file_1.id, file_2.id],
+        "config_list": config_list,
+    }
+
+    name = "For test_gpt_assistant_chat"
+
+    assistant_first = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config=all_llm_config,
+    )
+    candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
+    assert len(candidate_first) == 1
+
+    # test instructions mismatch
+    assistant_instructions_mistaching = GPTAssistantAgent(
+        name,
+        instructions="This is a test for mismatch instructions",
+        llm_config=all_llm_config,
+    )
+    candidate_instructions_mistaching = retrieve_assistants_by_name(
+        assistant_instructions_mistaching.openai_client, name
+    )
+    assert len(candidate_instructions_mistaching) == 2
+
+    # test mismatch fild ids
+    file_ids_mismatch_llm_config = {
+        "tools": [
+            {"type": "code_interpreter"},
+            {"type": "retrieval"},
+            {"type": "function", "function": function_2_schema},
+            {"type": "function", "function": function_1_schema},
+        ],
+        "file_ids": [file_2.id],
+        "config_list": config_list,
+    }
+    assistant_file_ids_mismatch = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config=file_ids_mismatch_llm_config,
+    )
+    candidate_file_ids_mismatch = retrieve_assistants_by_name(assistant_file_ids_mismatch.openai_client, name)
+    assert len(candidate_file_ids_mismatch) == 3
+
+    # test tools mismatch
+    tools_mismatch_llm_config = {
+        "tools": [
+            {"type": "code_interpreter"},
+            {"type": "retrieval"},
+            {"type": "function", "function": function_3_schema},
+        ],
+        "file_ids": [file_2.id, file_1.id],
+        "config_list": config_list,
+    }
+    assistant_tools_mistaching = GPTAssistantAgent(
+        name,
+        instructions="This is a test",
+        llm_config=tools_mismatch_llm_config,
+    )
+    candidate_tools_mismatch = retrieve_assistants_by_name(assistant_tools_mistaching.openai_client, name)
+    assert len(candidate_tools_mismatch) == 4
+
+    openai_client.files.delete(file_1.id)
+    openai_client.files.delete(file_2.id)
+
+    assistant_first.delete_assistant()
+    assistant_instructions_mistaching.delete_assistant()
+    assistant_file_ids_mismatch.delete_assistant()
+    assistant_tools_mistaching.delete_assistant()
+
+    candidates = retrieve_assistants_by_name(openai_client, name)
+    assert len(candidates) == 0
 
 
 if __name__ == "__main__":
@@ -252,3 +399,4 @@ if __name__ == "__main__":
     test_gpt_assistant_instructions_overwrite()
     test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
+    test_assistant_mismatch_retrieval()
