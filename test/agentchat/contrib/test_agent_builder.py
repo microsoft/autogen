@@ -62,7 +62,7 @@ def test_build():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -88,13 +88,13 @@ def test_build_from_library():
     )
     agent_list, agent_config = builder.build_from_library(
         building_task=building_task,
-        library_path=f"{here}/example_agent_builder_library.json",
+        library_path_or_json=f"{here}/example_agent_builder_library.json",
         default_llm_config={"temperature": 0},
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -111,14 +111,14 @@ def test_build_from_library():
     # test embedding similarity selection
     agent_list, agent_config = builder.build_from_library(
         building_task=building_task,
-        library_path=f"{here}/example_agent_builder_library.json",
+        library_path_or_json=f"{here}/example_agent_builder_library.json",
         default_llm_config={"temperature": 0},
-        embedding_similarity_selection=True,
+        embedding_model="all-mpnet-base-v2",
         code_execution_config={
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     _config_check(agent_config)
@@ -150,7 +150,7 @@ def test_save():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
@@ -179,7 +179,7 @@ def test_load():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     print(loaded_agent_configs)
@@ -201,7 +201,7 @@ def test_clear_agent():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": "python:3",
+            "use_docker": False,
         },
     )
     builder.clear_all_agents()
