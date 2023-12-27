@@ -326,13 +326,13 @@ def test_generate_reply():
     ), "generate_reply not working when messages is None"
 
 
-def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
+def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent: ConversableAgent) -> None:
     with pytest.raises(AssertionError):
         conversable_agent.generate_reply(messages=None, sender=None)
 
 
 @pytest.mark.asyncio
-async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
+async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_agent: ConversableAgent) -> None:
     with pytest.raises(AssertionError):
         await conversable_agent.a_generate_reply(messages=None, sender=None)
 
@@ -366,7 +366,7 @@ def test_update_function_signature_and_register_functions() -> None:
             is_remove=False,
         )
 
-        functions = agent.llm_config["functions"]
+        functions = agent.llm_config["functions"]  # type: ignore [index]
         assert {f["name"] for f in functions} == {"python"}
 
         agent.update_function_signature(
@@ -387,7 +387,7 @@ def test_update_function_signature_and_register_functions() -> None:
             is_remove=False,
         )
 
-        functions = agent.llm_config["functions"]
+        functions = agent.llm_config["functions"]  # type: ignore [index]
         assert {f["name"] for f in functions} == {"python", "sh"}
 
         # register the functions
@@ -402,7 +402,7 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["sh"] == exec_sh
 
 
-def test__wrap_function_sync():
+def test__wrap_function_sync() -> None:
     CurrencySymbol = Literal["USD", "EUR"]
 
     class Currency(BaseModel):
@@ -438,7 +438,7 @@ def test__wrap_function_sync():
 
 
 @pytest.mark.asyncio
-async def test__wrap_function_async():
+async def test__wrap_function_async() -> None:
     CurrencySymbol = Literal["USD", "EUR"]
 
     class Currency(BaseModel):
@@ -474,10 +474,10 @@ async def test__wrap_function_async():
 
 
 def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:
-    return {k: v._origin for k, v in d.items()}
+    return {k: v._origin for k, v in d.items()}  # type: ignore [attr-defined]
 
 
-def test_register_for_llm():
+def test_register_for_llm() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
         agent3 = ConversableAgent(name="agent3", llm_config={})
@@ -488,7 +488,7 @@ def test_register_for_llm():
         @agent2.register_for_llm(name="python")
         @agent1.register_for_llm(description="run cell in ipython and return the execution result.")
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-            pass
+            return "ok"
 
         expected1 = [
             {
@@ -510,15 +510,15 @@ def test_register_for_llm():
         expected2[0]["name"] = "python"
         expected3 = expected2
 
-        assert agent1.llm_config["functions"] == expected1
-        assert agent2.llm_config["functions"] == expected2
-        assert agent3.llm_config["functions"] == expected3
+        assert agent1.llm_config["functions"] == expected1  # type: ignore [index]
+        assert agent2.llm_config["functions"] == expected2  # type: ignore [index]
+        assert agent3.llm_config["functions"] == expected3  # type: ignore [index]
 
         @agent3.register_for_llm()
         @agent2.register_for_llm()
         @agent1.register_for_llm(name="sh", description="run a shell script and return the execution result.")
         async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
-            pass
+            return "ok"
 
         expected1 = expected1 + [
             {
@@ -539,12 +539,12 @@ def test_register_for_llm():
         expected2 = expected2 + [expected1[1]]
         expected3 = expected3 + [expected1[1]]
 
-        assert agent1.llm_config["functions"] == expected1
-        assert agent2.llm_config["functions"] == expected2
-        assert agent3.llm_config["functions"] == expected3
+        assert agent1.llm_config["functions"] == expected1  # type: ignore [index]
+        assert agent2.llm_config["functions"] == expected2  # type: ignore [index]
+        assert agent3.llm_config["functions"] == expected3  # type: ignore [index]
 
 
-def test_register_for_llm_without_description():
+def test_register_for_llm_without_description() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
         agent = ConversableAgent(name="agent", llm_config={})
@@ -553,28 +553,27 @@ def test_register_for_llm_without_description():
 
             @agent.register_for_llm()
             def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
+                return "ok"
 
         assert e.value.args[0] == "Function description is required, none found."
 
 
-def test_register_for_llm_without_LLM():
+def test_register_for_llm_without_LLM() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config=None)
-        agent.llm_config = None
-        assert agent.llm_config is None
+        agent = ConversableAgent(name="agent", llm_config=False)
+        assert agent.llm_config is False
 
         with pytest.raises(RuntimeError) as e:
 
             @agent.register_for_llm(description="run cell in ipython and return the execution result.")
             def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
+                return "ok"
 
         assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
 
 
-def test_register_for_execution():
+def test_register_for_execution() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
         agent = ConversableAgent(name="agent", llm_config={})
@@ -585,7 +584,7 @@ def test_register_for_execution():
         @agent.register_for_execution()
         @agent.register_for_llm(description="run cell in ipython and return the execution result.")
         @user_proxy_1.register_for_execution()
-        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]):
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> None:
             pass
 
         expected_function_map_1 = {"exec_python": exec_python}
@@ -598,7 +597,7 @@ def test_register_for_execution():
         @agent.register_for_execution()
         @agent.register_for_llm(description="run a shell script and return the execution result.")
         @user_proxy_1.register_for_execution(name="sh")
-        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]):
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]):  # type: ignore [no-untyped-def]
             pass
 
         expected_function_map = {

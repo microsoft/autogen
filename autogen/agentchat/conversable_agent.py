@@ -25,8 +25,6 @@ __all__ = ("ConversableAgent",)
 
 logger = logging.getLogger(__name__)
 
-F = TypeVar("F", bound=Callable[..., Any])
-
 
 class ConversableAgent(Agent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
@@ -1285,7 +1283,7 @@ class ConversableAgent(Agent):
         """
         return context["message"]
 
-    def register_function(self, function_map: Dict[str, Callable]):
+    def register_function(self, function_map: Dict[str, Callable[..., Any]]) -> None:
         """Register functions to the agent.
 
         Args:
@@ -1293,12 +1291,12 @@ class ConversableAgent(Agent):
         """
         self._function_map.update(function_map)
 
-    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
-        """update a function_signature in the LLM configuration for function_call.
+    def update_function_signature(self, func_sig: Union[str, Dict[str, Any]], is_remove: bool) -> None:
+        """Update a function_signature in the LLM configuration for function_call.
 
         Args:
             func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
-            is_remove: whether removing the function from llm_config with name 'func_sig'
+            is_remove (bool): whether removing the function from llm_config with name 'func_sig'
         """
 
         if not self.llm_config:
@@ -1312,13 +1310,19 @@ class ConversableAgent(Agent):
                 logger.error(error_msg)
                 raise AssertionError(error_msg)
             else:
+                if not isinstance(func_sig, str):
+                    raise ValueError(f"func_sig must be a string when is_remove is True, but it is: {func_sig}")
+                func_name: str = func_sig
                 self.llm_config["functions"] = [
-                    func for func in self.llm_config["functions"] if func["name"] != func_sig
+                    func for func in self.llm_config["functions"] if func["name"] != func_name
                 ]
         else:
+            if not isinstance(func_sig, dict):
+                raise ValueError(f"func_sig must be a dict when is_remove is False, but it is: {func_sig}")
+            func_name = func_sig["name"]
             if "functions" in self.llm_config.keys():
                 self.llm_config["functions"] = [
-                    func for func in self.llm_config["functions"] if func.get("name") != func_sig["name"]
+                    func for func in self.llm_config["functions"] if func.get("name") != func_name
                 ] + [func_sig]
             else:
                 self.llm_config["functions"] = [func_sig]
@@ -1333,12 +1337,12 @@ class ConversableAgent(Agent):
         return name in self._function_map
 
     @property
-    def function_map(self) -> Dict[str, Callable]:
+    def function_map(self) -> Dict[str, Callable[..., Any]]:
         """Return the function map."""
         return self._function_map
 
-    def _wrap_function(self, func: F) -> F:
-        """Wrap the function to dump the return value to json.
+    def _wrap_function(self, func: Callable[..., Any]) -> Callable[..., Any]:
+        """Wrap the function to dump the return value to JSON.
 
         Handles both sync and async functions.
 
@@ -1351,21 +1355,21 @@ class ConversableAgent(Agent):
 
         @load_basemodels_if_needed
         @functools.wraps(func)
-        def _wrapped_func(*args, **kwargs):
+        def _wrapped_func(*args: Any, **kwargs: Any) -> Any:
             retval = func(*args, **kwargs)
 
             return serialize_to_str(retval)
 
         @load_basemodels_if_needed
         @functools.wraps(func)
-        async def _a_wrapped_func(*args, **kwargs):
+        async def _a_wrapped_func(*args: Any, **kwargs: Any) -> Any:
             retval = await func(*args, **kwargs)
             return serialize_to_str(retval)
 
         wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
 
         # needed for testing
-        wrapped_func._origin = func
+        wrapped_func._origin = func  # type: ignore [attr-defined]
 
         return wrapped_func
 
@@ -1374,7 +1378,7 @@ class ConversableAgent(Agent):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
-    ) -> Callable[[F], F]:
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator factory for registering a function to be used by an agent.
 
         It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
@@ -1401,7 +1405,7 @@ class ConversableAgent(Agent):
 
         """
 
-        def _decorator(func: F) -> F:
+        def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             """Decorator for registering a function to be used by an agent.
 
             Args:
@@ -1412,27 +1416,27 @@ class ConversableAgent(Agent):
 
             Raises:
                 ValueError: if the function description is not provided and not propagated by a previous decorator.
-                RuntimeError: if the LLM config is not set up before registering a function.
+                RuntimeError: if the LLM config is False
 
             """
             # name can be overwriten by the parameter, by default it is the same as function name
             if name:
-                func._name = name
+                func._name = name  # type: ignore [attr-defined]
             elif not hasattr(func, "_name"):
-                func._name = func.__name__
+                func._name = func.__name__  # type: ignore [attr-defined]
 
             # description is propagated from the previous decorator, but it is mandatory for the first one
             if description:
-                func._description = description
+                func._description = description  # type: ignore [attr-defined]
             else:
                 if not hasattr(func, "_description"):
                     raise ValueError("Function description is required, none found.")
 
             # get JSON schema for the function
-            f = get_function_schema(func, name=func._name, description=func._description)
+            f = get_function_schema(func, name=func._name, description=func._description)  # type: ignore [attr-defined]
 
             # register the function to the agent if there is LLM config, raise an exception otherwise
-            if self.llm_config is None:
+            if not self.llm_config:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
             self.update_function_signature(f, is_remove=False)
@@ -1444,7 +1448,7 @@ class ConversableAgent(Agent):
     def register_for_execution(
         self,
         name: Optional[str] = None,
-    ) -> Callable[[F], F]:
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """Decorator factory for registering a function to be executed by an agent.
 
         It's return value is used to decorate a function to be registered to the agent.
@@ -1466,7 +1470,7 @@ class ConversableAgent(Agent):
 
         """
 
-        def _decorator(func: F) -> F:
+        def _decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             """Decorator for registering a function to be used by an agent.
 
             Args:
@@ -1481,11 +1485,11 @@ class ConversableAgent(Agent):
             """
             # name can be overwriten by the parameter, by default it is the same as function name
             if name:
-                func._name = name
+                func._name = name  # type: ignore [attr-defined]
             elif not hasattr(func, "_name"):
-                func._name = func.__name__
+                func._name = func.__name__  # type: ignore [attr-defined]
 
-            self.register_function({func._name: self._wrap_function(func)})
+            self.register_function({func._name: self._wrap_function(func)})  # type: ignore [attr-defined]
 
             return func
 
