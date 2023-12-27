@@ -137,8 +137,8 @@ def test_multi_tool_call():
             self,
             message,
             sender,
-            request_reply = None,
-            silent = False,
+            request_reply=None,
+            silent=False,
         ):
             message = message if isinstance(message, list) else [message]
             self.received.extend(message)
@@ -148,9 +148,7 @@ def test_multi_tool_call():
         human_input_mode="NEVER",
         is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False,
     )
-    user_proxy.register_function({
-        "echo": lambda str: str
-    })
+    user_proxy.register_function({"echo": lambda str: str})
 
     fake_agent = FakeAgent("fake_agent")
 
@@ -161,57 +159,38 @@ def test_multi_tool_call():
                 {
                     "id": "tool_1",
                     "type": "function",
-                    "function": {
-                        "name": "echo",
-                        "arguments": json.JSONEncoder().encode({
-                            "str": "hello world"
-                        })
-                    }
+                    "function": {"name": "echo", "arguments": json.JSONEncoder().encode({"str": "hello world"})},
                 },
                 {
                     "id": "tool_2",
                     "type": "function",
                     "function": {
                         "name": "echo",
-                        "arguments": json.JSONEncoder().encode({
-                            "str": "goodbye and thanks for all the fish"
-                        })
-                    }
+                        "arguments": json.JSONEncoder().encode({"str": "goodbye and thanks for all the fish"}),
+                    },
                 },
                 {
                     "id": "tool_3",
                     "type": "function",
                     "function": {
                         "name": "multi_tool_call.echo",
-                        "arguments": json.JSONEncoder().encode({
-                            "str": "goodbye and thanks for all the fish"
-                        })
-                    }
+                        "arguments": json.JSONEncoder().encode({"str": "goodbye and thanks for all the fish"}),
+                    },
                 },
-            ]
+            ],
         },
         sender=fake_agent,
         request_reply=True,
     )
 
     assert fake_agent.received == [
-        {
-            "tool_call_id": "tool_1",
-            "role": "tool",
-            "name": "echo",
-            "content": "hello world"
-        },
-        {
-            "tool_call_id": "tool_2",
-            "role": "tool",
-            "name": "echo",
-            "content": "goodbye and thanks for all the fish"
-        },
+        {"tool_call_id": "tool_1", "role": "tool", "name": "echo", "content": "hello world"},
+        {"tool_call_id": "tool_2", "role": "tool", "name": "echo", "content": "goodbye and thanks for all the fish"},
         {
             "tool_call_id": "tool_3",
             "role": "tool",
             "name": "multi_tool_call_echo",
-            "content": "Error: Function multi_tool_call_echo not found."
+            "content": "Error: Function multi_tool_call_echo not found.",
         },
     ]
 

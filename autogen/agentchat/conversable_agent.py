@@ -12,6 +12,7 @@ from .. import OpenAIWrapper
 from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
+from .._pydantic import model_dump
 
 try:
     from termcolor import colored
@@ -317,7 +318,10 @@ class ConversableAgent(Agent):
             if function.get("name", False):
                 function["name"] = self._normalize_name(function["name"])
 
-        oai_message["role"] = message.get("role", role)
+        if message.get("role") in ["function", "tool"]:
+            oai_message["role"] = message.get("role")
+        else:
+            oai_message["role"] = role
 
         if oai_message.get("function_call", False) or oai_message.get("tool_calls", False):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
@@ -369,7 +373,7 @@ class ConversableAgent(Agent):
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "user", recipient) for each_message in message])
+        valid = all([self._append_oai_message(each_message, "assistant", recipient) for each_message in message])
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
@@ -447,7 +451,7 @@ class ConversableAgent(Agent):
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
                 print(content_str(content), flush=True)
-            if "function_call" in message and message["function_call"] is not None:
+            if "function_call" in message and message["function_call"]:
                 function_call = dict(message["function_call"])
                 func_print = (
                     f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
@@ -479,9 +483,7 @@ class ConversableAgent(Agent):
     def _process_received_message(self, message: Union[List[Union[Dict, str]], Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         message = [message] if not isinstance(message, list) else message
-        valid = all(
-            [self._append_oai_message(self._message_to_dict(each_message), "user", sender) for each_message in message]
-        )
+        valid = all([self._append_oai_message(each_message, "user", sender) for each_message in message])
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -670,10 +672,10 @@ class ConversableAgent(Agent):
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
 
-        # TODO: line 270, 298, 428, 479 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
+        # TODO: line 270, 297, 431 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
-            extracted_response = extracted_response.model_dump(mode="dict")
+            extracted_response = model_dump(extracted_response)
         if not isinstance(extracted_response, dict):
             extracted_response = {"content": extracted_response}
         return True, extracted_response
@@ -774,7 +776,8 @@ class ConversableAgent(Agent):
         message = messages[-1]
         if "function_call" in message:
             func_call = message["function_call"]
-            func = self._function_map.get(func_call.get("name", None), None)
+            func_name = func_call.get("name", None)
+            func = self._function_map.get(func_name, None)
             if asyncio.coroutines.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
@@ -1431,7 +1434,10 @@ class ConversableAgent(Agent):
         Args:
             **context: any context information, and "message" parameter needs to be provided.
         """
-        return {"content": context["message"]}
+        message = context["message"]
+        if isinstance(message, str) or isinstance(message, list):
+            message = {"content": message}
+        return message
 
     def register_function(self, function_map: Dict[str, Callable]):
         """Register functions to the agent.

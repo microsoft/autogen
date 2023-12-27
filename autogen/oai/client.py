@@ -289,12 +289,7 @@ class OpenAIWrapper:
         completions = client.chat.completions if "messages" in params else client.completions
         # If streaming is enabled, has messages, and does not have functions or tools, then
         # iterate over the chunks of the response
-        if (
-            params.get("stream", False) and
-            "messages" in params and
-            "functions" not in params and
-            "tools" not in params
-        ):
+        if params.get("stream", False) and "messages" in params and "functions" not in params and "tools" not in params:
             response_contents = [""] * params.get("n", 1)
             finish_reasons = [""] * params.get("n", 1)
             completion_tokens = 0
