@@ -38,6 +38,7 @@ def test_mode_compress():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
+            "model": config_list[0],
         },
         compress_config={
             "mode": "COMPRESS",
@@ -76,6 +77,7 @@ def test_mode_customized():
                 "timeout": 600,
                 "cache_seed": 43,
                 "config_list": config_list,
+                "model": config_list[0],
             },
             compress_config={
                 "mode": "CUSTOMIZED",
@@ -145,6 +147,7 @@ def test_compress_message():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
+            "model": config_list[0],
         },
         compress_config={
             "mode": "COMPRESS",
@@ -176,6 +179,7 @@ def test_mode_terminate():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
+            "model": config_list[0],
         },
         compress_config=True,
     )
