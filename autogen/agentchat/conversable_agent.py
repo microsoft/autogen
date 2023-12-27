@@ -745,7 +745,12 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
-        """Generate a reply using function call."""
+        """
+        Generate a reply using function call.
+
+        Deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
+        """
         if config is None:
             config = self
         if messages is None:
@@ -767,7 +772,12 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
-        """Generate a reply using async function call."""
+        """
+        Generate a reply using async function call.
+
+        Deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
+        """
         if config is None:
             config = self
         if messages is None:
@@ -1321,15 +1331,18 @@ class ConversableAgent(Agent):
     def execute_function(self, func_call, verbose: bool = False) -> Tuple[bool, Dict[str, str]]:
         """Execute a function call and return the result.
 
-        Override this function to modify the way to execute a function call.
+        Override this function to modify the way to execute function and tool calls.
 
         Args:
-            func_call: a dictionary extracted from openai message at key "function_call" with keys "name" and "arguments".
+            func_call: a dictionary extracted from openai message at "function_call" or "tool_calls" with keys "name" and "arguments".
 
         Returns:
             A tuple of (is_exec_success, result_dict).
             is_exec_success (boolean): whether the execution is successful.
             result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
+
+        "function_call" deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
         # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
@@ -1384,6 +1397,9 @@ class ConversableAgent(Agent):
             A tuple of (is_exec_success, result_dict).
             is_exec_success (boolean): whether the execution is successful.
             result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
+
+        "function_call" deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
         # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
@@ -1452,6 +1468,9 @@ class ConversableAgent(Agent):
         Args:
             func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
             is_remove: whether removing the function from llm_config with name 'func_sig'
+
+        Deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
 
         if not self.llm_config:
