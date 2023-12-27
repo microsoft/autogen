@@ -202,7 +202,7 @@ jobs:
           pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         run: |
-          pip install chromadb
+          pip install chromadb sentence-transformers
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
