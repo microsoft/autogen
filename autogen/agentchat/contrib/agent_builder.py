@@ -449,14 +449,12 @@ class AgentBuilder:
             with open(library_path_or_json, "r") as f:
                 agent_library = json.load(f)
 
-        print(f"Looking for suitable agents in library...")
+        print("Looking for suitable agents in library...")
         if embedding_model is not None:
             chroma_client = chromadb.Client()
             collection = chroma_client.create_collection(
                 name="agent_list",
-                embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(
-                    model_name=embedding_model
-                ),
+                embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model),
             )
             collection.add(
                 documents=[agent["profile"] for agent in agent_library],
