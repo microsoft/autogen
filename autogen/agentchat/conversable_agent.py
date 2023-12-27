@@ -507,11 +507,12 @@ class ConversableAgent(Agent):
         Args:
             message (dict or str): message from the sender. If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
                 1. "content": content of the message, can be None.
-                2. "function_call": a dictionary containing the function name and arguments.
-                3. "role": role of the message, can be "assistant", "user", "function".
+                2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                4. "role": role of the message, can be "assistant", "user", "function", "tool".
                     This field is only needed to distinguish between "function" or "assistant"/"user".
-                4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
-                5. "context" (dict): the context of the message, which will be passed to
+                5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                6. "context" (dict): the context of the message, which will be passed to
                     [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
@@ -543,11 +544,12 @@ class ConversableAgent(Agent):
         Args:
             message (dict or str): message from the sender. If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
                 1. "content": content of the message, can be None.
-                2. "function_call": a dictionary containing the function name and arguments.
-                3. "role": role of the message, can be "assistant", "user", "function".
+                2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                4. "role": role of the message, can be "assistant", "user", "function".
                     This field is only needed to distinguish between "function" or "assistant"/"user".
-                4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
-                5. "context" (dict): the context of the message, which will be passed to
+                5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                6. "context" (dict): the context of the message, which will be passed to
                     [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
@@ -748,7 +750,7 @@ class ConversableAgent(Agent):
         """
         Generate a reply using function call.
 
-        Deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        "function_call" replaced by "tool_calls" as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
         """
         if config is None:
@@ -775,7 +777,7 @@ class ConversableAgent(Agent):
         """
         Generate a reply using async function call.
 
-        Deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        "function_call" replaced by "tool_calls" as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
         """
         if config is None:
