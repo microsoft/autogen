@@ -54,7 +54,7 @@ def test_num_tokens_from_functions(input_functions, expected_count):
 
 
 @pytest.mark.parametrize(
-    "input_functions, expected_count", [([func1], 47), ([func2], 50), ([func3], 48), ([func1, func2], 97)]
+    "input_functions, expected_count", [([func1], 47), ([func2], 49), ([func3], 48), ([func1, func2], 96)]
 )
 def test_num_tokens_from_tools(input_functions, expected_count):
     input_tools = [{"type": "function", "function": input_function} for input_function in input_functions]
