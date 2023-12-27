@@ -3,6 +3,10 @@ Use LLMLingua with CompressibleAgent
 
 https://github.com/microsoft/LLMLingua
 
+```shell
+pip install pyautogen[llmlingua]
+```
+
 @inproceedings{jiang-etal-2023-llmlingua,
     title = "LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models",
     author = "Huiqiang Jiang and Qianhui Wu and Chin-Yew Lin and Yuqing Yang and Lili Qiu",
