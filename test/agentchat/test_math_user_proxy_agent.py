@@ -61,7 +61,7 @@ def test_add_remove_print():
     assert _add_print_to_last_line(code) == "a = 4\nb = 5\nprint(a,b)"
 
     # test remove print
-    code = """print("hello")\na = 4*5\nprint("wolrld")"""
+    code = """print("hello")\na = 4*5\nprint("world")"""
     assert _remove_print(code) == "a = 4*5"
 
     # test remove print. Only remove prints without indentation
@@ -107,7 +107,7 @@ def test_execute_one_wolfram_query():
     try:
         mathproxyagent.execute_one_wolfram_query(code)[0]
     except ValueError:
-        print("Wolfrma API key not found. Skip test.")
+        print("Wolfram API key not found. Skip test.")
 
 
 def test_generate_prompt():

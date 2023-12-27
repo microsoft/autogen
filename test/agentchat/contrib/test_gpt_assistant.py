@@ -42,7 +42,7 @@ def test_gpt_assistant_chat():
             },
             "required": ["question"],
         },
-        "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the realted and structured data.",
+        "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
     }
 
     name = "For test_gpt_assistant_chat"
@@ -202,13 +202,13 @@ def test_get_assistant_files():
     )
 
     files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
-    retrived_file_ids = [fild.id for fild in files]
+    retrieved_file_ids = [fild.id for fild in files]
     expected_file_id = file.id
 
     assistant.delete_assistant()
     openai_client.files.delete(file.id)
 
-    assert expected_file_id in retrived_file_ids
+    assert expected_file_id in retrieved_file_ids
 
 
 @pytest.mark.skipif(
