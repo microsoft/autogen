@@ -672,7 +672,6 @@ class ConversableAgent(Agent):
             context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
         )
 
-        # TODO: line 270, 297, 431 are converting messages to dict. Can be removed after ChatCompletionMessage_to_dict is merged.
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
             extracted_response = model_dump(extracted_response)
@@ -790,7 +789,7 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
-        """Generate a reply using function call."""
+        """Generate a reply using tool call."""
         if config is None:
             config = self
         if messages is None:
@@ -1507,7 +1506,9 @@ class ConversableAgent(Agent):
         else:
             if "tools" in self.llm_config.keys():
                 self.llm_config["tools"] = [
-                    tool for tool in self.llm_config["tools"] if tool.get("name") != tool_sig["name"]
+                    tool
+                    for tool in self.llm_config["tools"]
+                    if tool.get("function", {}).get("name") != tool_sig["function"]["name"]
                 ] + [tool_sig]
             else:
                 self.llm_config["tools"] = [tool_sig]
@@ -1624,7 +1625,7 @@ class ConversableAgent(Agent):
             if self.llm_config is None:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
-            self.update_function_signature(f, is_remove=False)
+            self.update_tool_signature(f, is_remove=False)
 
             return func
 

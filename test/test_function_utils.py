@@ -210,54 +210,60 @@ def test_get_function_schema_missing() -> None:
 
 def test_get_function_schema() -> None:
     expected_v2 = {
-        "description": "function g",
-        "name": "fancy name for g",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "a": {"type": "string", "description": "Parameter a"},
-                "b": {"type": "integer", "description": "b", "default": 2},
-                "c": {"type": "number", "description": "Parameter c", "default": 0.1},
-                "d": {
-                    "additionalProperties": {
-                        "maxItems": 2,
-                        "minItems": 2,
-                        "prefixItems": [
-                            {"anyOf": [{"type": "integer"}, {"type": "null"}]},
-                            {"items": {"type": "number"}, "type": "array"},
-                        ],
-                        "type": "array",
+        "type": "function",
+        "function": {
+            "description": "function g",
+            "name": "fancy name for g",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "a": {"type": "string", "description": "Parameter a"},
+                    "b": {"type": "integer", "description": "b", "default": 2},
+                    "c": {"type": "number", "description": "Parameter c", "default": 0.1},
+                    "d": {
+                        "additionalProperties": {
+                            "maxItems": 2,
+                            "minItems": 2,
+                            "prefixItems": [
+                                {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                                {"items": {"type": "number"}, "type": "array"},
+                            ],
+                            "type": "array",
+                        },
+                        "type": "object",
+                        "description": "d",
                     },
-                    "type": "object",
-                    "description": "d",
                 },
+                "required": ["a", "d"],
             },
-            "required": ["a", "d"],
         },
     }
 
     # the difference is that the v1 version does not handle Union types (Optional is Union[T, None])
     expected_v1 = {
-        "description": "function g",
-        "name": "fancy name for g",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "a": {"type": "string", "description": "Parameter a"},
-                "b": {"type": "integer", "description": "b", "default": 2},
-                "c": {"type": "number", "description": "Parameter c", "default": 0.1},
-                "d": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "array",
-                        "minItems": 2,
-                        "maxItems": 2,
-                        "items": [{"type": "integer"}, {"type": "array", "items": {"type": "number"}}],
+        "type": "function",
+        "function": {
+            "description": "function g",
+            "name": "fancy name for g",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "a": {"type": "string", "description": "Parameter a"},
+                    "b": {"type": "integer", "description": "b", "default": 2},
+                    "c": {"type": "number", "description": "Parameter c", "default": 0.1},
+                    "d": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": [{"type": "integer"}, {"type": "array", "items": {"type": "number"}}],
+                        },
+                        "description": "d",
                     },
-                    "description": "d",
                 },
+                "required": ["a", "d"],
             },
-            "required": ["a", "d"],
         },
     }
 
@@ -291,39 +297,42 @@ def test_get_function_schema_pydantic() -> None:
         pass
 
     expected = {
-        "description": "Currency exchange calculator.",
-        "name": "currency_calculator",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "base": {
-                    "properties": {
-                        "currency": {
-                            "description": "Currency code",
-                            "enum": ["USD", "EUR"],
-                            "title": "Currency",
-                            "type": "string",
+        "type": "function",
+        "function": {
+            "description": "Currency exchange calculator.",
+            "name": "currency_calculator",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "base": {
+                        "properties": {
+                            "currency": {
+                                "description": "Currency code",
+                                "enum": ["USD", "EUR"],
+                                "title": "Currency",
+                                "type": "string",
+                            },
+                            "amount": {
+                                "default": 100.0,
+                                "description": "Amount of money in the currency",
+                                "title": "Amount",
+                                "type": "number",
+                            },
                         },
-                        "amount": {
-                            "default": 100.0,
-                            "description": "Amount of money in the currency",
-                            "title": "Amount",
-                            "type": "number",
-                        },
+                        "required": ["currency"],
+                        "title": "Currency",
+                        "type": "object",
+                        "description": "Base currency: amount and currency symbol",
                     },
-                    "required": ["currency"],
-                    "title": "Currency",
-                    "type": "object",
-                    "description": "Base currency: amount and currency symbol",
+                    "quote_currency": {
+                        "enum": ["USD", "EUR"],
+                        "type": "string",
+                        "default": "EUR",
+                        "description": "Quote currency symbol (default: 'EUR')",
+                    },
                 },
-                "quote_currency": {
-                    "enum": ["USD", "EUR"],
-                    "type": "string",
-                    "default": "EUR",
-                    "description": "Quote currency symbol (default: 'EUR')",
-                },
+                "required": ["base"],
             },
-            "required": ["base"],
         },
     }
 

@@ -266,7 +266,7 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
         parameters=parameters,
     )
 
-    return model_dump(function)
+    return {"type": "function", "function": model_dump(function)}
 
 
 def get_load_param_if_needed_function(t: Any) -> Optional[Callable[[T, Type], BaseModel]]:
