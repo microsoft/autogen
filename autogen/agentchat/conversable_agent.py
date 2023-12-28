@@ -507,11 +507,12 @@ class ConversableAgent(Agent):
         Args:
             message (dict or str): message from the sender. If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
                 1. "content": content of the message, can be None.
-                2. "function_call": a dictionary containing the function name and arguments.
-                3. "role": role of the message, can be "assistant", "user", "function".
+                2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                4. "role": role of the message, can be "assistant", "user", "function", "tool".
                     This field is only needed to distinguish between "function" or "assistant"/"user".
-                4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
-                5. "context" (dict): the context of the message, which will be passed to
+                5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                6. "context" (dict): the context of the message, which will be passed to
                     [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
@@ -543,11 +544,12 @@ class ConversableAgent(Agent):
         Args:
             message (dict or str): message from the sender. If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
                 1. "content": content of the message, can be None.
-                2. "function_call": a dictionary containing the function name and arguments.
-                3. "role": role of the message, can be "assistant", "user", "function".
+                2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                4. "role": role of the message, can be "assistant", "user", "function".
                     This field is only needed to distinguish between "function" or "assistant"/"user".
-                4. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
-                5. "context" (dict): the context of the message, which will be passed to
+                5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                6. "context" (dict): the context of the message, which will be passed to
                     [OpenAIWrapper.create](../oai/client#create).
             sender: sender of an Agent instance.
             request_reply (bool or None): whether a reply is requested from the sender.
@@ -745,7 +747,12 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
-        """Generate a reply using function call."""
+        """
+        Generate a reply using function call.
+
+        "function_call" replaced by "tool_calls" as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
+        """
         if config is None:
             config = self
         if messages is None:
@@ -767,7 +774,12 @@ class ConversableAgent(Agent):
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
-        """Generate a reply using async function call."""
+        """
+        Generate a reply using async function call.
+
+        "function_call" replaced by "tool_calls" as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
+        """
         if config is None:
             config = self
         if messages is None:
@@ -1076,8 +1088,8 @@ class ConversableAgent(Agent):
         Use registered auto reply functions to generate replies.
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
-        2. generate_function_call_reply
-        3. generate_tool_calls_repl
+        2. generate_function_call_reply (deprecated in favor of tool_calls)
+        3. generate_tool_calls_reply
         4. generate_code_execution_reply
         5. generate_oai_reply
         Every function returns a tuple (final, reply).
@@ -1321,15 +1333,18 @@ class ConversableAgent(Agent):
     def execute_function(self, func_call, verbose: bool = False) -> Tuple[bool, Dict[str, str]]:
         """Execute a function call and return the result.
 
-        Override this function to modify the way to execute a function call.
+        Override this function to modify the way to execute function and tool calls.
 
         Args:
-            func_call: a dictionary extracted from openai message at key "function_call" with keys "name" and "arguments".
+            func_call: a dictionary extracted from openai message at "function_call" or "tool_calls" with keys "name" and "arguments".
 
         Returns:
             A tuple of (is_exec_success, result_dict).
             is_exec_success (boolean): whether the execution is successful.
             result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
+
+        "function_call" deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
         # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
@@ -1384,6 +1399,9 @@ class ConversableAgent(Agent):
             A tuple of (is_exec_success, result_dict).
             is_exec_success (boolean): whether the execution is successful.
             result_dict: a dictionary with keys "name", "role", and "content". Value of "role" is "function".
+
+        "function_call" deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
         # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
@@ -1424,11 +1442,11 @@ class ConversableAgent(Agent):
             "content": str(content),
         }
 
-    def generate_init_message(self, **context) -> Union[str, Dict]:
+    def generate_init_message(self, **context) -> Dict:
         """Generate the initial message for the agent.
 
         Override this function to customize the initial message based on user's request.
-        If not overriden, "message" needs to be provided in the context.
+        If not overridden, "message" needs to be provided in the context.
 
         Args:
             **context: any context information, and "message" parameter needs to be provided.
@@ -1452,6 +1470,9 @@ class ConversableAgent(Agent):
         Args:
             func_sig (str or dict): description/name of the function to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat/create-functions
             is_remove: whether removing the function from llm_config with name 'func_sig'
+
+        Deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
+        See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
 
         if not self.llm_config:
