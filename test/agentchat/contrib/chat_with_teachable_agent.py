@@ -27,7 +27,7 @@ filter_dict={"model": ["gpt-4-1106-preview"]}
 
 
 def create_teachable_agent(reset_db=False):
-    """Instantiates a TeachableAgent using the settings from the top of this file."""
+    """Instantiates a teachable agent using the settings from the top of this file."""
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
@@ -54,7 +54,7 @@ def create_teachable_agent(reset_db=False):
 
 
 def interact_freely_with_user():
-    """Starts a free-form chat between the user and TeachableAgent."""
+    """Starts a free-form chat between the user and a teachable agent."""
 
     # Create the agents.
     print(colored("\nLoading previous memory (if any) from disk.", "light_cyan"))
@@ -66,5 +66,5 @@ def interact_freely_with_user():
 
 
 if __name__ == "__main__":
-    """Lets the user test TeachableAgent interactively."""
+    """Lets the user test a teachable agent interactively."""
     interact_freely_with_user()

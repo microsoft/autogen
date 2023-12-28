@@ -16,11 +16,14 @@ except ImportError:
 
 
 class Teachability(AgentCapability):
-    """Teachability uses a vector database to give an agent the ability to remember user teachings,
+    """
+    Teachability uses a vector database to give an agent the ability to remember user teachings,
     where the user is any caller (human or not) sending messages to the teachable agent.
-    Teachability is designed to be composable with other agent abilities.
+    Teachability is designed to be composable with other agent capabilities.
     To make any conversable agent teachable, instantiate both the agent and the Teachability class,
-    then pass the agent to teachability.add_to_agent(agent)."""
+    then pass the agent to teachability.add_to_agent(agent).
+    Note that teachable agents in a group chat must be given unique path_to_db_dir values.
+    """
 
     def __init__(
         self,

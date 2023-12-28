@@ -23,16 +23,16 @@ except ImportError:
 
 
 # Specify the model to use by uncommenting one of the following lines.
-filter_dict={"model": ["gpt-4-1106-preview"]}
+# filter_dict={"model": ["gpt-4-1106-preview"]}
 # filter_dict={"model": ["gpt-4-0613"]}
 # filter_dict={"model": ["gpt-3.5-turbo-1106"]}
 # filter_dict={"model": ["gpt-3.5-turbo-0613"]}
 # filter_dict={"model": ["gpt-4"]}
-# filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
+filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
 
 def create_teachable_agent(reset_db=False, verbosity=0):
-    """Instantiates a TeachableAgent using the settings from the top of this file."""
+    """Instantiates a teachable agent using the settings from the top of this file."""
     # Load LLM inference endpoints from an env variable or a file
     # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
     # and OAI_CONFIG_LIST_sample
