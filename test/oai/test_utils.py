@@ -184,6 +184,12 @@ def test_config_list_openai_aoai_env_vars_multi():
     } in configs
 
 
+def test_config_list_openai_aoai_file_not_found():
+    with mock.patch.dict(os.environ, {}, clear=True):
+        config_list = autogen.config_list_openai_aoai(key_file_path="non_existent_path")
+        assert len(config_list) == 0
+
+
 def test_config_list_from_dotenv(mock_os_environ, caplog):
     # Test with valid .env file
     fd, temp_name = tempfile.mkstemp()
@@ -267,26 +273,51 @@ def test_config_list_from_dotenv(mock_os_environ, caplog):
         assert "API key not found or empty for model gpt-4" in caplog.text
 
 
-@patch(
-    "os.environ",
-    {
-        "OPENAI_API_KEY": "test_openai_key\ntest_openai_key2",
-        "OPENAI_API_BASE": "https://api.openai.com",
-    },
-)
-def test_api_keys_base_urls_length_mismatch():
-    api_keys = ["key1", "key2"]
-    base_urls = ["https://api.service1.com"]  # Shorter than api_keys
+def test_get_config_list():
+    # Define a list of API keys and corresponding base URLs
+    api_keys = ["key1", "key2", "key3"]
+    base_urls = ["https://api.service1.com", "https://api.service2.com", "https://api.service3.com"]
+    api_type = "openai"
+    api_version = "v1"
 
+    # Call the get_config_list function to get a list of configuration dictionaries
+    config_list = autogen.get_config_list(api_keys, base_urls, api_type, api_version)
+
+    # Check that the config_list is not empty
+    assert config_list, "The config_list should not be empty."
+
+    # Check that the config_list has the correct length
+    assert len(config_list) == len(
+        api_keys
+    ), "The config_list should have the same number of items as the api_keys list."
+
+    # Check that each config in the config_list has the correct structure and data
+    for i, config in enumerate(config_list):
+        assert config["api_key"] == api_keys[i], f"The api_key for config {i} is incorrect."
+        assert config["base_url"] == base_urls[i], f"The base_url for config {i} is incorrect."
+        assert config["api_type"] == api_type, f"The api_type for config {i} is incorrect."
+        assert config["api_version"] == api_version, f"The api_version for config {i} is incorrect."
+
+    # Test with mismatched lengths of api_keys and base_urls
     with pytest.raises(AssertionError) as exc_info:
-        autogen.get_config_list(api_keys, base_urls)
-
+        autogen.get_config_list(api_keys, base_urls[:2], api_type, api_version)
     assert str(exc_info.value) == "The length of api_keys must match the length of base_urls"
 
+    # Test with empty api_keys
     with pytest.raises(AssertionError) as exc_info:
-        autogen.config_list_openai_aoai(api_keys, base_urls)
-
+        autogen.get_config_list([], base_urls, api_type, api_version)
     assert str(exc_info.value) == "The length of api_keys must match the length of base_urls"
+
+    # Test with None base_urls
+    config_list_without_base = autogen.get_config_list(api_keys, None, api_type, api_version)
+    assert all(
+        "base_url" not in config for config in config_list_without_base
+    ), "The configs should not have base_url when None is provided."
+
+    # Test with empty string in api_keys
+    api_keys_with_empty = ["key1", "", "key3"]
+    config_list_with_empty_key = autogen.get_config_list(api_keys_with_empty, base_urls, api_type, api_version)
+    assert len(config_list_with_empty_key) == 2, "The config_list should exclude configurations with empty api_keys."
 
 
 if __name__ == "__main__":
