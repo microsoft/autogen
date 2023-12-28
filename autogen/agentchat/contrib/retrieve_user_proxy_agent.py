@@ -134,7 +134,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
                 - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
-                    This only applies to files under the directories in `docs_path`. Explictly included files and urls will be chunked regardless of their types.
+                    This only applies to files under the directories in `docs_path`. Explicitly included files and urls will be chunked regardless of their types.
                 - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
