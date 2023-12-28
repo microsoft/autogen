@@ -1088,7 +1088,7 @@ class ConversableAgent(Agent):
         Use registered auto reply functions to generate replies.
         By default, the following functions are checked in order:
         1. check_termination_and_human_reply
-        2. generate_function_call_reply
+        2. generate_function_call_reply (deprecated in favor of tool_calls)
         3. generate_tool_calls_reply
         4. generate_code_execution_reply
         5. generate_oai_reply
