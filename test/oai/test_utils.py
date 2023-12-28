@@ -38,6 +38,30 @@ FILTER_DICT = {
     }
 }
 
+# Example config list
+DUMMY_CONFIG_LIST = [
+    {
+        "model": "gpt-4",
+        "api_key": "sk-********************",
+    },
+    {
+        "model": "gpt-4-1106-preview",
+        "api_key": "sk-********************",
+    },
+    {
+        "model": "gpt-4-32k",
+        "api_key": "sk-********************",
+    },
+    {
+        "model": "gpt-3.5-turbo",
+        "api_key": "sk-********************",
+    },
+    {
+        "model": "gpt-3.5-turbo-16k",
+        "api_key": "sk-********************",
+    },
+]
+
 
 @pytest.fixture
 def mock_os_environ():
@@ -48,7 +72,7 @@ def mock_os_environ():
 def test_config_list_from_json():
     # Test the functionality for loading configurations from JSON file
     # and ensuring that the loaded configurations are as expected.
-    config_list = autogen.config_list_gpt4_gpt35(key_file_path=KEY_LOC)
+    config_list = DUMMY_CONFIG_LIST
     json_file = os.path.join(KEY_LOC, "config_list_test.json")
 
     with open(json_file, "w") as f:
@@ -62,9 +86,18 @@ def test_config_list_from_json():
     assert config_list == config_list_2
 
     config_list_3 = autogen.config_list_from_json(
-        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"model": ["gpt4", "gpt-4-32k"]}
+        "config_list_test.json", file_location=KEY_LOC, filter_dict={"model": ["gpt-4", "gpt-4-32k"]}
     )
-    assert all(config.get("model") in ["gpt4", "gpt-4-32k"] for config in config_list_3)
+    assert config_list_3 == [
+        {
+            "model": "gpt-4",
+            "api_key": "sk-********************",
+        },
+        {
+            "model": "gpt-4-32k",
+            "api_key": "sk-********************",
+        },
+    ]
 
     del os.environ["config_list_test"]
     os.remove(json_file)

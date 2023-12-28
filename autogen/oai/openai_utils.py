@@ -282,7 +282,7 @@ def config_list_from_json(
         config_list_path = os.path.join(file_location, env_or_file)
         with open(config_list_path) as json_file:
             config_list = json.load(json_file)
-            return filter_config(config_list, filter_dict)
+    return filter_config(config_list, filter_dict)
 
 
 def get_config(
