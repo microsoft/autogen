@@ -257,7 +257,7 @@ def config_list_from_json(
     """Get a list of configs from a json parsed from an env variable or a file.
 
     Args:
-        env_or_file (str): The env variable name or file name.
+        env_or_file (str): The env variable name or file name. Env variables take presedence over files.
         file_location (str, optional): The file location.
         filter_dict (dict, optional): The filter dict with keys corresponding to a field in each config,
             and values corresponding to lists of acceptable values for each key.
@@ -271,6 +271,9 @@ def config_list_from_json(
 
     Returns:
         list: A list of configs for openai api calls.
+
+    Raises:
+        FileNotFoundError: if env_or_file is neither found as an environment variable nor a file
     """
     json_str = os.environ.get(env_or_file)
     if json_str:

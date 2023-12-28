@@ -12,13 +12,13 @@ try:
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
     from autogen.oai.openai_utils import retrieve_assistants_by_name
 
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+    )
+
     skip_test = False
 except ImportError:
     skip_test = True
-
-config_list = autogen.config_list_from_json(
-    OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
-)
 
 
 def ask_ossinsight(question):

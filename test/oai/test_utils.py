@@ -70,11 +70,8 @@ def test_config_list_from_json():
     os.remove(json_file)
 
     # Test that an error is thrown when the config list is missing
-    try:
+    with pytest.raises(FileNotFoundError):
         autogen.config_list_from_json("OAI_CONFIG_LIST.missing", file_location=KEY_LOC)
-        assert False  # We should not be able to get here, since the file should be missing
-    except FileNotFoundError:
-        pass
 
 
 def test_config_list_openai_aoai():
