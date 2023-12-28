@@ -74,7 +74,8 @@ def use_question_answer_phrasing():
     print(colored("\nTEST QUESTION-ANSWER PHRASING", "light_cyan"))
     num_errors, num_tests = 0, 0
     teachable_agent, teachability = create_teachable_agent(
-        reset_db=True, verbosity=0  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+        reset_db=True,
+        verbosity=0,  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
     )  # For a clean test, clear the agent's memory.
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
@@ -108,7 +109,7 @@ def use_task_advice_pair_phrasing():
     num_errors, num_tests = 0, 0
     teachable_agent, teachability = create_teachable_agent(
         reset_db=True,  # For a clean test, clear the teachable agent's memory.
-        verbosity=3  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+        verbosity=3,  # 0 for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
     )
     user = ConversableAgent("user", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 

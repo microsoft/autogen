@@ -18,8 +18,8 @@ except ImportError:
 
 
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
-filter_dict={"model": ["gpt-4-1106-preview"]}
-# filter_dict={"model": ["gpt-3.5-turbo-1106"]}
+filter_dict = {"model": ["gpt-4-1106-preview"]}
+# filter_dict = {"model": ["gpt-3.5-turbo-1106"]}
 # filter_dict = {"model": ["gpt-4-0613"]}
 # filter_dict = {"model": ["gpt-3.5-turbo-0613"]}
 # filter_dict = {"model": ["gpt-4"]}

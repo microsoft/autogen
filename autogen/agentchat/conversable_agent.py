@@ -149,9 +149,7 @@ class ConversableAgent(Agent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {
-            self.process_last_message: []  # This is currently the only hookable method.
-        }
+        self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
 
     def register_reply(
         self,

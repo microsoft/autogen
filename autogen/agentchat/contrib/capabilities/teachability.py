@@ -73,7 +73,10 @@ class Teachability(AgentCapability):
         self.analyzer = TextAnalyzerAgent(llm_config=self.llm_config)
 
         # Append extra info to the system message.
-        agent.update_system_message(agent.system_message + "\nYou've been given the special ability to remember user teachings from prior conversations.")
+        agent.update_system_message(
+            agent.system_message
+            + "\nYou've been given the special ability to remember user teachings from prior conversations."
+        )
 
     def prepopulate_db(self):
         """Adds a few arbitrary memos to the DB."""
