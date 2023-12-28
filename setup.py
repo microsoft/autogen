@@ -14,12 +14,13 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai~=1.3",
+    "openai>=1.3",
     "diskcache",
     "termcolor",
     "flaml",
     "python-dotenv",
     "tiktoken",
+    "pydantic>=1.10,<3",  # could be both V1 and V2
 ]
 
 setuptools.setup(

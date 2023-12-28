@@ -187,7 +187,7 @@ def _test_n_agents_less_than_3(method):
         messages=[],
         max_round=6,
         speaker_selection_method=method,
-        allow_repeat_speaker=True if method == "random" else False,
+        allow_repeat_speaker=[agent1, agent2] if method == "random" else False,
     )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
     agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
@@ -421,6 +421,10 @@ def test_next_agent():
     assert groupchat.next_agent(agent2, [agent1, agent2, agent3]) == agent3
     assert groupchat.next_agent(agent3, [agent1, agent2, agent3]) == agent1
 
+    assert groupchat.next_agent(agent1) == agent2
+    assert groupchat.next_agent(agent2) == agent3
+    assert groupchat.next_agent(agent3) == agent1
+
     assert groupchat.next_agent(agent1, [agent1, agent3]) == agent3
     assert groupchat.next_agent(agent3, [agent1, agent3]) == agent1
 
@@ -429,12 +433,54 @@ def test_next_agent():
     assert groupchat.next_agent(agent4, [agent1, agent2, agent3]) == agent1
 
 
+def test_selection_helpers():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+        description="Alice is an AI agent.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        description="Bob is an AI agent.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "sam",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is sam speaking.",
+        system_message="Sam is an AI agent.",
+    )
+
+    # Test empty is_termination_msg function
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2, agent3], messages=[], speaker_selection_method="round_robin", max_round=10
+    )
+
+    select_speaker_msg = groupchat.select_speaker_msg()
+    select_speaker_prompt = groupchat.select_speaker_prompt()
+
+    assert "Alice is an AI agent." in select_speaker_msg
+    assert "Bob is an AI agent." in select_speaker_msg
+    assert "Sam is an AI agent." in select_speaker_msg
+    assert str(["Alice", "Bob", "Sam"]).lower() in select_speaker_prompt.lower()
+
+    with mock.patch.object(builtins, "input", lambda _: "1"):
+        groupchat.manual_select_speaker()
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    # test_speaker_selection_method()
+    test_speaker_selection_method()
     # test_n_agents_less_than_3()
     # test_agent_mentions()
     # test_termination()
