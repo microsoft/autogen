@@ -120,7 +120,22 @@ Tests are automatically run via GitHub actions. There are two workflows:
 1. [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml)
 1. [openai.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/openai.yml)
 
-The first workflow is required to pass for all PRs. The second workflow is required for changes that affect the openai tests. The second workflow requires approval to run. When writing tests that require openai, please use [`pytest.mark.skipif`](https://github.com/microsoft/autogen/blob/main/test/test_client.py#L13) to make them run in one python version only when openai is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/openai.yml).
+The first workflow is required to pass for all PRs (and it doesn't do any OpenAI calls). The second workflow is required for changes that affect the OpenAI tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require OpenAI calls, please use [`pytest.mark.skipif`](https://github.com/microsoft/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in one python version only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/openai.yml).
+
+#### Run non-OpenAI tests
+
+To run the subset of the tests not depending on `openai` (and not calling LLMs)):
+- Install `pytest`
+- Remove `openai` library, this is required to skip the tests which check for `openai` presence ([`pytest.mark.skipif`](https://github.com/microsoft/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19))
+- Run the tests from the `test` folder. Make sure they all pass, this is required for [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml) checks to pass
+- Reinstall `openai`
+
+```
+pip install pytest
+pip uninstall -y openai
+pytest test
+pip install openai
+```
 
 ### Coverage
 
