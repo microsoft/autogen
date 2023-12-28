@@ -25,6 +25,11 @@ except ImportError:
     OPENAI_INSTALLED = False
 
 
+def test_non_empty_config_list():
+    # Check that the config_list is non-empty, as we expect
+    assert len(config_list) > 0
+
+
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
     reason="do not run on MacOS or windows or dependency is not installed",
@@ -200,6 +205,7 @@ def test_mode_terminate():
 
 
 if __name__ == "__main__":
+    test_non_empty_config_list()
     test_mode_compress()
     test_mode_customized()
     test_compress_message()

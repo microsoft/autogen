@@ -19,6 +19,7 @@ except ImportError:
 config_list = autogen.config_list_from_json(
     OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
 )
+assert len(config_list) > 0
 
 
 def ask_ossinsight(question):

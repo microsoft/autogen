@@ -34,6 +34,7 @@ def test_retrievechat():
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
     )
+    assert len(config_list) > 0
 
     assistant = RetrieveAssistantAgent(
         name="assistant",
