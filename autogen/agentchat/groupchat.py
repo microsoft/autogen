@@ -206,9 +206,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # If last message is a tool call or function call, blank the call so the api doesn't throw
         messages = self.messages.copy()
-        if messages[-1]["function_call"]:
+        if messages[-1].get("function_call", False):
             messages[-1] = dict(messages[-1], function_call=None)
-        if messages[-1]["tool_calls"]:
+        if messages[-1].get("tool_calls", False):
             messages[-1] = dict(messages[-1], tool_calls=None)
         context = messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
         final, name = selector.generate_oai_reply(context)
