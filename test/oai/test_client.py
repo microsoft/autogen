@@ -1,19 +1,20 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from conftest import skip_openai
 from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
 TOOL_ENABLED = False
 try:
     from openai import OpenAI
-    from openai.types.chat.chat_completion import ChatCompletionMessage
-except ImportError:
-    skip = True
-else:
-    skip = False
     import openai
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
+    from openai.types.chat.chat_completion import ChatCompletionMessage
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
