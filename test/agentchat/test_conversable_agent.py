@@ -2,6 +2,7 @@ import copy
 from typing import Any, Callable, Dict, Literal
 
 import pytest
+from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
@@ -402,6 +403,8 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["sh"] == exec_sh
 
 
+@patch("autogen.oai.client.OpenAI", new=object)
+# Mocking an empty OpenAi client to make the test run if OpenAI is installed but no default model is available
 def test__wrap_function_sync():
     CurrencySymbol = Literal["USD", "EUR"]
 
@@ -438,6 +441,8 @@ def test__wrap_function_sync():
 
 
 @pytest.mark.asyncio
+@patch("autogen.oai.client.OpenAI", new=object)
+# Mocking an empty OpenAi client to make the test run if OpenAI is installed but no default model is available
 async def test__wrap_function_async():
     CurrencySymbol = Literal["USD", "EUR"]
 
