@@ -40,7 +40,6 @@ jobs:
         AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
         AZURE_GPT_35_MODEL_ID: ${{ secrets.AZURE_GPT_35_MODEL_ID }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     - name: Add local feed
       run: dotnet nuget add source --name local artifacts --configfile NuGet.config
@@ -52,5 +51,4 @@ jobs:
         AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
         AZURE_GPT_35_MODEL_ID: ${{ secrets.AZURE_GPT_35_MODEL_ID }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       
