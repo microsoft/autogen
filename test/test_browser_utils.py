@@ -10,7 +10,6 @@ from agentchat.test_assistant_agent import KEY_LOC  # noqa: E402
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
 BLOG_POST_STRING = "Large language models (LLMs) are powerful tools that can generate natural language texts for various applications, such as chatbots, summarization, translation, and more. GPT-4 is currently the state of the art LLM in the world. Is model selection irrelevant? What about inference parameters?"
-BLOG_POST_FOOTER = "Copyright © 2023 AutoGen Authors"
 
 WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Microsoft"
 WIKIPEDIA_TITLE = "Microsoft - Wikipedia"
@@ -63,43 +62,51 @@ def test_simple_text_browser():
 
     # Instantiate the browser
     user_agent = "python-requests/" + requests.__version__
+    viewport_size = 1024
     browser = SimpleTextBrowser(
         downloads_folder=downloads_folder,
-        viewport_size=1024,
+        viewport_size=viewport_size,
         request_kwargs={
             "headers": {"User-Agent": user_agent},
         },
     )
 
-    # Test that
+    # Test that we can visit a page and find what we expect there
     top_viewport = browser.visit_page(BLOG_POST_URL)
-    assert browser.page_title.strip() == BLOG_POST_TITLE.strip()
     assert browser.viewport == top_viewport
+    assert browser.page_title.strip() == BLOG_POST_TITLE.strip()
+    assert BLOG_POST_STRING in browser.page_content
+
+    # Check if page splitting works
+    approx_pages = int(len(browser.page_content) / viewport_size + 0.5)  # May be fewer, since it aligns to word breaks
+    assert len(browser.viewport_pages) <= approx_pages
+    assert abs(len(browser.viewport_pages) - approx_pages) <= 1  # allow only a small deviation
+    assert browser.viewport_pages[0][0] == 0
+    assert browser.viewport_pages[-1][1] == len(browser.page_content)
+
+    # Make sure we can reconstruct the full contents from the split pages
+    buffer = ""
+    for bounds in browser.viewport_pages:
+        buffer += browser.page_content[bounds[0] : bounds[1]]
+    assert buffer == browser.page_content
 
     # Test scrolling (scroll all the way to the bottom)
-    last_viewport = top_viewport
-    found_footer = False
-    for i in range(0, 100):  # should be more than enought to scroll to the bottom
+    for i in range(1, len(browser.viewport_pages)):
         browser.page_down()
-        if BLOG_POST_STRING in browser.viewport:
-            pass  # Found the target string we were looking for
-        if BLOG_POST_FOOTER in browser.viewport:
-            found_footer = True  # Found the footer we were looking for
-            break
-        if browser.viewport == last_viewport:
-            break  # We hit the bottom
-        last_viewport = browser.viewport
-    assert browser.viewport != top_viewport
-    assert found_footer
+        assert browser.viewport_current_page == i
+    # Test scrolloing beyond the limits
+    for i in range(0, 5):
+        browser.page_down()
+        assert browser.viewport_current_page == len(browser.viewport_pages) - 1
 
-    # Now scroll back up
-    last_viewport = browser.viewport
-    for i in range(0, 100):  # should be more than enought to scroll to the top
+    # Test scrolling (scroll all the way to the bottom)
+    for i in range(len(browser.viewport_pages) - 2, 0, -1):
         browser.page_up()
-        if browser.viewport == last_viewport:
-            break  # We hit the top
-        last_viewport = browser.viewport
-    assert browser.viewport == top_viewport
+        assert browser.viewport_current_page == i
+    # Test scrolloing beyond the limits
+    for i in range(0, 5):
+        browser.page_up()
+        assert browser.viewport_current_page == 0
 
     # Test Wikipedia handling
     assert WIKIPEDIA_STRING in browser.visit_page(WIKIPEDIA_URL)
@@ -156,6 +163,8 @@ def test_bing_search():
 
     assert BING_STRING in browser.visit_page("bing: " + BING_QUERY)
     assert BING_TITLE == browser.page_title
+    assert len(browser.viewport_pages) == 1
+    assert browser.viewport_pages[0] == (0, len(browser.page_content))
 
 
 if __name__ == "__main__":

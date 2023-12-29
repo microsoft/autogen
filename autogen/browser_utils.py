@@ -44,11 +44,13 @@ class SimpleTextBrowser:
         self.downloads_folder = downloads_folder
         self.history = list()
         self.page_title = None
-        self.page_content = ""
-        self.viewport_position = 0
+        self.viewport_current_page = 0
+        self.viewport_pages = list()
         self.set_address(start_page)
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
+
+        self._page_content = ""
 
     @property
     def address(self) -> str:
@@ -60,51 +62,73 @@ class SimpleTextBrowser:
 
         # Handle special URIs
         if uri_or_path == "about:blank":
-            self.page_content = list()
+            self._set_page_content("")
         elif uri_or_path.startswith("bing:"):
             self._bing_search(uri_or_path[len("bing:") :].strip())
         else:
             if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
                 uri_or_path = urljoin(self.address, uri_or_path)
+                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
             self._fetch_page(uri_or_path)
 
-        self.viewport_position = 0
+        self.viewport_current_page = 0
 
     @property
     def viewport(self) -> str:
         """Return the content of the current viewport."""
-        if self.address.startswith("http:") or self.address.startswith("https:"):
-            start_idx = self._viewport_start_position()
-            end_idx = self._viewport_end_position()
-            return self.page_content[start_idx:end_idx]
-        else:
-            return self.page_content
+        bounds = self.viewport_pages[self.viewport_current_page]
+        return self.page_content[bounds[0] : bounds[1]]
 
-    def _viewport_start_position(self) -> int:
-        start_idx = max(self.viewport_position, 0)
-        while start_idx > 0 and self.page_content[start_idx] not in [" ", "\t", "\r", "\n"]:
-            start_idx -= 1
-        return start_idx
+    @property
+    def page_content(self) -> str:
+        """Return the full contents of the current page."""
+        return self._page_content
 
-    def _viewport_end_position(self) -> int:
-        end_idx = min(self.viewport_position + self.viewport_size, len(self.page_content))
-        while end_idx < len(self.page_content) and self.page_content[end_idx - 1] not in [" ", "\t", "\r", "\n"]:
-            end_idx += 1
-        return end_idx
+    def _set_page_content(self, content) -> str:
+        """Sets the text content of the current page."""
+        self._page_content = content
+        self._split_pages()
+        if self.viewport_current_page >= len(self.viewport_pages):
+            self.viewport_current_page = len(self.viewport_pages) - 1
 
     def page_down(self):
-        self.viewport_position = min(self._viewport_end_position(), len(self.page_content) - 1)
+        self.viewport_current_page = min(self.viewport_current_page + 1, len(self.viewport_pages) - 1)
 
     def page_up(self):
-        self.viewport_position -= self.viewport_size
-        self.viewport_position = self._viewport_start_position()  # Align to whitespace
+        self.viewport_current_page = max(self.viewport_current_page - 1, 0)
 
     def visit_page(self, path_or_uri):
         """Update the address, visit the page, and return the content of the viewport."""
         self.set_address(path_or_uri)
         return self.viewport
 
+    def _split_pages(self):
+        # Split only regular pages
+        if not self.address.startswith("http:") and not self.address.startswith("https:"):
+            self.viewport_pages = [(0, len(self._page_content))]
+            return
+
+        # Handle empty pages
+        if len(self._page_content) == 0:
+            self.viewport_pages = [(0, 0)]
+            return
+
+        # Break the viewport into pages
+        self.viewport_pages = []
+        start_idx = 0
+        while start_idx < len(self._page_content):
+            end_idx = min(start_idx + self.viewport_size, len(self._page_content))
+            # Adjust to end on a space
+            while end_idx < len(self._page_content) and self._page_content[end_idx - 1] not in [" ", "\t", "\r", "\n"]:
+                end_idx += 1
+            self.viewport_pages.append((start_idx, end_idx))
+            start_idx = end_idx
+
     def _bing_api_call(self, query):
+        # Make sure the key was set
+        if self.bing_api_key is None:
+            raise ValueError("Missing Bing API key.")
+
         # Prepare the request parameters
         request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
 
@@ -149,12 +173,14 @@ class SimpleTextBrowser:
                 news_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['description']}")
 
         self.page_title = f"{query} - Search"
-        self.page_content = (
+
+        content = (
             f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets)} results:\n\n## Web Results\n"
             + "\n\n".join(web_snippets)
         )
         if len(news_snippets) > 0:
-            self.page_content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
+            content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
+        self._set_page_content(content)
 
     def _fetch_page(self, url):
         try:
@@ -209,7 +235,7 @@ class SimpleTextBrowser:
 
                     # Remove excesive blank lines
                     self.page_title = soup.title.string
-                    self.page_content = re.sub(r"\n{2,}", "\n\n", webpage_text).strip()
+                    self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
                 elif content_type == "text/plain":
                     # Get the content of the response
                     plain_text = ""
@@ -217,11 +243,11 @@ class SimpleTextBrowser:
                         plain_text += chunk
 
                     self.page_title = None
-                    self.page_content = plain_text
+                    self._set_page_content(plain_text)
                 elif IS_PDF_CAPABLE and content_type == "application/pdf":
                     pdf_data = io.BytesIO(response.raw.read())
                     self.page_title = None
-                    self.page_content = pdfminer.high_level.extract_text(pdf_data)
+                    self._set_page_content(pdfminer.high_level.extract_text(pdf_data))
                 elif self.downloads_folder is not None:
                     # Try producing a safe filename
                     fname = None
@@ -245,13 +271,13 @@ class SimpleTextBrowser:
 
                     # Return a page describing what just happened
                     self.page_title = "Download complete."
-                    self.page_content = f"Downloaded '{url}' to '{download_path}'."
+                    self._set_page_content(f"Downloaded '{url}' to '{download_path}'.")
                 else:
                     self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
-                    self.page_content = self.page_title
+                    self._set_page_content(self.page_title)
             else:
                 self.page_title = "Error"
-                self.page_content = "Failed to retrieve " + url
+                self._set_page_content("Failed to retrieve " + url)
         except requests.exceptions.RequestException as e:
             self.page_title = "Error"
-            self.page_content = str(e)
+            self._set_page_content(str(e))
