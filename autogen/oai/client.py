@@ -6,6 +6,7 @@ from typing import List, Optional, Dict, Callable, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
+from pydantic import ValidationError
 
 from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
@@ -13,7 +14,7 @@ from autogen.token_count_utils import count_token
 TOOL_ENABLED = False
 try:
     import openai
-    from openai import OpenAI, APIError
+    from openai import OpenAI, APIError, __version__ as OPENAIVERSION
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
     from openai.types.completion import Completion
@@ -136,7 +137,7 @@ class OpenAIWrapper:
         return create_config, extra_kwargs
 
     def _client(self, config, openai_config):
-        """Create a client with the given config to overrdie openai_config,
+        """Create a client with the given config to override openai_config,
         after removing extra kwargs.
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
@@ -244,7 +245,7 @@ class OpenAIWrapper:
                         try:
                             response.cost
                         except AttributeError:
-                            # update atrribute if cost is not calculated
+                            # update attribute if cost is not calculated
                             response.cost = self.cost(response)
                             cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
@@ -329,15 +330,27 @@ class OpenAIWrapper:
                 ),
             )
             for i in range(len(response_contents)):
-                response.choices.append(
-                    Choice(
+                if OPENAIVERSION >= "1.5":  # pragma: no cover
+                    # OpenAI versions 1.5.0 and above
+                    choice = Choice(
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role="assistant", content=response_contents[i], function_call=None
+                        ),
+                        logprobs=None,
+                    )
+                else:
+                    # OpenAI versions below 1.5.0
+                    choice = Choice(
                         index=i,
                         finish_reason=finish_reasons[i],
                         message=ChatCompletionMessage(
                             role="assistant", content=response_contents[i], function_call=None
                         ),
                     )
-                )
+
+                response.choices.append(choice)
         else:
             # If streaming is not enabled or using functions, send a regular chat completion request
             # Functions are not supported, so ensure streaming is disabled
@@ -349,7 +362,7 @@ class OpenAIWrapper:
     def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
         """Update the usage summary.
 
-        Usage is calculated no mattter filter is passed or not.
+        Usage is calculated no matter filter is passed or not.
         """
 
         def update_usage(usage_summary):
