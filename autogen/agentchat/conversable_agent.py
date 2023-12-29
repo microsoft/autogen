@@ -437,7 +437,7 @@ class ConversableAgent(Agent):
         message = self._message_to_dict(message)
 
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling function \"{message['name']}\" *****"
+            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
@@ -1536,9 +1536,10 @@ class ConversableAgent(Agent):
 
         self.client = OpenAIWrapper(**self.llm_config)
 
-    def can_execute_function(self, name: str) -> bool:
+    def can_execute_function(self, name: Union[list[str], str]) -> bool:
         """Whether the agent can execute the function."""
-        return name in self._function_map
+        names = name if isinstance(name, list) else [name]
+        return all([n in self._function_map for n in names])
 
     @property
     def function_map(self) -> Dict[str, Callable]:
