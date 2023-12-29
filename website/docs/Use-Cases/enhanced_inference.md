@@ -4,7 +4,7 @@
 `autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` for enhanced LLM inference using `openai<1`.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
-## Tune Inference Parameters (for openai<1)
+## Tune Inference Parameters (for openai&lt;1)
 
 Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#tune-inference-hyperparameters)
 
@@ -68,7 +68,7 @@ Users can specify the (optional) search range for each hyperparameter.
 1. model. Either a constant str, or multiple choices specified by `flaml.tune.choice`.
 1. prompt/messages. Prompt is either a str or a list of strs, of the prompt templates. messages is a list of dicts or a list of lists, of the message templates.
 Each prompt/message template will be formatted with each data instance. For example, the prompt template can be:
-"{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
+"`{problem}` Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
 And `{problem}` will be replaced by the "problem" field of each data instance.
 1. max_tokens, n, best_of. They can be constants, or specified by `flaml.tune.randint`, `flaml.tune.qrandint`, `flaml.tune.lograndint` or `flaml.qlograndint`. By default, max_tokens is searched in [50, 1000); n is searched in [1, 100); and best_of is fixed to 1.
 1. stop. It can be a str or a list of strs, or a list of lists of strs or None. Default is None.
@@ -268,7 +268,7 @@ If the provided prompt or message is a template, it will be automatically materi
 ```python
 response = client.create(
     context={"problem": "How many positive integers, not exceeding 100, are multiples of 2 or 3 but not 4?"},
-    prompt="{problem} Solve the problem carefully.",
+    prompt="`{problem}` Solve the problem carefully.",
     allow_format_str_template=True,
     **config
 )
@@ -322,7 +322,7 @@ context.append(
 response = client.create(context=context, messages=messages, **config)
 ```
 
-## Logging (for openai<1)
+## Logging (for openai&lt;1)
 
 When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
