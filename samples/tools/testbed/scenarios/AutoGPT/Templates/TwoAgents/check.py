@@ -3,6 +3,7 @@ import glob
 import os
 import subprocess
 import sys
+import shutil
 
 
 def scoring(content: str, should_contain: list, should_not_contain: list):
@@ -28,7 +29,6 @@ def scoring(content: str, should_contain: list, should_not_contain: list):
 
 
 def check():
-    workspace = "coding"
     files_contents = []
     scores = []
 
@@ -54,9 +54,11 @@ def check():
 
     for file_path in matching_files:
         if eval_type == "python":
+            # copy the test file to working directory
+            shutil.copy(f"../custom_python/{file_path}", "./")
             result = subprocess.run(
                 [sys.executable, file_path],
-                cwd=os.path.abspath(workspace),
+                cwd=os.path.abspath("./"),
                 capture_output=True,
                 text=True,
             )
