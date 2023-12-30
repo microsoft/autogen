@@ -431,7 +431,8 @@ def config_list_from_json(
         # The environment variable exists. We should use information from it.
         if os.path.exists(env_str):
             # It is a file location, and we need to load the json from the file.
-            json_str = open(env_str).read()
+            with open(env_str, "r") as file:
+                json_str = file.read()
         else:
             # Else, it should be a JSON string by itself.
             json_str = env_str
