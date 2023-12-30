@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "develop": "gatsby clean && gatsby develop",
+    "dev": "npm run develop",
     "start": "gatsby clean && gatsby develop",
     "build": "gatsby clean && rm -rf ../autogenstudio/web/ui  && PREFIX_PATH_VALUE='' gatsby build --prefix-paths && cp -r  public/ ../autogenstudio/web/ui",
     "serve": "gatsby serve",
