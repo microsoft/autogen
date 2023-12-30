@@ -1,6 +1,5 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
 TOOL_ENABLED = False
 try:
@@ -15,13 +14,16 @@ else:
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
 
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     # for config in config_list:
@@ -38,7 +40,7 @@ def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(

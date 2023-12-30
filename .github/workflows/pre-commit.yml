@@ -1,10 +1,10 @@
 name: Code formatting
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on push or pull request, but only for the main branch
-  push:
-    branches: [main]
-  pull_request: {}
+on:  # Trigger the workflow on pull request or merge
+  pull_request:
+  merge_group:
+    types: [checks_requested]
 
 defaults:
   run:

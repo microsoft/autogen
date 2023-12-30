@@ -70,7 +70,7 @@ Reply "TERMINATE" in the end when everything is done.
             **kwargs,
         )
 
-        # Update the provided desciption if None, and we are using the default system_message,
+        # Update the provided description if None, and we are using the default system_message,
         # then use the default description.
         if description is None:
             if system_message == self.DEFAULT_SYSTEM_MESSAGE:
