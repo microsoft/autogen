@@ -18,10 +18,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR openai not installed OR requested to skip",
 )
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_ai_user_proxy_agent():
     conversations = {}
     # autogen.ChatCompletion.start_logging(conversations)
