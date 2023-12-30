@@ -404,7 +404,9 @@ def test_update_function_signature_and_register_functions() -> None:
 
 
 @patch("autogen.oai.client.OpenAI", new=object)
-# Mocking an empty OpenAi client to make the test run if OpenAI is installed but no default model is available
+# Mocking an empty OpenAI client (simulating default OpenAIWrapper behaviour in case `openai` is not installed)
+# Without this fix the test will pass if no `openai` is installed and fail if it is
+# With the mocked `autogen.oai.client.OpenAI`` the test consistently passes no matter if `openai` is present or not
 def test__wrap_function_sync():
     CurrencySymbol = Literal["USD", "EUR"]
 
