@@ -1,6 +1,5 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
 TOOL_ENABLED = False
 try:
@@ -14,6 +13,9 @@ else:
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
