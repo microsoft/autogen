@@ -86,12 +86,12 @@ jobs:
       - name: Test Compression
         if: matrix.python-version != '3.10'   # diversify the python versions
         run: |
-          pytest test/agentchat/contrib/test_compressible_agent.py
+          pytest test/agentchat/contrib/test_compressible_agent.py test/agentchat/contrib/test_compressible_groupchat.py
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py
+          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py test/agentchat/contrib/test_compressible_groupchat.py
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

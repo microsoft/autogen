@@ -95,7 +95,12 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+        return [
+            {
+                "role": "system",
+                "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
+            }
+        ]
 
     def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
@@ -193,7 +198,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return selected_agent
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        context = self.messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
+        context = self.messages + self.select_speaker_prompt(agents)
         final, name = selector.generate_oai_reply(context)
 
         if not final:
@@ -222,15 +227,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return selected_agent
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = await selector.a_generate_oai_reply(
-            self.messages
-            + [
-                {
-                    "role": "system",
-                    "content": f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role.",
-                }
-            ]
-        )
+        final, name = await selector.a_generate_oai_reply(self.messages + self.select_speaker_prompt(agents))
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
@@ -345,6 +342,9 @@ class GroupChatManager(ConversableAgent):
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
+            if hasattr(self, "check_groupchat_status_func") and self.check_groupchat_status_func(groupchat):
+                # if check_groupchat_status_func exists and returns True, the groupchat is over
+                break
             if i == groupchat.max_round - 1:
                 # the last round
                 break
