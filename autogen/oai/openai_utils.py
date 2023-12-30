@@ -405,7 +405,7 @@ def config_list_from_json(
     of acceptable values for that field, the configuration will still be considered a match.
 
     Args:
-        env_or_file (str):The name of the environment variable, the filename, or the environment variable of the filename
+        env_or_file (str): The name of the environment variable, the filename, or the environment variable of the filename
             that containing the JSON data.
         file_location (str, optional): The directory path where the file is located, if `env_or_file` is a filename.
         filter_dict (dict, optional): A dictionary specifying the filtering criteria for the configurations, with
