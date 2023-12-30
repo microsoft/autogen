@@ -103,7 +103,7 @@ config, analysis = autogen.Completion.tune(
 `num_samples` is the number of configurations to sample. -1 means unlimited (until optimization budget is exhausted).
 The returned `config` contains the optimized configuration and `analysis` contains an ExperimentAnalysis object for all the tried configurations and results.
 
-The tuend config can be used to perform inference.
+The tuned config can be used to perform inference.
 
 ## API unification
 

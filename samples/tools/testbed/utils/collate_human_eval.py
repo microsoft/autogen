@@ -83,7 +83,7 @@ HumanEval_2, x_20,   x_21,   ...,    X_2N
 HumanEval_M, x_M0,   x_M1,   ...,    X_MN
 
 
-Where x_ij is the number of AsssitantAgent conversation turns needed to pass all the tests for problem i, in Trial/repetition j. If the agent was not able to pass the tests by the end of the conversation, the value will be -1. If data for the trial is missing, the value will be an empty string "".
+Where x_ij is the number of AssistantAgent conversation turns needed to pass all the tests for problem i, in Trial/repetition j. If the agent was not able to pass the tests by the end of the conversation, the value will be -1. If data for the trial is missing, the value will be an empty string "".
 """.strip(),
         formatter_class=argparse.RawTextHelpFormatter,
     )
