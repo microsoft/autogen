@@ -1278,7 +1278,7 @@ class ConversableAgent(Agent):
         """Generate the initial message for the agent.
 
         Override this function to customize the initial message based on user's request.
-        If not overriden, "message" needs to be provided in the context.
+        If not overridden, "message" needs to be provided in the context.
 
         Args:
             **context: any context information, and "message" parameter needs to be provided.
