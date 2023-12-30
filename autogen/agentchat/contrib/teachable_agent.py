@@ -265,7 +265,7 @@ class TeachableAgent(ConversableAgent):
             # TODO: This is not an encouraged usage pattern. It breaks the conversation-centric design.
             # consider using the arg "silent"
             # Use the analyzer's method directly, to leave analyzer message out of the printed chat.
-            return self.analyzer.analyze_text(text_to_analyze, analysis_instructions)
+            return self.analyzer.analyze_text(text_to_analyze, analysis_instructions)["content"]
 
 
 class MemoStore:
