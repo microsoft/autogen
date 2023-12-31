@@ -61,6 +61,7 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+
   CompressionTest:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -83,9 +84,21 @@ jobs:
           pip install -e .
           pip uninstall -y openai
       - name: Test Compression
-        if: matrix.python-version != '3.10'
+        if: matrix.python-version != '3.10'   # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_compressible_agent.py
+      - name: Coverage
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
 
   GPTAssistantAgent:
     runs-on: ${{ matrix.os }}
@@ -109,8 +122,21 @@ jobs:
           pip install -e .
           pip uninstall -y openai
       - name: Test GPTAssistantAgent
+        if: matrix.python-version != '3.11'  # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_gpt_assistant.py
+      - name: Coverage
+        if: matrix.python-version == '3.11'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_gpt_assistant.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
 
   TeachableAgent:
     runs-on: ${{ matrix.os }}
@@ -134,8 +160,21 @@ jobs:
           pip install -e .[teachable]
           pip uninstall -y openai
       - name: Test TeachableAgent
+        if: matrix.python-version != '3.9'  # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_teachable_agent.py
+      - name: Coverage
+        if: matrix.python-version == '3.9'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.9'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
 
   LMMTest:
     runs-on: ${{ matrix.os }}

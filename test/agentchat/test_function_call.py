@@ -7,7 +7,7 @@ import asyncio
 import json
 import autogen
 from autogen.math_utils import eval_math_responses
-from test_assistant_agent import KEY_LOC
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
 
 
@@ -48,7 +48,7 @@ def test_eval_math_responses():
         functions=functions,
     )
     print(response)
-    responses = client.extract_text_or_function_call(response)
+    responses = client.extract_text_or_completion_object(response)
     print(responses[0])
     function_call = responses[0].function_call
     name, arguments = function_call.name, json.loads(function_call.arguments)
@@ -195,10 +195,11 @@ async def test_a_execute_function():
 )
 def test_update_function():
     config_list_gpt4 = autogen.config_list_from_json(
-        "OAI_CONFIG_LIST",
+        OAI_CONFIG_LIST,
         filter_dict={
             "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
+        file_location=KEY_LOC,
     )
     llm_config = {
         "config_list": config_list_gpt4,

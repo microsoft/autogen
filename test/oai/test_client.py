@@ -1,13 +1,21 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
+TOOL_ENABLED = False
 try:
     from openai import OpenAI
+    from openai.types.chat.chat_completion import ChatCompletionMessage
 except ImportError:
     skip = True
 else:
     skip = False
+    import openai
+
+    if openai.__version__ >= "1.1.0":
+        TOOL_ENABLED = True
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -15,7 +23,7 @@ def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     # for config in config_list:
@@ -24,7 +32,44 @@ def test_aoai_chat_completion():
     #     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
+
+
+@pytest.mark.skipif(skip and not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+def test_oai_tool_calling_extraction():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+    )
+    client = OpenAIWrapper(config_list=config_list)
+    response = client.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "What is the weather in San Francisco?",
+            },
+        ],
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "getCurrentWeather",
+                    "description": "Get the weather in location",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
+                            "unit": {"type": "string", "enum": ["c", "f"]},
+                        },
+                        "required": ["location"],
+                    },
+                },
+            }
+        ],
+    )
+    print(response)
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -36,7 +81,7 @@ def test_chat_completion():
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "1+1="}])
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -45,7 +90,7 @@ def test_completion():
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct")
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -80,7 +125,7 @@ def test_usage_summary():
     # check update
     client._update_usage_summary(response, use_cache=True)
     assert (
-        client.actual_usage_summary["total_cost"] == response.cost * 2
+        client.total_usage_summary["total_cost"] == response.cost * 2
     ), "total_cost should be equal to response.cost * 2"
 
     # check clear
@@ -96,6 +141,7 @@ def test_usage_summary():
 
 if __name__ == "__main__":
     test_aoai_chat_completion()
+    test_oai_tool_calling_extraction()
     test_chat_completion()
     test_completion()
     test_cost()

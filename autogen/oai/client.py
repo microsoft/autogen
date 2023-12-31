@@ -6,18 +6,23 @@ from typing import List, Optional, Dict, Callable, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
+from pydantic import ValidationError
 
 from autogen.oai.openai_utils import get_key, oai_price1k
 from autogen.token_count_utils import count_token
 
+TOOL_ENABLED = False
 try:
-    from openai import OpenAI, APIError
+    import openai
+    from openai import OpenAI, APIError, __version__ as OPENAIVERSION
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
     import diskcache
 
+    if openai.__version__ >= "1.1.0":
+        TOOL_ENABLED = True
     ERROR = None
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
@@ -132,7 +137,7 @@ class OpenAIWrapper:
         return create_config, extra_kwargs
 
     def _client(self, config, openai_config):
-        """Create a client with the given config to overrdie openai_config,
+        """Create a client with the given config to override openai_config,
         after removing extra kwargs.
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
@@ -187,7 +192,7 @@ class OpenAIWrapper:
     def create(self, **config):
         """Make a completion for a given config using openai's clients.
         Besides the kwargs allowed in openai's client, we allow the following additional kwargs.
-        The config in each client will be overriden by the config.
+        The config in each client will be overridden by the config.
 
         Args:
             - context (Dict | None): The context to instantiate the prompt or messages. Default to None.
@@ -205,7 +210,7 @@ class OpenAIWrapper:
         ```python
         def yes_or_no_filter(context, response):
             return context.get("yes_or_no_choice", False) is False or any(
-                text in ["Yes.", "No."] for text in client.extract_text_or_function_call(response)
+                text in ["Yes.", "No."] for text in client.extract_text_or_completion_object(response)
             )
         ```
 
@@ -235,9 +240,15 @@ class OpenAIWrapper:
                     # Try to get the response from cache
                     key = get_key(params)
                     response = cache.get(key, None)
+
                     if response is not None:
+                        try:
+                            response.cost
+                        except AttributeError:
+                            # update attribute if cost is not calculated
+                            response.cost = self.cost(response)
+                            cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
-                    if response is not None:
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
@@ -319,15 +330,27 @@ class OpenAIWrapper:
                 ),
             )
             for i in range(len(response_contents)):
-                response.choices.append(
-                    Choice(
+                if OPENAIVERSION >= "1.5":  # pragma: no cover
+                    # OpenAI versions 1.5.0 and above
+                    choice = Choice(
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role="assistant", content=response_contents[i], function_call=None
+                        ),
+                        logprobs=None,
+                    )
+                else:
+                    # OpenAI versions below 1.5.0
+                    choice = Choice(
                         index=i,
                         finish_reason=finish_reasons[i],
                         message=ChatCompletionMessage(
                             role="assistant", content=response_contents[i], function_call=None
                         ),
                     )
-                )
+
+                response.choices.append(choice)
         else:
             # If streaming is not enabled or using functions, send a regular chat completion request
             # Functions are not supported, so ensure streaming is disabled
@@ -339,7 +362,7 @@ class OpenAIWrapper:
     def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
         """Update the usage summary.
 
-        Usage is calculated no mattter filter is passed or not.
+        Usage is calculated no matter filter is passed or not.
         """
 
         def update_usage(usage_summary):
@@ -436,21 +459,33 @@ class OpenAIWrapper:
         return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
 
     @classmethod
-    def extract_text_or_function_call(cls, response: ChatCompletion | Completion) -> List[str]:
-        """Extract the text or function calls from a completion or chat response.
+    def extract_text_or_completion_object(
+        cls, response: ChatCompletion | Completion
+    ) -> Union[List[str], List[ChatCompletionMessage]]:
+        """Extract the text or ChatCompletion objects from a completion or chat response.
 
         Args:
             response (ChatCompletion | Completion): The response from openai.
 
         Returns:
-            A list of text or function calls in the responses.
+            A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
         choices = response.choices
         if isinstance(response, Completion):
             return [choice.text for choice in choices]
-        return [
-            choice.message if choice.message.function_call is not None else choice.message.content for choice in choices
-        ]
+
+        if TOOL_ENABLED:
+            return [
+                choice.message
+                if choice.message.function_call is not None or choice.message.tool_calls is not None
+                else choice.message.content
+                for choice in choices
+            ]
+        else:
+            return [
+                choice.message if choice.message.function_call is not None else choice.message.content
+                for choice in choices
+            ]
 
 
 # TODO: logging

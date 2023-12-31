@@ -42,10 +42,6 @@ jobs:
         if: matrix.python-version == '3.9'
         run: |
           pip install docker
-      - name: Install dependencies for test when needed
-        if: matrix.python-version == '3.10'  # test_agentchat_function_call
-        run: |
-          pip install -e.[mathchat]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:

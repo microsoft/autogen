@@ -1,6 +1,5 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_utils import OAI_CONFIG_LIST, KEY_LOC
 
 try:
     from openai import OpenAI
@@ -9,18 +8,21 @@ except ImportError:
 else:
     skip = False
 
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_aoai_chat_completion_stream():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], stream=True)
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -28,12 +30,12 @@ def test_chat_completion_stream():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo"]},
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "1+1="}], stream=True)
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -41,7 +43,7 @@ def test_chat_functions_stream():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo"]},
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     functions = [
         {
@@ -66,7 +68,7 @@ def test_chat_functions_stream():
         stream=True,
     )
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -75,7 +77,7 @@ def test_completion_stream():
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct", stream=True)
     print(response)
-    print(client.extract_text_or_function_call(response))
+    print(client.extract_text_or_completion_object(response))
 
 
 if __name__ == "__main__":

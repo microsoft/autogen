@@ -58,7 +58,15 @@ The easiest way to start playing is
  2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
+## Using existing docker image
+Install docker, save your oai key into an environment variable name OPENAI_API_KEY, and then run the following.
 
+```
+docker pull yuandongtian/autogen:latest
+docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 docker.io/yuandongtian/autogen:latest
+```
+
+Then open `http://localhost:8081/` in your browser to use AutoGen. The UI is from `./samples/apps/autogen-assistant`. See docker hub [link](https://hub.docker.com/r/yuandongtian/autogen) for more details.
 
 ## Installation
 
@@ -119,6 +127,7 @@ After the repo is cloned.
 The figure below shows an example conversation flow with AutoGen.
 ![Agent Chat Example](https://github.com/microsoft/autogen/blob/main/website/static/img/chat_example.png)
 
+Alternatively, the [sample code](https://github.com/microsoft/autogen/blob/main/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
 
 ## Enhanced LLM Inferences

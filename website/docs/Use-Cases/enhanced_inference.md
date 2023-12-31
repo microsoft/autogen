@@ -103,7 +103,7 @@ config, analysis = autogen.Completion.tune(
 `num_samples` is the number of configurations to sample. -1 means unlimited (until optimization budget is exhausted).
 The returned `config` contains the optimized configuration and `analysis` contains an ExperimentAnalysis object for all the tried configurations and results.
 
-The tuend config can be used to perform inference.
+The tuned config can be used to perform inference.
 
 ## API unification
 
@@ -119,7 +119,7 @@ client = OpenAIWrapper()
 # ChatCompletion
 response = client.create(messages=[{"role": "user", "content": "2+2="}], model="gpt-3.5-turbo")
 # extract the response text
-print(client.extract_text_or_function_call(response))
+print(client.extract_text_or_completion_object(response))
 # get cost of this completion
 print(response.cost)
 # Azure OpenAI endpoint
@@ -127,7 +127,7 @@ client = OpenAIWrapper(api_key=..., base_url=..., api_version=..., api_type="azu
 # Completion
 response = client.create(prompt="2+2=", model="gpt-3.5-turbo-instruct")
 # extract the response text
-print(client.extract_text_or_function_call(response))
+print(client.extract_text_or_completion_object(response))
 
 ```
 
@@ -240,7 +240,7 @@ Another type of error is that the returned response does not satisfy a requireme
 
 ```python
 def valid_json_filter(response, **_):
-    for text in OpenAIWrapper.extract_text_or_function_call(response):
+    for text in OpenAIWrapper.extract_text_or_completion_object(response):
         try:
             json.loads(text)
             return True

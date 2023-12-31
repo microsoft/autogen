@@ -49,7 +49,7 @@ jobs:
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[mathchat,test]
+          pip install -e .[test]
           pip uninstall -y openai
           coverage run -a -m pytest test --ignore=test/agentchat/contrib
           coverage xml

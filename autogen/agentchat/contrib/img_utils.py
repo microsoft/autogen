@@ -26,7 +26,7 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
         return content
 
 
-def llava_formater(prompt: str, order_image_tokens: bool = False) -> Tuple[str, List[str]]:
+def llava_formatter(prompt: str, order_image_tokens: bool = False) -> Tuple[str, List[str]]:
     """
     Formats the input prompt by replacing image tags and returns the new prompt along with image locations.
 

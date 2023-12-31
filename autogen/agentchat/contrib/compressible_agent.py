@@ -225,7 +225,7 @@ Reply "TERMINATE" in the end when everything is done.
         # 1. mode = "TERMINATE", terminate the agent if no token left.
         if self.compress_config["mode"] == "TERMINATE":
             if max_token_allowed - token_used <= 0:
-                # Teminate if no token left.
+                # Terminate if no token left.
                 print(
                     colored(
                         f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existing token count: {token_used}',
@@ -320,7 +320,7 @@ Reply "TERMINATE" in the end when everything is done.
                         cmsg["role"] = "user"
                     sender._oai_messages[self][i] = cmsg
 
-            # sucessfully compressed, return False, None for generate_oai_reply to be called with the updated messages
+            # successfully compressed, return False, None for generate_oai_reply to be called with the updated messages
             return False, None
         return final, None
 
@@ -332,7 +332,7 @@ Reply "TERMINATE" in the end when everything is done.
         """Compress a list of messages into one message.
 
         The first message (the initial prompt) will not be compressed.
-        The rest of the messages will be compressed into one message, the model is asked to distinuish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
+        The rest of the messages will be compressed into one message, the model is asked to distinguish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
         Check out the compress_sys_msg.
 
         TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
@@ -403,7 +403,7 @@ Rules:
             print(colored(f"Failed to compress the content due to {e}", "red"), flush=True)
             return False, None
 
-        compressed_message = self.client.extract_text_or_function_call(response)[0]
+        compressed_message = self.client.extract_text_or_completion_object(response)[0]
         assert isinstance(compressed_message, str), f"compressed_message should be a string: {compressed_message}"
         if self.compress_config["verbose"]:
             print(
