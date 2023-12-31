@@ -1,18 +1,19 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from conftest import skip_openai
 
 TOOL_ENABLED = False
 try:
     from openai import OpenAI
-    from openai.types.chat.chat_completion import ChatCompletionMessage
-except ImportError:
-    skip = True
-else:
-    skip = False
     import openai
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
+    from openai.types.chat.chat_completion import ChatCompletionMessage
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -35,7 +36,7 @@ def test_aoai_chat_completion():
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip and not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.skipif(skip or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,

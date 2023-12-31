@@ -1,17 +1,21 @@
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
 import pytest
 import asyncio
 import json
 import autogen
+from conftest import skip_openai
 from autogen.math_utils import eval_math_responses
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
 
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
-@pytest.mark.skipif(OpenAI is None, reason="openai>=1 not installed")
+
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
         KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
@@ -190,8 +194,8 @@ async def test_a_execute_function():
 
 
 @pytest.mark.skipif(
-    not OpenAI or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed OR reeusted to skip OR py!=3.10",
 )
 def test_update_function():
     config_list_gpt4 = autogen.config_list_from_json(
