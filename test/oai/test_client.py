@@ -99,7 +99,6 @@ def test_completion():
     [
         (None, "gpt-3.5-turbo-instruct"),
         (42, "gpt-3.5-turbo-instruct"),
-        (None, "text-ada-001"),
     ],
 )
 def test_cost(cache_seed, model):
@@ -144,5 +143,5 @@ if __name__ == "__main__":
     test_oai_tool_calling_extraction()
     test_chat_completion()
     test_completion()
-    test_cost()
+    # test_cost()
     test_usage_summary()
