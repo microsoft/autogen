@@ -1,10 +1,13 @@
 # Installation
 
-## Setup Virtual Environment
+## Option 1: Using Docker
+[TO Add Content]
+
+## Option 2: Use Virtual Environment
 
 When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
-### Option 1: venv
+### Option a: venv
 
 You can create a virtual environment with `venv` as below:
 ```bash
@@ -17,7 +20,7 @@ The following command will deactivate the current `venv` environment:
 deactivate
 ```
 
-### Option 2: conda
+### Option b: conda
 
 Another option is with `Conda`, Conda works better at solving dependency conflicts than pip. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
@@ -31,7 +34,7 @@ The following command will deactivate the current `conda` environment:
 conda deactivate
 ```
 
-### Option 3: poetry
+### Option c: poetry
 
 Another option is with `poetry`, which is a dependency manager for Python.
 
