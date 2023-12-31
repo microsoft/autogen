@@ -1,13 +1,14 @@
 import sys
 import os
 import pytest
+from conftest import skip_openai
 
 try:
     import openai
-
-    skip = False
 except ImportError:
     skip = True
+else:
+    skip = False or skip_openai
 
 
 here = os.path.abspath(os.path.dirname(__file__))
