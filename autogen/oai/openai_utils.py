@@ -94,8 +94,8 @@ def get_config_list(
     base_urls = ['https://api.service1.com', 'https://api.service2.com', 'https://api.service3.com']
 
     # Optionally, define the API type and version if they are common for all keys
-    api_type = 'openai'
-    api_version = 'v1'
+    api_type = 'azure'
+    api_version = '2023-08-01-preview'
 
     # Call the get_config_list function to get a list of configuration dictionaries
     config_list = get_config_list(api_keys, base_urls, api_type, api_version)
@@ -223,11 +223,14 @@ def config_list_openai_aoai(
         if exclude != "aoai"
         else []
     )
+    # process openai base urls
+    base_urls = os.environ.get("OPENAI_API_BASE", None)
+    base_urls = base_urls if base_urls is None else base_urls.split("\n")
     openai_config = (
         get_config_list(
             # Assuming OpenAI API_KEY in os.environ["OPENAI_API_KEY"]
             api_keys=os.environ.get("OPENAI_API_KEY", "").split("\n"),
-            base_urls=os.environ.get("OPENAI_API_BASE", "").split("\n"),
+            base_urls=base_urls,
             # "api_type": "open_ai",
         )
         if exclude != "openai"
@@ -274,7 +277,7 @@ def config_list_from_models(
         aoai_api_base_file = 'base_aoai.txt'
 
         # Define the list of models for which to create configurations
-        model_list = ['text-davinci-003', 'gpt-3.5-turbo']
+        model_list = ['gpt-4', 'gpt-3.5-turbo']
 
         # Call the function to get a list of configuration dictionaries
         config_list = config_list_from_models(
@@ -287,7 +290,7 @@ def config_list_from_models(
 
         # The `config_list` will contain configurations for the specified models, for example:
         # [
-        #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'text-davinci-003'},
+        #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-4'},
         #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-3.5-turbo'}
         # ]
     ```
