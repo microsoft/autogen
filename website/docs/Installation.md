@@ -1,7 +1,13 @@
 # Installation
 
 ## Option 1: Using Docker
-[TO Add Content]
+Install docker, save your oai key into an environment variable name OPENAI_API_KEY, and then run the following:
+```
+cd ./samples/dockers
+# Build a local docker image
+docker build -t autogen_user ./Dockerfile.user
+docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_user
+```
 
 ## Option 2: Use Virtual Environment
 

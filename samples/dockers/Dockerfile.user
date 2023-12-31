@@ -17,3 +17,5 @@ EXPOSE 8081
 RUN cd /venv; pip install pyautogen autogenra
 RUN pip install yfinance numpy scipy matplotlib pandas
 RUN pip install beautifulsoup4
+
+ENTRYPOINT []
