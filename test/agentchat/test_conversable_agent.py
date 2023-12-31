@@ -403,10 +403,6 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["sh"] == exec_sh
 
 
-@patch("autogen.oai.client.OpenAI", new=object)
-# Mocking an empty OpenAI client (simulating default OpenAIWrapper behaviour in case `openai` is not installed)
-# Without this fix the test will pass if no `openai` is installed and fail if it is
-# With the mocked `autogen.oai.client.OpenAI`` the test consistently passes no matter if `openai` is present or not
 def test__wrap_function_sync():
     CurrencySymbol = Literal["USD", "EUR"]
 
@@ -426,7 +422,7 @@ def test__wrap_function_sync():
         else:
             raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
-    agent = ConversableAgent(name="agent", llm_config={})
+    agent = ConversableAgent(name="agent", llm_config=False)
 
     @agent._wrap_function
     def currency_calculator(
@@ -443,8 +439,6 @@ def test__wrap_function_sync():
 
 
 @pytest.mark.asyncio
-@patch("autogen.oai.client.OpenAI", new=object)
-# Mocking an empty OpenAi client to make the test run if OpenAI is installed but no default model is available
 async def test__wrap_function_async():
     CurrencySymbol = Literal["USD", "EUR"]
 
@@ -464,7 +458,7 @@ async def test__wrap_function_async():
         else:
             raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
-    agent = ConversableAgent(name="agent", llm_config={})
+    agent = ConversableAgent(name="agent", llm_config=False)
 
     @agent._wrap_function
     async def currency_calculator(
