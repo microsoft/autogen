@@ -236,7 +236,6 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return self.next_agent(last_speaker, agents)
 
         # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
-        print("before mentioned_agents")
         mentions = self._mentioned_agents(name, agents)
         if len(mentions) == 1:
             name = next(iter(mentions))
@@ -276,7 +275,6 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             Dict: a counter for mentioned agents.
         """
         # Cast message content to str
-        print(message_content)
         message_content = content_str(message_content)
 
         mentions = dict()
