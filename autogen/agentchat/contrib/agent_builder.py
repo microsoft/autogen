@@ -19,9 +19,7 @@ def _config_check(config: Dict):
         assert (
             agent_config.get("system_message", None) is not None
         ), 'Missing agent "system_message" in your agent_configs.'
-        assert (
-                agent_config.get("description", None) is not None
-        ), 'Missing agent "description" in your agent_configs.'
+        assert agent_config.get("description", None) is not None, 'Missing agent "description" in your agent_configs.'
 
 
 class AgentBuilder:
@@ -78,7 +76,7 @@ class AgentBuilder:
     # You should remove the related skill description when the position is not a programmer or developer.
     # Coding skill is limited to Python.
     # Your answer should omit the word "REQUIREMENT".
-    # People with the above position can doubt previous messages or code in the group chat (for example, if there is no 
+    # People with the above position can doubt previous messages or code in the group chat (for example, if there is no
 output after executing the code) and provide a corrected answer or code.
     # People in the above position should ask for help from the group chat manager when confused and let the manager select another participant.
     """
@@ -91,7 +89,7 @@ output after executing the code) and provide a corrected answer or code.
 
     Hint:
     # This description should include enough information that can help a group chat manager know when to let this position speak.
-    # People with the above position can doubt previous messages or code in the group chat (for example, if there is no 
+    # People with the above position can doubt previous messages or code in the group chat (for example, if there is no
 output after executing the code) and provide a corrected answer or code.
     # Your answer should be in at most three sentences.
     # Your answer should be natural, starting from "[POSITION's name] is a ...".
@@ -283,7 +281,7 @@ output after executing the code) and provide a corrected answer or code.
                 name=agent_name,
                 llm_config=current_config.copy(),
                 system_message=system_message,
-                description=description
+                description=description,
             )
         self.agent_procs_assign[agent_name] = (agent, server_id)
         return agent
@@ -376,7 +374,7 @@ output after executing the code) and provide a corrected answer or code.
         agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
         print(f"{agent_name_list} are generated.")
 
-        print(f"==> Generating system message...")
+        print("==> Generating system message...")
         agent_sys_msg_list = []
         for name in agent_name_list:
             print(f"Preparing system message for {name}")
@@ -398,7 +396,7 @@ output after executing the code) and provide a corrected answer or code.
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        print(f"==> Generating description...")
+        print("==> Generating description...")
         agent_description_list = []
         for name in agent_name_list:
             print(f"Preparing description for {name}")
@@ -418,12 +416,7 @@ output after executing the code) and provide a corrected answer or code.
 
         for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_description_list)):
             agent_configs.append(
-                {
-                    "name": name,
-                    "model": self.agent_model,
-                    "system_message": sys_msg,
-                    "description": description
-                }
+                {"name": name, "model": self.agent_model, "system_message": sys_msg, "description": description}
             )
 
         if coding is None:
@@ -561,7 +554,7 @@ output after executing the code) and provide a corrected answer or code.
                         break
             print(f"{agent_name_list} are selected.")
 
-        print(f"==> Generating system message...")
+        print("==> Generating system message...")
         # generate system message from profile
         agent_sys_msg_list = []
         for name, profile in list(zip(agent_name_list, agent_profile_list)):
@@ -586,12 +579,7 @@ output after executing the code) and provide a corrected answer or code.
 
         for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_profile_list)):
             agent_configs.append(
-                {
-                    "name": name,
-                    "model": self.agent_model,
-                    "system_message": sys_msg,
-                    "description": description
-                }
+                {"name": name, "model": self.agent_model, "system_message": sys_msg, "description": description}
             )
 
         if coding is None:
@@ -650,18 +638,21 @@ output after executing the code) and provide a corrected answer or code.
 
         if coding is True:
             print("Adding user console proxy...")
-            agent_list = [
-                autogen.UserProxyAgent(
-                    name="User_console_and_code_interpreter",
-                    is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
-                    system_message="User console with a python code interpreter interface.",
-                    description="""A user console with a code interpreter interface.
+            agent_list = (
+                [
+                    autogen.UserProxyAgent(
+                        name="User_console_and_code_interpreter",
+                        is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
+                        system_message="User console with a python code interpreter interface.",
+                        description="""A user console with a code interpreter interface.
 It can provide the code execution results. Select this player when other players provide some code that needs to be executed.
 DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING.""",
-                    code_execution_config=code_execution_config,
-                    human_input_mode="NEVER",
-                )
-            ] + agent_list
+                        code_execution_config=code_execution_config,
+                        human_input_mode="NEVER",
+                    )
+                ]
+                + agent_list
+            )
 
         return agent_list, self.cached_configs.copy()
 
@@ -720,7 +711,7 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
         default_llm_config = cached_configs["default_llm_config"]
         coding = cached_configs["coding"]
 
-        if kwargs.get('code_execution_config', None) is not None:
+        if kwargs.get("code_execution_config", None) is not None:
             # for test
             self.cached_configs.update(
                 {
