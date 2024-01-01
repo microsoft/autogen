@@ -10,8 +10,11 @@ docker build -t autogen_user . -f Dockerfile.user
 
 Once you build the docker image, you can use `docker images` to check whether it has been created successfully.
 
-Now suppose you have a AutoGen application in a current folder `test`, then you can mount it into the docker image and run it. In the example below, `test` is mounted into `/test` in the docker, and the script `twoagent.py` is executed in the docker.
+Now suppose you have some AutoGen application in a current folder `test`, then you can mount it into the docker image and run it. In the example below, `test` is mounted into `/test` in the docker, and the script `twoagent.py` is executed in the docker.
 ```
+# Go back to the root folder of AutoGen
+cd ../..
+
 # Mount the local folder test into docker image and run the script in the docker.
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v `pwd`/test:/test autogen_user:latest python /test/twoagent.py
 ```
