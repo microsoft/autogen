@@ -3,9 +3,7 @@ import os
 import json
 import sys
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
-from autogen import UserProxyAgent
 from conftest import skip_openai
-
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -21,10 +19,10 @@ try:
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
     import diskcache
+
+    OPENAI_INSTALLED = True
 except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+    OPENAI_INSTALLED = False or skip_openai
 
 # chromadb required
 try:
@@ -44,12 +42,13 @@ def _config_check(config):
     for agent_config in config["agent_configs"]:
         assert agent_config.get("name", None) is not None
         assert agent_config.get("model", None) is not None
+        assert agent_config.get("description", None) is not None
         assert agent_config.get("system_message", None) is not None
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="openai not installed OR requested to skip",
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
 )
 def test_build():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
@@ -135,8 +134,8 @@ def test_build_from_library():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="openai not installed OR requested to skip",
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
 )
 def test_save():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
@@ -167,8 +166,8 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="openai not installed OR requested to skip",
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
 )
 def test_load():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
@@ -191,8 +190,8 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="openai not installed OR requested to skip",
+    not OPENAI_INSTALLED,
+    reason="do not run when dependency is not installed",
 )
 def test_clear_agent():
     builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
