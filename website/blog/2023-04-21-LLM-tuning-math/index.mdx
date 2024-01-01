@@ -27,6 +27,7 @@ We use AutoGen to select between the following models with a target inference bu
 - gpt-4, the state of the art LLM that costs more than 10 times of gpt-3.5-turbo
 
 We adapt the models using 20 examples in the train set, using the problem statement as the input and generating the solution as the output. We use the following inference parameters:
+
 - temperature: The parameter that controls the randomness of the output text. A higher temperature means more diversity but less coherence. We search for the optimal temperature in the range of `[0, 1]`.
 - top_p: The parameter that controls the probability mass of the output tokens. Only tokens with a cumulative probability less than or equal to top-p are considered. A lower top-p means more diversity but less coherence. We search for the optimal top-p in the range of `[0, 1]`.
 - max_tokens: The maximum number of tokens that can be generated for each output. We search for the optimal max length in the range of `[50, 1000]`.
