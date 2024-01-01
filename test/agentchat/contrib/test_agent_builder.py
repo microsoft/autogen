@@ -64,7 +64,7 @@ def test_build():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     _config_check(agent_config)
@@ -96,7 +96,7 @@ def test_build_from_library():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     _config_check(agent_config)
@@ -120,7 +120,7 @@ def test_build_from_library():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     _config_check(agent_config)
@@ -152,7 +152,7 @@ def test_save():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     saved_files = builder.save(f"{here}/example_save_agent_builder_config.json")
@@ -181,7 +181,7 @@ def test_load():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     print(loaded_agent_configs)
@@ -203,7 +203,7 @@ def test_clear_agent():
             "last_n_messages": 2,
             "work_dir": f"{here}/test_agent_scripts",
             "timeout": 60,
-            "use_docker": False,
+            "use_docker": "python:3",
         },
     )
     builder.clear_all_agents()
