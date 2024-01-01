@@ -9,6 +9,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
+try:
+    import openai
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
 # chromadb required
 try:
     import chromadb
@@ -32,7 +39,7 @@ def _config_check(config):
 
 
 @pytest.mark.skipif(
-    skip_openai,
+    skip,
     reason="do not run when dependency is not installed",
 )
 def test_build():
@@ -63,7 +70,7 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    skip_openai or not CHROMADB_INSTALLED,
+    skip or not CHROMADB_INSTALLED,
     reason="do not run when dependency is not installed",
 )
 def test_build_from_library():
@@ -119,7 +126,7 @@ def test_build_from_library():
 
 
 @pytest.mark.skipif(
-    skip_openai,
+    skip,
     reason="do not run when dependency is not installed",
 )
 def test_save():
@@ -151,7 +158,7 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    skip_openai,
+    skip,
     reason="do not run when dependency is not installed",
 )
 def test_load():
@@ -175,7 +182,7 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    skip_openai,
+    skip,
     reason="do not run when dependency is not installed",
 )
 def test_clear_agent():
