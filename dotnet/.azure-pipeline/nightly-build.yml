@@ -11,7 +11,7 @@ stages:
 #####################################
 ### STAGE: Build AutoGen
 #####################################
-- stage: Build and Pack
+- stage: Build_and_Pack
   jobs:
   - job: Build
     displayName: Build
