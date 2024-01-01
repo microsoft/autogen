@@ -22,7 +22,7 @@ assistant = autogen.AssistantAgent(
 )
 ```
 
-The `llm_config` is used in the [`create`](/docs/reference/oai/client#create) function for LLM inference.
+The `llm_config` is used in the [`create`] <!-- (/docs/reference/oai/client#create) --> function for LLM inference.
 When `llm_config` is not provided, the agent will rely on other openai settings such as `openai.api_key` or the environment variable `OPENAI_API_KEY`, which can also work when you'd like to use a single endpoint.
 You can also explicitly specify that by:
 ```python
