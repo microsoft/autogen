@@ -1,0 +1,70 @@
+name: dotnet-nightly-build-$(Date:yyMMdd)$(Rev:.r)
+
+trigger: none
+pr: none
+
+variables:
+  solution: 'dotnet/AutoGen.sln'
+  buildConfiguration: 'Publish'
+
+stages:
+#####################################
+### STAGE: Build AutoGen
+#####################################
+- stage: Build and Pack
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      displayName: checkout
+      clean: true
+    
+    - task: UseDotNet@2
+      inputs:
+        packageType: 'sdk'
+        useGlobalJson: true
+        workingDirectory: 'dotnet'
+    
+    - task: NuGetToolInstaller@1
+      displayName: 'NuGet tool installer'
+
+    - task: DotNetCoreCLI@2
+      displayName: restore
+      inputs:
+        command: 'restore'
+        projects: '$(Build.SourcesDirectory)$(solution)'
+        feedsToUse: 'config'
+
+    - task: DotNetCoreCLI@2
+      displayName: build
+      inputs:
+        command: 'build'
+        workingDirectory: dotnet
+        arguments: |
+            -c $(buildConfiguration)
+            /p:SignAssembly=true
+            /p:DelaySign=true
+    
+    - powershell:  |
+        echo "Create nightly build package"
+        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed
+        echo "Create release package"
+        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build --verbosity Detailed
+        echo "Contents of Build.ArtifactStagingDirectory..."
+        ls -R $(Build.ArtifactStagingDirectory)
+      workingDirectory: '$(Build.SourcesDirectory)/dotnet'
+      displayName: 'dotnet pack'
+    
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish pack artifacts'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)'
+        artifact: 'build'
+        publishLocation: 'pipeline'
+        
