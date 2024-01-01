@@ -19,6 +19,9 @@ def _config_check(config: Dict):
         assert (
             agent_config.get("system_message", None) is not None
         ), 'Missing agent "system_message" in your agent_configs.'
+        assert (
+                agent_config.get("description", None) is not None
+        ), 'Missing agent "description" in your agent_configs.'
 
 
 class AgentBuilder:
@@ -48,8 +51,12 @@ class AgentBuilder:
 
     Hint:
     # Considering the effort, the position in this task should be no more than {max_agents}; less is better.
-    # Answer the names of those positions/jobs.
-    # Separate names by commas and use "_" instead of space. For example, Product_manager,Programmer
+    # The position name should be as specific as possible, such as "python_programmer" instead of "programmer".
+    # Do not use ambiguous position name, such as "domain expert" with no specific description of domain or "technical writer" with no description of what it should write.
+    # Each position should have a unique function and the position name should reflect this.
+    # The positions should relate to the task and significantly different in function.
+    # Add ONLY ONE programming related position if the task needs coding.
+    # Answer the names of those positions/jobs, separated names by commas and use "_" instead of space. For example, Product_manager,Programmer
     # Only return the list of positions.
     """
 
@@ -63,12 +70,33 @@ class AgentBuilder:
     REQUIREMENT: {default_sys_msg}
 
     Hint:
-    # Your answer should be natural, starting from "As a ...".
-    # People in this position will work in a group chat, solving task together with other people with different positions.
-    # You should let them reply "TERMINATE" when they think the task has been completed (the leader's need has been satisfied).
+    # Your answer should be natural, starting from "You are now in a group chat. You need to complete a task with other participants. As a ...".
+    # [IMPORTANT] You should let them reply "TERMINATE" when they think the task is completed (user's need has actually been satisfied).
     # The modified requirement should not contain the code interpreter skill.
+    # Your should remove coding related skill's description when the position is not a programmer or developer.
     # Coding skill is limited to Python.
     # Your answer should omit the word "REQUIREMENT".
+    # People with above position can doubt previous message or code in the group chat (for example, if there is no 
+output after execute the code), and provide a corrected answer or code.
+    # People with above position can ask for help from other people in the group chat.
+    """
+
+    AGENT_DESCRIPTION_PROMPT = """Considering the following position:
+
+    POSITION: {position}
+
+    What requirements should this position be satisfied?
+
+    Hint:
+    # Your answer should be in one sentence.
+    # Your answer should be natural, starting from "[POSITION's name] is a ...".
+    # Your answer should include the skills that this position should have.
+    # The modified requirement should not contain the code interpreter skill.
+    # Your answer should not contain coding related skill when the position is not a programmer or developer.
+    # Coding skill should be limited to Python.
+    # People with above position will work in a group chat, solving tasks with other people with different jobs.
+    # People with above position can doubt previous message or code in the group chat (for example, if there is no 
+output after execute the code), and provide a corrected answer or code.
     """
 
     AGENT_SEARCHING_PROMPT = """Considering the following task:
@@ -151,6 +179,7 @@ class AgentBuilder:
         model_name_or_hf_repo: str,
         llm_config: dict,
         system_message: Optional[str] = autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+        description: Optional[str] = autogen.AssistantAgent.DEFAULT_DESCRIPTION,
         use_oai_assistant: Optional[bool] = False,
         world_size: Optional[int] = 1,
     ) -> autogen.AssistantAgent:
@@ -250,7 +279,10 @@ class AgentBuilder:
             )
         else:
             agent = autogen.AssistantAgent(
-                name=agent_name, llm_config=current_config.copy(), system_message=system_message
+                name=agent_name,
+                llm_config=current_config.copy(),
+                system_message=system_message,
+                description=description
             )
         self.agent_procs_assign[agent_name] = (agent, server_id)
         return agent
@@ -310,7 +342,7 @@ class AgentBuilder:
         """
         if code_execution_config is None:
             code_execution_config = {
-                "last_n_messages": 1,
+                "last_n_messages": 2,
                 "work_dir": "groupchat",
                 "use_docker": False,
                 "timeout": 60,
@@ -327,7 +359,7 @@ class AgentBuilder:
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
-        print("Generating agents...")
+        print("==> Generating agents...")
         resp_agent_name = (
             build_manager.create(
                 messages=[
@@ -343,9 +375,10 @@ class AgentBuilder:
         agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
         print(f"{agent_name_list} are generated.")
 
+        print(f"==> Generating system message...")
         agent_sys_msg_list = []
         for name in agent_name_list:
-            print(f"Preparing configuration for {name}...")
+            print(f"Preparing system message for {name}")
             resp_agent_sys_msg = (
                 build_manager.create(
                     messages=[
@@ -364,9 +397,32 @@ class AgentBuilder:
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        for i in range(len(agent_name_list)):
+        print(f"==> Generating description...")
+        agent_description_list = []
+        for name in agent_name_list:
+            print(f"Preparing description for {name}")
+            resp_agent_description = (
+                build_manager.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": self.AGENT_DESCRIPTION_PROMPT.format(position=name),
+                        }
+                    ]
+                )
+                .choices[0]
+                .message.content
+            )
+            agent_description_list.append(resp_agent_description)
+
+        for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_description_list)):
             agent_configs.append(
-                {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
+                {
+                    "name": name,
+                    "model": self.agent_model,
+                    "system_message": sys_msg,
+                    "description": description
+                }
             )
 
         if coding is None:
@@ -427,7 +483,7 @@ class AgentBuilder:
 
         if code_execution_config is None:
             code_execution_config = {
-                "last_n_messages": 1,
+                "last_n_messages": 2,
                 "work_dir": "groupchat",
                 "use_docker": False,
                 "timeout": 60,
@@ -449,7 +505,7 @@ class AgentBuilder:
             with open(library_path_or_json, "r") as f:
                 agent_library = json.load(f)
 
-        print("Looking for suitable agents in library...")
+        print("==> Looking for suitable agents in library...")
         if embedding_model is not None:
             chroma_client = chromadb.Client()
             collection = chroma_client.create_collection(
@@ -502,11 +558,13 @@ class AgentBuilder:
                     if agent["name"] == name:
                         agent_profile_list.append(agent["profile"])
                         break
+            print(f"{agent_name_list} are selected.")
 
+        print(f"==> Generating system message...")
         # generate system message from profile
         agent_sys_msg_list = []
         for name, profile in list(zip(agent_name_list, agent_profile_list)):
-            print(f"Preparing configuration for {name}...")
+            print(f"Preparing system message for {name}...")
             resp_agent_sys_msg = (
                 build_manager.create(
                     messages=[
@@ -525,9 +583,14 @@ class AgentBuilder:
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        for i in range(len(agent_name_list)):
+        for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_profile_list)):
             agent_configs.append(
-                {"name": agent_name_list[i], "model": self.agent_model, "system_message": agent_sys_msg_list[i]}
+                {
+                    "name": name,
+                    "model": self.agent_model,
+                    "system_message": sys_msg,
+                    "description": description
+                }
             )
 
         if coding is None:
@@ -570,6 +633,7 @@ class AgentBuilder:
         coding = self.cached_configs["coding"]
         code_execution_config = self.cached_configs["code_execution_config"]
 
+        print("==> Creating agents...")
         for config in agent_configs:
             print(f"Creating agent {config['name']} with backbone {config['model']}...")
             self._create_agent(
@@ -577,6 +641,7 @@ class AgentBuilder:
                 config["model"],
                 default_llm_config,
                 system_message=config["system_message"],
+                description=config["description"],
                 use_oai_assistant=use_oai_assistant,
                 **kwargs,
             )
@@ -589,6 +654,10 @@ class AgentBuilder:
                     name="User_console_and_Python_code_interpreter",
                     is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
                     system_message="User console with a python code interpreter interface.",
+                    description="User console with a python code interpreter interface. "
+                                "It can provide the execution result of the python code."
+                                "DO NOT SELECT THIS PLAYER WHEN THERE IS NO CODE TO EXECUTE, "
+                                "IT WILL NOT ANSWER ANYTHING.",
                     code_execution_config=code_execution_config,
                     human_input_mode="NEVER",
                 )
@@ -651,7 +720,7 @@ class AgentBuilder:
         default_llm_config = cached_configs["default_llm_config"]
         coding = cached_configs["coding"]
 
-        if kwargs["code_execution_config"] is not None:
+        if kwargs.get('code_execution_config', None) is not None:
             # for test
             self.cached_configs.update(
                 {
