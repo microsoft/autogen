@@ -37,7 +37,7 @@ const ChatBox = ({
   const deleteMsgUrl = `${serverUrl}/messages/delete`;
 
   const [loading, setLoading] = React.useState(false);
-  const [text, setText] = React.useState('');
+  const [text, setText] = React.useState("");
   const [error, setError] = React.useState<IStatus | null>({
     status: true,
     message: "All good",
@@ -266,7 +266,7 @@ const ChatBox = ({
     }, 200);
   }, [messages]);
 
-  const textAreaDefaultHeight = '50px'
+  const textAreaDefaultHeight = "50px";
   // clear text box if loading has just changed to false and there is no error
   React.useEffect(() => {
     if (loading === false && textAreaInputRef.current) {
@@ -377,11 +377,15 @@ const ChatBox = ({
       });
   };
 
-  const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+  const handleTextChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ): void => {
     setText(event.target.value);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {
+  const handleKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>
+  ): void => {
     if (event.key === "Enter" && !event.shiftKey) {
       if (textAreaInputRef.current && !loading) {
         event.preventDefault();
@@ -447,28 +451,28 @@ const ChatBox = ({
                 placeholder="Write message here..."
                 ref={textAreaInputRef}
                 className="flex items-center w-full resize-none text-gray-600 bg-white p-2 ring-2 rounded-sm pl-5 pr-16"
-                style={{ maxHeight: '120px', overflowY: 'auto' }}
+                style={{ maxHeight: "120px", overflowY: "auto" }}
               />
               <div
                 role={"button"}
-                style={{ width: '35px', height: '35px' }}
+                style={{ width: "45px", height: "35px" }}
                 title="Send message"
                 onClick={() => {
                   if (textAreaInputRef.current && !loading) {
-                    getCompletion(textAreaInputRef.current.value)
+                    getCompletion(textAreaInputRef.current.value);
                   }
                 }}
                 className="absolute right-3 bottom-2 bg-accent hover:brightness-75 transition duration-300 rounded cursor-pointer flex justify-center items-center"
               >
                 {" "}
                 {!loading && (
-                  <div className="inline-block   ">
-                    <PaperAirplaneIcon className="h-6 w-6 text-white" />{" "}
+                  <div className="inline-block  ">
+                    <PaperAirplaneIcon className="h-6 w-6 text-white " />{" "}
                   </div>
                 )}
                 {loading && (
                   <div className="inline-block   ">
-                    <Cog6ToothIcon className="text-white rounded-full h-6 w-6" />
+                    <Cog6ToothIcon className="text-white animate-spin rounded-full h-6 w-6" />
                   </div>
                 )}
               </div>
