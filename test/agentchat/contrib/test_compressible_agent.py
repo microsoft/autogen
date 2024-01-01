@@ -2,6 +2,7 @@ import pytest
 import sys
 import autogen
 import os
+from conftest import skip_openai
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -19,15 +20,15 @@ config_list = autogen.config_list_from_json(
 
 try:
     import openai
-
-    OPENAI_INSTALLED = True
 except ImportError:
-    OPENAI_INSTALLED = False
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_mode_compress():
     conversations = {}
@@ -65,8 +66,8 @@ def test_mode_compress():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_mode_customized():
     try:
@@ -135,10 +136,10 @@ def test_mode_customized():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_compress_messsage():
+def test_compress_message():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
@@ -169,6 +170,10 @@ def test_compress_messsage():
     assert is_success, "Compression failed."
 
 
+@pytest.mark.skipif(
+    skip,
+    reason="do not run if dependency is not installed OR requested to skip",
+)
 def test_mode_terminate():
     assistant = CompressibleAgent(
         name="assistant",
@@ -202,5 +207,5 @@ def test_mode_terminate():
 if __name__ == "__main__":
     test_mode_compress()
     test_mode_customized()
-    test_compress_messsage()
+    test_compress_message()
     test_mode_terminate()

@@ -64,8 +64,10 @@ class GroupChat:
         """Returns the agent with a given name."""
         return self.agents[self.agent_names.index(name)]
 
-    def next_agent(self, agent: Agent, agents: List[Agent]) -> Agent:
+    def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
+        if agents is None:
+            agents = self.agents
 
         # What index is the agent? (-1 if not present)
         idx = self.agent_names.index(agent.name) if agent.name in self.agent_names else -1
@@ -79,20 +81,26 @@ class GroupChat:
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
 
-    def select_speaker_msg(self, agents: List[Agent]) -> str:
+    def select_speaker_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
+        if agents is None:
+            agents = self.agents
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles(agents)}.
 
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
 
-    def select_speaker_prompt(self, agents: List[Agent]) -> str:
+    def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
+        if agents is None:
+            agents = self.agents
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
 
-    def manual_select_speaker(self, agents: List[Agent]) -> Union[Agent, None]:
+    def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
+        if agents is None:
+            agents = self.agents
 
         print("Please select the next speaker from the following list:")
         _n_agents = len(agents)

@@ -55,7 +55,7 @@ victordibia:
 afourney:
   name: Adam Fourney
   title: Principal Researcher Microsoft Research
-  url: https://github.com/afourney
+  url: https://www.adamfourney.com
   image_url: https://github.com/afourney.png
 
 beibinli:
@@ -93,3 +93,9 @@ LinxinS97:
   title: MS student at Waseda University
   url: https://linxins97.github.io/
   image_url: https://github.com/LinxinS97.png
+
+skzhang1:
+  name: Shaokun Zhang
+  title: PhD student at the Pennsylvania State University
+  url: https://github.com/skzhang1
+  image_url: https://github.com/skzhang1.png

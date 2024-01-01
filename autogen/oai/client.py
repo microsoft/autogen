@@ -7,8 +7,9 @@ import sys
 from typing import Callable, Dict, List, Optional, Union
 
 from flaml.automl.logger import logger_formatter
+from pydantic import ValidationError
 
-from autogen.oai.openai_utils import get_key, oai_price1k
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
@@ -16,6 +17,7 @@ try:
     import diskcache
     import openai
     from openai import APIError, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
     from openai.types.completion import Completion
@@ -144,7 +146,7 @@ class OpenAIWrapper:
         return create_config, extra_kwargs
 
     def _client(self, config, openai_config):
-        """Create a client with the given config to overrdie openai_config,
+        """Create a client with the given config to override openai_config,
         after removing extra kwargs.
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
@@ -255,7 +257,7 @@ class OpenAIWrapper:
                         try:
                             response.cost
                         except AttributeError:
-                            # update atrribute if cost is not calculated
+                            # update attribute if cost is not calculated
                             response.cost = self.cost(response)
                             cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
@@ -343,15 +345,27 @@ class OpenAIWrapper:
                 ),
             )
             for i in range(len(response_contents)):
-                response.choices.append(
-                    Choice(
+                if OPENAIVERSION >= "1.5":  # pragma: no cover
+                    # OpenAI versions 1.5.0 and above
+                    choice = Choice(
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role="assistant", content=response_contents[i], function_call=None
+                        ),
+                        logprobs=None,
+                    )
+                else:
+                    # OpenAI versions below 1.5.0
+                    choice = Choice(
                         index=i,
                         finish_reason=finish_reasons[i],
                         message=ChatCompletionMessage(
                             role="assistant", content=response_contents[i], function_call=None
                         ),
                     )
-                )
+
+                response.choices.append(choice)
         else:
             # If streaming is not enabled or using functions, send a regular chat completion request
             # Functions are not supported, so ensure streaming is disabled
@@ -363,7 +377,7 @@ class OpenAIWrapper:
     def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
         """Update the usage summary.
 
-        Usage is calculated no mattter filter is passed or not.
+        Usage is calculated no matter filter is passed or not.
         """
 
         def update_usage(usage_summary):
@@ -447,13 +461,13 @@ class OpenAIWrapper:
     def cost(self, response: Union[ChatCompletion, Completion]) -> float:
         """Calculate the cost of the response."""
         model = response.model
-        if model not in oai_price1k:
+        if model not in OAI_PRICE1K:
             # TODO: add logging to warn that the model is not found
             return 0
 
         n_input_tokens = response.usage.prompt_tokens
         n_output_tokens = response.usage.completion_tokens
-        tmp_price1K = oai_price1k[model]
+        tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
             return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
