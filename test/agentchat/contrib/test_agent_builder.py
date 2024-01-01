@@ -5,24 +5,9 @@ import sys
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 from conftest import skip_openai
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
-
 here = os.path.abspath(os.path.dirname(__file__))
-oai_config_path = OAI_CONFIG_LIST
-
-# openai>=1 required
-try:
-    from openai import OpenAI, APIError
-    from openai.types.chat import ChatCompletion
-    from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
-    from openai.types.completion import Completion
-    from openai.types.completion_usage import CompletionUsage
-    import diskcache
-
-    OPENAI_INSTALLED = True
-except ImportError:
-    OPENAI_INSTALLED = False or skip_openai
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 # chromadb required
 try:
@@ -47,11 +32,11 @@ def _config_check(config):
 
 
 @pytest.mark.skipif(
-    not OPENAI_INSTALLED,
+    skip_openai,
     reason="do not run when dependency is not installed",
 )
 def test_build():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -78,11 +63,11 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    not OPENAI_INSTALLED or not CHROMADB_INSTALLED,
+    skip_openai or not CHROMADB_INSTALLED,
     reason="do not run when dependency is not installed",
 )
 def test_build_from_library():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -134,11 +119,11 @@ def test_build_from_library():
 
 
 @pytest.mark.skipif(
-    not OPENAI_INSTALLED,
+    skip_openai,
     reason="do not run when dependency is not installed",
 )
 def test_save():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -166,11 +151,11 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    not OPENAI_INSTALLED,
+    skip_openai,
     reason="do not run when dependency is not installed",
 )
 def test_load():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     json.load(open(config_save_path, "r"))
@@ -190,11 +175,11 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    not OPENAI_INSTALLED,
+    skip_openai,
     reason="do not run when dependency is not installed",
 )
 def test_clear_agent():
-    builder = AgentBuilder(config_path=oai_config_path, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     builder.load(
