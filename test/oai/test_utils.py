@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 import pytest
 import logging
@@ -7,8 +6,7 @@ import tempfile
 from unittest import mock
 from unittest.mock import patch
 import autogen  # noqa: E402
-
-sys.path.append("../../autogen")
+from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION
 
 # Example environment variables
 ENV_VARS = {
@@ -127,7 +125,7 @@ def test_config_list_openai_aoai():
                 "api_key": "sk-testkeyaoai456",
                 "base_url": "https://api.azure.com/v1",
                 "api_type": "azure",
-                "api_version": "2023-08-01-preview",
+                "api_version": DEFAULT_AZURE_API_VERSION,
             },
         ]
         assert config_list == expected_config_list
@@ -144,14 +142,14 @@ def test_config_list_openai_aoai():
 )
 def test_config_list_openai_aoai_env_vars():
     # Test the config_list_openai_aoai function with environment variables set
-    configs = autogen.oai.openai_utils.config_list_openai_aoai()
+    configs = autogen.oai.openai_utils.config_list_openai_aoai(key_file_path=None)
     assert len(configs) == 2
     assert {"api_key": "test_openai_key", "base_url": "https://api.openai.com"} in configs
     assert {
         "api_key": "test_aoai_key",
         "base_url": "https://api.azure.com",
         "api_type": "azure",
-        "api_version": "2023-08-01-preview",
+        "api_version": DEFAULT_AZURE_API_VERSION,
     } in configs
 
 
@@ -174,13 +172,13 @@ def test_config_list_openai_aoai_env_vars_multi():
         "api_key": "test_aoai_key",
         "base_url": "https://api.azure.com",
         "api_type": "azure",
-        "api_version": "2023-08-01-preview",
+        "api_version": DEFAULT_AZURE_API_VERSION,
     } in configs
     assert {
         "api_key": "test_aoai_key2",
         "base_url": "https://api.azure.com/v2",
         "api_type": "azure",
-        "api_version": "2023-08-01-preview",
+        "api_version": DEFAULT_AZURE_API_VERSION,
     } in configs
 
 
