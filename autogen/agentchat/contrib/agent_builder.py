@@ -51,12 +51,14 @@ class AgentBuilder:
 
     Hint:
     # Considering the effort, the position in this task should be no more than {max_agents}; less is better.
-    # The position name should be as specific as possible, such as "python_programmer" instead of "programmer".
+    # These positions' name should include enough information that can help a group chat manager know when to let this position speak.
+    # The position name should be as specific as possible. For example, use "python_programmer" instead of "programmer".
     # Do not use ambiguous position name, such as "domain expert" with no specific description of domain or "technical writer" with no description of what it should write.
     # Each position should have a unique function and the position name should reflect this.
     # The positions should relate to the task and significantly different in function.
     # Add ONLY ONE programming related position if the task needs coding.
-    # Answer the names of those positions/jobs, separated names by commas and use "_" instead of space. For example, Product_manager,Programmer
+    # Generated agent's name should follow the format of ^[a-zA-Z0-9_-]{{1,64}}$, use "_" to split words.
+    # Answer the names of those positions/jobs, separated names by commas.
     # Only return the list of positions.
     """
 
@@ -71,14 +73,14 @@ class AgentBuilder:
 
     Hint:
     # Your answer should be natural, starting from "You are now in a group chat. You need to complete a task with other participants. As a ...".
-    # [IMPORTANT] You should let them reply "TERMINATE" when they think the task is completed (user's need has actually been satisfied).
+    # [IMPORTANT] You should let them reply "TERMINATE" when they think the task is completed (the user's need has actually been satisfied).
     # The modified requirement should not contain the code interpreter skill.
-    # Your should remove coding related skill's description when the position is not a programmer or developer.
+    # You should remove the related skill description when the position is not a programmer or developer.
     # Coding skill is limited to Python.
     # Your answer should omit the word "REQUIREMENT".
-    # People with above position can doubt previous message or code in the group chat (for example, if there is no 
-output after execute the code), and provide a corrected answer or code.
-    # People with above position can ask for help from other people in the group chat.
+    # People with the above position can doubt previous messages or code in the group chat (for example, if there is no 
+output after executing the code) and provide a corrected answer or code.
+    # People in the above position should ask for help from the group chat manager when confused and let the manager select another participant.
     """
 
     AGENT_DESCRIPTION_PROMPT = """Considering the following position:
@@ -88,15 +90,14 @@ output after execute the code), and provide a corrected answer or code.
     What requirements should this position be satisfied?
 
     Hint:
-    # Your answer should be in one sentence.
+    # This description should include enough information that can help a group chat manager know when to let this position speak.
+    # People with the above position can doubt previous messages or code in the group chat (for example, if there is no 
+output after executing the code) and provide a corrected answer or code.
+    # Your answer should be in at most three sentences.
     # Your answer should be natural, starting from "[POSITION's name] is a ...".
     # Your answer should include the skills that this position should have.
-    # The modified requirement should not contain the code interpreter skill.
-    # Your answer should not contain coding related skill when the position is not a programmer or developer.
-    # Coding skill should be limited to Python.
-    # People with above position will work in a group chat, solving tasks with other people with different jobs.
-    # People with above position can doubt previous message or code in the group chat (for example, if there is no 
-output after execute the code), and provide a corrected answer or code.
+    # Your answer should not contain coding-related skills when the position is not a programmer or developer.
+    # Coding skills should be limited to Python.
     """
 
     AGENT_SEARCHING_PROMPT = """Considering the following task:
@@ -651,13 +652,12 @@ output after execute the code), and provide a corrected answer or code.
             print("Adding user console proxy...")
             agent_list = [
                 autogen.UserProxyAgent(
-                    name="User_console_and_Python_code_interpreter",
+                    name="User_console_and_code_interpreter",
                     is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
                     system_message="User console with a python code interpreter interface.",
-                    description="User console with a python code interpreter interface. "
-                                "It can provide the execution result of the python code."
-                                "DO NOT SELECT THIS PLAYER WHEN THERE IS NO CODE TO EXECUTE, "
-                                "IT WILL NOT ANSWER ANYTHING.",
+                    description="""A user console with a code interpreter interface.
+It can provide the code execution results. Select this player when other players provide some code that needs to be executed.
+DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING.""",
                     code_execution_config=code_execution_config,
                     human_input_mode="NEVER",
                 )
