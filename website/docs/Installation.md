@@ -1,7 +1,12 @@
 # Installation
 
 ## Option 1: Using Docker
-Install docker, save your oai key into an environment variable name OPENAI_API_KEY, and then run the following:
+Install docker (TODO: some introduction about the docker). Save your oai key into an environment variable name OPENAI_API_KEY, which can be done by adding the following line in your `~/.bashrc` (or `~/.zshrc`):
+```
+export OPENAI_API_KEY="sk-xxxxxx"
+```
+
+Then build the docker image:
 ```
 cd ./samples/dockers
 # Build a local docker image
