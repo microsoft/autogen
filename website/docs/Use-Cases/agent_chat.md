@@ -55,18 +55,18 @@ or Pydantic models:
 The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
 
 ``` python
-from typying import Literal
+from typing import Literal
 from typing_extensions import Annotated
 from somewhere import exchange_rate
-# the agents are instances of UserProxyAgent and AssistantAgent
-from myagents import agent, user_proxy
+# the agents are instances of AssistantAgent and UserProxyAgent
+from myagents import chatbot, user_proxy
 
 CurrencySymbol = Literal["USD", "EUR"]
 
 # registers the function for execution (updates function map)
 @user_proxy.register_for_execution()
 # creates JSON schema from type hints and registers the function to llm_config
-@agent.register_for_llm(description="Currency exchange calculator.")
+@chatbot.register_for_llm(description="Currency exchange calculator.")
 # python function with type hints
 def currency_calculator(
   # Annotated type is used for attaching description to the parameter
@@ -138,11 +138,11 @@ encoded string automatically.
 The following example shows how we could rewrite our currency exchange calculator example:
 
 ``` python
-from typying import Literal
+from typing import Literal
 from typing_extensions import Annotated
 from pydantic import BaseModel, Field
 from somewhere import exchange_rate
-from myagents import agent, user_proxy
+from myagents import chatbot, user_proxy
 
 # defines a Pydantic model
 class Currency(BaseModel):
