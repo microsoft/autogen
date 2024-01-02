@@ -9,9 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AutoGen.DotnetInteractive\AutoGen.DotnetInteractive.csproj" />
     <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
-    <PackageReference Include="AgentChat.DotnetInteractiveFunction" Version="0.4.4-7213678152" />
     <PackageReference Include="FluentAssertions" Version="$(FluentAssertionVersion)" />
   </ItemGroup>
 </Project>

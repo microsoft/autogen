@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Get_MLNET_PR.cs
 
-using AgentChat.DotnetInteractiveService;
 using AutoGen;
 using AutoGen.Extension;
 using FluentAssertions;
