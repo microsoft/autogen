@@ -29,7 +29,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Restore tool
-      run: dotnet tool restore
+      run: |
+        dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
+        dotnet tool restore
     - name: Build
       run: dotnet build --no-restore -p:VersionSuffix=$GITHUB_RUN_ID --configuration '${{ env.BUILD_CONFIGURATION }}'
     - name: Pack
