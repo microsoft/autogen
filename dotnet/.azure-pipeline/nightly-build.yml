@@ -39,6 +39,8 @@ stages:
 
     - powershell: |
         echo "Restore packages"
+        echo "add dotnet-tool feed"
+        dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore --verbosity Detailed
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
       displayName: 'dotnet restore'
