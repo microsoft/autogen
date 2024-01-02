@@ -8,7 +8,7 @@ pr: none
 
 variables:
   solution: 'dotnet/AutoGen.sln'
-  buildConfiguration: 'Publish'
+  buildConfiguration: 'Release'
 
 stages:
 #####################################
@@ -45,15 +45,11 @@ stages:
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
       displayName: 'dotnet restore'
 
-    - task: DotNetCoreCLI@2
+    - powershell: |
+        echo "Build AutoGen"
+        dotnet build -c $(buildConfiguration) --no-restore --verbosity Detailed /p:SignAssembly=true /p:DelaySign=true
       displayName: build
-      inputs:
-        command: 'build'
-        workingDirectory: dotnet
-        arguments: |
-            -c $(buildConfiguration)
-            /p:SignAssembly=true
-            /p:DelaySign=true
+      workingDirectory: '$(Build.SourcesDirectory)/dotnet'
     
     - powershell:  |
         echo "Create nightly build package"
