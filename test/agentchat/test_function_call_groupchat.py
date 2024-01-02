@@ -1,6 +1,7 @@
 import autogen
 import pytest
 import sys
+from conftest import skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
@@ -8,7 +9,7 @@ try:
 except ImportError:
     skip = True
 else:
-    skip = False
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
