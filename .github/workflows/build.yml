@@ -41,17 +41,15 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install -e. pytest mock
-          pip uninstall -y openai
       - name: Test with pytest
         if: matrix.python-version != '3.10'
         run: |
-          pytest test
+          pytest test --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install -e .[test]
-          pip uninstall -y openai
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
