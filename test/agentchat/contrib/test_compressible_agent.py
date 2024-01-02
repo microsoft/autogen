@@ -6,8 +6,7 @@ from conftest import skip_openai
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 
 here = os.path.abspath(os.path.dirname(__file__))
-KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 try:
     import openai
