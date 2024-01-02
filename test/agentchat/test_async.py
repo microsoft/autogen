@@ -1,7 +1,15 @@
 import pytest
 import asyncio
 import autogen
+from conftest import skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 def get_market_news(ind, ind_upper):
@@ -45,13 +53,9 @@ def get_market_news(ind, ind_upper):
     return feeds_summary
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 @pytest.mark.asyncio
 async def test_async_groupchat():
-    try:
-        import openai
-    except ImportError:
-        return
-
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
     llm_config = {
@@ -91,12 +95,9 @@ async def test_async_groupchat():
     assert len(user_proxy.chat_messages) > 0
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 @pytest.mark.asyncio
 async def test_stream():
-    try:
-        import openai
-    except ImportError:
-        return
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
     data = asyncio.Future()
 
