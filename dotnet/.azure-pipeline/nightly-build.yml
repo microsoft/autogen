@@ -1,4 +1,4 @@
-name: dotnet-nightly-build-$(Date:yyMMdd)$(Rev:.r)
+name: $(Date:yyMMdd)$(Rev:.r)
 
 trigger:
   branches:
