@@ -53,7 +53,7 @@ stages:
     
     - powershell:  |
         echo "Create nightly build package"
-        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed
+        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed
         echo "Create release package"
         dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build --verbosity Detailed
         echo "Contents of Build.ArtifactStagingDirectory..."
@@ -62,9 +62,16 @@ stages:
       displayName: 'dotnet pack'
     
     - task: PublishPipelineArtifact@1
-      displayName: 'Publish pack artifacts'
+      displayName: 'Publish nightly package to nightly folder'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/nightly'
+        artifact: 'nightly'
+        publishLocation: 'pipeline'
+    
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish release package to release folder'
       inputs:
         targetPath: '$(Build.ArtifactStagingDirectory)'
-        artifact: 'build'
+        artifact: 'release'
         publishLocation: 'pipeline'
         
