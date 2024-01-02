@@ -31,7 +31,7 @@ jobs:
         global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
-        dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
+        # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore
     - name: Build
       run: dotnet build --no-restore
