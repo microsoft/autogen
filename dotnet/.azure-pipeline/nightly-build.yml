@@ -1,6 +1,9 @@
 name: dotnet-nightly-build-$(Date:yyMMdd)$(Rev:.r)
 
-trigger: none
+trigger:
+  branches:
+    include:
+    - dotnet
 pr: none
 
 variables:
@@ -34,12 +37,11 @@ stages:
     - task: NuGetToolInstaller@1
       displayName: 'NuGet tool installer'
 
-    - task: DotNetCoreCLI@2
-      displayName: restore
-      inputs:
-        command: 'restore'
-        projects: '$(Build.SourcesDirectory)$(solution)'
-        feedsToUse: 'config'
+    - powershell: |
+        echo "Restore packages"
+        dotnet restore --verbosity Detailed
+      workingDirectory: '$(Build.SourcesDirectory)/dotnet'
+      displayName: 'dotnet restore'
 
     - task: DotNetCoreCLI@2
       displayName: build
