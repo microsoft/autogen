@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sys
 import tempfile
 from unittest import mock
 from unittest.mock import patch
