@@ -27,9 +27,8 @@ jobs:
     - uses: actions/checkout@v3
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
-      working-directory: dotnet
       with:
-        global-json-file: global.json
+        global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
