@@ -2,6 +2,7 @@ import copy
 from typing import Any, Callable, Dict, Literal
 
 import pytest
+from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
@@ -421,7 +422,7 @@ def test__wrap_function_sync():
         else:
             raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
-    agent = ConversableAgent(name="agent", llm_config={})
+    agent = ConversableAgent(name="agent", llm_config=False)
 
     @agent._wrap_function
     def currency_calculator(
@@ -457,7 +458,7 @@ async def test__wrap_function_async():
         else:
             raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
-    agent = ConversableAgent(name="agent", llm_config={})
+    agent = ConversableAgent(name="agent", llm_config=False)
 
     @agent._wrap_function
     async def currency_calculator(
