@@ -321,8 +321,6 @@ class OpenAIWrapper:
                             pass
                         if not content:
                             continue
-                        sys.stdout.write(content)
-                        sys.stdout.flush()
                         # End handle function call
 
                         # If content is present, print it to the terminal and update response variables
