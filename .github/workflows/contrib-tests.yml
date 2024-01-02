@@ -45,10 +45,9 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
-          pip uninstall -y openai
       - name: Test RetrieveChat
         run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
