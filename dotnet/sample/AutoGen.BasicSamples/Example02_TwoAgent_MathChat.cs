@@ -52,7 +52,7 @@ If the answer is wrong, you ask student to fix it.",
             });
 
         // start the conversation
-        var conversation = await student.SendAsync(
+        var conversation = await student.InitiateChatAsync(
             receiver: teacher,
             message: "Hey teacher, please create math question for me.",
             maxRound: 10);

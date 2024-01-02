@@ -15,9 +15,7 @@ namespace AutoGen
         /// Send message to an agent.
         /// </summary>
         /// <param name="agent">sender agent.</param>
-        /// <param name="receiver">receiver agent.</param>
         /// <param name="chatHistory">chat history.</param>
-        /// <param name="maxRound">max conversation round.</param>
         /// <returns>conversation history</returns>
         public static async Task<Message> SendAsync(
             this IAgent agent,
@@ -46,9 +44,7 @@ namespace AutoGen
         /// Send message to an agent.
         /// </summary>
         /// <param name="agent">sender agent.</param>
-        /// <param name="receiver">receiver agent.</param>
         /// <param name="chatHistory">chat history.</param>
-        /// <param name="maxRound">max conversation round.</param>
         /// <returns>conversation history</returns>
         public static async Task<Message> SendAsync(
             this IAgent agent,
@@ -104,7 +100,7 @@ namespace AutoGen
         public static async Task<IEnumerable<Message>> SendAsync(
             this IAgent agent,
             IAgent receiver,
-            string message = null,
+            string? message = null,
             IEnumerable<Message>? chatHistory = null,
             int maxRound = 10,
             CancellationToken ct = default)
@@ -121,6 +117,34 @@ namespace AutoGen
             else
             {
                 chatHistory = chatHistory ?? Enumerable.Empty<Message>();
+            }
+
+            return await agent.SendAsync(receiver, chatHistory, maxRound, ct);
+        }
+
+        /// <summary>
+        /// Shortcut API to send message to another agent.
+        /// </summary>
+        /// <param name="agent">sender agent</param>
+        /// <param name="receiver">receiver agent</param>
+        /// <param name="message">message to send</param>
+        /// <param name="maxRound">max round</param>
+        public static async Task<IEnumerable<Message>> InitiateChatAsync(
+            this IAgent agent,
+            IAgent receiver,
+            string? message = null,
+            int maxRound = 10,
+            CancellationToken ct = default)
+        {
+            var chatHistory = new List<Message>();
+            if (message != null)
+            {
+                var msg = new Message(Role.User, message)
+                {
+                    From = agent.Name,
+                };
+
+                chatHistory.Add(msg);
             }
 
             return await agent.SendAsync(receiver, chatHistory, maxRound, ct);

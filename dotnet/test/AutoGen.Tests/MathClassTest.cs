@@ -181,7 +181,7 @@ The conversation will end after 5 correct answers.
 ", group);
 
             var groupChatManager = new GroupChatManager(group);
-            var chatHistory = await admin.SendAsync(groupChatManager, maxRound: 50);
+            var chatHistory = await admin.InitiateChatAsync(groupChatManager, maxRound: 50);
 
             // print chat history
             foreach (var message in chatHistory)
