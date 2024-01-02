@@ -2,29 +2,15 @@ import pytest
 import sys
 import autogen
 import os
+from conftest import skip_openai
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 
 here = os.path.abspath(os.path.dirname(__file__))
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
-DUMMY_CONFIG_LIST = [
-    {
-        "model": "gpt-4",
-        "api_key": "sk-*******************************",
-        "organization": "org-*******************************",
-    },
-    {
-        "model": "gpt-4-1106-preview",
-        "api_key": "sk-*******************************",
-        "organization": "org-*******************************",
-    },
-]
-
 try:
     import openai
-
-    OPENAI_INSTALLED = True
 
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -35,12 +21,14 @@ try:
     )
 
 except ImportError:
-    OPENAI_INSTALLED = False
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_mode_compress():
     conversations = {}
@@ -78,8 +66,8 @@ def test_mode_compress():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_mode_customized():
     try:
@@ -148,8 +136,8 @@ def test_mode_customized():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_compress_message():
     assistant = CompressibleAgent(
@@ -182,13 +170,17 @@ def test_compress_message():
     assert is_success, "Compression failed."
 
 
+@pytest.mark.skipif(
+    skip,
+    reason="do not run if dependency is not installed OR requested to skip",
+)
 def test_mode_terminate():
     assistant = CompressibleAgent(
         name="assistant",
         llm_config={
             "timeout": 600,
             "cache_seed": 43,
-            "config_list": DUMMY_CONFIG_LIST,
+            "config_list": config_list,
         },
         compress_config=True,
     )
@@ -213,7 +205,7 @@ def test_mode_terminate():
 
 
 if __name__ == "__main__":
-    # test_mode_compress()
-    # test_mode_customized()
-    # test_compress_message()
+    test_mode_compress()
+    test_mode_customized()
+    test_compress_message()
     test_mode_terminate()

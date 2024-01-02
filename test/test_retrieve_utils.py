@@ -1,6 +1,8 @@
 """
 Unit test for retrieve_utils.py
 """
+import pytest
+
 try:
     import chromadb
     from autogen.retrieve_utils import (
@@ -18,8 +20,6 @@ except ImportError:
 else:
     skip = False
 import os
-import sys
-import pytest
 
 try:
     from unstructured.partition.auto import partition
