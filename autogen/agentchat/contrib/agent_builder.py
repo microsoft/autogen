@@ -116,7 +116,7 @@ output after executing the code) and provide a corrected answer or code.
 
     def __init__(
         self,
-        config_path: Optional[str] = "OAI_CONFIG_LIST",
+        config_path_or_env: Optional[str] = "OAI_CONFIG_LIST",
         builder_model: Optional[str] = "gpt-4",
         agent_model: Optional[str] = "gpt-4",
         host: Optional[str] = "localhost",
@@ -126,7 +126,7 @@ output after executing the code) and provide a corrected answer or code.
     ):
         """
         Args:
-            config_path: path of the OpenAI api configs.
+            config_path_or_env: path or environment of the OpenAI api configs.
             builder_model: specify a model as the backbone of build manager.
             agent_model: specify a model as the backbone of participant agents.
             host: endpoint host.
@@ -137,7 +137,7 @@ output after executing the code) and provide a corrected answer or code.
         self.host = host
         self.builder_model = builder_model
         self.agent_model = agent_model
-        self.config_path = config_path
+        self.config_path_or_env = config_path_or_env
         self.endpoint_building_timeout = endpoint_building_timeout
 
         self.building_task: str = None
@@ -199,10 +199,10 @@ output after executing the code) and provide a corrected answer or code.
         Returns:
             agent: a set-up agent.
         """
-        config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [model_name_or_hf_repo]})
+        config_list = autogen.config_list_from_json(self.config_path_or_env, filter_dict={"model": [model_name_or_hf_repo]})
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_path}. "
+                f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_path_or_env}. "
                 f'If you would like to change this model, please specify the "agent_model" in the constructor.'
             )
         if "gpt-" in model_name_or_hf_repo:
@@ -350,10 +350,10 @@ output after executing the code) and provide a corrected answer or code.
         agent_configs = []
         self.building_task = building_task
 
-        config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
+        config_list = autogen.config_list_from_json(self.config_path_or_env, filter_dict={"model": [self.builder_model]})
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path_or_env}. "
                 f'If you want to change this model, please specify the "builder_model" in the constructor.'
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
@@ -485,10 +485,10 @@ output after executing the code) and provide a corrected answer or code.
 
         agent_configs = []
 
-        config_list = autogen.config_list_from_json(self.config_path, filter_dict={"model": [self.builder_model]})
+        config_list = autogen.config_list_from_json(self.config_path_or_env, filter_dict={"model": [self.builder_model]})
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path}. "
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path_or_env}. "
                 f'If you want to change this model, please specify the "builder_model" in the constructor.'
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)

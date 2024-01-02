@@ -40,10 +40,10 @@ def _config_check(config):
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run when dependency is not installed",
+    reason="do not run when dependency is not installed or requested to skip",
 )
 def test_build():
-    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -71,10 +71,10 @@ def test_build():
 
 @pytest.mark.skipif(
     skip or not CHROMADB_INSTALLED,
-    reason="do not run when dependency is not installed",
+    reason="do not run when dependency is not installed or requested to skip",
 )
 def test_build_from_library():
-    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -127,10 +127,10 @@ def test_build_from_library():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run when dependency is not installed",
+    reason="do not run when dependency is not installed or requested to skip",
 )
 def test_save():
-    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -159,10 +159,10 @@ def test_save():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run when dependency is not installed",
+    reason="do not run when dependency is not installed or requested to skip",
 )
 def test_load():
-    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     json.load(open(config_save_path, "r"))
@@ -183,10 +183,10 @@ def test_load():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run when dependency is not installed",
+    reason="do not run when dependency is not installed or requested to skip",
 )
 def test_clear_agent():
-    builder = AgentBuilder(config_path=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     builder.load(
