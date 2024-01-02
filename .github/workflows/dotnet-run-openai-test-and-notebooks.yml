@@ -23,9 +23,8 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
-      working-directory: dotnet
       with:
-        global-json-file: global.json
+        global-json-file: dotnet/global.json
 
     - name: Restore dependencies
       run: dotnet restore
