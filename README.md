@@ -60,7 +60,9 @@ The easiest way to start playing is
 
 ## Installation
 
-### Option 1. [Run AutoGen in Docker (recommended)](https://microsoft.github.io/autogen/docs/Installation#option-1-using-docker)
+### Option 1. Run AutoGen in Docker (recommended)
+
+Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-using-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker).
 
 ### Option 2. Install AutoGen without Docker
 AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
