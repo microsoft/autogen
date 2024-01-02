@@ -199,7 +199,9 @@ output after executing the code) and provide a corrected answer or code.
         Returns:
             agent: a set-up agent.
         """
-        config_list = autogen.config_list_from_json(self.config_path_or_env, filter_dict={"model": [model_name_or_hf_repo]})
+        config_list = autogen.config_list_from_json(
+            self.config_path_or_env, filter_dict={"model": [model_name_or_hf_repo]}
+        )
         if len(config_list) == 0:
             raise RuntimeError(
                 f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_path_or_env}. "
@@ -350,7 +352,9 @@ output after executing the code) and provide a corrected answer or code.
         agent_configs = []
         self.building_task = building_task
 
-        config_list = autogen.config_list_from_json(self.config_path_or_env, filter_dict={"model": [self.builder_model]})
+        config_list = autogen.config_list_from_json(
+            self.config_path_or_env, filter_dict={"model": [self.builder_model]}
+        )
         if len(config_list) == 0:
             raise RuntimeError(
                 f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path_or_env}. "
@@ -485,7 +489,9 @@ output after executing the code) and provide a corrected answer or code.
 
         agent_configs = []
 
-        config_list = autogen.config_list_from_json(self.config_path_or_env, filter_dict={"model": [self.builder_model]})
+        config_list = autogen.config_list_from_json(
+            self.config_path_or_env, filter_dict={"model": [self.builder_model]}
+        )
         if len(config_list) == 0:
             raise RuntimeError(
                 f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path_or_env}. "
