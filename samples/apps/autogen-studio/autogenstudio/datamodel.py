@@ -67,15 +67,24 @@ class ModelConfig:
     api_type: Optional[str] = None
     api_version: Optional[str] = None
 
+    def dict(self):
+        result = asdict(self)
+        return result
+
 
 @dataclass
 class LLMConfig:
     """Data model for LLM Config for AutoGen"""
 
-    config_list: List[Any] = field(default_factory=List)
+    config_list: List[ModelConfig] = field(default_factory=List)
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
+
+    def dict(self):
+        result = asdict(self)
+        result["config_list"] = [c.dict() for c in self.config_list]
+        return result
 
 
 @dataclass

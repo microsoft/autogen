@@ -609,6 +609,7 @@ export const ModelSelector = ({
     if (config.api_key) sanitizedConfig.api_key = config.api_key;
     if (config.base_url) sanitizedConfig.base_url = config.base_url;
     if (config.api_type) sanitizedConfig.api_type = config.api_type;
+    if (config.api_version) sanitizedConfig.api_version = config.api_version;
     return sanitizedConfig;
   };
 
@@ -697,7 +698,13 @@ export const ModelSelector = ({
           role="button"
           onClick={() =>
             showModal(
-              { model: "", api_key: "", base_url: "", api_type: "" },
+              {
+                model: "",
+                api_key: "",
+                base_url: "",
+                api_type: "",
+                api_version: "",
+              },
               null
             )
           }
