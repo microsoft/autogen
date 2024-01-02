@@ -308,12 +308,12 @@ class OpenAIWrapper:
 
                         # Handle function call
                         if function_call_chunk:
-                            if hasattr(function_call_chunk, 'name') and function_call_chunk.name:
+                            if hasattr(function_call_chunk, "name") and function_call_chunk.name:
                                 if full_function_call is None:
                                     full_function_call = {"name": "", "arguments": ""}
                                 full_function_call["name"] += function_call_chunk.name
                                 completion_tokens += 1
-                            if hasattr(function_call_chunk, 'arguments') and function_call_chunk.arguments:
+                            if hasattr(function_call_chunk, "arguments") and function_call_chunk.arguments:
                                 full_function_call["arguments"] += function_call_chunk.arguments
                                 completion_tokens += 1
                         if choice.finish_reason == "function_call":
