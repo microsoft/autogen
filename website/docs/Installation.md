@@ -1,32 +1,38 @@
 # Installation
 
-## Option 1: Using Docker
-Install docker (TODO: some introduction about the docker). Save your oai key into an environment variable name OPENAI_API_KEY, which can be done by adding the following line in your `~/.bashrc` (or `~/.zshrc`):
+## Option 1: Using Docker (Recommended)
+#### Step 1. Install [docker](https://www.docker.com/).
+
+Docker is recommended as a properly built docker image could provide isolated and consistent environment to run your code securely across platforms. Install docker following [this instruction](https://docs.docker.com/get-docker/).
+
+#### Step 2. Build a docker image
+
+AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to built docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfile:
+```
+docker build -f sample/docker/Dockerfile.user -t autogen_img https://github.com/microsoft/autogen.git
+```
+Once you build the docker image, you can use `docker images` to check whether it has been created successfully.
+
+#### Step 3.  Run applications built with AutoGen from a docker image.
+
+**Save keys into environment variable:**
+If your application needs an oai key, save your oai key into an environment variable `OPENAI_API_KEY`, which can be done by adding the following line in your `~/.bashrc` (or `~/.zshrc`),
+
 ```
 export OPENAI_API_KEY="sk-xxxxxx"
 ```
 
-Then build the docker image:
-```
-cd ./samples/dockers
-# Build a local docker image
-docker build -t autogen_user . -f Dockerfile.user
+**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a folder named `myapp`. You can mount it into the docker image and run it. In the example below, the folder `myapp` is mounted into `/myapp` in the docker, and the script `main_twoagent.py` is executed in the docker.
+
+```python
+# Mount the local folder `myapp` into docker image and run the script in the docker.
+docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
 ```
 
-Once you build the docker image, you can use `docker images` to check whether it has been created successfully.
+Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) as below:
 
-Now suppose you have some AutoGen application in a current folder `test`, then you can mount it into the docker image and run it. In the example below, `test` is mounted into `/test` in the docker, and the script `twoagent.py` is executed in the docker.
 ```
-# Go back to the root folder of AutoGen
-cd ../..
-
-# Mount the local folder test into docker image and run the script in the docker.
-docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v `pwd`/test:/test autogen_user:latest python /test/twoagent.py
-```
-
-Similarly, you may also run AutoGen assistant (`./samples/apps/autogen-assistant`) as below:
-```
-docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_user:latest autogenra ui --host 0.0.0.0
+docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_img:latest autogenra ui --host 0.0.0.0
 ```
 Then open `http://localhost:8081/` in your browser to use AutoGen assistant.
 
