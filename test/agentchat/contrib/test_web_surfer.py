@@ -4,9 +4,10 @@ import re
 import pytest
 from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
 from autogen.oai.openai_utils import filter_config
+from conftest import skip_openai
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
@@ -21,12 +22,8 @@ else:
 
 try:
     from openai import OpenAI
-
-    config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
 except ImportError:
-    skip_openai = True
-else:
-    skip_openai = False
+    skip_openai = True  # noqa: F811, set skip_openai to True since it's not installed.
 
 try:
     BING_API_KEY = os.environ["BING_API_KEY"]
@@ -34,6 +31,9 @@ except KeyError:
     skip_bing = True
 else:
     skip_bing = False
+
+if not skip_openai:
+    config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
 
 
 @pytest.mark.skipif(
