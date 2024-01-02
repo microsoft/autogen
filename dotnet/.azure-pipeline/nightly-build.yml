@@ -4,7 +4,6 @@ trigger:
   branches:
     include:
     - dotnet
-pr: none
 
 variables:
   solution: 'dotnet/AutoGen.sln'
