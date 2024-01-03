@@ -107,7 +107,7 @@ docker build -f sample/docker/Dockerfile.dev -t autogen_dev_img https://github.c
 docker run -it autogen-dev
 ```
 
-Detailed instructions can be found [here](Installation.md#option-1-using-docker-recommended)
+Detailed instructions can be found [here](Installation.md#option-1-install-and-run-autogen-in-docker)
 
 
 ### Develop in Remote Container
