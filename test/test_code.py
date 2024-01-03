@@ -21,6 +21,13 @@ KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
+try:
+    import docker
+
+    docker_package_installed = True
+except ImportError as exc:
+    docker_package_installed = False
+
 
 # def test_find_code():
 #     try:
@@ -293,10 +300,10 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin"],
-    reason="do not run on MacOS",
-)
+# @pytest.mark.skipif(
+#     sys.platform in ["darwin"],
+#     reason="do not run on MacOS",
+# )
 def test_execute_code(use_docker=None):
     try:
         import docker
@@ -338,15 +345,31 @@ def test_execute_code(use_docker=None):
     assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
 
 
+@pytest.mark.skipif(docker_package_installed is False, reason="docker package not installed")
+def test_execute_code_with_custom_filename_on_docker():
+    exit_code, msg, image = execute_code("print('hello world')", filename="tmp/codetest.py", use_docker=True)
+    assert exit_code == 0 and msg == "hello world\n", msg
+    assert image == "python:tmp_codetest.py"
+
+
+@pytest.mark.skipif(docker_package_installed is False, reason="docker package not installed")
+def test_execute_code_with_misformed_filename_on_docker():
+    exit_code, msg, image = execute_code(
+        "print('hello world')", filename="tmp/codetest.py (some extra information)", use_docker=True
+    )
+    assert exit_code == 0 and msg == "hello world\n", msg
+    assert image == "python:tmp_codetest.py__some_extra_information_"
+
+
 def test_execute_code_raises_when_code_and_filename_are_both_none():
     with pytest.raises(AssertionError):
         execute_code(code=None, filename=None)
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin"],
-    reason="do not run on MacOS",
-)
+# @pytest.mark.skipif(
+#     sys.platform in ["darwin"],
+#     reason="do not run on MacOS",
+# )
 def test_execute_code_nodocker():
     test_execute_code(use_docker=False)
 
