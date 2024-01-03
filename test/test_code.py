@@ -1,7 +1,7 @@
+import importlib.metadata
 import os
 import sys
 import unittest
-import pkg_resources
 
 import pytest
 
@@ -25,11 +25,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 def is_package_installed(package_name):
     """Check if a package is installed. This is a preferred way to check if a
-    package is installed or not, avoiding name conflict with local modules."""
+    package is installed or not than doing a try-catch around an import
+    because it avoids name conflict with local modules and
+    code execution in the imported module."""
     try:
-        pkg_resources.get_distribution(package_name)
+        importlib.metadata.version(package_name)
         return True
-    except pkg_resources.DistributionNotFound:
+    except importlib.metadata.PackageNotFoundError:
         return False
 
 
