@@ -4,14 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.AI.OpenAI;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.AzureSdk;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.ChatCompletion;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen
 {
@@ -36,8 +34,8 @@ namespace AutoGen
         {
             ChatCompletion = config switch
             {
-                AzureOpenAIConfig azureConfig => new AzureOpenAIChatCompletion(azureConfig.DeploymentName, azureConfig.Endpoint, azureConfig.ApiKey, azureConfig.ModelId),
-                OpenAIConfig openAIConfig => new OpenAIChatCompletion(openAIConfig.ModelId, openAIConfig.ApiKey),
+                AzureOpenAIConfig azureConfig => new AzureOpenAIChatCompletionService(azureConfig.DeploymentName, azureConfig.Endpoint, azureConfig.ApiKey, azureConfig.ModelId),
+                OpenAIConfig openAIConfig => new OpenAIChatCompletionService(openAIConfig.ModelId, openAIConfig.ApiKey),
                 _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
             };
 
@@ -65,7 +63,7 @@ namespace AutoGen
 
         public string? Name { get; }
 
-        public IChatCompletion? ChatCompletion { get; }
+        public IChatCompletionService? ChatCompletion { get; }
 
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
@@ -77,16 +75,20 @@ namespace AutoGen
 
             var oaiMessages = this.ProcessMessages(messages);
 
-            var settings = new ChatCompletionsOptions(oaiMessages)
+            var settings = new ChatCompletionsOptions(this.modelName, oaiMessages)
             {
                 MaxTokens = _maxTokens,
                 Temperature = _temperature,
-                Functions = _functions?.ToList() ?? new List<FunctionDefinition>(),
             };
+
+            if (_functions != null)
+            {
+                settings.Functions = _functions.ToList();
+            }
 
             settings.StopSequences.Add("<meta>");
 
-            var response = await this.openAIClient.GetChatCompletionsAsync(this.modelName, settings, cancellationToken);
+            var response = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
 
             var oaiMessage = response.Value.Choices.First().Message;
 
@@ -99,6 +101,7 @@ namespace AutoGen
                     {
                         FunctionName = fc.Name,
                         FunctionArguments = fc.Arguments,
+                        Value = oaiMessage,
                     };
                 }
                 else
@@ -108,6 +111,7 @@ namespace AutoGen
                     {
                         FunctionName = fc.Name,
                         FunctionArguments = fc.Arguments,
+                        Value = oaiMessage,
                     };
                 }
             }
@@ -118,64 +122,46 @@ namespace AutoGen
                     From = this.Name,
                     FunctionName = oaiMessage.FunctionCall?.Name,
                     FunctionArguments = oaiMessage.FunctionCall?.Arguments,
+                    Value = oaiMessage,
                 };
             }
         }
 
-        private OpenAIFunction ToOpenAIFunction(FunctionDefinition functionDefinition)
-        {
-            var jsonOption = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            };
-            var parametersObject = functionDefinition.Parameters.ToObjectFromJson<ParameterObject>(jsonOption);
-            var function = new OpenAIFunction
-            {
-                FunctionName = functionDefinition.Name,
-                Description = functionDefinition.Description,
-                Parameters = parametersObject.Properties.Select(p => new OpenAIFunctionParameter
-                {
-                    Name = p.Key,
-                    Description = p.Value.Description,
-                    IsRequired = parametersObject.Required.Contains(p.Key),
-                    Type = p.Value.Type,
-                    ParameterType = p.Value.Type switch
-                    {
-                        "int" => typeof(int),
-                        "number" => typeof(double),
-                        "string" => typeof(string),
-                        "boolean" => typeof(bool),
-                        "string[]" => typeof(string[]),
-                        "int[]" => typeof(int[]),
-                        "number[]" => typeof(double[]),
-                        _ => typeof(object),
-                    }
-                }).ToList(),
-            };
-
-            return function;
-        }
-
-        private IEnumerable<Azure.AI.OpenAI.ChatMessage> ProcessMessages(IEnumerable<Message> messages)
+        private IEnumerable<ChatRequestMessage> ProcessMessages(IEnumerable<Message> messages)
         {
             var i = 0;
             foreach (var message in messages)
             {
                 if (message.Role == Role.System || message.From is null)
                 {
-                    yield return new Azure.AI.OpenAI.ChatMessage(message.Role.ToString(), message.Content);
+                    if (message.Role == Role.System)
+                    {
+                        // add as system message
+                        var content = message.Content ?? string.Empty;
+                        yield return new ChatRequestSystemMessage(content);
+                    }
+                    else if (message.Value is ChatRequestMessage msg)
+                    {
+                        yield return msg;
+                    }
+                    else
+                    {
+                        // add as user message
+                        var content = message.Content ?? string.Empty;
+                        yield return new ChatRequestUserMessage(content);
+                    }
                 }
                 else if (message.From != this.Name)
                 {
                     // add as user message
                     var content = message.Content ?? string.Empty;
-                    yield return new Azure.AI.OpenAI.ChatMessage(ChatRole.User, content);
+                    yield return new ChatRequestUserMessage(content);
                 }
                 else
                 {
                     if (message.FunctionArguments is string functionArguments && message.FunctionName is string functionName)
                     {
-                        var chatMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Assistant, null)
+                        var chatMessage = new ChatRequestAssistantMessage(string.Empty)
                         {
                             FunctionCall = new FunctionCall(functionName, functionArguments),
                         };
@@ -184,10 +170,7 @@ namespace AutoGen
 
                         yield return chatMessage;
 
-                        var functionResultMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Function, message.Content)
-                        {
-                            Name = functionName,
-                        };
+                        var functionResultMessage = new ChatRequestFunctionMessage(functionName, message.Content);
 
                         yield return functionResultMessage;
                         i++;
@@ -196,7 +179,7 @@ namespace AutoGen
                     {
                         // add suffix
                         var content = message.Content ?? string.Empty;
-                        var chatMessage = new Azure.AI.OpenAI.ChatMessage(ChatRole.Assistant, content);
+                        var chatMessage = new ChatRequestAssistantMessage(content);
 
                         yield return chatMessage;
                     }

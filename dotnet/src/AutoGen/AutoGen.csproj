@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="$(SemanticKernelVersion)" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.AI.OpenAI" Version="$(SemanticKernelVersion)" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="$(SemanticKernelVersion)" />
   </ItemGroup>
 
 </Project>

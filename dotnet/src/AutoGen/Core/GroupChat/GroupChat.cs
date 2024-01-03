@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen
 {
@@ -70,7 +71,7 @@ From admin:
             var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
 
             var messages = new Message[] { systemMessage }.Concat(conv);
-            var settings = new OpenAIRequestSettings
+            var settings = new OpenAIPromptExecutionSettings
             {
                 Temperature = 0,
                 StopSequences = new[]
@@ -83,15 +84,15 @@ From admin:
                     { "stopWords", new[] { ":" } },
                 },
             };
-            var history = llm.CreateNewChat();
+            var history = new ChatHistory();
             foreach (var message in messages)
             {
-                history.Add(new ChatMessage(new AuthorRole(message.Role.ToString()), message.Content));
+                history.Add(new ChatMessageContent(new AuthorRole(message.Role.ToString()), message.Content));
             }
 
-            var response = await llm.GenerateMessageAsync(history, settings);
+            var response = await llm.GetChatMessageContentAsync(history, settings);
 
-            var name = response ?? throw new Exception("No name is returned.");
+            var name = response?.Content ?? throw new Exception("No name is returned.");
 
             try
             {

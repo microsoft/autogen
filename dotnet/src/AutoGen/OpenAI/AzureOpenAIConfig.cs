@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// AssistantAgentConfig.cs
+// AzureOpenAIConfig.cs
 
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
@@ -23,7 +23,7 @@ namespace AutoGen
 
         public string? ModelId { get; }
 
-        public IChatCompletion CreateChatCompletion()
+        public IChatCompletionService CreateChatCompletion()
         {
             throw new System.NotImplementedException();
         }

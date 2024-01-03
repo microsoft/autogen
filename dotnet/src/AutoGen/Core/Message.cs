@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Message.cs
 
+using System.Collections.Generic;
 using Azure.AI.OpenAI;
 
 namespace AutoGen
@@ -9,7 +10,7 @@ namespace AutoGen
     {
         public Message(
             Role role,
-            string content,
+            string? content,
             string? from = null,
             FunctionCall? functionCall = null)
         {
@@ -35,6 +36,11 @@ namespace AutoGen
 
         public string? FunctionArguments { get; set; }
 
+        /// <summary>
+        /// raw message
+        /// </summary>
         public object? Value { get; set; }
+
+        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
     }
 }

@@ -4,7 +4,6 @@
 using AutoGen;
 using AutoGen.Extension;
 using FluentAssertions;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
 using autogen = AutoGen.API;
 
 public static class Example02_TwoAgent_MathChat

@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
@@ -36,7 +36,7 @@ namespace AutoGen
 
         public Func<IEnumerable<Message>, CancellationToken, Task<IEnumerable<Message>>> PreprocessFunc { get; }
 
-        public IChatCompletion? ChatCompletion => InnerAgent.ChatCompletion;
+        public IChatCompletionService? ChatCompletion => InnerAgent.ChatCompletion;
 
         /// <summary>
         /// First preprocess the <paramref name="conversation"/> using the <see cref="PreprocessFunc"/> and then pass the preprocessed conversation to the <see cref="InnerAgent"/>."/>

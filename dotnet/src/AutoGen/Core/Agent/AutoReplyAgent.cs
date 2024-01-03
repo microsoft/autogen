@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
@@ -47,7 +47,7 @@ namespace AutoGen
         /// </summary>
         public IAgent InnerAgent { get; }
 
-        public IChatCompletion? ChatCompletion => InnerAgent.ChatCompletion;
+        public IChatCompletionService? ChatCompletion => InnerAgent.ChatCompletion;
 
         /// <summary>
         /// call the agent to generate reply message.

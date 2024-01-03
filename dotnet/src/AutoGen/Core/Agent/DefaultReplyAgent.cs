@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
@@ -15,14 +15,14 @@ namespace AutoGen
             string? defaultReply)
         {
             Name = name;
-            DefaultReply = defaultReply;
+            DefaultReply = defaultReply ?? string.Empty;
         }
 
         public string Name { get; }
 
         public string DefaultReply { get; } = string.Empty;
 
-        public IChatCompletion? ChatCompletion => null;
+        public IChatCompletionService? ChatCompletion => null;
 
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> conversation, CancellationToken ct = default)
         {
