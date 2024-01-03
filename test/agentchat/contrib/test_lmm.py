@@ -5,9 +5,9 @@ import pytest
 
 import autogen
 from autogen.agentchat.agent import Agent
-from autogen.agentchat.contrib.img_utils import get_pil_image
 
 try:
+    from autogen.agentchat.contrib.img_utils import get_pil_image
     from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 except ImportError:
     skip = True

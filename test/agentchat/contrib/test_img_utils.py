@@ -1,14 +1,13 @@
 import base64
 import os
-import pdb
 import unittest
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import requests
 
 try:
+    import numpy as np
     from PIL import Image
 
     from autogen.agentchat.contrib.img_utils import (

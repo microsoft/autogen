@@ -3,15 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import autogen
-
 try:
-    from autogen.agentchat.contrib.llava_agent import (
-        LLaVAAgent,
-        _llava_call_binary_with_config,
-        llava_call,
-        llava_call_binary,
-    )
+    from autogen.agentchat.contrib.llava_agent import LLaVAAgent, _llava_call_binary_with_config, llava_call
 except ImportError:
     skip = True
 else:
