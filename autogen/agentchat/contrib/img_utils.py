@@ -10,16 +10,20 @@ import requests
 from PIL import Image
 
 
-def get_pil_image(image_file: str) -> Image.Image:
+def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
     """
     Loads an image from a file and returns a PIL Image object.
 
     Parameters:
-        image_file (str): The filename, URL, URI, or base64 string of the image file.
+        image_file (str, or Image): The filename, URL, URI, or base64 string of the image file.
 
     Returns:
         Image.Image: The PIL Image object.
     """
+    if isinstance(image_file, Image.Image):
+        # Already a PIL Image object
+        return image_file
+
     if image_file.startswith("http://") or image_file.startswith("https://"):
         # A URL file
         response = requests.get(image_file)
@@ -39,7 +43,7 @@ def get_pil_image(image_file: str) -> Image.Image:
     return image.convert("RGB")
 
 
-def get_image_data(image_file: str, use_b64=True) -> bytes:
+def get_image_data(image_file: Union[str, Image.Image], use_b64=True) -> bytes:
     """
     Loads an image and returns its data either as raw bytes or in base64-encoded format.
 
@@ -49,7 +53,7 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
     either returned directly or as a base64-encoded string.
 
     Parameters:
-        image_file (str): The path to the image file, a URL to an image, or a base64-encoded
+        image_file (str, or Image): The path to the image file, a URL to an image, or a base64-encoded
                           string of the image.
         use_b64 (bool): If True, the function returns a base64-encoded string of the image data.
                         If False, it returns the raw byte data of the image. Defaults to True.

@@ -40,11 +40,16 @@ raw_pil_image = Image.new("RGB", (10, 10), color="red")
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
 class TestGetPilImage(unittest.TestCase):
-    def test_image(self) -> bytes:
+    def test_read_local_file(self):
         # Create a small red image for testing
         temp_file = "_temp.png"
         raw_pil_image.save(temp_file)
         img2 = get_pil_image(temp_file)
+        self.assert_((np.array(raw_pil_image) == np.array(img2)).all())
+
+    def test_read_pil(self):
+        # Create a small red image for testing
+        img2 = get_pil_image(raw_pil_image)
         self.assert_((np.array(raw_pil_image) == np.array(img2)).all())
 
 

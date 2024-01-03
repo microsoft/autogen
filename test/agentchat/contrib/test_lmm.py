@@ -5,6 +5,7 @@ import pytest
 
 import autogen
 from autogen.agentchat.agent import Agent
+from autogen.agentchat.contrib.img_utils import get_pil_image
 
 try:
     from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
@@ -18,6 +19,8 @@ base64_encoded_image = (
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
     "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 )
+
+pil_image = get_pil_image(base64_encoded_image)
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
@@ -51,7 +54,7 @@ class TestMultimodalConversableAgent(unittest.TestCase):
             self.agent.system_message,
             [
                 {"type": "text", "text": "We will discuss "},
-                {"type": "image_url", "image_url": {"url": base64_encoded_image}},
+                {"type": "image_url", "image_url": {"url": pil_image}},
                 {"type": "text", "text": " in this conversation."},
             ],
         )
