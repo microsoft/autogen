@@ -1,12 +1,13 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from conftest import skip_openai
 
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
-    skip = False
+    skip = False or skip_openai
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"

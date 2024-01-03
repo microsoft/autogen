@@ -170,7 +170,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                     return agents[0], agents
                 elif not agents:
                     raise ValueError(
-                        f"No agent can execute the function {self.messages[-1]['name']}. "
+                        f"No agent can execute the function {self.messages[-1]['function_call']['name']}. "
                         "Please check the function_map of the agents."
                     )
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
