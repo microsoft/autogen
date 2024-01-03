@@ -11,6 +11,11 @@ from pydantic import ValidationError
 from autogen.oai.openai_utils import get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
+import sqlite3
+import uuid
+import datetime
+import json
+
 TOOL_ENABLED = False
 try:
     import openai
@@ -89,6 +94,27 @@ class OpenAIWrapper:
         else:
             self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
+
+        # TODO: add a config flag for logging
+        self.con = sqlite3.connect("telemetry.db")
+        self.cur = self.con.cursor()
+        query = """
+            CREATE TABLE IF NOT EXISTS messages(
+                id INTEGER PRIMARY KEY,
+                telemetry_id TEXT,
+                request TEXT,
+                response TEXT,
+                is_cached INEGER,
+                start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                end_time DATETIME DEFAULT CURRENT_TIMESTAMP)
+        """
+        self.cur.execute(query)
+
+
+    def __del__(self):
+        if self.con:
+            self.con.close()
+
 
     def _process_for_azure(self, config: Dict, extra_kwargs: Dict, segment: str = "default"):
         # deal with api_version
@@ -189,6 +215,25 @@ class OpenAIWrapper:
             ]
         return params
 
+
+    def _insert_telemetry(self, telemetry_id, request_messages, response, is_cached, start_time):
+        end_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+        if isinstance(response, ChatCompletion):
+            response_messages = json.dumps([choice.message.content for choice in response.choices])
+        elif isinstance(response, str):
+            response_messages = response
+        else:
+            raise "invalid type of response"
+
+        if self.con:
+            # TODO: handle insert failure
+            query = """INSERT INTO messages (
+                telemetry_id, request, response, is_cached, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)"""
+            self.cur.execute(query, (telemetry_id, json.dumps(request_messages), response_messages, is_cached, start_time, end_time))
+            self.con.commit()
+
+
     def create(self, **config):
         """Make a completion for a given config using openai's clients.
         Besides the kwargs allowed in openai's client, we allow the following additional kwargs.
@@ -234,12 +279,19 @@ class OpenAIWrapper:
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
+            telemetry_id = str(uuid.uuid4())
+            if "messages" in params:
+                request_messages = params["messages"]
+                params["messages"] = [{key: value for key, value in message.items() if not key.startswith('_')} for message in params["messages"]]
+
             # Try to load the response from cache
             if cache_seed is not None:
                 with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                     # Try to get the response from cache
                     key = get_key(params)
+                    request_ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     response = cache.get(key, None)
+                    self._insert_telemetry(telemetry_id, request_messages, response, 1, request_ts)
 
                     if response is not None:
                         try:
@@ -258,9 +310,11 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
+                request_ts = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 response = self._completions_create(client, params)
             except APIError as err:
                 error_code = getattr(err, "code", None)
+                self._insert_telemetry(telemetry_id, request_messages, f"error_code:{error_code}, config {i} failed", 0, request_ts)
                 if error_code == "content_filter":
                     # raise the error for content_filter
                     raise
@@ -268,6 +322,8 @@ class OpenAIWrapper:
                 if i == last:
                     raise
             else:
+                self._insert_telemetry(telemetry_id, request_messages, response, 0, request_ts)
+
                 # add cost calculation before caching no matter filter is passed or not
                 response.cost = self.cost(response)
                 self._update_usage_summary(response, use_cache=False)
