@@ -137,7 +137,7 @@ def extract_code(
 
 
 def generate_code(pattern: str = CODE_BLOCK_PATTERN, **config) -> Tuple[str, float]:
-    """(openai<1) Generate code.
+    r"""(openai\<1) Generate code.
 
     Args:
         pattern (Optional, str): The regular expression pattern for finding the code block.
@@ -162,7 +162,7 @@ The current implementation of the function is as follows:
 
 
 def improve_function(file_name, func_name, objective, **config):
-    """(openai<1) Improve the function to achieve the objective."""
+    r"""(openai\<1) Improve the function to achieve the objective."""
     params = {**_IMPROVE_FUNCTION_CONFIG, **config}
     # read the entire file into a str
     with open(file_name, "r") as f:
@@ -183,7 +183,7 @@ _IMPROVE_CODE_CONFIG = {
 
 
 def improve_code(files, objective, suggest_only=True, **config):
-    """(openai<1) Improve the code to achieve a given objective.
+    r"""(openai\<1) Improve the code to achieve a given objective.
 
     Args:
         files (list): A list of file names containing the source code.
@@ -433,7 +433,7 @@ assertions:""",
 
 
 def generate_assertions(definition: str, **config) -> Tuple[str, float]:
-    """(openai<1) Generate assertions for a function.
+    r"""(openai\<1) Generate assertions for a function.
 
     Args:
         definition (str): The function definition, including the signature and docstr.
@@ -470,7 +470,7 @@ def eval_function_completions(
     timeout: Optional[float] = 3,
     use_docker: Optional[bool] = True,
 ) -> Dict:
-    """(openai<1) Select a response from a list of responses for the function completion task (using generated assertions), and/or evaluate if the task is successful using a gold test.
+    r"""(openai\<1) Select a response from a list of responses for the function completion task (using generated assertions), and/or evaluate if the task is successful using a gold test.
 
     Args:
         responses (list): The list of responses.
@@ -560,7 +560,7 @@ class PassAssertionFilter:
         self.metrics = self.responses = None
 
     def pass_assertions(self, context, response, **_):
-        """(openai<1) Check if the response passes the assertions."""
+        r"""(openai\<1) Check if the response passes the assertions."""
         responses = oai.Completion.extract_text(response)
         metrics = eval_function_completions(responses, context["definition"], assertions=self._assertions)
         self._assertions = metrics["assertions"]
@@ -575,7 +575,7 @@ def implement(
     configs: Optional[List[Dict]] = None,
     assertions: Optional[Union[str, Callable[[str], Tuple[str, float]]]] = generate_assertions,
 ) -> Tuple[str, float]:
-    """(openai<1) Implement a function from a definition.
+    r"""(openai\<1) Implement a function from a definition.
 
     Args:
         definition (str): The function definition, including the signature and docstr.
