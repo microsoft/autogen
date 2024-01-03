@@ -71,5 +71,33 @@ def test_function_call_groupchat():
     user_proxy.initiate_chat(manager, message="Let's start the game!")
 
 
+def test_no_function_map():
+    dummy1 = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="A human admin that will execute function_calls.",
+        human_input_mode="NEVER",
+    )
+
+    dummy2 = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="A human admin that will execute function_calls.",
+        human_input_mode="NEVER",
+    )
+    groupchat = autogen.GroupChat(agents=[dummy1, dummy2], messages=[], max_round=7)
+    groupchat.messages = [
+        {
+            "role": "assistant",
+            "content": None,
+            "function_call": {"name": "get_random_number", "arguments": "{}"},
+        }
+    ]
+    with pytest.raises(
+        ValueError,
+        match="No agent can execute the function get_random_number. Please check the function_map of the agents.",
+    ):
+        groupchat._prepare_and_select_agents(dummy2)
+
+
 if __name__ == "__main__":
     test_function_call_groupchat()
+    test_no_function_map()
