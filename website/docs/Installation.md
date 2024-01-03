@@ -1,6 +1,6 @@
 # Installation
 
-## Option 1: Using Docker (Recommended)
+## Option 1: Using Docker
 #### Step 1. Install [docker](https://www.docker.com/).
 
 Docker is recommended as a properly built docker image could provide isolated and consistent environment to run your code securely across platforms. Install docker following [this instruction](https://docs.docker.com/get-docker/).
