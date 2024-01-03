@@ -11,11 +11,13 @@ try:
     from PIL import Image
 
     from autogen.agentchat.contrib.img_utils import (
+        convert_base64_to_data_uri,
         extract_img_paths,
         get_image_data,
         get_pil_image,
         gpt4v_formatter,
         llava_formatter,
+        message_formatter_pil_to_b64,
     )
 except ImportError:
     skip = True
@@ -34,7 +36,10 @@ raw_encoded_image = (
     "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 )
 
-raw_pil_image = Image.new("RGB", (10, 10), color="red")
+if skip:
+    raw_pil_image = None
+else:
+    raw_pil_image = Image.new("RGB", (10, 10), color="red")
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
@@ -249,6 +254,37 @@ class TestExtractImgPaths(unittest.TestCase):
         paragraph = "Local paths image1.jpeg and image2.GIF."
         expected_output = ["image1.jpeg", "image2.GIF"]
         result = extract_img_paths(paragraph)
+        self.assertEqual(result, expected_output)
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed")
+class MessageFormatterPILtoB64Test(unittest.TestCase):
+    def test_formatting(self):
+        messages = [
+            {"content": [{"type": "text", "text": "You are a helpful AI assistant."}], "role": "system"},
+            {
+                "content": [
+                    {"type": "text", "text": "What's the breed of this dog here? \n"},
+                    {"type": "image_url", "image_url": {"url": raw_pil_image}},
+                    {"type": "text", "text": "."},
+                ],
+                "role": "user",
+            },
+        ]
+
+        img_uri_data = convert_base64_to_data_uri(get_image_data(raw_pil_image))
+        expected_output = [
+            {"content": [{"type": "text", "text": "You are a helpful AI assistant."}], "role": "system"},
+            {
+                "content": [
+                    {"type": "text", "text": "What's the breed of this dog here? \n"},
+                    {"type": "image_url", "image_url": {"url": img_uri_data}},
+                    {"type": "text", "text": "."},
+                ],
+                "role": "user",
+            },
+        ]
+        result = message_formatter_pil_to_b64(messages)
         self.assertEqual(result, expected_output)
 
 

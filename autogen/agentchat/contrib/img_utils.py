@@ -288,7 +288,6 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         # Handle the new GPT messages format.
         if isinstance(message, dict) and "content" in message and isinstance(message["content"], list):
             message = copy.deepcopy(message)
-            # import pdb; pdb.set_trace()
             for item in message["content"]:
                 if isinstance(item, dict) and "image_url" in item:
                     item["image_url"]["url"] = pil_to_data_uri(item["image_url"]["url"])

@@ -20,7 +20,11 @@ base64_encoded_image = (
     "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 )
 
-pil_image = get_pil_image(base64_encoded_image)
+
+if skip:
+    pil_image = None
+else:
+    pil_image = get_pil_image(base64_encoded_image)
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
