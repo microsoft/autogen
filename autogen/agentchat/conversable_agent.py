@@ -1299,7 +1299,7 @@ class ConversableAgent(Agent):
             is_remove: whether removing the function from llm_config with name 'func_sig'
         """
 
-        if not self.llm_config:
+        if not isinstance(self.llm_config, dict):
             error_msg = "To update a function signature, agent must have an llm_config"
             logger.error(error_msg)
             raise AssertionError(error_msg)
