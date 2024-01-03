@@ -1,9 +1,10 @@
-import os
 import json
+import logging
+import os
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Dict, Set, Union
-import logging
+from typing import Dict, List, Optional, Set, Union
+
 from dotenv import find_dotenv, load_dotenv
 
 try:
@@ -416,7 +417,8 @@ def config_list_from_json(
     of acceptable values for that field, the configuration will still be considered a match.
 
     Args:
-        env_or_file (str): The name of the environment variable or the filename containing the JSON data.
+        env_or_file (str): The name of the environment variable, the filename, or the environment variable of the filename
+            that containing the JSON data.
         file_location (str, optional): The directory path where the file is located, if `env_or_file` is a filename.
         filter_dict (dict, optional): A dictionary specifying the filtering criteria for the configurations, with
             keys representing field names and values being lists or sets of acceptable values for those fields.
@@ -435,10 +437,21 @@ def config_list_from_json(
     Returns:
         List[Dict]: A list of configuration dictionaries that match the filtering criteria specified in `filter_dict`.
     """
-    json_str = os.environ.get(env_or_file)
-    if json_str:
+    env_str = os.environ.get(env_or_file)
+
+    if env_str:
+        # The environment variable exists. We should use information from it.
+        if os.path.exists(env_str):
+            # It is a file location, and we need to load the json from the file.
+            with open(env_str, "r") as file:
+                json_str = file.read()
+        else:
+            # Else, it should be a JSON string by itself.
+            json_str = env_str
         config_list = json.loads(json_str)
     else:
+        # The environment variable does not exist.
+        # So, `env_or_file` is a filename. We should use the file location.
         config_list_path = os.path.join(file_location, env_or_file)
         try:
             with open(config_list_path) as json_file:
