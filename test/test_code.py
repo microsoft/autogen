@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import pkg_resources
 
 import pytest
 
@@ -21,12 +22,18 @@ KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
-try:
-    import docker
 
-    docker_package_installed = True
-except ImportError as exc:
-    docker_package_installed = False
+def is_package_installed(package_name):
+    """Check if a package is installed. This is a preferred way to check if a
+    package is installed or not, avoiding name conflict with local modules."""
+    try:
+        pkg_resources.get_distribution(package_name)
+        return True
+    except pkg_resources.DistributionNotFound:
+        return False
+
+
+docker_package_installed = is_package_installed("docker")
 
 
 # def test_find_code():
@@ -300,10 +307,6 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
-# @pytest.mark.skipif(
-#     sys.platform in ["darwin"],
-#     reason="do not run on MacOS",
-# )
 def test_execute_code(use_docker=None):
     try:
         import docker
@@ -366,10 +369,6 @@ def test_execute_code_raises_when_code_and_filename_are_both_none():
         execute_code(code=None, filename=None)
 
 
-# @pytest.mark.skipif(
-#     sys.platform in ["darwin"],
-#     reason="do not run on MacOS",
-# )
 def test_execute_code_nodocker():
     test_execute_code(use_docker=False)
 
