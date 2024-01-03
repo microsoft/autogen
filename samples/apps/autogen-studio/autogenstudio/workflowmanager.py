@@ -1,7 +1,7 @@
 from typing import List, Optional
 from dataclasses import asdict
 import autogen
-from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
+from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, GroupChatConfig, Message
 from .utils import get_skills_from_prompt, clear_folder
 from datetime import datetime
 
@@ -39,13 +39,16 @@ class AutoGenWorkFlowManager:
             self.populate_history(history)
 
     def process_reply(self, recipient, messages, sender, config):
+
         if "callback" in config and config["callback"] is not None:
             callback = config["callback"]
             callback(sender, recipient, messages[-1])
+        last_message = messages[-1]
+
         iteration = {
-            "sender": sender.name,
             "recipient": recipient.name,
-            "message": messages[-1],
+            "sender": sender.name,
+            "message": last_message,
             "timestamp": datetime.now().isoformat(),
         }
         self.agent_history.append(iteration)
@@ -107,7 +110,8 @@ class AutoGenWorkFlowManager:
         skills_prompt = ""
         if agent_spec.skills:
             # get skill prompt, also write skills to a file named skills.py
-            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
+            skills_prompt = get_skills_from_prompt(
+                agent_spec.skills, self.work_dir)
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}
@@ -135,16 +139,43 @@ class AutoGenWorkFlowManager:
         Returns:
             An instance of the loaded agent.
         """
-        agent: autogen.Agent
-        agent_spec = self.sanitize_agent_spec(agent_spec)
-        if agent_spec.type == "assistant":
-            agent = autogen.AssistantAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
-        elif agent_spec.type == "userproxy":
-            agent = autogen.UserProxyAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+
+        if agent_spec.type == "groupchat":
+            agents = [self.load(
+                agent_config) for agent_config in agent_spec.groupchat_config.agents]
+            group_chat_config = agent_spec.groupchat_config.dict()
+            group_chat_config["agents"] = agents
+            groupchat = autogen.GroupChat(**group_chat_config)
+            manager = autogen.GroupChatManager(
+                groupchat=groupchat, **agent_spec.config.dict())
+            return manager
+
         else:
-            raise ValueError(f"Unknown agent type: {agent_spec.type}")
+            agent_spec = self.sanitize_agent_spec(agent_spec)
+            agent = self.load_agent_config(agent_spec.config, agent_spec.type)
+            return agent
+
+    def load_agent_config(self, agent_config: AgentConfig, agent_type: str) -> autogen.Agent:
+        """
+        Loads an agent based on the provided agent configuration.
+
+        Args:
+            agent_config: The configuration of the agent to be loaded.
+            agent_type: The type of the agent to be loaded.
+
+        Returns:
+            An instance of the loaded agent.
+        """
+        if agent_type == "assistant":
+            agent = autogen.AssistantAgent(**agent_config.dict())
+            agent.register_reply(
+                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+        elif agent_type == "userproxy":
+            agent = autogen.UserProxyAgent(**agent_config.dict())
+            agent.register_reply(
+                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+        else:
+            raise ValueError(f"Unknown agent type: {agent_type}")
         return agent
 
     def run(self, message: str, clear_history: bool = False) -> None:
