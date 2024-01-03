@@ -1,6 +1,6 @@
 # Installation
 
-## Option 1: Using Docker
+## Option 1: Install and Run AutoGen in Docker
 #### Step 1. Install [docker](https://www.docker.com/).
 
 Docker is recommended as a properly built docker image could provide isolated and consistent environment to run your code securely across platforms. Install docker following [this instruction](https://docs.docker.com/get-docker/).
@@ -41,7 +41,7 @@ docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_img:latest
 ```
 Then open `http://localhost:8081/` in your browser to use AutoGen assistant.
 
-## Option 2: Use Virtual Environment
+## Option 2: Install AutoGen Locally Using Virtual Environment
 
 When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 

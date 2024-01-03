@@ -58,13 +58,14 @@ The easiest way to start playing is
  2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
-## Installation
+## [Installation](https://microsoft.github.io/autogen/docs/Installation)
 
-### Option 1. Run AutoGen in Docker
+### Option 1. Install and Run AutoGen in Docker
 
-Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-using-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker).
+Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-install-and-run-autogen-in-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker).
 
-### Option 2. Install AutoGen without Docker
+### Option 2. Install AutoGen Locally without Docker
+
 AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
 
 ```bash
