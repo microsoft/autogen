@@ -60,7 +60,7 @@ The easiest way to start playing is
 
 ## Installation
 
-### Option 1. Run AutoGen in Docker (recommended)
+### Option 1. Run AutoGen in Docker
 
 Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-using-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker).
 
