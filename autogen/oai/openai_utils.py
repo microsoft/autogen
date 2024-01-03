@@ -436,6 +436,9 @@ def config_list_from_json(
 
     Returns:
         List[Dict]: A list of configuration dictionaries that match the filtering criteria specified in `filter_dict`.
+
+    Raises:
+        FileNotFoundError: if env_or_file is neither found as an environment variable nor a file
     """
     env_str = os.environ.get(env_or_file)
 
@@ -453,12 +456,8 @@ def config_list_from_json(
         # The environment variable does not exist.
         # So, `env_or_file` is a filename. We should use the file location.
         config_list_path = os.path.join(file_location, env_or_file)
-        try:
-            with open(config_list_path) as json_file:
-                config_list = json.load(json_file)
-        except FileNotFoundError:
-            logging.warning(f"The specified config_list file '{config_list_path}' does not exist.")
-            return []
+        with open(config_list_path) as json_file:
+            config_list = json.load(json_file)
     return filter_config(config_list, filter_dict)
 
 
