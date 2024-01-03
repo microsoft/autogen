@@ -374,7 +374,9 @@ class OpenAIWrapper:
         else:
             # If streaming is not enabled, send a regular chat completion request
             params = params.copy()
+            params["stream"] = False
             response = completions.create(**params)
+
         return response
 
     def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
