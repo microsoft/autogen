@@ -73,7 +73,6 @@ def test_config_list_from_json():
         json_data = json.loads(JSON_SAMPLE)
         tmp_file.write(JSON_SAMPLE)
         tmp_file.flush()
-
         config_list = autogen.config_list_from_json(tmp_file.name)
 
         assert len(config_list) == len(json_data)
@@ -114,6 +113,10 @@ def test_config_list_from_json():
         assert config_list_5 == config_list_2
 
         del os.environ["config_list_test"]
+
+    # Test that an error is thrown when the config list is missing
+    with pytest.raises(FileNotFoundError):
+        autogen.config_list_from_json("OAI_CONFIG_LIST.missing")
 
 
 def test_config_list_openai_aoai():
