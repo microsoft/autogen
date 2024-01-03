@@ -76,7 +76,7 @@ class ModelConfig:
 class LLMConfig:
     """Data model for LLM Config for AutoGen"""
 
-    config_list: List[Any] = field(default_factory=List)
+    config_list: List[Any] = field(default_factory=list)
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
@@ -136,7 +136,7 @@ class AgentFlowSpec:
 class GroupChatConfig:
     """Data model for GroupChat Config for AutoGen"""
 
-    agents: List[AgentFlowSpec] = field(default_factory=List)
+    agents: List[AgentFlowSpec] = field(default_factory=list)
     admin_name: str = "Admin"
     messages: List[Dict] = field(default_factory=list)
     max_round: Optional[int] = 10
