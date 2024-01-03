@@ -1,14 +1,14 @@
-import os
-import sys
 import json
-import pytest
 import logging
+import os
 import tempfile
 from unittest import mock
 from unittest.mock import patch
-import autogen  # noqa: E402
 
-sys.path.append("../../autogen")
+import pytest
+
+import autogen  # noqa: E402
+from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION
 
 # Example environment variables
 ENV_VARS = {
@@ -73,7 +73,6 @@ def test_config_list_from_json():
         json_data = json.loads(JSON_SAMPLE)
         tmp_file.write(JSON_SAMPLE)
         tmp_file.flush()
-
         config_list = autogen.config_list_from_json(tmp_file.name)
 
         assert len(config_list) == len(json_data)
@@ -89,12 +88,35 @@ def test_config_list_from_json():
         config_list_2 = autogen.config_list_from_json("config_list_test")
         assert config_list == config_list_2
 
+        # Test: the env variable is set to a file path with folder name inside.
         config_list_3 = autogen.config_list_from_json(
             tmp_file.name, filter_dict={"model": ["gpt", "gpt-4", "gpt-4-32k"]}
         )
         assert all(config.get("model") in ["gpt-4", "gpt"] for config in config_list_3)
 
         del os.environ["config_list_test"]
+
+        # Test: using the `file_location` parameter.
+        config_list_4 = autogen.config_list_from_json(
+            os.path.basename(tmp_file.name),
+            file_location=os.path.dirname(tmp_file.name),
+            filter_dict={"model": ["gpt4", "gpt-4-32k"]},
+        )
+
+        assert all(config.get("model") in ["gpt4", "gpt-4-32k"] for config in config_list_4)
+
+        # Test: the env variable is set to a file path.
+        fd, temp_name = tempfile.mkstemp()
+        json.dump(config_list, os.fdopen(fd, "w+"), indent=4)
+        os.environ["config_list_test"] = temp_name
+        config_list_5 = autogen.config_list_from_json("config_list_test")
+        assert config_list_5 == config_list_2
+
+        del os.environ["config_list_test"]
+
+    # Test that an error is thrown when the config list is missing
+    with pytest.raises(FileNotFoundError):
+        autogen.config_list_from_json("OAI_CONFIG_LIST.missing")
 
 
 def test_config_list_openai_aoai():
@@ -127,7 +149,7 @@ def test_config_list_openai_aoai():
                 "api_key": "sk-testkeyaoai456",
                 "base_url": "https://api.azure.com/v1",
                 "api_type": "azure",
-                "api_version": "2023-08-01-preview",
+                "api_version": DEFAULT_AZURE_API_VERSION,
             },
         ]
         assert config_list == expected_config_list
@@ -144,14 +166,14 @@ def test_config_list_openai_aoai():
 )
 def test_config_list_openai_aoai_env_vars():
     # Test the config_list_openai_aoai function with environment variables set
-    configs = autogen.oai.openai_utils.config_list_openai_aoai()
+    configs = autogen.oai.openai_utils.config_list_openai_aoai(key_file_path=None)
     assert len(configs) == 2
     assert {"api_key": "test_openai_key", "base_url": "https://api.openai.com"} in configs
     assert {
         "api_key": "test_aoai_key",
         "base_url": "https://api.azure.com",
         "api_type": "azure",
-        "api_version": "2023-08-01-preview",
+        "api_version": DEFAULT_AZURE_API_VERSION,
     } in configs
 
 
@@ -174,13 +196,13 @@ def test_config_list_openai_aoai_env_vars_multi():
         "api_key": "test_aoai_key",
         "base_url": "https://api.azure.com",
         "api_type": "azure",
-        "api_version": "2023-08-01-preview",
+        "api_version": DEFAULT_AZURE_API_VERSION,
     } in configs
     assert {
         "api_key": "test_aoai_key2",
         "base_url": "https://api.azure.com/v2",
         "api_type": "azure",
-        "api_version": "2023-08-01-preview",
+        "api_version": DEFAULT_AZURE_API_VERSION,
     } in configs
 
 
