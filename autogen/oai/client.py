@@ -8,7 +8,7 @@ import inspect
 from flaml.automl.logger import logger_formatter
 from pydantic import ValidationError
 
-from autogen.oai.openai_utils import get_key, oai_price1k
+from autogen.oai.openai_utils import get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
@@ -446,13 +446,13 @@ class OpenAIWrapper:
     def cost(self, response: Union[ChatCompletion, Completion]) -> float:
         """Calculate the cost of the response."""
         model = response.model
-        if model not in oai_price1k:
+        if model not in OAI_PRICE1K:
             # TODO: add logging to warn that the model is not found
             return 0
 
         n_input_tokens = response.usage.prompt_tokens
         n_output_tokens = response.usage.completion_tokens
-        tmp_price1K = oai_price1k[model]
+        tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
             return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000

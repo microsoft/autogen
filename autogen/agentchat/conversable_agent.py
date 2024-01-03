@@ -275,6 +275,7 @@ class ConversableAgent(Agent):
     @staticmethod
     def _message_to_dict(message: Union[Dict, str]) -> Dict:
         """Convert a message to a dictionary.
+
         The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
         """
         if isinstance(message, str):
@@ -304,7 +305,7 @@ class ConversableAgent(Agent):
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
         oai_message = {
             k: message[k]
-            for k in ("content", "function_call", "tool_calls", "tool_call_id", "name", "context")
+            for k in ("content", "function_call", "tool_calls", "tool_responses", "tool_call_id", "name", "context")
             if k in message and message[k] is not None
         }
         if "content" not in oai_message:
@@ -333,7 +334,7 @@ class ConversableAgent(Agent):
 
     def send(
         self,
-        message: Union[List[Union[Dict, str]], Dict, str],
+        message: Union[Dict, str],
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -372,8 +373,7 @@ class ConversableAgent(Agent):
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
-        message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "assistant", recipient) for each_message in message])
+        valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
             recipient.receive(message, self, request_reply, silent)
         else:
@@ -383,7 +383,7 @@ class ConversableAgent(Agent):
 
     async def a_send(
         self,
-        message: Union[List[Union[Dict, str]], Dict, str],
+        message: Union[Dict, str],
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -422,8 +422,7 @@ class ConversableAgent(Agent):
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
-        message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "user", recipient) for each_message in message])
+        valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
             await recipient.a_receive(message, self, request_reply, silent)
         else:
@@ -436,8 +435,14 @@ class ConversableAgent(Agent):
         print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
         message = self._message_to_dict(message)
 
+        if message.get("tool_responses"):  # Handle tool multi-call responses
+            for tool_response in message["tool_responses"]:
+                self._print_received_message(tool_response, sender)
+            if message.get("role") == "tool":
+                return  # If role is tool, then content is just a concatenation of all tool_responses
+
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling function \"{message['name']}\" *****"
+            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
@@ -480,21 +485,19 @@ class ConversableAgent(Agent):
 
         print("\n", "-" * 80, flush=True, sep="")
 
-    def _process_received_message(self, message: Union[List[Union[Dict, str]], Dict, str], sender: Agent, silent: bool):
+    def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
-        message = [message] if not isinstance(message, list) else message
-        valid = all([self._append_oai_message(each_message, "user", sender) for each_message in message])
+        valid = self._append_oai_message(message, "user", sender)
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
         if not silent:
-            for each_message in message:
-                self._print_received_message(each_message, sender)
+            self._print_received_message(message, sender)
 
     def receive(
         self,
-        message: Union[List[Union[Dict, str]], Dict, str],
+        message: Union[Dict, str],
         sender: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -531,7 +534,7 @@ class ConversableAgent(Agent):
 
     async def a_receive(
         self,
-        message: Union[List[Union[Dict, str]], Dict, str],
+        message: Union[Dict, str],
         sender: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
@@ -669,16 +672,26 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        # unroll tool_responses
+        all_messages = []
+        for message in messages:
+            tool_responses = message.get("tool_responses", [])
+            if tool_responses:
+                all_messages += tool_responses
+                # tool role on the parent message means the content is just concatentation of all of the tool_responses
+                if message.get("role") != "tool":
+                    all_messages.append({key: message[key] for key in message if key != "tool_responses"})
+            else:
+                all_messages.append(message)
+
         # TODO: #1143 handle token limit exceeded error
         response = client.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
+            context=messages[-1].pop("context", None), messages=self._oai_system_message + all_messages
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str):
             extracted_response = model_dump(extracted_response)
-        if not isinstance(extracted_response, dict):
-            extracted_response = {"content": extracted_response}
         return True, extracted_response
 
     async def a_generate_oai_reply(
@@ -787,13 +800,19 @@ class ConversableAgent(Agent):
         message = messages[-1]
         if "function_call" in message:
             func_call = message["function_call"]
-            func_name = func_call.get("name", None)
+            func_name = func_call.get("name", "")
             func = self._function_map.get(func_name, None)
-            if asyncio.coroutines.iscoroutinefunction(func):
+            if func and asyncio.coroutines.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
 
         return False, None
+
+    def _str_for_tool_response(self, tool_call):
+        func_name = tool_call.get("name", "")
+        func_id = tool_call.get("tool_call_id", "")
+        response = tool_call.get("content", "")
+        return f"Tool call: {func_name}\nId: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
         self,
@@ -825,7 +844,11 @@ class ConversableAgent(Agent):
                         "content": func_return.get("content", ""),
                     }
                 )
-            return True, tool_returns
+            return True, {
+                "role": "tool",
+                "tool_responses": tool_returns,
+                "content": "\n\n".join([self._str_for_tool_response(tool_return) for tool_return in tool_returns]),
+            }
         return False, None
 
     async def _a_execute_tool_call(self, tool_call):
@@ -857,7 +880,14 @@ class ConversableAgent(Agent):
             if func and asyncio.coroutines.iscoroutinefunction(func):
                 async_tool_calls.append(self._a_execute_tool_call(tool_call))
         if len(async_tool_calls) > 0:
-            return True, await asyncio.gather(*async_tool_calls)
+            tool_returns = await asyncio.gather(*async_tool_calls)
+            return True, {
+                "role": "tool",
+                "tool_responses": tool_returns,
+                "content": "\n\n".join(
+                    [self._str_for_tool_response(tool_return["content"]) for tool_return in tool_returns]
+                ),
+            }
 
         return False, None
 
@@ -960,7 +990,9 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            return True, tool_returns + [{"role": "user", "content": reply}]
+            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+
+            return True, response
 
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
@@ -1066,7 +1098,8 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            return True, tool_returns + [{"role": "user", "content": reply}]
+            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            return True, response
 
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
@@ -1442,7 +1475,7 @@ class ConversableAgent(Agent):
             "content": str(content),
         }
 
-    def generate_init_message(self, **context) -> Dict:
+    def generate_init_message(self, **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
 
         Override this function to customize the initial message based on user's request.
@@ -1451,10 +1484,7 @@ class ConversableAgent(Agent):
         Args:
             **context: any context information, and "message" parameter needs to be provided.
         """
-        message = context["message"]
-        if isinstance(message, str) or isinstance(message, list):
-            message = {"content": message}
-        return message
+        return context["message"]
 
     def register_function(self, function_map: Dict[str, Callable]):
         """Register functions to the agent.
@@ -1539,9 +1569,10 @@ class ConversableAgent(Agent):
 
         self.client = OpenAIWrapper(**self.llm_config)
 
-    def can_execute_function(self, name: str) -> bool:
+    def can_execute_function(self, name: Union[List[str], str]) -> bool:
         """Whether the agent can execute the function."""
-        return name in self._function_map
+        names = name if isinstance(name, list) else [name]
+        return all([n in self._function_map for n in names])
 
     @property
     def function_map(self) -> Dict[str, Callable]:
