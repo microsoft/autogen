@@ -6,13 +6,21 @@ import inspect
 import pytest
 import json
 import autogen
+from conftest import skip_openai
 from autogen.math_utils import eval_math_responses
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
 from autogen.oai.client import TOOL_ENABLED
 
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
-@pytest.mark.skipif(not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+
+@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
         KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
@@ -68,7 +76,7 @@ def test_eval_math_responses():
 
 
 @pytest.mark.skipif(
-    not TOOL_ENABLED or not sys.version.startswith("3.10"),
+    skip_openai or not TOOL_ENABLED or not sys.version.startswith("3.10"),
     reason="do not run if openai is <1.1.0 or py!=3.10",
 )
 def test_update_tool():
@@ -127,7 +135,7 @@ def test_update_tool():
     assert "greet_user" not in messages2
 
 
-@pytest.mark.skipif(not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
