@@ -100,7 +100,6 @@ class AgentConfig:
     code_execution_config: Optional[Union[bool, str, Dict[str, Any]]] = None
 
     def dict(self):
-
         result = asdict(self)
         if isinstance(result["llm_config"], LLMConfig):
             result["llm_config"] = result["llm_config"].dict()
@@ -156,15 +155,13 @@ class GroupChatFlowSpec:
 
     type: Literal["groupchat"]
     config: AgentConfig = field(default_factory=AgentConfig)
-    groupchat_config: Optional[GroupChatConfig] = field(
-        default_factory=GroupChatConfig)
+    groupchat_config: Optional[GroupChatConfig] = field(default_factory=GroupChatConfig)
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
     description: Optional[str] = None
 
     def __post_init__(self):
-
         if self.timestamp is None:
             self.timestamp = datetime.now().isoformat()
         if self.id is None:
@@ -195,7 +192,7 @@ class AgentWorkFlowConfig:
     summary_method: Optional[Literal["last", "none", "llm"]] = "last"
 
     def init_spec(self, spec: Dict):
-        """ initialize the agent spec"""
+        """initialize the agent spec"""
 
         if spec["type"] == "groupchat":
             return GroupChatFlowSpec(**spec)
