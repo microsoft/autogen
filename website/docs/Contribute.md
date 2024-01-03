@@ -102,12 +102,12 @@ We provide [Dockerfiles](https://github.com/microsoft/autogen/blob/main/sample/d
 Use the following command line to build and run a docker image.
 
 ```
-docker build -f sample/docker/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
 
-docker run -it autogen-dev
+docker run -it autogen_dev_img
 ```
 
-Detailed instructions can be found [here](Installation.md#option-1-install-and-run-autogen-in-docker)
+Detailed instructions can be found [here](Installation.md#option-1-install-and-run-autogen-in-docker).
 
 
 ### Develop in Remote Container
