@@ -268,7 +268,7 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
             {'content': [{'type': 'text', 'text': 'You are a helpful AI assistant.'}], 'role': 'system'},
             {'content': [
                 {'type': 'text', 'text': "What's the breed of this dog here? \n"},
-                {'type': 'image_url', 'image_url': {'url': <PIL.Image.Image>}},
+                {'type': 'image_url', 'image_url': {'url': a PIL.Image.Image}},
                 {'type': 'text', 'text': '.'}],
             'role': 'user'}
         ]
@@ -278,7 +278,7 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
             {'content': [{'type': 'text', 'text': 'You are a helpful AI assistant.'}], 'role': 'system'},
             {'content': [
                 {'type': 'text', 'text': "What's the breed of this dog here? \n"},
-                {'type': 'image_url', 'image_url': {'url': <B64 Image>}},
+                {'type': 'image_url', 'image_url': {'url': a B64 Image}},
                 {'type': 'text', 'text': '.'}],
             'role': 'user'}
         ]
