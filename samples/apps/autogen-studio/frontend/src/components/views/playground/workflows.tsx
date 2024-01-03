@@ -71,11 +71,11 @@ const AgentsWorkflowView = () => {
     <div className=" mb-4 relative">
       <div className="font-semibold pb-2 border-b">
         <Square2StackIcon className="h-5 w-5 inline-block mr-1" />
-        Workflow{" "}
+        Agents Workflow{" "}
       </div>
       <div className="text-xs mt-2 mb-2 pb-1  ">
         {" "}
-        Select or create an agent workflow.{" "}
+        Select an agent workflow.{" "}
       </div>
 
       <div className="relative mt-2 ">
