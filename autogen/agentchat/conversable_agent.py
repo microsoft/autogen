@@ -808,6 +808,12 @@ class ConversableAgent(Agent):
 
         return False, None
 
+    def _str_for_tool_response(self, tool_call):
+        func_name = tool_call.get("name", "")
+        func_id = tool_call.get("tool_call_id", "")
+        response = tool_call.get("content", "")
+        return f"Tool call: {func_name}\nId: {func_id}\n{response}"
+
     def generate_tool_calls_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -841,7 +847,7 @@ class ConversableAgent(Agent):
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
-                "content": "\n\n".join([tool_return["content"] for tool_return in tool_returns]),
+                "content": "\n\n".join([self._str_for_tool_response(tool_return) for tool_return in tool_returns]),
             }
         return False, None
 
@@ -878,7 +884,9 @@ class ConversableAgent(Agent):
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
-                "content": "\n".join([tool_return["content"] for tool_return in tool_returns]),
+                "content": "\n\n".join(
+                    [self._str_for_tool_response(tool_return["content"]) for tool_return in tool_returns]
+                ),
             }
 
         return False, None
