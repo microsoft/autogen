@@ -669,9 +669,21 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        # unroll tool_responses
+        all_messages = []
+        for message in messages:
+            tool_responses = message.get("tool_responses", [])
+            if tool_responses:
+                all_messages += tool_responses
+                # tool role on the parent message means the content is just concatentation of all of the tool_responses
+                if message.get("role") != "tool":
+                    all_messages.append({key: message[key] for key in message if key != "tool_responses"})
+            else:
+                all_messages.append(message)
+
         # TODO: #1143 handle token limit exceeded error
         response = client.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + messages
+            context=messages[-1].pop("context", None), messages=self._oai_system_message + all_messages
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
@@ -825,7 +837,11 @@ class ConversableAgent(Agent):
                         "content": func_return.get("content", ""),
                     }
                 )
-            return True, tool_returns
+            return True, {
+                "role": "tool",
+                "tool_responses": tool_returns,
+                "content": "\n".join([tool_return["content"] for tool_return in tool_returns]),
+            }
         return False, None
 
     async def _a_execute_tool_call(self, tool_call):
@@ -857,7 +873,12 @@ class ConversableAgent(Agent):
             if func and asyncio.coroutines.iscoroutinefunction(func):
                 async_tool_calls.append(self._a_execute_tool_call(tool_call))
         if len(async_tool_calls) > 0:
-            return True, await asyncio.gather(*async_tool_calls)
+            tool_returns = await asyncio.gather(*async_tool_calls)
+            return True, {
+                "role": "tool",
+                "tool_responses": tool_returns,
+                "content": "\n".join([tool_return["content"] for tool_return in tool_returns]),
+            }
 
         return False, None
 
@@ -960,7 +981,9 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            return True, tool_returns + [{"role": "user", "content": reply}]
+            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+
+            return True, response
 
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
