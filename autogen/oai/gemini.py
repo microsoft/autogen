@@ -22,6 +22,7 @@ import google.generativeai as genai
 import httpx
 import requests
 from google.ai.generativelanguage import Content, Part
+from google.api_core.exceptions import InternalServerError
 from google.generativeai import ChatSession
 from openai import OpenAI, _exceptions, resources
 from openai._qs import Querystring
@@ -88,9 +89,14 @@ class GeminiClient:
             model = genai.GenerativeModel(model_name)
             genai.configure(api_key=self.api_key)
             chat = model.start_chat(history=gemini_messages[:-1])
-
-            response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
-
+            try:
+                response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
+            except InternalServerError as e:
+                print(e)
+                # pdb.set_trace()
+                print("InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...")
+                time.sleep(5)
+                return self.call(params)
             # ans = response.text # failed. Not sure why.
             ans: str = chat.history[-1].parts[0].text
         elif model_name == "gemini-pro-vision":
@@ -188,7 +194,6 @@ def oai_messages_to_gemini_messages(messages: list[Dict[str, Any]]) -> list[dict
     """Convert messages from OAI format to Gemini format.
     Make sure the "user" role and "model" role are interleaved.
     Also, make sure the last item is from the "user" role.
-
     """
     prev_role = None
     rst = []
