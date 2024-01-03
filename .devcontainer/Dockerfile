@@ -3,7 +3,7 @@
 # Licensed under the MIT License. See LICENSE file in the project root for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-FROM mcr.microsoft.com/vscode/devcontainers/python:0-3.10
+FROM mcr.microsoft.com/vscode/devcontainers/python:3.10
 
 #
 # Update the OS and maybe install packages
