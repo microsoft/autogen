@@ -24,7 +24,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        global-json-file: global.json
+        global-json-file: dotnet/global.json
 
     - name: Restore dependencies
       run: dotnet restore
