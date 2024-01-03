@@ -126,26 +126,26 @@ class Completion(openai_Completion):
 
     @classmethod
     def set_cache(cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache"):
-        """Set cache path.
+        r"""Set cache path.
 
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 Results corresponding to different seeds will be cached in different places.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{seed}.
+                The complete cache path will be \{cache_path\}/\{seed\}.
         """
         cls.cache_seed = seed
         cls.cache_path = f"{cache_path_root}/{seed}"
 
     @classmethod
     def clear_cache(cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache"):
-        """Clear cache.
+        r"""Clear cache.
 
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 If omitted, all caches under cache_path_root will be cleared.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{cache_seed}.
+                The complete cache path will be \{cache_path\}/\{cache_seed\}.
         """
         if seed is None:
             shutil.rmtree(cache_path_root, ignore_errors=True)
