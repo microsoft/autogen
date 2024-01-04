@@ -182,7 +182,7 @@ def test_multi_tool_call():
                     "id": "tool_3",
                     "type": "function",
                     "function": {
-                        "name": "multi_tool_call.echo",
+                        "name": "multi_tool_call_echo",  # normalized "multi_tool_call.echo"
                         "arguments": json.JSONEncoder().encode({"str": "goodbye and thanks for all the fish"}),
                     },
                 },
