@@ -43,7 +43,7 @@ user_proxy = UserProxyAgent(name="user_proxy")
 
 Function calling enables agents to interact with external tools and APIs more efficiently.
 This feature allows the AI model to intelligently choose to output a JSON object containing
-arguments to call specific functions based on the user's input. A fnctions to be called is
+arguments to call specific functions based on the user's input. A function to be called is
 specified with a JSON schema describing its parameters and their types. Writing such JSON schema
 is complex and error-prone and that is why AutoGen framework provides two high level function decorators for automatically generating such schema using type hints on standard Python datatypes
 or Pydantic models:
