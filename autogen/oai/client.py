@@ -364,6 +364,15 @@ class OpenAIWrapper:
 
         Usage is calculated no matter filter is passed or not.
         """
+        try:
+            usage = response.usage
+            assert usage is not None
+            usage.prompt_tokens = 0 if usage.prompt_tokens is None else usage.prompt_tokens
+            usage.completion_tokens = 0 if usage.completion_tokens is None else usage.completion_tokens
+            usage.total_tokens = 0 if usage.total_tokens is None else usage.total_tokens
+        except (AttributeError, AssertionError):
+            logger.debug("Usage attribute is not found in the response.", exc_info=1)
+            return
 
         def update_usage(usage_summary):
             if usage_summary is None:
@@ -373,12 +382,10 @@ class OpenAIWrapper:
 
             usage_summary[response.model] = {
                 "cost": usage_summary.get(response.model, {}).get("cost", 0) + response.cost,
-                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0)
-                + response.usage.prompt_tokens,
+                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0) + usage.prompt_tokens,
                 "completion_tokens": usage_summary.get(response.model, {}).get("completion_tokens", 0)
-                + response.usage.completion_tokens,
-                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0)
-                + response.usage.total_tokens,
+                + usage.completion_tokens,
+                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0) + usage.total_tokens,
             }
             return usage_summary
 
@@ -448,6 +455,7 @@ class OpenAIWrapper:
         model = response.model
         if model not in OAI_PRICE1K:
             # TODO: add logging to warn that the model is not found
+            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=1)
             return 0
 
         n_input_tokens = response.usage.prompt_tokens
