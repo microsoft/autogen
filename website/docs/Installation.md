@@ -2,7 +2,7 @@
 
 ## Option 1: Install and Run AutoGen in Docker
 
-[Docker](https://www.docker.com/) is a containerization platform that simplifies the setup and execution of your code. A properly built docker image could provide isolated and consistent environment to run your code securely across platforms. One option of using AutoGen is to run it in a docker container. Follow the steps below to install and run AutoGen in a docker container.
+[Docker](https://www.docker.com/) is a containerization platform that simplifies the setup and execution of your code. A properly built docker image could provide isolated and consistent environment to run your code securely across platforms. One option of using AutoGen is to install and run it in a docker container. You can do that in [Github codespace](https://codespaces.new/microsoft/autogen?quickstart=1) or follow the instructions below to do so.
 
 #### Step 1. Install Docker.
 
@@ -12,9 +12,10 @@ For Mac users, alternatively you may choose to install [colima](https://smallsha
 
 #### Step 2. Build a docker image
 
-AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to build docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfiles named `Dockerfile.base`:
+AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to build docker images. Use the following command line to build a docker image named `autogen_img` (or other names you prefer) from one of the provided dockerfiles named `Dockerfile.base`:
+
 ```
-docker build -f samples/dockers/Dockerfile.base -t autogen_img https://github.com/microsoft/autogen.git
+docker build -f samples/dockers/Dockerfile.base -t autogen_img https://github.com/microsoft/autogen.git#main
 ```
 which includes some common python libraries and essential dependencies of AutoGen, or build from `Dockerfile.full` which include additional dependencies for more advanced features of AutoGen with the following command line:
 
@@ -48,7 +49,7 @@ Then open `http://localhost:8081/` in your browser to use AutoGen Studio.
 
 ## Option 2: Install AutoGen Locally Using Virtual Environment
 
-When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
+When installing AutoGen locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
 ### Option a: venv
 
@@ -139,9 +140,9 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
 ### Optional Dependencies
 - #### docker
 
-For the best user experience and seamless code execution, we highly recommend using Docker with AutoGen. Docker is a containerization platform that simplifies the setup and execution of your code. Developing in a docker container, such as GitHub Codespace, also makes the development convenient.
+For the best user experience and seamless code execution, even if you are installing AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
 
-When running AutoGen out of a docker container, to use docker for code execution, you also need to install the python package `docker`:
+To use docker for code execution, you also need to install the python package `docker`:
 ```bash
 pip install docker
 ```

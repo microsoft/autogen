@@ -64,7 +64,7 @@ The easiest way to start playing is
 
 Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-install-and-run-autogen-in-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker).
 
-### Option 2. Install AutoGen Locally without Docker
+### Option 2. Install AutoGen Locally
 
 AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
 
@@ -83,7 +83,7 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
-For [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution), we strongly recommend installing the Python docker package and using docker.
+Even if you are installing AutoGen locally, for better user experience and seamless code execution, we recommend performing [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution) in docker. To do so, you will need to install Python docker package and set `use_docker` to `True` in `code_execution_config`.
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
