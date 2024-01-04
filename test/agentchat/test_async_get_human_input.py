@@ -1,15 +1,20 @@
 import asyncio
 import autogen
 import pytest
+from conftest import skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
+
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 @pytest.mark.asyncio
 async def test_async_get_human_input():
-    try:
-        import openai
-    except ImportError:
-        return
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
     # create an AssistantAgent instance named "assistant"
