@@ -39,7 +39,7 @@ Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autoge
 ```
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_full_img:latest autogenra ui --host 0.0.0.0
 ```
-Then open `http://localhost:8081/` in your browser to use AutoGen assistant.
+Then open `http://localhost:8081/` in your browser to use AutoGen Studio.
 
 ## Option 2: Install AutoGen Locally Using Virtual Environment
 
