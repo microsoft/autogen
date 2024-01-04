@@ -223,13 +223,35 @@ def _cmd(lang):
         return "powershell"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
+def is_docker_running():
+    """Check if docker is running.
+
+    Returns:
+        bool: True if docker is running; False otherwise.
+    """
+    if docker is None:
+        return False
+    try:
+        client = docker.from_env()
+        client.ping()
+        return True
+    except docker.errors.DockerException:
+        return False
+
+def in_docker_container():
+    """Check if the code is running in a docker container.
+
+    Returns:
+        bool: True if the code is running in a docker container; False otherwise.
+    """
+    return os.path.exists("/.dockerenv")
 
 def execute_code(
     code: Optional[str] = None,
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Optional[Union[List[str], str, bool]] = None,
+    use_docker: Union[List[str], str, bool] = True,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -249,15 +271,15 @@ def execute_code(
             If None, a default working directory will be used.
             The default working directory is the "extensions" directory under
             "path_to_autogen".
-        use_docker (Optional, list, str or bool): The docker image to use for code execution.
+        use_docker (list, str or bool): The docker image to use for code execution.
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
             with the first image successfully pulled.
             If None, False or empty, the code will be executed in the current environment.
-            Default is None, which will be converted into an empty list when docker package is available.
+            Default is True.
             Expected behaviour:
-                - If `use_docker` is explicitly set to True and the docker package is available, the code will run in a Docker container.
-                - If `use_docker` is explicitly set to True but the Docker package is missing, an error will be raised.
-                - If `use_docker` is not set (i.e., left default to None) and the Docker package is not available, a warning will be displayed, but the code will run natively.
+                - If `use_docker` is not set (i.e. left default to True) or is explicitly set to True and the docker package is available, the code will run in a Docker container.
+                - If `use_docker` is not set (i.e. left default to True) or is explicitly set to True but the Docker package is missing, an error will be raised.
+                - If `use_docker` is explicitly set to False, a warning will be displayed, but the code will run natively.
             If the code is executed in the current environment,
             the code must be trusted.
         lang (Optional, str): The language of the code. Default is "python".
@@ -272,18 +294,16 @@ def execute_code(
         logger.error(error_msg)
         raise AssertionError(error_msg)
 
-    # Warn if use_docker was unspecified (or None), and cannot be provided (the default).
-    # In this case the current behavior is to fall back to run natively, but this behavior
-    # is subject to change.
-    if use_docker is None:
-        if docker is None:
-            use_docker = False
-            logger.warning(
-                "execute_code was called without specifying a value for use_docker. Since the python docker package is not available, code will be run natively. Note: this fallback behavior is subject to change"
-            )
-        else:
-            # Default to true
-            use_docker = True
+    # # Warn if use_docker was set to False
+    # # In this case the current behavior is to fall back to run natively, but this behavior
+    # # is subject to change.
+    running_inside_docker = in_docker_container()
+    docker_running = is_docker_running()
+
+    if use_docker is not None and not use_docker and not running_inside_docker:
+        logger.warning(
+            "execute_code was called with use_docker set to False. Code will be run natively but we strongly advise to set use_docker=True. Set use_docker=None to silence this message."
+        )
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
@@ -301,9 +321,8 @@ def execute_code(
     if code is not None:
         with open(filepath, "w", encoding="utf-8") as fout:
             fout.write(code)
-    # check if already running in a docker container
-    in_docker_container = os.path.exists("/.dockerenv")
-    if not use_docker or in_docker_container:
+
+    if not use_docker or running_inside_docker:
         # already running in a docker container
         cmd = [
             sys.executable if lang.startswith("python") else _cmd(lang),
@@ -347,7 +366,11 @@ def execute_code(
         return result.returncode, logs, None
 
     # create a docker client
+    if use_docker and not docker_running:
+        raise RuntimeError("Docker package is missing or docker is not running. Please make sure docker is running or set use_docker=False.")
+
     client = docker.from_env()
+
     image_list = (
         ["python:3-alpine", "python:3", "python:3-windowsservercore"]
         if use_docker is True

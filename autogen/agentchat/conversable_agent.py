@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
-from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang, is_docker_running, in_docker_container
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 from .._pydantic import model_dump
@@ -129,6 +129,19 @@ class ConversableAgent(Agent):
         self._code_execution_config: Union[Dict, Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
         )
+
+        if isinstance(self._code_execution_config, Dict):
+            if "use_docker" in self._code_execution_config:
+                use_docker = self._code_execution_config["use_docker"]
+            else:
+                use_docker = True
+            if use_docker is not None:
+                inside_docker = in_docker_container()
+                docker_installed_and_running = is_docker_running()
+                if use_docker and not inside_docker and not docker_installed_and_running:
+                    raise RuntimeError("Docker is not running, please make sure docker is running (advised approach for code execution) or set \"use_docker\":False.")
+                if not use_docker:
+                    logger.warning("use_docker was set to False. Any code execution will be run natively but we strongly advise to set \"use_docker\":True. Set \"use_docker\":None to silence this message.")
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
