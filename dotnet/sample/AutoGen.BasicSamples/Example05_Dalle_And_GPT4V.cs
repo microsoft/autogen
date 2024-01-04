@@ -110,9 +110,8 @@ Otherwise, provide detailed feedback to DALL-E agent so it can generate better i
 
 The image should satisfy the following conditions:
 - The cat should be blue
-- The cat should have short hair
-- The cat should chase after Jerry the mouse
-- Jerry the mouse should be laughing at the cat
+- The cat should chase after the mouse
+- The mouse should be laughing at the cat
 ",
             llmConfig: new AssistantAgentConfig
             {
@@ -152,32 +151,35 @@ The image should satisfy the following conditions:
                 });
             });
 
-        var squentialGroupChat = new SequentialGroupChat(
-            agents: new[] { gpt4VAgent, dalleAgent });
-        var groupChatManager = new GroupChatManager(squentialGroupChat);
-        gpt4VAgent.AddInitializeMessage("Hey dalle, please generate image from prompt: English short hair blue cat chase after Jerry the mouse", squentialGroupChat);
-        IEnumerable<Message> conversation = new List<Message>();
+        IEnumerable<Message> conversation = new List<Message>()
+        {
+            new Message(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
+        };
         var maxRound = 10;
+        var dalleReply = await dalleAgent.SendAsync(chatHistory: conversation);
+        Console.WriteLine(dalleReply.FormatMessage());
+        conversation = conversation.Append(dalleReply);
         while (maxRound-- > 0)
         {
-            conversation = await gpt4VAgent.SendAsync(
-                receiver: groupChatManager,
-                chatHistory: conversation,
-                maxRound: 1);
+            var critizeReply = await gpt4VAgent.SendAsync(chatHistory: conversation);
+            Console.WriteLine(critizeReply.FormatMessage());
+            conversation = conversation.Append(critizeReply);
 
-            var lastMessage = conversation.Last();
-            Console.WriteLine(lastMessage.FormatMessage());
+            dalleReply = await dalleAgent.SendAsync(chatHistory: conversation);
+            Console.WriteLine(dalleReply.FormatMessage());
 
-            if (lastMessage.IsGroupChatTerminateMessage())
+            if (dalleReply.IsGroupChatTerminateMessage())
             {
-                // download image
-                var imageUrl = lastMessage.Content!.Split("\n").Last();
+                var imageUrl = dalleReply.Content.Split("\n").Last();
                 var httpClient = new HttpClient();
                 var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
-                await File.WriteAllBytesAsync(imagePath, imageBytes);
+                File.WriteAllBytes(imagePath, imageBytes);
 
-                Console.WriteLine($@"The image is saved to {imagePath}");
                 break;
+            }
+            else
+            {
+                conversation = conversation.Append(dalleReply);
             }
         }
 
