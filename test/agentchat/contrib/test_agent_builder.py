@@ -6,7 +6,7 @@ from autogen.agentchat.contrib.agent_builder import AgentBuilder
 from conftest import skip_openai
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import OAI_CONFIG_LIST  # noqa: E402
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -44,7 +44,9 @@ def _config_check(config):
     reason="do not run when dependency is not installed or requested to skip",
 )
 def test_build():
-    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(
+        config_path_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -75,7 +77,9 @@ def test_build():
     reason="do not run when dependency is not installed or requested to skip",
 )
 def test_build_from_library():
-    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(
+        config_path_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -131,7 +135,9 @@ def test_build_from_library():
     reason="do not run when dependency is not installed or requested to skip",
 )
 def test_save():
-    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(
+        config_path_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
     building_task = (
         "Find a paper on arxiv by programming, and analyze its application in some domain. "
         "For example, find a recent paper about gpt-4 on arxiv "
@@ -163,7 +169,9 @@ def test_save():
     reason="do not run when dependency is not installed or requested to skip",
 )
 def test_load():
-    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(
+        config_path_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     json.load(open(config_save_path, "r"))
@@ -187,7 +195,9 @@ def test_load():
     reason="do not run when dependency is not installed or requested to skip",
 )
 def test_clear_agent():
-    builder = AgentBuilder(config_path_or_env=OAI_CONFIG_LIST, builder_model="gpt-4", agent_model="gpt-4")
+    builder = AgentBuilder(
+        config_path_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
 
     config_save_path = f"{here}/example_test_agent_builder_config.json"
     builder.load(

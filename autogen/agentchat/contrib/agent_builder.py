@@ -117,6 +117,7 @@ output after executing the code) and provide a corrected answer or code.
     def __init__(
         self,
         config_path_or_env: Optional[str] = "OAI_CONFIG_LIST",
+        config_file_location: Optional[str] = "",
         builder_model: Optional[str] = "gpt-4",
         agent_model: Optional[str] = "gpt-4",
         host: Optional[str] = "localhost",
@@ -138,6 +139,7 @@ output after executing the code) and provide a corrected answer or code.
         self.builder_model = builder_model
         self.agent_model = agent_model
         self.config_path_or_env = config_path_or_env
+        self.config_file_location = config_file_location
         self.endpoint_building_timeout = endpoint_building_timeout
 
         self.building_task: str = None
@@ -200,7 +202,9 @@ output after executing the code) and provide a corrected answer or code.
             agent: a set-up agent.
         """
         config_list = autogen.config_list_from_json(
-            self.config_path_or_env, filter_dict={"model": [model_name_or_hf_repo]}
+            self.config_path_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": [model_name_or_hf_repo]},
         )
         if len(config_list) == 0:
             raise RuntimeError(
@@ -353,7 +357,9 @@ output after executing the code) and provide a corrected answer or code.
         self.building_task = building_task
 
         config_list = autogen.config_list_from_json(
-            self.config_path_or_env, filter_dict={"model": [self.builder_model]}
+            self.config_path_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": [self.builder_model]},
         )
         if len(config_list) == 0:
             raise RuntimeError(
@@ -490,7 +496,9 @@ output after executing the code) and provide a corrected answer or code.
         agent_configs = []
 
         config_list = autogen.config_list_from_json(
-            self.config_path_or_env, filter_dict={"model": [self.builder_model]}
+            self.config_path_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": [self.builder_model]},
         )
         if len(config_list) == 0:
             raise RuntimeError(
