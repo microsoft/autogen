@@ -100,24 +100,17 @@ namespace AutoGen
         public static async Task<IEnumerable<Message>> SendAsync(
             this IAgent agent,
             IAgent receiver,
-            string? message = null,
+            string message,
             IEnumerable<Message>? chatHistory = null,
             int maxRound = 10,
             CancellationToken ct = default)
         {
-            if (message != null)
+            var msg = new Message(Role.User, message)
             {
-                var msg = new Message(Role.User, message)
-                {
-                    From = agent.Name,
-                };
+                From = agent.Name,
+            };
 
-                chatHistory = new[] { msg }.Concat(chatHistory ?? Enumerable.Empty<Message>());
-            }
-            else
-            {
-                chatHistory = chatHistory ?? Enumerable.Empty<Message>();
-            }
+            chatHistory = new[] { msg }.Concat(chatHistory ?? Enumerable.Empty<Message>());
 
             return await agent.SendAsync(receiver, chatHistory, maxRound, ct);
         }
@@ -165,34 +158,13 @@ namespace AutoGen
         }
 
         public static async Task<IEnumerable<Message>> SendMessageToGroupAsync(
-            this IAgent agent,
+            this IAgent _,
             IGroupChat groupChat,
             IEnumerable<Message>? chatHistory = null,
             int maxRound = 10,
             CancellationToken ct = default)
         {
             return await groupChat.CallAsync(chatHistory, maxRound, ct);
-        }
-
-
-
-        /// <summary>
-        /// Receive message from another agent.
-        /// </summary>
-        /// <param name="agent">receiver agent.</param>
-        /// <param name="sender">sender agent.</param>
-        /// <param name="chatHistory">chat history.</param>
-        /// <param name="maxRound">max conversation round.</param>
-        /// <returns></returns>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public static async Task<IEnumerable<Message>> ReceiveAsync(
-            this IAgent agent,
-            IAgent sender,
-            IEnumerable<Message> chatHistory,
-            int maxRound = 10,
-            CancellationToken? ct = default)
-        {
-            throw new System.NotImplementedException();
         }
 
         public static IAgent RegisterReply(
@@ -205,6 +177,30 @@ namespace AutoGen
             }
 
             return new AutoReplyAgent(agent, agent.Name, replyFunc);
+        }
+
+        public static IAgent RegisterPostProcess(
+            this IAgent agent,
+            Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
+        {
+            if (agent.Name == null)
+            {
+                throw new Exception("Agent name is null.");
+            }
+
+            return new PostProcessAgent(agent, agent.Name, postprocessFunc);
+        }
+
+        public static IAgent RegisterPreProcess(
+            this IAgent agent,
+            Func<IEnumerable<Message>, CancellationToken, Task<IEnumerable<Message>>> preprocessFunc)
+        {
+            if (agent.Name == null)
+            {
+                throw new Exception("Agent name is null.");
+            }
+
+            return new PreProcessAgent(agent, agent.Name, preprocessFunc);
         }
     }
 }

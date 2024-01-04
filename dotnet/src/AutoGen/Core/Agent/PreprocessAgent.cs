@@ -12,7 +12,7 @@ namespace AutoGen
     /// <summary>
     /// The preprocess agent preprocesses the conversation before passing it to the inner agent by calling the preprocess function.
     /// </summary>
-    public class PreprocessAgent : IAgent
+    public class PreProcessAgent : IAgent
     {
         /// <summary>
         /// Create a wrapper agent that preprocesses the conversation before passing it to the inner agent.
@@ -20,7 +20,7 @@ namespace AutoGen
         /// <param name="innerAgent">inner agent.</param>
         /// <param name="name">name</param>
         /// <param name="preprocessFunc">preprocess function</param>
-        public PreprocessAgent(
+        public PreProcessAgent(
             IAgent innerAgent,
             string name,
             Func<IEnumerable<Message>, CancellationToken, Task<IEnumerable<Message>>> preprocessFunc)

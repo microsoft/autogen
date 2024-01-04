@@ -43,6 +43,12 @@ namespace AutoGen.Tests
             await Example04_Dynamic_GroupChat_Get_MLNET_PR.RunAsync();
         }
 
+        [ApiKeyFact("OPENAI_API_KEY")]
+        public async Task DalleAndGPT4VTestAsync()
+        {
+            await Example05_Dalle_And_GPT4V.RunAsync();
+        }
+
         public class ConsoleWriter : StringWriter
         {
             private ITestOutputHelper output;
