@@ -83,7 +83,7 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
-Even if you are installing AutoGen locally, for better user experience and seamless code execution, we recommend performing [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution) in docker. To do so, you will need to install Python docker package and set `use_docker` to `True` in `code_execution_config`.
+Even if you are installing AutoGen locally out of docker, for better user experience and seamless code execution, we recommend performing [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution) in docker. To do so, you will need to [install Python docker package](https://microsoft.github.io/autogen/docs/Installation#docker) and set `use_docker` to `True` in `code_execution_config`.
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
