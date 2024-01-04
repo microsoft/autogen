@@ -36,7 +36,7 @@ export OPENAI_API_KEY="sk-xxxxxx"
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
 ```
 
-Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full`)as below:
+Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full`) as below:
 
 ```
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_full_img:latest autogenra ui --host 0.0.0.0
