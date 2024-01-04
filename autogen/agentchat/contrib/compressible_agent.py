@@ -379,7 +379,8 @@ Reply "TERMINATE" in the end when everything is done.
 
             # Handle tool role
             elif m.get("role") == "tool":
-                chat_to_compress += f"##TOOL_RETURN## (from tool \"{m['name']}\", tool call id \"{m['tool_call_id']}\"): \n{m['content']}\n"
+                for tool_response in m.get("tool_responses", []):
+                    chat_to_compress += f"##TOOL_RETURN## (from tool \"{tool_response['name']}\", tool call id \"{tool_response['tool_call_id']}\"): \n{tool_response['content']}\n"
 
             # If name exists in the message
             elif "name" in m:
