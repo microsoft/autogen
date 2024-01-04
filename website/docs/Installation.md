@@ -5,6 +5,8 @@
 
 Docker is recommended as a properly built docker image could provide isolated and consistent environment to run your code securely across platforms. Install docker following [this instruction](https://docs.docker.com/get-docker/).
 
+For Mac users, alternatively you may choose to install [colima](https://smallsharpsoftwaretools.com/tutorials/use-colima-to-run-docker-containers-on-macos/) to run docker containers, if there is any issues with starting the docker daemon.
+
 #### Step 2. Build a docker image
 
 AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to built docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfiles named `Dockerfile.base`:
