@@ -7,7 +7,7 @@ Docker is recommended as a properly built docker image could provide isolated an
 
 #### Step 2. Build a docker image
 
-AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to built docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfiles named `Dockerfile.baes`:
+AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to built docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfiles named `Dockerfile.base`:
 ```
 docker build -f samples/dockers/Dockerfile.base -t autogen_img https://github.com/microsoft/autogen.git
 ```
