@@ -19,7 +19,7 @@ docker build -f samples/dockers/Dockerfile.base -t autogen_img https://github.co
 which includes some common python libraries and essential dependencies of AutoGen, or build from `Dockerfile.full` which include additional dependencies for more advanced features of AutoGen with the following command line:
 
 ```
-docker build -f sample/docker/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
+docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
 ```
 Once you build the docker image, you can use `docker images` to check whether it has been created successfully.
 

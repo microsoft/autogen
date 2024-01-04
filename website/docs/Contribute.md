@@ -97,7 +97,7 @@ pip install -e autogen
 
 ### Docker
 
-We provide [Dockerfiles](https://github.com/microsoft/autogen/blob/main/sample/dockers/Dockerfile.dev) for developers to use.
+We provide [Dockerfiles](https://github.com/microsoft/autogen/blob/main/samples/dockers/Dockerfile.dev) for developers to use.
 
 Use the following command line to build and run a docker image.
 
