@@ -1540,18 +1540,18 @@ class ConversableAgent(Agent):
             return messages  # Last message has no content.
         user_text = last_message["content"]
         if not isinstance(user_text, str):
-            return messages  # Last message content is not a string.
+            return messages  # Last message content is not a string. TODO: Multimodal agents will use a dict here.
         if user_text == "exit":
             return messages  # Last message is an exit command.
 
         # Call each hook (in order of registration) to process the user's message.
-        expanded_user_text = user_text
+        processed_user_text = user_text
         for hook in hook_list:
-            expanded_user_text = hook(expanded_user_text)
-        if expanded_user_text == user_text:
+            processed_user_text = hook(processed_user_text)
+        if processed_user_text == user_text:
             return messages  # No hooks actually modified the user's message.
 
         # Replace the last user message with the expanded one.
         messages = messages.copy()
-        messages[-1]["content"] = expanded_user_text
+        messages[-1]["content"] = processed_user_text
         return messages
