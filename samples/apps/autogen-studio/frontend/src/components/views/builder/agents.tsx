@@ -267,7 +267,7 @@ const AgentsView = ({}: any) => {
   };
 
   return (
-    <div className="  ">
+    <div className="text-primary  ">
       <AgentModal
         agent={selectedAgent}
         setAgent={setSelectedAgent}

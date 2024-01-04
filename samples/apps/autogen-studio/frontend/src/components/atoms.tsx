@@ -7,6 +7,7 @@ import {
   PlusIcon,
   ArrowPathIcon,
   ArrowDownRightIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
@@ -905,8 +906,8 @@ export const AgentFlowSpecView = ({
 
   return (
     <>
-      <div className="text-accent">{title}</div>
-      <GroupView title={flowSpec.config.name} className="mb-4">
+      <div className="text-accent ">{title}</div>
+      <GroupView title={flowSpec.config.name} className="mb-4 bg-primary  ">
         <ControlRowView
           title="Agent Name"
           className="mt-4"
@@ -1269,6 +1270,158 @@ export const SkillLoader = ({
   );
 };
 
+const AgentModal = ({
+  agent,
+  setAgent,
+  showAgentModal,
+  setShowAgentModal,
+  handler,
+}: {
+  agent: IAgentFlowSpec | null;
+  setAgent: (agent: IAgentFlowSpec | null) => void;
+  showAgentModal: boolean;
+  setShowAgentModal: (show: boolean) => void;
+  handler?: (agent: IAgentFlowSpec | null) => void;
+}) => {
+  const [localAgent, setLocalAgent] = React.useState<IAgentFlowSpec | null>(
+    agent
+  );
+  const [selectedFlowSpec, setSelectedFlowSpec] = useState<number | null>(0);
+  const [flowSpecs, setFlowSpecs] = useState<IAgentFlowSpec[]>([]);
+  const serverUrl = getServerUrl();
+  const { user } = React.useContext(appContext);
+  const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = () => {
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        setFlowSpecs(data.data);
+      }
+    };
+    const onError = (err: any) => {
+      console.error(err);
+    };
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    fetchJSON(listAgentsUrl, payLoad, onSuccess, onError);
+  };
+
+  const handleAgentChange = (value: any) => {
+    setSelectedFlowSpec(value);
+    setLocalAgent(flowSpecs[value]);
+  };
+
+  return (
+    <Modal
+      title={
+        <>
+          Agent Specification{" "}
+          <span className="text-accent font-normal">{agent?.config.name}</span>{" "}
+        </>
+      }
+      width={800}
+      open={showAgentModal}
+      onOk={() => {
+        setAgent(localAgent);
+        setShowAgentModal(false);
+        if (handler) {
+          handler(localAgent);
+        }
+      }}
+      onCancel={() => {
+        // setAgent(null);
+        setShowAgentModal(false);
+      }}
+    >
+      {agent && (
+        <>
+          {" "}
+          <div className="text-sm text-secondary mt-2">
+            Modify current agent{" "}
+          </div>
+          <AgentFlowSpecView
+            title=""
+            flowSpec={localAgent || agent}
+            setFlowSpec={setLocalAgent}
+          />
+        </>
+      )}
+
+      <div>
+        {" "}
+        <div>
+          <div className="text-sm text-secondary mt-2">
+            Or replace with an existing agent{" "}
+          </div>
+        </div>
+        <Select
+          className="mt-2 w-full"
+          defaultValue={selectedFlowSpec}
+          value={selectedFlowSpec}
+          onChange={handleAgentChange}
+          options={flowSpecs.map((spec, index) => ({
+            label: spec.config.name,
+            value: index,
+          }))}
+        />
+      </div>
+      {/* {JSON.stringify(localAgent)} */}
+    </Modal>
+  );
+};
+
+export const AgentSelector = ({
+  flowSpec,
+  setFlowSpec,
+}: {
+  flowSpec: IAgentFlowSpec | null;
+  setFlowSpec: (agent: IAgentFlowSpec | null) => void;
+}) => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  return (
+    <div className="   ">
+      <div
+        role="button"
+        onClick={() => setIsModalVisible(true)}
+        className="hover:bg-secondary h-full duration-300  border border-dashed rounded p-2"
+      >
+        {flowSpec && (
+          <div className=" ">
+            {flowSpec.config.name}
+            <div className="mt-2 text-secondary text-sm">
+              {" "}
+              {flowSpec.description || flowSpec.config.name}
+            </div>
+            <div className="mt-2 text-secondary text-sm">
+              {" "}
+              {flowSpec.skills && (
+                <span className="text-xs">
+                  {flowSpec.skills?.length} skills
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <AgentModal
+        agent={flowSpec}
+        setAgent={setFlowSpec}
+        showAgentModal={isModalVisible}
+        setShowAgentModal={setIsModalVisible}
+      />
+    </div>
+  );
+};
 export const FlowConfigViewer = ({
   flowConfig,
   setFlowConfig,
@@ -1277,25 +1430,28 @@ export const FlowConfigViewer = ({
   setFlowConfig: (newFlowConfig: IFlowConfig) => void;
 }) => {
   // Local state for sender and receiver FlowSpecs
-  const [senderFlowSpec, setSenderFlowSpec] = React.useState<IAgentFlowSpec>(
-    flowConfig.sender
-  );
+  const [senderFlowSpec, setSenderFlowSpec] =
+    React.useState<IAgentFlowSpec | null>(flowConfig.sender);
 
   const [localFlowConfig, setLocalFlowConfig] =
     React.useState<IFlowConfig>(flowConfig);
 
   const [receiverFlowSpec, setReceiverFlowSpec] =
-    React.useState<IAgentFlowSpec>(flowConfig.receiver);
+    React.useState<IAgentFlowSpec | null>(flowConfig.receiver);
 
   // Update the local state and propagate changes to the parent component
-  const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec) => {
+  const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
     setSenderFlowSpec(newFlowSpec);
-    setFlowConfig({ ...flowConfig, sender: newFlowSpec });
+    if (newFlowSpec) {
+      setFlowConfig({ ...flowConfig, sender: newFlowSpec });
+    }
   };
 
-  const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec) => {
+  const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
     setReceiverFlowSpec(newFlowSpec);
-    setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
+    if (newFlowSpec) {
+      setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
+    }
   };
 
   const updateFlowConfigName = (newName: string) => {
@@ -1372,19 +1528,17 @@ export const FlowConfigViewer = ({
           />
         }
       />
-      <div className="flex gap-3 ">
-        <div className="w-1/2">
-          <div className="">
-            <AgentFlowSpecView
-              title="Sender"
-              flowSpec={senderFlowSpec}
-              setFlowSpec={updateSenderFlowSpec}
-            />
-          </div>
+      <div className="flex gap-3 mt-4">
+        <div className="w-1/2 ">
+          <div className="mb-2  ">Sender</div>
+          <AgentSelector
+            flowSpec={senderFlowSpec}
+            setFlowSpec={updateSenderFlowSpec}
+          />
         </div>
         <div className="w-1/2">
-          <AgentFlowSpecView
-            title="Receiver"
+          <div className="mb-2">Receiver</div>
+          <AgentSelector
             flowSpec={receiverFlowSpec}
             setFlowSpec={updateReceiverFlowSpec}
           />

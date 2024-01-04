@@ -237,7 +237,7 @@ const WorkflowView = ({}: any) => {
   };
 
   return (
-    <div className="  ">
+    <div className=" text-primary ">
       <WorkflowModal
         workflow={selectedWorkflow}
         setWorkflow={setSelectedWorkflow}

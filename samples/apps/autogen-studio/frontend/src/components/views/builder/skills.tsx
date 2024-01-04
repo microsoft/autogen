@@ -191,7 +191,7 @@ const SkillsView = ({}: any) => {
   });
 
   return (
-    <div className="  ">
+    <div className=" text-primary ">
       <Modal
         title={selectedSkill?.name}
         width={800}

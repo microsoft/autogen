@@ -18,7 +18,7 @@ const BuildView = () => {
         Create skills, agents and workflows for building multiagent capabilities{" "}
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 text-primary">
         {" "}
         <Tabs
           tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
