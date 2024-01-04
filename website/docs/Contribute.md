@@ -102,7 +102,7 @@ We provide [Dockerfiles](https://github.com/microsoft/autogen/blob/main/samples/
 Use the following command line to build and run a docker image.
 
 ```
-docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git#main
 
 docker run -it autogen_dev_img
 ```
