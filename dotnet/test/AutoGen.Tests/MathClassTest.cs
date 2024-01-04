@@ -19,7 +19,7 @@ namespace AutoGen.Tests
             _output = output;
         }
 
-        [FunctionAttribution]
+        [FunctionAttribute]
         public async Task<string> CreateMathQuestion(string question, int question_index)
         {
             return $@"// ignore this line [MATH_QUESTION]
@@ -27,21 +27,21 @@ Question #{question_index}:
 {question}";
         }
 
-        [FunctionAttribution]
+        [FunctionAttribute]
         public async Task<string> AnswerQuestion(string answer)
         {
             return $@"// ignore this line [MATH_ANSWER]
 The answer is {answer}, teacher please check answer";
         }
 
-        [FunctionAttribution]
+        [FunctionAttribute]
         public async Task<string> AnswerIsCorrect(string message)
         {
             return $@"// ignore this line [ANSWER_IS_CORRECT]
 {message}";
         }
 
-        [FunctionAttribution]
+        [FunctionAttribute]
         public async Task<string> UpdateProgress(int correctAnswerCount)
         {
             if (correctAnswerCount >= 5)

@@ -24,7 +24,8 @@ public static class Example01_AssistantAgent
         var assistantAgent = new AssistantAgent(
             name: "assistant",
             systemMessage: "You convert what user said to all uppercase.",
-            llmConfig: config);
+            llmConfig: config)
+            .RegisterPrintFormatMessageHook();
 
         // talk to the assistant agent
         var reply = await assistantAgent.SendAsync("hello world");

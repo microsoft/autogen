@@ -18,7 +18,7 @@ public partial class Example04_Dynamic_GroupChat_Get_MLNET_PR
     /// <param name="previousCodeContext">previous csharp code context.</param>
     /// <param name="step">current step.</param>
     /// <returns></returns>
-    [FunctionAttribution]
+    [FunctionAttribute]
     public async Task<string> CreateContextAndStep(string previousCodeContext, string step)
     {
         return $@"// IGNORE THIS LINE [CONTEXT]
@@ -37,7 +37,7 @@ Please resolve the current step based on context";
     /// <param name="code">code solution</param>
     /// <param name="step">step</param>
     /// <param name="output">code output</param>
-    [FunctionAttribution]
+    [FunctionAttribute]
     public async Task<string> SummarizeCodeAndStep(string code, string step, string output)
     {
         return $@"
@@ -115,7 +115,7 @@ For other situation, you either ask coder to write code or ask runner to run cod
             {
                 { nameof(CreateContextAndStep), instance.CreateContextAndStepWrapper },
                 { nameof(SummarizeCodeAndStep), instance.SummarizeCodeAndStepWrapper },
-            }).PrintFormatMessage();
+            }).RegisterPrintFormatMessageHook();
 
         // create coder agent
         var coderConfig = new ConversableAgentConfig
@@ -147,7 +147,7 @@ If your code is incorrect, runner will tell you the error message. Fix the error
 Here's some externel information
 - The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.
 ",
-            llmConfig: coderConfig).PrintFormatMessage();
+            llmConfig: coderConfig).RegisterPrintFormatMessageHook();
 
         // create runner agent
         var runnerConfig = new ConversableAgentConfig
@@ -260,7 +260,7 @@ user message:
                 };
 
                 return await dotnetRunner.SendAsync(chatHistory: chatHistory);
-            }).PrintFormatMessage();
+            }).RegisterPrintFormatMessageHook();
 
         // create group chat
         var groupChat = new GroupChat(

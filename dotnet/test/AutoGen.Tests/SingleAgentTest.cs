@@ -173,7 +173,7 @@ namespace AutoGen.Tests
         /// echo when asked.
         /// </summary>
         /// <param name="message">message to echo</param>
-        [FunctionAttribution]
+        [FunctionAttribute]
         public async Task<string> EchoAsync(string message)
         {
             return $"[ECHO] {message}";
@@ -184,7 +184,7 @@ namespace AutoGen.Tests
         /// </summary>
         /// <param name="labelName"></param>
         /// <returns></returns>
-        [FunctionAttribution]
+        [FunctionAttribute]
         public async Task<string> GetHighestLabel(string labelName, string color)
         {
             return $"[HIGHEST_LABEL] {labelName} {color}";

@@ -12,17 +12,28 @@ namespace AutoGen.SourceGenerator.Tests
         /// </summary>
         /// <param name="a">a</param>
         /// <param name="b">b</param>
-        [FunctionAttribution]
+        [FunctionAttribute]
         public int Add(int a, int b)
         {
             return a + b;
         }
 
         /// <summary>
+        /// Add two numbers.
+        /// </summary>
+        /// <param name="a">The first number.</param>
+        /// <param name="b">The second number.</param>
+        [Function]
+        public Task<string> AddAsync(int a, int b)
+        {
+            return Task.FromResult($"{a} + {b} = {a + b}");
+        }
+
+        /// <summary>
         /// Sum function
         /// </summary>
         /// <param name="args">an array of double values</param>
-        [FunctionAttribution]
+        [FunctionAttribute]
         public double Sum(double[] args)
         {
             return args.Sum();
@@ -32,7 +43,7 @@ namespace AutoGen.SourceGenerator.Tests
         /// DictionaryToString function
         /// </summary>
         /// <param name="xargs">an object of key-value pairs. key is string, value is string</param>
-        [FunctionAttribution]
+        [FunctionAttribute]
         public Task<string> DictionaryToStringAsync(Dictionary<string, string> xargs)
         {
             var res = JsonSerializer.Serialize(xargs, new JsonSerializerOptions
@@ -49,7 +60,7 @@ namespace AutoGen.SourceGenerator.Tests
         /// <param name="query">query, required</param>
         /// <param name="k">top k, optional, default value is 3</param>
         /// <param name="thresold">thresold, optional, default value is 0.5</param>
-        [FunctionAttribution]
+        [FunctionAttribute]
         public string[] Query(string query, int k = 3, float thresold = 0.5f)
         {
             return Enumerable.Repeat(query, k).ToArray();

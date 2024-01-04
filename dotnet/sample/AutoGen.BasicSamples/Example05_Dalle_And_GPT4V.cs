@@ -22,7 +22,7 @@ public partial class Example05_Dalle_And_GPT4V
     /// </summary>
     /// <param name="prompt">prompt with feedback</param>
     /// <returns></returns>
-    [FunctionAttribution]
+    [FunctionAttribute]
     public async Task<string> GenerateImage(string prompt)
     {
         // TODO
@@ -104,7 +104,7 @@ The image is generated from prompt {prompt}
                 }
 
                 return null;
-            }).PrintFormatMessage();
+            }).RegisterPrintFormatMessageHook();
 
         var gpt4VAgent = new AssistantAgent(
             name: "gpt4v",
@@ -155,7 +155,7 @@ The image should satisfy the following conditions:
                         return msg;
                     }
                 });
-            }).PrintFormatMessage();
+            }).RegisterPrintFormatMessageHook();
 
         IEnumerable<Message> conversation = new List<Message>()
         {

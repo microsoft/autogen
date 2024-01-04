@@ -25,7 +25,8 @@ If the answer is wrong, you ask student to fix it.",
             {
                 Temperature = 0,
                 ConfigList = llmConfig,
-            });
+            })
+            .RegisterPrintFormatMessageHook();
 
         // create student agent
         // student agent will answer the math questions
@@ -36,7 +37,8 @@ If the answer is wrong, you ask student to fix it.",
             {
                 Temperature = 0,
                 ConfigList = llmConfig,
-            }).RegisterReply(async (msgs, ct) =>
+            })
+            .RegisterReply(async (msgs, ct) =>
             {
                 // if teacher terminate the conversation, then terminate the conversation by returning [GROUP_CHAT_TERMINATE]
                 if (msgs.Last().Content?.Contains("TERMINATE") is true)
@@ -48,7 +50,8 @@ If the answer is wrong, you ask student to fix it.",
                 }
 
                 return null;
-            });
+            })
+            .RegisterPrintFormatMessageHook();
 
         // start the conversation
         var conversation = await student.InitiateChatAsync(

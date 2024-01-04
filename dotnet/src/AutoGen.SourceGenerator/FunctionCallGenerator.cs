@@ -16,7 +16,7 @@ namespace AutoGen.SourceGenerator
     [Generator]
     public partial class FunctionCallGenerator : IIncrementalGenerator
     {
-        private const string FUNCTION_CALL_ATTRIBUTION = "AutoGen.FunctionAttribution";
+        private const string FUNCTION_CALL_ATTRIBUTION = "AutoGen.FunctionAttribute";
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {

@@ -6,13 +6,13 @@ using System;
 namespace AutoGen
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    public class FunctionAttribution : Attribute
+    public class FunctionAttribute : Attribute
     {
         public string? FunctionName { get; }
 
         public string? Description { get; }
 
-        public FunctionAttribution(string? functionName = null, string? description = null)
+        public FunctionAttribute(string? functionName = null, string? description = null)
         {
             FunctionName = functionName;
             Description = description;

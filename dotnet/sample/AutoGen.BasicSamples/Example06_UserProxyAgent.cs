@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example06_UserProxyAgent.cs
-using AutoGen.Extension;
 using autogen = AutoGen.API;
 
 namespace AutoGen.BasicSample;
@@ -22,16 +21,16 @@ public static class Example06_UserProxyAgent
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.",
             llmConfig: config)
-            .PrintFormatMessage();
+            .RegisterPrintFormatMessageHook();
 
         // set human input mode to ALWAYS so that user always provide input
         var userProxyAgent = new UserProxyAgent(
             name: "user",
             humanInputMode: ConversableAgent.HumanInputMode.ALWAYS)
-            .PrintFormatMessage();
+            .RegisterPrintFormatMessageHook();
 
         // start the conversation
-        var conversation = await userProxyAgent.InitiateChatAsync(
+        await userProxyAgent.InitiateChatAsync(
             receiver: assistantAgent,
             message: "Hey assistant, please help me to do some tasks.",
             maxRound: 10);

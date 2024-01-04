@@ -193,7 +193,7 @@ namespace AutoGen
         /// <summary>
         /// Print formatted message to console.
         /// </summary>
-        public static IAgent PrintFormatMessage(this IAgent agent)
+        public static IAgent RegisterPrintFormatMessageHook(this IAgent agent)
         {
             return agent.RegisterPostProcess(async (conversation, reply, ct) =>
             {
@@ -207,7 +207,7 @@ namespace AutoGen
         /// Register a post process hook to an agent. The hook will be called before the agent return the reply and after the agent generate the reply.
         /// This is useful when you want to customize arbitrary behavior before the agent return the reply.
         /// 
-        /// One example is <see cref="PrintFormatMessage(IAgent)"/>, which print the formatted message to console before the agent return the reply.
+        /// One example is <see cref="RegisterPrintFormatMessageHook(IAgent)"/>, which print the formatted message to console before the agent return the reply.
         /// </summary>
         /// <exception cref="Exception">throw when agent name is null.</exception>
         public static IAgent RegisterPostProcess(
