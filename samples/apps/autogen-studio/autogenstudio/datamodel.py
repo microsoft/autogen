@@ -155,7 +155,8 @@ class GroupChatFlowSpec:
 
     type: Literal["groupchat"]
     config: AgentConfig = field(default_factory=AgentConfig)
-    groupchat_config: Optional[GroupChatConfig] = field(default_factory=GroupChatConfig)
+    groupchat_config: Optional[GroupChatConfig] = field(
+        default_factory=GroupChatConfig)
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
@@ -193,7 +194,8 @@ class AgentWorkFlowConfig:
 
     def init_spec(self, spec: Dict):
         """initialize the agent spec"""
-
+        if not isinstance(spec, dict):
+            spec = spec.dict()
         if spec["type"] == "groupchat":
             return GroupChatFlowSpec(**spec)
         else:

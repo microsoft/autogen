@@ -83,6 +83,7 @@
       "description": "This workflow is used for general purpose tasks.",
       "sender": {
         "type": "userproxy",
+        "description": "A user proxy agent that executes code.",
         "config": {
           "name": "userproxy",
           "human_input_mode": "NEVER",
