@@ -2,10 +2,13 @@ import pytest
 import asyncio
 import json
 import autogen
-from conftest import skip_openai
 from autogen.math_utils import eval_math_responses
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
