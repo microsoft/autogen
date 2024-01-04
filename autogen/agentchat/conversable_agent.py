@@ -285,6 +285,19 @@ class ConversableAgent(Agent):
         else:
             return dict(message)
 
+    @staticmethod
+    def _normalize_name(name):
+        """LLMs sometimes ask for invalid functions"""
+        return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
+
+    @staticmethod
+    def _assert_valid_name(name):
+        """Ensure that configured names are valid"""
+        if not re.match(r"^[a-zA-Z0-9_-]+$", name):
+            raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
+        if len(name) > 64:
+            raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
+
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
@@ -328,9 +341,6 @@ class ConversableAgent(Agent):
             oai_message["role"] = "assistant"  # only messages with role 'assistant' can have a function call.
         self._oai_messages[conversation_id].append(oai_message)
         return True
-
-    def _normalize_name(self, name):
-        return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
     def send(
         self,
@@ -690,8 +700,17 @@ class ConversableAgent(Agent):
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
+
+        # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str):
             extracted_response = model_dump(extracted_response)
+        if isinstance(extracted_response, dict):
+            if extracted_response.get("function_call"):
+                extracted_response["function_call"]["name"] = self._normalize_name(
+                    extracted_response["function_call"]["name"]
+                )
+            for tool_call in extracted_response.get("tool_calls", []):
+                tool_call["name"] = self._normalize_name(tool_call["name"])
         return True, extracted_response
 
     async def a_generate_oai_reply(
@@ -1380,8 +1399,6 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
-        # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
-        func_name = self._normalize_name(func_name)
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
@@ -1437,8 +1454,6 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
-        # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
-        func_name = self._normalize_name(func_name)
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
@@ -1492,6 +1507,8 @@ class ConversableAgent(Agent):
         Args:
             function_map: a dictionary mapping function names to functions.
         """
+        for name in function_map.keys():
+            self._assert_valid_name(name)
         self._function_map.update(function_map)
 
     def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
@@ -1520,6 +1537,7 @@ class ConversableAgent(Agent):
                     func for func in self.llm_config["functions"] if func["name"] != func_sig
                 ]
         else:
+            self._assert_valid_name(func_sig["name"])
             if "functions" in self.llm_config.keys():
                 self.llm_config["functions"] = [
                     func for func in self.llm_config["functions"] if func.get("name") != func_sig["name"]
@@ -1555,6 +1573,7 @@ class ConversableAgent(Agent):
                     tool for tool in self.llm_config["tools"] if tool["function"]["name"] != tool_sig
                 ]
         else:
+            self._assert_valid_name(tool_sig["function"]["name"])
             if "tools" in self.llm_config.keys():
                 self.llm_config["tools"] = [
                     tool
