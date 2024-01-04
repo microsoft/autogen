@@ -212,18 +212,18 @@ def test_multi_tool_call():
             ],
             "content": inspect.cleandoc(
                 """
-            Tool call: echo
-            Id: tool_1
-            hello world
+                Tool call: echo
+                Id: tool_1
+                hello world
 
-            Tool call: echo
-            Id: tool_2
-            goodbye and thanks for all the fish
+                Tool call: echo
+                Id: tool_2
+                goodbye and thanks for all the fish
 
-            Tool call: multi_tool_call_echo
-            Id: tool_3
-            Error: Function multi_tool_call_echo not found.
-        """
+                Tool call: multi_tool_call_echo
+                Id: tool_3
+                Error: Function multi_tool_call_echo not found.
+                """
             ),
         }
     ]
