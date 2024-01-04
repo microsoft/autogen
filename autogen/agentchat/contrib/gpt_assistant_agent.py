@@ -45,7 +45,7 @@ class GPTAssistantAgent(ConversableAgent):
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
-            overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant.
+            overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             kwargs (dict): Additional configuration options for the agent.
                 - verbose (bool): If set to True, enables more detailed output from the assistant thread.
                 - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
@@ -59,9 +59,14 @@ class GPTAssistantAgent(ConversableAgent):
         if openai_assistant_id is None:
             # try to find assistant by name first
             candidate_assistants = retrieve_assistants_by_name(self._openai_client, name)
+            if len(candidate_assistants) > 0:
+                # Filter out candidates with the same name but different instructions, file IDs, and function names.
+                candidate_assistants = self.find_matching_assistant(
+                    candidate_assistants, instructions, llm_config.get("tools", []), llm_config.get("file_ids", [])
+                )
 
             if len(candidate_assistants) == 0:
-                logger.warning(f"assistant {name} does not exist, creating a new assistant")
+                logger.warning("No matching assistant found, creating a new assistant")
                 # create a new assistant
                 if instructions is None:
                     logger.warning(
@@ -76,11 +81,10 @@ class GPTAssistantAgent(ConversableAgent):
                     file_ids=llm_config.get("file_ids", []),
                 )
             else:
-                if len(candidate_assistants) > 1:
-                    logger.warning(
-                        f"Multiple assistants with name {name} found. Using the first assistant in the list. "
-                        f"Please specify the assistant ID in llm_config to use a specific assistant."
-                    )
+                logger.warning(
+                    "Matching assistant found, using the first matching assistant: %s",
+                    candidate_assistants[0].__dict__,
+                )
                 self._openai_assistant = candidate_assistants[0]
         else:
             # retrieve an existing assistant
@@ -203,7 +207,7 @@ class GPTAssistantAgent(ConversableAgent):
                                 new_messages.append(
                                     {
                                         "role": msg.role,
-                                        "content": f"Recieved file id={content.image_file.file_id}",
+                                        "content": f"Received file id={content.image_file.file_id}",
                                     }
                                 )
                 return new_messages
@@ -219,7 +223,7 @@ class GPTAssistantAgent(ConversableAgent):
                     }
 
                     logger.info(
-                        "Intermediate executing(%s, Sucess: %s) : %s",
+                        "Intermediate executing(%s, Success: %s) : %s",
                         tool_response["name"],
                         is_exec_success,
                         tool_response["content"],
@@ -368,3 +372,53 @@ class GPTAssistantAgent(ConversableAgent):
         """Delete the assistant from OAI assistant API"""
         logger.warning("Permanently deleting assistant...")
         self._openai_client.beta.assistants.delete(self.assistant_id)
+
+    def find_matching_assistant(self, candidate_assistants, instructions, tools, file_ids):
+        """
+        Find the matching assistant from a list of candidate assistants.
+        Filter out candidates with the same name but different instructions, file IDs, and function names.
+        TODO: implement accurate match based on assistant metadata fields.
+        """
+        matching_assistants = []
+
+        # Preprocess the required tools for faster comparison
+        required_tool_types = set(tool.get("type") for tool in tools)
+        required_function_names = set(
+            tool.get("function", {}).get("name")
+            for tool in tools
+            if tool.get("type") not in ["code_interpreter", "retrieval"]
+        )
+        required_file_ids = set(file_ids)  # Convert file_ids to a set for unordered comparison
+
+        for assistant in candidate_assistants:
+            # Check if instructions are similar
+            if instructions and instructions != getattr(assistant, "instructions", None):
+                logger.warning(
+                    "instructions not match, skip assistant(%s): %s",
+                    assistant.id,
+                    getattr(assistant, "instructions", None),
+                )
+                continue
+
+            # Preprocess the assistant's tools
+            assistant_tool_types = set(tool.type for tool in assistant.tools)
+            assistant_function_names = set(tool.function.name for tool in assistant.tools if hasattr(tool, "function"))
+            assistant_file_ids = set(getattr(assistant, "file_ids", []))  # Convert to set for comparison
+
+            # Check if the tool types, function names, and file IDs match
+            if required_tool_types != assistant_tool_types or required_function_names != assistant_function_names:
+                logger.warning(
+                    "tools not match, skip assistant(%s): tools %s, functions %s",
+                    assistant.id,
+                    assistant_tool_types,
+                    assistant_function_names,
+                )
+                continue
+            if required_file_ids != assistant_file_ids:
+                logger.warning("file_ids not match, skip assistant(%s): %s", assistant.id, assistant_file_ids)
+                continue
+
+            # Append assistant to matching list if all conditions are met
+            matching_assistants.append(assistant)
+
+        return matching_assistants
