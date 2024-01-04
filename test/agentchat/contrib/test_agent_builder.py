@@ -6,7 +6,7 @@ from autogen.agentchat.contrib.agent_builder import AgentBuilder
 from conftest import skip_openai
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+from test_assistant_agent import OAI_CONFIG_LIST  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
 
