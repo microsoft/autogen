@@ -327,11 +327,6 @@ class ConversableAgent(Agent):
             else:
                 return False
 
-        for tool_call in oai_message.get("tool_calls", []):
-            function = tool_call.get("function", {})
-            if function.get("name", False):
-                function["name"] = self._normalize_name(function["name"])
-
         if message.get("role") in ["function", "tool"]:
             oai_message["role"] = message.get("role")
         else:
