@@ -1,9 +1,12 @@
 # Installation
 
 ## Option 1: Install and Run AutoGen in Docker
-#### Step 1. Install [docker](https://www.docker.com/).
 
-Docker is recommended as a properly built docker image could provide isolated and consistent environment to run your code securely across platforms. Install docker following [this instruction](https://docs.docker.com/get-docker/).
+[Docker](https://www.docker.com/) is a containerization platform that simplifies the setup and execution of your code. A properly built docker image could provide isolated and consistent environment to run your code securely across platforms. One option of using AutoGen is to run it in a docker container. Follow the steps below to install and run AutoGen in a docker container.
+
+#### Step 1. Install Docker.
+
+Install docker following [this instruction](https://docs.docker.com/get-docker/).
 
 For Mac users, alternatively you may choose to install [colima](https://smallsharpsoftwaretools.com/tutorials/use-colima-to-run-docker-containers-on-macos/) to run docker containers, if there is any issues with starting the docker daemon.
 
