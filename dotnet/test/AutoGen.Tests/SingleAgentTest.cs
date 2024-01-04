@@ -88,7 +88,7 @@ namespace AutoGen.Tests
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
 
-            var llmConfig = new AssistantAgentConfig
+            var llmConfig = new ConversableAgentConfig
             {
                 Temperature = 0,
                 FunctionDefinitions = new[]
@@ -128,7 +128,7 @@ namespace AutoGen.Tests
         public async Task AssistantAgentFunctionCallSelfExecutionTestAsync()
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
-            var llmConfig = new AssistantAgentConfig
+            var llmConfig = new ConversableAgentConfig
             {
                 FunctionDefinitions = new[]
                 {

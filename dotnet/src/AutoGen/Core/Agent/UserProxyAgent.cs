@@ -1,38 +1,31 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // UserProxyAgent.cs
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
-    public class UserProxyAgent : IAgent
+    public class UserProxyAgent : ConversableAgent
     {
-        public string? Name { get; }
-
-        public IChatCompletionService? ChatCompletion => null;
-
-        public Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
+        public UserProxyAgent(
+            string name,
+            string systemMessage = "You are a helpful AI assistant",
+            ConversableAgentConfig? llmConfig = null,
+            Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+            HumanInputMode humanInputMode = HumanInputMode.NEVER,
+            IDictionary<string, Func<string, Task<string>>>? functionMap = null,
+            string? defaultReply = null)
+            : base(name: name,
+                  systemMessage: systemMessage,
+                  llmConfig: llmConfig,
+                  isTermination: isTermination,
+                  humanInputMode: humanInputMode,
+                  functionMap: functionMap,
+                  defaultReply: defaultReply)
         {
-            var prompt = "User: ";
-            // write prompt to console
-            System.Console.Write(prompt);
-
-            // read user input
-            var userInput = System.Console.ReadLine();
-            if (userInput != null)
-            {
-                var message = new Message(Role.Assistant, userInput, from: this.Name);
-                return Task.FromResult<Message>(message);
-            }
-            else
-            {
-                userInput = string.Empty;
-                var message = new Message(Role.Assistant, userInput, from: this.Name);
-                return Task.FromResult<Message>(message);
-            }
         }
     }
 }

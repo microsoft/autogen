@@ -21,7 +21,7 @@ public static class Example02_TwoAgent_MathChat
             systemMessage: @"You are a teacher that create pre-school math question for student and check answer.
 If the answer is correct, you terminate conversation by saying [TERMINATE].
 If the answer is wrong, you ask student to fix it.",
-            llmConfig: new AssistantAgentConfig
+            llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = llmConfig,
@@ -32,14 +32,14 @@ If the answer is wrong, you ask student to fix it.",
         var student = new AssistantAgent(
             name: "student",
             systemMessage: "You are a student that answer question from teacher",
-            llmConfig: new AssistantAgentConfig
+            llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = llmConfig,
             }).RegisterReply(async (msgs, ct) =>
             {
                 // if teacher terminate the conversation, then terminate the conversation by returning [GROUP_CHAT_TERMINATE]
-                if (msgs.Last().Content.Contains("TERMINATE"))
+                if (msgs.Last().Content?.Contains("TERMINATE") is true)
                 {
                     return new Message(Role.Assistant, GroupChatExtension.TERMINATE)
                     {

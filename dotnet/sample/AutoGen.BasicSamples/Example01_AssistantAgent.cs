@@ -5,7 +5,7 @@ using AutoGen;
 using FluentAssertions;
 using autogen = AutoGen.API;
 /// <summary>
-/// This example shows the basic usage of <see cref="AssistantAgent"/> class.
+/// This example shows the basic usage of <see cref="ConversableAgent"/> class.
 /// </summary>
 public static class Example01_AssistantAgent
 {
@@ -14,7 +14,7 @@ public static class Example01_AssistantAgent
         // get OpenAI Key and create config
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
         var llmConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
-        var config = new AssistantAgentConfig
+        var config = new ConversableAgentConfig
         {
             Temperature = 0,
             ConfigList = llmConfig,

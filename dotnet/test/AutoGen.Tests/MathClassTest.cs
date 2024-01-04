@@ -87,7 +87,7 @@ teacher, please create the next math question";
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
             var model = "gpt-35-turbo-16k";
             var config = new AzureOpenAIConfig(endPoint, model, key);
-            var llmConfig = new AssistantAgentConfig
+            var llmConfig = new ConversableAgentConfig
             {
                 ConfigList = new[]
                 {
@@ -124,7 +124,7 @@ If the answer is correct, you create another math question.
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
             var model = "gpt-35-turbo-16k";
             var config = new AzureOpenAIConfig(endPoint, model, key);
-            var llmConfig = new AssistantAgentConfig
+            var llmConfig = new ConversableAgentConfig
             {
                 FunctionDefinitions = new[]
                 {

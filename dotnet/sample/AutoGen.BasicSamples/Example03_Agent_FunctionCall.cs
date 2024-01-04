@@ -50,7 +50,7 @@ public partial class Example03_Agent_FunctionCall
         // AutoGen makes use of AutoGen.SourceGenerator to automatically generate FunctionDefinition and FunctionCallWrapper for you.
         // The FunctionDefinition will be created based on function signature and XML documentation.
         // The return type of type-safe function needs to be Task<string>. And to get the best performance, please try only use primitive types and arrays of primitive types as parameters.
-        var config = new AssistantAgentConfig
+        var config = new ConversableAgentConfig
         {
             Temperature = 0,
             ConfigList = llmConfig,

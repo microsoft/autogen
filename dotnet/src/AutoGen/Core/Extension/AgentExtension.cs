@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.Extension;
 
 namespace AutoGen
 {
@@ -167,6 +168,16 @@ namespace AutoGen
             return await groupChat.CallAsync(chatHistory, maxRound, ct);
         }
 
+        /// <summary>
+        /// Register a auto reply hook to an agent. The hook will be called before the agent generate the reply.
+        /// If the hook return a non-null reply, then that non-null reply will be returned directly without calling the agent.
+        /// Otherwise, the agent will generate the reply.
+        /// This is useful when you want to override the agent reply in some cases.
+        /// </summary>
+        /// <param name="agent"></param>
+        /// <param name="replyFunc"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception">throw when agent name is null.</exception>
         public static IAgent RegisterReply(
             this IAgent agent,
             Func<IEnumerable<Message>, CancellationToken, Task<Message?>> replyFunc)
@@ -179,6 +190,26 @@ namespace AutoGen
             return new AutoReplyAgent(agent, agent.Name, replyFunc);
         }
 
+        /// <summary>
+        /// Print formatted message to console.
+        /// </summary>
+        public static IAgent PrintFormatMessage(this IAgent agent)
+        {
+            return agent.RegisterPostProcess(async (conversation, reply, ct) =>
+            {
+                Console.WriteLine(reply.FormatMessage());
+
+                return reply;
+            });
+        }
+
+        /// <summary>
+        /// Register a post process hook to an agent. The hook will be called before the agent return the reply and after the agent generate the reply.
+        /// This is useful when you want to customize arbitrary behavior before the agent return the reply.
+        /// 
+        /// One example is <see cref="PrintFormatMessage(IAgent)"/>, which print the formatted message to console before the agent return the reply.
+        /// </summary>
+        /// <exception cref="Exception">throw when agent name is null.</exception>
         public static IAgent RegisterPostProcess(
             this IAgent agent,
             Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
@@ -191,6 +222,10 @@ namespace AutoGen
             return new PostProcessAgent(agent, agent.Name, postprocessFunc);
         }
 
+        /// <summary>
+        /// Register a pre process hook to an agent. The hook will be called before the agent generate the reply. This is useful when you want to modify the conversation history before the agent generate the reply.
+        /// </summary>
+        /// <exception cref="Exception">throw when agent name is null.</exception>
         public static IAgent RegisterPreProcess(
             this IAgent agent,
             Func<IEnumerable<Message>, CancellationToken, Task<IEnumerable<Message>>> preprocessFunc)

@@ -94,7 +94,7 @@ The output of the code is:
         // if the code is wrong, coder will fix the code.
 
         // create admin agent
-        var adminConfig = new AssistantAgentConfig
+        var adminConfig = new ConversableAgentConfig
         {
             Temperature = 0,
             ConfigList = gpt3Config,
@@ -115,14 +115,15 @@ For other situation, you either ask coder to write code or ask runner to run cod
             {
                 { nameof(CreateContextAndStep), instance.CreateContextAndStepWrapper },
                 { nameof(SummarizeCodeAndStep), instance.SummarizeCodeAndStepWrapper },
-            });
+            }).PrintFormatMessage();
 
         // create coder agent
-        var coderConfig = new AssistantAgentConfig
+        var coderConfig = new ConversableAgentConfig
         {
             Temperature = 0,
             ConfigList = gpt3Config,
         };
+
         IAgent coder = new AssistantAgent(
             name: "coder",
             systemMessage: @"You act as dotnet coder, you write dotnet script to resolve task. Once you finish writing code, ask runner to run the code for you.
@@ -146,10 +147,10 @@ If your code is incorrect, runner will tell you the error message. Fix the error
 Here's some externel information
 - The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.
 ",
-            llmConfig: coderConfig);
+            llmConfig: coderConfig).PrintFormatMessage();
 
         // create runner agent
-        var runnerConfig = new AssistantAgentConfig
+        var runnerConfig = new ConversableAgentConfig
         {
             Temperature = 0,
             ConfigList = gpt4Config,
@@ -175,7 +176,7 @@ Otherwise, run the code from coder.",
 
         var critic = new AssistantAgent(
             name: "runner",
-            llmConfig: new AssistantAgentConfig
+            llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gpt3Config,
@@ -259,7 +260,7 @@ user message:
                 };
 
                 return await dotnetRunner.SendAsync(chatHistory: chatHistory);
-            });
+            }).PrintFormatMessage();
 
         // create group chat
         var groupChat = new GroupChat(
@@ -294,19 +295,7 @@ Step: {currentStep}";
                 reply,
             };
             var maxRound = 20;
-            while (maxRound > 0)
-            {
-                chatHistoryForCurrentStep = await admin.SendAsync(groupChatManager, chatHistoryForCurrentStep, maxRound: 1);
-                var lastMessage = chatHistoryForCurrentStep.Last();
-
-                Console.WriteLine($"{lastMessage.FormatMessage()}");
-                if (lastMessage.IsGroupChatTerminateMessage())
-                {
-                    break;
-                }
-
-                maxRound--;
-            }
+            chatHistoryForCurrentStep = await admin.SendAsync(groupChatManager, chatHistoryForCurrentStep, maxRound: maxRound);
 
             var previousContextMessage = chatHistoryForCurrentStep.Last(m => m.Content?.Contains("[CODE_SOLUTION]") ?? false);
             previousContext = previousContextMessage.Content;

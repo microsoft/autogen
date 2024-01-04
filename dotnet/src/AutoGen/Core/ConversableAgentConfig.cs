@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// AssistantAgentConfig.cs
+// ConversableAgentConfig.cs
 
 using System.Collections.Generic;
 using Azure.AI.OpenAI;
 
 namespace AutoGen
 {
-    public class AssistantAgentConfig
+    public class ConversableAgentConfig
     {
         public IEnumerable<FunctionDefinition>? FunctionDefinitions { get; set; }
 

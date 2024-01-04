@@ -70,7 +70,7 @@ The image is generated from prompt {prompt}
         var dalleAgent = new AssistantAgent(
             name: "dalle",
             systemMessage: "You are a DALL-E agent that generate image from prompt, when conversation is terminated, return the most recent image url",
-            llmConfig: new AssistantAgentConfig
+            llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gpt35Config,
@@ -89,6 +89,11 @@ The image is generated from prompt {prompt}
                 {
                     var lastMessageWithImage = msgs.Last(msg => msg.Content?.Contains("IMAGE_GENERATION") is true);
                     var lastImageUrl = lastMessageWithImage.Content!.Split("\n").Last();
+                    Console.WriteLine($"download image from {lastImageUrl} to {imagePath}");
+                    var httpClient = new HttpClient();
+                    var imageBytes = await httpClient.GetByteArrayAsync(lastImageUrl);
+                    File.WriteAllBytes(imagePath, imageBytes);
+
                     var messageContent = $@"{GroupChatExtension.TERMINATE}
 
 {lastImageUrl}";
@@ -99,7 +104,7 @@ The image is generated from prompt {prompt}
                 }
 
                 return null;
-            });
+            }).PrintFormatMessage();
 
         var gpt4VAgent = new AssistantAgent(
             name: "gpt4v",
@@ -113,7 +118,7 @@ The image should satisfy the following conditions:
 - The cat should chase after the mouse
 - The mouse should be laughing at the cat
 ",
-            llmConfig: new AssistantAgentConfig
+            llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gpt4vConfig,
@@ -129,7 +134,8 @@ The image should satisfy the following conditions:
                 }
 
                 return null;
-            }).RegisterPreProcess(async (msgs, ct) =>
+            })
+            .RegisterPreProcess(async (msgs, ct) =>
             {
                 // add image url to message metadata so it can be recognized by GPT-4V
                 return msgs.Select(msg =>
@@ -149,39 +155,17 @@ The image should satisfy the following conditions:
                         return msg;
                     }
                 });
-            });
+            }).PrintFormatMessage();
 
         IEnumerable<Message> conversation = new List<Message>()
         {
             new Message(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
         };
         var maxRound = 10;
-        var dalleReply = await dalleAgent.SendAsync(chatHistory: conversation);
-        Console.WriteLine(dalleReply.FormatMessage());
-        conversation = conversation.Append(dalleReply);
-        while (maxRound-- > 0)
-        {
-            var critizeReply = await gpt4VAgent.SendAsync(chatHistory: conversation);
-            Console.WriteLine(critizeReply.FormatMessage());
-            conversation = conversation.Append(critizeReply);
-
-            dalleReply = await dalleAgent.SendAsync(chatHistory: conversation);
-            Console.WriteLine(dalleReply.FormatMessage());
-
-            if (dalleReply.IsGroupChatTerminateMessage())
-            {
-                var imageUrl = dalleReply.Content.Split("\n").Last();
-                var httpClient = new HttpClient();
-                var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
-                File.WriteAllBytes(imagePath, imageBytes);
-
-                break;
-            }
-            else
-            {
-                conversation = conversation.Append(dalleReply);
-            }
-        }
+        await gpt4VAgent.InitiateChatAsync(
+            receiver: dalleAgent,
+            message: "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse",
+            maxRound: maxRound);
 
         File.Exists(imagePath).Should().BeTrue();
     }
