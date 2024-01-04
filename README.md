@@ -79,7 +79,7 @@ Minimal dependencies are installed without extra options. You can install extra 
 pip install "pyautogen[blendsearch]"
 ``` -->
 
-Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation).
+Find more options in [Installation](https://microsoft.github.io/autogen/docs/Installation#option-2-install-autogen-locally-using-virtual-environment).
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
