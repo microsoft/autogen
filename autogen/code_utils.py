@@ -223,6 +223,7 @@ def _cmd(lang):
         return "powershell"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
+
 def is_docker_running():
     """Check if docker is running.
 
@@ -238,6 +239,7 @@ def is_docker_running():
     except docker.errors.DockerException:
         return False
 
+
 def in_docker_container():
     """Check if the code is running in a docker container.
 
@@ -245,6 +247,7 @@ def in_docker_container():
         bool: True if the code is running in a docker container; False otherwise.
     """
     return os.path.exists("/.dockerenv")
+
 
 def execute_code(
     code: Optional[str] = None,
@@ -367,7 +370,9 @@ def execute_code(
 
     # create a docker client
     if use_docker and not docker_running:
-        raise RuntimeError("Docker package is missing or docker is not running. Please make sure docker is running or set use_docker=False.")
+        raise RuntimeError(
+            "Docker package is missing or docker is not running. Please make sure docker is running or set use_docker=False."
+        )
 
     client = docker.from_env()
 
