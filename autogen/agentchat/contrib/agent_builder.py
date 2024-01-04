@@ -116,7 +116,7 @@ output after executing the code) and provide a corrected answer or code.
 
     def __init__(
         self,
-        config_path_or_env: Optional[str] = "OAI_CONFIG_LIST",
+        config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
         config_file_location: Optional[str] = "",
         builder_model: Optional[str] = "gpt-4",
         agent_model: Optional[str] = "gpt-4",
@@ -127,7 +127,7 @@ output after executing the code) and provide a corrected answer or code.
     ):
         """
         Args:
-            config_path_or_env: path or environment of the OpenAI api configs.
+            config_file_or_env: path or environment of the OpenAI api configs.
             builder_model: specify a model as the backbone of build manager.
             agent_model: specify a model as the backbone of participant agents.
             host: endpoint host.
@@ -138,7 +138,7 @@ output after executing the code) and provide a corrected answer or code.
         self.host = host
         self.builder_model = builder_model
         self.agent_model = agent_model
-        self.config_path_or_env = config_path_or_env
+        self.config_file_or_env = config_file_or_env
         self.config_file_location = config_file_location
         self.endpoint_building_timeout = endpoint_building_timeout
 
@@ -202,7 +202,7 @@ output after executing the code) and provide a corrected answer or code.
             agent: a set-up agent.
         """
         config_list = autogen.config_list_from_json(
-            self.config_path_or_env,
+            self.config_file_or_env,
             file_location=self.config_file_location,
             filter_dict={"model": [model_name_or_hf_repo]},
         )
@@ -357,7 +357,7 @@ output after executing the code) and provide a corrected answer or code.
         self.building_task = building_task
 
         config_list = autogen.config_list_from_json(
-            self.config_path_or_env,
+            self.config_file_or_env,
             file_location=self.config_file_location,
             filter_dict={"model": [self.builder_model]},
         )
@@ -496,7 +496,7 @@ output after executing the code) and provide a corrected answer or code.
         agent_configs = []
 
         config_list = autogen.config_list_from_json(
-            self.config_path_or_env,
+            self.config_file_or_env,
             file_location=self.config_file_location,
             filter_dict={"model": [self.builder_model]},
         )
