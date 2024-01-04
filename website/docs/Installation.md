@@ -12,7 +12,7 @@ For Mac users, alternatively you may choose to install [colima](https://smallsha
 
 #### Step 2. Build a docker image
 
-AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to built docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfiles named `Dockerfile.base`:
+AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to build docker images. Use the following command line to build a docker image named `autogen_img` (or some other name you like) one of the provided dockerfiles named `Dockerfile.base`:
 ```
 docker build -f samples/dockers/Dockerfile.base -t autogen_img https://github.com/microsoft/autogen.git
 ```
@@ -39,7 +39,7 @@ export OPENAI_API_KEY="sk-xxxxxx"
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
 ```
 
-Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full`)as below:
+Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full`) as below:
 
 ```
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_full_img:latest autogenra ui --host 0.0.0.0
