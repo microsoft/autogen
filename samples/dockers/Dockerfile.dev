@@ -14,7 +14,7 @@ RUN cd /home/autogen-dev && git clone https://github.com/microsoft/autogen.git
 WORKDIR /home/autogen-dev/autogen
 
 # Install autogen in editable mode (Note: extra components can be installed if needed)
-RUN sudo pip install -e .[test,teachable,lmm,graphs]
+RUN sudo pip install -e .[test,teachable,lmm,retrievechat,mathchat,blendsearch]
 
 # Install precommit hooks
 RUN pre-commit install
