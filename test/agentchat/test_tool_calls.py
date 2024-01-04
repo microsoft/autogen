@@ -20,7 +20,7 @@ else:
     skip = False or skip_openai
 
 
-@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed or requested to skip")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
         KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
@@ -77,7 +77,7 @@ def test_eval_math_responses():
 
 @pytest.mark.skipif(
     skip_openai or not TOOL_ENABLED or not sys.version.startswith("3.10"),
-    reason="do not run if openai is <1.1.0 or py!=3.10",
+    reason="do not run if openai is <1.1.0 or py!=3.10 or requested to skip",
 )
 def test_update_tool():
     config_list_gpt4 = autogen.config_list_from_json(
@@ -135,7 +135,7 @@ def test_update_tool():
     assert "greet_user" not in messages2
 
 
-@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.skipif(not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
