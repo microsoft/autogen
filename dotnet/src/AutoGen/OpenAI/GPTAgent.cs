@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -137,25 +138,18 @@ namespace AutoGen
                     if (message.Role == Role.System)
                     {
                         // add as system message
-                        var content = message.Content ?? string.Empty;
-                        yield return new ChatRequestSystemMessage(content);
-                    }
-                    else if (message.Value is ChatRequestMessage msg)
-                    {
-                        yield return msg;
+                        yield return message.ToChatRequestSystemMessage();
                     }
                     else
                     {
                         // add as user message
-                        var content = message.Content ?? string.Empty;
-                        yield return new ChatRequestUserMessage(content);
+                        yield return message.ToChatRequestUserMessage();
                     }
                 }
                 else if (message.From != this.Name)
                 {
                     // add as user message
-                    var content = message.Content ?? string.Empty;
-                    yield return new ChatRequestUserMessage(content);
+                    yield return message.ToChatRequestUserMessage();
                 }
                 else
                 {
@@ -168,20 +162,16 @@ namespace AutoGen
 
                         i++;
 
-                        yield return chatMessage;
+                        yield return message.ToChatRequestAssistantMessage();
 
                         var functionResultMessage = new ChatRequestFunctionMessage(functionName, message.Content);
 
-                        yield return functionResultMessage;
+                        yield return message.ToChatRequestFunctionMessage();
                         i++;
                     }
                     else
                     {
-                        // add suffix
-                        var content = message.Content ?? string.Empty;
-                        var chatMessage = new ChatRequestAssistantMessage(content);
-
-                        yield return chatMessage;
+                        yield return message.ToChatRequestAssistantMessage();
                     }
                 }
             }

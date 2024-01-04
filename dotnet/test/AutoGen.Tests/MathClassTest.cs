@@ -57,7 +57,7 @@ teacher, please create the next math question";
         }
 
 
-        [ApiKeyFact("AZURE_OPENAI_API_KEY")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
         public async Task AssistantAgentMathChatTestAsync()
         {
             var teacher = await CreateTeacherAssistantAgentAsync();

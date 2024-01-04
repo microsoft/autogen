@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AutoGen.OpenAI.Extension;
+using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
 
@@ -11,33 +13,80 @@ namespace AutoGen.Tests
 {
     public partial class SingleAgentTest
     {
-        [ApiKeyFact("OPENAI_API_KEY")]
-        public async Task GPTAgentTestAsync()
+        private ILLMConfig CreateAzureOpenAIGPT35TurboConfig()
+        {
+            var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
+            var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
+            return new AzureOpenAIConfig(endpoint, "gpt-35-turbo-16k", key);
+        }
+
+        private ILLMConfig CreateOpenAIGPT4VisionConfig()
         {
             var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
-            var config = new OpenAIConfig(key, "gpt-3.5-turbo");
+            return new OpenAIConfig(key, "gpt-4-vision-preview");
+        }
+
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        public async Task GPTAgentTestAsync()
+        {
+            var config = this.CreateAzureOpenAIGPT35TurboConfig();
 
             var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0);
 
             await UpperCaseTest(agent);
         }
 
-        [ApiKeyFact("OPENAI_API_KEY")]
+        [ApiKeyFact("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        public async Task GPTAgentVisionTestAsync()
+        {
+            var visionConfig = this.CreateOpenAIGPT4VisionConfig();
+            var visionAgent = new GPTAgent(
+                name: "gpt",
+                systemMessage: "You are a helpful AI assistant",
+                config: visionConfig,
+                temperature: 0);
+
+            var gpt3Config = this.CreateAzureOpenAIGPT35TurboConfig();
+            var gpt3Agent = new GPTAgent(
+                name: "gpt3",
+                systemMessage: "You are a helpful AI assistant, return highest label from conversation",
+                config: gpt3Config,
+                temperature: 0,
+                functions: new[] { this.GetHighestLabelFunction },
+                functionMap: new Dictionary<string, Func<string, Task<string>>>
+                {
+                    { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
+                });
+
+
+            var oaiMessage = new ChatRequestUserMessage(
+                new ChatMessageTextContentItem("which label has the highest inference cost"),
+                new ChatMessageImageContentItem(new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png")));
+
+            var message = oaiMessage.ToMessage();
+            var response = await visionAgent.SendAsync(message);
+            response.From.Should().Be(visionAgent.Name);
+
+            var labelResponse = await gpt3Agent.SendAsync(response);
+            labelResponse.From.Should().Be(gpt3Agent.Name);
+            labelResponse.Content.Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
+            labelResponse.FunctionName.Should().Be(nameof(GetHighestLabel));
+        }
+
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
         public async Task GPTFunctionCallAgentTestAsync()
         {
-            var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
-            var config = new OpenAIConfig(key, "gpt-3.5-turbo");
+            var config = this.CreateAzureOpenAIGPT35TurboConfig();
             var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
             await UpperCaseTest(agentWithFunction);
         }
 
-        [ApiKeyFact("OPENAI_API_KEY")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
         public async Task AssistantAgentFunctionCallTestAsync()
         {
-            var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
-            var config = new OpenAIConfig(key, "gpt-3.5-turbo");
+            var config = this.CreateAzureOpenAIGPT35TurboConfig();
 
             var llmConfig = new AssistantAgentConfig
             {
@@ -75,11 +124,10 @@ namespace AutoGen.Tests
             reply.From.Should().Be(assistantAgent.Name);
         }
 
-        [ApiKeyFact("OPENAI_API_KEY")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
         public async Task AssistantAgentFunctionCallSelfExecutionTestAsync()
         {
-            var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
-            var config = new OpenAIConfig(key, "gpt-3.5-turbo");
+            var config = this.CreateAzureOpenAIGPT35TurboConfig();
             var llmConfig = new AssistantAgentConfig
             {
                 FunctionDefinitions = new[]
@@ -103,11 +151,10 @@ namespace AutoGen.Tests
             await UpperCaseTest(assistantAgent);
         }
 
-        [ApiKeyFact("OPENAI_API_KEY")]
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
         public async Task GPTAgentFunctionCallSelfExecutionTestAsync()
         {
-            var key = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new ArgumentException("OPENAI_API_KEY is not set");
-            var config = new OpenAIConfig(key, "gpt-3.5-turbo");
+            var config = this.CreateAzureOpenAIGPT35TurboConfig();
             var agent = new GPTAgent(
                 name: "gpt",
                 systemMessage: "You are a helpful AI assistant",
@@ -130,6 +177,17 @@ namespace AutoGen.Tests
         public async Task<string> EchoAsync(string message)
         {
             return $"[ECHO] {message}";
+        }
+
+        /// <summary>
+        /// return the label name with hightest inference cost
+        /// </summary>
+        /// <param name="labelName"></param>
+        /// <returns></returns>
+        [FunctionAttribution]
+        public async Task<string> GetHighestLabel(string labelName, string color)
+        {
+            return $"[HIGHEST_LABEL] {labelName} {color}";
         }
 
         private async Task EchoFunctionCallTestAsync(IAgent agent)

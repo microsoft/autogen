@@ -41,6 +41,6 @@ namespace AutoGen
         /// </summary>
         public object? Value { get; set; }
 
-        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
+        public IList<KeyValuePair<string, object>> Metadata { get; set; } = new List<KeyValuePair<string, object>>();
     }
 }

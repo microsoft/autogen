@@ -2,6 +2,7 @@
 // OpenAIFact.cs
 
 using System;
+using System.Linq;
 
 namespace AutoGen.Tests
 {
@@ -10,16 +11,16 @@ namespace AutoGen.Tests
     /// </summary>
     public sealed class ApiKeyFactAttribute : EnvironmentSpecificFactAttribute
     {
-        private readonly string _envVariableName;
-        public ApiKeyFactAttribute(string envVariableName = "OPENAI_API_KEY") : base($"{envVariableName} is not found in env")
+        private readonly string[] _envVariableNames;
+        public ApiKeyFactAttribute(params string[] envVariableNames) : base($"{envVariableNames} is not found in env")
         {
-            _envVariableName = envVariableName;
+            _envVariableNames = envVariableNames;
         }
 
         /// <inheritdoc />
         protected override bool IsEnvironmentSupported()
         {
-            return Environment.GetEnvironmentVariables().Contains(_envVariableName);
+            return _envVariableNames.All(Environment.GetEnvironmentVariables().Contains);
         }
     }
 }
