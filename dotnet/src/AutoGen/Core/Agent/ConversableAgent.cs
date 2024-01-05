@@ -125,7 +125,7 @@ namespace AutoGen
             // first in, last out
 
             // process default reply
-            IAgent agent = new DefaultReplyAgent(this.Name!, this.defaultReply);
+            IAgent agent = new DefaultReplyAgent(this.Name!, this.defaultReply ?? "Default reply is not set. Please pass a default reply to assistant agent");
 
             // process inner agent
             agent = agent.RegisterReply(async (messages, cancellationToken) =>
@@ -207,9 +207,9 @@ namespace AutoGen
             });
 
             // process self execute
-            agent = new PostProcessAgent(agent, agent.Name!, async (messages, currentMessage, cancellationToken) =>
+            agent = agent.RegisterPostProcess(async (messages, currentMessage, cancellationToken) =>
             {
-                if (this.functionMap != null && currentMessage.FunctionName is string functionName && currentMessage.FunctionArguments is string functionArguments && this.functionMap.ContainsKey(functionName))
+                if (this.functionMap != null && currentMessage.FunctionName is string functionName && currentMessage.FunctionArguments is string functionArguments)
                 {
                     return await this.ExecuteFunctionCallAsync(currentMessage, cancellationToken);
                 }

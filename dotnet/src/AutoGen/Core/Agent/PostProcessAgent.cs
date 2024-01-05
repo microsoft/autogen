@@ -32,6 +32,7 @@ namespace AutoGen
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> conversation, CancellationToken ct = default)
         {
             var reply = await InnerAgent.GenerateReplyAsync(conversation, ct);
+            reply.From = Name;
             return await PostprocessFunc(conversation, reply, ct);
         }
     }

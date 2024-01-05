@@ -2,7 +2,6 @@
 // Example05_Dalle_And_GPT4V.cs
 
 using AutoGen;
-using AutoGen.Extension;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
@@ -161,7 +160,7 @@ The image should satisfy the following conditions:
         {
             new Message(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
         };
-        var maxRound = 10;
+        var maxRound = 20;
         await gpt4VAgent.InitiateChatAsync(
             receiver: dalleAgent,
             message: "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse",

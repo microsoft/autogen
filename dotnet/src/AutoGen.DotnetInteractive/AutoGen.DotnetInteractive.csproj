@@ -31,4 +31,9 @@
 		<PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
 	</ItemGroup>
 
+
+	<ItemGroup>
+	  <ProjectReference Include="..\AutoGen\AutoGen.csproj" />
+	</ItemGroup>
+
 </Project>

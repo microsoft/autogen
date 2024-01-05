@@ -1,8 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Get_MLNET_PR.cs
 
+using System.Text.Json;
 using AutoGen;
-using AutoGen.Extension;
+using AutoGen.DotnetInteractive.Extension;
 using FluentAssertions;
 using autogen = AutoGen.API;
 using GroupChat = AutoGen.GroupChat;
@@ -15,40 +16,76 @@ public partial class Example04_Dynamic_GroupChat_Get_MLNET_PR
     /// <summary>
     /// create context for the current step
     /// </summary>
-    /// <param name="previousCodeContext">previous csharp code context.</param>
+    /// <param name="previousCodeBlock">previous csharp code block.</param>
     /// <param name="step">current step.</param>
     /// <returns></returns>
     [FunctionAttribute]
-    public async Task<string> CreateContextAndStep(string previousCodeContext, string step)
+    public async Task<string> CreateContextAndStep(string previousCodeBlock, string step)
     {
         return $@"// IGNORE THIS LINE [CONTEXT]
-Here's the previous code context:
-{previousCodeContext}
+Please resolve the current step based on context
+
+Here's the previous code block:
+{previousCodeBlock}
 
 Here's the current step:
-{step}
-
-Please resolve the current step based on context";
+{step}";
     }
 
     /// <summary>
-    /// summarize the current step and code solution and output.
+    /// Get code block and output from conversation.
     /// </summary>
-    /// <param name="code">code solution</param>
-    /// <param name="step">step</param>
-    /// <param name="output">code output</param>
+    /// <param name="codeBlock">code block</param>
+    /// <param name="codeOutput">code output</param>
     [FunctionAttribute]
-    public async Task<string> SummarizeCodeAndStep(string code, string step, string output)
+    public async Task<string> SummarizeCodeAndStep(string codeBlock, string codeOutput)
     {
         return $@"
 // IGNORE THIS LINE [CODE_SOLUTION]
 The existing code solution is:
-{code}
+{codeBlock}
 
 The output of the code is:
-{output}
+{codeOutput}
 
 {GroupChatExtension.TERMINATE}";
+    }
+
+    struct CodeReviewResult
+    {
+        public bool HasMultipleCodeBlocks { get; set; }
+        public bool HasNugetPackages { get; set; }
+        public bool IsTopLevelStatement { get; set; }
+        public bool IsDotnetCodeBlock { get; set; }
+        public bool IsUsingDeclartionHasBrace { get; set; }
+    }
+
+    /// <summary>
+    /// review code block
+    /// </summary>
+    /// <param name="hasMultipleCodeBlocks">true if there're multipe csharp code blocks</param>
+    /// <param name="hasNugetPackages">true if there's nuget package to install</param>
+    /// <param name="isTopLevelStatement">true if the code is in top level statement</param>
+    /// <param name="isUsingDeclartionHasBrace">true if the using declarition has brace. </param>
+    /// <param name="isDotnetCodeBlock">true if the code block is csharp code block</param>
+    [Function]
+    public async Task<string> ReviewCodeBlock(
+        bool hasMultipleCodeBlocks,
+        bool hasNugetPackages,
+        bool isTopLevelStatement,
+        bool isUsingDeclartionHasBrace,
+        bool isDotnetCodeBlock)
+    {
+        var obj = new CodeReviewResult
+        {
+            HasMultipleCodeBlocks = hasMultipleCodeBlocks,
+            HasNugetPackages = hasNugetPackages,
+            IsTopLevelStatement = isTopLevelStatement,
+            IsDotnetCodeBlock = isDotnetCodeBlock,
+            IsUsingDeclartionHasBrace = isUsingDeclartionHasBrace,
+        };
+
+        return JsonSerializer.Serialize(obj);
     }
 
     public static async Task RunAsync()
@@ -104,9 +141,11 @@ The output of the code is:
                 instance.SummarizeCodeAndStepFunction,
             },
         };
+
         var admin = new AssistantAgent(
             name: "admin",
             systemMessage: @"You are admin, when conversation starts, you give the context and current step to resolve.
+When coder write the code, you ask runner to run the code and collect the output.
 When runner successfully run the code from coder, you summarize the code and step.
 For other situation, you either ask coder to write code or ask runner to run code again.
 ",
@@ -115,26 +154,35 @@ For other situation, you either ask coder to write code or ask runner to run cod
             {
                 { nameof(CreateContextAndStep), instance.CreateContextAndStepWrapper },
                 { nameof(SummarizeCodeAndStep), instance.SummarizeCodeAndStepWrapper },
-            }).RegisterPrintFormatMessageHook();
+            })
+            .RegisterReply(async (msgs, _) =>
+            {
+                if (msgs.Last()?.From == "coder")
+                {
+                    return new Message(Role.Assistant, "runner, run code please");
+                }
+
+                return null;
+            })
+            .RegisterPrintFormatMessageHook();
 
         // create coder agent
         var coderConfig = new ConversableAgentConfig
         {
-            Temperature = 0,
+            Temperature = 0.4f,
             ConfigList = gpt3Config,
         };
 
-        IAgent coder = new AssistantAgent(
+        IAgent dotnetCoder = new AssistantAgent(
             name: "coder",
-            systemMessage: @"You act as dotnet coder, you write dotnet script to resolve task. Once you finish writing code, ask runner to run the code for you.
+            systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
 Here're some rules to follow on writing dotnet code:
 - put code between ```csharp and ```
-- Use top-level statements, remove main function, just write code, like what python does.
-- Remove all `using` statement. Runner can't handle it.
+- Add brace to using declaration when creating disposable object. e.g `using (var httpClient = new HttpClient())`
 - Try to use `var` instead of explicit type.
-- Try avoid using external library.
-- Don't use external data source, like file, database, etc. Create a dummy dataset if you need.
+- Try avoid using external library, use .NET Core library instead.
+- Use top level statement to write code.
 - Always print out the result to console. Don't write code that doesn't print out anything.
 
 If you need to install nuget packages, put nuget packages in the following format:
@@ -147,43 +195,138 @@ If your code is incorrect, runner will tell you the error message. Fix the error
 Here's some externel information
 - The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.
 ",
-            llmConfig: coderConfig).RegisterPrintFormatMessageHook();
+            llmConfig: coderConfig)
+            .RegisterPrintFormatMessageHook();
 
-        // create runner agent
-        var runnerConfig = new ConversableAgentConfig
-        {
-            Temperature = 0,
-            ConfigList = gpt4Config,
-            FunctionDefinitions = new[]
-            {
-                dotnetInteractiveFunctions.InstallNugetPackagesFunction,
-                dotnetInteractiveFunctions.RunCodeFunction,
-            },
-        };
-
-        IAgent dotnetRunner = new AssistantAgent(
-            name: "runner",
-            systemMessage: @"You are dotnet code runner, you run dotnet code from coder.
-If the message contains nuget package block. Install nuget package first.
-Otherwise, run the code from coder.",
-            llmConfig: runnerConfig,
-            defaultReply: "NO_CODE_AVAILABLE",
-            functionMap: new Dictionary<string, Func<string, Task<string>>>()
-            {
-                { dotnetInteractiveFunctions.InstallNugetPackagesFunction.Name, dotnetInteractiveFunctions.InstallNugetPackagesWrapper },
-                { dotnetInteractiveFunctions.RunCodeFunction.Name, dotnetInteractiveFunctions.RunCodeWrapper },
-            });
-
-        var critic = new AssistantAgent(
-            name: "runner",
+        var codeReviewAgent = new AssistantAgent(
+            name: "code_reviewer",
+            systemMessage: @"You are a strict reviewer who reviews code block from coder's reply",
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gpt3Config,
-            });
+                FunctionDefinitions = new[]
+                {
+                    instance.ReviewCodeBlockFunction,
+                },
+            },
+            functionMap: new Dictionary<string, Func<string, Task<string>>>()
+            {
+                { nameof(ReviewCodeBlock), instance.ReviewCodeBlockWrapper },
+            })
+            .RegisterPrintFormatMessageHook();
 
-        var runner = critic.
-            RegisterReply(async (msgs, ct) =>
+        var nugetAgent = new AssistantAgent(
+           name: "nuget",
+           systemMessage: @"Install nuget packages if there's any, otherwise say [NO_NUGET_PACKAGE]",
+           llmConfig: new ConversableAgentConfig
+           {
+               Temperature = 0,
+               ConfigList = gpt3Config,
+               FunctionDefinitions = new[]
+               {
+                    dotnetInteractiveFunctions.InstallNugetPackagesFunction,
+               },
+           },
+           functionMap: new Dictionary<string, Func<string, Task<string>>>()
+           {
+                { dotnetInteractiveFunctions.InstallNugetPackagesFunction.Name, dotnetInteractiveFunctions.InstallNugetPackagesWrapper },
+           })
+           .RegisterPrintFormatMessageHook();
+
+        var coder = dotnetCoder.RegisterPostProcess(async (conversation, reply, ct) =>
+        {
+            // review code block
+            while (true)
+            {
+                var reviewResult = await codeReviewAgent.SendAsync(reply);
+                var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(reviewResult.Content!);
+                if (reviewResultObj.HasMultipleCodeBlocks)
+                {
+                    var fixCodeBlockPrompt = @"There're multiple code blocks, please combine them into one code block";
+                    var fixCodeBlockMessage = new Message(Role.System, fixCodeBlockPrompt);
+                    var chatHistory = new[]
+                    {
+                        fixCodeBlockMessage,
+                        reply,
+                    };
+                    reply = await dotnetCoder.SendAsync(chatHistory: chatHistory);
+                    continue;
+                }
+
+                if (reviewResultObj.IsUsingDeclartionHasBrace is false)
+                {
+                    var fixCodeBlockPrompt = @"The using declation before disposable object doesn't have brace. Please either adding brace or remove the using declarition";
+                    var fixCodeBlockMessage = new Message(Role.System, fixCodeBlockPrompt);
+                    var chatHistory = new[]
+                    {
+                        fixCodeBlockMessage,
+                        reply,
+                    };
+                    reply = await dotnetCoder.SendAsync(chatHistory: chatHistory);
+                    continue;
+                }
+
+                if (reviewResultObj.IsDotnetCodeBlock is false)
+                {
+                    var fixCodeBlockPrompt = @"The code block is not csharp code block, please write dotnet code only";
+                    var fixCodeBlockMessage = new Message(Role.System, fixCodeBlockPrompt);
+                    var chatHistory = new[]
+                    {
+                        fixCodeBlockMessage,
+                        reply,
+                    };
+                    reply = await dotnetCoder.SendAsync(chatHistory: chatHistory);
+                    continue;
+                }
+
+                if (reviewResultObj.IsTopLevelStatement is false)
+                {
+                    var fixCodeBlockPrompt = @"The code is not top level statement, please rewrite your dotnet code using top level statement";
+                    var fixCodeBlockMessage = new Message(Role.System, fixCodeBlockPrompt);
+                    var chatHistory = new[]
+                    {
+                        fixCodeBlockMessage,
+                        reply,
+                    };
+                    reply = await dotnetCoder.SendAsync(chatHistory: chatHistory);
+                    continue;
+                }
+
+                if (reviewResultObj.HasNugetPackages)
+                {
+                    var installNugetPrompt = @"There're nuget packages to install, please install them";
+                    var installNugetMessage = new Message(Role.System, installNugetPrompt);
+                    var chatHistory = new[]
+                    {
+                        installNugetMessage,
+                        reply,
+                    };
+                    await nugetAgent.SendAsync(chatHistory: chatHistory);
+                }
+
+                return reply;
+            }
+        });
+
+        var codeBlockRunnerAgent = new AssistantAgent(
+            name: "code_block_runner")
+            .RegisterReply(async (msgs, _) =>
+            {
+                return new Message(Role.Assistant, "No code block available");
+            })
+            .RegisterDotnetCodeBlockExectionHook(interactiveService: service);
+
+
+        var runner = new AssistantAgent(
+            name: "runner",
+            defaultReply: "No code available, coder , write code please",
+            llmConfig: new ConversableAgentConfig
+            {
+                Temperature = 0,
+                ConfigList = gpt3Config,
+            })
+            .RegisterReply(async (msgs, ct) =>
             {
                 // retrieve code from the last message
                 // if the last message is not from coder, ask coder to write code
@@ -193,74 +336,23 @@ Otherwise, run the code from coder.",
                     return new Message(Role.Assistant, "coder, write code please");
                 }
 
-                // if last message contains nuget package, install nuget package
-                var prompt = @$"Your task is to check if there's any nuget block in given message. The nuget block is in the following format:
-```nuget
-// nuget package name
-```
-
-if there's no nuget block, say [NO_NUGET_BLOCK]
-Otherwise, return the content of nuget block.
-
-### message ###
-{lastMessage.Content}
-### end ###";
+                var prompt = "run code block please";
                 var chatHistory = new[]
                 {
-                    new Message(Role.User, prompt),
-                };
-
-                var reply = await critic.SendAsync(chatHistory: chatHistory);
-                if (reply.Content?.Contains("NO_NUGET_BLOCK") is false)
-                {
-                    Console.WriteLine($"install nuget package: {reply.Content}");
-                    var installNugetHistory = new[]
-                    {
-                        new Message(Role.System, "install nuget package"),
-                        reply,
-                    };
-                    await dotnetRunner.SendAsync(chatHistory: installNugetHistory);
-                }
-
-                prompt = $@"You are a helpful AI assistant.
-Your task is to retrieve csharp code from user message.
-
-If there's no code block, say [NO_CODE_BLOCK]
-
-If there're multiple code blocks, merge them into one code block. Carefully consider the order of the code blocks before merging them.
-Put the merged code block between ```csharp and ```
-
-user message:
-{lastMessage.Content}";
-                chatHistory = new[]
-                {
                     new Message(Role.System, prompt),
+                    lastMessage,
                 };
 
-                reply = await critic.SendAsync(chatHistory: chatHistory);
-                if (reply.Content?.Contains("NO_CODE_BLOCK") is true)
+                var result = await codeBlockRunnerAgent.SendAsync(chatHistory: chatHistory);
+
+                if (result.Content is { Length: > 400 })
                 {
-                    return new Message(Role.Assistant, "coder, write code please");
+                    result.Content = result.Content.Substring(0, 200) + " (...too long to present)";
                 }
 
-                // check if the code is in top level statement
-                if (reply.Content?.Contains("Main") is true)
-                {
-                    return new Message(Role.Assistant, "coder, write code using top level statement, remove main function");
-                }
-
-                // Good to go
-                // run the code
-                prompt = $@"Run code below
-
-{reply.Content}";
-                chatHistory = new[]
-                {
-                    new Message(Role.User, prompt),
-                };
-
-                return await dotnetRunner.SendAsync(chatHistory: chatHistory);
-            }).RegisterPrintFormatMessageHook();
+                return result;
+            })
+            .RegisterPrintFormatMessageHook();
 
         // create group chat
         var groupChat = new GroupChat(
@@ -274,16 +366,12 @@ user message:
         // start group chat
         var groupChatManager = new GroupChatManager(groupChat);
         var previousContext = string.Empty;
-        var currentStep = string.Empty;
-
         foreach (var step in steps)
         {
-            currentStep = step;
-
             var createContextForCurrentStepPrompt = @$"Create context for current step
 previous context: {previousContext}
 
-Step: {currentStep}";
+Step: {step}";
 
             var history = new[]
             {
@@ -294,9 +382,7 @@ Step: {currentStep}";
             {
                 reply,
             };
-            var maxRound = 20;
-            chatHistoryForCurrentStep = await admin.SendAsync(groupChatManager, chatHistoryForCurrentStep, maxRound: maxRound);
-
+            chatHistoryForCurrentStep = await admin.SendAsync(groupChatManager, chatHistoryForCurrentStep, maxRound: 20);
             var previousContextMessage = chatHistoryForCurrentStep.Last(m => m.Content?.Contains("[CODE_SOLUTION]") ?? false);
             previousContext = previousContextMessage.Content;
         }
