@@ -16,6 +16,7 @@ try:
 except ImportError:
     docker = None
 
+SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
 FAST_MODEL = "gpt-3.5-turbo"
 # Regular expression for finding a code block
@@ -249,12 +250,51 @@ def in_docker_container():
     return os.path.exists("/.dockerenv")
 
 
+def decide_use_docker(use_docker) -> bool:
+    if use_docker is None:
+        env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
+
+        truthy_values = {"1", "true", "yes", "t"}
+        falsy_values = {"0", "false", "no", "f"}
+
+        # Convert the value to lowercase for case-insensitive comparison
+        env_var_use_docker_lower = env_var_use_docker.lower()
+
+        # Determine the boolean value based on the environment variable
+        if env_var_use_docker_lower in truthy_values:
+            use_docker = True
+        elif env_var_use_docker_lower in falsy_values:
+            use_docker = False
+        elif env_var_use_docker_lower == "none":  # Special case for 'None' as a string
+            use_docker = None
+        else:
+            # Raise an error for any unrecognized value
+            raise ValueError(
+                f'Invalid value for AUTOGEN_USE_DOCKER: {env_var_use_docker}. Please set AUTOGEN_USE_DOCKER to "1/True/yes", "0/False/no", or "None".'
+            )
+    return use_docker
+
+
+def check_use_docker(use_docker) -> None:
+    if use_docker is not None:
+        inside_docker = in_docker_container()
+        docker_installed_and_running = is_docker_running()
+        if use_docker and not inside_docker and not docker_installed_and_running:
+            raise RuntimeError(
+                'Docker is not running, please make sure docker is running (advised approach for code execution) or set "use_docker":False.'
+            )
+        if not use_docker:
+            logger.warning(
+                'use_docker was set to False. Any code execution will be run natively but we strongly advise to set "use_docker":True. Set "use_docker":None to silence this message.'
+            )
+
+
 def execute_code(
     code: Optional[str] = None,
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Union[List[str], str, bool] = True,
+    use_docker: Union[List[str], str, bool] = SENTINEL,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, str]:
     """Execute code in a docker container.
@@ -297,16 +337,12 @@ def execute_code(
         logger.error(error_msg)
         raise AssertionError(error_msg)
 
-    # # Warn if use_docker was set to False
-    # # In this case the current behavior is to fall back to run natively, but this behavior
-    # # is subject to change.
     running_inside_docker = in_docker_container()
     docker_running = is_docker_running()
 
-    if use_docker is not None and not use_docker and not running_inside_docker:
-        logger.warning(
-            "execute_code was called with use_docker set to False. Code will be run natively but we strongly advise to set use_docker=True. Set use_docker=None to silence this message."
-        )
+    if use_docker is SENTINEL:
+        use_docker = decide_use_docker(use_docker=None)
+    check_use_docker(use_docker)
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
@@ -318,9 +354,11 @@ def execute_code(
         filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
     if work_dir is None:
         work_dir = WORKING_DIR
+
     filepath = os.path.join(work_dir, filename)
     file_dir = os.path.dirname(filepath)
     os.makedirs(file_dir, exist_ok=True)
+
     if code is not None:
         with open(filepath, "w", encoding="utf-8") as fout:
             fout.write(code)

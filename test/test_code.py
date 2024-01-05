@@ -294,8 +294,8 @@ def scrape(url):
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin"],
-    reason="do not run on MacOS",
+    sys.platform in ["darwin", "win32"],
+    reason="do not run on MacOS or Windows",
 )
 def test_execute_code(use_docker=None):
     try:
