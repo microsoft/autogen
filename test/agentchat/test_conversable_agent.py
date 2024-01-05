@@ -7,6 +7,14 @@ from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
+from conftest import skip_openai
+
+try:
+    import openai
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.fixture
@@ -610,9 +618,24 @@ def test_register_for_execution():
         assert get_origin(user_proxy_1.function_map) == expected_function_map
 
 
+@pytest.mark.skipif(
+    skip,
+    reason="do not run if skipping openai",
+)
+def test_no_llm_config():
+    # We expect a TypeError when the model isn't specified
+    with pytest.raises(TypeError, match=r".*Missing required arguments.*"):
+        agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
+        agent2 = ConversableAgent(
+            name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
+        )
+        agent1.initiate_chat(agent2, message="hi")
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
     # test_generate_code_execution_reply()
-    test_conversable_agent()
+    # test_conversable_agent()
+    test_no_llm_config()
