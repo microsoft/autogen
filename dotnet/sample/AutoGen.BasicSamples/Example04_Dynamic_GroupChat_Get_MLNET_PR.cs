@@ -309,23 +309,15 @@ Here's some externel information
             }
         });
 
-        var codeBlockRunnerAgent = new AssistantAgent(
-            name: "code_block_runner")
-            .RegisterReply(async (msgs, _) =>
-            {
-                return new Message(Role.Assistant, "No code block available");
-            })
-            .RegisterDotnetCodeBlockExectionHook(interactiveService: service);
-
-
         var runner = new AssistantAgent(
             name: "runner",
-            defaultReply: "No code available, coder , write code please",
+            defaultReply: "No code available, coder, write code please",
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gpt3Config,
             })
+            .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
             .RegisterReply(async (msgs, ct) =>
             {
                 // retrieve code from the last message
@@ -336,21 +328,7 @@ Here's some externel information
                     return new Message(Role.Assistant, "coder, write code please");
                 }
 
-                var prompt = "run code block please";
-                var chatHistory = new[]
-                {
-                    new Message(Role.System, prompt),
-                    lastMessage,
-                };
-
-                var result = await codeBlockRunnerAgent.SendAsync(chatHistory: chatHistory);
-
-                if (result.Content is { Length: > 400 })
-                {
-                    result.Content = result.Content.Substring(0, 200) + " (...too long to present)";
-                }
-
-                return result;
+                return null;
             })
             .RegisterPrintFormatMessageHook();
 
