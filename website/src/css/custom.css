@@ -13,6 +13,7 @@
   --ifm-color-emphasis-300: #1064d3;
   --ifm-link-color: #1064d3;
   --ifm-menu-color-active: #1064d3;
+  --ifm-navbar-search-input-placeholder-color: #6e7174;
 }
 
 .docusaurus-highlight-code-line {
@@ -96,8 +97,8 @@ html[data-theme="dark"] .header-github-link:before {
 
 .tag {
   padding: 2px 8px;
-  border: 1px solid #1890ff;
-  color: #1890ff;
+  border: 1px solid #1273ce;
+  color: #1273ce;
   border-radius: 4px;
   font-size: 0.75rem;
   cursor: pointer;
@@ -105,6 +106,6 @@ html[data-theme="dark"] .header-github-link:before {
 }
 
 .tag:hover {
-  background-color: #1890ff;
+  background-color: #1273ce;
   color: white;
 }

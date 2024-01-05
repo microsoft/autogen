@@ -12,6 +12,12 @@ module.exports = {
   favicon: "img/ag.ico",
   organizationName: "Microsoft", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
+  scripts: [
+    {
+      src: './js/custom.js',
+      async: true,
+    },
+  ],
   themeConfig: {
     navbar: {
       title: "AutoGen",
@@ -100,7 +106,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
     },
   },
   presets: [

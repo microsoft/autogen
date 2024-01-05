@@ -61,6 +61,7 @@ const GalleryPage = () => {
         style={{ width: "100%", marginBottom: 16 }}
         value={selectedTags}
         onChange={handleTagChange}
+        aria-label="Filter by tags"
       >
         {allTags.map((tag) => (
           <Option key={tag} value={tag}>
@@ -119,7 +120,7 @@ const GalleryPage = () => {
                   style={{
                     // fontSize: "0.8rem",
                     fontWeight: "normal",
-                    color: "grey",
+                    color: "#727272",
                   }}
                 >
                   {item.description ? item.description : item.title}
