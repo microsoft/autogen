@@ -139,7 +139,7 @@ class ConversableAgent(Agent):
         self._function_map = (
             {}
             if function_map is None
-            else {name: callable for name, callable in function_map if self._assert_valid_name(name)}
+            else {name: callable for name, callable in function_map.items() if self._assert_valid_name(name)}
         )
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
