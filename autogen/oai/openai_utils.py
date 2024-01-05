@@ -1,15 +1,25 @@
-import os
 import json
+import logging
+import os
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Dict, Set, Union
-import logging
+from typing import Dict, List, Optional, Set, Union
+
 from dotenv import find_dotenv, load_dotenv
 
+try:
+    from openai import OpenAI
+    from openai.types.beta.assistant import Assistant
+
+    ERROR = None
+except ImportError:
+    ERROR = ImportError("Please install openai>=1 to use autogen.OpenAIWrapper.")
+    OpenAI = object
+    Assistant = object
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
-
-oai_price1k = {
+DEFAULT_AZURE_API_VERSION = "2023-08-01-preview"
+OAI_PRICE1K = {
     "text-ada-001": 0.0004,
     "text-babbage-001": 0.0005,
     "text-curie-001": 0.002,
@@ -65,14 +75,36 @@ def get_key(config):
 def get_config_list(
     api_keys: List, base_urls: Optional[List] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
 ) -> List[Dict]:
-    """Get a list of configs for openai api calls.
+    """Get a list of configs for OpenAI API client.
 
     Args:
         api_keys (list): The api keys for openai api calls.
-        base_urls (list, optional): The api bases for openai api calls.
+        base_urls (list, optional): The api bases for openai api calls. If provided, should match the length of api_keys.
         api_type (str, optional): The api type for openai api calls.
         api_version (str, optional): The api version for openai api calls.
+
+    Returns:
+        list: A list of configs for OepnAI API calls.
+
+    Example:
+    ```
+    # Define a list of API keys
+    api_keys = ['key1', 'key2', 'key3']
+
+    # Optionally, define a list of base URLs corresponding to each API key
+    base_urls = ['https://api.service1.com', 'https://api.service2.com', 'https://api.service3.com']
+
+    # Optionally, define the API type and version if they are common for all keys
+    api_type = 'azure'
+    api_version = '2023-08-01-preview'
+
+    # Call the get_config_list function to get a list of configuration dictionaries
+    config_list = get_config_list(api_keys, base_urls, api_type, api_version)
+    ```
+
     """
+    if base_urls is not None:
+        assert len(api_keys) == len(base_urls), "The length of api_keys must match the length of base_urls"
     config_list = []
     for i, api_key in enumerate(api_keys):
         if not api_key.strip():
@@ -92,48 +124,103 @@ def config_list_openai_aoai(
     key_file_path: Optional[str] = ".",
     openai_api_key_file: Optional[str] = "key_openai.txt",
     aoai_api_key_file: Optional[str] = "key_aoai.txt",
+    openai_api_base_file: Optional[str] = "base_openai.txt",
     aoai_api_base_file: Optional[str] = "base_aoai.txt",
     exclude: Optional[str] = None,
 ) -> List[Dict]:
-    """Get a list of configs for openai + azure openai api calls.
+    """Get a list of configs for OpenAI API client (including Azure or local model deployments that support OpenAI's chat completion API).
+
+    This function constructs configurations by reading API keys and base URLs from environment variables or text files.
+    It supports configurations for both OpenAI and Azure OpenAI services, allowing for the exclusion of one or the other.
+    When text files are used, the environment variables will be overwritten.
+    To prevent text files from being used, set the corresponding file name to None.
+    Or set key_file_path to None to disallow reading from text files.
 
     Args:
-        key_file_path (str, optional): The path to the key files.
-        openai_api_key_file (str, optional): The file name of the openai api key.
-        aoai_api_key_file (str, optional): The file name of the azure openai api key.
-        aoai_api_base_file (str, optional): The file name of the azure openai api base.
-        exclude (str, optional): The api type to exclude, "openai" or "aoai".
+        key_file_path (str, optional): The directory path where the API key files are located. Defaults to the current directory.
+        openai_api_key_file (str, optional): The filename containing the OpenAI API key. Defaults to 'key_openai.txt'.
+        aoai_api_key_file (str, optional): The filename containing the Azure OpenAI API key. Defaults to 'key_aoai.txt'.
+        openai_api_base_file (str, optional): The filename containing the OpenAI API base URL. Defaults to 'base_openai.txt'.
+        aoai_api_base_file (str, optional): The filename containing the Azure OpenAI API base URL. Defaults to 'base_aoai.txt'.
+        exclude (str, optional): The API type to exclude from the configuration list. Can be 'openai' or 'aoai'. Defaults to None.
 
     Returns:
-        list: A list of configs for openai api calls.
+        List[Dict]: A list of configuration dictionaries. Each dictionary contains keys for 'api_key', 'base_url', 'api_type',
+        and 'api_version'.
+
+    Raises:
+        FileNotFoundError: If the specified key files are not found and the corresponding API key is not set in the environment variables.
+
+    Example:
+        # To generate configurations excluding Azure OpenAI:
+        configs = config_list_openai_aoai(exclude='aoai')
+
+    File samples:
+        - key_aoai.txt
+
+        ```
+        aoai-12345abcdef67890ghijklmnopqr
+        aoai-09876zyxwvuts54321fedcba
+        ```
+
+        - base_aoai.txt
+
+        ```
+        https://api.azure.com/v1
+        https://api.azure2.com/v1
+        ```
+
+    Notes:
+        - The function checks for API keys and base URLs in the following environment variables: 'OPENAI_API_KEY', 'AZURE_OPENAI_API_KEY',
+          'OPENAI_API_BASE' and 'AZURE_OPENAI_API_BASE'. If these are not found, it attempts to read from the specified files in the
+          'key_file_path' directory.
+        - The API version for Azure configurations is set to DEFAULT_AZURE_API_VERSION by default.
+        - If 'exclude' is set to 'openai', only Azure OpenAI configurations are returned, and vice versa.
+        - The function assumes that the API keys and base URLs in the environment variables are separated by new lines if there are
+          multiple entries.
     """
-    if "OPENAI_API_KEY" not in os.environ and exclude != "openai":
-        try:
-            with open(f"{key_file_path}/{openai_api_key_file}") as key_file:
-                os.environ["OPENAI_API_KEY"] = key_file.read().strip()
-        except FileNotFoundError:
-            logging.info(
-                "OPENAI_API_KEY is not found in os.environ "
-                "and key_openai.txt is not found in the specified path. You can specify the api_key in the config_list."
-            )
-    if "AZURE_OPENAI_API_KEY" not in os.environ and exclude != "aoai":
-        try:
-            with open(f"{key_file_path}/{aoai_api_key_file}") as key_file:
-                os.environ["AZURE_OPENAI_API_KEY"] = key_file.read().strip()
-        except FileNotFoundError:
-            logging.info(
-                "AZURE_OPENAI_API_KEY is not found in os.environ "
-                "and key_aoai.txt is not found in the specified path. You can specify the api_key in the config_list."
-            )
-    if "AZURE_OPENAI_API_BASE" not in os.environ and exclude != "aoai":
-        try:
-            with open(f"{key_file_path}/{aoai_api_base_file}") as key_file:
-                os.environ["AZURE_OPENAI_API_BASE"] = key_file.read().strip()
-        except FileNotFoundError:
-            logging.info(
-                "AZURE_OPENAI_API_BASE is not found in os.environ "
-                "and base_aoai.txt is not found in the specified path. You can specify the base_url in the config_list."
-            )
+    if exclude != "openai" and key_file_path is not None:
+        # skip if key_file_path is None
+        if openai_api_key_file is not None:
+            # skip if openai_api_key_file is None
+            try:
+                with open(f"{key_file_path}/{openai_api_key_file}") as key_file:
+                    os.environ["OPENAI_API_KEY"] = key_file.read().strip()
+            except FileNotFoundError:
+                logging.info(
+                    "OPENAI_API_KEY is not found in os.environ "
+                    "and key_openai.txt is not found in the specified path. You can specify the api_key in the config_list."
+                )
+        if openai_api_base_file is not None:
+            # skip if openai_api_base_file is None
+            try:
+                with open(f"{key_file_path}/{openai_api_base_file}") as key_file:
+                    os.environ["OPENAI_API_BASE"] = key_file.read().strip()
+            except FileNotFoundError:
+                logging.info(
+                    "OPENAI_API_BASE is not found in os.environ "
+                    "and base_openai.txt is not found in the specified path. You can specify the base_url in the config_list."
+                )
+    if exclude != "aoai" and key_file_path is not None:
+        # skip if key_file_path is None
+        if aoai_api_key_file is not None:
+            try:
+                with open(f"{key_file_path}/{aoai_api_key_file}") as key_file:
+                    os.environ["AZURE_OPENAI_API_KEY"] = key_file.read().strip()
+            except FileNotFoundError:
+                logging.info(
+                    "AZURE_OPENAI_API_KEY is not found in os.environ "
+                    "and key_aoai.txt is not found in the specified path. You can specify the api_key in the config_list."
+                )
+        if aoai_api_base_file is not None:
+            try:
+                with open(f"{key_file_path}/{aoai_api_base_file}") as key_file:
+                    os.environ["AZURE_OPENAI_API_BASE"] = key_file.read().strip()
+            except FileNotFoundError:
+                logging.info(
+                    "AZURE_OPENAI_API_BASE is not found in os.environ "
+                    "and base_aoai.txt is not found in the specified path. You can specify the base_url in the config_list."
+                )
     aoai_config = (
         get_config_list(
             # Assuming Azure OpenAI api keys in os.environ["AZURE_OPENAI_API_KEY"], in separated lines
@@ -141,17 +228,20 @@ def config_list_openai_aoai(
             # Assuming Azure OpenAI api bases in os.environ["AZURE_OPENAI_API_BASE"], in separated lines
             base_urls=os.environ.get("AZURE_OPENAI_API_BASE", "").split("\n"),
             api_type="azure",
-            api_version="2023-08-01-preview",  # change if necessary
+            api_version=DEFAULT_AZURE_API_VERSION,
         )
         if exclude != "aoai"
         else []
     )
+    # process openai base urls
+    base_urls = os.environ.get("OPENAI_API_BASE", None)
+    base_urls = base_urls if base_urls is None else base_urls.split("\n")
     openai_config = (
         get_config_list(
             # Assuming OpenAI API_KEY in os.environ["OPENAI_API_KEY"]
             api_keys=os.environ.get("OPENAI_API_KEY", "").split("\n"),
+            base_urls=base_urls,
             # "api_type": "open_ai",
-            # "base_url": "https://api.openai.com/v1",
         )
         if exclude != "openai"
         else []
@@ -168,18 +258,52 @@ def config_list_from_models(
     exclude: Optional[str] = None,
     model_list: Optional[list] = None,
 ) -> List[Dict]:
-    """Get a list of configs for api calls with models in the model list.
+    """
+    Get a list of configs for API calls with models specified in the model list.
+
+    This function extends `config_list_openai_aoai` by allowing to clone its' out for each fof the models provided.
+    Each configuration will have a 'model' key with the model name as its value. This is particularly useful when
+    all endpoints have same set of models.
 
     Args:
         key_file_path (str, optional): The path to the key files.
-        openai_api_key_file (str, optional): The file name of the openai api key.
-        aoai_api_key_file (str, optional): The file name of the azure openai api key.
-        aoai_api_base_file (str, optional): The file name of the azure openai api base.
-        exclude (str, optional): The api type to exclude, "openai" or "aoai".
-        model_list (list, optional): The model list.
+        openai_api_key_file (str, optional): The file name of the OpenAI API key.
+        aoai_api_key_file (str, optional): The file name of the Azure OpenAI API key.
+        aoai_api_base_file (str, optional): The file name of the Azure OpenAI API base.
+        exclude (str, optional): The API type to exclude, "openai" or "aoai".
+        model_list (list, optional): The list of model names to include in the configs.
 
     Returns:
-        list: A list of configs for openai api calls.
+        list: A list of configs for OpenAI API calls, each including model information.
+
+    Example:
+    ```
+        # Define the path where the API key files are located
+        key_file_path = '/path/to/key/files'
+
+        # Define the file names for the OpenAI and Azure OpenAI API keys and bases
+        openai_api_key_file = 'key_openai.txt'
+        aoai_api_key_file = 'key_aoai.txt'
+        aoai_api_base_file = 'base_aoai.txt'
+
+        # Define the list of models for which to create configurations
+        model_list = ['gpt-4', 'gpt-3.5-turbo']
+
+        # Call the function to get a list of configuration dictionaries
+        config_list = config_list_from_models(
+            key_file_path=key_file_path,
+            openai_api_key_file=openai_api_key_file,
+            aoai_api_key_file=aoai_api_key_file,
+            aoai_api_base_file=aoai_api_base_file,
+            model_list=model_list
+        )
+
+        # The `config_list` will contain configurations for the specified models, for example:
+        # [
+        #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-4'},
+        #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-3.5-turbo'}
+        # ]
+    ```
     """
     config_list = config_list_openai_aoai(
         key_file_path,
@@ -200,7 +324,7 @@ def config_list_gpt4_gpt35(
     aoai_api_base_file: Optional[str] = "base_aoai.txt",
     exclude: Optional[str] = None,
 ) -> List[Dict]:
-    """Get a list of configs for gpt-4 followed by gpt-3.5 api calls.
+    """Get a list of configs for 'gpt-4' followed by 'gpt-3.5-turbo' API calls.
 
     Args:
         key_file_path (str, optional): The path to the key files.
@@ -223,15 +347,50 @@ def config_list_gpt4_gpt35(
 
 
 def filter_config(config_list, filter_dict):
-    """Filter the config list by provider and model.
+    """
+    This function filters `config_list` by checking each configuration dictionary against the
+    criteria specified in `filter_dict`. A configuration dictionary is retained if for every
+    key in `filter_dict`, see example below.
 
     Args:
-        config_list (list): The config list.
-        filter_dict (dict, optional): The filter dict with keys corresponding to a field in each config,
-            and values corresponding to lists of acceptable values for each key.
+        config_list (list of dict): A list of configuration dictionaries to be filtered.
+        filter_dict (dict): A dictionary representing the filter criteria, where each key is a
+                            field name to check within the configuration dictionaries, and the
+                            corresponding value is a list of acceptable values for that field.
 
     Returns:
-        list: The filtered config list.
+        list of dict: A list of configuration dictionaries that meet all the criteria specified
+                      in `filter_dict`.
+
+    Example:
+    ```
+        # Example configuration list with various models and API types
+        configs = [
+            {'model': 'gpt-3.5-turbo', 'api_type': 'openai'},
+            {'model': 'gpt-4', 'api_type': 'openai'},
+            {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
+        ]
+
+        # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
+        # that are also using the 'openai' API type
+        filter_criteria = {
+            'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
+            'api_type': ['openai']       # Only accept configurations for 'openai' API type
+        }
+
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'api_type': 'openai'}]
+    ```
+
+    Note:
+        - If `filter_dict` is empty or None, no filtering is applied and `config_list` is returned as is.
+        - If a configuration dictionary in `config_list` does not contain a key specified in `filter_dict`,
+          it is considered a non-match and is excluded from the result.
+        - If the list of acceptable values for a key in `filter_dict` includes None, then configuration
+          dictionaries that do not have that key will also be considered a match.
     """
     if filter_dict:
         config_list = [
@@ -245,35 +404,60 @@ def config_list_from_json(
     file_location: Optional[str] = "",
     filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]] = None,
 ) -> List[Dict]:
-    """Get a list of configs from a json parsed from an env variable or a file.
+    """
+    Retrieves a list of API configurations from a JSON stored in an environment variable or a file.
+
+    This function attempts to parse JSON data from the given `env_or_file` parameter. If `env_or_file` is an
+    environment variable containing JSON data, it will be used directly. Otherwise, it is assumed to be a filename,
+    and the function will attempt to read the file from the specified `file_location`.
+
+    The `filter_dict` parameter allows for filtering the configurations based on specified criteria. Each key in the
+    `filter_dict` corresponds to a field in the configuration dictionaries, and the associated value is a list or set
+    of acceptable values for that field. If a field is missing in a configuration and `None` is included in the list
+    of acceptable values for that field, the configuration will still be considered a match.
 
     Args:
-        env_or_file (str): The env variable name or file name.
-        file_location (str, optional): The file location.
-        filter_dict (dict, optional): The filter dict with keys corresponding to a field in each config,
-            and values corresponding to lists of acceptable values for each key.
-            e.g.,
-    ```python
-    filter_dict = {
-        "api_type": ["open_ai", None],  # None means a missing key is acceptable
-        "model": ["gpt-3.5-turbo", "gpt-4"],
-    }
+        env_or_file (str): The name of the environment variable, the filename, or the environment variable of the filename
+            that containing the JSON data.
+        file_location (str, optional): The directory path where the file is located, if `env_or_file` is a filename.
+        filter_dict (dict, optional): A dictionary specifying the filtering criteria for the configurations, with
+            keys representing field names and values being lists or sets of acceptable values for those fields.
+
+    Example:
+    ```
+    # Suppose we have an environment variable 'CONFIG_JSON' with the following content:
+    # '[{"model": "gpt-3.5-turbo", "api_type": "openai"}, {"model": "gpt-4", "api_type": "openai"}]'
+
+    # We can retrieve a filtered list of configurations like this:
+    filter_criteria = {"api_type": ["openai"], "model": ["gpt-3.5-turbo"]}
+    configs = config_list_from_json('CONFIG_JSON', filter_dict=filter_criteria)
+    # The 'configs' variable will now contain only the configurations that match the filter criteria.
     ```
 
     Returns:
-        list: A list of configs for openai api calls.
+        List[Dict]: A list of configuration dictionaries that match the filtering criteria specified in `filter_dict`.
+
+    Raises:
+        FileNotFoundError: if env_or_file is neither found as an environment variable nor a file
     """
-    json_str = os.environ.get(env_or_file)
-    if json_str:
+    env_str = os.environ.get(env_or_file)
+
+    if env_str:
+        # The environment variable exists. We should use information from it.
+        if os.path.exists(env_str):
+            # It is a file location, and we need to load the json from the file.
+            with open(env_str, "r") as file:
+                json_str = file.read()
+        else:
+            # Else, it should be a JSON string by itself.
+            json_str = env_str
         config_list = json.loads(json_str)
     else:
+        # The environment variable does not exist.
+        # So, `env_or_file` is a filename. We should use the file location.
         config_list_path = os.path.join(file_location, env_or_file)
-        try:
-            with open(config_list_path) as json_file:
-                config_list = json.load(json_file)
-        except FileNotFoundError:
-            logging.warning(f"The specified config_list file '{config_list_path}' does not exist.")
-            return []
+        with open(config_list_path) as json_file:
+            config_list = json.load(json_file)
     return filter_config(config_list, filter_dict)
 
 
@@ -281,27 +465,33 @@ def get_config(
     api_key: str, base_url: Optional[str] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
 ) -> Dict:
     """
-    Construct a configuration dictionary with the provided API configurations.
-    Appending the additional configurations to the config only if they're set
+    Constructs a configuration dictionary for a single model with the provided API configurations.
 
-    example:
-    >> model_api_key_map={
-        "gpt-4": "OPENAI_API_KEY",
-        "gpt-3.5-turbo": {
-            "api_key_env_var": "ANOTHER_API_KEY",
-            "api_type": "aoai",
-            "api_version": "v2",
-            "base_url": "https://api.someotherapi.com"
-        }
-    }
+    Example:
+    ```
+    config = get_config(
+        api_key="sk-abcdef1234567890",
+        base_url="https://api.openai.com",
+        api_type="openai",
+        api_version="v1"
+    )
+    # The 'config' variable will now contain:
+    # {
+    #     "api_key": "sk-abcdef1234567890",
+    #     "base_url": "https://api.openai.com",
+    #     "api_type": "openai",
+    #     "api_version": "v1"
+    # }
+    ```
+
     Args:
-        api_key (str): The API key used for authenticating API requests.
-        base_url (str, optional): The base URL of the API. Defaults to None.
-        api_type (str, optional): The type or kind of API. Defaults to None.
-        api_version (str, optional): The API version. Defaults to None.
+        api_key (str): The API key for authenticating API requests.
+        base_url (Optional[str]): The base URL of the API. If not provided, defaults to None.
+        api_type (Optional[str]): The type of API. If not provided, defaults to None.
+        api_version (Optional[str]): The version of the API. If not provided, defaults to None.
 
     Returns:
-        Dict: A dictionary containing the API configurations.
+        Dict: A dictionary containing the provided API configurations.
     """
     config = {"api_key": api_key}
     if base_url:
@@ -413,10 +603,12 @@ def config_list_from_dotenv(
     return config_list
 
 
-def retrieve_assistants_by_name(client, name) -> str:
+def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
     """
     Return the assistants with the given name from OAI assistant API
     """
+    if ERROR:
+        raise ERROR
     assistants = client.beta.assistants.list()
     candidate_assistants = []
     for assistant in assistants.data:

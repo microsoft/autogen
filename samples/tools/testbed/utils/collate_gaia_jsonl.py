@@ -15,10 +15,10 @@ def normalize_answer(a):
 
 def collate(results_dir, instance=0):
     """
-    Collate the results of running GAIA. Print the results in the format acceped by the leaderboard.
+    Collate the results of running GAIA. Print the results in the format accepted by the leaderboard.
 
     Args:
-        results_dir (path): The folder were results were be saved.
+        results_dir (path): The folder where results were be saved.
     """
 
     for test_id in os.listdir(results_dir):
@@ -61,7 +61,7 @@ if __name__ == "__main__":
         description=f"""
 {script_name} will collate the results of the GAIA scenarios into the jsonl format that can be submit to the GAIA leaderboard.
 
-NOTE: You will likely need to concatenate resuls for level 1, level 2 and level 3 to form a complete submission.
+NOTE: You will likely need to concatenate results for level 1, level 2 and level 3 to form a complete submission.
 """.strip(),
         formatter_class=argparse.RawTextHelpFormatter,
     )

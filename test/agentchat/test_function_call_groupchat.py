@@ -1,14 +1,18 @@
 import autogen
 import pytest
 import sys
+import os
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
-    skip = False
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
@@ -70,5 +74,33 @@ def test_function_call_groupchat():
     user_proxy.initiate_chat(manager, message="Let's start the game!")
 
 
+def test_no_function_map():
+    dummy1 = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="A human admin that will execute function_calls.",
+        human_input_mode="NEVER",
+    )
+
+    dummy2 = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="A human admin that will execute function_calls.",
+        human_input_mode="NEVER",
+    )
+    groupchat = autogen.GroupChat(agents=[dummy1, dummy2], messages=[], max_round=7)
+    groupchat.messages = [
+        {
+            "role": "assistant",
+            "content": None,
+            "function_call": {"name": "get_random_number", "arguments": "{}"},
+        }
+    ]
+    with pytest.raises(
+        ValueError,
+        match="No agent can execute the function get_random_number. Please check the function_map of the agents.",
+    ):
+        groupchat._prepare_and_select_agents(dummy2)
+
+
 if __name__ == "__main__":
     test_function_call_groupchat()
+    test_no_function_map()
