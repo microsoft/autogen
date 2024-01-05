@@ -136,7 +136,11 @@ class ConversableAgent(Agent):
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._max_consecutive_auto_reply_dict = defaultdict(self.max_consecutive_auto_reply)
-        self._function_map = {} if function_map is None else function_map
+        self._function_map = (
+            {}
+            if function_map is None
+            else {name: callable for name, callable in function_map if self._assert_valid_name(name)}
+        )
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
@@ -287,16 +291,25 @@ class ConversableAgent(Agent):
 
     @staticmethod
     def _normalize_name(name):
-        """LLMs sometimes ask for invalid functions"""
+        """
+        LLMs sometimes ask functions while ignoring their own format requirements, this function should be used to replace invalid characters with "_".
+
+        Prefer _assert_valid_name for validating user configuration or input
+        """
         return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
     @staticmethod
     def _assert_valid_name(name):
-        """Ensure that configured names are valid"""
+        """
+        Ensure that configured names are valid, raises ValueError if not.
+
+        For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
+        """
         if not re.match(r"^[a-zA-Z0-9_-]+$", name):
             raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
         if len(name) > 64:
             raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
+        return name
 
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
