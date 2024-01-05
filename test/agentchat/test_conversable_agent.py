@@ -489,9 +489,9 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={})
-        agent2 = ConversableAgent(name="agent2", llm_config={})
-        agent1 = ConversableAgent(name="agent1", llm_config={})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -592,7 +592,7 @@ def test_register_for_llm_without_LLM():
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
