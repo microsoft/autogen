@@ -73,7 +73,10 @@ def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
     return get_typed_annotation(annotation, globalns)
 
 
-def get_param_annotations(typed_signature: inspect.Signature) -> Dict[int, Union[Annotated[Type, str], Type]]:
+ParamType = Union[Annotated[Type[Any], str], Type[Any]]
+
+
+def get_param_annotations(typed_signature: inspect.Signature) -> Dict[str, ParamType]:
     """Get the type annotations of the parameters of a function
 
     Args:
@@ -103,9 +106,7 @@ class Function(BaseModel):
     parameters: Annotated[Parameters, Field(description="Parameters of the function")]
 
 
-def get_parameter_json_schema(
-    k: str, v: Union[Annotated[Type, str], Type], default_values: Dict[str, Any]
-) -> JsonSchemaValue:
+def get_parameter_json_schema(k: str, v: ParamType, default_values: Dict[str, Any]) -> JsonSchemaValue:
     """Get a JSON schema for a parameter as defined by the OpenAI API
 
     Args:
@@ -117,10 +118,10 @@ def get_parameter_json_schema(
         A Pydanitc model for the parameter
     """
 
-    def type2description(k: str, v: Union[Annotated[Type, str], Type]) -> str:
+    def type2description(k: str, v: ParamType) -> str:
         # handles Annotated
         if hasattr(v, "__metadata__"):
-            return v.__metadata__[0]
+            return v.__metadata__[0]  # type: ignore [no-any-return]
         else:
             return k
 
@@ -159,7 +160,7 @@ def get_default_values(typed_signature: inspect.Signature) -> Dict[str, Any]:
 
 
 def get_parameters(
-    required: List[str], param_annotations: Dict[str, Union[Annotated[Type, str], Type]], default_values: Dict[str, Any]
+    required: List[str], param_annotations: Dict[str, ParamType], default_values: Dict[str, Any]
 ) -> Parameters:
     """Get the parameters of a function as defined by the OpenAI API
 
@@ -269,7 +270,7 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
     return model_dump(function)
 
 
-def get_load_param_if_needed_function(t: Any) -> Optional[Callable[[T, Type], BaseModel]]:
+def get_load_param_if_needed_function(t: Any) -> Optional[Callable[[Dict[str, Any], Type[BaseModel]], BaseModel]]:
     """Get a function to load a parameter if it is a Pydantic model
 
     Args:
@@ -303,14 +304,14 @@ def load_basemodels_if_needed(func: Callable[..., Any]) -> Callable[..., Any]:
     param_annotations = get_param_annotations(typed_signature)
 
     # get functions for loading BaseModels when needed based on the type annotations
-    kwargs_mapping = {k: get_load_param_if_needed_function(t) for k, t in param_annotations.items()}
+    kwargs_mapping_raw = {k: get_load_param_if_needed_function(t) for k, t in param_annotations.items()}
 
     # remove the None values
-    kwargs_mapping = {k: f for k, f in kwargs_mapping.items() if f is not None}
+    kwargs_mapping = {k: f for k, f in kwargs_mapping_raw.items() if f is not None}
 
     # a function that loads the parameters before calling the original function
     @functools.wraps(func)
-    def load_parameters_if_needed(*args, **kwargs):
+    def load_parameters_if_needed(*args: Any, **kwargs: Any) -> Any:
         # load the BaseModels if needed
         for k, f in kwargs_mapping.items():
             kwargs[k] = f(kwargs[k], param_annotations[k])
