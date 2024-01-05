@@ -44,9 +44,7 @@ class ConversableAgent(Agent):
     To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
-    DEFAULT_CONFIG = {
-        "model": DEFAULT_MODEL,
-    }
+    DEFAULT_CONFIG = {}  # An empty configuration
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
     llm_config: Union[Dict, Literal[False]]
@@ -1530,7 +1528,7 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
 
-        if not self.llm_config:
+        if not isinstance(self.llm_config, dict):
             error_msg = "To update a function signature, agent must have an llm_config"
             logger.error(error_msg)
             raise AssertionError(error_msg)

@@ -58,6 +58,8 @@ The easiest way to start playing is
  2. Copy OAI_CONFIG_LIST_sample to ./notebook folder, name to OAI_CONFIG_LIST, and set the correct configuration.
  3. Start playing with the notebooks!
 
+*NOTE*: OAI_CONFIG_LIST_sample lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by OpenAI or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
+
 ## Using existing docker image
 Install docker, save your oai key into an environment variable name OPENAI_API_KEY, and then run the following.
 
