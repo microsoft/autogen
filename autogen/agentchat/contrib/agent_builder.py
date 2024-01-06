@@ -4,8 +4,6 @@ import subprocess as sp
 import socket
 import json
 import hashlib
-from huggingface_hub import HfApi
-from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 from typing import Optional, List, Dict, Tuple
 
 
@@ -204,6 +202,8 @@ output after executing the code) and provide a corrected answer or code.
         Returns:
             agent: a set-up agent.
         """
+        from huggingface_hub import HfApi
+        from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
         config_list = autogen.config_list_from_json(
             self.config_file_or_env,
             file_location=self.config_file_location,
