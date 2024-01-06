@@ -40,7 +40,7 @@ if not logger.handlers:
 
 
 class Completion(openai_Completion):
-    r"""(openai\<1) A class for OpenAI completion API.
+    """(openai<1) A class for OpenAI completion API.
 
     It also supports: ChatCompletion, Azure OpenAI API.
     """
@@ -126,26 +126,26 @@ class Completion(openai_Completion):
 
     @classmethod
     def set_cache(cls, seed: Optional[int] = 41, cache_path_root: Optional[str] = ".cache"):
-        r"""Set cache path.
+        """Set cache path.
 
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 Results corresponding to different seeds will be cached in different places.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be \{cache_path\}/\{seed\}.
+                The complete cache path will be {cache_path_root}/{seed}.
         """
         cls.cache_seed = seed
         cls.cache_path = f"{cache_path_root}/{seed}"
 
     @classmethod
     def clear_cache(cls, seed: Optional[int] = None, cache_path_root: Optional[str] = ".cache"):
-        r"""Clear cache.
+        """Clear cache.
 
         Args:
             seed (int, Optional): The integer identifier for the pseudo seed.
                 If omitted, all caches under cache_path_root will be cleared.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be \{cache_path\}/\{cache_seed\}.
+                The complete cache path will be {cache_path_root}/{seed}.
         """
         if seed is None:
             shutil.rmtree(cache_path_root, ignore_errors=True)
@@ -1189,7 +1189,7 @@ class Completion(openai_Completion):
 
 
 class ChatCompletion(Completion):
-    r"""(openai\<1) A class for OpenAI API ChatCompletion. Share the same API as Completion."""
+    """(openai<1) A class for OpenAI API ChatCompletion. Share the same API as Completion."""
 
     default_search_space = Completion.default_search_space.copy()
     default_search_space["model"] = tune.choice(["gpt-3.5-turbo", "gpt-4"])

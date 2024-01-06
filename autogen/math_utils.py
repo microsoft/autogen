@@ -9,7 +9,7 @@ _MATH_CONFIG = {
 
 
 def solve_problem(problem: str, **config) -> str:
-    r"""(openai\<1) Solve the math problem.
+    """(openai<1) Solve the math problem.
 
     Args:
         problem (str): The problem statement.
@@ -25,13 +25,13 @@ def solve_problem(problem: str, **config) -> str:
 
 
 def remove_boxed(string: str) -> Optional[str]:
-    r"""Source: https://github.com/hendrycks/math
-    Extract the text within a \\boxed\{...\} environment.
+    """Source: https://github.com/hendrycks/math
+    Extract the text within a \boxed{...} environment.
     Example:
 
-    > remove_boxed("\\boxed\{\\frac\{2\}\{3\}\}")
+    > remove_boxed("\boxed\\{\frac{2}{3}}")
     Output:
-    > \\frac\{2\}\{3\}
+    > \frac{2}{3}
     """
     left = "\\boxed{"
     try:
@@ -44,8 +44,8 @@ def remove_boxed(string: str) -> Optional[str]:
 
 
 def last_boxed_only_string(string: str) -> Optional[str]:
-    r"""Source: https://github.com/hendrycks/math
-    Extract the last \\boxed\{...\} or \\fbox\{...\} element from a string.
+    """Source: https://github.com/hendrycks/math
+    Extract the last \boxed{...\\} or \fbox{...} element from a string.
     """
     idx = string.rfind("\\boxed")
     if idx < 0:
