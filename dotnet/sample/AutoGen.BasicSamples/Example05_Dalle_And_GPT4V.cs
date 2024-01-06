@@ -113,9 +113,8 @@ If the image satisfies the condition, then terminate the conversation by saying 
 Otherwise, provide detailed feedback to DALL-E agent so it can generate better image.
 
 The image should satisfy the following conditions:
-- The cat should be blue
-- The cat should chase after the mouse
-- The mouse should be laughing at the cat
+- There should be a cat and a mouse in the image
+- The cat should be chasing after the mouse
 ",
             llmConfig: new ConversableAgentConfig
             {

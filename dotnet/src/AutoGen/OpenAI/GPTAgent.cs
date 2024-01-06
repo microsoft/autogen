@@ -87,7 +87,7 @@ namespace AutoGen
                 settings.Functions = _functions.ToList();
             }
 
-            settings.StopSequences.Add("<meta>");
+            //settings.StopSequences.Add("<meta>");
 
             var response = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
 
@@ -118,6 +118,10 @@ namespace AutoGen
             }
             else
             {
+                if (string.IsNullOrEmpty(oaiMessage.Content) && oaiMessage.FunctionCall is null)
+                {
+                    throw new Exception("OpenAI response is invalid.");
+                }
                 return new Message(Role.Assistant, oaiMessage.Content)
                 {
                     From = this.Name,

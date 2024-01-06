@@ -15,6 +15,7 @@ namespace AutoGen
         /// <summary>
         /// Send message to an agent.
         /// </summary>
+        /// <param name="message">message to send. will be added to the end of <paramref name="chatHistory"/> if provided </param>
         /// <param name="agent">sender agent.</param>
         /// <param name="chatHistory">chat history.</param>
         /// <returns>conversation history</returns>
@@ -26,15 +27,16 @@ namespace AutoGen
         {
             var messages = new List<Message>();
 
+            if (chatHistory != null)
+            {
+                messages.AddRange(chatHistory);
+            }
+
             if (message != null)
             {
                 messages.Add(message);
             }
 
-            if (chatHistory != null)
-            {
-                messages.AddRange(chatHistory);
-            }
 
             var result = await agent.GenerateReplyAsync(messages, ct);
 
@@ -45,6 +47,7 @@ namespace AutoGen
         /// Send message to an agent.
         /// </summary>
         /// <param name="agent">sender agent.</param>
+        /// <param name="message">message to send. will be added to the end of <paramref name="chatHistory"/> if provided </param>
         /// <param name="chatHistory">chat history.</param>
         /// <returns>conversation history</returns>
         public static async Task<Message> SendAsync(
@@ -94,6 +97,7 @@ namespace AutoGen
         /// Send message to another agent.
         /// </summary>
         /// <param name="agent">sender agent.</param>
+        /// <param name="message">message to send. will be added to the end of <paramref name="chatHistory"/> if provided </param>
         /// <param name="receiver">receiver agent.</param>
         /// <param name="chatHistory">chat history.</param>
         /// <param name="maxRound">max conversation round.</param>
@@ -111,7 +115,8 @@ namespace AutoGen
                 From = agent.Name,
             };
 
-            chatHistory = new[] { msg }.Concat(chatHistory ?? Enumerable.Empty<Message>());
+            chatHistory = chatHistory ?? new List<Message>();
+            chatHistory = chatHistory.Append(msg);
 
             return await agent.SendAsync(receiver, chatHistory, maxRound, ct);
         }
@@ -153,7 +158,8 @@ namespace AutoGen
             CancellationToken ct = default)
         {
             var chatMessage = new Message(Role.Assistant, msg, from: agent.Name);
-            chatHistory = new[] { chatMessage }.Concat(chatHistory ?? Enumerable.Empty<Message>());
+            chatHistory = chatHistory ?? Enumerable.Empty<Message>();
+            chatHistory = chatHistory.Append(chatMessage);
 
             return await agent.SendMessageToGroupAsync(groupChat, chatHistory, maxRound, ct);
         }

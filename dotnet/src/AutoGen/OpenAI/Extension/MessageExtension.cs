@@ -100,9 +100,9 @@ public static class MessageExtension
                 throw new ArgumentException("Content is null and metadata is null");
             }
         }
-        else if (!string.IsNullOrEmpty(message.Content))
+        else if (!string.IsNullOrEmpty(message?.Content))
         {
-            return new ChatRequestUserMessage(message.Content);
+            return new ChatRequestUserMessage(message!.Content);
         }
 
         throw new ArgumentException("Content is null and metadata is null");
