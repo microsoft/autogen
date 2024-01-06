@@ -227,6 +227,7 @@ output after executing the code) and provide a corrected answer or code.
             server_id = self.online_server_name
 
         if server_id != self.online_server_name:
+            # The code in this block is uncovered by tests because online environment does not support gpu use.
             if self.agent_procs.get(server_id, None) is None:
                 while True:
                     port = self.open_ports.pop()
