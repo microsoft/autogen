@@ -44,9 +44,7 @@ class ConversableAgent(Agent):
     To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
-    DEFAULT_CONFIG = {
-        "model": DEFAULT_MODEL,
-    }
+    DEFAULT_CONFIG = {}  # An empty configuration
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
     llm_config: Union[Dict, Literal[False]]
@@ -136,7 +134,11 @@ class ConversableAgent(Agent):
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._max_consecutive_auto_reply_dict = defaultdict(self.max_consecutive_auto_reply)
-        self._function_map = {} if function_map is None else function_map
+        self._function_map = (
+            {}
+            if function_map is None
+            else {name: callable for name, callable in function_map.items() if self._assert_valid_name(name)}
+        )
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self.reply_at_receive = defaultdict(bool)
@@ -285,6 +287,28 @@ class ConversableAgent(Agent):
         else:
             return dict(message)
 
+    @staticmethod
+    def _normalize_name(name):
+        """
+        LLMs sometimes ask functions while ignoring their own format requirements, this function should be used to replace invalid characters with "_".
+
+        Prefer _assert_valid_name for validating user configuration or input
+        """
+        return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
+
+    @staticmethod
+    def _assert_valid_name(name):
+        """
+        Ensure that configured names are valid, raises ValueError if not.
+
+        For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
+        """
+        if not re.match(r"^[a-zA-Z0-9_-]+$", name):
+            raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
+        if len(name) > 64:
+            raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
+        return name
+
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
@@ -313,11 +337,6 @@ class ConversableAgent(Agent):
                 oai_message["content"] = None  # if only function_call is provided, content will be set to None.
             else:
                 return False
-
-        for tool_call in oai_message.get("tool_calls", []):
-            function = tool_call.get("function", {})
-            if function.get("name", False):
-                function["name"] = self._normalize_name(function["name"])
 
         if message.get("role") in ["function", "tool"]:
             oai_message["role"] = message.get("role")
@@ -690,8 +709,17 @@ class ConversableAgent(Agent):
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
+
+        # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str):
             extracted_response = model_dump(extracted_response)
+        if isinstance(extracted_response, dict):
+            if extracted_response.get("function_call"):
+                extracted_response["function_call"]["name"] = self._normalize_name(
+                    extracted_response["function_call"]["name"]
+                )
+            for tool_call in extracted_response.get("tool_calls") or []:
+                tool_call["function"]["name"] = self._normalize_name(tool_call["function"]["name"])
         return True, extracted_response
 
     async def a_generate_oai_reply(
@@ -808,10 +836,10 @@ class ConversableAgent(Agent):
 
         return False, None
 
-    def _str_for_tool_response(self, tool_call):
-        func_name = tool_call.get("name", "")
-        func_id = tool_call.get("tool_call_id", "")
-        response = tool_call.get("content", "")
+    def _str_for_tool_response(self, tool_response):
+        func_name = tool_response.get("name", "")
+        func_id = tool_response.get("tool_call_id", "")
+        response = tool_response.get("content", "")
         return f"Tool call: {func_name}\nId: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
@@ -1492,6 +1520,8 @@ class ConversableAgent(Agent):
         Args:
             function_map: a dictionary mapping function names to functions.
         """
+        for name in function_map.keys():
+            self._assert_valid_name(name)
         self._function_map.update(function_map)
 
     def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
@@ -1505,7 +1535,7 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
 
-        if not self.llm_config:
+        if not isinstance(self.llm_config, dict):
             error_msg = "To update a function signature, agent must have an llm_config"
             logger.error(error_msg)
             raise AssertionError(error_msg)
@@ -1520,6 +1550,7 @@ class ConversableAgent(Agent):
                     func for func in self.llm_config["functions"] if func["name"] != func_sig
                 ]
         else:
+            self._assert_valid_name(func_sig["name"])
             if "functions" in self.llm_config.keys():
                 self.llm_config["functions"] = [
                     func for func in self.llm_config["functions"] if func.get("name") != func_sig["name"]
@@ -1555,6 +1586,7 @@ class ConversableAgent(Agent):
                     tool for tool in self.llm_config["tools"] if tool["function"]["name"] != tool_sig
                 ]
         else:
+            self._assert_valid_name(tool_sig["function"]["name"])
             if "tools" in self.llm_config.keys():
                 self.llm_config["tools"] = [
                     tool

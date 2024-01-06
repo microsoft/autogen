@@ -7,6 +7,14 @@ from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
+from conftest import skip_openai
+
+try:
+    import openai
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.fixture
@@ -481,9 +489,9 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={})
-        agent2 = ConversableAgent(name="agent2", llm_config={})
-        agent1 = ConversableAgent(name="agent1", llm_config={})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -584,7 +592,7 @@ def test_register_for_llm_without_LLM():
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
@@ -616,9 +624,24 @@ def test_register_for_execution():
         assert get_origin(user_proxy_1.function_map) == expected_function_map
 
 
+@pytest.mark.skipif(
+    skip,
+    reason="do not run if skipping openai",
+)
+def test_no_llm_config():
+    # We expect a TypeError when the model isn't specified
+    with pytest.raises(TypeError, match=r".*Missing required arguments.*"):
+        agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
+        agent2 = ConversableAgent(
+            name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
+        )
+        agent1.initiate_chat(agent2, message="hi")
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
     # test_generate_code_execution_reply()
-    test_conversable_agent()
+    # test_conversable_agent()
+    test_no_llm_config()
