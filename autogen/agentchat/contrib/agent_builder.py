@@ -208,7 +208,7 @@ output after executing the code) and provide a corrected answer or code.
         )
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_path_or_env}. "
+                f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_file_or_env}. "
                 f'If you would like to change this model, please specify the "agent_model" in the constructor.'
             )
         if "gpt-" in model_name_or_hf_repo:
@@ -363,7 +363,7 @@ output after executing the code) and provide a corrected answer or code.
         )
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path_or_env}. "
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_file_or_env}. "
                 f'If you want to change this model, please specify the "builder_model" in the constructor.'
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
@@ -502,7 +502,7 @@ output after executing the code) and provide a corrected answer or code.
         )
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_path_or_env}. "
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_file_or_env}. "
                 f'If you want to change this model, please specify the "builder_model" in the constructor.'
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)

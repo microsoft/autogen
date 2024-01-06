@@ -214,3 +214,10 @@ def test_clear_agent():
 
     # check if the agent cleared
     assert len(builder.agent_procs_assign) == 0
+
+if __name__ == "__main__":
+    test_build()
+    test_build_from_library()
+    test_save()
+    test_load()
+    test_clear_agent()
