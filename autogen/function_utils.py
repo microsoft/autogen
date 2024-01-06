@@ -103,6 +103,13 @@ class Function(BaseModel):
     parameters: Annotated[Parameters, Field(description="Parameters of the function")]
 
 
+class ToolFunction(BaseModel):
+    """A function under tool as defined by the OpenAI API."""
+
+    type: Literal["function"] = "function"
+    function: Annotated[Function, Field(description="Function under tool")]
+
+
 def get_parameter_json_schema(
     k: str, v: Union[Annotated[Type, str], Type], default_values: Dict[str, Any]
 ) -> JsonSchemaValue:
@@ -260,10 +267,12 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
 
     parameters = get_parameters(required, param_annotations, default_values=default_values)
 
-    function = Function(
-        description=description,
-        name=fname,
-        parameters=parameters,
+    function = ToolFunction(
+        function=Function(
+            description=description,
+            name=fname,
+            parameters=parameters,
+        )
     )
 
     return model_dump(function)

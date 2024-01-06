@@ -275,6 +275,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             Dict: a counter for mentioned agents.
         """
         # Cast message content to str
+        if isinstance(message_content, dict):
+            message_content = message_content["content"]
         message_content = content_str(message_content)
 
         mentions = dict()

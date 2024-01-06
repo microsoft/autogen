@@ -3,6 +3,7 @@ from autogen.token_count_utils import (
     num_tokens_from_functions,
     token_left,
     percentile_used,
+    num_tokens_from_tools,
     get_max_token_limit,
 )
 import pytest
@@ -52,6 +53,14 @@ def test_num_tokens_from_functions(input_functions, expected_count):
     assert num_tokens_from_functions(input_functions) == expected_count
 
 
+@pytest.mark.parametrize(
+    "input_functions, expected_count", [([func1], 47), ([func2], 49), ([func3], 48), ([func1, func2], 96)]
+)
+def test_num_tokens_from_tools(input_functions, expected_count):
+    input_tools = [{"type": "function", "function": input_function} for input_function in input_functions]
+    assert num_tokens_from_tools(input_tools) == expected_count
+
+
 def test_count_token():
     messages = [
         {
@@ -84,3 +93,6 @@ if __name__ == "__main__":
     #    test_num_tokens_from_functions()
     #    test_count_token()
     test_model_aliases()
+    test_num_tokens_from_functions()
+    test_num_tokens_from_tools()
+    test_count_token()
