@@ -715,7 +715,7 @@ class ConversableAgent(Agent):
                 extracted_response["function_call"]["name"] = self._normalize_name(
                     extracted_response["function_call"]["name"]
                 )
-            for tool_call in extracted_response.get("tool_calls", []):
+            for tool_call in extracted_response.get("tool_calls") or []:
                 tool_call["name"] = self._normalize_name(tool_call["name"])
         return True, extracted_response
 
