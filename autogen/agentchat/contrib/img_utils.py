@@ -27,10 +27,10 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
 
 
 def llava_formatter(prompt: str, order_image_tokens: bool = False) -> Tuple[str, List[str]]:
-    r"""Formats the input prompt by replacing image tags and returns the new prompt along with image locations.
+    """Formats the input prompt by replacing image tags and returns the new prompt along with image locations.
 
     Parameters:
-        - prompt (str): The input string that may contain image tags like `<img ...>`.
+        - prompt (str): The input string that may contain image tags like <img ...>.
         - order_image_tokens (bool, optional): Whether to order the image tokens with numbers.
             It will be useful for GPT-4V. Defaults to False.
 
