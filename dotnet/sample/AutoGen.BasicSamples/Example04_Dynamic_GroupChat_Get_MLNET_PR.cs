@@ -171,7 +171,7 @@ The output of the code is:
 
         // create context manage agent
         // context manager create context for current step and collect code block and its output when a step is resolved.
-        var contextManager = new AssistantAgent(
+        var contextManagerAgent = new AssistantAgent(
             name: "context_manager",
             systemMessage: @"You are context manager, you collect information from conversation context",
             llmConfig: new ConversableAgentConfig
@@ -186,23 +186,6 @@ The output of the code is:
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
                 { nameof(SaveContext), instance.SaveContextWrapper },
-            })
-            .RegisterPrintFormatMessageHook();
-        var contextManagerAgent = contextManager
-            .RegisterPostProcess(async (msgs, reply, ct) =>
-            {
-                while (true)
-                {
-                    if (reply.FunctionName == nameof(SaveContext))
-                    {
-                        return reply;
-                    }
-
-                    var prompt = @"Please collect information";
-                    var promptMessage = new Message(Role.User, prompt);
-
-                    reply = await contextManager.SendAsync(promptMessage, msgs, ct);
-                }
             })
             .RegisterPrintFormatMessageHook();
 
