@@ -4,6 +4,8 @@ import subprocess as sp
 import socket
 import json
 import hashlib
+from huggingface_hub import HfApi
+from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 from typing import Optional, List, Dict, Tuple
 
 
@@ -26,13 +28,12 @@ class AgentBuilder:
     """
     AgentBuilder can help user build an automatic task solving process powered by multi-agent system.
     Specifically, our building pipeline includes initialize and build.
-    In build(), we prompt a gpt-4 model to create multiple participant agents, and specify whether
-        this task need programming to solve.
+    In build(), we prompt a LLM to create multiple participant agents, and specify whether this task need programming to solve.
     User can save the built agents' config by calling save(), and load the saved configs by load(), which can skip the
         building process.
     """
 
-    openai_server_name = "openai"
+    online_server_name = "online"
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
     or coding may help the following task become easier?
@@ -126,6 +127,7 @@ output after executing the code) and provide a corrected answer or code.
         max_agents: Optional[int] = 5,
     ):
         """
+        (These APIs are experimental and may change in the future.)
         Args:
             config_file_or_env: path or environment of the OpenAI api configs.
             builder_model: specify a model as the backbone of build manager.
@@ -192,9 +194,10 @@ output after executing the code) and provide a corrected answer or code.
 
         Args:
             agent_name: the name that identify the function of the agent (e.g., Coder, Product Manager,...)
-            model_name_or_hf_repo:
+            model_name_or_hf_repo: the name of the model or the huggingface repo.
             llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             system_message: system prompt use to format an agent's behavior.
+            description: a brief description of the agent. This will improve the group chat performance.
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
             world_size: the max size of parallel tensors (in most of the cases, this is identical to the amount of GPUs).
 
@@ -212,11 +215,17 @@ output after executing the code) and provide a corrected answer or code.
                 f'If you would like to change this model, please specify the "agent_model" in the constructor.\n'
                 f"If you load configs from json, make sure the model in agent_configs is in the {self.config_file_or_env}."
             )
-        if "gpt-" in model_name_or_hf_repo:
-            server_id = self.openai_server_name
-        else:
+        try:
+            hf_api = HfApi()
+            hf_api.model_info(model_name_or_hf_repo)
             model_name = model_name_or_hf_repo.split("/")[-1]
             server_id = f"{model_name}_{self.host}"
+        except GatedRepoError as e:
+            raise e
+        except RepositoryNotFoundError:
+            server_id = self.online_server_name
+
+        if server_id != self.online_server_name:
             if self.agent_procs.get(server_id, None) is None:
                 while True:
                     port = self.open_ports.pop()
@@ -305,7 +314,7 @@ output after executing the code) and provide a corrected answer or code.
         _, server_id = self.agent_procs_assign[agent_name]
         del self.agent_procs_assign[agent_name]
         if recycle_endpoint:
-            if server_id == self.openai_server_name:
+            if server_id == self.online_server_name:
                 return
             else:
                 for _, iter_sid in self.agent_procs_assign.values():

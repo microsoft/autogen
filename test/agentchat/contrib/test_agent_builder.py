@@ -18,14 +18,6 @@ except ImportError:
 else:
     skip = False or skip_openai
 
-# chromadb required
-try:
-    import chromadb
-
-    CHROMADB_INSTALLED = True
-except ImportError:
-    CHROMADB_INSTALLED = False
-
 
 def _config_check(config):
     # check config loading
@@ -74,7 +66,7 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    skip or not CHROMADB_INSTALLED,
+    skip,
     reason="do not run when dependency is not installed or requested to skip",
 )
 def test_build_from_library():

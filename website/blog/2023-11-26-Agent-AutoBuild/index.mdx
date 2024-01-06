@@ -29,7 +29,7 @@ up an endpoint server automatically without any user participation.
 ## Installation
 - AutoGen:
 ```bash
-pip install pyautogen~=0.2.0
+pip install pyautogen[autobuild]
 ```
 - (Optional: if you want to use open-source LLMs) vLLM and FastChat
 ```bash
@@ -151,7 +151,17 @@ agent_list, agent_config = new_builder.load(saved_path)
 start_task(...)  # skip build()
 ```
 
-## Use Open-source LLM
+## Use OpenAI Assistant
+[Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
+An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
+AutoBuild also supports the assistant API by adding `use_oai_assistant=True` to `build()`.
+```python
+# Transfer to the OpenAI Assistant API.
+agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
+...
+```
+
+## (Experimental) Use Open-source LLM
 AutoBuild supports open-source LLM by [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
 Check the supported model list [here](https://docs.vllm.ai/en/latest/models/supported_models.html).
 After satisfying the requirements, you can add an open-source LLM's huggingface repository to the config file,
@@ -167,16 +177,6 @@ After satisfying the requirements, you can add an open-source LLM's huggingface 
 ```
 and specify it when initializing AgentBuilder.
 AgentBuilder will automatically set up an endpoint server for open-source LLM. Make sure you have sufficient GPUs resources.
-
-## Use OpenAI Assistant
-[Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
-An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
-AutoBuild also supports the assistant API by adding `use_oai_assistant=True` to `build()`.
-```python
-# Transfer to the OpenAI Assistant API.
-agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
-...
-```
 
 ## Future work/Roadmap
 - Let the builder select the best agents from a given library/database to solve the task.
