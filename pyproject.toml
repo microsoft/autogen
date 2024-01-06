@@ -49,3 +49,71 @@ unfixable = ["F401"]
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[project]
+name = "pyautogen"
+version = "0.2.2"
+description = "Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework"
+readme = "README.md"
+authors = [
+    {name = "AutoGen", email = "auto-gen@outlook.com"},
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.9, <3.12"
+dependencies = [
+    "diskcache",
+    "flaml",
+    "openai~=1.3",
+    "python-dotenv",
+    "termcolor",
+    "tiktoken",
+    "openai>=1.3",
+    "pydantic>=1.10,<3",
+]
+
+[project.urls]
+Homepage = "https://github.com/microsoft/autogen"
+
+[project.optional-dependencies]
+test = [
+    "coverage>=5.3",
+    "ipykernel",
+    "nbconvert",
+    "nbformat",
+    "pre-commit",
+    "pytest-asyncio",
+    "pytest>=6.1.1",
+]
+blendsearch = [
+    "flaml[blendsearch]",
+]
+mathchat = [
+    "pydantic==1.10.9",
+    "sympy",
+    "wolframalpha",
+]
+retrievechat = [
+    "chromadb",
+    "ipython",
+    "pypdf",
+    "sentence_transformers",
+]
+teachable = [
+    "chromadb",
+]
+lmm = [
+    "pillow",
+    "replicate",
+]
+graphs = [
+    "matplotlib~=3.8.1",
+    "networkx~=3.2.1",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
