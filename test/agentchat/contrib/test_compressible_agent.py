@@ -35,18 +35,20 @@ if not skip:
 )
 def test_mode_compress():
     conversations = {}
+    llm_config = {
+        "timeout": 600,
+        "cache_seed": 43,
+        "config_list": config_list,
+    }
 
     assistant = CompressibleAgent(
         name="assistant",
-        llm_config={
-            "timeout": 600,
-            "cache_seed": 43,
-            "config_list": config_list,
-        },
+        llm_config=llm_config,
         compress_config={
             "mode": "COMPRESS",
             "trigger_count": 600,
             "verbose": True,
+            "compress_llm_config": llm_config,
         },
     )
 
@@ -143,18 +145,20 @@ def test_mode_customized():
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_compress_message():
+    llm_config = {
+        "timeout": 600,
+        "cache_seed": 43,
+        "config_list": config_list,
+    }
     assistant = CompressibleAgent(
         name="assistant",
-        llm_config={
-            "timeout": 600,
-            "cache_seed": 43,
-            "config_list": config_list,
-        },
+        llm_config=llm_config,
         compress_config={
             "mode": "COMPRESS",
             "trigger_count": 600,
             "verbose": True,
             "leave_last_n": 0,
+            "compress_llm_config": llm_config,
         },
     )
 
@@ -205,6 +209,34 @@ def test_mode_terminate():
         sender=user_proxy,
     )
     assert final, "Terminating the conversation at max token limit is not working."
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or not OPENAI_INSTALLED,
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_anchor_modle():
+    llm_config = {
+        "timeout": 600,
+        "cache_seed": 43,
+        "config_list": config_list,
+    }
+
+    assistant = CompressibleAgent(
+        name="assistant",
+        llm_config=llm_config,
+        compress_config={
+            "mode": "COMPRESS",
+            "trigger_count": 600,
+            "verbose": True,
+            "leave_last_n": 0,
+            "compress_llm_config": llm_config,
+        },
+    )
+    assert assistant.compress_config["anchor_model"] in [
+        "gpt-3.5-turbo-16k",
+        "gpt-35-turbo-16k",
+    ], "anchor model is not set correctly"
 
 
 if __name__ == "__main__":

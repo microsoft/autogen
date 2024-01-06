@@ -93,6 +93,7 @@ Reply "TERMINATE" in the end when everything is done.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
                 - "verbose" (Optional, bool, default to False): Whether to print the content before and after compression. Used when mode="COMPRESS".
                 - "leave_last_n" (Optional, int, default to 0): If provided, the last n messages will not be compressed. Used when mode="COMPRESS".
+                - "compress_llm_config" (Optional, dict, default to None): llm inference configuration for compression. Used when mode="COMPRESS".
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
@@ -109,17 +110,7 @@ Reply "TERMINATE" in the end when everything is done.
         )
 
         self._set_compress_config(compress_config)
-
-        # create a separate client for compression.
-        if llm_config is False:
-            self.llm_compress_config = False
-            self.compress_client = None
-        else:
-            self.llm_compress_config = self.llm_config.copy()
-            # remove functions
-            if "functions" in self.llm_compress_config:
-                del self.llm_compress_config["functions"]
-            self.compress_client = OpenAIWrapper(**self.llm_compress_config)
+        # set self.compress_config, self.compress_client
 
         self._reply_func_list.clear()
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
@@ -127,6 +118,24 @@ Reply "TERMINATE" in the end when everything is done.
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+
+    @staticmethod
+    def _max_context_from_config_list(client: OpenAIWrapper) -> Tuple[int, str]:
+        """Get the maximum token limit and corresponding model in the config_list."""
+        max_token = 0
+        max_model = None
+        for c in client._config_list:
+            m = c.get("model")
+            if m and get_max_token_limit(m) > max_token:
+                max_token = max(get_max_token_limit(m), max_token)
+                max_model = m
+        if max_model is None:
+            raise ValueError("No model found in the config_list.")
+        return max_token, max_model
+
+    @staticmethod
+    def _print_warning(msg):
+        print(colored(msg, "yellow"), flush=True)
 
     def _set_compress_config(self, compress_config: Optional[Dict] = False):
         if compress_config:
@@ -141,30 +150,73 @@ Reply "TERMINATE" in the end when everything is done.
 
             self.compress_config = self.DEFAULT_COMPRESS_CONFIG.copy()
             self.compress_config.update(compress_config)
+            self.compress_client = None
 
             if not isinstance(self.compress_config["leave_last_n"], int) or self.compress_config["leave_last_n"] < 0:
                 raise ValueError("leave_last_n must be a non-negative integer.")
 
-            # convert trigger_count to int, default to 0.7
+            # ------------------
+            # get max token limit and model. Set "anchor_model" in compress_config to be the model with the largest context window. We will use it to count tokens and set max token limit.
+            max_token_allowed, max_token_model = self._max_context_from_config_list(self.client)
+            self.compress_config["anchor_model"] = max_token_model
+
+            # ------------------
+            # mode = "TERMINATE"
+            if self.compress_config["mode"] == "TERMINATE":
+                print(
+                    f"Mode TERMINATE: terminate conversation when {max_token_allowed} tokens are reached (model `{max_token_model}`, largest context window in the config_list). If not desired, please revise `config_list` in llm_config."
+                )
+                return
+
+            # ------------------
+            # Update and validate trigger_count
             trigger_count = self.compress_config["trigger_count"]
             if not (isinstance(trigger_count, int) or isinstance(trigger_count, float)) or trigger_count <= 0:
                 raise ValueError("trigger_count must be a positive number.")
             if isinstance(trigger_count, float) and 0 < trigger_count <= 1:
-                self.compress_config["trigger_count"] = int(
-                    trigger_count * get_max_token_limit(self.llm_config["model"])
-                )
+                self.compress_config["trigger_count"] = int(trigger_count * max_token_allowed)
                 trigger_count = self.compress_config["trigger_count"]
-            init_count = self._compute_init_token_count()
-            if trigger_count < init_count:
                 print(
-                    f"Warning: trigger_count {trigger_count} is less than the initial token count {init_count} (system message + function description if passed), compression will be disabled. Please increase trigger_count if you want to enable compression."
+                    f"trigger_count is converted to {trigger_count} based on the max token limit {max_token_allowed} of the model `{max_token_model}` (largest context window in the config_list). If not desired, please revise `config_list` in llm_config."
+                )
+
+            init_count = self._compute_init_token_count(max_token_model)
+            if trigger_count < init_count:
+                self._print_warning(
+                    f"Warning: trigger_count {trigger_count} is less than the initial token count {init_count} (system message + function description if passed), compression will be disabled (otherwise it's performed at each turn). Please increase trigger_count if you want to enable compression."
                 )
                 self.compress_config = False
+                return
+            if trigger_count > max_token_allowed:
+                self._print_warning(
+                    f"Warning: trigger_count {trigger_count} is larger than {max_token_allowed} (of model `{max_token_model}`), the largest context window of all models in llm_config. Token Limit Error will be raised before trigger_count is reached."
+                )
 
+            # ------------------
+            # mode = "COMPRESS"
+            if self.compress_config["mode"] == "COMPRESS":
+                if self.compress_config["compress_llm_config"] is None:
+                    raise ValueError("compress_llm_config must be provided when mode is COMPRESS.")
+
+                # remove functions
+                if "functions" in self.compress_config["compress_llm_config"]:
+                    self._print_warning("Warning: functions are removed from compress_llm_config.")
+                    del self.compress_config["compress_llm_config"]["functions"]
+
+                self.compress_client = OpenAIWrapper(**self.compress_config["compress_llm_config"])
+
+                max_compress_token, max_compress_model = self._max_context_from_config_list(self.compress_client)
+                if max_compress_token < self.compress_config["trigger_count"]:
+                    self._print_warning(
+                        f"Warning: trigger_count {self.compress_config['trigger_count']} is larger than {max_compress_token} (of model `{max_compress_model}`), the largest context window of all models in the compress_llm_config. Token Limit Error from compression will be raised."
+                    )
+
+            # ------------------
+            # mode = "CUSTOMIZED"
             if self.compress_config["mode"] == "CUSTOMIZED" and self.compress_config["compress_function"] is None:
                 raise ValueError("compress_function must be provided when mode is CUSTOMIZED.")
             if self.compress_config["mode"] != "CUSTOMIZED" and self.compress_config["compress_function"] is not None:
-                print("Warning: compress_function is provided but mode is not 'CUSTOMIZED'.")
+                self._print_warning("Warning: compress_function is provided but mode is not 'CUSTOMIZED'.")
 
         else:
             self.compress_config = False
@@ -205,16 +257,16 @@ Reply "TERMINATE" in the end when everything is done.
                     return reply
         return self._default_auto_reply
 
-    def _compute_init_token_count(self):
-        """Check if the agent is LLM-based and compute the initial token count."""
+    def _compute_init_token_count(self, model: str) -> int:
+        """Check if the agent is LLM-based and compute the initial token count based on the given model."""
         if self.llm_config is False:
             return 0
 
         func_count = 0
         if "functions" in self.llm_config:
-            func_count = num_tokens_from_functions(self.llm_config["functions"], self.llm_config["model"])
+            func_count = num_tokens_from_functions(self.llm_config["functions"], model)
 
-        return func_count + count_token(self._oai_system_message, self.llm_config["model"])
+        return func_count + count_token(self._oai_system_message, model)
 
     def _manage_history_on_token_limit(self, messages, token_used, max_token_allowed, model):
         """Manage the message history with different modes when token limit is reached.
@@ -226,12 +278,8 @@ Reply "TERMINATE" in the end when everything is done.
         if self.compress_config["mode"] == "TERMINATE":
             if max_token_allowed - token_used <= 0:
                 # Terminate if no token left.
-                print(
-                    colored(
-                        f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existing token count: {token_used}',
-                        "yellow",
-                    ),
-                    flush=True,
+                self._print_warning(
+                    f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existing token count: {token_used}'
                 )
                 return True, None
             return False, None
@@ -289,14 +337,13 @@ Reply "TERMINATE" in the end when everything is done.
         TODO: async compress
         TODO: maintain a list for old oai messages (messages before compression)
         """
-        llm_config = self.llm_config if config is None else config
         if self.compress_config is False:
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
-        model = llm_config["model"]
-        init_token_count = self._compute_init_token_count()
+        model = self.compress_config["anchor_model"]
+        init_token_count = self._compute_init_token_count(model)
         token_used = init_token_count + count_token(messages, model)
         final, compressed_messages = self._manage_history_on_token_limit(
             messages, token_used, get_max_token_limit(model), model
@@ -343,7 +390,7 @@ Reply "TERMINATE" in the end when everything is done.
         # 2. stop if there is only one message in the list
         leave_last_n = self.compress_config.get("leave_last_n", 0)
         if leave_last_n + 1 >= len(messages):
-            logger.warning(
+            self._print_warning(
                 f"Warning: Compression skipped at trigger count threshold. The first msg and last {leave_last_n} msgs will not be compressed. current msg count: {len(messages)}. Consider raising trigger_count."
             )
             return False, None
