@@ -31,19 +31,19 @@ The following command will deactivate the current `conda` environment:
 conda deactivate
 ```
 
-### Option 3: poetry
+### Option 3: pdm
 
-Another option is with `poetry`, which is a dependency manager for Python.
+Another option is with `pdm`, which is a dependency manager for Python.
 
-[Poetry](https://python-poetry.org/docs/) is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you. Poetry offers a lockfile to ensure repeatable installs, and can build your project for distribution.
+[PDM](https://python-poetry.org/docs/) is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you. PDM offers a lockfile to ensure repeatable installs, and can build your project for distribution.
 
-You can install it by following [this doc](https://python-poetry.org/docs/#installation),
+You can install it by following [this doc](https://pdm-project.org/latest/#installation),
 and then create a virtual environment as below:
 ```bash
-poetry init
-poetry shell
+pdm init
+pdm venv activate
 
-poetry add pyautogen
+pdm add pyautogen
 ```
 
 The following command will deactivate the current `poetry` environment:
