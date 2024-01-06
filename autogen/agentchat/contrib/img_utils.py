@@ -95,7 +95,7 @@ def gpt4v_formatter(prompt: str) -> List[Union[str, dict]]:
     """Formats the input prompt by replacing image tags and returns a list of text and images.
 
     Parameters:
-        - prompt (str): The input string that may contain image tags like `<img ...>`.
+        - prompt (str): The input string that may contain image tags like <img ...>.
 
     Returns:
         - List[Union[str, dict]]: A list of alternating text and image dictionary items.

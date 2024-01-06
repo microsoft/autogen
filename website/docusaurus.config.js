@@ -13,7 +13,7 @@ module.exports = {
   organizationName: "Microsoft", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
   markdown: {
-    format: 'detect',
+    format: 'detect', // Support for MD files with .md extension
   },
   themeConfig: {
     navbar: {
