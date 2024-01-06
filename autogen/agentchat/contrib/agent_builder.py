@@ -208,8 +208,9 @@ output after executing the code) and provide a corrected answer or code.
         )
         if len(config_list) == 0:
             raise RuntimeError(
-                f"Fail to initialize agent:{agent_name}: {self.builder_model} does not exist in {self.config_file_or_env}. "
-                f'If you would like to change this model, please specify the "agent_model" in the constructor.'
+                f"Fail to initialize agent {agent_name}: {model_name_or_hf_repo} does not exist in {self.config_file_or_env}.\n"
+                f'If you would like to change this model, please specify the "agent_model" in the constructor.\n'
+                f"If you load configs from json, make sure the model in agent_configs is in the {self.config_file_or_env}."
             )
         if "gpt-" in model_name_or_hf_repo:
             server_id = self.openai_server_name
