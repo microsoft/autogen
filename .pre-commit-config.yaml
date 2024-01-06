@@ -31,3 +31,14 @@ repos:
     hooks:
       - id: ruff
         args: ["--fix"]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        exclude: |
+            (?x)^(
+              pyproject.toml
+                # samples/apps/autogen-studio/autogenstudio/utils/dbdefaults.json |
+                # notebook/agentchat_RetrieveChat.ipynb |
+                # notebook/agentchat_dalle_and_gpt4v.ipynb
+            )$
