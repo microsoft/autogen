@@ -18,6 +18,7 @@
   },
   "receiver": {
     "type": "groupchat",
+    "description": "A group chat workflow",
     "config": {
       "name": "group_chat_manager",
       "llm_config": {

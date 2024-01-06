@@ -1403,22 +1403,26 @@ export const AgentSelector = ({
             </div>
             <div className="mt-2 text-secondary text-sm">
               {" "}
-              {flowSpec.skills && (
-                <span className="text-xs">
-                  {flowSpec.skills?.length} skills
-                </span>
-              )}
+              <span className="text-xs">
+                {(flowSpec.skills && flowSpec.skills?.length) || 0} skills
+              </span>
+              <span className="text-xs mx-2 ">
+                | max replies: {flowSpec.config.max_consecutive_auto_reply}
+              </span>
             </div>
           </div>
         )}
       </div>
-
-      <AgentModal
-        agent={flowSpec}
-        setAgent={setFlowSpec}
-        showAgentModal={isModalVisible}
-        setShowAgentModal={setIsModalVisible}
-      />
+      {
+        <>
+          <AgentModal
+            agent={flowSpec}
+            setAgent={setFlowSpec}
+            showAgentModal={isModalVisible}
+            setShowAgentModal={setIsModalVisible}
+          />
+        </>
+      }
     </div>
   );
 };
