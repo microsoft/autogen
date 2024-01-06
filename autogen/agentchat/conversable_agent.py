@@ -833,10 +833,10 @@ class ConversableAgent(Agent):
 
         return False, None
 
-    def _str_for_tool_response(self, tool_call):
-        func_name = tool_call.get("name", "")
-        func_id = tool_call.get("tool_call_id", "")
-        response = tool_call.get("content", "")
+    def _str_for_tool_response(self, tool_response):
+        func_name = tool_response.get("name", "")
+        func_id = tool_response.get("tool_call_id", "")
+        response = tool_response.get("content", "")
         return f"Tool call: {func_name}\nId: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
