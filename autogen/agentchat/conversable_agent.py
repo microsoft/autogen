@@ -1413,7 +1413,7 @@ class ConversableAgent(Agent):
                 RuntimeError: if the LLM config is not set up before registering a function.
 
             """
-            # name can be overwriten by the parameter, by default it is the same as function name
+            # name can be overwritten by the parameter, by default it is the same as function name
             if name:
                 func._name = name
             elif not hasattr(func, "_name"):
@@ -1477,7 +1477,7 @@ class ConversableAgent(Agent):
                 ValueError: if the function description is not provided and not propagated by a previous decorator.
 
             """
-            # name can be overwriten by the parameter, by default it is the same as function name
+            # name can be overwritten by the parameter, by default it is the same as function name
             if name:
                 func._name = name
             elif not hasattr(func, "_name"):

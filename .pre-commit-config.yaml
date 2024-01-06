@@ -35,10 +35,11 @@ repos:
     rev: v2.2.6
     hooks:
       - id: codespell
+        args: ["-L", "ans,linar,nam,"]
         exclude: |
             (?x)^(
-              pyproject.toml
-                # samples/apps/autogen-studio/autogenstudio/utils/dbdefaults.json |
-                # notebook/agentchat_RetrieveChat.ipynb |
-                # notebook/agentchat_dalle_and_gpt4v.ipynb
+              pyproject.toml |
+              website/static/img/ag.svg |
+              website/yarn.lock |
+              notebook/.*
             )$
