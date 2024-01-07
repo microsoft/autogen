@@ -94,6 +94,7 @@ class ConversableAgent(Agent):
                     If None, False or empty, the code will be executed in the current environment.
                     Default is True when the docker python package is installed.
                     When set to True, a default list will be used.
+                - env_vars (Optional, dict or None): The environment variables for code execution.
                     We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. Default to 1. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke (typically this is the last time execution was attempted).
