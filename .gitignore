@@ -165,7 +165,7 @@ key_aoai.txt
 base_aoai.txt
 wolfram.txt
 
-# DB on disk for TeachableAgent
+# DB on disk for Teachability
 tmp/
 test/my_tmp/*
 

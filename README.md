@@ -7,14 +7,17 @@
 
 
 # AutoGen
-
+[📚 Cite paper](#related-papers).
 <!-- <p align="center">
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
-:fire: Nov 24: pyautogen [v0.2](https://github.com/microsoft/autogen/releases/tag/v0.2.0) is released with many updates and new features compared to v0.1.1. It switches to using openai-python v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python).
 
-:fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples.
+:fire: Dec 31: [AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework](https://arxiv.org/abs/2308.08155) is selected by [TheSequence: My Five Favorite AI Papers of 2023](https://thesequence.substack.com/p/my-five-favorite-ai-papers-of-2023).
+
+<!-- :fire: Nov 24: pyautogen [v0.2](https://github.com/microsoft/autogen/releases/tag/v0.2.0) is released with many updates and new features compared to v0.1.1. It switches to using openai-python v1. Please read the [migration guide](https://microsoft.github.io/autogen/docs/Installation#python). -->
+
+<!-- :fire: Nov 11: OpenAI's Assistants are available in AutoGen and interoperatable with other AutoGen agents! Checkout our [blogpost](https://microsoft.github.io/autogen/blog/2023/11/13/OAI-assistants) for details and examples. -->
 
 :fire: Nov 8: AutoGen is selected into [Open100: Top 100 Open Source achievements](https://www.benchcouncil.org/evaluation/opencs/annual.html) 35 days after spinoff.
 
@@ -22,11 +25,11 @@
 
 :fire: Nov 1: AutoGen is the top trending repo on GitHub in October 2023.
 
-:tada: Oct 03: AutoGen spins off from [FLAML](https://github.com/microsoft/FLAML) on Github and has a major paper update.
+:tada: Oct 03: AutoGen spins off from FLAML on Github and has a major paper update (first version on Aug 16).
 
-:tada: Aug 16: Paper about AutoGen on [arxiv](https://arxiv.org/abs/2308.08155). [📚 Cite paper](#related-papers).
+<!-- :tada: Aug 16: Paper about AutoGen on [arxiv](https://arxiv.org/abs/2308.08155). -->
 
-:tada: Mar 29: AutoGen is first created in [FLAML](https://github.com/microsoft/FLAML/pull/968).
+:tada: Mar 29: AutoGen is first created in [FLAML](https://github.com/microsoft/FLAML).
 
 <!--
 :fire: FLAML is highlighted in OpenAI's [cookbook](https://github.com/openai/openai-cookbook#related-resources-from-around-the-web).
@@ -224,7 +227,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Contributors Wall
 <a href="https://github.com/microsoft/autogen/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=microsoft/autogen" />
+  <img src="https://contrib.rocks/image?repo=microsoft/autogen&max=200" />
 </a>
 
 # Legal Notices
