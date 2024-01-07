@@ -49,6 +49,3 @@ repos:
       - id: nbqa-ruff
         args: ["--fix"]
       - id: nbqa-black
-        additional_dependencies: [black]  # optional, only if you're using Jupytext
-      # - id: nbqa-pyupgrade
-      #   args: ["--py37-plus"]
