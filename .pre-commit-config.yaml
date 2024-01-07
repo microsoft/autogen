@@ -43,3 +43,12 @@ repos:
               website/yarn.lock |
               notebook/.*
             )$
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.7.1
+    hooks:
+      - id: nbqa-ruff
+        args: ["--fix"]
+      - id: nbqa-black
+        additional_dependencies: [black]  # optional, only if you're using Jupytext
+      # - id: nbqa-pyupgrade
+      #   args: ["--py37-plus"]
