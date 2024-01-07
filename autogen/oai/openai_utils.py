@@ -261,7 +261,7 @@ def config_list_from_models(
     """
     Get a list of configs for API calls with models specified in the model list.
 
-    This function extends `config_list_openai_aoai` by allowing to clone its' out for each fof the models provided.
+    This function extends `config_list_openai_aoai` by allowing to clone its' out for each of the models provided.
     Each configuration will have a 'model' key with the model name as its value. This is particularly useful when
     all endpoints have same set of models.
 
