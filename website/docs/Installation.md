@@ -26,21 +26,14 @@ Once you build the docker image, you can use `docker images` to check whether it
 
 #### Step 3.  Run applications built with AutoGen from a docker image.
 
-**Save keys into environment variable:**
-If your application needs an oai key, save your oai key into an environment variable `OPENAI_API_KEY`, which can be done by adding the following line in your `~/.bashrc` (or `~/.zshrc`),
-
-```
-export OPENAI_API_KEY="sk-xxxxxx"
-```
-
-**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a folder named `myapp`. You can mount it into the docker image and run it. In the example below, the folder `myapp` is mounted into `/myapp` in the docker, and the script `main_twoagent.py` is executed in the docker.
+**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mont your folder and run the application in docker.
 
 ```python
-# Mount the local folder `myapp` into docker image and run the script in the docker.
-docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
+# Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
+docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
 ```
 
-Similarly, you may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full`) as below:
+You may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full` and you have set the environment variable `OPENAI_API_KEY` to your OpenAI API key) as below:
 
 ```
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_full_img:latest autogenra ui --host 0.0.0.0
