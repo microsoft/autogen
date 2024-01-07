@@ -152,6 +152,10 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
+        # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
+        # New hookable methods should be added to this list as required to support new agent capabilities.
+        self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+
     def register_reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
@@ -757,7 +761,7 @@ class ConversableAgent(Agent):
                 else:
                     messages_to_scan += 1
 
-        # iterate through the last n messages reversely
+        # iterate through the last n messages in reverse
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
         for i in range(min(len(messages), messages_to_scan)):
@@ -1173,6 +1177,10 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        # Call the hookable method that gives registered hooks a chance to process the last message.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_last_message(messages)
+
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
@@ -1224,6 +1232,10 @@ class ConversableAgent(Agent):
 
         if messages is None:
             messages = self._oai_messages[sender]
+
+        # Call the hookable method that gives registered hooks a chance to process the last message.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_last_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1757,3 +1769,56 @@ class ConversableAgent(Agent):
             return func
 
         return _decorator
+
+    def register_hook(self, hookable_method: Callable, hook: Callable):
+        """
+        Registers a hook to be called by a hookable method, in order to add a capability to the agent.
+        Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
+
+        Args:
+            hookable_method: A hookable method implemented by ConversableAgent.
+            hook: A method implemented by a subclass of AgentCapability.
+        """
+        assert hookable_method in self.hook_lists, f"{hookable_method} is not a hookable method."
+        hook_list = self.hook_lists[hookable_method]
+        assert hook not in hook_list, f"{hook} is already registered as a hook."
+        hook_list.append(hook)
+
+    def process_last_message(self, messages):
+        """
+        Calls any registered capability hooks to use and potentially modify the text of the last message,
+        as long as the last message is not a function call or exit command.
+        """
+
+        # If any required condition is not met, return the original message list.
+        hook_list = self.hook_lists[self.process_last_message]
+        if len(hook_list) == 0:
+            return messages  # No hooks registered.
+        if messages is None:
+            return None  # No message to process.
+        if len(messages) == 0:
+            return messages  # No message to process.
+        last_message = messages[-1]
+        if "function_call" in last_message:
+            return messages  # Last message is a function call.
+        if "context" in last_message:
+            return messages  # Last message contains a context key.
+        if "content" not in last_message:
+            return messages  # Last message has no content.
+        user_text = last_message["content"]
+        if not isinstance(user_text, str):
+            return messages  # Last message content is not a string. TODO: Multimodal agents will use a dict here.
+        if user_text == "exit":
+            return messages  # Last message is an exit command.
+
+        # Call each hook (in order of registration) to process the user's message.
+        processed_user_text = user_text
+        for hook in hook_list:
+            processed_user_text = hook(processed_user_text)
+        if processed_user_text == user_text:
+            return messages  # No hooks actually modified the user's message.
+
+        # Replace the last user message with the expanded one.
+        messages = messages.copy()
+        messages[-1]["content"] = processed_user_text
+        return messages

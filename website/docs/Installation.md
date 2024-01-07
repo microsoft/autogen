@@ -138,14 +138,14 @@ Example notebooks:
 [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
 
 
-- #### TeachableAgent
+- #### Teachability
 
-To use TeachableAgent, please install AutoGen with the [teachable] option.
+To use Teachability, please install AutoGen with the [teachable] option.
 ```bash
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook:  [Chatting with TeachableAgent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook:  [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 
 
