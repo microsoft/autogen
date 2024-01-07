@@ -77,7 +77,9 @@ class LLaVAAgent(MultimodalConversableAgent):
             content_prompt = content_str(msg["content"])
             prompt += f"{SEP}{role}: {content_prompt}\n"
         prompt += "\n" + SEP + "Assistant: "
-        images = [re.sub("data:image/.+;base64,", "", im, count=1) for im in images]
+
+        # TODO: PIL to base64
+        images = [get_image_data(im) for im in images]
         print(colored(prompt, "blue"))
 
         out = ""
