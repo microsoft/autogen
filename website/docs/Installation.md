@@ -33,12 +33,12 @@ Once you build the docker image, you can use `docker images` to check whether it
 docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
 ```
 
-You may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full` and you have set the environment variable `OPENAI_API_KEY` to your OpenAI API key) as below:
+<!-- You may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full` and you have set the environment variable `OPENAI_API_KEY` to your OpenAI API key) as below:
 
 ```
 docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_full_img:latest autogenra ui --host 0.0.0.0
 ```
-Then open `http://localhost:8081/` in your browser to use AutoGen Studio.
+Then open `http://localhost:8081/` in your browser to use AutoGen Studio. -->
 
 ## Option 2: Install AutoGen Locally Using Virtual Environment
 
