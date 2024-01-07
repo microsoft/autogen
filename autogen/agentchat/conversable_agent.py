@@ -348,9 +348,6 @@ class ConversableAgent(Agent):
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
-    def _normalize_name(self, name):
-        return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
-
     def send(
         self,
         message: Union[Dict, str],
@@ -1408,8 +1405,6 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
-        # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
-        func_name = self._normalize_name(func_name)
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False
@@ -1465,8 +1460,6 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
         func_name = func_call.get("name", "")
-        # OpenAI API blows up if name doesn't match /^[a-zA-Z0-9_-]{1,64}$/
-        func_name = self._normalize_name(func_name)
         func = self._function_map.get(func_name, None)
 
         is_exec_success = False

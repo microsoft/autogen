@@ -269,9 +269,8 @@ Reply "TERMINATE" in the end when everything is done.
         }
         if "content" not in oai_message:
             if "function_call" in oai_message or "tool_calls" in oai_message:
-                oai_message[
-                    "content"
-                ] = None  # if only function_call or tool_calls is provided, content will be set to None.
+                # if only function_call or tool_calls is provided, content will be set to None.
+                oai_message["content"] = None
             else:
                 raise ValueError(
                     "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
