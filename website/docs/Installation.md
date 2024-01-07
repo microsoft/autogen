@@ -66,7 +66,7 @@ deactivate
 
 ### Option b: conda
 
-Another option is with `Conda`, Conda works better at solving dependency conflicts than pip. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
+Another option is with `Conda`. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
 ```bash
 conda create -n pyautogen python=3.10  # python 3.10 is recommended as it's stable and not too old
