@@ -140,7 +140,7 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
 ### Optional Dependencies
 - #### docker
 
-For the best user experience and seamless code execution, even if you are installing AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
+Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
 
 To use docker for code execution, you also need to install the python package `docker`:
 ```bash
