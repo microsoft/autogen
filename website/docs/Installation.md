@@ -147,6 +147,19 @@ To use docker for code execution, you also need to install the python package `d
 pip install docker
 ```
 
+You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    human_input_mode="TERMINATE",
+    max_consecutive_auto_reply=10,
+    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
+    llm_config=llm_config,
+    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
+Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
+)
+```
+
 - #### blendsearch
 
 `pyautogen<0.2` offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Please install with the [blendsearch] option to use it.
