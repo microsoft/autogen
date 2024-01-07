@@ -162,7 +162,7 @@ For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
+1. Recursively copy the contents of `./includes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
 2. Append the OAI_CONFIG_LIST to the ENV file so that autogen may access these secrets.
 3. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
 4. Apply any templating, as outlined in the prior section.
