@@ -694,7 +694,7 @@ class ConversableAgent(Agent):
             tool_responses = message.get("tool_responses", [])
             if tool_responses:
                 all_messages += tool_responses
-                # tool role on the parent message means the content is just concatentation of all of the tool_responses
+                # tool role on the parent message means the content is just concatenation of all of the tool_responses
                 if message.get("role") != "tool":
                     all_messages.append({key: message[key] for key in message if key != "tool_responses"})
             else:
@@ -1682,7 +1682,7 @@ class ConversableAgent(Agent):
                 RuntimeError: if the LLM config is not set up before registering a function.
 
             """
-            # name can be overwriten by the parameter, by default it is the same as function name
+            # name can be overwritten by the parameter, by default it is the same as function name
             if name:
                 func._name = name
             elif not hasattr(func, "_name"):
@@ -1746,7 +1746,7 @@ class ConversableAgent(Agent):
                 ValueError: if the function description is not provided and not propagated by a previous decorator.
 
             """
-            # name can be overwriten by the parameter, by default it is the same as function name
+            # name can be overwritten by the parameter, by default it is the same as function name
             if name:
                 func._name = name
             elif not hasattr(func, "_name"):
