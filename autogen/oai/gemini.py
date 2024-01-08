@@ -93,7 +93,6 @@ class GeminiClient:
                 response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
             except InternalServerError as e:
                 print(e)
-                # pdb.set_trace()
                 print("InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...")
                 time.sleep(5)
                 return self.call(params)
@@ -114,7 +113,6 @@ class GeminiClient:
                 )
 
             response = model.generate_content(user_message, stream=stream)
-            # pdb.set_trace()
             # ans = response.text
             ans = response._result.candidates[0].content.parts[0].text
 
@@ -212,10 +210,16 @@ def oai_messages_to_gemini_messages(messages: list[Dict[str, Any]]) -> list[dict
     # handle the last message
     rst.append(Content(parts=concat_parts(curr_parts), role=role))
 
-    assert rst[-1].role == "user", "The last message must be from the user role."
+    # The Gemini is restrict on order of roles, such that
+    # 1. The messages should be interleaved between user and model.
+    # 2. The last message must be from the user role.
+    # We add a dummy message "continue" if the last role is not the user.
+    if rst[-1].role != "user":
+        rst.append(Content(parts=oai_content_to_gemini_content("continue"), role="user"))
 
-    # from termcolor import colored
-    # print(colored(f"Converted messages: {rst}", "green"))
+    # TODO: as many LLM/LMM models are not as smart as OpenAI models, we need
+    # to discuss how to design GroupChat and API protocol to make sure different
+    # models can be used together with consistent behaviors.
 
     return rst
 
