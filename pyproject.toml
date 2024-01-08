@@ -1,3 +1,7 @@
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
 [metadata]
 license_file = "LICENSE"
 description-file = "README.md"
@@ -116,7 +120,3 @@ graphs = [
     "matplotlib~=3.8.1",
     "networkx~=3.2.1",
 ]
-
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
