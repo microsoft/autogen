@@ -10,7 +10,8 @@ on:
       - 'autogen/**'
       - 'test/agentchat/contrib/**'
       - '.github/workflows/contrib-tests.yml'
-      - 'setup.py'
+      - 'pyproject.toml'
+      - 'pdm.lock'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

@@ -10,7 +10,8 @@ on:
       - 'autogen/**'
       - 'test/agentchat/contrib/**'
       - '.github/workflows/contrib-openai.yml'
-      - 'setup.py'
+      - 'pyproject.toml'
+      - 'pdm.lock'
 
 jobs:
   RetrieveChatTest:
@@ -21,6 +22,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
+      - uses: pdm-project/setup-pdm@v3
       # checkout to pr branch
       - name: Checkout
         uses: actions/checkout@v3
@@ -34,14 +36,13 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pdm install -d
           python -c "import autogen"
-          pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install docker
           pip install qdrant_client[fastembed]
-          pip install -e .[retrievechat]
+          pdm install -d -G retrievechat
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -64,6 +65,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
+      - uses: pdm-project/setup-pdm@v3
       # checkout to pr branch
       - name: Checkout
         uses: actions/checkout@v3
@@ -77,9 +79,8 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pdm install -d
           python -c "import autogen"
-          pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -105,6 +106,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
+      - uses: pdm-project/setup-pdm@v3
       # checkout to pr branch
       - name: Checkout
         uses: actions/checkout@v3
@@ -118,9 +120,8 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pip install -d
           python -c "import autogen"
-          pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -146,6 +147,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
+      - uses: pdm-project/setup-pdm@v3
       # checkout to pr branch
       - name: Checkout
         uses: actions/checkout@v3
@@ -159,9 +161,8 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[teachable]
+          pdm install -d -G teachable
           python -c "import autogen"
-          pip install coverage pytest
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -184,6 +185,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
+      - uses: pdm-project/setup-pdm@v3
       # checkout to pr branch
       - name: Checkout
         uses: actions/checkout@v3
@@ -197,12 +199,11 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pdm install -d
           python -c "import autogen"
-          pip install coverage pytest-asyncio
       - name: Install packages for test when needed
         run: |
-          pip install -e .[autobuild]
+          pdm install -d -G autobuild
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

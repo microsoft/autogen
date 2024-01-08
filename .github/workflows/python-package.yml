@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     environment: package
     steps:
+      - uses: pdm-project/setup-pdm@v3
       - name: Checkout
         uses: actions/checkout@v3
       # - name: Cache conda
@@ -35,18 +36,17 @@ jobs:
       - name: Install from source
         # This is required for the pre-commit tests
         shell: pwsh
-        run: pip install .
+        run: pdm install
       # - name: Conda list
       #   shell: pwsh
       #   run: conda list
       - name: Build
         shell: pwsh
         run: |
-          pip install twine
-          python setup.py sdist bdist_wheel
+          pdm build
       - name: Publish to PyPI
         env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          PDM_PUBLISH_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          PDM_PUBLISH_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         shell: pwsh
-        run: twine upload dist/*
+        run: pdm publish --no-build

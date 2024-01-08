@@ -10,7 +10,8 @@ on:
       - 'autogen/**'
       - 'test/**'
       - '.github/workflows/build.yml'
-      - 'setup.py'
+      - 'pyproject.toml'
+      - 'pdm.lock'
   pull_request:
     branches: ['main']
   merge_group:
@@ -31,6 +32,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
+      - uses: pdm-project/setup-pdm@v3
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -38,9 +40,8 @@ jobs:
       - name: Install packages and dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pdm install -d
           python -c "import autogen"
-          pip install -e. pytest mock
       - name: Test with pytest
         if: matrix.python-version != '3.10'
         run: |
@@ -48,7 +49,7 @@ jobs:
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[test]
+          pdm install -d -G test
           coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
