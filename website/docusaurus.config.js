@@ -14,8 +14,9 @@ module.exports = {
   projectName: "AutoGen", // Usually your repo name.
   scripts: [
     {
-      src: './js/custom.js',
+      src: '/autogen/js/custom.js',
       async: true,
+      defer: true,
     },
   ],
   themeConfig: {
