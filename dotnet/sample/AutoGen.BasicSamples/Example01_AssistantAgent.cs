@@ -4,6 +4,7 @@
 using AutoGen;
 using FluentAssertions;
 using autogen = AutoGen.API;
+
 /// <summary>
 /// This example shows the basic usage of <see cref="ConversableAgent"/> class.
 /// </summary>

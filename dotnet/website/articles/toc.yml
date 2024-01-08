@@ -3,8 +3,11 @@
 - name: Installation
   href: Installation.md
 
-- name: Create an agent
+- name: Create AssistantAgent
   href: Create-an-agent.md
+
+- name: Create UserProxyAgent
+  href: Create-a-user-proxy-agent.md
 
 - name: Use function call
   href: Use-function-call.md
