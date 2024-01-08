@@ -4,6 +4,10 @@ AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen tasks
 
 AutoGenBench works with all AutoGen 0.1.*, and 0.2.* versions.
 
+## Technical Specifications
+
+If you are already an AutoGenBench pro, and want the full technical specifications, please review the [contributor's guide](CONTRIBUTING.md).
+
 ## Installation and Setup
 
 **To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the easiest way to do this is to install it via `pip`:
