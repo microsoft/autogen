@@ -1,10 +1,50 @@
 # Installation
 
-## Setup Virtual Environment
+## Option 1: Install and Run AutoGen in Docker
 
-When not using a docker container, we recommend using a virtual environment to install AutoGen. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
+[Docker](https://www.docker.com/) is a containerization platform that simplifies the setup and execution of your code. A properly built docker image could provide isolated and consistent environment to run your code securely across platforms. One option of using AutoGen is to install and run it in a docker container. You can do that in [Github codespace](https://codespaces.new/microsoft/autogen?quickstart=1) or follow the instructions below to do so.
 
-### Option 1: venv
+#### Step 1. Install Docker.
+
+Install docker following [this instruction](https://docs.docker.com/get-docker/).
+
+For Mac users, alternatively you may choose to install [colima](https://smallsharpsoftwaretools.com/tutorials/use-colima-to-run-docker-containers-on-macos/) to run docker containers, if there is any issues with starting the docker daemon.
+
+#### Step 2. Build a docker image
+
+AutoGen provides [dockerfiles](https://github.com/microsoft/autogen/tree/main/samples/dockers/) that could be used to build docker images. Use the following command line to build a docker image named `autogen_img` (or other names you prefer) from one of the provided dockerfiles named `Dockerfile.base`:
+
+```
+docker build -f samples/dockers/Dockerfile.base -t autogen_img https://github.com/microsoft/autogen.git#main
+```
+which includes some common python libraries and essential dependencies of AutoGen, or build from `Dockerfile.full` which include additional dependencies for more advanced features of AutoGen with the following command line:
+
+```
+docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
+```
+Once you build the docker image, you can use `docker images` to check whether it has been created successfully.
+
+#### Step 3.  Run applications built with AutoGen from a docker image.
+
+**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mont your folder and run the application in docker.
+
+```python
+# Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
+docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
+```
+
+<!-- You may also run [AutoGen Studio](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) (assuming that you have built a docker image named `autogen_full_img` with `Dockerfile.full` and you have set the environment variable `OPENAI_API_KEY` to your OpenAI API key) as below:
+
+```
+docker run -it -e OPENAI_API_KEY=$OPENAI_API_KEY -p 8081:8081 autogen_full_img:latest autogenra ui --host 0.0.0.0
+```
+Then open `http://localhost:8081/` in your browser to use AutoGen Studio. -->
+
+## Option 2: Install AutoGen Locally Using Virtual Environment
+
+When installing AutoGen locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
+
+### Option a: venv
 
 You can create a virtual environment with `venv` as below:
 ```bash
@@ -17,9 +57,9 @@ The following command will deactivate the current `venv` environment:
 deactivate
 ```
 
-### Option 2: conda
+### Option b: conda
 
-Another option is with `Conda`, Conda works better at solving dependency conflicts than pip. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
+Another option is with `Conda`. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
 ```bash
 conda create -n pyautogen python=3.10  # python 3.10 is recommended as it's stable and not too old
@@ -31,7 +71,7 @@ The following command will deactivate the current `conda` environment:
 conda deactivate
 ```
 
-### Option 3: poetry
+### Option c: poetry
 
 Another option is with `poetry`, which is a dependency manager for Python.
 
@@ -93,11 +133,24 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
 ### Optional Dependencies
 - #### docker
 
-For the best user experience and seamless code execution, we highly recommend using Docker with AutoGen. Docker is a containerization platform that simplifies the setup and execution of your code. Developing in a docker container, such as GitHub Codespace, also makes the development convenient.
+Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
 
-When running AutoGen out of a docker container, to use docker for code execution, you also need to install the python package `docker`:
+To use docker for code execution, you also need to install the python package `docker`:
 ```bash
 pip install docker
+```
+
+You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    human_input_mode="TERMINATE",
+    max_consecutive_auto_reply=10,
+    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
+    llm_config=llm_config,
+    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
+Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
+)
 ```
 
 - #### blendsearch
@@ -138,14 +191,14 @@ Example notebooks:
 [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
 
 
-- #### TeachableAgent
+- #### Teachability
 
-To use TeachableAgent, please install AutoGen with the [teachable] option.
+To use Teachability, please install AutoGen with the [teachable] option.
 ```bash
 pip install "pyautogen[teachable]"
 ```
 
-Example notebook:  [Chatting with TeachableAgent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+Example notebook:  [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
 
 
