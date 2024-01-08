@@ -12,6 +12,9 @@ module.exports = {
   favicon: "img/ag.ico",
   organizationName: "Microsoft", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
+  markdown: {
+    format: 'detect', // Support for MD files with .md extension
+  },
   themeConfig: {
     navbar: {
       title: "AutoGen",
