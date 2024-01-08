@@ -50,9 +50,12 @@ unfixable = ["F401"]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
+[tool.pdm]
+version = { source = "file", path = "autogen/version.py" }
+
 [project]
 name = "pyautogen"
-version = "0.2.2"
+dynamic = ["version"]
 description = "Enabling Next-Gen LLM Applications via Multi-Agent Conversation Framework"
 readme = "README.md"
 authors = [
