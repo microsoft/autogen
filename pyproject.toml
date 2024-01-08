@@ -85,7 +85,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/microsoft/autogen"
 
-[project.optional-dependencies]
+[tool.pdm.dev-dependencies]
 test = [
     "coverage>=5.3",
     "ipykernel",
@@ -95,6 +95,8 @@ test = [
     "pytest-asyncio",
     "pytest>=6.1.1",
 ]
+
+[project.optional-dependencies]
 blendsearch = [
     "flaml[blendsearch]",
 ]
