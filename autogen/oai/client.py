@@ -1,25 +1,27 @@
 from __future__ import annotations
 
+import inspect
+import logging
 import os
 import sys
-from typing import List, Optional, Dict, Callable, Union
-import logging
-import inspect
+from typing import Callable, Dict, List, Optional, Union
+
 from flaml.automl.logger import logger_formatter
 from pydantic import ValidationError
 
-from autogen.oai.openai_utils import get_key, OAI_PRICE1K
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
 try:
+    import diskcache
     import openai
-    from openai import OpenAI, APIError, __version__ as OPENAIVERSION
+    from openai import APIError, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
-    import diskcache
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
@@ -27,6 +29,13 @@ try:
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
+
+try:
+    from autogen.oai.gemini import GeminiClient
+except ImportError:
+    GeminiClient = object
+
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -142,7 +151,10 @@ class OpenAIWrapper:
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         self._process_for_azure(openai_config, config)
-        client = OpenAI(**openai_config)
+        if config.get("api_type") == "google":
+            client = GeminiClient(**openai_config)
+        else:
+            client = OpenAI(**openai_config)
         return client
 
     @classmethod
@@ -258,7 +270,10 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
-                response = self._completions_create(client, params)
+                if isinstance(client, GeminiClient):
+                    response = client.call(params)
+                else:
+                    response = self._completions_create(client, params)
             except APIError as err:
                 error_code = getattr(err, "code", None)
                 if error_code == "content_filter":
