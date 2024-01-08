@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using Azure.AI.OpenAI;
 
-namespace AutoGen.OpenAI.Extension;
+namespace AutoGen.OpenAI;
 
 public static class MessageExtension
 {

@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.Extension;
+using AutoGen.OpenAI;
 using FluentAssertions;
 using Xunit.Abstractions;
 

@@ -3,7 +3,7 @@
 
 using System.Text;
 
-namespace AutoGen.DotnetInteractive.Extension;
+namespace AutoGen.DotnetInteractive;
 
 public static class AgentExtension
 {
@@ -13,6 +13,11 @@ public static class AgentExtension
     /// if there's any, it will run the code block and send the result back as reply.
     /// </summary>
     /// <param name="agent"></param>
+    /// <example>
+    /// <![CDATA[
+    /// [!code-csharp[Dynamic_GroupChat_Get_MLNET_PR](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Get_MLNET_PR.cs)]
+    /// ]]>
+    /// </example>
     public static IAgent RegisterDotnetCodeBlockExectionHook(
         this IAgent agent,
         InteractiveService interactiveService,

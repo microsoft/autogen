@@ -7,12 +7,11 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-namespace AutoGen
+namespace AutoGen.OpenAI
 {
     public class GPTAgent : IAgent
     {

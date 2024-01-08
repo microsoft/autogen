@@ -3,7 +3,7 @@
 
 using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace AutoGen
+namespace AutoGen.OpenAI
 {
     public class AzureOpenAIConfig : ILLMConfig
     {

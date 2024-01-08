@@ -2,7 +2,6 @@
 // Example02_TwoAgent_MathChat.cs
 
 using AutoGen;
-using AutoGen.Extension;
 using FluentAssertions;
 using autogen = AutoGen.API;
 

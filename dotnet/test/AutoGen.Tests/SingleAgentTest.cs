@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using AutoGen.OpenAI.Extension;
+using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;

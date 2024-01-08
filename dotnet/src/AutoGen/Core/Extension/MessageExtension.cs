@@ -3,7 +3,7 @@
 
 using System.Text;
 
-namespace AutoGen.Extension
+namespace AutoGen
 {
     public static class MessageExtension
     {
@@ -27,7 +27,7 @@ namespace AutoGen.Extension
             }
 
             // write metadata
-            if (message.Metadata is { Count: > 0})
+            if (message.Metadata is { Count: > 0 })
             {
                 sb.AppendLine($"metadata:");
                 foreach (var item in message.Metadata)

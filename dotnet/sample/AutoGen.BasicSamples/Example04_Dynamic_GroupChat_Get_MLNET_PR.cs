@@ -1,9 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Get_MLNET_PR.cs
 
+using System.Text;
 using System.Text.Json;
 using AutoGen;
-using AutoGen.DotnetInteractive.Extension;
+using AutoGen.DotnetInteractive;
 using FluentAssertions;
 using autogen = AutoGen.API;
 using GroupChat = AutoGen.GroupChat;
@@ -70,7 +71,7 @@ The output of the code is:
     /// <param name="hasMultipleCodeBlocks">true if there're multipe csharp code blocks</param>
     /// <param name="hasNugetPackages">true if there's nuget package to install</param>
     /// <param name="isTopLevelStatement">true if the code is in top level statement</param>
-    /// <param name="hasUsingDeclartion">true if the code has using declartion in front of disposable object</param>
+    /// <param name="hasUsingDeclartion">true if the code has using keyword in front of disposable object</param>
     /// <param name="isDotnetCodeBlock">true if the code block is csharp code block</param>
     [Function]
     public async Task<string> ReviewCodeBlock(
@@ -200,7 +201,7 @@ The output of the code is:
 
 Here're some rules to follow on writing dotnet code:
 - put code between ```csharp and ```
-- Add brace to using declaration when creating disposable object. e.g `using (var httpClient = new HttpClient())`
+- Avoid adding `using` keyword when creating disposable object. e.g `var httpClient = new HttpClient()`
 - Try to use `var` instead of explicit type.
 - Try avoid using external library, use .NET Core library instead.
 - Use top level statement to write code.
@@ -272,42 +273,54 @@ Here's some externel information
             // This process will repeat until the code block satisfy the following conditions:
             while (true)
             {
-                var reviewResult = await codeReviewAgent.SendAsync(reply);
+                var prompt = $@"You are a code reviewer who reviews code from coder. Below is the most recent reply from coder:
+
+### coder's reply ###
+{reply.Content}
+### end of coder's reply ###
+
+please carefully review the code block from coder and provide feedback.";
+                var reviewResult = await codeReviewAgent.SendAsync(prompt);
 
                 var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(reviewResult.Content!);
-                var chatHistory = new List<Message>();
+                var reviews = new List<string>();
                 if (reviewResultObj.HasMultipleCodeBlocks)
                 {
                     var fixCodeBlockPrompt = @"There're multiple code blocks, please combine them into one code block";
-                    var fixCodeBlockMessage = new Message(Role.User, fixCodeBlockPrompt);
-                    chatHistory.Add(fixCodeBlockMessage);
+                    reviews.Add(fixCodeBlockPrompt);
                 }
 
                 if (reviewResultObj.IsDotnetCodeBlock is false)
                 {
                     var fixCodeBlockPrompt = @"The code block is not csharp code block, please write dotnet code only";
-                    var fixCodeBlockMessage = new Message(Role.User, fixCodeBlockPrompt);
-                    chatHistory.Add(fixCodeBlockMessage);
+                    reviews.Add(fixCodeBlockPrompt);
                 }
 
                 if (reviewResultObj.HasUsingDeclartion is true)
                 {
                     var fixCodeBlockPrompt = @"Avoid adding using declaration, please remove using declaration, e.g var httpClient = new HttpClient()";
-                    var fixCodeBlockMessage = new Message(Role.User, fixCodeBlockPrompt);
-                    chatHistory.Add(fixCodeBlockMessage);
+                    reviews.Add(fixCodeBlockPrompt);
                 }
 
                 if (reviewResultObj.IsTopLevelStatement is false)
                 {
                     var fixCodeBlockPrompt = @"The code is not top level statement, please rewrite your dotnet code using top level statement";
-                    var fixCodeBlockMessage = new Message(Role.User, fixCodeBlockPrompt);
-                    chatHistory.Add(fixCodeBlockMessage);
+                    reviews.Add(fixCodeBlockPrompt);
                 }
 
-                if (chatHistory.Count > 0)
+                if (reviews.Count > 0)
                 {
-                    chatHistory.Add(reply);
-                    reply = await dotnetCoder.SendAsync(chatHistory: chatHistory);
+                    var sb = new StringBuilder();
+                    sb.AppendLine(@$"### code ###
+{reply.Content}
+### End of code ###");
+                    sb.AppendLine("There're some comments from code reviewer, please fix these comments");
+                    foreach (var review in reviews)
+                    {
+                        sb.AppendLine($"- {review}");
+                    }
+
+                    reply = await dotnetCoder.SendAsync(sb.ToString());
                     continue;
                 }
 
@@ -315,7 +328,7 @@ Here's some externel information
                 {
                     var installNugetPrompt = @"There're nuget packages to install, please install them";
                     var installNugetMessage = new Message(Role.User, installNugetPrompt);
-                    chatHistory = new List<Message>
+                    var chatHistory = new List<Message>
                     {
                         installNugetMessage,
                         reply,
