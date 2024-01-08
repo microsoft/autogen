@@ -135,7 +135,7 @@ def test_update_tool():
     assert "greet_user" not in messages2
 
 
-@pytest.mark.skipif(not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed or openai skipped")
 def test_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
