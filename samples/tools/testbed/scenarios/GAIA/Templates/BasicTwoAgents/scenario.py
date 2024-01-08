@@ -27,11 +27,7 @@ If you are asked for a comma separated list, apply the above rules depending of 
     """.strip()
 )
 
-
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    filter_dict={"model": ["__MODEL__"]},
-)
+config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 
 assistant = autogen.AssistantAgent(
     "assistant",
@@ -57,7 +53,7 @@ __PROMPT__
 """.strip()
 
 if len(filename) > 0:
-    question = f"Consider the file '{filename}', which can be read from the current working directory. {question}"
+    question = f"Consider the file '{filename}', which can be read from the current working directory. If you need to read or write it, output python code in a code block (```python) to do so. {question}"
 
 user_proxy.initiate_chat(assistant, message=question)
 

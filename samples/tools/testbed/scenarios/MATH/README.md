@@ -1,27 +1,19 @@
-## Get json file to run
+# MATH Benchmark
 
-This will convert the math problems to json format and put it in the `scenarios/MATH` folder.
-```sh
-cd samples/tools/testbed/
-python scenarios/MATH/problems_to_json.py
+This scenario implements the [MATH](https://arxiv.org/abs/2103.03874) benchmark.
+
+## Running the tasks
+
+```
+autogenbench run Tasks/math_two_agents.jsonl
+autogenbench tabulate Results/math_two_agents
 ```
 
-## Run the testbed
+By default, only a small subset (17 of 5000) MATH problems are exposed. Edit `Scripts/init_tasks.py` to expose more tasks.
 
-Note: this will first run autogen on the math problems, and then use a LLM as answer checker to check the answers.
-This means the results is not 100% accurate.
+*Note*: Scoring is done by prompting the LLM (ideally GPT-4) with both the proposed answer and the ground truth answer, and asking the LLM to grade itself.
 
-```sh
-python run_scenarios.py scenarios/MATH/problems.jsonl -c <config_list> --requirements math_requirements.txt
-```
-
-## Get the correct count
-Use `--path` or `-p` to specify the path to the problem directory, the default is `./results/problems/`, which is the default save path of this testbed.
-```sh
-python scenarios/MATH/count_correct_math.py --path <path_to_problem_dir>
-```
-
-Example output:
-```
-Trial 0 | Total Correct: 10 | Total Problems: 17
-```
+## References
+**Measuring Mathematical Problem Solving With the MATH Dataset**<br/>
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, Jacob Steinhardt<br/>
+[https://arxiv.org/abs/2103.03874](https://arxiv.org/abs/2103.03874)

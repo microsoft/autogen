@@ -7,20 +7,38 @@ import sys
 import time
 import pathlib
 import argparse
+import docker
+import np
 from autogen import config_list_from_json
+
+# Figure out where everything is
+SCRIPT_PATH = os.path.realpath(__file__)
+SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
+SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
+
+BASE_TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "template")
+RESOURCES_PATH = os.path.join(SCRIPT_DIR, "res")
 
 # What platform are we running?
 IS_WIN32 = sys.platform == "win32"
-
-# Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
-GLOBAL_INCLUDES_DIR = "includes"
 
 # This is the tag given to the image that is *built* when no other image is provided.
 # Do not use this field to specify the name of an existing image (e.g., on Dockerhub)
 DEFAULT_DOCKER_IMAGE_TAG = "autogen/testbed:default"
 
+DEFAULT_ENV_FILE = "ENV.json"
 
-def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, docker_image=None, results_dir="results"):
+
+def run_scenarios(
+    scenario,
+    n_repeats,
+    is_native,
+    config_list,
+    requirements,
+    docker_image=None,
+    results_dir="Results",
+    subsample=1,
+):
     """
     Run a set testbed scenarios a given number of times.
 
@@ -36,7 +54,7 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, doc
     files = []
 
     # Figure out which files or folders we are working with
-    if os.path.isfile(scenario):
+    if scenario == "-" or os.path.isfile(scenario):
         files.append(scenario)
     elif os.path.isdir(scenario):
         for f in os.listdir(scenario):
@@ -54,63 +72,77 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, doc
 
     # Run all the scenario files
     for scenario_file in files:
-        scenario_name = os.path.basename(scenario_file).split(".")
-        scenario_name.pop()
-        scenario_name = ".".join(scenario_name)
+        scenario_name = None
+        scenario_dir = None
+        file_handle = None
 
-        scenario_dir = os.path.dirname(os.path.realpath(scenario_file))
+        # stdin
+        if scenario_file == "-":
+            scenario_name = "stdin"
+            scenario_dir = "."
+            file_handle = sys.stdin
+        else:
+            scenario_name = os.path.basename(scenario_file).split(".")
+            scenario_name.pop()
+            scenario_name = ".".join(scenario_name)
+            scenario_dir = os.path.dirname(os.path.realpath(scenario_file))
+            file_handle = open(scenario_file, "rt")
 
         # Each line in the scenario file is an instance. Run it.
-        with open(scenario_file) as fh:
-            for line in fh:
-                instance = json.loads(line)
+        # for line in file_handle:
+        # subsample n instances from the file
+        line_list = np.random.choice(list(file_handle), size=subsample, replace=False)
+        print("line", len(line_list))
+        for line in line_list:
+            instance = json.loads(line)
 
-                # Create a folder to store the results
-                # Results base
-                if not os.path.isdir(results_dir):
-                    os.mkdir(results_dir)
+            # Create a folder to store the results
+            # Results base
+            if not os.path.isdir(results_dir):
+                os.mkdir(results_dir)
 
-                # Results for the scenario
-                results_scenario = os.path.join(results_dir, scenario_name)
-                if not os.path.isdir(results_scenario):
-                    os.mkdir(results_scenario)
+            # Results for the scenario
+            results_scenario = os.path.join(results_dir, scenario_name)
+            if not os.path.isdir(results_scenario):
+                os.mkdir(results_scenario)
 
-                # Results for the instance
-                results_instance = os.path.join(results_scenario, instance["id"])
-                if not os.path.isdir(results_instance):
-                    os.mkdir(results_instance)
+            # Results for the instance
+            results_instance = os.path.join(results_scenario, instance["id"])
+            if not os.path.isdir(results_instance):
+                os.mkdir(results_instance)
 
-                # Results for the repeats
-                for i in range(0, n_repeats):
-                    results_repetition = os.path.join(results_instance, str(i))
+            # Results for the repeats
+            for i in range(0, n_repeats):
+                results_repetition = os.path.join(results_instance, str(i))
 
-                    # Skip it if it already exists
-                    if os.path.isdir(results_repetition):
-                        print(f"Found folder {results_repetition} ... Skipping.")
-                        continue
-                    print(f"Running scenario {results_repetition}")
+                # Skip it if it already exists
+                if os.path.isdir(results_repetition):
+                    print(f"Found folder {results_repetition} ... Skipping.")
+                    continue
+                print(f"Running scenario {results_repetition}")
 
-                    # Expand the scenario
-                    expand_scenario(scenario_dir, instance, results_repetition)
+                # Expand the scenario
+                expand_scenario(scenario_dir, instance, results_repetition, requirements)
 
-                    # Append the config list to the ENV file
-                    with open(os.path.join(results_repetition, "ENV"), "at") as fh:
-                        config_list_json = json.dumps(config_list)
-                        fh.write(f"export OAI_CONFIG_LIST='{config_list_json}'\n")
+                # Prepare the environment (keys/values that need to be added)
+                env = get_scenario_env(config_list)
 
-                        # If set, append the OpenAI API Key
-                        openai_api_key = os.environ.get("OPENAI_API_KEY")
-                        if openai_api_key is not None and len(openai_api_key.strip()) > 0:
-                            fh.write(f"export OPENAI_API_KEY='{openai_api_key}'\n")
+                # Run the scenario
+                if is_native:
+                    run_scenario_natively(results_repetition, env)
+                else:
+                    run_scenario_in_docker(
+                        results_repetition,
+                        env,
+                        docker_image=docker_image,
+                    )
 
-                    # Run the scenario
-                    if is_native:
-                        run_scenario_natively(results_repetition)
-                    else:
-                        run_scenario_in_docker(results_repetition, requirements, docker_image=docker_image)
+        # Close regular files
+        if scenario_file != "-":
+            file_handle.close()
 
 
-def expand_scenario(scenario_dir, scenario, output_dir):
+def expand_scenario(scenario_dir, scenario, output_dir, requirements):
     """
     Expand a scenario into a folder.
     Despite some awkwardness created by backwards compatibility and notational conveniences, expansion is conceptually simple.
@@ -119,7 +151,7 @@ def expand_scenario(scenario_dir, scenario, output_dir):
 
     template = scenario["template"]
 
-    # Either key works for finding the substitutions list. "values" may be deprecated in the future
+    # Either key works for finding the substiturions list. "values" may be deprecated in the future
     substitutions = scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
 
     # Older versions are only one-level deep. Convert them,
@@ -145,7 +177,12 @@ def expand_scenario(scenario_dir, scenario, output_dir):
         raise ValueError("expand_scenario expects an str or list for 'template'")
 
     # The global includes folder is always copied
-    shutil.copytree(GLOBAL_INCLUDES_DIR, output_dir, ignore=shutil.ignore_patterns("*.example"), dirs_exist_ok=False)
+    shutil.copytree(
+        BASE_TEMPLATE_PATH,
+        output_dir,
+        ignore=shutil.ignore_patterns("*.example"),
+        dirs_exist_ok=False,
+    )
 
     # Expand other folders
     for items in copy_operations:
@@ -159,8 +196,12 @@ def expand_scenario(scenario_dir, scenario, output_dir):
                 # If the destination is a directory, use the same filename
                 shutil.copyfile(src_path, os.path.join(dest_path, os.path.basename(src_path)))
             else:
-                # Otherwise use the filename provided
+                # Otherwuse use the filename provided
                 shutil.copyfile(src_path, dest_path)
+
+    # Copy the requirements file if specified
+    if requirements is not None:
+        shutil.copyfile(requirements, pathlib.Path(os.path.join(output_dir, "requirements.txt")))
 
     # Expand templated files
     for templated_file in substitutions.keys():  # Keys are relative file paths
@@ -179,16 +220,45 @@ def expand_scenario(scenario_dir, scenario, output_dir):
                 fh.write(line)
 
 
-def run_scenario_natively(work_dir):
+def get_scenario_env(config_list, env_file=DEFAULT_ENV_FILE):
+    """
+    Return a dictionary of environment variables needed to run a scenario.
+
+    Args:
+        config_list (list): An Autogen OAI_CONFIG_LIST to be used when running scenarios.
+        env_file (str): The path to the env_file to read. (default: DEFAULT_ENV_FILE)
+
+    Returns: A dictionary of keys and values that need to be added to the system environment.
+    """
+    env = dict()
+    if os.path.isfile(env_file):
+        with open(env_file, "rt") as fh:
+            env = json.loads(fh.read())
+
+    config_list_json = json.dumps(config_list)
+    env["OAI_CONFIG_LIST"] = config_list_json
+
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    if openai_api_key is not None and len(openai_api_key.strip()) > 0:
+        env["OPENAI_API_KEY"] = openai_api_key
+
+    return env
+
+
+def run_scenario_natively(work_dir, env):
     """
     Run a scenario in the native environment.
 
     Args:
-        work_dir (path): the path to the working directory previously created to house this scenario instance
+        work_dir (path): the path to the working directory previously created to house this sceario instance
     """
 
     # Get the current working directory
     cwd = os.getcwd()
+
+    # Prepare the environment variables
+    full_env = os.environ.copy()
+    full_env.update(env)
 
     # Navigate to the scenario
     os.chdir(work_dir)
@@ -199,9 +269,6 @@ def run_scenario_natively(work_dir):
         f.write(
             """#
 export AUTOGEN_TESTBED_SETTING="Native"
-
-# Read the environment variables
-. ./ENV
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -215,9 +282,14 @@ fi
 
 # Run the scenario
 python scenario.py
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
+else
+    echo SCENARIO.PY COMPLETE !#!#
+fi
 
 # Clean up
-rm ENV
 if [ -d .cache ] ; then
     rm -Rf .cache
 fi
@@ -232,13 +304,18 @@ if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
-echo SCENARIO COMPLETE !#!#
+echo RUN COMPLETE !#!#
 """
         )
 
     # Run the script and log the output
     with open("console_log.txt", "wb") as f:
-        process = subprocess.Popen(["sh", "run.sh"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(
+            ["sh", "run.sh"],
+            env=full_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
         for c in iter(lambda: process.stdout.read(1), b""):
             f.write(c)
             os.write(sys.stdout.fileno(), c)  # Write binary to stdout
@@ -248,12 +325,12 @@ echo SCENARIO COMPLETE !#!#
     return
 
 
-def run_scenario_in_docker(work_dir, requirements, timeout=600, docker_image=None):
+def run_scenario_in_docker(work_dir, env, timeout=600, docker_image=None):
     """
     Run a scenario in a Docker environment.
 
     Args:
-        work_dir (path): the path to the working directory previously created to house this scenario instance
+        work_dir (path): the path to the working directory previously created to house this sceario instance
         timeout (Optional, int): the number of seconds to allow a Docker container to run before timing out
     """
 
@@ -289,12 +366,9 @@ def run_scenario_in_docker(work_dir, requirements, timeout=600, docker_image=Non
     # Prepare the run script
     with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
         f.write(
-            f"""#
+            """#
 export AUTOGEN_TESTBED_SETTING="Docker"
 umask 000
-
-# Read the environment variables
-. ./ENV
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -307,11 +381,16 @@ if [ -f scenario_init.sh ] ; then
 fi
 
 # Run the scenario
-pip install -r {requirements}
+pip install -r requirements.txt
 python scenario.py
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
+    echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
+else
+    echo SCENARIO.PY COMPLETE !#!#
+fi
 
 # Clean up
-rm ENV
 if [ -d .cache ] ; then
     rm -Rf .cache
 fi
@@ -326,7 +405,7 @@ if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
 fi
 
-echo SCENARIO COMPLETE !#!#
+echo RUN.SH COMPLETE !#!#
 """
         )
 
@@ -338,55 +417,66 @@ echo SCENARIO COMPLETE !#!#
         image,
         command=["sh", "run.sh"],
         working_dir="/workspace",
+        environment=env,
         detach=True,
         # get absolute path to the working directory
         volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
     )
 
-    # Poll until the container is done, or we've timed out
+    # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
     start_time = time.time()
-    while container.status != "exited" and time.time() - start_time < timeout:
-        # Reload the container object
-        container.reload()
+    logs = container.logs(stream=True)
+    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt")
+    stopping = False
 
-    if container.status != "exited":
-        container.stop()
+    for chunk in logs:  # When streaming it should return a generator
+        # Stream the data to the log file and the console
+        chunk = chunk.decode("utf-8")
+        log_file.write(chunk)
+        log_file.flush()
+        sys.stdout.write(chunk)
+        sys.stdout.flush()
 
-        logs = container.logs().decode("utf-8").rstrip() + "\nDocker timed out.\n"
-        print(logs)
-        with open(os.path.join(work_dir, "console_log.txt"), "wt") as f:
-            f.write(logs)
+        # Check if we need to terminate
+        if not stopping and time.time() - start_time >= timeout:
+            container.stop()
 
-        container.remove()
-        return
+            # Don't exit the loop right away, as there are things we may still want to read from the logs
+            # but remember how we got here.
+            stopping = True
 
-    # get the container logs
-    logs = container.logs().decode("utf-8").rstrip() + "\n"
-    container.remove()
-
-    print(logs)
-    with open(os.path.join(work_dir, "console_log.txt"), "wt") as f:
-        f.write(logs)
+    if stopping:  # By now it has actually stopped.
+        log_file.write("\nDocker timed out.\n")
+        log_file.flush()
+        sys.stdout.write("\nDocker timed out.\n")
+        sys.stdout.flush()
 
 
 def build_default_docker_image(docker_client, image_tag):
-    for segment in docker_client.api.build(path=".", dockerfile="Dockerfile", rm=True, tag=image_tag, decode=True):
+    for segment in docker_client.api.build(
+        path=RESOURCES_PATH,
+        dockerfile="Dockerfile",
+        rm=True,
+        tag=image_tag,
+        decode=True,
+    ):
         if "stream" in segment:
             sys.stdout.write(segment["stream"])
 
 
-###############################################################################
-if __name__ == "__main__":
-    script_name = os.path.basename(__file__)
+def run_cli(args):
+    invocation_cmd = args[0]
+    args = args[1:]
+
+    # Prepare the argument parser
     parser = argparse.ArgumentParser(
-        description=f"{script_name} will run the specified autogen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.".strip()
+        prog=invocation_cmd,
+        description=f"{invocation_cmd} will run the specified AutoGen scenarios for a given number of repetitions and record all logs and trace information. When running in a Docker environment (default), each run will begin from a common, tightly controlled, environment. The resultant logs can then be further processed by other scripts to produce metrics.".strip(),
     )
 
     parser.add_argument(
         "scenario",
-        nargs="?",
-        help="The JSONL scenario file to run. If a directory is specified, then all JSONL scenarios in the directory are run. (default: ./scenarios)",
-        default="scenarios",
+        help="The JSONL scenario file to run. If a directory is specified, then all JSONL scenarios in the directory are run. If set to '-', then read from stdin.",
     )
     parser.add_argument(
         "-c",
@@ -396,14 +486,30 @@ if __name__ == "__main__":
         default="OAI_CONFIG_LIST",
     )
     parser.add_argument(
-        "-r", "--repeat", type=int, help="The number of repetitions to run for each scenario (default: 1).", default=1
+        "-r",
+        "--repeat",
+        type=int,
+        help="The number of repetitions to run for each scenario (default: 1).",
+        default=1,
+    )
+    parser.add_argument(
+        "-s",
+        "--subsample",
+        type=int,
+        help="The number of repetitions to run for each scenario (default: 1).",
+        default=1,
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        help="Filters the config_list to include only models matching the provided model name (default: None, which is all models).",
+        default=None,
     )
     parser.add_argument(
         "--requirements",
         type=str,
-        help="The requirements file to pip install before running the scenario. This file must be found in the '"
-        + GLOBAL_INCLUDES_DIR
-        + "' directory. (default: requirements.txt)",
+        help="The requirements file to pip install before running the scenario.",
         default=None,
     )
     parser.add_argument(
@@ -421,23 +527,36 @@ if __name__ == "__main__":
         help="Run the scenarios natively rather than in docker. NOTE: This is not advisable, and should be done with great caution.",
     )
 
-    args = parser.parse_args()
+    parsed_args = parser.parse_args(args)
 
     # Load the OAI_CONFIG_LIST
-    config_list = config_list_from_json(env_or_file=args.config)
-    if len(config_list) == 0:
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
+    config_list = []
+    if parsed_args.model is not None:
+        config_list = config_list_from_json(
+            env_or_file=parsed_args.config,
+            filter_dict={"model": [parsed_args.model]},
+        )
+        if len(config_list) == 0:
+            sys.exit(
+                f"The model configuration list is empty. This may be because the '{parsed_args.config}' file or environment variable could not be found, or because the model filter '{parsed_args.model}' returned 0 results."
+            )
+    else:
+        config_list = config_list_from_json(env_or_file=parsed_args.config)
+        if len(config_list) == 0:
+            sys.exit(
+                f"The model configuration list is empty. This is likely because the '{parsed_args.config}' file or environment variable could not be found."
+            )
 
     # Don't allow both --docker-image and --native on the same command
-    if args.docker_image is not None and args.native:
+    if parsed_args.docker_image is not None and parsed_args.native:
         sys.exit("The options --native and --docker-image can not be used together. Exiting.")
 
     # Warn if running natively
-    if args.native:
+    if parsed_args.native:
         if IS_WIN32:
             sys.exit("Running scenarios with --native is not supported in Windows. Exiting.")
 
-        if args.requirements is not None:
+        if parsed_args.requirements is not None:
             sys.exit("--requirements is not compatible with --native. Exiting.")
 
         choice = input(
@@ -447,28 +566,12 @@ if __name__ == "__main__":
         if choice.strip().lower() != "yes":
             sys.exit("Received '" + choice + "'. Exiting.")
 
-    # What requirements file are we working with?
-    requirements = "requirements.txt"
-    if args.requirements is not None:
-        requirements = args.requirements
-
-    is_native = True if args.native else False
-    if not is_native:
-        # Import docker
-        import docker
-
-        # Make sure the requirements file exists
-        req_file = os.path.join(GLOBAL_INCLUDES_DIR, requirements)
-        if not os.path.isfile(req_file):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), req_file)
-
-    # Warn about a common error
-    env_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV")
-    example_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV.example")
-    if not os.path.isfile(env_file):
-        shutil.copyfile(example_file, env_file)
-        sys.stderr.write(
-            f"The environment file '{env_file}' does not exist (perhaps this is your first time setting up the testbed). A default environment file has been provided, but you may want to edit it to include your API keys and configurations.\n"
-        )
-
-    run_scenarios(args.scenario, args.repeat, is_native, config_list, requirements, docker_image=args.docker_image)
+    run_scenarios(
+        scenario=parsed_args.scenario,
+        n_repeats=parsed_args.repeat,
+        is_native=True if parsed_args.native else False,
+        config_list=config_list,
+        requirements=parsed_args.requirements,
+        docker_image=parsed_args.docker_image,
+        subsample=parsed_args.subsample,
+    )

@@ -1,44 +1,39 @@
 import os
 import json
 import autogen
-
 import testbed_utils
 
 testbed_utils.init()
-
 
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read()
 
 ANSWER = ""
-with open("answer.txt", "rt") as fh:
+with open("expected_answer.txt", "rt") as fh:
     ANSWER = fh.read()
 
 
 ####################
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    filter_dict={"model": ["gpt40613"]},
+config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
+llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
+
+assistant = autogen.AssistantAgent(
+    "assistant",
+    llm_config=llm_config,
+    is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
 )
-llm_config = {
-    "cache_seed": 42,
-    "config_list": config_list,
-    "timeout": 600,
-}
-code_execution_config = {
-    "work_dir": "coding",
-    "use_docker": False,  # set to True or image name like "python:3" to use docker
-}
-# ---------between "user" and "assistant"---------
-assistant = autogen.AssistantAgent(name="assistant", llm_config=llm_config)
+
 user_proxy = autogen.UserProxyAgent(
-    name="user",
+    "user_proxy",
     human_input_mode="NEVER",
-    code_execution_config=code_execution_config,
+    is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+    code_execution_config={
+        "work_dir": "coding",
+        "use_docker": False,
+    },
     max_consecutive_auto_reply=10,
-    is_termination_msg=lambda x: x.get("content", "")
-    and (x.get("content", "").rstrip().endswith("TERMINATE") or x.get("content", "").rstrip().endswith("TERMINATE.")),
+    default_auto_reply="TERMINATE",
 )
 
 user_proxy.initiate_chat(assistant, message=PROMPT)
@@ -76,10 +71,14 @@ Please do the following:
 
 answer_checker = autogen.AssistantAgent(name="checker", llm_config=llm_config, system_message=check_sys_msg)
 checker_proxy = autogen.UserProxyAgent(
-    name="checker_proxy",
+    "checker_proxy",
     human_input_mode="NEVER",
-    code_execution_config=code_execution_config,
+    code_execution_config={
+        "work_dir": "coding",
+        "use_docker": False,
+    },
     max_consecutive_auto_reply=5,
+    default_auto_reply="TERMINATE",
     is_termination_msg=lambda x: x.get("content", "").lower()
     and (
         "the answer is correct" in x.get("content", "").lower()

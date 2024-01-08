@@ -69,21 +69,25 @@ def download_human_eval():
     return results
 
 
-def create_jsonl(name, tasks, template, model):
-    """Creates a JSONL scenario file with a given name, list of HumanEval tasks, template path, and model."""
+def create_jsonl(name, tasks, template):
+    """Creates a JSONL scenario file with a given name, list of HumanEval tasks, and template path."""
 
-    scenarios_dir = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir, "scenarios", "HumanEval"))
+    # Create a task directory if it doesn't exist
+    scenario_dir = os.path.realpath(os.path.join(SCRIPT_DIR, os.path.pardir))
+    task_dir = os.path.join(scenario_dir, "Tasks")
+    if not os.path.isdir(task_dir):
+        os.mkdir(task_dir)
 
-    with open(os.path.join(scenarios_dir, name + ".jsonl"), "wt") as fh:
+    # Create the jsonl file
+    with open(os.path.join(task_dir, name + ".jsonl"), "wt") as fh:
         for task in tasks:
             print(f"Converting: [{name}] {task['task_id']}")
 
             record = {
                 "id": task["task_id"].replace("/", "_"),
-                "template": template,
+                "template": os.path.join(os.path.pardir, template),
                 "substitutions": {
                     "scenario.py": {
-                        "__MODEL__": model,
                         "__ENTRY_POINT__": task["entry_point"],
                         "__SELECTION_METHOD__": "auto",
                     },
@@ -96,24 +100,22 @@ def create_jsonl(name, tasks, template, model):
 
 
 ###############################################################################
-if __name__ == "__main__":
+def main():
     human_eval = download_human_eval()
     reduced_human_eval = [t for t in human_eval if t["task_id"] in REDUCED_SET]
 
-    models = {
-        "gpt4": "gpt-4",
-        "gpt35": "gpt-3.5-turbo-16k",
-    }
-
     templates = {
         "two_agents": "Templates/TwoAgents",
-        "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
-        "gc3_guardrails": "Templates/GroupChatThreeAgents_Guardrails",
-        "gc4": "Templates/GroupChatFourAgents",
+        # "gc3_distractor": "Templates/GroupChatThreeAgents_Distractor",
+        # "gc3_guardrails": "Templates/GroupChatThreeAgents_Guardrails",
+        # "gc4": "Templates/GroupChatFourAgents",
     }
 
     # Create the various combinations of [models] x [templates]
-    for m in models.items():
-        for t in templates.items():
-            create_jsonl(f"human_eval_{t[0]}_{m[0]}", human_eval, t[1], m[1])
-            create_jsonl(f"r_human_eval_{t[0]}_{m[0]}", reduced_human_eval, t[1], m[1])
+    for t in templates.items():
+        create_jsonl(f"human_eval_{t[0]}", human_eval, t[1])
+        create_jsonl(f"r_human_eval_{t[0]}", reduced_human_eval, t[1])
+
+
+if __name__ == "__main__" and __package__ is None:
+    main()
