@@ -11,6 +11,10 @@ from pydantic import ValidationError
 from autogen.oai.openai_utils import get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
+import uuid
+import copy
+from .telemetry import Telemetry
+
 TOOL_ENABLED = False
 try:
     import openai
@@ -90,6 +94,10 @@ class OpenAIWrapper:
             self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
 
+        # TODO: add a config flag for logging, close the db connection properly
+        self.telemetry = Telemetry()
+
+
     def _process_for_azure(self, config: Dict, extra_kwargs: Dict, segment: str = "default"):
         # deal with api_version
         query_segment = f"{segment}_query"
@@ -143,7 +151,7 @@ class OpenAIWrapper:
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         self._process_for_azure(openai_config, config)
         client = OpenAI(**openai_config)
-        return client
+        return client, openai_config
 
     @classmethod
     def instantiate(
@@ -189,6 +197,7 @@ class OpenAIWrapper:
             ]
         return params
 
+
     def create(self, **config):
         """Make a completion for a given config using openai's clients.
         Besides the kwargs allowed in openai's client, we allow the following additional kwargs.
@@ -220,7 +229,7 @@ class OpenAIWrapper:
         if ERROR:
             raise ERROR
         last = len(self._clients) - 1
-        for i, client in enumerate(self._clients):
+        for i, (client, client_config) in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}
             # separate the config into create_config and extra_kwargs
@@ -234,12 +243,18 @@ class OpenAIWrapper:
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
+            telemetry_id = str(uuid.uuid4())
+            cleaned_client_config = copy.deepcopy(client_config)
+            self.telemetry.cleanup_config(cleaned_client_config, "key") # remove api-key and api_key
+
             # Try to load the response from cache
             if cache_seed is not None:
                 with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
                     # Try to get the response from cache
                     key = get_key(params)
+                    request_ts = self.telemetry.get_current_ts()
                     response = cache.get(key, None)
+                    self.telemetry.insert(telemetry_id, params, response, 1, cleaned_client_config, request_ts)
 
                     if response is not None:
                         try:
@@ -258,9 +273,11 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
+                request_ts = self.telemetry.get_current_ts()
                 response = self._completions_create(client, params)
             except APIError as err:
                 error_code = getattr(err, "code", None)
+                self.telemetry.insert(telemetry_id, params, f"error_code:{error_code}, config {i} failed", 0, cleaned_client_config, request_ts)
                 if error_code == "content_filter":
                     # raise the error for content_filter
                     raise
@@ -268,6 +285,8 @@ class OpenAIWrapper:
                 if i == last:
                     raise
             else:
+                self.telemetry.insert(telemetry_id, params, response, 0, cleaned_client_config, request_ts)
+
                 # add cost calculation before caching no matter filter is passed or not
                 response.cost = self.cost(response)
                 self._update_usage_summary(response, use_cache=False)
@@ -515,5 +534,3 @@ class OpenAIWrapper:
                 for choice in choices
             ]
 
-
-# TODO: logging
