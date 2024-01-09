@@ -4,6 +4,7 @@
 #region code_snippet_0_1
 using AutoGen.DotnetInteractive;
 #endregion code_snippet_0_1
+
 namespace AutoGen.BasicSample.CodeSnippet;
 public class RunCodeSnippetCodeSnippet
 {

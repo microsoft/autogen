@@ -2,7 +2,6 @@
 // AgentExtension.cs
 
 using System.Text;
-
 namespace AutoGen.DotnetInteractive;
 
 public static class AgentExtension

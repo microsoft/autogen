@@ -18,14 +18,14 @@
 - name: Execute code snippet
   href: Run-dotnet-code.md
   
-- name: Reply hook
+- name: Register reply function
   href: Register-reply.md
 
-- name: Preprocess hook
-  href: Preprocess-hook.md
+- name: Register preprocess function
+  href: Register-preprocess.md
 
-- name: Postprocess hook
-  href: Postprocess-hook.md
+- name: Register postprocess function
+  href: Register-postprocess.md
 
 - name: Two agent chat
   href: Two-agent-chat.md

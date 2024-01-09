@@ -3,6 +3,6 @@
 
 using AutoGen.BasicSample.CodeSnippet;
 
-var instance = new RegisterReplyCodeSnippet();
+var instance = new RegisterPostProcessCodeSnippet();
 
-await instance.CodeSnippet1();
+await instance.CodeSnippet2();

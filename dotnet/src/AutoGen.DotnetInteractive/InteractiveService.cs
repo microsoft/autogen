@@ -11,6 +11,8 @@ using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.Events;
 using Microsoft.DotNet.Interactive.Utility;
 
+namespace AutoGen.DotnetInteractive;
+
 public class InteractiveService : IDisposable
 {
     private Kernel? kernel = null;

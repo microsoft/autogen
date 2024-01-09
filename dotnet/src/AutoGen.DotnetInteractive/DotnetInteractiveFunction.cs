@@ -7,6 +7,8 @@ using Azure.AI.OpenAI;
 using Microsoft.DotNet.Interactive.Documents;
 using Microsoft.DotNet.Interactive.Documents.Jupyter;
 
+namespace AutoGen.DotnetInteractive;
+
 public class DotnetInteractiveFunction : IDisposable
 {
     private readonly InteractiveService? _interactiveService = null;

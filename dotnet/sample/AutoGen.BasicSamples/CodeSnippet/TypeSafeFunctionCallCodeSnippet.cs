@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// TypeSafeFunctionCall.cs
+// TypeSafeFunctionCallCodeSnippet.cs
 
 using System.Text.Json;
 using AutoGen;

@@ -7,12 +7,13 @@ This feature is useful when you want to create an agent that has the same behavi
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/RunCodeSnippetCodeSnippet.cs?name=code_snippet_1_2)]
 
-## The order of reply hooks when multiple reply hooks are registered
+## The invoke order when multiple reply functions are registered
 
-When multiple reply hooks are registered, the order of reply hooks is first registered, last invoked. For example, if you register reply hook A, B and C in order, then when a message is received, the order of reply hooks being invoked is C, B and A.
+When multiple reply functions are registered, the order of reply functions is first registered, last invoked. For example, if you register reply functions A, B and C in order, then when a message is received, the order of reply functions being invoked is C, B and A.
 
 > [!NOTE]
-> The order of reply hooks is first registered, last invoked.
+> The order of reply functions is first registered, last invoked.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/RegisterReplyCodeSnippet.cs?name=code_snippet_1)]
 
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/RunCodeSnippetCodeSnippet.cs?name=code_snippet_1_2)]
