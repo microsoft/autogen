@@ -189,16 +189,14 @@ const WorkflowView = ({}: any) => {
 
   const WorkflowModal = ({
     workflow,
-    setWorkflow,
+    saveWorkflow,
     showWorkflowModal,
-    setShowWorkflowModal,
-    handler,
+    closeWorkflowModal,
   }: {
     workflow: IFlowConfig | null;
-    setWorkflow: (workflow: IFlowConfig | null) => void;
+    saveWorkflow: (workflow: IFlowConfig) => void;
     showWorkflowModal: boolean;
-    setShowWorkflowModal: (show: boolean) => void;
-    handler?: (workflow: IFlowConfig) => void;
+    closeWorkflowModal: () => void;
   }) => {
     const [localWorkflow, setLocalWorkflow] =
       React.useState<IFlowConfig | null>(workflow);
@@ -207,7 +205,7 @@ const WorkflowView = ({}: any) => {
       <Modal
         title={
           <>
-            Agent Specification{" "}
+            Workflow Specification{" "}
             <span className="text-accent font-normal">
               {localWorkflow?.name}
             </span>{" "}
@@ -216,15 +214,10 @@ const WorkflowView = ({}: any) => {
         width={800}
         open={showWorkflowModal}
         onOk={() => {
-          setShowWorkflowModal(false);
-          if (handler) {
-            handler(localWorkflow as IFlowConfig);
-          }
+          saveWorkflow(localWorkflow as IFlowConfig);
+          closeWorkflowModal();
         }}
-        onCancel={() => {
-          setShowWorkflowModal(false);
-          setWorkflow(null);
-        }}
+        onCancel={closeWorkflowModal}
       >
         {localWorkflow && (
           <FlowConfigViewer
@@ -240,23 +233,21 @@ const WorkflowView = ({}: any) => {
     <div className="  ">
       <WorkflowModal
         workflow={selectedWorkflow}
-        setWorkflow={setSelectedWorkflow}
+        saveWorkflow={saveWorkFlow}
         showWorkflowModal={showWorkflowModal}
-        setShowWorkflowModal={setShowWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
-          saveWorkFlow(workflow);
+        closeWorkflowModal={() => {
           setShowWorkflowModal(false);
+          setSelectedWorkflow(null);
         }}
       />
 
       <WorkflowModal
         workflow={newWorkflow}
-        setWorkflow={setNewWorkflow}
+        saveWorkflow={saveWorkFlow}
         showWorkflowModal={showNewWorkflowModal}
-        setShowWorkflowModal={setShowNewWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
-          saveWorkFlow(workflow);
+        closeWorkflowModal={() => {
           setShowNewWorkflowModal(false);
+          setNewWorkflow(defaultConfig);
         }}
       />
 
