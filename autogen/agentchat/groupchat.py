@@ -155,11 +155,21 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 "Or, use direct communication instead."
             )
 
-        if self.func_call_filter and self.messages and "function_call" in self.messages[-1]:
+        if (
+            self.func_call_filter
+            and self.messages
+            and ("function_call" in self.messages[-1] or "tool_calls" in self.messages[-1])
+        ):
+            funcs = []
+            if "function_call" in self.messages[-1]:
+                funcs += [self.messages[-1]["function_call"]["name"]]
+            if "tool_calls" in self.messages[-1]:
+                funcs += [
+                    tool["function"]["name"] for tool in self.messages[-1]["tool_calls"] if tool["type"] == "function"
+                ]
+
             # find agents with the right function_map which contains the function name
-            agents = [
-                agent for agent in self.agents if agent.can_execute_function(self.messages[-1]["function_call"]["name"])
-            ]
+            agents = [agent for agent in self.agents if agent.can_execute_function(funcs)]
             if len(agents) == 1:
                 # only one agent can execute the function
                 return agents[0], agents
@@ -170,7 +180,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                     return agents[0], agents
                 elif not agents:
                     raise ValueError(
-                        f"No agent can execute the function {self.messages[-1]['name']}. "
+                        f"No agent can execute the function {', '.join(funcs)}. "
                         "Please check the function_map of the agents."
                     )
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
@@ -193,7 +203,14 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             return selected_agent
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
-        context = self.messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
+
+        # If last message is a tool call or function call, blank the call so the api doesn't throw
+        messages = self.messages.copy()
+        if messages[-1].get("function_call", False):
+            messages[-1] = dict(messages[-1], function_call=None)
+        if messages[-1].get("tool_calls", False):
+            messages[-1] = dict(messages[-1], tool_calls=None)
+        context = messages + [{"role": "system", "content": self.select_speaker_prompt(agents)}]
         final, name = selector.generate_oai_reply(context)
 
         if not final:
@@ -275,6 +292,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             Dict: a counter for mentioned agents.
         """
         # Cast message content to str
+        if isinstance(message_content, dict):
+            message_content = message_content["content"]
         message_content = content_str(message_content)
 
         mentions = dict()
