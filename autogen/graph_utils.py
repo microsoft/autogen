@@ -1,7 +1,7 @@
 from typing import List, Dict
 import logging
 
-from autogen.agentchat.groupchat import GroupChat, Agent, ConversableAgent
+from autogen.agentchat.groupchat import Agent
 
 def check_graph_validity(allowed_graph_dict: dict, agents: List[Agent], allow_repeat_speaker: bool = False):
         """
