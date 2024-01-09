@@ -25,8 +25,6 @@ else:
     )
     from openai.types.chat.chat_completion import ChatCompletionMessage  # type: ignore [attr-defined]
 
-assert not skip
-
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
