@@ -18,8 +18,8 @@
 - name: Execute code snippet
   href: Run-dotnet-code.md
   
-- name: Auto reply hook
-  href: Register-auto-reply.md
+- name: Reply hook
+  href: Register-reply.md
 
 - name: Preprocess hook
   href: Preprocess-hook.md

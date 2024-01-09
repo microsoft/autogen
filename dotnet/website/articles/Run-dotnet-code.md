@@ -29,10 +29,10 @@ The built-in feature of running dotnet code snippet is provided by [dotnet-inter
 <PackageReference Include="AutoGen.DotnetInteractive" />
 ```
 
-Then you can use `RegisterDotnetCodeBlockExectionHook` to register an `auto reply hook` to run dotnet code snippet. The hook will be called when a dotnet code snippet is detected in chat message. The hook will run the code snippet and return the result as agent reply.
+Then you can use @AutoGen.DotnetInteractive.AgentExtension.RegisterDotnetCodeBlockExectionHook(AutoGen.IAgent,InteractiveService,System.String,System.String) to register a `reply hook` to run dotnet code snippet. The hook will check if a csharp code snippet is present in the most recent message from history, and run the code snippet if it is present.
 
 > [!NOTE]
-> `auto reply hook` is an agent hook which will be triggered automantically when a certain condition is met. For more information about available agent hooks, please refer to [Auto reply hook](./Register-auto-reply.md), [Preprocess hook](./Preprocess-hook.md) and [Postprocess hook](./Postprocess-hook.md).
+> `reply hook` will be triggerd before messages flows into original agent. This feature can be used to customize the behavior of an agent. For more information about available agent hooks, please refer to [Reply hook](./Register-reply.md), [Preprocess hook](./Preprocess-hook.md) and [Postprocess hook](./Postprocess-hook.md).
 
 The following code snippet shows how to register a dotnet code snippet execution hook:
 
