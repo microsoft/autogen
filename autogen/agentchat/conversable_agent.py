@@ -1019,7 +1019,9 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            response = {"role": "user", "content": reply}
+            if tool_returns:
+                response["tool_responses"] = tool_returns
 
             return True, response
 
