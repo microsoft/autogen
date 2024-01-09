@@ -25,7 +25,9 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     const is_image = ["image"].includes(file.type);
     const is_code = ["code"].includes(file.type);
     const is_pdf = ["pdf"].includes(file.type);
-    const is_video = ["video"].includes(file.type);
+    const is_video =
+      ["video"].includes(file.type) ||
+      ["mp4", "webm", "ogg"].includes(file.extension); // Video file types are sometimes `unknown`
     const file_name = file.name || "unknown";
     const file_path = file.path || "unknown";
 
