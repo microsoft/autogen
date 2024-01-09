@@ -5,10 +5,11 @@ import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union, Tuple
 
-from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
+
 from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
+from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,17 @@ class GroupChat:
 
         # Create a fully connected graph if graph_dict is None
         if self.graph_dict is None:
-            self.allowed_graph_dict = {agent.name: [other_agent.name for other_agent in self.agents if other_agent != agent] for agent in self.agents}
+            # self.allow_repeat_speaker can be Union[bool, List[Agent]]
+            if self.allow_repeat_speaker == True:
+                self.allowed_graph_dict = {agent.name: [other_agent for other_agent in self.agents] for agent in self.agents}
+            else:
+                # self.allow_repeat_speaker is now False or a List[Agent]
+                self.allowed_graph_dict = {agent.name: [other_agent for other_agent in self.agents if other_agent != agent] for agent in self.agents}
+                if isinstance(self.allow_repeat_speaker, list):
+                    # If allow_repeat_speaker is a list of agents, add those agents as allowed to repeat
+                    for agent in self.allow_repeat_speaker:
+                        self.allowed_graph_dict[agent.name].append(agent)
+                
         else:
             # Process based on is_allowed_graph
             if self.is_allowed_graph:
@@ -152,7 +163,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
-    def _prepare_and_select_agents(self, last_speaker: Agent, graph_dict: dict) -> Tuple[Optional[Agent], List[Agent]]:
+    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
@@ -213,7 +224,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
         # Filter agents with allowed_graph_dict
-        graph_eligible_agents = [agent for agent in agents if agent.name in self.allowed_graph_dict[last_speaker.name]]
+        # Extract agent names from the list of agents
+        graph_eligible_agents_names = [agent.name for agent in self.allowed_graph_dict[last_speaker.name]]
+        graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
 
         if self.speaker_selection_method.lower() == "manual":
             selected_agent = self.manual_select_speaker(graph_eligible_agents)
