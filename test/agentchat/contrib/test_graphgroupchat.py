@@ -178,7 +178,7 @@ class TestGraphGroupChatSelectSpeakerThreeAssistantAgents:
     def test_random_speaker_selection(self):
         chat = GraphGroupChat(self.agents, [], self.graph, allow_repeat_speaker=False)
         chat.previous_speaker = self.agent3
-        # Overridde random.choice to always return agent2
+        # Overridden random.choice to always return agent2
         with unittest.mock.patch("random.choice", return_value=self.agent2):
             selected_speaker = chat.select_speaker(last_speaker=self.agent3, selector=self.selector)
         assert selected_speaker.name == "bob"

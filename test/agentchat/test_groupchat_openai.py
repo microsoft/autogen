@@ -19,47 +19,43 @@ config_list = autogen.config_list_from_json(
 config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, filter_dict={"model": ["dev-oai-gpt4"]})
 llm_config = {"config_list": config_list, "cache_seed": 100}
 
+
 def test_recursion_error():
-        
-        # Mock Agents
-        agent1 = autogen.AssistantAgent(name="alice", llm_config=llm_config)
+    # Mock Agents
+    agent1 = autogen.AssistantAgent(name="alice", llm_config=llm_config)
 
-        # Termination message detection
-        def is_termination_msg(content) -> bool:
-            have_content = content.get("content", None) is not None
-            if have_content and "TERMINATE" in content["content"]:
-                return True
-            return False
+    # Termination message detection
+    def is_termination_msg(content) -> bool:
+        have_content = content.get("content", None) is not None
+        if have_content and "TERMINATE" in content["content"]:
+            return True
+        return False
 
-        # Terminates the conversation when TERMINATE is detected.
-        user_proxy = autogen.UserProxyAgent(
-            name="User_proxy",
-            system_message="Terminator admin.",
-            code_execution_config=False,
-            is_termination_msg=is_termination_msg,
-            human_input_mode="NEVER",
-        )
+    # Terminates the conversation when TERMINATE is detected.
+    user_proxy = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="Terminator admin.",
+        code_execution_config=False,
+        is_termination_msg=is_termination_msg,
+        human_input_mode="NEVER",
+    )
 
-        agents = [agent1, user_proxy]
+    agents = [agent1, user_proxy]
 
-        group_chat = autogen.GroupChat(
-            agents=agents, 
-            messages=[], 
-            max_round=20
-        )
+    group_chat = autogen.GroupChat(agents=agents, messages=[], max_round=20)
 
-        # Create the manager
-        manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
+    # Create the manager
+    manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
 
-        # Initiates the chat with Alice
-        agents[0].initiate_chat(
-            manager,
-            message="""Ask alice what is the largest single digit prime number.""",
-        )
+    # Initiates the chat with Alice
+    agents[0].initiate_chat(
+        manager,
+        message="""Ask alice what is the largest single digit prime number.""",
+    )
 
-        # Assert the messages contain 7
-        # don't just check the last message
-        assert any("7" in message["content"] for message in group_chat.messages)
+    # Assert the messages contain 7
+    # don't just check the last message
+    assert any("7" in message["content"] for message in group_chat.messages)
 
-        # Assert the messages contain alice
-        assert any("alice" in message["name"] for message in group_chat.messages)
+    # Assert the messages contain alice
+    assert any("alice" in message["name"] for message in group_chat.messages)
