@@ -53,6 +53,7 @@ setuptools.setup(
         "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
+        "gui": ["void-terminal>=0.0.12", "gradio-stable-fork>=3.32.6"],
         "lmm": ["replicate", "pillow"],
         "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
     },

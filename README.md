@@ -90,6 +90,9 @@ Even if you are installing AutoGen locally out of docker,  we recommend performi
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
+For GUI configurations, check the [GUI docs](autogen/gradio_gui/README.md).
+
+
 ## Multi-Agent Conversation Framework
 
 Autogen enables the next-gen LLM applications with a generic [multi-agent conversation](https://microsoft.github.io/autogen/docs/Use-Cases/agent_chat) framework. It offers customizable and conversable agents that integrate LLMs, tools, and humans.
