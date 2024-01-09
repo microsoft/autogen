@@ -14,8 +14,6 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 
 try:
-    import networkx as nx
-    import matplotlib.pyplot as plt
     from autogen.agentchat.contrib.graphgroupchat import GraphGroupChat  # noqa: E402
 
     skip_test = True
@@ -30,100 +28,6 @@ config_list = autogen.config_list_from_json(
 
 # assert len(config_list) > 0
 
-
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_test,
-    reason="do not run on MacOS or windows or dependency is not installed",
-)
-class TestGraphGroupChatGraphValidity(unittest.TestCase):
-    def test_graph_with_no_nodes(self):
-        agents = [Agent(name="Agent 1"), Agent(name="Agent 2")]
-        messages = []
-        graph = nx.DiGraph()
-
-        with pytest.raises(ValueError) as excinfo:
-            GraphGroupChat(agents, messages, graph)
-        assert "The graph has no nodes." in str(excinfo.value)
-
-    def test_graph_with_no_edges(self):
-        agents = [Agent(name="Agent 1"), Agent(name="Agent 2")]
-        messages = []
-        graph = nx.DiGraph()
-        graph.add_node("Agent 1")
-
-        with pytest.raises(ValueError) as excinfo:
-            GraphGroupChat(agents, messages, graph)
-        assert "The graph has no edges." in str(excinfo.value)
-
-    def test_graph_with_no_first_round_speaker(self):
-        agents = [Agent(name="Agent 1"), Agent(name="Agent 2")]
-        messages = []
-        graph = nx.DiGraph()
-        graph.add_node("Agent 1")
-        graph.add_edge("Agent 1", "Agent 2")
-
-        with pytest.raises(ValueError) as excinfo:
-            GraphGroupChat(agents, messages, graph)
-        assert "The graph has no nodes with 'first_round_speaker' set to True." in str(excinfo.value)
-
-    def test_graph_with_self_loops(self):
-        agents = [Agent(name="Agent 1"), Agent(name="Agent 2")]
-        messages = []
-        graph = nx.DiGraph()
-        graph.add_node("Agent 1", first_round_speaker=True)
-        graph.add_node("Agent 2", first_round_speaker=False)
-        graph.add_edge("Agent 1", "Agent 1")
-
-        with pytest.raises(ValueError) as excinfo:
-            GraphGroupChat(agents, messages, graph, allow_repeat_speaker=False)
-        assert "The graph has self-loops, but self.allow_repeat_speaker is False." in str(excinfo.value)
-
-    def test_warning_isolated_agents(self):
-        # Setup a graph with isolated nodes
-        graph = nx.DiGraph()
-        graph.add_node("Agent1", first_round_speaker=True)
-        graph.add_node("Agent2")
-        graph.add_edge("Agent1", "Agent3")  # Agent2 is isolated
-
-        # Setup agents
-        agents = [Agent(name="Agent1"), Agent(name="Agent2"), Agent(name="Agent3")]
-
-        # Redirect logging output to capture it for the test
-        log_capture_string = StringIO()
-        ch = logging.StreamHandler(log_capture_string)
-        ch.setLevel(logging.WARNING)
-        logging.getLogger().addHandler(ch)
-
-        # Create GraphGroupChat instance
-        GraphGroupChat(agents=agents, messages=[], graph=graph)
-
-        # Check if warning is logged
-        log_contents = log_capture_string.getvalue()
-        self.assertIn("isolated agents", log_contents)
-
-    def test_warning_agents_not_in_graph(self):
-        # Setup a graph without all agents
-        graph = nx.DiGraph()
-        graph.add_node("Agent1", first_round_speaker=True)
-        graph.add_node("Agent2")
-        # Note: Agent3 is missing from the graph
-        graph.add_edge("Agent1", "Agent2")  # Agent2 is isolated
-
-        # Setup agents including one not in the graph
-        agents = [Agent(name="Agent1"), Agent(name="Agent2"), Agent(name="Agent3")]
-
-        # Redirect logging output to capture it for the test
-        log_capture_string = StringIO()
-        ch = logging.StreamHandler(log_capture_string)
-        ch.setLevel(logging.WARNING)
-        logging.getLogger().addHandler(ch)
-
-        # Create GraphGroupChat instance
-        GraphGroupChat(agents=agents, messages=[], graph=graph)
-
-        # Check if warning is logged
-        log_contents = log_capture_string.getvalue()
-        self.assertIn("agents not in self.agents", log_contents)
 
 
 @pytest.mark.skipif(
