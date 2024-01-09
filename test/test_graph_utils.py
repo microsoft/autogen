@@ -19,9 +19,9 @@ def valid_graph_dict(agents):
     sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows or dependency is not installed",
 )
-class TestGraphUtil:
+class TestGraphUtilCheckGraphValidity:
     def test_valid_structure(self, agents, valid_graph_dict):
-        gru.check_graph_validity(graph_dict=valid_graph_dict, agents=agents)
+        gru.check_graph_validity(allowed_graph_dict=valid_graph_dict, agents=agents)
 
     def test_graph_with_invalid_structure(self, agents):
         invalid_graph_dict = {'unseen_agent': ['stranger']}
@@ -56,7 +56,7 @@ class TestGraphUtil:
         graph_dict_with_isolation[agents[2].name] = []
 
         with caplog.at_level(logging.WARNING):
-            gru.check_graph_validity(graph_dict=graph_dict_with_isolation, agents=agents)
+            gru.check_graph_validity(allowed_graph_dict=graph_dict_with_isolation, agents=agents)
         assert "isolated agent nodes" in caplog.text
 
     # Test for Warning 2: Agents not in graph
@@ -67,5 +67,54 @@ class TestGraphUtil:
         missing_agent_graph_dict[agents[-2].name] = [agents[0]]
 
         with caplog.at_level(logging.WARNING):
-            gru.check_graph_validity(graph_dict=missing_agent_graph_dict, agents=agents)
+            gru.check_graph_validity(allowed_graph_dict=missing_agent_graph_dict, agents=agents)
         assert "agents in self.agents not in graph" in caplog.text
+
+
+class TestGraphUtilInvertDisallowedToAllowed:
+    def test_basic_functionality(self, agents):
+        disallowed_graph = {
+            "agent1": [agents[1]],
+            "agent2": [agents[0], agents[2]],
+            "agent3": []
+        }
+        expected_allowed_graph = {
+            "agent1": [agents[2]],
+            "agent2": [],
+            "agent3": [agents[0], agents[1]]
+        }
+        assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
+
+    def test_empty_disallowed_graph(self, agents):
+        disallowed_graph = {}
+        expected_allowed_graph = {
+            "agent1": [agents[1], agents[2]],
+            "agent2": [agents[0], agents[2]],
+            "agent3": [agents[0], agents[1]]
+        }
+        assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
+
+    def test_fully_disallowed_graph(self, agents):
+        disallowed_graph = {
+            "agent1": [agents[1], agents[2]],
+            "agent2": [agents[0], agents[2]],
+            "agent3": [agents[0], agents[1]]
+        }
+        expected_allowed_graph = {
+            "agent1": [],
+            "agent2": [],
+            "agent3": []
+        }
+        assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
+
+    def test_disallowed_graph_with_nonexistent_agent(self, agents):
+        disallowed_graph = {
+            "agent1": [Agent("nonexistent_agent")]
+        }
+        # In this case, the function should ignore the nonexistent agent and proceed with the inversion
+        expected_allowed_graph = {
+            "agent1": [agents[1], agents[2]],
+            "agent2": [agents[0], agents[2]],
+            "agent3": [agents[0], agents[1]]
+        }
+        assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
