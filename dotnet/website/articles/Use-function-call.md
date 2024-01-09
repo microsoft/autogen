@@ -5,7 +5,7 @@ Function call is a feature in some LLM models that returns a function call json 
 Currently, GPT chat models with version later than `0613` support function call. For more information, please check out [OpenAI API documentation](https://platform.openai.com/docs/guides/function-calling).
 
 ## Use function call in AutoGen agent
-AutoGen supports function call in [`AssistantAgent`](../api/AutoGen.AssistantAgent.yml), [`UserProxyAgent`](../api/AutoGen.UserProxyAgent.yml) and [`GPTAgent`](../api/AutoGen.GPTAgent.yml). To use function call, simply use a model that support function call (e.g. `gpt-3.5-turbo-0613`), and pass `FunctionDefinition` when creating the agent.
+AutoGen supports function call in [`AssistantAgent`](../api/AutoGen.AssistantAgent.yml), [`UserProxyAgent`](../api/AutoGen.UserProxyAgent.yml) and [`GPTAgent`](../api/AutoGen.OpenAI.GPTAgent.yml). To use function call, simply use a model that support function call (e.g. `gpt-3.5-turbo-0613`), and pass `FunctionDefinition` when creating the agent.
 
 Suppose that you want to invoke the following function in your agent:
 
