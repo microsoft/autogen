@@ -13,20 +13,10 @@ Suppose that you want to invoke the following function in your agent:
 
 Firstly, you need to create a function definition to represent the function. The function definition is essentially an OpenAPI schema object which describes the function, its parameters and return value. When passing to LLM model, the function definition will be used to generate function call json object.
 
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_1)]
+
 > [!TIP]
 > You can use [`Function`](../api/AutoGen.FunctionAttribute.yml) to generate type-safe function definition and function call wrapper for the function. For more information, please check out [Create type safe function call](./Create-type-safe-function-call.md).
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_1)]
-
-Then, pass the function definition to the agent when creating it.
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_4)]
-
-When the agent receives a message, it will intelligently decide whether to use function call or not based on the message received.
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_5)]
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_1)]
 
 Then, pass the function definition to the agent when creating it.
 
@@ -62,6 +52,6 @@ Suppose the following function call wrapper `UpperCaseWrapper` is given:
 You can then pass the `UpperCaseWrapper` to the agent via `functionMap`:
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_6)]
 
-When the agent receives a message, it will invoke the function and use the return value as response rather than returning the function call object.
+When a function call object is returned, the agent will invoke the function and uses the return value as response rather than returning the function call object.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_6_1)]
