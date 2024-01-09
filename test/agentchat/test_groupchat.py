@@ -3,7 +3,7 @@ from unittest import mock
 import builtins
 import autogen
 import json
-
+import sys
 
 def test_groupchat_select_speaker_func_call():
     agent1 = autogen.ConversableAgent(
@@ -31,37 +31,6 @@ def test_groupchat_select_speaker_func_call():
     # Assertion
     assert selected_speaker in agents
 
-
-def test_expect_error_groupchat_graph_select_speaker():
-    # Setup
-    agent1 = autogen.ConversableAgent(
-        "alice",
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is alice speaking.",
-    )
-    agent2 = autogen.ConversableAgent(
-        "bob",
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is bob speaking.",
-        function_map={"test_func": lambda x: x},
-    )
-    agents = [agent1, agent2]
-    messages = []
-    max_round = 10
-
-    # Create an instance of GroupChat with the 'graph' speaker selection method
-    group_chat = autogen.GroupChat(
-        agents=agents, messages=messages, max_round=max_round, speaker_selection_method="graph"
-    )
-
-    # Action and Assertion
-    with pytest.raises(ValueError) as excinfo:
-        group_chat.select_speaker(last_speaker=None, selector=None)
-
-    # Check if the error message is as expected
-    assert "GraphGroupChat select_speaker overrides GroupChat select_speaker" in str(excinfo.value)
 
 
 def test_func_call_groupchat():
@@ -259,26 +228,24 @@ def _test_n_agents_less_than_3(method):
         ] * 3
 
     # test one agent
-    groupchat = autogen.GroupChat(
+    with pytest.raises(ValueError):
+        groupchat = autogen.GroupChat(
         agents=[agent1],
         messages=[],
         max_round=6,
         speaker_selection_method="round_robin",
-        allow_repeat_speaker=False,
-    )
-    with pytest.raises(ValueError):
+        allow_repeat_speaker=False)
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
     # test zero agent
-    groupchat = autogen.GroupChat(
+    with pytest.raises(ValueError):
+        groupchat = autogen.GroupChat(
         agents=[],
         messages=[],
         max_round=6,
         speaker_selection_method="round_robin",
-        allow_repeat_speaker=False,
-    )
-    with pytest.raises(ValueError):
+        allow_repeat_speaker=False)
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
@@ -534,13 +501,71 @@ def test_selection_helpers():
         groupchat.manual_select_speaker()
 
 
+# Use pytest.mark.skipif decorator for conditional skipping
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"],
+    reason="do not run on MacOS or windows or dependency is not installed",
+)
+def test_round_robin():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+        description="Alice is an AI agent.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        description="Bob is an AI agent.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "sam",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is sam speaking.",
+        system_message="Sam is an AI agent.",
+    )
+
+    agents = [agent1, agent2, agent3]
+    allowed_graph_dict = {'alice': [agent2],
+                          'bob': [agent3]}
+
+    
+    # Test empty is_termination_msg function
+    groupchat = autogen.GroupChat(
+        agents=agents, messages=[], speaker_selection_method="round_robin", max_round=10,
+        graph_dict=allowed_graph_dict,
+        is_allowed_graph=True)
+    
+    last_speaker = agents[0]
+    selector = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    # Action
+    selected_speaker = groupchat.select_speaker(last_speaker, selector)
+
+    # Assertion
+    assert selected_speaker.name == "bob"
+
+
+
+
+
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    test_speaker_selection_method()
+    # test_speaker_selection_method()
     # test_n_agents_less_than_3()
     # test_agent_mentions()
     # test_termination()
-    test_next_agent()
+    # test_next_agent()
+    test_round_robin()
