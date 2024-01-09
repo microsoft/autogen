@@ -12,6 +12,9 @@
 - name: Use function call
   href: Use-function-call.md
 
+- name: Create type-safe function call using AutoGen.SourceGenerator
+  href: Create-type-safe-function-call.md
+
 - name: Code execution
   href: Run-dotnet-code.md
 
@@ -29,8 +32,3 @@
 
 - name: Postprocess hook
   href: Postprocess-hook.md
-
-- name: Examples
-  items:
-  - name: Example 01
-    href: example_01.md
