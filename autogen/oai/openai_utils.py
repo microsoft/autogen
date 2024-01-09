@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
 
@@ -50,7 +50,7 @@ OAI_PRICE1K = {
 }
 
 
-def get_key(config):
+def get_key(config: Dict[str, Any]) -> str:
     """Get a unique identifier of a configuration.
 
     Args:
