@@ -1,13 +1,14 @@
 import sys
 import os
 import pytest
+from conftest import skip_openai
 
 try:
     import openai
-
-    skip = False
 except ImportError:
     skip = True
+else:
+    skip = False or skip_openai
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -66,6 +67,22 @@ def _test_oai_completion(save=False):
 )
 def test_agentchat_function_call(save=False):
     run_notebook("agentchat_function_call.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_agentchat_function_call_currency_calculator(save=False):
+    run_notebook("agentchat_function_call_currency_calculator.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_agentchat_function_call_async(save=False):
+    run_notebook("agentchat_function_call_async.ipynb", save=save)
 
 
 @pytest.mark.skipif(

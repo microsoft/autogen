@@ -1,0 +1,22 @@
+// Please modify the content, remove these two lines of comment and rename this file to OAI_CONFIG_LIST to run the sample code.
+// if using pyautogen v0.1.x with Azure OpenAI, please replace "base_url" with "api_base" (line 11 and line 18 below). Use "pip list" to check version of pyautogen installed.
+[
+    {
+        "model": "gpt-4",
+        "api_key": "<your OpenAI API key here>"
+    },
+    {
+        "model": "<your Azure OpenAI deployment name>",
+        "api_key": "<your Azure OpenAI API key here>",
+        "base_url": "<your Azure OpenAI API base here>",
+        "api_type": "azure",
+        "api_version": "2023-07-01-preview"
+    },
+    {
+        "model": "<your Azure OpenAI deployment name>",
+        "api_key": "<your Azure OpenAI API key here>",
+        "base_url": "<your Azure OpenAI API base here>",
+        "api_type": "azure",
+        "api_version": "2023-07-01-preview"
+    }
+]

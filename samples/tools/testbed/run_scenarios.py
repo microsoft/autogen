@@ -15,8 +15,12 @@ IS_WIN32 = sys.platform == "win32"
 # Location of the global includes dir. The contents of this directory will be copied to the Docker environment.
 GLOBAL_INCLUDES_DIR = "includes"
 
+# This is the tag given to the image that is *built* when no other image is provided.
+# Do not use this field to specify the name of an existing image (e.g., on Dockerhub)
+DEFAULT_DOCKER_IMAGE_TAG = "autogen/testbed:default"
 
-def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, results_dir="results"):
+
+def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, docker_image=None, results_dir="results"):
     """
     Run a set testbed scenarios a given number of times.
 
@@ -103,7 +107,7 @@ def run_scenarios(scenario, n_repeats, is_native, config_list, requirements, res
                     if is_native:
                         run_scenario_natively(results_repetition)
                     else:
-                        run_scenario_in_docker(results_repetition, requirements)
+                        run_scenario_in_docker(results_repetition, requirements, docker_image=docker_image)
 
 
 def expand_scenario(scenario_dir, scenario, output_dir):
@@ -115,7 +119,7 @@ def expand_scenario(scenario_dir, scenario, output_dir):
 
     template = scenario["template"]
 
-    # Either key works for finding the substiturions list. "values" may be deprecated in the future
+    # Either key works for finding the substitutions list. "values" may be deprecated in the future
     substitutions = scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
 
     # Older versions are only one-level deep. Convert them,
@@ -155,7 +159,7 @@ def expand_scenario(scenario_dir, scenario, output_dir):
                 # If the destination is a directory, use the same filename
                 shutil.copyfile(src_path, os.path.join(dest_path, os.path.basename(src_path)))
             else:
-                # Otherwuse use the filename provided
+                # Otherwise use the filename provided
                 shutil.copyfile(src_path, dest_path)
 
     # Expand templated files
@@ -180,7 +184,7 @@ def run_scenario_natively(work_dir):
     Run a scenario in the native environment.
 
     Args:
-        work_dir (path): the path to the working directory previously created to house this sceario instance
+        work_dir (path): the path to the working directory previously created to house this scenario instance
     """
 
     # Get the current working directory
@@ -244,29 +248,43 @@ echo SCENARIO COMPLETE !#!#
     return
 
 
-def run_scenario_in_docker(work_dir, requirements, timeout=600):
+def run_scenario_in_docker(work_dir, requirements, timeout=600, docker_image=None):
     """
     Run a scenario in a Docker environment.
 
     Args:
-        work_dir (path): the path to the working directory previously created to house this sceario instance
+        work_dir (path): the path to the working directory previously created to house this scenario instance
         timeout (Optional, int): the number of seconds to allow a Docker container to run before timing out
     """
 
-    # Create a docker client
     client = docker.from_env()
-    image_name = "python:3.11"
+    image = None
 
-    # Pull a suitable image
-    try:
-        image = client.images.get(image_name)
-    except docker.errors.ImageNotFound:
-        # pull the image
-        print("Pulling image", image_name)
+    # If the docker_image is None, then we will fetch DEFAULT_DOCKER_IMAGE_TAG, if present,
+    # or build it if missing.
+    if docker_image is None:
+        # Pull a suitable image
         try:
-            image = client.images.pull(image_name)
-        except docker.errors.DockerException:
-            print("Failed to pull image", image_name)
+            image = client.images.get(DEFAULT_DOCKER_IMAGE_TAG)
+        except docker.errors.ImageNotFound:
+            print(f"Building default Docker image '{DEFAULT_DOCKER_IMAGE_TAG}'. This may take a few minutes...")
+            try:
+                build_default_docker_image(client, DEFAULT_DOCKER_IMAGE_TAG)
+                image = client.images.get(DEFAULT_DOCKER_IMAGE_TAG)
+            except docker.errors.DockerException:
+                print(f"Failed to build image '{DEFAULT_DOCKER_IMAGE_TAG}'")
+
+    # Otherwise get the requested image
+    else:
+        try:
+            image = client.images.get(docker_image)
+        except docker.errors.ImageNotFound:
+            # pull the image
+            print(f"Pulling image '{docker_image}'")
+            try:
+                image = client.images.pull(docker_image)
+            except docker.errors.DockerException:
+                print(f"Failed to pull image '{docker_image}'")
 
     # Prepare the run script
     with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
@@ -351,6 +369,12 @@ echo SCENARIO COMPLETE !#!#
         f.write(logs)
 
 
+def build_default_docker_image(docker_client, image_tag):
+    for segment in docker_client.api.build(path=".", dockerfile="Dockerfile", rm=True, tag=image_tag, decode=True):
+        if "stream" in segment:
+            sys.stdout.write(segment["stream"])
+
+
 ###############################################################################
 if __name__ == "__main__":
     script_name = os.path.basename(__file__)
@@ -383,6 +407,15 @@ if __name__ == "__main__":
         default=None,
     )
     parser.add_argument(
+        "-d",
+        "--docker-image",
+        type=str,
+        help="The Docker image to use when running scenarios. Can not be used together with --native. (default: '"
+        + DEFAULT_DOCKER_IMAGE_TAG
+        + "', which will be created if not present)",
+        default=None,
+    )
+    parser.add_argument(
         "--native",
         action="store_true",
         help="Run the scenarios natively rather than in docker. NOTE: This is not advisable, and should be done with great caution.",
@@ -394,6 +427,10 @@ if __name__ == "__main__":
     config_list = config_list_from_json(env_or_file=args.config)
     if len(config_list) == 0:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
+
+    # Don't allow both --docker-image and --native on the same command
+    if args.docker_image is not None and args.native:
+        sys.exit("The options --native and --docker-image can not be used together. Exiting.")
 
     # Warn if running natively
     if args.native:
@@ -425,7 +462,7 @@ if __name__ == "__main__":
         if not os.path.isfile(req_file):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), req_file)
 
-    # Warn aboit a common error
+    # Warn about a common error
     env_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV")
     example_file = os.path.join(GLOBAL_INCLUDES_DIR, "ENV.example")
     if not os.path.isfile(env_file):
@@ -434,4 +471,4 @@ if __name__ == "__main__":
             f"The environment file '{env_file}' does not exist (perhaps this is your first time setting up the testbed). A default environment file has been provided, but you may want to edit it to include your API keys and configurations.\n"
         )
 
-    run_scenarios(args.scenario, args.repeat, is_native, config_list, requirements)
+    run_scenarios(args.scenario, args.repeat, is_native, config_list, requirements, docker_image=args.docker_image)

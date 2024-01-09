@@ -155,11 +155,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
-      - name: Install packages and dependencies for TeachableAgent
+      - name: Install packages and dependencies for Teachability
         run: |
           pip install -e .[teachable]
           pip uninstall -y openai
-      - name: Test TeachableAgent
+      - name: Test Teachability
         if: matrix.python-version != '3.9'  # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_teachable_agent.py
