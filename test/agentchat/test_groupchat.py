@@ -5,6 +5,65 @@ import autogen
 import json
 
 
+def test_groupchat_select_speaker_func_call():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2], messages=[], max_round=3)
+
+    agents = [agent1, agent2]
+    last_speaker = agent1
+    selector = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    # Action
+    selected_speaker = groupchat.select_speaker(last_speaker, selector)
+
+    # Assertion
+    assert selected_speaker in agents
+
+
+def test_expect_error_groupchat_graph_select_speaker():
+    # Setup
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+    agents = [agent1, agent2]
+    messages = []
+    max_round = 10
+
+    # Create an instance of GroupChat with the 'graph' speaker selection method
+    group_chat = autogen.GroupChat(
+        agents=agents, messages=messages, max_round=max_round, speaker_selection_method="graph"
+    )
+
+    # Action and Assertion
+    with pytest.raises(ValueError) as excinfo:
+        group_chat.select_speaker(last_speaker=None, selector=None)
+
+    # Check if the error message is as expected
+    assert "GraphGroupChat select_speaker overrides GroupChat select_speaker" in str(excinfo.value)
+
+
 def test_func_call_groupchat():
     agent1 = autogen.ConversableAgent(
         "alice",
