@@ -2,12 +2,14 @@ import logging
 import random
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union, Tuple
 
+from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,8 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat.
+    - graph_dict: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected graph is assumed.
+    - is_allowed_graph: whether the graph_dict is a list of allowed agents or disallowed agents. Default is True, in which case the graph_dict is a list of allowed agents. If set to False, then the graph_dict is a list of disallowed agents.
     """
 
     agents: List[Agent]
@@ -40,8 +44,30 @@ class GroupChat:
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True
+    graph_dict: Optional[Dict] = None
+    is_allowed_graph: Optional[bool] = True
 
-    _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin", "graph"]
+    _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
+    allowed_graph_dict: Dict = field(init=False)
+
+    def __post_init__(self):
+        # Post init steers clears of the automatically generated __init__ method from dataclass
+        # Here, we create allowed_graph_dict from the supplied graph_dict and is_allowed_graph, and lastly checks for validity.
+
+        # Create a fully connected graph if graph_dict is None
+        if self.graph_dict is None:
+            self.allowed_graph_dict = {agent.name: [other_agent.name for other_agent in self.agents if other_agent != agent] for agent in self.agents}
+        else:
+            # Process based on is_allowed_graph
+            if self.is_allowed_graph:
+                self.allowed_graph_dict = self.graph_dict
+            else:
+                # Logic for processing disallowed graph to allowed graph
+                self.allowed_graph_dict = invert_disallowed_to_allowed(self.graph_dict, self.agents)
+        
+        # Check for validity
+        check_graph_validity(allowed_graph_dict=self.allowed_graph_dict, agents=self.agents, allow_repeat_speaker=self.allow_repeat_speaker)
+
 
     @property
     def agent_names(self) -> List[str]:
@@ -126,7 +152,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
-    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent]]:
+    def _prepare_and_select_agents(self, last_speaker: Agent, graph_dict: dict) -> Tuple[Optional[Agent], List[Agent]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
@@ -186,18 +212,15 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
+        # Filter agents with allowed_graph_dict
+        graph_eligible_agents = [agent for agent in agents if agent.name in self.allowed_graph_dict[last_speaker.name]]
+
         if self.speaker_selection_method.lower() == "manual":
-            selected_agent = self.manual_select_speaker(agents)
+            selected_agent = self.manual_select_speaker(graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "round_robin":
-            selected_agent = self.next_agent(last_speaker, agents)
+            selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "random":
-            selected_agent = random.choice(agents)
-        elif self.speaker_selection_method.lower() == "graph":
-            # This should not trigger because GraphGroupChat select_speaker overrides GroupChat select_speaker
-            raise ValueError(
-                f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
-                f"GraphGroupChat select_speaker overrides GroupChat select_speaker. "
-            )
+            selected_agent = random.choice(graph_eligible_agents)
         else:
             selected_agent = None
         return selected_agent, agents
