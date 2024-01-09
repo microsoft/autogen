@@ -4,17 +4,14 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
-    public delegate Task<string> FunctionExecutor(string args);
-
     public interface IAgent
     {
         public string? Name { get; }
 
-        public IChatCompletionService? ChatCompletion { get; }
+        public IChatLLM? ChatLLM { get; }
 
         public Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default);
     }

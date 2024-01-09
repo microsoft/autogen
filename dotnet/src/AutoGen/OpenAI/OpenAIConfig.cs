@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // OpenAIConfig.cs
 
-using Microsoft.SemanticKernel.ChatCompletion;
-
 namespace AutoGen.OpenAI
 {
     public class OpenAIConfig : ILLMConfig
@@ -17,7 +15,7 @@ namespace AutoGen.OpenAI
 
         public string ModelId { get; }
 
-        public IChatCompletionService CreateChatCompletion()
+        public IChatLLM CreateChatLLM()
         {
             throw new System.NotImplementedException();
         }

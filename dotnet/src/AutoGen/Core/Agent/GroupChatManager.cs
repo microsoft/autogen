@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
@@ -18,7 +17,7 @@ namespace AutoGen
         }
         public string? Name => throw new ArgumentException("GroupChatManager does not have a name");
 
-        public IChatCompletionService? ChatCompletion => null;
+        public IChatLLM? ChatLLM => null;
 
         public IEnumerable<Message>? Messages { get; private set; }
 

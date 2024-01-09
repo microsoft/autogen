@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // AzureOpenAIConfig.cs
 
-using Microsoft.SemanticKernel.ChatCompletion;
-
 namespace AutoGen.OpenAI
 {
     public class AzureOpenAIConfig : ILLMConfig
@@ -23,7 +21,7 @@ namespace AutoGen.OpenAI
 
         public string? ModelId { get; }
 
-        public IChatCompletionService CreateChatCompletion()
+        public IChatLLM CreateChatLLM()
         {
             throw new System.NotImplementedException();
         }

@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen
 {
@@ -109,7 +108,7 @@ namespace AutoGen
 
         public string? Name { get; }
 
-        public IChatCompletionService? ChatCompletion => this.innerAgent?.ChatCompletion;
+        public IChatLLM? ChatLLM => this.innerAgent?.ChatLLM;
 
         public Func<IEnumerable<Message>, CancellationToken, Task<bool>>? IsTermination { get; }
 

@@ -4,12 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.AI.OpenAI;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen.OpenAI
 {
@@ -32,10 +29,10 @@ namespace AutoGen.OpenAI
             IEnumerable<FunctionDefinition>? functions = null,
             IDictionary<string, Func<string, Task<string>>>? functionMap = null)
         {
-            ChatCompletion = config switch
+            ChatLLM = config switch
             {
-                AzureOpenAIConfig azureConfig => new AzureOpenAIChatCompletionService(azureConfig.DeploymentName, azureConfig.Endpoint, azureConfig.ApiKey, azureConfig.ModelId),
-                OpenAIConfig openAIConfig => new OpenAIChatCompletionService(openAIConfig.ModelId, openAIConfig.ApiKey),
+                AzureOpenAIConfig azureConfig => OpenAIChatLLM.Create(azureConfig),
+                OpenAIConfig openAIConfig => OpenAIChatLLM.Create(openAIConfig),
                 _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
             };
 
@@ -63,7 +60,7 @@ namespace AutoGen.OpenAI
 
         public string? Name { get; }
 
-        public IChatCompletionService? ChatCompletion { get; }
+        public IChatLLM? ChatLLM { get; }
 
         public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, CancellationToken cancellationToken = default)
         {
@@ -178,15 +175,6 @@ namespace AutoGen.OpenAI
                     }
                 }
             }
-        }
-
-        class ParameterObject
-        {
-            [JsonPropertyName("required")]
-            public string[] Required { get; set; } = Array.Empty<string>();
-
-            [JsonPropertyName("properties")]
-            public Dictionary<string, OpenAIFunctionParameter> Properties { get; set; } = new Dictionary<string, OpenAIFunctionParameter>();
         }
     }
 }

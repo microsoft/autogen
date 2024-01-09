@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AutoGen.Tests
 {
@@ -17,7 +16,7 @@ namespace AutoGen.Tests
         }
         public string Name { get; }
 
-        public IChatCompletionService? ChatCompletion => null;
+        public IChatLLM? ChatLLM => null;
 
         public Task<Message> GenerateReplyAsync(IEnumerable<Message> conversation, CancellationToken ct = default)
         {

@@ -6,9 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen
 {
@@ -49,7 +46,7 @@ namespace AutoGen
             }
 
             // check if admin has a chat completion
-            if (this.admin.ChatCompletion == null)
+            if (this.admin.ChatLLM == null)
             {
                 throw new Exception("Admin must have a chat completion.");
             }
@@ -57,7 +54,7 @@ namespace AutoGen
 
         public async Task<IAgent?> SelectNextSpeakerAsync(IEnumerable<Message> conversationHistory)
         {
-            var llm = this.admin.ChatCompletion ?? throw new Exception("Admin does not have a chat completion.");
+            var llm = this.admin.ChatLLM ?? throw new Exception("Admin does not have a chat completion.");
             var agent_names = this.agents.Select(x => x.Name).ToList();
             var systemMessage = new Message(Role.System,
                 content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
@@ -71,28 +68,13 @@ From admin:
             var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
 
             var messages = new Message[] { systemMessage }.Concat(conv);
-            var settings = new OpenAIPromptExecutionSettings
-            {
-                Temperature = 0,
-                StopSequences = new[]
-                {
-                    ":",
-                },
-                ExtensionData = new Dictionary<string, object>
-                {
-                    { "temperature", 0 },
-                    { "stopWords", new[] { ":" } },
-                },
-            };
-            var history = new ChatHistory();
-            foreach (var message in messages)
-            {
-                history.Add(new ChatMessageContent(new AuthorRole(message.Role.ToString()), message.Content));
-            }
+            var response = await llm.GetChatCompletionsAsync(
+                messages: messages,
+                temperature: 0f,
+                maxToken: 128,
+                stopWords: new[] { ":" });
 
-            var response = await llm.GetChatMessageContentAsync(history, settings);
-
-            var name = response?.Content ?? throw new Exception("No name is returned.");
+            var name = response?.Message?.Content ?? throw new Exception("No name is returned.");
 
             try
             {
