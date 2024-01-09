@@ -15,15 +15,9 @@
 - name: Create type-safe function call using AutoGen.SourceGenerator
   href: Create-type-safe-function-call.md
 
-- name: Code execution
+- name: Execute code snippet
   href: Run-dotnet-code.md
-
-- name: Two agent chat
-  href: Two-agent-chat.md
-
-- name: Dynamic group chat
-  href: Group-chat.md
-
+  
 - name: Auto reply hook
   href: Register-auto-reply.md
 
@@ -32,3 +26,9 @@
 
 - name: Postprocess hook
   href: Postprocess-hook.md
+
+- name: Two agent chat
+  href: Two-agent-chat.md
+
+- name: Dynamic group chat
+  href: Group-chat.md

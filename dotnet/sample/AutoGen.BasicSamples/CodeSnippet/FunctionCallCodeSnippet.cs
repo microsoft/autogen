@@ -65,7 +65,6 @@ public partial class FunctionCallCodeSnippet
         var result = input.ToUpper();
         return result;
     }
-
     #endregion code_snippet_3
 
     public async Task CodeSnippet4()

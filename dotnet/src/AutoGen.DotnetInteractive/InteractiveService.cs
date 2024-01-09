@@ -18,7 +18,7 @@ public class InteractiveService : IDisposable
     private bool disposedValue;
     private const string DotnetInteractiveToolNotInstallMessage = "Cannot find a tool in the manifest file that has a command named 'dotnet-interactive'.";
     //private readonly ProcessJobTracker jobTracker = new ProcessJobTracker();
-    private string workingDirectory;
+    private string installingDirectory;
 
     public event EventHandler<DisplayEvent>? DisplayEvent;
 
@@ -28,12 +28,16 @@ public class InteractiveService : IDisposable
 
     public event EventHandler<HoverTextProduced>? HoverTextProduced;
 
-    public InteractiveService(string workingDirectory)
+    /// <summary>
+    /// Create an instance of InteractiveService
+    /// </summary>
+    /// <param name="installingDirectory">dotnet interactive installing directory</param>
+    public InteractiveService(string installingDirectory)
     {
-        this.workingDirectory = workingDirectory;
+        this.installingDirectory = installingDirectory;
     }
 
-    public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct)
+    public async Task<bool> StartAsync(string workingDirectory, CancellationToken ct = default)
     {
         this.kernel = await this.CreateKernelAsync(workingDirectory, ct);
         return true;
@@ -177,7 +181,7 @@ public class InteractiveService : IDisposable
         var assembly = Assembly.GetAssembly(typeof(InteractiveService))!;
         var resourceName = "AutoGen.DotnetInteractiveFunction.RestoreInteractive.config";
         using (var stream = assembly.GetManifestResourceStream(resourceName)!)
-        using (var fileStream = File.Create(Path.Combine(this.workingDirectory, "RestoreInteractive.config")))
+        using (var fileStream = File.Create(Path.Combine(this.installingDirectory, "RestoreInteractive.config")))
         {
             stream.CopyTo(fileStream);
         }
@@ -186,7 +190,7 @@ public class InteractiveService : IDisposable
 
         resourceName = "AutoGen.DotnetInteractiveFunction.dotnet-tools.json";
         using (var stream2 = assembly.GetManifestResourceStream(resourceName)!)
-        using (var fileStream2 = File.Create(Path.Combine(this.workingDirectory, "dotnet-tools.json")))
+        using (var fileStream2 = File.Create(Path.Combine(this.installingDirectory, "dotnet-tools.json")))
         {
             stream2.CopyTo(fileStream2);
         }
@@ -195,7 +199,7 @@ public class InteractiveService : IDisposable
         {
             FileName = "dotnet",
             Arguments = $"tool restore --configfile RestoreInteractive.config",
-            WorkingDirectory = this.workingDirectory,
+            WorkingDirectory = this.installingDirectory,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
