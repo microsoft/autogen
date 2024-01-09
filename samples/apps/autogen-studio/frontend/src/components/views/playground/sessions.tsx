@@ -80,7 +80,7 @@ const SessionsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        // console.log("sesssions", data);
+        // console.log("sessions", data);
         setSessions(data.data);
         if (data.data && data.data.length === 0) {
           createSession();

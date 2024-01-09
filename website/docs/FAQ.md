@@ -71,8 +71,8 @@ The `AssistantAgent` doesn't save all the code by default, because there are cas
 
 We strongly recommend using docker to execute code. There are two ways to use docker:
 
-1. Run autogen in a docker container. For example, when developing in GitHub codespace, the autogen runs in a docker container.
-2. Run autogen outside of a docker, while perform code execution with a docker container. For this option, make sure the python package `docker` is installed. When it is not installed and `use_docker` is omitted in `code_execution_config`, the code will be executed locally (this behavior is subject to change in future).
+1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](Installation.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
+2. Run AutoGen outside of a docker, while performing code execution with a docker container. For this option, set up docker and make sure the python package `docker` is installed. When not installed and `use_docker` is omitted in `code_execution_config`, the code will be executed locally (this behavior is subject to change in future).
 
 ### Enable Python 3 docker image
 
@@ -93,7 +93,7 @@ If you have problems with agents running `pip install` or get errors similar to 
 
 ### Agents keep thanking each other when using `gpt-3.5-turbo`
 
-When using `gpt-3.5-turbo` you may often encounter agents going into a "gratitude loop", meaning when they complete a task they will begin congratulating and thanking eachother in a continuous loop. This is a limitation in the performance of `gpt-3.5-turbo`, in contrast to `gpt-4` which has no problem remembering instructions. This can hinder the experimentation experience when trying to test out your own use case with cheaper models.
+When using `gpt-3.5-turbo` you may often encounter agents going into a "gratitude loop", meaning when they complete a task they will begin congratulating and thanking each other in a continuous loop. This is a limitation in the performance of `gpt-3.5-turbo`, in contrast to `gpt-4` which has no problem remembering instructions. This can hinder the experimentation experience when trying to test out your own use case with cheaper models.
 
 A workaround is to add an additional termination notice to the prompt. This acts a "little nudge" for the LLM to remember that they need to terminate the conversation when their task is complete. You can do this by appending a string such as the following to your user input string:
 
