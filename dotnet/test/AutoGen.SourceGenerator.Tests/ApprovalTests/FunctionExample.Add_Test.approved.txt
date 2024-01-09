@@ -1,0 +1,21 @@
+{
+  "name": "Add",
+  "description": "Add function",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "a": {
+        "type": "number",
+        "description": "a"
+      },
+      "b": {
+        "type": "number",
+        "description": "b"
+      }
+    },
+    "required": [
+      "a",
+      "b"
+    ]
+  }
+}

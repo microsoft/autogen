@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>AutoGen</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen</Title>
+    <Description>
+      cutting-edge LLM multi-agent framework
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,76 @@
+name: $(Date:yyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+    - dotnet
+
+variables:
+  solution: 'dotnet/AutoGen.sln'
+  buildConfiguration: 'Release'
+
+stages:
+#####################################
+### STAGE: Build AutoGen
+#####################################
+- stage: Build_and_Pack
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    workspace:
+      clean: all
+
+    steps:
+    - checkout: self
+      displayName: checkout
+      clean: true
+    
+    - task: UseDotNet@2
+      inputs:
+        packageType: 'sdk'
+        useGlobalJson: true
+        workingDirectory: 'dotnet'
+    
+    - task: NuGetToolInstaller@1
+      displayName: 'NuGet tool installer'
+
+    - powershell: |
+        echo "Restore packages"
+        echo "add dotnet-tool feed"
+        # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
+        dotnet restore --verbosity Detailed
+      workingDirectory: '$(Build.SourcesDirectory)/dotnet'
+      displayName: 'dotnet restore'
+
+    - powershell: |
+        echo "Build AutoGen"
+        dotnet build -c $(buildConfiguration) --no-restore --verbosity Detailed /p:SignAssembly=true /p:DelaySign=true
+      displayName: build
+      workingDirectory: '$(Build.SourcesDirectory)/dotnet'
+    
+    - powershell:  |
+        echo "Create nightly build package"
+        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed
+        echo "Create release package"
+        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build --verbosity Detailed
+        echo "Contents of Build.ArtifactStagingDirectory..."
+        ls -R $(Build.ArtifactStagingDirectory)
+      workingDirectory: '$(Build.SourcesDirectory)/dotnet'
+      displayName: 'dotnet pack'
+    
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish nightly package to nightly folder'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/nightly'
+        artifact: 'nightly'
+        publishLocation: 'pipeline'
+    
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish release package to release folder'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)'
+        artifact: 'release'
+        publishLocation: 'pipeline'
+        

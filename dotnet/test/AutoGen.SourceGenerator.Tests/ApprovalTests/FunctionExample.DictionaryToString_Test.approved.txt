@@ -1,0 +1,16 @@
+{
+  "name": "DictionaryToStringAsync",
+  "description": "DictionaryToString function",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "xargs": {
+        "type": "object",
+        "description": "an object of key-value pairs. key is string, value is string"
+      }
+    },
+    "required": [
+      "xargs"
+    ]
+  }
+}
