@@ -164,8 +164,7 @@ def _test_selection_method(method: str):
 
 
 def test_speaker_selection_method():
-    # for method in ["auto", "round_robin", "random", "manual", "wrong", "RounD_roBin"]:
-    for method in ["wrong"]:
+    for method in ["auto", "round_robin", "random", "manual", "wrong", "RounD_roBin"]:
         _test_selection_method(method)
 
 
@@ -536,9 +535,8 @@ if __name__ == "__main__":
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    # test_speaker_selection_method()
+    test_speaker_selection_method()
     # test_n_agents_less_than_3()
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    pass
