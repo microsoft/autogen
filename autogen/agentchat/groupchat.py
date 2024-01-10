@@ -224,10 +224,16 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
         # Filter agents with allowed_graph_dict
-        # Extract agent names from the list of agents
-        graph_eligible_agents_names = [agent.name for agent in self.allowed_graph_dict[last_speaker.name]]
+        # if last_speaker.name is not a key in allowed_graph_dict, then no agents are eligible
+        if last_speaker.name not in self.allowed_graph_dict:
+            return None, agents
+        else:
+            # Extract agent names from the list of agents
+            graph_eligible_agents_names = [agent.name for agent in self.allowed_graph_dict[last_speaker.name]]
+        # Perform filtering
         graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
 
+        # Use the selected speaker selection method
         if self.speaker_selection_method.lower() == "manual":
             selected_agent = self.manual_select_speaker(graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "round_robin":

@@ -506,7 +506,7 @@ def test_selection_helpers():
     sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows or dependency is not installed",
 )
-def test_round_robin():
+def test_graceful_exit():
     agent1 = autogen.ConversableAgent(
         "alice",
         max_consecutive_auto_reply=10,
@@ -547,10 +547,10 @@ def test_round_robin():
     selector = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 
     # Action
-    selected_speaker = groupchat.select_speaker(last_speaker, selector)
+    agent1.initiate_chat(selector, message="hello")
 
     # Assertion
-    assert selected_speaker.name == "bob"
+    assert len(groupchat.messages) == 3
 
 
 
@@ -559,6 +559,7 @@ def test_round_robin():
 
 
 if __name__ == "__main__":
+    test_groupchat_select_speaker_func_call()
     # test_func_call_groupchat()
     # test_broadcast()
     # test_chat_manager()
@@ -568,4 +569,4 @@ if __name__ == "__main__":
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    test_round_robin()
+    # test_round_robin()
