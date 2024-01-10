@@ -63,6 +63,8 @@ Reply "TERMINATE" in the end when everything is done.
         llm_config: Optional[Union[Dict, bool]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         compress_config: Optional[Dict] = False,
+        description: Optional[str] = None,
+        **kwargs,
     ):
         """
         Args:
@@ -106,6 +108,8 @@ Reply "TERMINATE" in the end when everything is done.
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
+            description=description,
+            **kwargs,
         )
 
         self._set_compress_config(compress_config)
