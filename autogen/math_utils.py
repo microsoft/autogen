@@ -31,7 +31,7 @@ def remove_boxed(string: str) -> Optional[str]:
 
     > remove_boxed("\\boxed{\\frac{2}{3}}")
 
-      \\frac{2}{3}
+    \\frac{2}{3}
     """
     left = "\\boxed{"
     try:
