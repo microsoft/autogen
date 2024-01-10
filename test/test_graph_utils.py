@@ -74,6 +74,7 @@ class TestGraphUtilCheckGraphValidity:
             gru.check_graph_validity(allowed_graph_dict=missing_agent_graph_dict, agents=agents)
         assert "agents in self.agents not in graph" in caplog.text
 
+
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows or dependency is not installed",
@@ -82,7 +83,11 @@ class TestGraphUtilInvertDisallowedToAllowed:
     def test_basic_functionality(self, agents):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
         disallowed_graph = {"agent1": [agents[1]], "agent2": [agents[0], agents[2]], "agent3": []}
-        expected_allowed_graph = {"agent1": [agents[0], agents[2]], "agent2": [agents[1]], "agent3": [agents[0], agents[1], agents[2]]}
+        expected_allowed_graph = {
+            "agent1": [agents[0], agents[2]],
+            "agent2": [agents[1]],
+            "agent3": [agents[0], agents[1], agents[2]],
+        }
 
         # Compare names of agents in the allowed graph
         inverted = gru.invert_disallowed_to_allowed(disallowed_graph, agents)
@@ -95,7 +100,7 @@ class TestGraphUtilInvertDisallowedToAllowed:
             "agent2": [agents[0], agents[1], agents[2]],
             "agent3": [agents[0], agents[1], agents[2]],
         }
-        
+
         # Compare names of agents in the allowed graph
         inverted = gru.invert_disallowed_to_allowed(disallowed_graph, agents)
         assert inverted == expected_allowed_graph
@@ -107,7 +112,7 @@ class TestGraphUtilInvertDisallowedToAllowed:
             "agent3": [agents[0], agents[1], agents[2]],
         }
         expected_allowed_graph = {"agent1": [], "agent2": [], "agent3": []}
-        
+
         # Compare names of agents in the allowed graph
         inverted = gru.invert_disallowed_to_allowed(disallowed_graph, agents)
         assert inverted == expected_allowed_graph
