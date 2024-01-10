@@ -18,7 +18,10 @@ namespace AutoGen.Tests
 
         public IChatLLM? ChatLLM => null;
 
-        public Task<Message> GenerateReplyAsync(IEnumerable<Message> conversation, CancellationToken ct = default)
+        public Task<Message> GenerateReplyAsync(
+            IEnumerable<Message> conversation,
+            GenerateReplyOptions? options = null,
+            CancellationToken ct = default)
         {
             // return the most recent message
             var lastMessage = conversation.Last();

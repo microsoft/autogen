@@ -6,26 +6,25 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AutoGen
+namespace AutoGen;
+
+public class UserProxyAgent : ConversableAgent
 {
-    public class UserProxyAgent : ConversableAgent
+    public UserProxyAgent(
+        string name,
+        string systemMessage = "You are a helpful AI assistant",
+        ConversableAgentConfig? llmConfig = null,
+        Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+        HumanInputMode humanInputMode = HumanInputMode.NEVER,
+        IDictionary<string, Func<string, Task<string>>>? functionMap = null,
+        string? defaultReply = null)
+        : base(name: name,
+              systemMessage: systemMessage,
+              llmConfig: llmConfig,
+              isTermination: isTermination,
+              humanInputMode: humanInputMode,
+              functionMap: functionMap,
+              defaultReply: defaultReply)
     {
-        public UserProxyAgent(
-            string name,
-            string systemMessage = "You are a helpful AI assistant",
-            ConversableAgentConfig? llmConfig = null,
-            Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
-            HumanInputMode humanInputMode = HumanInputMode.NEVER,
-            IDictionary<string, Func<string, Task<string>>>? functionMap = null,
-            string? defaultReply = null)
-            : base(name: name,
-                  systemMessage: systemMessage,
-                  llmConfig: llmConfig,
-                  isTermination: isTermination,
-                  humanInputMode: humanInputMode,
-                  functionMap: functionMap,
-                  defaultReply: defaultReply)
-        {
-        }
     }
 }

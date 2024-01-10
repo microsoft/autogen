@@ -4,43 +4,42 @@
 using System.Collections.Generic;
 using Azure.AI.OpenAI;
 
-namespace AutoGen
+namespace AutoGen;
+
+public class Message
 {
-    public class Message
+    public Message(
+        Role role,
+        string? content,
+        string? from = null,
+        FunctionCall? functionCall = null)
     {
-        public Message(
-            Role role,
-            string? content,
-            string? from = null,
-            FunctionCall? functionCall = null)
-        {
-            this.Role = role;
-            this.Content = content;
-            this.From = from;
-            this.FunctionName = functionCall?.Name;
-            this.FunctionArguments = functionCall?.Arguments;
-        }
-
-        public Message(Message other)
-            : this(other.Role, other.Content, other.From)
-        {
-        }
-
-        public Role Role { get; set; }
-
-        public string? Content { get; set; }
-
-        public string? From { get; set; }
-
-        public string? FunctionName { get; set; }
-
-        public string? FunctionArguments { get; set; }
-
-        /// <summary>
-        /// raw message
-        /// </summary>
-        public object? Value { get; set; }
-
-        public IList<KeyValuePair<string, object>> Metadata { get; set; } = new List<KeyValuePair<string, object>>();
+        this.Role = role;
+        this.Content = content;
+        this.From = from;
+        this.FunctionName = functionCall?.Name;
+        this.FunctionArguments = functionCall?.Arguments;
     }
+
+    public Message(Message other)
+        : this(other.Role, other.Content, other.From)
+    {
+    }
+
+    public Role Role { get; set; }
+
+    public string? Content { get; set; }
+
+    public string? From { get; set; }
+
+    public string? FunctionName { get; set; }
+
+    public string? FunctionArguments { get; set; }
+
+    /// <summary>
+    /// raw message
+    /// </summary>
+    public object? Value { get; set; }
+
+    public IList<KeyValuePair<string, object>> Metadata { get; set; } = new List<KeyValuePair<string, object>>();
 }

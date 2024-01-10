@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// API.cs
+// LLMConfigAPI.cs
 
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using AutoGen.OpenAI;
 
 namespace AutoGen
 {
-    public static class API
+    public static class LLMConfigAPI
     {
         public static IEnumerable<ILLMConfig> GetOpenAIConfigList(
             string apiKey,

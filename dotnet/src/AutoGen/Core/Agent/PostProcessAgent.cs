@@ -6,33 +6,35 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AutoGen
+namespace AutoGen;
+
+public class PostProcessAgent : IAgent
 {
-    public class PostProcessAgent : IAgent
+    public PostProcessAgent(
+        IAgent innerAgent,
+        string name,
+        Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
     {
-        public PostProcessAgent(
-            IAgent innerAgent,
-            string name,
-            Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
-        {
-            InnerAgent = innerAgent;
-            Name = name;
-            PostprocessFunc = postprocessFunc;
-        }
+        InnerAgent = innerAgent;
+        Name = name;
+        PostprocessFunc = postprocessFunc;
+    }
 
-        public IAgent InnerAgent { get; }
+    public IAgent InnerAgent { get; }
 
-        public string Name { get; }
+    public string Name { get; }
 
-        public Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> PostprocessFunc { get; }
+    public Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> PostprocessFunc { get; }
 
-        public IChatLLM? ChatLLM => InnerAgent.ChatLLM;
+    public IChatLLM? ChatLLM => InnerAgent.ChatLLM;
 
-        public async Task<Message> GenerateReplyAsync(IEnumerable<Message> conversation, CancellationToken ct = default)
-        {
-            var reply = await InnerAgent.GenerateReplyAsync(conversation, ct);
-            reply.From = Name;
-            return await PostprocessFunc(conversation, reply, ct);
-        }
+    public async Task<Message> GenerateReplyAsync(
+        IEnumerable<Message> conversation,
+        GenerateReplyOptions? options = null,
+        CancellationToken ct = default)
+    {
+        var reply = await InnerAgent.GenerateReplyAsync(conversation, overrideOptions: options, cancellationToken: ct);
+        reply.From = Name;
+        return await PostprocessFunc(conversation, reply, ct);
     }
 }

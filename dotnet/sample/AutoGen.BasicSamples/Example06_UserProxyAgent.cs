@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example06_UserProxyAgent.cs
-using autogen = AutoGen.API;
+using autogen = AutoGen.LLMConfigAPI;
 
 namespace AutoGen.BasicSample;
 

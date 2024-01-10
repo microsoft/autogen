@@ -6,7 +6,7 @@ using System.Text.Json;
 using AutoGen;
 using AutoGen.DotnetInteractive;
 using FluentAssertions;
-using autogen = AutoGen.API;
+using autogen = AutoGen.LLMConfigAPI;
 using GroupChat = AutoGen.GroupChat;
 using GroupChatExtension = AutoGen.GroupChatExtension;
 using IAgent = AutoGen.IAgent;
