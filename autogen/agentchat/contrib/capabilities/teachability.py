@@ -1,13 +1,11 @@
 import os
-from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
+from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from typing import Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
 import pickle
-from tqdm import tqdm
-
 
 try:
     from termcolor import colored
@@ -17,148 +15,113 @@ except ImportError:
         return x
 
 
-class TeachableAgent(ConversableAgent):
-    """(Experimental) Teachable Agent, a subclass of ConversableAgent using a vector database to remember user teachings.
-    In this class, the term 'user' refers to any caller (human or not) sending messages to this agent.
-    Not yet tested in the group-chat setting."""
+class Teachability(AgentCapability):
+    """
+    Teachability uses a vector database to give an agent the ability to remember user teachings,
+    where the user is any caller (human or not) sending messages to the teachable agent.
+    Teachability is designed to be composable with other agent capabilities.
+    To make any conversable agent teachable, instantiate both the agent and the Teachability class,
+    then pass the agent to teachability.add_to_agent(agent).
+    Note that teachable agents in a group chat must be given unique path_to_db_dir values.
+    """
 
     def __init__(
         self,
-        name="teachableagent",
-        system_message: Optional[
-            str
-        ] = "You are a helpful AI assistant that remembers user teachings from prior chats.",
-        human_input_mode: Optional[str] = "NEVER",
+        verbosity: Optional[int] = 0,
+        reset_db: Optional[bool] = False,
+        path_to_db_dir: Optional[str] = "./tmp/teachable_agent_db",
+        recall_threshold: Optional[float] = 1.5,
+        max_num_retrievals: Optional[int] = 10,
         llm_config: Optional[Union[Dict, bool]] = None,
-        analyzer_llm_config: Optional[Union[Dict, bool]] = None,
-        teach_config: Optional[Dict] = None,
-        **kwargs,
     ):
         """
         Args:
-            name (str): name of the agent.
-            system_message (str): system message for the ChatCompletion inference.
-            human_input_mode (str): This agent should NEVER prompt the human for input.
-            llm_config (dict or False): llm inference configuration.
-                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
-                for available options.
-                To disable llm-based auto reply, set to False.
-            analyzer_llm_config (dict or False): llm inference configuration passed to TextAnalyzerAgent.
-                Given the default setting of None, TeachableAgent passes its own llm_config to TextAnalyzerAgent.
-            teach_config (dict or None): Additional parameters used by TeachableAgent.
-                To use default config, set to None. Otherwise, set to a dictionary with any of the following keys:
-                - verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
-                - reset_db (Optional, bool): True to clear the DB before starting. Default False.
-                - path_to_db_dir (Optional, str): path to the directory where the DB is stored. Default "./tmp/teachable_agent_db"
-                - prepopulate (Optional, int): True (default) to prepopulate the DB with a set of input-output pairs.
-                - recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
-                - max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
-            **kwargs (dict): other kwargs in [ConversableAgent](../conversable_agent#__init__).
+            verbosity (Optional, int): # 0 (default) for basic info, 1 to add memory operations, 2 for analyzer messages, 3 for memo lists.
+            reset_db (Optional, bool): True to clear the DB before starting. Default False.
+            path_to_db_dir (Optional, str): path to the directory where this particular agent's DB is stored. Default "./tmp/teachable_agent_db"
+            recall_threshold (Optional, float): The maximum distance for retrieved memos, where 0.0 is exact match. Default 1.5. Larger values allow more (but less relevant) memos to be recalled.
+            max_num_retrievals (Optional, int): The maximum number of memos to retrieve from the DB. Default 10.
+            llm_config (dict or False): llm inference configuration passed to TextAnalyzerAgent.
+                If None, TextAnalyzerAgent uses llm_config from the teachable agent.
         """
-        super().__init__(
-            name=name,
-            system_message=system_message,
-            human_input_mode=human_input_mode,
-            llm_config=llm_config,
-            **kwargs,
-        )
-        # Register a custom reply function.
-        self.register_reply(Agent, TeachableAgent._generate_teachable_assistant_reply, position=2)
+        self.verbosity = verbosity
+        self.path_to_db_dir = path_to_db_dir
+        self.recall_threshold = recall_threshold
+        self.max_num_retrievals = max_num_retrievals
+        self.llm_config = llm_config
 
-        # Assemble the parameter settings.
-        self._teach_config = {} if teach_config is None else teach_config
-        self.verbosity = self._teach_config.get("verbosity", 0)
-        self.reset_db = self._teach_config.get("reset_db", False)
-        self.path_to_db_dir = self._teach_config.get("path_to_db_dir", "./tmp/teachable_agent_db")
-        self.prepopulate = self._teach_config.get("prepopulate", True)
-        self.recall_threshold = self._teach_config.get("recall_threshold", 1.5)
-        self.max_num_retrievals = self._teach_config.get("max_num_retrievals", 10)
-
-        # Create the analyzer.
-        if analyzer_llm_config is None:
-            analyzer_llm_config = llm_config
-        self.analyzer = TextAnalyzerAgent(llm_config=analyzer_llm_config)
+        self.analyzer = None
+        self.teachable_agent = None
 
         # Create the memo store.
-        self.memo_store = MemoStore(self.verbosity, self.reset_db, self.path_to_db_dir)
-        self.user_comments = []  # Stores user comments until the end of each chat.
+        self.memo_store = MemoStore(self.verbosity, reset_db, self.path_to_db_dir)
 
-    def close_db(self):
-        """Cleanly closes the memo store."""
-        self.memo_store.close()
+    def add_to_agent(self, agent: ConversableAgent):
+        """Adds teachability to the given agent."""
+        self.teachable_agent = agent
+
+        # Register a hook for processing the last message.
+        agent.register_hook(hookable_method=agent.process_last_message, hook=self.process_last_message)
+
+        # Was an llm_config passed to the constructor?
+        if self.llm_config is None:
+            # No. Use the agent's llm_config.
+            self.llm_config = agent.llm_config
+        assert self.llm_config, "Teachability requires a valid llm_config."
+
+        # Create the analyzer agent.
+        self.analyzer = TextAnalyzerAgent(llm_config=self.llm_config)
+
+        # Append extra info to the system message.
+        agent.update_system_message(
+            agent.system_message
+            + "\nYou've been given the special ability to remember user teachings from prior conversations."
+        )
 
     def prepopulate_db(self):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
-    def _generate_teachable_assistant_reply(
-        self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        config: Optional[Any] = None,  # Persistent state.
-    ) -> Tuple[bool, Union[str, Dict, None]]:
+    def process_last_message(self, text):
         """
-        Generates a reply to the last user message, after querying the memo store for relevant information.
+        Appends any relevant memos to the message text, and stores any apparent teachings in new memos.
         Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.
         """
-        if self.llm_config is False:
-            raise ValueError("TeachableAgent requires self.llm_config to be set in its base class.")
-        if messages is None:
-            messages = self._oai_messages[sender]  # In case of a direct call.
 
-        # Get the last user turn.
-        last_message = messages[-1]
-        user_text = last_message["content"]
-        if (not isinstance(user_text, str)) or ("context" in last_message):
-            raise ValueError(
-                "TeachableAgent currently assumes that the message content is a simple string. This error serves to flag a test case for relaxing this assumption."
-            )
-
-        # Keep track of this user turn as a potential source of memos later.
-        self.user_comments.append(user_text)
-
-        # Consider whether to retrieve something from the DB.
+        # Try to retrieve relevant memos from the DB.
+        expanded_text = text
         if self.memo_store.last_memo_id > 0:
-            new_user_text = self.consider_memo_retrieval(user_text)
-            if new_user_text != user_text:
-                # Make a copy of the message list, and replace the last user message with the new one.
-                messages = messages.copy()
-                messages[-1]["content"] = new_user_text
+            expanded_text = self._consider_memo_retrieval(text)
 
-        # Generate a response by reusing existing generate_oai_reply
-        return self.generate_oai_reply(messages, sender, config)
+        # Try to store any user teachings in new memos to be used in the future.
+        self._consider_memo_storage(text)
 
-    def learn_from_user_feedback(self):
-        """Reviews the user comments from the last chat, and decides what teachings to store as memos."""
-        print(colored("\nREVIEWING CHAT FOR USER TEACHINGS TO REMEMBER", "light_yellow"))
-        # Look at each user turn.
-        if len(self.user_comments) > 0:
-            for comment in tqdm(self.user_comments):
-                # Consider whether to store something from this user turn in the DB.
-                self.consider_memo_storage(comment)
-        self.user_comments = []
+        # Return the (possibly) expanded message text.
+        return expanded_text
 
-    def consider_memo_storage(self, comment):
+    def _consider_memo_storage(self, comment):
         """Decides whether to store something from one user comment in the DB."""
+        memo_added = False
+
         # Check for a problem-solution pair.
-        response = self.analyze(
+        response = self._analyze(
             comment,
             "Does any part of the TEXT ask the agent to perform a task or solve a problem? Answer with just one word, yes or no.",
         )
         if "yes" in response.lower():
             # Can we extract advice?
-            advice = self.analyze(
+            advice = self._analyze(
                 comment,
                 "Briefly copy any advice from the TEXT that may be useful for a similar but different task in the future. But if no advice is present, just respond with 'none'.",
             )
             if "none" not in advice.lower():
                 # Yes. Extract the task.
-                task = self.analyze(
+                task = self._analyze(
                     comment,
                     "Briefly copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.",
                 )
                 # Generalize the task.
-                general_task = self.analyze(
+                general_task = self._analyze(
                     task,
                     "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.",
                 )
@@ -166,37 +129,44 @@ class TeachableAgent(ConversableAgent):
                 if self.verbosity >= 1:
                     print(colored("\nREMEMBER THIS TASK-ADVICE PAIR", "light_yellow"))
                 self.memo_store.add_input_output_pair(general_task, advice)
+                memo_added = True
 
         # Check for information to be learned.
-        response = self.analyze(
+        response = self._analyze(
             comment,
             "Does the TEXT contain information that could be committed to memory? Answer with just one word, yes or no.",
         )
         if "yes" in response.lower():
             # Yes. What question would this information answer?
-            question = self.analyze(
+            question = self._analyze(
                 comment,
                 "Imagine that the user forgot this information in the TEXT. How would they ask you for this information? Include no other text in your response.",
             )
             # Extract the information.
-            answer = self.analyze(
+            answer = self._analyze(
                 comment, "Copy the information from the TEXT that should be committed to memory. Add no explanation."
             )
             # Add the question-answer pair to the vector DB.
             if self.verbosity >= 1:
                 print(colored("\nREMEMBER THIS QUESTION-ANSWER PAIR", "light_yellow"))
             self.memo_store.add_input_output_pair(question, answer)
+            memo_added = True
 
-    def consider_memo_retrieval(self, comment):
+        # Were any memos added?
+        if memo_added:
+            # Yes. Save them to disk.
+            self.memo_store._save_memos()
+
+    def _consider_memo_retrieval(self, comment):
         """Decides whether to retrieve memos from the DB, and add them to the chat context."""
 
-        # First, use the user comment directly as the lookup key.
+        # First, use the comment directly as the lookup key.
         if self.verbosity >= 1:
             print(colored("\nLOOK FOR RELEVANT MEMOS, AS QUESTION-ANSWER PAIRS", "light_yellow"))
-        memo_list = self.retrieve_relevant_memos(comment)
+        memo_list = self._retrieve_relevant_memos(comment)
 
         # Next, if the comment involves a task, then extract and generalize the task before using it as the lookup key.
-        response = self.analyze(
+        response = self._analyze(
             comment,
             "Does any part of the TEXT ask the agent to perform a task or solve a problem? Answer with just one word, yes or no.",
         )
@@ -204,24 +174,24 @@ class TeachableAgent(ConversableAgent):
             if self.verbosity >= 1:
                 print(colored("\nLOOK FOR RELEVANT MEMOS, AS TASK-ADVICE PAIRS", "light_yellow"))
             # Extract the task.
-            task = self.analyze(
+            task = self._analyze(
                 comment, "Copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice."
             )
             # Generalize the task.
-            general_task = self.analyze(
+            general_task = self._analyze(
                 task,
                 "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.",
             )
             # Append any relevant memos.
-            memo_list.extend(self.retrieve_relevant_memos(general_task))
+            memo_list.extend(self._retrieve_relevant_memos(general_task))
 
         # De-duplicate the memo list.
         memo_list = list(set(memo_list))
 
-        # Append the memos to the last user message.
-        return comment + self.concatenate_memo_texts(memo_list)
+        # Append the memos to the text of the last message.
+        return comment + self._concatenate_memo_texts(memo_list)
 
-    def retrieve_relevant_memos(self, input_text):
+    def _retrieve_relevant_memos(self, input_text):
         """Returns semantically related memos from the DB."""
         memo_list = self.memo_store.get_related_memos(
             input_text, n_results=self.max_num_retrievals, threshold=self.recall_threshold
@@ -239,7 +209,7 @@ class TeachableAgent(ConversableAgent):
         memo_list = [memo[1] for memo in memo_list]
         return memo_list
 
-    def concatenate_memo_texts(self, memo_list):
+    def _concatenate_memo_texts(self, memo_list):
         """Concatenates the memo texts into a single string for inclusion in the chat context."""
         memo_texts = ""
         if len(memo_list) > 0:
@@ -247,30 +217,25 @@ class TeachableAgent(ConversableAgent):
             for memo in memo_list:
                 info = info + "- " + memo + "\n"
             if self.verbosity >= 1:
-                print(colored("\nMEMOS APPENDED TO LAST USER MESSAGE...\n" + info + "\n", "light_yellow"))
+                print(colored("\nMEMOS APPENDED TO LAST MESSAGE...\n" + info + "\n", "light_yellow"))
             memo_texts = memo_texts + "\n" + info
         return memo_texts
 
-    def analyze(self, text_to_analyze, analysis_instructions):
+    def _analyze(self, text_to_analyze, analysis_instructions):
         """Asks TextAnalyzerAgent to analyze the given text according to specific instructions."""
-        if self.verbosity >= 2:
-            # Use the messaging mechanism so that the analyzer's messages are included in the printed chat.
-            self.analyzer.reset()  # Clear the analyzer's list of messages.
-            self.send(
-                recipient=self.analyzer, message=text_to_analyze, request_reply=False
-            )  # Put the message in the analyzer's list.
-            self.send(recipient=self.analyzer, message=analysis_instructions, request_reply=True)  # Request the reply.
-            return self.last_message(self.analyzer)["content"]
-        else:
-            # TODO: This is not an encouraged usage pattern. It breaks the conversation-centric design.
-            # consider using the arg "silent"
-            # Use the analyzer's method directly, to leave analyzer message out of the printed chat.
-            return self.analyzer.analyze_text(text_to_analyze, analysis_instructions)
+        self.analyzer.reset()  # Clear the analyzer's list of messages.
+        self.teachable_agent.send(
+            recipient=self.analyzer, message=text_to_analyze, request_reply=False, silent=(self.verbosity < 2)
+        )  # Put the message in the analyzer's list.
+        self.teachable_agent.send(
+            recipient=self.analyzer, message=analysis_instructions, request_reply=True, silent=(self.verbosity < 2)
+        )  # Request the reply.
+        return self.teachable_agent.last_message(self.analyzer)["content"]
 
 
 class MemoStore:
-    """(Experimental)
-    Provides memory storage and retrieval for a TeachableAgent, using a vector database.
+    """
+    Provides memory storage and retrieval for a teachable agent, using a vector database.
     Each DB entry (called a memo) is a pair of strings: an input text and an output text.
     The input text might be a question, or a task to perform.
     The output text might be an answer to the question, or advice on how to perform the task.
@@ -284,7 +249,6 @@ class MemoStore:
             - path_to_db_dir (Optional, str): path to the directory where the DB is stored.
         """
         self.verbosity = verbosity
-        self.reset = reset
         self.path_to_db_dir = path_to_db_dir
 
         # Load or create the vector DB on disk.
@@ -293,8 +257,6 @@ class MemoStore:
         )
         self.db_client = chromadb.Client(settings)
         self.vec_db = self.db_client.create_collection("memos", get_or_create=True)  # The collection is the DB.
-        if reset:
-            self.reset_db()
 
         # Load or create the associated memo dict on disk.
         self.path_to_dict = os.path.join(path_to_db_dir, "uid_text_dict.pkl")
@@ -309,6 +271,10 @@ class MemoStore:
                 if self.verbosity >= 3:
                     self.list_memos()
 
+        # Clear the DB if requested.
+        if reset:
+            self.reset_db()
+
     def list_memos(self):
         """Prints the contents of MemoStore."""
         print(colored("LIST OF MEMOS", "light_green"))
@@ -321,10 +287,8 @@ class MemoStore:
                 )
             )
 
-    def close(self):
+    def _save_memos(self):
         """Saves self.uid_text_dict to disk."""
-        print(colored("\nSAVING MEMORY TO DISK", "light_green"))
-        print(colored("    Location = {}".format(self.path_to_dict), "light_green"))
         with open(self.path_to_dict, "wb") as file:
             pickle.dump(self.uid_text_dict, file)
 
@@ -334,6 +298,7 @@ class MemoStore:
         self.db_client.delete_collection("memos")
         self.vec_db = self.db_client.create_collection("memos")
         self.uid_text_dict = {}
+        self._save_memos()
 
     def add_input_output_pair(self, input_text, output_text):
         """Adds an input-output pair to the vector DB."""
@@ -343,10 +308,10 @@ class MemoStore:
         if self.verbosity >= 1:
             print(
                 colored(
-                    "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}".format(
+                    "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}\n".format(
                         self.last_memo_id, input_text, output_text
                     ),
-                    "light_green",
+                    "light_yellow",
                 )
             )
         if self.verbosity >= 3:
@@ -364,7 +329,7 @@ class MemoStore:
                     "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                         input_text, output_text, distance
                     ),
-                    "light_green",
+                    "light_yellow",
                 )
             )
         return input_text, output_text, distance
@@ -387,7 +352,7 @@ class MemoStore:
                             "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
                                 input_text, output_text, distance
                             ),
-                            "light_green",
+                            "light_yellow",
                         )
                     )
                 memos.append((input_text, output_text, distance))
@@ -422,3 +387,4 @@ class MemoStore:
         )
         for example in examples:
             self.add_input_output_pair(example["text"], example["label"])
+        self._save_memos()
