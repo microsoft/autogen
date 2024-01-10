@@ -119,6 +119,6 @@ lmm = [
     "replicate",
 ]
 graphs = [
-    "matplotlib~=3.8.1",
+    "matplotlib~=3.8.2",
     "networkx~=3.2.1",
 ]
