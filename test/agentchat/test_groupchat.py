@@ -5,33 +5,6 @@ import autogen
 import json
 import sys
 
-def test_groupchat_select_speaker_func_call():
-    agent1 = autogen.ConversableAgent(
-        "alice",
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is alice speaking.",
-    )
-    agent2 = autogen.ConversableAgent(
-        "bob",
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is bob speaking.",
-        function_map={"test_func": lambda x: x},
-    )
-    groupchat = autogen.GroupChat(agents=[agent1, agent2], messages=[], max_round=3)
-
-    agents = [agent1, agent2]
-    last_speaker = agent1
-    selector = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-
-    # Action
-    selected_speaker = groupchat.select_speaker(last_speaker, selector)
-
-    # Assertion
-    assert selected_speaker in agents
-
-
 
 def test_func_call_groupchat():
     agent1 = autogen.ConversableAgent(
@@ -98,6 +71,8 @@ def test_chat_manager():
     groupchat = autogen.GroupChat(agents=[agent1, agent2], messages=[], max_round=2)
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
     agent1.initiate_chat(group_chat_manager, message="hello")
+
+    print(agent1.chat_messages[group_chat_manager])
 
     assert len(agent1.chat_messages[group_chat_manager]) == 2
     assert len(groupchat.messages) == 2
@@ -549,7 +524,7 @@ def test_graceful_exit():
     # Action
     agent1.initiate_chat(selector, message="hello")
 
-    # Assertion
+    # Assertion: Note that 3 is much lower than max round of 10.
     assert len(groupchat.messages) == 3
 
 

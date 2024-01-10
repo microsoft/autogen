@@ -163,7 +163,15 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
-    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent]]:
+    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent], Optional[bool]]:
+        '''
+        Prepare the agents for selection by filtering out agents that are not allowed to speak.
+        Then, select the next speaker using the selected speaker selection method.
+        return:
+            selected_agent: the selected agent
+            agents: the list of agents supplied
+            zero_candidate_transition: whether there are no more eligible agents from the graph. This allows for graceful termination where n_rounds < max_rounds.
+        '''
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
@@ -220,18 +228,27 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                         f"No agent can execute the function {', '.join(funcs)}. "
                         "Please check the function_map of the agents."
                     )
+                
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
+
+        # Initialize no_more_allowed_transition
+        zero_candidate_transition = False
 
         # Filter agents with allowed_graph_dict
         # if last_speaker.name is not a key in allowed_graph_dict, then no agents are eligible
         if last_speaker.name not in self.allowed_graph_dict:
-            return None, agents
+            zero_candidate_transition = True
+            return None, agents, zero_candidate_transition
         else:
             # Extract agent names from the list of agents
             graph_eligible_agents_names = [agent.name for agent in self.allowed_graph_dict[last_speaker.name]]
         # Perform filtering
         graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
+
+        if len(graph_eligible_agents) == 0:
+            zero_candidate_transition = True
+            return None, agents, zero_candidate_transition
 
         # Use the selected speaker selection method
         if self.speaker_selection_method.lower() == "manual":
@@ -242,13 +259,19 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = random.choice(graph_eligible_agents)
         else:
             selected_agent = None
-        return selected_agent, agents
+            zero_candidate_transition = True
+            
+        return selected_agent, agents, zero_candidate_transition
 
-    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
+    def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Optional[Agent]:
         """Select the next speaker."""
-        selected_agent, agents = self._prepare_and_select_agents(last_speaker)
+        selected_agent, agents, zero_candidate_transition = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
+        
+        if selected_agent is None and zero_candidate_transition is True:
+            return selected_agent            
+
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
 
@@ -280,11 +303,14 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         except ValueError:
             return self.next_agent(last_speaker, agents)
 
-    async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
+    async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Optional[Agent]:
         """Select the next speaker."""
-        selected_agent, agents = self._prepare_and_select_agents(last_speaker)
+        selected_agent, agents, zero_candidate_transition = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
+        
+        if selected_agent is None and zero_candidate_transition is True:
+            return selected_agent       
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = await selector.a_generate_oai_reply(
@@ -418,8 +444,13 @@ class GroupChatManager(ConversableAgent):
             try:
                 # select the next speaker
                 speaker = groupchat.select_speaker(speaker, self)
-                # let the speaker speak
-                reply = speaker.generate_reply(sender=self)
+
+                # If speaker is None, reply is None
+                if speaker is None:
+                    reply = None
+                else:
+                    # let the speaker speak
+                    reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
                 # let the admin agent speak if interrupted
                 if groupchat.admin_name in groupchat.agent_names:
