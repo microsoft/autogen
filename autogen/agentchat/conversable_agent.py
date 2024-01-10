@@ -912,9 +912,7 @@ class ConversableAgent(Agent):
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
-                "content": "\n\n".join(
-                    [self._str_for_tool_response(tool_return["content"]) for tool_return in tool_returns]
-                ),
+                "content": "\n\n".join([self._str_for_tool_response(tool_return) for tool_return in tool_returns]),
             }
 
         return False, None
