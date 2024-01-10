@@ -247,7 +247,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_graphgroupchat.py
+          coverage run -a -m pytest test/agentchat/test_graph_utils.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
