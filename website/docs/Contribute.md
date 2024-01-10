@@ -97,12 +97,18 @@ pip install -e autogen
 
 ### Docker
 
-We provide a simple [Dockerfile](https://github.com/microsoft/autogen/blob/main/Dockerfile).
+We provide [Dockerfiles](https://github.com/microsoft/autogen/blob/main/samples/dockers/Dockerfile.dev) for developers to use.
 
-```bash
-docker build https://github.com/microsoft/autogen.git#main -t autogen-dev
-docker run -it autogen-dev
+Use the following command line to build and run a docker image.
+
 ```
+docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git#main
+
+docker run -it autogen_dev_img
+```
+
+Detailed instructions can be found [here](Installation.md#option-1-install-and-run-autogen-in-docker).
+
 
 ### Develop in Remote Container
 

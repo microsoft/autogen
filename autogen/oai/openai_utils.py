@@ -145,8 +145,8 @@ def config_list_openai_aoai(
         exclude (str, optional): The API type to exclude from the configuration list. Can be 'openai' or 'aoai'. Defaults to None.
 
     Returns:
-        List[Dict]: A list of configuration dictionaries. Each dictionary contains keys for 'api_key', 'base_url', 'api_type',
-        and 'api_version'.
+        List[Dict]: A list of configuration dictionaries. Each dictionary contains keys for 'api_key',
+            and optionally 'base_url', 'api_type', and 'api_version'.
 
     Raises:
         FileNotFoundError: If the specified key files are not found and the corresponding API key is not set in the environment variables.
@@ -241,7 +241,6 @@ def config_list_openai_aoai(
             # Assuming OpenAI API_KEY in os.environ["OPENAI_API_KEY"]
             api_keys=os.environ.get("OPENAI_API_KEY", "").split("\n"),
             base_urls=base_urls,
-            # "api_type": "open_ai",
         )
         if exclude != "openai"
         else []
@@ -366,23 +365,23 @@ def filter_config(config_list, filter_dict):
     ```
         # Example configuration list with various models and API types
         configs = [
-            {'model': 'gpt-3.5-turbo', 'api_type': 'openai'},
-            {'model': 'gpt-4', 'api_type': 'openai'},
+            {'model': 'gpt-3.5-turbo'},
+            {'model': 'gpt-4'},
             {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
         ]
 
         # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
-        # that are also using the 'openai' API type
+        # that are also using the 'azure' API type
         filter_criteria = {
             'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
-            'api_type': ['openai']       # Only accept configurations for 'openai' API type
+            'api_type': ['azure']       # Only accept configurations for 'azure' API type
         }
 
         # Apply the filter to the configuration list
         filtered_configs = filter_config(configs, filter_criteria)
 
         # The resulting `filtered_configs` will be:
-        # [{'model': 'gpt-3.5-turbo', 'api_type': 'openai'}]
+        # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
     ```
 
     Note:
@@ -426,10 +425,10 @@ def config_list_from_json(
     Example:
     ```
     # Suppose we have an environment variable 'CONFIG_JSON' with the following content:
-    # '[{"model": "gpt-3.5-turbo", "api_type": "openai"}, {"model": "gpt-4", "api_type": "openai"}]'
+    # '[{"model": "gpt-3.5-turbo", "api_type": "azure"}, {"model": "gpt-4"}]'
 
     # We can retrieve a filtered list of configurations like this:
-    filter_criteria = {"api_type": ["openai"], "model": ["gpt-3.5-turbo"]}
+    filter_criteria = {"model": ["gpt-3.5-turbo"]}
     configs = config_list_from_json('CONFIG_JSON', filter_dict=filter_criteria)
     # The 'configs' variable will now contain only the configurations that match the filter criteria.
     ```
@@ -472,14 +471,12 @@ def get_config(
     config = get_config(
         api_key="sk-abcdef1234567890",
         base_url="https://api.openai.com",
-        api_type="openai",
         api_version="v1"
     )
     # The 'config' variable will now contain:
     # {
     #     "api_key": "sk-abcdef1234567890",
     #     "base_url": "https://api.openai.com",
-    #     "api_type": "openai",
     #     "api_version": "v1"
     # }
     ```

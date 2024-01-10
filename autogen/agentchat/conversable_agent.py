@@ -855,24 +855,23 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
-        if "tool_calls" in message and message["tool_calls"]:
-            tool_calls = message["tool_calls"]
-            tool_returns = []
-            for tool_call in tool_calls:
-                id = tool_call["id"]
-                function_call = tool_call.get("function", {})
-                func = self._function_map.get(function_call.get("name", None), None)
-                if asyncio.coroutines.iscoroutinefunction(func):
-                    continue
-                _, func_return = self.execute_function(function_call)
-                tool_returns.append(
-                    {
-                        "tool_call_id": id,
-                        "role": "tool",
-                        "name": func_return.get("name", ""),
-                        "content": func_return.get("content", ""),
-                    }
-                )
+        tool_returns = []
+        for tool_call in message.get("tool_calls", []):
+            id = tool_call["id"]
+            function_call = tool_call.get("function", {})
+            func = self._function_map.get(function_call.get("name", None), None)
+            if asyncio.coroutines.iscoroutinefunction(func):
+                continue
+            _, func_return = self.execute_function(function_call)
+            tool_returns.append(
+                {
+                    "tool_call_id": id,
+                    "role": "tool",
+                    "name": func_return.get("name", ""),
+                    "content": func_return.get("content", ""),
+                }
+            )
+        if len(tool_returns) > 0:
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
@@ -1019,7 +1018,9 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            response = {"role": "user", "content": reply}
+            if tool_returns:
+                response["tool_responses"] = tool_returns
 
             return True, response
 
