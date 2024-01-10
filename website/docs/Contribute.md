@@ -13,7 +13,7 @@ This project welcomes and encourages all forms of contributions, including but n
 
 Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit [https://cla.opensource.microsoft.com](https://cla.opensource.microsoft.com).
+the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
 If you are new to GitHub [here](https://help.github.com/categories/collaborating-with-issues-and-pull-requests/) is a detailed help source on getting involved with development on GitHub.
 

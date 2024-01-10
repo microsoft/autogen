@@ -4,9 +4,9 @@
 `autogen.Completion` is a drop-in replacement of `openai.Completion` and `openai.ChatCompletion` for enhanced LLM inference using `openai<1`.
 There are a number of benefits of using `autogen` to perform inference: performance tuning, API unification, caching, error handling, multi-config inference, result filtering, templating and so on.
 
-## Tune Inference Parameters (for openai&lt;1)
+## Tune Inference Parameters (for opena<1)
 
-Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#tune-inference-hyperparameters)
+Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#inference-hyperparameters-tuning)
 
 ### Choices to optimize
 
@@ -322,7 +322,7 @@ context.append(
 response = client.create(context=context, messages=messages, **config)
 ```
 
-## Logging (for openai&lt;1)
+## Logging (for openai<1)
 
 When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python

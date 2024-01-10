@@ -27,7 +27,8 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
 
 
 def llava_formatter(prompt: str, order_image_tokens: bool = False) -> Tuple[str, List[str]]:
-    """Formats the input prompt by replacing image tags and returns the new prompt along with image locations.
+    """
+    Formats the input prompt by replacing image tags and returns the new prompt along with image locations.
 
     Parameters:
         - prompt (str): The input string that may contain image tags like <img ...>.
@@ -92,7 +93,8 @@ def convert_base64_to_data_uri(base64_image):
 
 
 def gpt4v_formatter(prompt: str) -> List[Union[str, dict]]:
-    """Formats the input prompt by replacing image tags and returns a list of text and images.
+    """
+    Formats the input prompt by replacing image tags and returns a list of text and images.
 
     Parameters:
         - prompt (str): The input string that may contain image tags like <img ...>.

@@ -64,7 +64,7 @@ class CompletionResponseStreamChoice(BaseModel):
 ```
 
 
-## Interact with model using `oai.Completion` (requires openai&lt;1)
+## Interact with model using `oai.Completion` (requires opena<1)
 
 Now the models can be directly accessed through openai-python library as well as `autogen.oai.Completion` and `autogen.oai.ChatCompletion`.
 

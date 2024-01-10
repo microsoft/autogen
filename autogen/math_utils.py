@@ -30,8 +30,7 @@ def remove_boxed(string: str) -> Optional[str]:
     Example:
 
     > remove_boxed("\\boxed{\\frac{2}{3}}")
-    Output:
-    > \\frac{2}{3}
+      \\frac{2}{3}
     """
     left = "\\boxed{"
     try:
