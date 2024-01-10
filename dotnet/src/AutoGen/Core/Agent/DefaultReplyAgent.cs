@@ -21,8 +21,6 @@ public class DefaultReplyAgent : IAgent
 
     public string DefaultReply { get; } = string.Empty;
 
-    public IChatLLM? ChatLLM => null;
-
     public async Task<Message> GenerateReplyAsync(
         IEnumerable<Message> _,
         GenerateReplyOptions? __ = null,

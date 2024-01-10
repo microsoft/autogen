@@ -17,8 +17,6 @@ public class GroupChatManager : IAgent
     }
     public string? Name => throw new ArgumentException("GroupChatManager does not have a name");
 
-    public IChatLLM? ChatLLM => null;
-
     public IEnumerable<Message>? Messages { get; private set; }
 
     public IGroupChat GroupChat { get; }

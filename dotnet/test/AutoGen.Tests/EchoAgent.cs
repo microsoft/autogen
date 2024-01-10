@@ -16,8 +16,6 @@ namespace AutoGen.Tests
         }
         public string Name { get; }
 
-        public IChatLLM? ChatLLM => null;
-
         public Task<Message> GenerateReplyAsync(
             IEnumerable<Message> conversation,
             GenerateReplyOptions? options = null,

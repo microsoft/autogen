@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.AI.OpenAI;
 
 namespace AutoGen;
 
@@ -11,16 +12,14 @@ public interface IAgent
 {
     public string? Name { get; }
 
-    public IChatLLM? ChatLLM { get; }
-
     /// <summary>
     /// Generate reply
     /// </summary>
     /// <param name="messages">conversation history</param>
-    /// <param name="overrideOptions">completion option to override.</param>
+    /// <param name="options">completion option. If provided, it should override existing option if there's any</param>
     public Task<Message> GenerateReplyAsync(
         IEnumerable<Message> messages,
-        GenerateReplyOptions? overrideOptions = null,
+        GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default);
 }
 
@@ -31,4 +30,6 @@ public class GenerateReplyOptions
     public int? MaxToken { get; set; }
 
     public string[]? StopSequence { get; set; }
+
+    public FunctionDefinition[]? Functions { get; set; }
 }

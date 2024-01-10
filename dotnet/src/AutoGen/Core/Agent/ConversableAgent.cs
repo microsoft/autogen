@@ -108,8 +108,6 @@ public class ConversableAgent : IAgent
 
     public string? Name { get; }
 
-    public IChatLLM? ChatLLM => this.innerAgent?.ChatLLM;
-
     public Func<IEnumerable<Message>, CancellationToken, Task<bool>>? IsTermination { get; }
 
     public async Task<Message> GenerateReplyAsync(

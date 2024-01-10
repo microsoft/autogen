@@ -44,22 +44,15 @@ public class GroupChat : IGroupChat
         {
             throw new Exception("All agents must have a unique name.");
         }
-
-        // check if admin has a chat completion
-        if (this.admin.ChatLLM == null)
-        {
-            throw new Exception("Admin must have a chat completion.");
-        }
     }
 
     public async Task<IAgent?> SelectNextSpeakerAsync(IEnumerable<Message> conversationHistory)
     {
-        var llm = this.admin.ChatLLM ?? throw new Exception("Admin does not have a chat completion.");
-        var agent_names = this.agents.Select(x => x.Name).ToList();
+        var agentNames = this.agents.Select(x => x.Name).ToList();
         var systemMessage = new Message(Role.System,
             content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
 The available roles are:
-{string.Join(",", agent_names)}
+{string.Join(",", agentNames)}
 
 Each message will start with 'From name:', e.g:
 From admin:
@@ -68,13 +61,17 @@ From admin:
         var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
 
         var messages = new Message[] { systemMessage }.Concat(conv);
-        var response = await llm.GetChatCompletionsAsync(
+        var response = await this.admin.GenerateReplyAsync(
             messages: messages,
-            temperature: 0f,
-            maxToken: 128,
-            stopWords: new[] { ":" });
+            options: new GenerateReplyOptions
+            {
+                Temperature = 0,
+                MaxToken = 128,
+                StopSequence = [":"],
+                Functions = [],
+            });
 
-        var name = response?.Message?.Content ?? throw new Exception("No name is returned.");
+        var name = response?.Content ?? throw new Exception("No name is returned.");
 
         try
         {

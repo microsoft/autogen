@@ -35,8 +35,6 @@ public class PreProcessAgent : IAgent
 
     public Func<IEnumerable<Message>, CancellationToken, Task<IEnumerable<Message>>> PreprocessFunc { get; }
 
-    public IChatLLM? ChatLLM => InnerAgent.ChatLLM;
-
     /// <summary>
     /// First preprocess the <paramref name="conversation"/> using the <see cref="PreprocessFunc"/> and then pass the preprocessed conversation to the <see cref="InnerAgent"/>."/>
     /// </summary>
@@ -46,7 +44,7 @@ public class PreProcessAgent : IAgent
         CancellationToken ct = default)
     {
         var messages = await PreprocessFunc(conversation, ct);
-        var reply = await InnerAgent.GenerateReplyAsync(messages, overrideOptions: null, cancellationToken: ct);
+        var reply = await InnerAgent.GenerateReplyAsync(messages, options: null, cancellationToken: ct);
         reply.From = Name;
 
         return reply;

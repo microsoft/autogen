@@ -46,8 +46,6 @@ public class AutoReplyAgent : IAgent
     /// </summary>
     public IAgent InnerAgent { get; }
 
-    public IChatLLM? ChatLLM => InnerAgent.ChatLLM;
-
     /// <summary>
     /// call the agent to generate reply message.
     /// It will first try to auto reply the message. If no auto reply is available, the <see cref="InnerAgent"/> will be called to generate the reply message.

@@ -26,14 +26,12 @@ public class PostProcessAgent : IAgent
 
     public Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> PostprocessFunc { get; }
 
-    public IChatLLM? ChatLLM => InnerAgent.ChatLLM;
-
     public async Task<Message> GenerateReplyAsync(
         IEnumerable<Message> conversation,
         GenerateReplyOptions? options = null,
         CancellationToken ct = default)
     {
-        var reply = await InnerAgent.GenerateReplyAsync(conversation, overrideOptions: options, cancellationToken: ct);
+        var reply = await InnerAgent.GenerateReplyAsync(conversation, options: options, cancellationToken: ct);
         reply.From = Name;
         return await PostprocessFunc(conversation, reply, ct);
     }

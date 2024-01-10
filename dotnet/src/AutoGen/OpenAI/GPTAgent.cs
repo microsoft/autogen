@@ -29,13 +29,6 @@ public class GPTAgent : IAgent
         IEnumerable<FunctionDefinition>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
-        ChatLLM = config switch
-        {
-            AzureOpenAIConfig azureConfig => OpenAIChatLLM.Create(azureConfig),
-            OpenAIConfig openAIConfig => OpenAIChatLLM.Create(openAIConfig),
-            _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
-        };
-
         openAIClient = config switch
         {
             AzureOpenAIConfig azureConfig => new OpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
@@ -60,8 +53,6 @@ public class GPTAgent : IAgent
 
     public string? Name { get; }
 
-    public IChatLLM? ChatLLM { get; }
-
     public async Task<Message> GenerateReplyAsync(
         IEnumerable<Message> messages,
         GenerateReplyOptions? options = null,
@@ -81,9 +72,10 @@ public class GPTAgent : IAgent
             Temperature = options?.Temperature ?? _temperature,
         };
 
-        if (_functions != null)
+        var functions = options?.Functions ?? _functions ?? [];
+        if (functions is not null && functions.Count() > 0)
         {
-            settings.Functions = _functions.ToList();
+            settings.Functions = functions.ToList();
         }
 
         if (options?.StopSequence is var sequence && sequence is { Length: > 0 })
