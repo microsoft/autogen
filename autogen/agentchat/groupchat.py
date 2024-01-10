@@ -14,6 +14,7 @@ from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 
 logger = logging.getLogger(__name__)
 
+
 class NoEligibleSpeakerException(Exception):
     """Exception raised for early termination of a GroupChat."""
 
@@ -65,16 +66,21 @@ class GroupChat:
         # Create a fully connected graph if graph_dict is None
         if self.graph_dict is None:
             # self.allow_repeat_speaker can be Union[bool, List[Agent]]
-            if self.allow_repeat_speaker == True:
-                self.allowed_graph_dict = {agent.name: [other_agent for other_agent in self.agents] for agent in self.agents}
+            if self.allow_repeat_speaker is True:
+                self.allowed_graph_dict = {
+                    agent.name: [other_agent for other_agent in self.agents] for agent in self.agents
+                }
             else:
                 # self.allow_repeat_speaker is now False or a List[Agent]
-                self.allowed_graph_dict = {agent.name: [other_agent for other_agent in self.agents if other_agent != agent] for agent in self.agents}
+                self.allowed_graph_dict = {
+                    agent.name: [other_agent for other_agent in self.agents if other_agent != agent]
+                    for agent in self.agents
+                }
                 if isinstance(self.allow_repeat_speaker, list):
                     # If allow_repeat_speaker is a list of agents, add those agents as allowed to repeat
                     for agent in self.allow_repeat_speaker:
                         self.allowed_graph_dict[agent.name].append(agent)
-                
+
         else:
             # Process based on is_allowed_graph
             if self.is_allowed_graph:
@@ -82,10 +88,13 @@ class GroupChat:
             else:
                 # Logic for processing disallowed graph to allowed graph
                 self.allowed_graph_dict = invert_disallowed_to_allowed(self.graph_dict, self.agents)
-        
-        # Check for validity
-        check_graph_validity(allowed_graph_dict=self.allowed_graph_dict, agents=self.agents, allow_repeat_speaker=self.allow_repeat_speaker)
 
+        # Check for validity
+        check_graph_validity(
+            allowed_graph_dict=self.allowed_graph_dict,
+            agents=self.agents,
+            allow_repeat_speaker=self.allow_repeat_speaker,
+        )
 
     @property
     def agent_names(self) -> List[str]:
@@ -234,7 +243,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # if last_speaker.name is not a key in allowed_graph_dict, then no agents are eligible
         if last_speaker.name not in self.allowed_graph_dict:
             raise NoEligibleSpeakerException(f"Last speaker {last_speaker.name} is not in the allowed_graph_dict.")
-            #return None, agents
+            # return None, agents
         else:
             # Extract agent names from the list of agents
             graph_eligible_agents_names = [agent.name for agent in self.allowed_graph_dict[last_speaker.name]]
@@ -440,7 +449,7 @@ class GroupChatManager(ConversableAgent):
             except NoEligibleSpeakerException:
                 # No eligible speaker, terminate the conversation
                 break
-            
+
             if reply is None:
                 break
             # The speaker sends the message without requesting a reply

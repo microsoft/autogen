@@ -10,9 +10,11 @@ import autogen.graph_utils as gru
 def agents():
     return [Agent("agent1"), Agent("agent2"), Agent("agent3")]
 
+
 @pytest.fixture
 def valid_graph_dict(agents):
     return {agent.name: [other_agent for other_agent in agents if other_agent != agent] for agent in agents}
+
 
 # Use pytest.mark.skipif decorator for conditional skipping
 @pytest.mark.skipif(
@@ -24,12 +26,14 @@ class TestGraphUtilCheckGraphValidity:
         gru.check_graph_validity(allowed_graph_dict=valid_graph_dict, agents=agents)
 
     def test_graph_with_invalid_structure(self, agents):
-        invalid_graph_dict = {'unseen_agent': ['stranger']}
+        invalid_graph_dict = {"unseen_agent": ["stranger"]}
         with pytest.raises(ValueError):
             gru.check_graph_validity(invalid_graph_dict, agents)
 
     def test_graph_with_invalid_string(self, agents):
-        invalid_graph_dict = {agent.name: ['agent1'] for agent in agents} # 'agent1' is a string, not an Agent. Therefore raises an error.
+        invalid_graph_dict = {
+            agent.name: ["agent1"] for agent in agents
+        }  # 'agent1' is a string, not an Agent. Therefore raises an error.
         with pytest.raises(ValueError):
             gru.check_graph_validity(invalid_graph_dict, agents)
 
@@ -73,16 +77,8 @@ class TestGraphUtilCheckGraphValidity:
 
 class TestGraphUtilInvertDisallowedToAllowed:
     def test_basic_functionality(self, agents):
-        disallowed_graph = {
-            "agent1": [agents[1]],
-            "agent2": [agents[0], agents[2]],
-            "agent3": []
-        }
-        expected_allowed_graph = {
-            "agent1": [agents[2]],
-            "agent2": [],
-            "agent3": [agents[0], agents[1]]
-        }
+        disallowed_graph = {"agent1": [agents[1]], "agent2": [agents[0], agents[2]], "agent3": []}
+        expected_allowed_graph = {"agent1": [agents[2]], "agent2": [], "agent3": [agents[0], agents[1]]}
         assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
 
     def test_empty_disallowed_graph(self, agents):
@@ -90,7 +86,7 @@ class TestGraphUtilInvertDisallowedToAllowed:
         expected_allowed_graph = {
             "agent1": [agents[1], agents[2]],
             "agent2": [agents[0], agents[2]],
-            "agent3": [agents[0], agents[1]]
+            "agent3": [agents[0], agents[1]],
         }
         assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
 
@@ -98,23 +94,17 @@ class TestGraphUtilInvertDisallowedToAllowed:
         disallowed_graph = {
             "agent1": [agents[1], agents[2]],
             "agent2": [agents[0], agents[2]],
-            "agent3": [agents[0], agents[1]]
+            "agent3": [agents[0], agents[1]],
         }
-        expected_allowed_graph = {
-            "agent1": [],
-            "agent2": [],
-            "agent3": []
-        }
+        expected_allowed_graph = {"agent1": [], "agent2": [], "agent3": []}
         assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph
 
     def test_disallowed_graph_with_nonexistent_agent(self, agents):
-        disallowed_graph = {
-            "agent1": [Agent("nonexistent_agent")]
-        }
+        disallowed_graph = {"agent1": [Agent("nonexistent_agent")]}
         # In this case, the function should ignore the nonexistent agent and proceed with the inversion
         expected_allowed_graph = {
             "agent1": [agents[1], agents[2]],
             "agent2": [agents[0], agents[2]],
-            "agent3": [agents[0], agents[1]]
+            "agent3": [agents[0], agents[1]],
         }
         assert gru.invert_disallowed_to_allowed(disallowed_graph, agents) == expected_allowed_graph

@@ -6,6 +6,7 @@ import json
 import sys
 from autogen import Agent, GroupChat
 
+
 def test_func_call_groupchat():
     agent1 = autogen.ConversableAgent(
         "alice",
@@ -163,7 +164,7 @@ def _test_selection_method(method: str):
 
 
 def test_speaker_selection_method():
-    #for method in ["auto", "round_robin", "random", "manual", "wrong", "RounD_roBin"]:
+    # for method in ["auto", "round_robin", "random", "manual", "wrong", "RounD_roBin"]:
     for method in ["wrong"]:
         _test_selection_method(method)
 
@@ -204,22 +205,20 @@ def _test_n_agents_less_than_3(method):
     # test one agent
     with pytest.raises(ValueError):
         groupchat = autogen.GroupChat(
-        agents=[agent1],
-        messages=[],
-        max_round=6,
-        speaker_selection_method="round_robin",
-        allow_repeat_speaker=False)
+            agents=[agent1],
+            messages=[],
+            max_round=6,
+            speaker_selection_method="round_robin",
+            allow_repeat_speaker=False,
+        )
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
     # test zero agent
     with pytest.raises(ValueError):
         groupchat = autogen.GroupChat(
-        agents=[],
-        messages=[],
-        max_round=6,
-        speaker_selection_method="round_robin",
-        allow_repeat_speaker=False)
+            agents=[], messages=[], max_round=6, speaker_selection_method="round_robin", allow_repeat_speaker=False
+        )
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
@@ -481,14 +480,15 @@ def test_init_default_parameters():
     for agent in agents:
         assert set([a.name for a in group_chat.allowed_graph_dict[agent.name]]) == set([a.name for a in agents])
 
+
 def test_graph_validity_check():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
     invalid_graph = {agents[0].name: []}  # An invalid graph
-    with pytest.raises(Exception): 
+    with pytest.raises(Exception):
         GroupChat(agents=agents, graph_dict=invalid_graph, is_allowed_graph=True)
 
-def test_graceful_exit_before_max_round():
 
+def test_graceful_exit_before_max_round():
     agent1 = autogen.ConversableAgent(
         "alice",
         max_consecutive_auto_reply=10,
@@ -512,14 +512,15 @@ def test_graceful_exit_before_max_round():
     )
 
     # This graph limits the transition to be only from agent1 to agent2, and from agent2 to agent3 and end.
-    graph_dict = {
-        agent1.name: [agent2],
-        agent2.name: [agent3]
-    }
+    graph_dict = {agent1.name: [agent2], agent2.name: [agent3]}
 
     # Test empty is_termination_msg function
     groupchat = autogen.GroupChat(
-        agents=[agent1, agent2, agent3], messages=[], speaker_selection_method="round_robin", max_round=10, graph_dict=graph_dict
+        agents=[agent1, agent2, agent3],
+        messages=[],
+        speaker_selection_method="round_robin",
+        max_round=10,
+        graph_dict=graph_dict,
     )
 
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False, is_termination_msg=None)
@@ -528,8 +529,6 @@ def test_graceful_exit_before_max_round():
 
     # Note that 3 is much lower than 10 (max_round), so the conversation should end before 10 rounds.
     assert len(groupchat.messages) == 3
-
-
 
 
 if __name__ == "__main__":
