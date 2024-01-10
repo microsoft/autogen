@@ -31,7 +31,7 @@ We adapt the models using 20 examples in the train set, using the problem statem
 - temperature: The parameter that controls the randomness of the output text. A higher temperature means more diversity but less coherence. We search for the optimal temperature in the range of [0, 1].
 - top_p: The parameter that controls the probability mass of the output tokens. Only tokens with a cumulative probability less than or equal to top-p are considered. A lower top-p means more diversity but less coherence. We search for the optimal top-p in the range of [0, 1].
 - max_tokens: The maximum number of tokens that can be generated for each output. We search for the optimal max length in the range of [50, 1000].
-- n:The number of responses to generate. We search for the optimal n in the range of [1, 100].
+- n: The number of responses to generate. We search for the optimal n in the range of [1, 100].
 - prompt: We use the template: "{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}." where {problem} will be replaced by the math problem instance.
 
 In this experiment, when n > 1, we find the answer with highest votes among all the responses and then select it as the final answer to compare with the ground truth. For example, if n = 5 and 3 of the responses contain a final answer 301 while 2 of the responses contain a final answer 159, we choose 301 as the final answer. This can help with resolving potential errors due to randomness. We use the average accuracy and average inference cost as the metric to evaluate the performance over a dataset. The inference cost of a particular instance is measured by the price per 1K tokens and the number of tokens consumed.
