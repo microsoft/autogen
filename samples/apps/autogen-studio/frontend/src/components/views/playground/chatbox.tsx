@@ -220,17 +220,19 @@ const ChatBox = ({
               </span>
             )} */}
           </div>
-          <div className="font-semibold text-secondary text-sm w-14">{`${
-            isUser ? "USER" : "AGENT"
+          <div className="font-semibold text-secondary text-sm w-16">{`${
+            isUser ? "USER" : "AGENTS"
           }`}</div>
           <div
             // style={{ minWidth: "70%" }}
-            className={`inline-block relative ${
+            className={`inline-block group relative ${
               isUser ? "" : " w-full "
             } p-2 rounded  ${css}`}
           >
             {" "}
-            {items.length > 0 && editable && <div className="   ">{menu}</div>}
+            {items.length > 0 && editable && (
+              <div className=" group-hover:opacity-100 opacity-0 ">{menu}</div>
+            )}
             {isUser && (
               <>
                 <div className="inline-block">{message.text}</div>

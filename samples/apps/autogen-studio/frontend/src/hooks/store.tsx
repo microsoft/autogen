@@ -4,11 +4,11 @@ import { IChatMessage, IChatSession, IFlowConfig } from "../components/types";
 
 interface ConfigState {
   workflowConfig: IFlowConfig | null;
-  setWorkflowConfig: (flowConfig: IFlowConfig) => void;
+  setWorkflowConfig: (flowConfig: IFlowConfig | null) => void;
   messages: IChatMessage[] | null;
   setMessages: (messages: IChatMessage[]) => void;
   session: IChatSession | null;
-  setSession: (session: IChatSession) => void;
+  setSession: (session: IChatSession | null) => void;
   sessions: IChatSession[];
   setSessions: (sessions: IChatSession[]) => void;
 }
