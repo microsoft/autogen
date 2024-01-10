@@ -1,13 +1,20 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_utils import OAI_CONFIG_LIST, KEY_LOC
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
-    skip = False
+    skip = False or skip_openai
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -15,7 +22,7 @@ def test_aoai_chat_completion_stream():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], stream=True)
@@ -28,7 +35,7 @@ def test_chat_completion_stream():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo"]},
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(messages=[{"role": "user", "content": "1+1="}], stream=True)
@@ -41,7 +48,7 @@ def test_chat_functions_stream():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo"]},
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     functions = [
         {

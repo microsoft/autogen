@@ -1,19 +1,26 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from test_utils import OAI_CONFIG_LIST, KEY_LOC
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 TOOL_ENABLED = False
 try:
     from openai import OpenAI
-    from openai.types.chat.chat_completion import ChatCompletionMessage
-except ImportError:
-    skip = True
-else:
-    skip = False
     import openai
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
+    from openai.types.chat.chat_completion import ChatCompletionMessage
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
+KEY_LOC = "notebook"
+OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -21,7 +28,7 @@ def test_aoai_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     # for config in config_list:
@@ -33,12 +40,12 @@ def test_aoai_chat_completion():
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip and not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.skipif(skip or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_oai_tool_calling_extraction():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo"]},
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(
@@ -97,7 +104,6 @@ def test_completion():
     [
         (None, "gpt-3.5-turbo-instruct"),
         (42, "gpt-3.5-turbo-instruct"),
-        (None, "text-ada-001"),
     ],
 )
 def test_cost(cache_seed, model):
@@ -142,5 +148,5 @@ if __name__ == "__main__":
     test_oai_tool_calling_extraction()
     test_chat_completion()
     test_completion()
-    test_cost()
+    # test_cost()
     test_usage_summary()

@@ -6,7 +6,7 @@ This Testbed sample has been tested in, and is known to work with, Autogen versi
 
 ## Setup
 
-Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
+Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directory, or environment variable named, OAI_CONFIG_LIST. This can be overridden using a command-line parameter described later.
 
 For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV` file in the `includes` folder. A sample has been provided in ``includes/ENV.example``. Edit ``includes/ENV`` as needed.
 
@@ -56,7 +56,7 @@ options:
 
 ## Results
 
-By default, the Testbed stores results in a folder heirarchy with the following template:
+By default, the Testbed stores results in a folder hierarchy with the following template:
 
 ``./results/[scenario]/[instance_id]/[repetition]``
 
@@ -162,7 +162,7 @@ For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
+1. Recursively copy the contents of `./includes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
 2. Append the OAI_CONFIG_LIST to the ENV file so that autogen may access these secrets.
 3. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
 4. Apply any templating, as outlined in the prior section.
