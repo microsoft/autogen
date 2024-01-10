@@ -261,7 +261,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = graph_eligible_agents[0]
         else:
             selected_agent = None
-        return selected_agent, agents
+        return selected_agent, graph_eligible_agents
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
