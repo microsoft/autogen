@@ -20,6 +20,7 @@ import { fetchJSON, getServerUrl, truncateText } from "./utils";
 import {
   IAgentFlowSpec,
   IFlowConfig,
+  IGroupChatFlowSpec,
   IModelConfig,
   ISkill,
   IStatus,
@@ -667,6 +668,7 @@ export const ModelSelector = ({
     return (
       <div
         key={"modelrow_" + i}
+        role="button"
         className="mr-1 mb-1 p-1 px-2 rounded border"
         onClick={() => showModal(config, i)}
       >
@@ -1270,6 +1272,84 @@ export const SkillLoader = ({
   );
 };
 
+const GroupChatFlowSpecView = ({
+  flowSpec,
+  setFlowSpec,
+}: {
+  flowSpec: IGroupChatFlowSpec | null;
+  setFlowSpec: (flowSpec: IGroupChatFlowSpec | null) => void;
+}) => {
+  const [showAgentModal, setShowAgentModal] = React.useState(false);
+  const [selectedAgent, setSelectedAgent] =
+    React.useState<IAgentFlowSpec | null>(null);
+
+  const agentsView = flowSpec?.groupchat_config.agents.map(
+    (flowSpec: IAgentFlowSpec, index: number) => {
+      const tooltipText = `Agent: ${flowSpec?.config.name}`;
+      return (
+        <div
+          key={"agent" + index}
+          className="mr-1 mb-1 p-1 px-2 rounded border"
+          role="button"
+          onClick={() => {
+            // setShowAgentModal(true);
+            setSelectedAgent(flowSpec);
+            // setShowAgentModal(true);
+          }}
+        >
+          <div className="inline-flex">
+            {" "}
+            <Tooltip title={tooltipText}>
+              <div className="">{flowSpec.config.name} </div>{" "}
+            </Tooltip>
+            <div
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent opening the modal to edit
+                // handleRemoveConfig(i);
+              }}
+              className="ml-1 text-primary hover:text-accent duration-300"
+            >
+              <XMarkIcon className="w-4 h-4 inline-block" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+  );
+
+  useEffect(() => {
+    if (selectedAgent) {
+      // showAgentModal = true;
+      setShowAgentModal(true);
+    }
+  }, [selectedAgent]);
+
+  return (
+    <div className="mb-4">
+      <AgentModal
+        agent={selectedAgent}
+        setAgent={setSelectedAgent}
+        showAgentModal={showAgentModal}
+        setShowAgentModal={setShowAgentModal}
+      />
+      <GroupView title="Group Chat Agents">
+        <div className="flex flex-wrap mt-3">
+          {agentsView}
+          <div
+            className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+            role="button"
+            onClick={() => {}}
+          >
+            add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+          </div>
+        </div>
+      </GroupView>
+      <div className="h-2"> </div>
+    </div>
+  );
+};
+
 const AgentModal = ({
   agent,
   setAgent,
@@ -1287,11 +1367,12 @@ const AgentModal = ({
     agent
   );
   const [selectedFlowSpec, setSelectedFlowSpec] = useState<number | null>(0);
-  const [flowSpecs, setFlowSpecs] = useState<IAgentFlowSpec[]>([]);
+
   const serverUrl = getServerUrl();
   const { user } = React.useContext(appContext);
   const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
 
+  const [flowSpecs, setFlowSpecs] = useState<IAgentFlowSpec[]>([]);
   useEffect(() => {
     fetchAgents();
   }, []);
@@ -1347,6 +1428,16 @@ const AgentModal = ({
           <div className="text-sm text-secondary mt-2">
             Modify current agent{" "}
           </div>
+          {agent.type === "groupchat" && (
+            <div>
+              {" "}
+              Group Chat
+              <GroupChatFlowSpecView
+                flowSpec={agent as IGroupChatFlowSpec}
+                setFlowSpec={setAgent}
+              />
+            </div>
+          )}
           <AgentFlowSpecView
             title=""
             flowSpec={localAgent || agent}

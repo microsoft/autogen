@@ -98,7 +98,7 @@ const AgentsWorkflowView = () => {
         )}
         <div className="mt-2 text-xs">
           {" "}
-          Create new workflows{" "}
+          View workflows{" "}
           <span className="text-accent">
             {" "}
             <Link to="/build">here</Link>

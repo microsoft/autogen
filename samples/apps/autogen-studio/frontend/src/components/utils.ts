@@ -383,7 +383,7 @@ export const examplePrompts = [
   {
     title: "Stock Price",
     prompt:
-      "Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png",
+      "Plot a chart of NVDA and TESLA stock price for 2023. Save the result to a file named nvda_tesla.png",
   },
   {
     title: "Sine Wave",

@@ -52,14 +52,35 @@ export interface IAgentFlowSpec {
   user_id?: string;
 }
 
+export interface IGroupChatConfig {
+  agents: Array<IAgentFlowSpec>;
+  admin_name: string;
+  messages: Array<any>;
+  max_round: number;
+  speaker_selection_method: string;
+  allow_repeat_speaker: boolean | Array<IAgentConfig>;
+}
+
+export interface IGroupChatFlowSpec {
+  type: "groupchat";
+  config: IAgentConfig;
+  groupchat_config: IGroupChatConfig;
+  id?: string;
+  timestamp?: string;
+  user_id?: string;
+  description?: string;
+}
+
 export interface IFlowConfig {
   name: string;
   description: string;
   sender: IAgentFlowSpec;
-  receiver: IAgentFlowSpec;
+  receiver: IAgentFlowSpec | IGroupChatFlowSpec;
   type: "default" | "groupchat";
   timestamp?: string;
   summary_method?: "none" | "last" | "llm";
+  id?: string;
+  user_id?: string;
 }
 
 export interface IModelConfig {
