@@ -28,7 +28,7 @@ def conversable_agent():
     )
 
 
-def test_trigger():
+def test_sync_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent.register_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
@@ -64,6 +64,103 @@ def test_trigger():
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
     pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
+
+
+@pytest.mark.asyncio
+async def test_async_trigger():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    async def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello")
+
+    agent.register_reply(agent1, a_reply)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello"
+
+    async def a_reply_a1(recipient, messages, sender, config):
+        print("hello from a_reply_a1")
+        return (True, "hello a1")
+
+    agent.register_reply("a1", a_reply_a1)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a1"
+
+    async def a_reply_conversable_agent(recipient, messages, sender, config):
+        print("hello from a_reply_conversable_agent")
+        return (True, "hello conversable agent")
+
+    agent.register_reply(ConversableAgent, a_reply_conversable_agent)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello conversable agent"
+
+    async def a_reply_a(recipient, messages, sender, config):
+        print("hello from a_reply_a")
+        return (True, "hello a")
+
+    agent.register_reply(lambda sender: sender.name.startswith("a"), a_reply_a)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a"
+
+    async def a_reply_b(recipient, messages, sender, config):
+        print("hello from a_reply_b")
+        return (True, "hello b")
+
+    agent.register_reply(lambda sender: sender.name.startswith("b"), a_reply_b)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a"
+
+    async def a_reply_agent2_or_agent1(recipient, messages, sender, config):
+        print("hello from a_reply_agent2_or_agent1")
+        return (True, "hello agent2 or agent1")
+
+    agent.register_reply(["agent2", agent1], a_reply_agent2_or_agent1)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
+
+    async def a_reply_agent2_or_agent3(recipient, messages, sender, config):
+        print("hello from a_reply_agent2_or_agent3")
+        return (True, "hello agent2 or agent3")
+
+    agent.register_reply(["agent2", "agent3"], a_reply_agent2_or_agent3)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
+
+    with pytest.raises(ValueError):
+        agent.register_reply(1, a_reply)
+
+    with pytest.raises(ValueError):
+        agent._match_trigger(1, agent1)
+
+
+@pytest.mark.skip("Currently not supported")
+@pytest.mark.asyncio
+def test_async_trigger_in_sync_chat():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    async def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello from reply function")
+
+    agent.register_reply(agent1, a_reply)
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello from reply function"
+
+
+@pytest.mark.asyncio
+async def test_sync_trigger_in_async_chat():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello from reply function")
+
+    agent.register_reply(agent1, a_reply)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello from reply function"
 
 
 def test_context():
