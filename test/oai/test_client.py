@@ -1,6 +1,10 @@
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from conftest import skip_openai
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 TOOL_ENABLED = False
 try:
