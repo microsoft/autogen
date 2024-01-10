@@ -92,7 +92,7 @@ class SocietyOfMindAgent(ConversableAgent):
             messages = self._oai_messages[sender]
 
         # We want to clear the inner monolgue, keeping only the exteranl chat for context.
-        # Reset all the counters and histories, then populate agents with necesssary context from the external chat
+        # Reset all the counters and histories, then populate agents with necessary context from the external chat
         self.chat_manager.reset()
         self.update_chat_manager(self.chat_manager)
 
