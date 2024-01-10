@@ -23,7 +23,7 @@ We have designed a generic [`ConversableAgent`](../reference/agentchat/conversab
 
 - The [`AssistantAgent`](../reference/agentchat/assistant_agent.md#assistantagent-objects) is designed to act as an AI assistant, using LLMs by default but not requiring human input or code execution. It could write Python code (in a Python coding block) for a user to execute when a message (typically a description of a task that needs to be solved) is received. Under the hood, the Python code is written by LLM (e.g., GPT-4). It can also receive the execution results and suggest corrections or bug fixes. Its behavior can be altered by passing a new system message. The LLM [inference](#enhanced-inference) configuration can be configured via [`llm_config`].
 
-- The [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) is conceptually a proxy agent for humans, soliciting human input as the agent's reply at each interaction turn by default and also having the capability to execute code and call functions. The [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting the `code_execution_config` parameter to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](/docs/Use-Cases/enhanced_inference) configuration. When `llm_config` is set as a dictionary, [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) can generate replies using an LLM when code execution is not performed.
+- The [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) is conceptually a proxy agent for humans, soliciting human input as the agent's reply at each interaction turn by default and also having the capability to execute code and call functions or tools. The [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) triggers code execution automatically when it detects an executable code block in the received message and no human user input is provided. Code execution can be disabled by setting the `code_execution_config` parameter to False. LLM-based response is disabled by default. It can be enabled by setting `llm_config` to a dict corresponding to the [inference](/docs/Use-Cases/enhanced_inference) configuration. When `llm_config` is set as a dictionary, [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) can generate replies using an LLM when code execution is not performed.
 
 The auto-reply capability of [`ConversableAgent`](../reference/agentchat/conversable_agent.md#conversableagent-objects) allows for more autonomous multi-agent communication while retaining the possibility of human intervention.
 One can also easily extend it by registering reply functions with the [`register_reply()`](../reference/agentchat/conversable_agent.md#register_reply) method.
@@ -39,51 +39,98 @@ assistant = AssistantAgent(name="assistant")
 # create a UserProxyAgent instance named "user_proxy"
 user_proxy = UserProxyAgent(name="user_proxy")
 ```
-#### Function calling
+#### Tool calling
 
-Function calling enables agents to interact with external tools and APIs more efficiently.
+Tool calling enables agents to interact with external tools and APIs more efficiently.
 This feature allows the AI model to intelligently choose to output a JSON object containing
-arguments to call specific functions based on the user's input. A fnctions to be called is
+arguments to call specific tools based on the user's input. A tool to be called is
 specified with a JSON schema describing its parameters and their types. Writing such JSON schema
 is complex and error-prone and that is why AutoGen framework provides two high level function decorators for automatically generating such schema using type hints on standard Python datatypes
 or Pydantic models:
 
-1. [`ConversableAgent.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) is used to register the function in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registrated function, but the actual execution will be performed by a UserProxy agent.
+1. [`ConversableAgent.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) is used to register the function as a Tool in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registered Tool, but the actual execution will be performed by a UserProxy agent.
 
 2. [`ConversableAgent.register_for_execution`](../reference/agentchat/conversable_agent#register_for_execution) is used to register the function in the `function_map` of a UserProxy agent.
 
 The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
 
+1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](../FAQ#set-your-api-endpoints) function:
+
 ``` python
 from typing import Literal
-from typing_extensions import Annotated
-from somewhere import exchange_rate
-# the agents are instances of AssistantAgent and UserProxyAgent
-from myagents import chatbot, user_proxy
 
+from pydantic import BaseModel, Field
+from typing_extensions import Annotated
+
+import autogen
+
+config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST",
+    filter_dict={
+        "model": ["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
+    },
+)
+```
+
+2. We create an assistant agent and user proxy. The assistant will be responsible for suggesting which functions to call and the user proxy for the actual execution of a proposed function:
+
+``` python
+llm_config = {
+    "config_list": config_list,
+    "timeout": 120,
+}
+
+chatbot = autogen.AssistantAgent(
+    name="chatbot",
+    system_message="For currency exchange tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+    llm_config=llm_config,
+)
+
+# create a UserProxyAgent instance named "user_proxy"
+user_proxy = autogen.UserProxyAgent(
+    name="user_proxy",
+    is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=10,
+)
+```
+
+3. We define the function `currency_calculator` below as follows and decorate it with two decorators:
+   - [`@user_proxy.register_for_execution()`](../reference/agentchat/conversable_agent#register_for_execution) adding the function `currency_calculator` to `user_proxy.function_map`, and
+   - [`@chatbot.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) adding a generated JSON schema of the function to `llm_config` of `chatbot`.
+
+``` python
 CurrencySymbol = Literal["USD", "EUR"]
 
-# registers the function for execution (updates function map)
+
+def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
+    if base_currency == quote_currency:
+        return 1.0
+    elif base_currency == "USD" and quote_currency == "EUR":
+        return 1 / 1.1
+    elif base_currency == "EUR" and quote_currency == "USD":
+        return 1.1
+    else:
+        raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
+
+
 @user_proxy.register_for_execution()
-# creates JSON schema from type hints and registers the function to llm_config
 @chatbot.register_for_llm(description="Currency exchange calculator.")
-# python function with type hints
 def currency_calculator(
-  # Annotated type is used for attaching description to the parameter
-  base_amount: Annotated[float, "Amount of currency in base_currency"],
-  # default values of parameters will be propagated to the LLM
-  base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
-  quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
-) -> str: # return type must be either str, BaseModel or serializable by json.dumps()
-  quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
-  return f"{quote_amount} {quote_currency}"
+    base_amount: Annotated[float, "Amount of currency in base_currency"],
+    base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
+    quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+) -> str:
+    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    return f"{quote_amount} {quote_currency}"
 ```
 
 Notice the use of [Annotated](https://docs.python.org/3/library/typing.html?highlight=annotated#typing.Annotated) to specify the type and the description of each parameter. The return value of the function must be either string or serializable to string using the [`json.dumps()`](https://docs.python.org/3/library/json.html#json.dumps) or [`Pydantic` model dump to JSON](https://docs.pydantic.dev/latest/concepts/serialization/#modelmodel_dump_json) (both version 1.x and 2.x are supported).
 
-You can check the JSON schema generated by the decorator `chatbot.llm_config["functions"]`:
+You can check the JSON schema generated by the decorator `chatbot.llm_config["tools"]`:
 ```python
-[{'description': 'Currency exchange calculator.',
+[{'type': 'function', 'function':
+ {'description': 'Currency exchange calculator.',
   'name': 'currency_calculator',
   'parameters': {'type': 'object',
    'properties': {'base_amount': {'type': 'number',
@@ -96,9 +143,16 @@ You can check the JSON schema generated by the decorator `chatbot.llm_config["fu
      'type': 'string',
      'default': 'EUR',
      'description': 'Quote currency'}},
-   'required': ['base_amount']}}]
+   'required': ['base_amount']}}}]
 ```
-Agents can now use the function as follows:
+4. Agents can now use the function as follows:
+```python
+user_proxy.initiate_chat(
+    chatbot,
+    message="How much is 123.45 USD in EUR?",
+)
+```
+Output:
 ```
 user_proxy (to chatbot):
 
@@ -107,7 +161,7 @@ How much is 123.45 USD in EUR?
 --------------------------------------------------------------------------------
 chatbot (to user_proxy):
 
-***** Suggested function Call: currency_calculator *****
+***** Suggested tool Call: currency_calculator *****
 Arguments:
 {"base_amount":123.45,"base_currency":"USD","quote_currency":"EUR"}
 ********************************************************
@@ -138,12 +192,6 @@ encoded string automatically.
 The following example shows how we could rewrite our currency exchange calculator example:
 
 ``` python
-from typing import Literal
-from typing_extensions import Annotated
-from pydantic import BaseModel, Field
-from somewhere import exchange_rate
-from myagents import chatbot, user_proxy
-
 # defines a Pydantic model
 class Currency(BaseModel):
   # parameter of type CurrencySymbol
@@ -163,7 +211,8 @@ def currency_calculator(
 
 The generated JSON schema has additional properties such as minimum value encoded:
 ```python
-[{'description': 'Currency exchange calculator.',
+[{'type': 'function', 'function':
+ {'description': 'Currency exchange calculator.',
   'name': 'currency_calculator',
   'parameters': {'type': 'object',
    'properties': {'base': {'properties': {'currency': {'description': 'Currency symbol',
@@ -183,7 +232,7 @@ The generated JSON schema has additional properties such as minimum value encode
      'type': 'string',
      'default': 'USD',
      'description': 'Quote currency symbol'}},
-   'required': ['base']}}]
+   'required': ['base']}}}]
 ```
 
 For more in-depth examples, please check the following:

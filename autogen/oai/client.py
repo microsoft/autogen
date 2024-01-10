@@ -287,9 +287,8 @@ class OpenAIWrapper:
 
     def _completions_create(self, client, params):
         completions = client.chat.completions if "messages" in params else client.completions
-        # If streaming is enabled, has messages, and does not have functions, then
-        # iterate over the chunks of the response
-        if params.get("stream", False) and "messages" in params and "functions" not in params:
+        # If streaming is enabled and has messages, then iterate over the chunks of the response.
+        if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
             finish_reasons = [""] * params.get("n", 1)
             completion_tokens = 0
@@ -297,12 +296,33 @@ class OpenAIWrapper:
             # Set the terminal text color to green
             print("\033[32m", end="")
 
+            # Prepare for potential function call
+            full_function_call = None
             # Send the chat completion request to OpenAI's API and process the response in chunks
             for chunk in completions.create(**params):
                 if chunk.choices:
                     for choice in chunk.choices:
                         content = choice.delta.content
+                        function_call_chunk = choice.delta.function_call
                         finish_reasons[choice.index] = choice.finish_reason
+
+                        # Handle function call
+                        if function_call_chunk:
+                            if hasattr(function_call_chunk, "name") and function_call_chunk.name:
+                                if full_function_call is None:
+                                    full_function_call = {"name": "", "arguments": ""}
+                                full_function_call["name"] += function_call_chunk.name
+                                completion_tokens += 1
+                            if hasattr(function_call_chunk, "arguments") and function_call_chunk.arguments:
+                                full_function_call["arguments"] += function_call_chunk.arguments
+                                completion_tokens += 1
+                        if choice.finish_reason == "function_call":
+                            # Need something here? I don't think so.
+                            pass
+                        if not content:
+                            continue
+                        # End handle function call
+
                         # If content is present, print it to the terminal and update response variables
                         if content is not None:
                             print(content, end="", flush=True)
@@ -336,7 +356,7 @@ class OpenAIWrapper:
                         index=i,
                         finish_reason=finish_reasons[i],
                         message=ChatCompletionMessage(
-                            role="assistant", content=response_contents[i], function_call=None
+                            role="assistant", content=response_contents[i], function_call=full_function_call
                         ),
                         logprobs=None,
                     )
@@ -346,17 +366,17 @@ class OpenAIWrapper:
                         index=i,
                         finish_reason=finish_reasons[i],
                         message=ChatCompletionMessage(
-                            role="assistant", content=response_contents[i], function_call=None
+                            role="assistant", content=response_contents[i], function_call=full_function_call
                         ),
                     )
 
                 response.choices.append(choice)
         else:
-            # If streaming is not enabled or using functions, send a regular chat completion request
-            # Functions are not supported, so ensure streaming is disabled
+            # If streaming is not enabled, send a regular chat completion request
             params = params.copy()
             params["stream"] = False
             response = completions.create(**params)
+
         return response
 
     def _update_usage_summary(self, response: ChatCompletion | Completion, use_cache: bool) -> None:
@@ -364,6 +384,15 @@ class OpenAIWrapper:
 
         Usage is calculated no matter filter is passed or not.
         """
+        try:
+            usage = response.usage
+            assert usage is not None
+            usage.prompt_tokens = 0 if usage.prompt_tokens is None else usage.prompt_tokens
+            usage.completion_tokens = 0 if usage.completion_tokens is None else usage.completion_tokens
+            usage.total_tokens = 0 if usage.total_tokens is None else usage.total_tokens
+        except (AttributeError, AssertionError):
+            logger.debug("Usage attribute is not found in the response.", exc_info=1)
+            return
 
         def update_usage(usage_summary):
             if usage_summary is None:
@@ -373,12 +402,10 @@ class OpenAIWrapper:
 
             usage_summary[response.model] = {
                 "cost": usage_summary.get(response.model, {}).get("cost", 0) + response.cost,
-                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0)
-                + response.usage.prompt_tokens,
+                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0) + usage.prompt_tokens,
                 "completion_tokens": usage_summary.get(response.model, {}).get("completion_tokens", 0)
-                + response.usage.completion_tokens,
-                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0)
-                + response.usage.total_tokens,
+                + usage.completion_tokens,
+                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0) + usage.total_tokens,
             }
             return usage_summary
 
@@ -448,6 +475,7 @@ class OpenAIWrapper:
         model = response.model
         if model not in OAI_PRICE1K:
             # TODO: add logging to warn that the model is not found
+            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=1)
             return 0
 
         n_input_tokens = response.usage.prompt_tokens
