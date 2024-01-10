@@ -5,7 +5,7 @@
 groups = ["default", "blendsearch", "graphs", "lmm", "mathchat", "retrievechat", "teachable", "test"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:4da5bdf448afc0c8bffb4743b0ab25e0dad2250132893269b1a448c850883119"
+content_hash = "sha256:e186cd047d69e23da86dfec2af7f3c236f63d76ce6c0fd1fe3a374a7e6078fad"
 
 [[package]]
 name = "alembic"
@@ -702,6 +702,23 @@ groups = ["default"]
 files = [
     {file = "distro-1.9.0-py3-none-any.whl", hash = "sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2"},
     {file = "distro-1.9.0.tar.gz", hash = "sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed"},
+]
+
+[[package]]
+name = "docker"
+version = "7.0.0"
+requires_python = ">=3.8"
+summary = "A Python library for the Docker Engine API."
+groups = ["default"]
+dependencies = [
+    "packaging>=14.0",
+    "pywin32>=304; sys_platform == \"win32\"",
+    "requests>=2.26.0",
+    "urllib3>=1.26.0",
+]
+files = [
+    {file = "docker-7.0.0-py3-none-any.whl", hash = "sha256:12ba681f2777a0ad28ffbcc846a69c31b4dfd9752b47eb425a274ee269c5e14b"},
+    {file = "docker-7.0.0.tar.gz", hash = "sha256:323736fb92cd9418fc5e7133bc953e11a9da04f4483f828b527db553f1e7e5a3"},
 ]
 
 [[package]]
@@ -2171,7 +2188,7 @@ name = "packaging"
 version = "23.2"
 requires_python = ">=3.7"
 summary = "Core utilities for Python packages"
-groups = ["blendsearch", "graphs", "lmm", "retrievechat", "teachable", "test"]
+groups = ["blendsearch", "default", "graphs", "lmm", "retrievechat", "teachable", "test"]
 files = [
     {file = "packaging-23.2-py3-none-any.whl", hash = "sha256:8c491190033a9af7e1d931d0b5dacc2ef47509b34dd0de67ed209b5203fc88c7"},
     {file = "packaging-23.2.tar.gz", hash = "sha256:048fb0e9405036518eaaf48a55953c750c11e1a1b68e0dd1a9d62ed0c092cfc5"},
@@ -2662,8 +2679,8 @@ files = [
 name = "pywin32"
 version = "306"
 summary = "Python for Window Extensions"
-groups = ["test"]
-marker = "sys_platform == \"win32\" and platform_python_implementation != \"PyPy\""
+groups = ["default", "test"]
+marker = "sys_platform == \"win32\""
 files = [
     {file = "pywin32-306-cp310-cp310-win32.whl", hash = "sha256:06d3420a5155ba65f0b72f2699b5bacf3109f36acbe8923765c22938a69dfc8d"},
     {file = "pywin32-306-cp310-cp310-win_amd64.whl", hash = "sha256:84f4471dbca1887ea3803d8848a1616429ac94a4a8d05f4bc9c5dcfd42ca99c8"},
