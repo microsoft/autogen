@@ -1,4 +1,9 @@
 ## AutoGen
+
+### Update on 0.0.5
+- Simplify `IAgent` interface by removing `ChatLLM` Property
+- Add `GenerateReplyOptions` to `IAgent.GenerateReplyAsync` which allows user to specify or override the options when generating reply
+
 ### Update on 0.0.4
 - Move out dependency of Semantic Kernel
 - Add type `IChatLLM` as connector to LLM
