@@ -107,7 +107,7 @@ mathchat = [
 ]
 retrievechat = [
     "chromadb",
-    "ipython",
+    "ipython~=8.18.1",
     "pypdf",
     "sentence_transformers",
 ]
