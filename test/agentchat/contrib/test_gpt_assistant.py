@@ -3,7 +3,9 @@ import os
 import sys
 import autogen
 from autogen import OpenAIWrapper
-from conftest import skip_openai
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -12,14 +14,16 @@ try:
     import openai
     from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
     from autogen.oai.openai_utils import retrieve_assistants_by_name
+
 except ImportError:
     skip = True
 else:
     skip = False or skip_openai
 
-config_list = autogen.config_list_from_json(
-    OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
-)
+if not skip:
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+    )
 
 
 def ask_ossinsight(question):
