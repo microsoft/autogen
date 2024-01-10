@@ -31,5 +31,17 @@ public class RunCodeSnippetCodeSnippet
         await dotnetCodeAgent.SendAsync(codeSnippet);
         // output: Hello World
         #endregion code_snippet_1_2
+
+        #region code_snippet_1_3
+        var content = @"
+        ```csharp
+        // This is csharp code snippet
+        ```
+
+        ```python
+        // This is python code snippet
+        ```
+        ";
+        #endregion code_snippet_1_3
     }
 }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.AI.OpenAI;
 
 namespace AutoGen;
 
@@ -67,8 +68,8 @@ From admin:
             {
                 Temperature = 0,
                 MaxToken = 128,
-                StopSequence = [":"],
-                Functions = [],
+                StopSequence = new[] { ":" },
+                Functions = new FunctionDefinition[0],
             });
 
         var name = response?.Content ?? throw new Exception("No name is returned.");

@@ -6,9 +6,14 @@ using AutoGen;
 using Azure.AI.OpenAI;
 
 #region code_snippet_3
+// file: FunctionCall.cs
+
 public partial class TypeSafeFunctionCall
 {
-    // file: FunctionCall.cs
+    /// <summary>
+    /// convert input to upper case 
+    /// </summary>
+    /// <param name="input">input</param>
     [Function]
     public async Task<string> UpperCase(string input)
     {

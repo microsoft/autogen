@@ -72,7 +72,7 @@ public class GPTAgent : IAgent
             Temperature = options?.Temperature ?? _temperature,
         };
 
-        var functions = options?.Functions ?? _functions ?? [];
+        var functions = options?.Functions ?? _functions;
         if (functions is not null && functions.Count() > 0)
         {
             settings.Functions = functions.ToList();

@@ -16,4 +16,3 @@ When multiple reply functions are registered, the order of reply functions is fi
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/RegisterReplyCodeSnippet.cs?name=code_snippet_1)]
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/RunCodeSnippetCodeSnippet.cs?name=code_snippet_1_2)]

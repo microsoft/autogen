@@ -6,13 +6,7 @@ More languages will be supported in the future.
 ## What is a code snippet?
 A code snippet in agent response is a code block with a language identifier. For example:
 
-```csharp
-// This is a cs code snippet
-```
-
-```python
-# This is a python code snippet
-```
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/RunCodeSnippetCodeSnippet.cs?name=code_snippet_1_3)]
 
 ## Why running code snippet is useful?
 The ability of running code snippet can greatly extend the ability of an agent. Because it enables agent to resolve tasks by writing code and run it, which is much more powerful than just returning a text response.

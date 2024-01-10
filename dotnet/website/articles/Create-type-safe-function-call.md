@@ -26,7 +26,7 @@ Then, for the methods you want to generate function definition and function call
 > A `public partial` class is required for the source generator to generate code.
 
 > [!TIP]
-> For the best of performance, try using primitive types for the parameters and return type.
+> For the best of performance, try using json primitive types for the parameters and return type.
 
 The source generator will generate the following code based on the method signature and documentation. It helps you save the effort of writing function definition and keep it up to date with the actual method signature.
 

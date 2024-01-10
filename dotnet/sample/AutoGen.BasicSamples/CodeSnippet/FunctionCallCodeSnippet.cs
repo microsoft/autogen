@@ -129,9 +129,9 @@ public partial class FunctionCallCodeSnippet
         #region code_snippet_5_2
         response.FunctionName.Should().Be(nameof(UpperCase));
         response.FunctionArguments.Should().Be(@"
-{{
-    ""input"": ""hello world""
-}}");
+        {{
+            ""input"": ""hello world""
+        }}");
         #endregion code_snippet_5_2
 
     }
