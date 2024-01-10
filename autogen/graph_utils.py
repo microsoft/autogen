@@ -72,7 +72,7 @@ def invert_disallowed_to_allowed(disallowed_graph_dict: dict, agents: List[Agent
 
     # Create a fully connected graph
     # Including self loop
-    allowed_graph_dict = {agent.name: [other_agent.name for other_agent in agents] for agent in agents}
+    allowed_graph_dict = {agent.name: [other_agent for other_agent in agents] for agent in agents}
 
     # Remove edges from the fully connected graph according to the disallowed_graph_dict
     for key, value in disallowed_graph_dict.items():
