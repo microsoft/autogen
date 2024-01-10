@@ -42,7 +42,7 @@ The following function call object will be generated, which can be used to invok
 
 [!code-csharp[gpt agent](../../sample/AutoGen.BasicSamples/CodeSnippet/FunctionCallCodeSnippet.cs?name=code_snippet_5_2)]
 
-## Invoke function call
+## Invoke function call from an agent
 
 To invoke a function instead of returning the function call object, you can pass its function call wrapper to the agent via `functionMap`.
 
