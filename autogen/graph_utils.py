@@ -69,11 +69,37 @@ def invert_disallowed_to_allowed(disallowed_graph_dict: dict, agents: List[Agent
     """
 
     # Create a fully connected graph
-    allowed_graph_dict = {agent.name: [other_agent for other_agent in agents if other_agent != agent] for agent in agents}
+    # Including self loop
+    allowed_graph_dict = {agent.name: [other_agent.name for other_agent in agents] for agent in agents}
 
     # Remove edges from the fully connected graph according to the disallowed_graph_dict
     for key, value in disallowed_graph_dict.items():
         allowed_graph_dict[key] = [agent for agent in allowed_graph_dict[key] if agent not in value]
 
     return allowed_graph_dict
-    
+
+
+def visualize_graph_dict(graph_dict: dict, agents: List[Agent]):
+    """
+    Visualize the graph_dict using networkx.
+    """
+    try:
+        import networkx as nx
+        import matplotlib.pyplot as plt
+    except ImportError as e:
+        logging.fatal("Failed to import networkx or matplotlib. Try running 'pip install autogen[graphs]'")
+        raise e
+
+    G = nx.DiGraph()
+
+    # Add nodes
+    G.add_nodes_from([agent.name for agent in agents])
+
+    # Add edges
+    for key, value in graph_dict.items():
+        for agent in value:
+            G.add_edge(key, agent.name)
+
+    # Visualize
+    nx.draw(G, with_labels=True, font_weight='bold')
+    plt.show()
