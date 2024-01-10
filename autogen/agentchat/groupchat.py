@@ -256,6 +256,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "random":
             selected_agent = random.choice(graph_eligible_agents)
+        elif len(graph_eligible_agents) == 1:
+            # If there is only one eligible agent, use it.
+            selected_agent = graph_eligible_agents[0]
         else:
             selected_agent = None
         return selected_agent, agents
