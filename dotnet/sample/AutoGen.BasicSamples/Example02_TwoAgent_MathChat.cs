@@ -4,11 +4,11 @@
 using AutoGen;
 using FluentAssertions;
 using autogen = AutoGen.LLMConfigAPI;
-
 public static class Example02_TwoAgent_MathChat
 {
     public static async Task RunAsync()
     {
+        #region code_snippet_1
         // get OpenAI Key and create config
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
         var llmConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
@@ -18,12 +18,24 @@ public static class Example02_TwoAgent_MathChat
         var teacher = new AssistantAgent(
             name: "teacher",
             systemMessage: @"You are a teacher that create pre-school math question for student and check answer.
-If the answer is correct, you terminate conversation by saying [TERMINATE].
-If the answer is wrong, you ask student to fix it.",
+        If the answer is correct, you terminate conversation by saying [TERMINATE].
+        If the answer is wrong, you ask student to fix it.",
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = llmConfig,
+            })
+            .RegisterPostProcess(async (_, reply, _) =>
+            {
+                if (reply.Content?.Contains("TERMINATE") is true)
+                {
+                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE)
+                    {
+                        From = reply.From,
+                    };
+                }
+
+                return reply;
             })
             .RegisterPrintFormatMessageHook();
 
@@ -37,19 +49,6 @@ If the answer is wrong, you ask student to fix it.",
                 Temperature = 0,
                 ConfigList = llmConfig,
             })
-            .RegisterReply(async (msgs, ct) =>
-            {
-                // if teacher terminate the conversation, then terminate the conversation by returning [GROUP_CHAT_TERMINATE]
-                if (msgs.Last().Content?.Contains("TERMINATE") is true)
-                {
-                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE)
-                    {
-                        From = "student",
-                    };
-                }
-
-                return null;
-            })
             .RegisterPrintFormatMessageHook();
 
         // start the conversation
@@ -58,11 +57,24 @@ If the answer is wrong, you ask student to fix it.",
             message: "Hey teacher, please create math question for me.",
             maxRound: 10);
 
-        // pretty print the conversation
-        foreach (var message in conversation)
-        {
-            Console.WriteLine(message.FormatMessage());
-        }
+        // output
+        // Message from teacher
+        // --------------------
+        // content: Of course!Here's a math question for you:
+        // 
+        // What is 2 + 3 ?
+        // --------------------
+        // 
+        // Message from student
+        // --------------------
+        // content: The sum of 2 and 3 is 5.
+        // --------------------
+        // 
+        // Message from teacher
+        // --------------------
+        // content: [GROUPCHAT_TERMINATE]
+        // --------------------
+        #endregion code_snippet_1
 
         conversation.Count().Should().BeLessThan(10);
         conversation.Last().IsGroupChatTerminateMessage().Should().BeTrue();
