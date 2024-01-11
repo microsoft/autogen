@@ -69,7 +69,7 @@ The code below shows how to create a dynamic group chat with @AutoGen.GroupChat.
 [!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_group_chat)]
 
 > [!TIP]
-> You can set up initial context for the group chat using @AutoGen.GroupChatExtension.AddInitializeMessage. The initial context can help group admin orchestrate the conversation flow.
+> You can set up initial context for the group chat using @AutoGen.GroupChatExtension.AddInitializeMessage*. The initial context can help group admin orchestrate the conversation flow.
 
 ### Start group chat
 
