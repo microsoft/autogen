@@ -143,8 +143,12 @@ async def test_async_trigger():
 def test_async_trigger_in_sync_chat():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent2 = ConversableAgent("a2", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    reply_mock = unittest.mock.MagicMock()
 
     async def a_reply(recipient, messages, sender, config):
+        reply_mock()
         print("hello from a_reply")
         return (True, "hello from reply function")
 
@@ -157,6 +161,9 @@ def test_async_trigger_in_sync_chat():
         e.value.args[0] == "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
         "The following async reply functions are found: a_reply"
     )
+
+    agent2.register_reply(agent1, a_reply, ignore_async_in_sync_chat=True)
+    reply_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
