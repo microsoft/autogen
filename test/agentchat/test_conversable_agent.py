@@ -716,7 +716,7 @@ def test_function_restration_e2e_sync() -> None:
     reason="do not run if openai is not installed or py!=3.10",
 )
 @pytest.mark.asyncio()
-async def test_function_restration_e2e_async() -> None:
+async def test_function_registration_e2e_async() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
