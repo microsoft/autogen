@@ -638,7 +638,7 @@ def test_register_for_execution():
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_function_restration_e2e_sync() -> None:
+def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
