@@ -367,7 +367,7 @@ please carefully review the code block from coder and provide feedback.";
         // create group chat
         var groupChat = new GroupChat(
             admin: admin,
-            agents: new IAgent[] { coder, runner });
+            members: new IAgent[] { coder, runner });
 
         admin.AddInitializeMessage("Welcome to the group chat! Work together to resolve my task.", groupChat);
         coder.AddInitializeMessage("Hey I'm Coder, I write dotnet code.", groupChat);

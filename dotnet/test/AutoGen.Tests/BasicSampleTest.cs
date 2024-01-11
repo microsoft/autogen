@@ -44,6 +44,12 @@ namespace AutoGen.Tests
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]
+        public async Task DynamicGroupChatCalculateFibonacciAsync()
+        {
+            await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunAsync();
+        }
+
+        [ApiKeyFact("OPENAI_API_KEY")]
         public async Task DalleAndGPT4VTestAsync()
         {
             await Example05_Dalle_And_GPT4V.RunAsync();

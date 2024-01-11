@@ -18,13 +18,19 @@ public class GroupChat : IGroupChat
 
     public IEnumerable<Message>? Messages { get; private set; }
 
+    /// <summary>
+    /// Create a group chat.
+    /// </summary>
+    /// <param name="admin">admin agent.</param>
+    /// <param name="members">other members.</param>
+    /// <param name="initializeMessages"></param>
     public GroupChat(
         IAgent admin,
-        IEnumerable<IAgent> agents,
+        IEnumerable<IAgent> members,
         IEnumerable<Message>? initializeMessages = null)
     {
         this.admin = admin;
-        this.agents = agents.ToList();
+        this.agents = members.ToList();
         this.agents.Add(admin);
         this.initializeMessages = initializeMessages ?? new List<Message>();
 
