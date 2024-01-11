@@ -71,7 +71,7 @@ class GroupChat:
                     agent.name: [other_agent for other_agent in self.agents] for agent in self.agents
                 }
             else:
-                # self.allow_repeat_speaker is now False or a List[Agent]
+                # self.allow_repeat_speaker is now either False or a List[Agent]
                 self.allowed_speaker_order_dict = {
                     agent.name: [other_agent for other_agent in self.agents if other_agent != agent]
                     for agent in self.agents
@@ -242,7 +242,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # Filter agents with allowed_speaker_order_dict
         # if last_speaker.name is not a key in allowed_speaker_order_dict, then no agents are eligible
         if last_speaker.name not in self.allowed_speaker_order_dict:
-            raise NoEligibleSpeakerException(f"Last speaker {last_speaker.name} is not in the allowed_speaker_order_dict.")
+            raise NoEligibleSpeakerException(
+                f"Last speaker {last_speaker.name} is not in the allowed_speaker_order_dict."
+            )
         else:
             # Extract agent names from the list of agents
             graph_eligible_agents_names = [agent.name for agent in self.allowed_speaker_order_dict[last_speaker.name]]
