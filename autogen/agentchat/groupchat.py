@@ -332,6 +332,9 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        # Store groupchat
+        self._groupchat = groupchat
+
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)

@@ -152,6 +152,9 @@ class ConversableAgent(Agent):
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
         self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
 
+        # we will ignore async reply functions in sync chats for the initial reply functions and output warnings for user defined ones
+        self._initial_reply_functions = {f["reply_func"] for f in self._reply_func_list}
+
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
@@ -601,6 +604,26 @@ class ConversableAgent(Agent):
             self.clear_history(recipient)
             recipient.clear_history(self)
 
+    def _raise_exception_on_async_reply_functions(self) -> None:
+        """Raise an exception if any async reply functions are registered.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered.
+        """
+        reply_functions = {f["reply_func"] for f in self._reply_func_list}.difference(self._initial_reply_functions)
+        async_reply_functions = [f for f in reply_functions if asyncio.coroutines.iscoroutinefunction(f)]
+        if async_reply_functions != []:
+            msg = (
+                "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). The following async reply functions are found: "
+                + ", ".join([f.__name__ for f in async_reply_functions])
+            )
+
+            raise RuntimeError(msg)
+
+        if hasattr(self, "_groupchat"):
+            for agent in self._groupchat.agents:
+                agent._raise_exception_on_async_reply_functions()
+
     def initiate_chat(
         self,
         recipient: "ConversableAgent",
@@ -620,7 +643,12 @@ class ConversableAgent(Agent):
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered.
         """
+        for agent in [self, recipient]:
+            agent._raise_exception_on_async_reply_functions()
         self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
 

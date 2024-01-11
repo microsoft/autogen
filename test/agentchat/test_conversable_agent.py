@@ -144,20 +144,19 @@ def test_async_trigger_in_sync_chat():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
-    a_reply_mock = unittest.mock.MagicMock()
-
     async def a_reply(recipient, messages, sender, config):
-        a_reply_mock()
         print("hello from a_reply")
         return (True, "hello from reply function")
 
     agent.register_reply(agent1, a_reply)
 
-    agent1.initiate_chat(agent, message="hi")
+    with pytest.raises(RuntimeError) as e:
+        agent1.initiate_chat(agent, message="hi")
 
-    a_reply_mock.assert_not_called()
-
-    assert agent1.last_message(agent)["content"] == "hi"
+    assert (
+        e.value.args[0] == "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
+        "The following async reply functions are found: a_reply"
+    )
 
 
 @pytest.mark.asyncio
