@@ -79,8 +79,7 @@ dependencies = [
     "termcolor",
     "tiktoken",
     "openai>=1.3",
-    "pydantic>=1.10,<3",
-    "docker>=7.0.0",
+    "pydantic>=1.10,<3"
 ]
 
 [project.urls]
@@ -98,6 +97,9 @@ test = [
 ]
 
 [project.optional-dependencies]
+docker = [
+    "docker>=7.0.0",
+]
 blendsearch = [
     "flaml[blendsearch]",
 ]
