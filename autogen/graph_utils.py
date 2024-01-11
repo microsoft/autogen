@@ -1,10 +1,10 @@
-from typing import List, Dict
+from typing import Dict, List, Optional, Union
 import logging
 
 from autogen.agentchat.groupchat import Agent
 
 
-def check_graph_validity(allowed_speaker_order_dict: dict, agents: List[Agent], allow_repeat_speaker: bool = False):
+def check_graph_validity(allowed_speaker_order_dict: dict, agents: List[Agent], allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True):
     """
     allowed_speaker_order_dict: A dictionary of keys and list as values. The keys are the names of the agents, and the values are the names of the agents that the key agent can transition to.
     agents: A list of Agents
@@ -51,9 +51,20 @@ def check_graph_validity(allowed_speaker_order_dict: dict, agents: List[Agent], 
         raise ValueError("The graph has no edges.")
 
     # Check 6. If self.allow_repeat_speaker is False, then the graph has no self-loops
-    if not allow_repeat_speaker:
+    if allow_repeat_speaker == False:
         if any([key in value for key, value in allowed_speaker_order_dict.items()]):
-            raise ValueError("The graph has self-loops.")
+            raise ValueError("The graph has self-loops when allow_repeat_speaker is set to false.")
+    elif isinstance(allow_repeat_speaker, list):
+        # First extract the names of the agents that are having self loop in allowed_speaker_order_dict
+        # To do that, we iterate across all keys, and find all keys that are in their value, value is a list of Agent.
+        # Need to access name from Agent.name
+        self_loop_agents = [key for key, value in allowed_speaker_order_dict.items() if key in [agent.name for agent in value]]
+        # Check if all of the agents in self_loop_agents are in allow_repeat_speaker
+        if not all([agent in allow_repeat_speaker for agent in self_loop_agents]):
+            raise ValueError("The graph (allowed_speaker_order_dict) has self-loops not mentioned in the list of agents allowed to repeat in allow_repeat_speaker.")
+
+
+    
 
     # Warnings
     # Warning 1. Warning if there are isolated agent nodes
