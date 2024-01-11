@@ -170,6 +170,10 @@ class ConversableAgent(Agent):
         The function registered later will be checked earlier by default.
         To change the order, set the position to a positive integer.
 
+        Both sync and async reply functions caannn be registered. The sync reply function will be triggered
+        from both sync and async chats. However, an async reply function will only be triggered from async
+        chats (initiated with `ConversableAgent.a_initiate_chat`).
+
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): the trigger.
                 - If a class is provided, the reply function will be called when the sender is an instance of the class.
