@@ -52,6 +52,24 @@ class TestGraphUtilCheckGraphValidity:
         with pytest.raises(ValueError):
             gru.check_graph_validity(speaker_order_dict_with_self_loop, agents, allow_repeat_speaker=False)
 
+    def test_graph_with_unauthorized_self_loops(self, agents):
+        # Creating a subset of agents allowed to have self-loops
+        allowed_repeat_speakers = agents[:len(agents)//2]
+        allowed_repeat_speaker_agents = [agent for agent in allowed_repeat_speakers]
+
+        # Constructing a speaker order dictionary with self-loops for all agents
+        # Ensuring at least one agent outside the allowed_repeat_speakers has a self-loop
+        speaker_order_dict_with_self_loop = {}
+        for agent in agents:
+            if agent in allowed_repeat_speakers:
+                speaker_order_dict_with_self_loop[agent.name] = [agent.name]  # Allowed self-loop
+            else:
+                speaker_order_dict_with_self_loop[agent.name] = [agent.name]  # Unauthorized self-loop
+
+        # Testing the function with the constructed speaker order dict
+        with pytest.raises(ValueError):
+            gru.check_graph_validity(speaker_order_dict_with_self_loop, agents, allow_repeat_speaker=allowed_repeat_speaker_agents)
+
     # Test for Warning 1: Isolated agent nodes
     def test_isolated_agent_nodes_warning(self, agents, caplog):
         # Create a graph where at least one agent is isolated
