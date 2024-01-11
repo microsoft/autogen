@@ -871,7 +871,7 @@ class ConversableAgent(Agent):
                     "content": func_return.get("content", ""),
                 }
             )
-        if len(tool_returns) > 0:
+        if tool_returns:
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
@@ -907,7 +907,7 @@ class ConversableAgent(Agent):
             func = self._function_map.get(tool_call.get("function", {}).get("name", None), None)
             if func and asyncio.coroutines.iscoroutinefunction(func):
                 async_tool_calls.append(self._a_execute_tool_call(tool_call))
-        if len(async_tool_calls) > 0:
+        if async_tool_calls:
             tool_returns = await asyncio.gather(*async_tool_calls)
             return True, {
                 "role": "tool",
