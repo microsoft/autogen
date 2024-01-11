@@ -855,24 +855,23 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
-        if "tool_calls" in message and message["tool_calls"]:
-            tool_calls = message["tool_calls"]
-            tool_returns = []
-            for tool_call in tool_calls:
-                id = tool_call["id"]
-                function_call = tool_call.get("function", {})
-                func = self._function_map.get(function_call.get("name", None), None)
-                if asyncio.coroutines.iscoroutinefunction(func):
-                    continue
-                _, func_return = self.execute_function(function_call)
-                tool_returns.append(
-                    {
-                        "tool_call_id": id,
-                        "role": "tool",
-                        "name": func_return.get("name", ""),
-                        "content": func_return.get("content", ""),
-                    }
-                )
+        tool_returns = []
+        for tool_call in message.get("tool_calls", []):
+            id = tool_call["id"]
+            function_call = tool_call.get("function", {})
+            func = self._function_map.get(function_call.get("name", None), None)
+            if asyncio.coroutines.iscoroutinefunction(func):
+                continue
+            _, func_return = self.execute_function(function_call)
+            tool_returns.append(
+                {
+                    "tool_call_id": id,
+                    "role": "tool",
+                    "name": func_return.get("name", ""),
+                    "content": func_return.get("content", ""),
+                }
+            )
+        if tool_returns:
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
@@ -908,14 +907,12 @@ class ConversableAgent(Agent):
             func = self._function_map.get(tool_call.get("function", {}).get("name", None), None)
             if func and asyncio.coroutines.iscoroutinefunction(func):
                 async_tool_calls.append(self._a_execute_tool_call(tool_call))
-        if len(async_tool_calls) > 0:
+        if async_tool_calls:
             tool_returns = await asyncio.gather(*async_tool_calls)
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
-                "content": "\n\n".join(
-                    [self._str_for_tool_response(tool_return["content"]) for tool_return in tool_returns]
-                ),
+                "content": "\n\n".join([self._str_for_tool_response(tool_return) for tool_return in tool_returns]),
             }
 
         return False, None
@@ -1019,7 +1016,9 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            response = {"role": "user", "content": reply}
+            if tool_returns:
+                response["tool_responses"] = tool_returns
 
             return True, response
 
@@ -1127,7 +1126,10 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            response = {"role": "user", "content": reply}
+            if tool_returns:
+                response["tool_responses"] = tool_returns
+
             return True, response
 
         # increment the consecutive_auto_reply_counter
