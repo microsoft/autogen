@@ -42,8 +42,8 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat.
-    - graph_dict: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected graph is assumed.
-    - is_allowed_graph: whether the graph_dict is a list of allowed agents or disallowed agents. Default is True, in which case the graph_dict is a list of allowed agents. If set to False, then the graph_dict is a list of disallowed agents.
+    - speaker_order_dict: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected graph is assumed.
+    - is_allowed_graph: whether the speaker_order_dict is a list of allowed agents or disallowed agents. Default is True, in which case the speaker_order_dict is a list of allowed agents. If set to False, then the speaker_order_dict is a list of disallowed agents.
     """
 
     agents: List[Agent]
@@ -53,45 +53,45 @@ class GroupChat:
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True
-    graph_dict: Optional[Dict] = None
+    speaker_order_dict: Optional[Dict] = None
     is_allowed_graph: Optional[bool] = True
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
-    allowed_graph_dict: Dict = field(init=False)
+    allowed_speaker_order_dict: Dict = field(init=False)
 
     def __post_init__(self):
         # Post init steers clears of the automatically generated __init__ method from dataclass
-        # Here, we create allowed_graph_dict from the supplied graph_dict and is_allowed_graph, and lastly checks for validity.
+        # Here, we create allowed_speaker_order_dict from the supplied speaker_order_dict and is_allowed_graph, and lastly checks for validity.
 
-        # Create a fully connected graph if graph_dict is None
-        if self.graph_dict is None:
+        # Create a fully connected graph if speaker_order_dict is None
+        if self.speaker_order_dict is None:
             # self.allow_repeat_speaker can be Union[bool, List[Agent]]
             if self.allow_repeat_speaker is True:
-                self.allowed_graph_dict = {
+                self.allowed_speaker_order_dict = {
                     agent.name: [other_agent for other_agent in self.agents] for agent in self.agents
                 }
             else:
                 # self.allow_repeat_speaker is now False or a List[Agent]
-                self.allowed_graph_dict = {
+                self.allowed_speaker_order_dict = {
                     agent.name: [other_agent for other_agent in self.agents if other_agent != agent]
                     for agent in self.agents
                 }
                 if isinstance(self.allow_repeat_speaker, list):
                     # If allow_repeat_speaker is a list of agents, add those agents as allowed to repeat
                     for agent in self.allow_repeat_speaker:
-                        self.allowed_graph_dict[agent.name].append(agent)
+                        self.allowed_speaker_order_dict[agent.name].append(agent)
 
         else:
             # Process based on is_allowed_graph
             if self.is_allowed_graph:
-                self.allowed_graph_dict = self.graph_dict
+                self.allowed_speaker_order_dict = self.speaker_order_dict
             else:
                 # Logic for processing disallowed graph to allowed graph
-                self.allowed_graph_dict = invert_disallowed_to_allowed(self.graph_dict, self.agents)
+                self.allowed_speaker_order_dict = invert_disallowed_to_allowed(self.speaker_order_dict, self.agents)
 
         # Check for validity
         check_graph_validity(
-            allowed_graph_dict=self.allowed_graph_dict,
+            allowed_speaker_order_dict=self.allowed_speaker_order_dict,
             agents=self.agents,
             allow_repeat_speaker=self.allow_repeat_speaker,
         )
@@ -239,13 +239,13 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
-        # Filter agents with allowed_graph_dict
-        # if last_speaker.name is not a key in allowed_graph_dict, then no agents are eligible
-        if last_speaker.name not in self.allowed_graph_dict:
-            raise NoEligibleSpeakerException(f"Last speaker {last_speaker.name} is not in the allowed_graph_dict.")
+        # Filter agents with allowed_speaker_order_dict
+        # if last_speaker.name is not a key in allowed_speaker_order_dict, then no agents are eligible
+        if last_speaker.name not in self.allowed_speaker_order_dict:
+            raise NoEligibleSpeakerException(f"Last speaker {last_speaker.name} is not in the allowed_speaker_order_dict.")
         else:
             # Extract agent names from the list of agents
-            graph_eligible_agents_names = [agent.name for agent in self.allowed_graph_dict[last_speaker.name]]
+            graph_eligible_agents_names = [agent.name for agent in self.allowed_speaker_order_dict[last_speaker.name]]
         # Perform filtering
         graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
 

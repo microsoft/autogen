@@ -4,9 +4,9 @@ import logging
 from autogen.agentchat.groupchat import Agent
 
 
-def check_graph_validity(allowed_graph_dict: dict, agents: List[Agent], allow_repeat_speaker: bool = False):
+def check_graph_validity(allowed_speaker_order_dict: dict, agents: List[Agent], allow_repeat_speaker: bool = False):
     """
-    allowed_graph_dict: A dictionary of keys and list as values. The keys are the names of the agents, and the values are the names of the agents that the key agent can transition to.
+    allowed_speaker_order_dict: A dictionary of keys and list as values. The keys are the names of the agents, and the values are the names of the agents that the key agent can transition to.
     agents: A list of Agents
     allow_repeat_speaker: A boolean indicating whether the same agent can speak twice in a row.
 
@@ -27,63 +27,63 @@ def check_graph_validity(allowed_graph_dict: dict, agents: List[Agent], allow_re
     ### Errors
 
     # Check 1. The dictionary must have a structure of keys and list as values
-    if not isinstance(allowed_graph_dict, dict):
+    if not isinstance(allowed_speaker_order_dict, dict):
         raise ValueError("The graph must be a dictionary.")
 
     # All values must be lists of Agent or empty
-    if not all([isinstance(value, list) or value == [] for value in allowed_graph_dict.values()]):
+    if not all([isinstance(value, list) or value == [] for value in allowed_speaker_order_dict.values()]):
         raise ValueError("The graph must be a dictionary of keys and list as values.")
 
     # Check 2. Every key exists in agents
-    if not all([key in [agent.name for agent in agents] for key in allowed_graph_dict.keys()]):
+    if not all([key in [agent.name for agent in agents] for key in allowed_speaker_order_dict.keys()]):
         raise ValueError("The graph has keys not in agents' names.")
 
     # Check 3. Every value is a list of Agents or empty list (not string).
-    if not all([all([isinstance(agent, Agent) for agent in value]) for value in allowed_graph_dict.values()]):
+    if not all([all([isinstance(agent, Agent) for agent in value]) for value in allowed_speaker_order_dict.values()]):
         raise ValueError("The graph has values that are not lists of Agents.")
 
     # Check 4. The graph has at least one node
-    if len(allowed_graph_dict.keys()) == 0:
+    if len(allowed_speaker_order_dict.keys()) == 0:
         raise ValueError("The graph has no nodes.")
 
     # Check 5. The graph has at least one edge
-    if len(sum(allowed_graph_dict.values(), [])) == 0:
+    if len(sum(allowed_speaker_order_dict.values(), [])) == 0:
         raise ValueError("The graph has no edges.")
 
     # Check 6. If self.allow_repeat_speaker is False, then the graph has no self-loops
     if not allow_repeat_speaker:
-        if any([key in value for key, value in allowed_graph_dict.items()]):
+        if any([key in value for key, value in allowed_speaker_order_dict.items()]):
             raise ValueError("The graph has self-loops.")
 
     # Warnings
     # Warning 1. Warning if there are isolated agent nodes
-    if any([len(value) == 0 for value in allowed_graph_dict.values()]):
+    if any([len(value) == 0 for value in allowed_speaker_order_dict.values()]):
         logging.warning("Warning: There are isolated agent nodes.")
 
     # Warning 2. Warning if there are any agents in self.agents not in graph
-    if any([agent.name not in allowed_graph_dict.keys() for agent in agents]):
+    if any([agent.name not in allowed_speaker_order_dict.keys() for agent in agents]):
         logging.warning("Warning: There are agents in self.agents not in graph.")
 
 
-def invert_disallowed_to_allowed(disallowed_graph_dict: dict, agents: List[Agent]) -> dict:
+def invert_disallowed_to_allowed(disallowed_speaker_order_dict: dict, agents: List[Agent]) -> dict:
     """
-    Start with a fully connected graph of all agents. Remove edges from the fully connected graph according to the disallowed_graph_dict to form the allowed_graph_dict.
+    Start with a fully connected graph of all agents. Remove edges from the fully connected graph according to the disallowed_speaker_order_dict to form the allowed_speaker_order_dict.
     """
 
     # Create a fully connected graph
     # Including self loop
-    allowed_graph_dict = {agent.name: [other_agent for other_agent in agents] for agent in agents}
+    allowed_speaker_order_dict = {agent.name: [other_agent for other_agent in agents] for agent in agents}
 
-    # Remove edges from the fully connected graph according to the disallowed_graph_dict
-    for key, value in disallowed_graph_dict.items():
-        allowed_graph_dict[key] = [agent for agent in allowed_graph_dict[key] if agent not in value]
+    # Remove edges from the fully connected graph according to the disallowed_speaker_order_dict
+    for key, value in disallowed_speaker_order_dict.items():
+        allowed_speaker_order_dict[key] = [agent for agent in allowed_speaker_order_dict[key] if agent not in value]
 
-    return allowed_graph_dict
+    return allowed_speaker_order_dict
 
 
-def visualize_graph_dict(graph_dict: dict, agents: List[Agent]):
+def visualize_speaker_order_dict(speaker_order_dict: dict, agents: List[Agent]):
     """
-    Visualize the graph_dict using networkx.
+    Visualize the speaker_order_dict using networkx.
     """
     try:
         import networkx as nx
@@ -98,7 +98,7 @@ def visualize_graph_dict(graph_dict: dict, agents: List[Agent]):
     G.add_nodes_from([agent.name for agent in agents])
 
     # Add edges
-    for key, value in graph_dict.items():
+    for key, value in speaker_order_dict.items():
         for agent in value:
             G.add_edge(key, agent.name)
 
