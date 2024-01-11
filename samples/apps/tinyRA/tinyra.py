@@ -6,7 +6,6 @@ from typing import Dict, Optional
 from autogen import config_list_from_json
 from autogen import AssistantAgent
 from autogen import UserProxyAgent
-from autogen.agentchat.contrib.teachable_agent import TeachableAgent
 
 CONFIG_FILE = "./OAI_CONFIG_LIST"
 WORK_DIR = "./coding"
@@ -15,11 +14,10 @@ WORK_DIR = "./coding"
 def run(config_file: Optional[str] = CONFIG_FILE, work_dir: Optional[str] = WORK_DIR):
     config_list = config_list_from_json(config_file)
 
-    coder = TeachableAgent(
+    coder = AssistantAgent(
         "assistant",
         system_message=AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
         llm_config={"config_list": config_list},
-        teach_config={"verbosity": 1, "auto_learn": True},
     )
     user_proxy = UserProxyAgent(
         "user_proxy",
