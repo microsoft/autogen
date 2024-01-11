@@ -65,10 +65,15 @@ def check_graph_validity(
         self_loop_agents = [
             key for key, value in allowed_speaker_order_dict.items() if key in [agent.name for agent in value]
         ]
+
+        # Extract the names of the agents that are allowed to repeat in allow_repeat_speaker
+        allow_repeat_speaker_names = [agent.name for agent in allow_repeat_speaker]
+
         # Check if all of the agents in self_loop_agents are in allow_repeat_speaker
-        if not all([agent in allow_repeat_speaker for agent in self_loop_agents]):
+        if not all([agent in allow_repeat_speaker_names for agent in self_loop_agents]):
             raise ValueError(
-                "The graph (allowed_speaker_order_dict) has self-loops not mentioned in the list of agents allowed to repeat in allow_repeat_speaker."
+                f"""The graph (allowed_speaker_order_dict) has self-loops not mentioned in the list of agents allowed to repeat in allow_repeat_speaker_names. allow_repeat_speaker_names: {allow_repeat_speaker_names}; self_loop_agents: {self_loop_agents}
+                """
             )
 
     # Warnings
