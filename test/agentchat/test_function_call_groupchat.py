@@ -1,8 +1,11 @@
 import autogen
 import pytest
 import sys
-from conftest import skip_openai
+import os
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
