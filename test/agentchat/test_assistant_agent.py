@@ -4,21 +4,26 @@ import pytest
 import autogen
 from autogen.agentchat import AssistantAgent, UserProxyAgent
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR openai not installed OR requested to skip",
 )
 def test_ai_user_proxy_agent():
-    try:
-        import openai
-    except ImportError:
-        return
-
     conversations = {}
     # autogen.ChatCompletion.start_logging(conversations)
 
@@ -57,17 +62,15 @@ def test_ai_user_proxy_agent():
     print(conversations)
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_gpt35(human_input_mode="NEVER", max_consecutive_auto_reply=5):
-    try:
-        import openai
-    except ImportError:
-        return
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
             "model": {
                 "gpt-3.5-turbo",
+                "gpt-35-turbo",
                 "gpt-3.5-turbo-16k",
                 "gpt-3.5-turbo-16k-0613",
                 "gpt-3.5-turbo-0301",
@@ -114,12 +117,8 @@ If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMI
     assert not isinstance(user.use_docker, bool)  # None or str
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_reply=10):
-    try:
-        import openai
-    except ImportError:
-        return
-
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, file_location=KEY_LOC)
     conversations = {}
     # autogen.ChatCompletion.start_logging(conversations)
@@ -159,12 +158,8 @@ print('Hello world!')
     # autogen.ChatCompletion.stop_logging()
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
-    try:
-        import openai
-    except ImportError:
-        return
-
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,

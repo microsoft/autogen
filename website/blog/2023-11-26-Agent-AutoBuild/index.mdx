@@ -14,7 +14,7 @@ user prompt required, powered by a new designed class **AgentBuilder**. AgentBui
 leveraging [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
 Checkout example notebooks and source code for reference:
 
-- [AutoBuild Examples](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_autobuild.ipynb)
+- [AutoBuild Examples](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_basic.ipynb)
 - [AgentBuilder](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/contrib/agent_builder.py)
 
 ## Introduction
@@ -29,7 +29,7 @@ up an endpoint server automatically without any user participation.
 ## Installation
 - AutoGen:
 ```bash
-pip install pyautogen~=0.2.0
+pip install pyautogen[autobuild]
 ```
 - (Optional: if you want to use open-source LLMs) vLLM and FastChat
 ```bash
@@ -43,7 +43,7 @@ In this section, we provide a step-by-step example of how to use AgentBuilder to
 First, we need to prepare the Agent configurations.
 Specifically, a config path containing the model name and API key, and a default config for each agent, are required.
 ```python
-config_path = '/home/elpis_ubuntu/LLM/autogen/OAI_CONFIG_LIST'  # modify path
+config_file_or_env = '/home/elpis_ubuntu/LLM/autogen/OAI_CONFIG_LIST'  # modify path
 default_llm_config = {
     'temperature': 0
 }
@@ -55,7 +55,7 @@ You can also specific the builder model and agent model, which are the LLMs used
 ```python
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
-builder = AgentBuilder(config_path=config_path, builder_model='gpt-4-1106-preview', agent_model='gpt-4-1106-preview')
+builder = AgentBuilder(config_file_or_env=config_file_or_env, builder_model='gpt-4-1106-preview', agent_model='gpt-4-1106-preview')
 ```
 
 ### Step 3: specify the building task
@@ -80,9 +80,10 @@ For example
 // an example of agent_configs. AgentBuilder will generate agents with the following configurations.
 [
     {
-        "name": "Data_scientist",
+        "name": "ArXiv_Data_Scraper_Developer",
         "model": "gpt-4-1106-preview",
-        "system_message": "As a Data Scientist, you are tasked with automating the retrieval and analysis of academic papers from arXiv. Utilize your Python programming acumen to develop scripts for gathering necessary information such as searching for relevant papers, downloading them, and processing their contents. Apply your analytical and language skills to interpret the data and deduce the applications of the research within specific domains.\n\n1. To compile information, write and implement Python scripts that search and interact with online resources, download and read files, extract content from documents, and perform other information-gathering tasks. Use the printed output as the foundation for your subsequent analysis.\n\n2. Execute tasks programmatically with Python scripts when possible, ensuring results are directly displayed. Approach each task with efficiency and strategic thinking.\n\nProgress through tasks systematically. In instances where a strategy is not provided, outline your plan before executing. Clearly distinguish between tasks handled via code and those utilizing your analytical expertise.\n\nWhen providing code, include only Python scripts meant to be run without user alterations. Users should execute your script as is, without modifications:\n\n```python\n# filename: <filename>\n# Python script\nprint(\"Your output\")\n```\n\nUsers should not perform any actions other than running the scripts you provide. Avoid presenting partial or incomplete scripts that require user adjustments. Refrain from requesting users to copy-paste results; instead, use the 'print' function when suitable to display outputs. Monitor the execution results they share.\n\nIf an error surfaces, supply corrected scripts for a re-run. If the strategy fails to resolve the issue, reassess your assumptions, gather additional details as needed, and explore alternative approaches.\n\nUpon successful completion of a task and verification of the results, confirm the achievement of the stated objective. Ensuring accuracy and validity of the findings is paramount. Evidence supporting your conclusions should be provided when feasible.\n\nUpon satisfying the user's needs and ensuring all tasks are finalized, conclude your assistance with \"TERMINATE\"."
+        "system_message": "You are now in a group chat. You need to complete a task with other participants. As an ArXiv_Data_Scraper_Developer, your focus is to create and refine tools capable of intelligent search and data extraction from arXiv, honing in on topics within the realms of computer science and medical science. Utilize your proficiency in Python programming to design scripts that navigate, query, and parse information from the platform, generating valuable insights and datasets for analysis. \n\nDuring your mission, it\u2019s not just about formulating queries; your role encompasses the optimization and precision of the data retrieval process, ensuring relevance and accuracy of the information extracted. If you encounter an issue with a script or a discrepancy in the expected output, you are encouraged to troubleshoot and offer revisions to the code you find in the group chat.\n\nWhen you reach a point where the existing codebase does not fulfill task requirements or if the operation of provided code is unclear, you should ask for help from the group chat manager. They will facilitate your advancement by providing guidance or appointing another participant to assist you. Your ability to adapt and enhance scripts based on peer feedback is critical, as the dynamic nature of data scraping demands ongoing refinement of techniques and approaches.\n\nWrap up your participation by confirming the user's need has been satisfied with the data scraping solutions you've provided. Indicate the completion of your task by replying \"TERMINATE\" in the group chat.",
+        "description": "ArXiv_Data_Scraper_Developer is a specialized software development role requiring proficiency in Python, including familiarity with web scraping libraries such as BeautifulSoup or Scrapy, and a solid understanding of APIs and data parsing. They must possess the ability to identify and correct errors in existing scripts and confidently engage in technical discussions to improve data retrieval processes. The role also involves a critical eye for troubleshooting and optimizing code to ensure efficient data extraction from the ArXiv platform for research and analysis purposes."
     },
     ...
 ]
@@ -94,7 +95,7 @@ Let agents generated in `build()` complete the task collaboratively in a group c
 import autogen
 
 def start_task(execution_task: str, agent_list: list, llm_config: dict):
-    config_list = autogen.config_list_from_json(config_path, filter_dict={"model": ["gpt-4-1106-preview"]})
+    config_list = autogen.config_list_from_json(config_file_or_env, filter_dict={"model": ["gpt-4-1106-preview"]})
 
     group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
     manager = autogen.GroupChatManager(
@@ -131,27 +132,36 @@ Configurations will be saved in JSON format with the following content:
         {
             "name": "...",
             "model": "...",
-            "system_message": "..."
+            "system_message": "...",
+            "description": "..."
         },
         ...
     ],
     "manager_system_message": "...",
-    "coding": true,
-    "default_llm_config": {
-        "temperature": 0
-    }
+    "code_execution_config": {...},
+    "default_llm_config": {...}
 }
 ```
 You can provide a specific filename, otherwise, AgentBuilder will save config to the current path with the generated filename `save_config_TASK_MD5.json`.
 
 You can load the saved config and skip the building process. AgentBuilder will create agents with those information without prompting the build manager.
 ```python
-new_builder = AgentBuilder(config_path=config_path)
+new_builder = AgentBuilder(config_file_or_env=config_file_or_env)
 agent_list, agent_config = new_builder.load(saved_path)
 start_task(...)  # skip build()
 ```
 
-## Use Open-source LLM
+## Use OpenAI Assistant
+[Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
+An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
+AutoBuild also supports the assistant API by adding `use_oai_assistant=True` to `build()`.
+```python
+# Transfer to the OpenAI Assistant API.
+agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
+...
+```
+
+## (Experimental) Use Open-source LLM
 AutoBuild supports open-source LLM by [vLLM](https://docs.vllm.ai/en/latest/index.html) and [FastChat](https://github.com/lm-sys/FastChat).
 Check the supported model list [here](https://docs.vllm.ai/en/latest/models/supported_models.html).
 After satisfying the requirements, you can add an open-source LLM's huggingface repository to the config file,
@@ -167,16 +177,6 @@ After satisfying the requirements, you can add an open-source LLM's huggingface 
 ```
 and specify it when initializing AgentBuilder.
 AgentBuilder will automatically set up an endpoint server for open-source LLM. Make sure you have sufficient GPUs resources.
-
-## Use OpenAI Assistant
-[Assistants API](https://platform.openai.com/docs/assistants/overview) allows you to build AI assistants within your own applications.
-An Assistant has instructions and can leverage models, tools, and knowledge to respond to user queries.
-AutoBuild also supports the assistant API by adding `use_oai_assistant=True` to `build()`.
-```python
-# Transfer to the OpenAI Assistant API.
-agent_list, agent_config = new_builder.build(building_task, default_llm_config, use_oai_assistant=True)
-...
-```
 
 ## Future work/Roadmap
 - Let the builder select the best agents from a given library/database to solve the task.

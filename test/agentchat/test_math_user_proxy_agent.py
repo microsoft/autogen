@@ -1,5 +1,6 @@
 import pytest
 import sys
+import os
 import autogen
 from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
@@ -8,12 +9,15 @@ from autogen.agentchat.contrib.math_user_proxy_agent import (
 )
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
-    skip = False
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
@@ -61,7 +65,7 @@ def test_add_remove_print():
     assert _add_print_to_last_line(code) == "a = 4\nb = 5\nprint(a,b)"
 
     # test remove print
-    code = """print("hello")\na = 4*5\nprint("wolrld")"""
+    code = """print("hello")\na = 4*5\nprint("world")"""
     assert _remove_print(code) == "a = 4*5"
 
     # test remove print. Only remove prints without indentation
@@ -107,7 +111,7 @@ def test_execute_one_wolfram_query():
     try:
         mathproxyagent.execute_one_wolfram_query(code)[0]
     except ValueError:
-        print("Wolfrma API key not found. Skip test.")
+        print("Wolfram API key not found. Skip test.")
 
 
 def test_generate_prompt():
