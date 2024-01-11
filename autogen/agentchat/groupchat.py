@@ -339,7 +339,13 @@ class GroupChatManager(ConversableAgent):
         # Allow sync chat if initiated using initiate_chat
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # Allow async chat if initiated using a_initiate_chat
-        self.register_reply(Agent, GroupChatManager.a_run_chat, config=groupchat, reset_config=GroupChat.reset)
+        self.register_reply(
+            Agent,
+            GroupChatManager.a_run_chat,
+            config=groupchat,
+            reset_config=GroupChat.reset,
+            ignore_async_in_sync_chat=True,
+        )
 
     def run_chat(
         self,
