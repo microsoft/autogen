@@ -293,7 +293,7 @@ const WorkflowView = ({}: any) => {
             </div>
           )}
 
-          {workflows && workflows.length === 0 && (
+          {workflows && workflows.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No workflows found. Please create a new workflow.

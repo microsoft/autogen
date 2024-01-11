@@ -25,7 +25,8 @@ try:
         TOOL_ENABLED = True
     ERROR = None
 except ImportError:
-    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
+    ERROR = ImportError(
+        "Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -39,7 +40,8 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
+    extra_kwargs = {"cache_seed", "filter_func",
+                    "allow_format_str_template", "context", "api_version"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
     total_usage_summary: Dict = None
     actual_usage_summary: Dict = None
@@ -78,12 +80,17 @@ class OpenAIWrapper:
         """
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
-            logger.warning("openai client was provided with an empty config_list, which may not be intended.")
+            logger.warning(
+                "openai client was provided with an empty config_list, which may not be intended.")
         if config_list:
-            config_list = [config.copy() for config in config_list]  # make a copy before modifying
-            self._clients = [self._client(config, openai_config) for config in config_list]  # could modify the config
+            # make a copy before modifying
+            config_list = [config.copy() for config in config_list]
+            # could modify the config
+            self._clients = [self._client(config, openai_config)
+                             for config in config_list]
             self._config_list = [
-                {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
+                {**extra_kwargs, **{k: v for k,
+                                    v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
             ]
         else:
@@ -105,7 +112,8 @@ class OpenAIWrapper:
         # deal with api_type
         api_type = extra_kwargs.get("api_type")
         if api_type is not None and api_type.startswith("azure") and headers_segment not in config:
-            api_key = config.get("api_key", os.environ.get("AZURE_OPENAI_API_KEY"))
+            api_key = config.get(
+                "api_key", os.environ.get("AZURE_OPENAI_API_KEY"))
             config[headers_segment] = {"api-key": api_key}
             # remove the api_type from extra_kwargs
             extra_kwargs.pop("api_type")
@@ -115,32 +123,40 @@ class OpenAIWrapper:
                 return
             if "gpt-3.5" in model:
                 # hack for azure gpt-3.5
-                extra_kwargs["model"] = model = model.replace("gpt-3.5", "gpt-35")
+                extra_kwargs["model"] = model = model.replace(
+                    "gpt-3.5", "gpt-35")
             base_url = config.get("base_url")
             if base_url is None:
-                raise ValueError("to use azure openai api, base_url must be specified.")
+                raise ValueError(
+                    "to use azure openai api, base_url must be specified.")
             suffix = f"/openai/deployments/{model}"
             if not base_url.endswith(suffix):
-                config["base_url"] += suffix[1:] if base_url.endswith("/") else suffix
+                config["base_url"] += suffix[1:
+                                             ] if base_url.endswith("/") else suffix
 
     def _separate_openai_config(self, config):
         """Separate the config into openai_config and extra_kwargs."""
-        openai_config = {k: v for k, v in config.items() if k in self.openai_kwargs}
-        extra_kwargs = {k: v for k, v in config.items() if k not in self.openai_kwargs}
+        openai_config = {k: v for k,
+                         v in config.items() if k in self.openai_kwargs}
+        extra_kwargs = {k: v for k,
+                        v in config.items() if k not in self.openai_kwargs}
         self._process_for_azure(openai_config, extra_kwargs)
         return openai_config, extra_kwargs
 
     def _separate_create_config(self, config):
         """Separate the config into create_config and extra_kwargs."""
-        create_config = {k: v for k, v in config.items() if k not in self.extra_kwargs}
-        extra_kwargs = {k: v for k, v in config.items() if k in self.extra_kwargs}
+        create_config = {k: v for k,
+                         v in config.items() if k not in self.extra_kwargs}
+        extra_kwargs = {k: v for k,
+                        v in config.items() if k in self.extra_kwargs}
         return create_config, extra_kwargs
 
     def _client(self, config, openai_config):
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
         """
-        openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
+        openai_config = {**openai_config, **{k: v for k,
+                                             v in config.items() if k in self.openai_kwargs}}
         self._process_for_azure(openai_config, config)
         client = OpenAI(**openai_config)
         return client
@@ -164,18 +180,21 @@ class OpenAIWrapper:
         prompt = create_config.get("prompt")
         messages = create_config.get("messages")
         if (prompt is None) == (messages is None):
-            raise ValueError("Either prompt or messages should be in create config but not both.")
+            raise ValueError(
+                "Either prompt or messages should be in create config but not both.")
         context = extra_kwargs.get("context")
         if context is None:
             # No need to instantiate if no context is provided.
             return create_config
         # Instantiate the prompt or messages
-        allow_format_str_template = extra_kwargs.get("allow_format_str_template", False)
+        allow_format_str_template = extra_kwargs.get(
+            "allow_format_str_template", False)
         # Make a copy of the config
         params = create_config.copy()
         if prompt is not None:
             # Instantiate the prompt
-            params["prompt"] = self.instantiate(prompt, context, allow_format_str_template)
+            params["prompt"] = self.instantiate(
+                prompt, context, allow_format_str_template)
         elif context:
             # Instantiate the messages
             params["messages"] = [
@@ -224,7 +243,8 @@ class OpenAIWrapper:
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}
             # separate the config into create_config and extra_kwargs
-            create_config, extra_kwargs = self._separate_create_config(full_config)
+            create_config, extra_kwargs = self._separate_create_config(
+                full_config)
             # process for azure
             self._process_for_azure(create_config, extra_kwargs, "extra")
             # construct the create params
@@ -250,7 +270,8 @@ class OpenAIWrapper:
                             cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
                         # check the filter
-                        pass_filter = filter_func is None or filter_func(context=context, response=response)
+                        pass_filter = filter_func is None or filter_func(
+                            context=context, response=response)
                         if pass_filter or i == last:
                             # Return the response if it passes the filter or it is the last client
                             response.config_id = i
@@ -277,7 +298,8 @@ class OpenAIWrapper:
                         cache.set(key, response)
 
                 # check the filter
-                pass_filter = filter_func is None or filter_func(context=context, response=response)
+                pass_filter = filter_func is None or filter_func(
+                    context=context, response=response)
                 if pass_filter or i == last:
                     # Return the response if it passes the filter or it is the last client
                     response.config_id = i
@@ -310,7 +332,8 @@ class OpenAIWrapper:
                         if function_call_chunk:
                             if hasattr(function_call_chunk, "name") and function_call_chunk.name:
                                 if full_function_call is None:
-                                    full_function_call = {"name": "", "arguments": ""}
+                                    full_function_call = {
+                                        "name": "", "arguments": ""}
                                 full_function_call["name"] += function_call_chunk.name
                                 completion_tokens += 1
                             if hasattr(function_call_chunk, "arguments") and function_call_chunk.arguments:
@@ -335,7 +358,8 @@ class OpenAIWrapper:
             print("\033[0m\n")
 
             # Prepare the final ChatCompletion object based on the accumulated data
-            model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
+            model = chunk.model.replace(
+                "gpt-35", "gpt-3.5")  # hack for Azure API
             prompt_tokens = count_token(params["messages"], model)
             response = ChatCompletion(
                 id=chunk.id,
@@ -391,7 +415,8 @@ class OpenAIWrapper:
             usage.completion_tokens = 0 if usage.completion_tokens is None else usage.completion_tokens
             usage.total_tokens = 0 if usage.total_tokens is None else usage.total_tokens
         except (AttributeError, AssertionError):
-            logger.debug("Usage attribute is not found in the response.", exc_info=1)
+            logger.debug(
+                "Usage attribute is not found in the response.", exc_info=1)
             return
 
         def update_usage(usage_summary):
@@ -419,11 +444,13 @@ class OpenAIWrapper:
         def print_usage(usage_summary, usage_type="total"):
             word_from_type = "including" if usage_type == "total" else "excluding"
             if usage_summary is None:
-                print("No actual cost incurred (all completions are using cache).", flush=True)
+                print(
+                    "No actual cost incurred (all completions are using cache).", flush=True)
                 return
 
             print(f"Usage summary {word_from_type} cached usage: ", flush=True)
-            print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
+            print(
+                f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
             for model, counts in usage_summary.items():
                 if model == "total_cost":
                     continue  #
@@ -438,7 +465,8 @@ class OpenAIWrapper:
 
         if isinstance(mode, list):
             if len(mode) == 0 or len(mode) > 2:
-                raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
+                raise ValueError(
+                    f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
             if "actual" in mode and "total" in mode:
                 mode = "both"
             elif "actual" in mode:
@@ -462,7 +490,8 @@ class OpenAIWrapper:
         elif mode == "actual":
             print_usage(self.actual_usage_summary, "actual")
         else:
-            raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
+            raise ValueError(
+                f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
         print("-" * 100, flush=True)
 
     def clear_usage_summary(self) -> None:
@@ -475,7 +504,8 @@ class OpenAIWrapper:
         model = response.model
         if model not in OAI_PRICE1K:
             # TODO: add logging to warn that the model is not found
-            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=1)
+            logger.debug(
+                f"Model {model} is not found. The cost will be 0.", exc_info=1)
             return 0
 
         n_input_tokens = response.usage.prompt_tokens

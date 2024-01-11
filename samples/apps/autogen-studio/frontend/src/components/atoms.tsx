@@ -900,6 +900,7 @@ export const AgentFlowSpecView = ({
   const onDebouncedControlChange = React.useCallback(
     debounce((value: any, key: string) => {
       onControlChange(value, key);
+      console.log("debounce");
     }, 3000),
     [onControlChange]
   );
@@ -960,7 +961,7 @@ export const AgentFlowSpecView = ({
               max={30}
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}
-              onAfterChange={(value: any) => {
+              onChange={(value: any) => {
                 onControlChange(value, "max_consecutive_auto_reply");
               }}
             />
@@ -1001,7 +1002,8 @@ export const AgentFlowSpecView = ({
                 value={flowSpec.config.system_message}
                 rows={3}
                 onChange={(e) => {
-                  onDebouncedControlChange(e.target.value, "system_message");
+                  // onDebouncedControlChange(e.target.value, "system_message");
+                  onControlChange(e.target.value, "system_message");
                 }}
               />
             }
@@ -1446,24 +1448,26 @@ const AgentModal = ({
         </>
       )}
 
-      <div>
-        {" "}
+      {
         <div>
-          <div className="text-sm text-secondary mt-2">
-            Or replace with an existing agent{" "}
+          {" "}
+          <div>
+            <div className="text-sm text-secondary mt-2">
+              Or replace with an existing agent{" "}
+            </div>
           </div>
+          <Select
+            className="mt-2 w-full"
+            defaultValue={selectedFlowSpec}
+            value={selectedFlowSpec}
+            onChange={handleAgentChange}
+            options={flowSpecs.map((spec, index) => ({
+              label: spec.config.name,
+              value: index,
+            }))}
+          />
         </div>
-        <Select
-          className="mt-2 w-full"
-          defaultValue={selectedFlowSpec}
-          value={selectedFlowSpec}
-          onChange={handleAgentChange}
-          options={flowSpecs.map((spec, index) => ({
-            label: spec.config.name,
-            value: index,
-          }))}
-        />
-      </div>
+      }
       {/* {JSON.stringify(localAgent)} */}
     </Modal>
   );

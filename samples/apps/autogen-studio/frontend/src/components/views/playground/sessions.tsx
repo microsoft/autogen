@@ -311,7 +311,7 @@ const SessionsView = ({}: any) => {
             <LoadingOverlay loading={loading} />
             {sessionRows}
           </div>
-          {(!sessions || sessions.length == 0) && (
+          {(!sessions || sessions.length == 0) && !loading && (
             <div className="text-xs text-gray-500">
               No sessions found. Create a new session to get started.
             </div>
@@ -322,7 +322,11 @@ const SessionsView = ({}: any) => {
           <LaunchButton
             className="text-sm p-2 px-3"
             onClick={() => {
-              setWorkflowConfig(null);
+              if (sessions && sessions.length > 0) {
+                setWorkflowConfig(sessions[0]?.flow_config);
+              } else {
+                setWorkflowConfig(null);
+              }
               setNewSessionModalVisible(true);
             }}
           >

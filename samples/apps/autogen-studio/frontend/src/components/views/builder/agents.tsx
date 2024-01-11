@@ -323,7 +323,7 @@ const AgentsView = ({}: any) => {
             </div>
           )}
 
-          {agents && agents.length === 0 && (
+          {agents && agents.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No agents found. Please create a new agent.
