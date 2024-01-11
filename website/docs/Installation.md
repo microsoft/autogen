@@ -35,7 +35,7 @@ conda deactivate
 
 Another option is with `pdm`, which is a dependency manager for Python.
 
-[PDM](https://python-poetry.org/docs/) is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you. PDM offers a lockfile to ensure repeatable installs, and can build your project for distribution.
+[PDM](https://pdm-project.org/latest/) is a tool for dependency management and packaging in Python. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you. PDM offers a lockfile to ensure repeatable installs, and can build your project for distribution.
 
 You can install it by following [this doc](https://pdm-project.org/latest/#installation),
 and then create a virtual environment as below:
@@ -46,7 +46,7 @@ pdm venv activate
 pdm add pyautogen
 ```
 
-The following command will deactivate the current `poetry` environment:
+The following command will deactivate the current `pdm` environment:
 ```bash
 exit
 ```
