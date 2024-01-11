@@ -272,6 +272,11 @@ def execute_code(
         logger.error(error_msg)
         raise AssertionError(error_msg)
 
+    if use_docker and docker is None:
+        error_msg = "Cannot use docker because the python docker package is not available."
+        logger.error(error_msg)
+        raise AssertionError(error_msg)
+
     # Warn if use_docker was unspecified (or None), and cannot be provided (the default).
     # In this case the current behavior is to fall back to run natively, but this behavior
     # is subject to change.
