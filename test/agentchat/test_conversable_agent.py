@@ -1,12 +1,18 @@
+import asyncio
 import copy
+import sys
+import time
 from typing import Any, Callable, Dict, Literal
+import unittest
 
 import pytest
 from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
 
 try:
@@ -445,6 +451,8 @@ def test__wrap_function_sync():
         == '{"currency":"EUR","amount":100.1}'
     )
 
+    assert not asyncio.coroutines.iscoroutinefunction(currency_calculator)
+
 
 @pytest.mark.asyncio
 async def test__wrap_function_async():
@@ -480,6 +488,8 @@ async def test__wrap_function_async():
         await currency_calculator(base={"currency": "USD", "amount": 110.11}, quote_currency="EUR")
         == '{"currency":"EUR","amount":100.1}'
     )
+
+    assert asyncio.coroutines.iscoroutinefunction(currency_calculator)
 
 
 def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:
@@ -622,6 +632,161 @@ def test_register_for_execution():
         }
         assert get_origin(agent.function_map) == expected_function_map
         assert get_origin(user_proxy_1.function_map) == expected_function_map
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_function_registration_e2e_sync() -> None:
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+        },
+        file_location=KEY_LOC,
+    )
+
+    llm_config = {
+        "config_list": config_list,
+    }
+
+    coder = autogen.AssistantAgent(
+        name="chatbot",
+        system_message="For coding tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+        llm_config=llm_config,
+    )
+
+    # create a UserProxyAgent instance named "user_proxy"
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        system_message="A proxy for the user for executing code.",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+        code_execution_config={"work_dir": "coding"},
+    )
+
+    # define functions according to the function description
+    timer_mock = unittest.mock.MagicMock()
+    stopwatch_mock = unittest.mock.MagicMock()
+
+    # An example async function
+    @user_proxy.register_for_execution()
+    @coder.register_for_llm(description="create a timer for N seconds")
+    def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
+        print("timer is running")
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            time.sleep(0.01)
+        print()
+
+        timer_mock(num_seconds=num_seconds)
+        return "Timer is done!"
+
+    # An example sync function
+    @user_proxy.register_for_execution()
+    @coder.register_for_llm(description="create a stopwatch for N seconds")
+    def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
+        print("stopwatch is running")
+        # assert False, "stopwatch's alive!"
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            time.sleep(0.01)
+        print()
+
+        stopwatch_mock(num_seconds=num_seconds)
+        return "Stopwatch is done!"
+
+    # start the conversation
+    # 'await' is used to pause and resume code execution for async IO operations.
+    # Without 'await', an async function returns a coroutine object but doesn't execute the function.
+    # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
+    user_proxy.initiate_chat(  # noqa: F704
+        coder,
+        message="Create a timer for 2 seconds and then a stopwatch for 3 seconds.",
+    )
+
+    timer_mock.assert_called_once_with(num_seconds="2")
+    stopwatch_mock.assert_called_once_with(num_seconds="3")
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+@pytest.mark.asyncio()
+async def test_function_registration_e2e_async() -> None:
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+        },
+        file_location=KEY_LOC,
+    )
+
+    llm_config = {
+        "config_list": config_list,
+    }
+
+    coder = autogen.AssistantAgent(
+        name="chatbot",
+        system_message="For coding tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+        llm_config=llm_config,
+    )
+
+    # create a UserProxyAgent instance named "user_proxy"
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        system_message="A proxy for the user for executing code.",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+        code_execution_config={"work_dir": "coding"},
+    )
+
+    # define functions according to the function description
+    timer_mock = unittest.mock.MagicMock()
+    stopwatch_mock = unittest.mock.MagicMock()
+
+    # An example async function
+    @user_proxy.register_for_execution()
+    @coder.register_for_llm(description="create a timer for N seconds")
+    async def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
+        print("timer is running")
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            await asyncio.sleep(0.01)
+        print()
+
+        timer_mock(num_seconds=num_seconds)
+        return "Timer is done!"
+
+    # An example sync function
+    @user_proxy.register_for_execution()
+    @coder.register_for_llm(description="create a stopwatch for N seconds")
+    def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
+        print("stopwatch is running")
+        # assert False, "stopwatch's alive!"
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            time.sleep(0.01)
+        print()
+
+        stopwatch_mock(num_seconds=num_seconds)
+        return "Stopwatch is done!"
+
+    # start the conversation
+    # 'await' is used to pause and resume code execution for async IO operations.
+    # Without 'await', an async function returns a coroutine object but doesn't execute the function.
+    # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
+    await user_proxy.a_initiate_chat(  # noqa: F704
+        coder,
+        message="Create a timer for 4 seconds and then a stopwatch for 5 seconds.",
+    )
+
+    timer_mock.assert_called_once_with(num_seconds="4")
+    stopwatch_mock.assert_called_once_with(num_seconds="5")
 
 
 @pytest.mark.skipif(
