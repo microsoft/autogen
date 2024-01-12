@@ -48,9 +48,9 @@ specified with a JSON schema describing its parameters and their types. Writing 
 is complex and error-prone and that is why AutoGen framework provides two high level function decorators for automatically generating such schema using type hints on standard Python datatypes
 or Pydantic models:
 
-1. [`ConversableAgent.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) is used to register the function as a Tool in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registered Tool, but the actual execution will be performed by a UserProxy agent.
+1. [`ConversableAgent.register.for_llm`](../reference/agentchat/conversable_agent#register.for_llm) is used to register the function as a Tool in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registered Tool, but the actual execution will be performed by a UserProxy agent.
 
-2. [`ConversableAgent.register_for_execution`](../reference/agentchat/conversable_agent#register_for_execution) is used to register the function in the `function_map` of a UserProxy agent.
+2. [`ConversableAgent.register.for_execution`](../reference/agentchat/conversable_agent#register.for_execution) is used to register the function in the `function_map` of a UserProxy agent.
 
 The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
 
@@ -96,8 +96,8 @@ user_proxy = autogen.UserProxyAgent(
 ```
 
 3. We define the function `currency_calculator` below as follows and decorate it with two decorators:
-   - [`@user_proxy.register_for_execution()`](../reference/agentchat/conversable_agent#register_for_execution) adding the function `currency_calculator` to `user_proxy.function_map`, and
-   - [`@chatbot.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) adding a generated JSON schema of the function to `llm_config` of `chatbot`.
+   - [`@user_proxy.register.for_execution()`](../reference/agentchat/conversable_agent#register.for_execution) adding the function `currency_calculator` to `user_proxy.function_map`, and
+   - [`@chatbot.register.for_llm`](../reference/agentchat/conversable_agent#register.for_llm) adding a generated JSON schema of the function to `llm_config` of `chatbot`.
 
 ``` python
 CurrencySymbol = Literal["USD", "EUR"]
@@ -114,8 +114,8 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
         raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
 
-@user_proxy.register_for_execution()
-@chatbot.register_for_llm(description="Currency exchange calculator.")
+@user_proxy.register.for_execution()
+@chatbot.register.for_llm(description="Currency exchange calculator.")
 def currency_calculator(
     base_amount: Annotated[float, "Amount of currency in base_currency"],
     base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
@@ -199,8 +199,8 @@ class Currency(BaseModel):
   # parameter of type float, must be greater or equal to 0 with default value 0
   amount: Annotated[float, Field(0, description="Amount of currency", ge=0)]
 
-@user_proxy.register_for_execution()
-@chatbot.register_for_llm(description="Currency exchange calculator.")
+@user_proxy.register.for_execution()
+@chatbot.register.for_llm(description="Currency exchange calculator.")
 def currency_calculator(
   base: Annotated[Currency, "Base currency: amount and currency symbol"],
   quote_currency: Annotated[CurrencySymbol, "Quote currency symbol"] = "USD",

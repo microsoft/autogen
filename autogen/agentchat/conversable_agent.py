@@ -29,6 +29,81 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+class _Register:
+    """A class for decorators registering functions to be used by an agent.
+
+    The decorator factory is returned by the `for_execution` and `for_llm` methods.
+    """
+
+    def __init__(self, agent: "ConversableAgent"):
+        """Initialize the Register class.
+
+        Args:
+            agent: the agent to be registered.
+        """
+        self._agent = agent
+
+    def for_execution(
+        self,
+        *,
+        name: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be executed by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register.for_execution()
+            @agent2.register_for_llm()
+            @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14):
+                 return a + str(b * c)
+            ```
+
+        """
+        return self._agent.register_for_execution(name=name)
+
+    def for_llm(
+        self,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be used by an agent.
+
+        It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
+        specify the arguments and return type. The function name is used as the default name for the function,
+        but a custom name can be provided. The function description is used to describe the function in the
+        agent's configuration.
+
+        Args:
+            name (optional(str)): name of the function. If None, the function name will be used (default: None).
+            description (optional(str)): description of the function (default: None). It is mandatory
+                for the initial decorator, but the following ones can omit it.
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+            @user_proxy.register.for_execution()
+            @agent2.register.for_llm()
+            @agent1.register.for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+        """
+        return self._agent.register_for_llm(name=name, description=description)
+
+
 class ConversableAgent(Agent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
@@ -106,6 +181,10 @@ class ConversableAgent(Agent):
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
+
+        # Register decorators factory
+        self.register = _Register(self)
+
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]

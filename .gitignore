@@ -175,3 +175,5 @@ test/test_files/agenteval-in-out/out/
 # Files created by tests
 *tmp_code_*
 test/agentchat/test_agent_scripts/*
+test/agentchat/tsp_add_new_point.py
+autogen/extensions/*
