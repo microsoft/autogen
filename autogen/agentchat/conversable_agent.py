@@ -198,7 +198,7 @@ class ConversableAgent(Agent):
             position: the position of the reply function in the reply function list.
             config: the config to be passed to the reply function, see below.
             reset_config: the function to reset the config, see below.
-            ignore_async_in_sync_chat: whether to ignore the reply function in sync chats. If `False`, an exception
+            ignore_async_in_sync_chat: whether to ignore the async reply function in sync chats. If `False`, an exception
                 will be raised if an async reply function is registered and a chat is initialized with a sync
                 function.
         ```python
