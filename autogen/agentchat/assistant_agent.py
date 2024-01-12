@@ -1,6 +1,7 @@
-from typing import Callable, Dict, Literal, Optional, Union
+from typing import Callable, Dict, Literal, Optional, Union, Type
 
 from .conversable_agent import ConversableAgent
+from .. import OpenAIWrapper
 
 
 class AssistantAgent(ConversableAgent):
@@ -39,6 +40,7 @@ Reply "TERMINATE" in the end when everything is done.
         human_input_mode: Optional[str] = "NEVER",
         code_execution_config: Optional[Union[Dict, Literal[False]]] = False,
         description: Optional[str] = None,
+        openai_wrapper: Type[OpenAIWrapper] = OpenAIWrapper,
         **kwargs,
     ):
         """
@@ -55,6 +57,7 @@ Reply "TERMINATE" in the end when everything is done.
             max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
+            openai_wrapper (OpenAIWrapper): A wrapper class for openai client.
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](conversable_agent#__init__).
         """
@@ -67,6 +70,7 @@ Reply "TERMINATE" in the end when everything is done.
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             description=description,
+            openai_wrapper=openai_wrapper,
             **kwargs,
         )
 

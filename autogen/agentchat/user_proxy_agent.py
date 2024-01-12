@@ -1,6 +1,7 @@
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Union, Type
 
 from .conversable_agent import ConversableAgent
+from .. import OpenAIWrapper
 
 
 class UserProxyAgent(ConversableAgent):
@@ -35,6 +36,7 @@ class UserProxyAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
         description: Optional[str] = None,
+        openai_wrapper: Type[OpenAIWrapper] = OpenAIWrapper,
     ):
         """
         Args:
@@ -79,6 +81,7 @@ class UserProxyAgent(ConversableAgent):
                 Only used when llm_config is not False. Use it to reprogram the agent.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
+            openai_wrapper (OpenAIWrapper): A wrapper class for openai client.
         """
         super().__init__(
             name=name,
@@ -93,4 +96,5 @@ class UserProxyAgent(ConversableAgent):
             description=description
             if description is not None
             else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
+            openai_wrapper=openai_wrapper,
         )

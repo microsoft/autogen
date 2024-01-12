@@ -61,6 +61,7 @@ class ConversableAgent(Agent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         description: Optional[str] = None,
+        openai_wrapper: Type[OpenAIWrapper] = OpenAIWrapper,
     ):
         """
         Args:
@@ -104,8 +105,10 @@ class ConversableAgent(Agent):
             default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
+            openai_wrapper (OpenAIWrapper): A wrapper class for openai client.
         """
         super().__init__(name)
+        self.openai_wrapper = openai_wrapper
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
@@ -123,7 +126,7 @@ class ConversableAgent(Agent):
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
-            self.client = OpenAIWrapper(**self.llm_config)
+            self.client = self.openai_wrapper(**self.llm_config)
 
         self._code_execution_config: Union[Dict, Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
@@ -466,7 +469,7 @@ class ConversableAgent(Agent):
             content = message.get("content")
             if content is not None:
                 if "context" in message:
-                    content = OpenAIWrapper.instantiate(
+                    content = self.openai_wrapper.instantiate(
                         content,
                         message["context"],
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
@@ -1554,7 +1557,7 @@ class ConversableAgent(Agent):
         if len(self.llm_config["functions"]) == 0:
             del self.llm_config["functions"]
 
-        self.client = OpenAIWrapper(**self.llm_config)
+        self.client = self.openai_wrapper(**self.llm_config)
 
     def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
         """update a tool_signature in the LLM configuration for tool_call.
@@ -1592,7 +1595,7 @@ class ConversableAgent(Agent):
         if len(self.llm_config["tools"]) == 0:
             del self.llm_config["tools"]
 
-        self.client = OpenAIWrapper(**self.llm_config)
+        self.client = self.openai_wrapper(**self.llm_config)
 
     def can_execute_function(self, name: Union[List[str], str]) -> bool:
         """Whether the agent can execute the function."""
