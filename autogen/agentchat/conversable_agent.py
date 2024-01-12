@@ -181,8 +181,8 @@ class ConversableAgent(Agent):
         from both sync and async chats. However, an async reply function will only be triggered from async
         chats (initiated with `ConversableAgent.a_initiate_chat`). If an `async` reply function is registered
         and a chat is initialized with a sync function, `ignore_async_in_sync_chat` determines the behaviour as follows:
-        - if `ignore_in_sync_chat` is set to `False` (default value), an exception will be raised, and
-        - if `ignore_in_sync_chat` is set to `True`, the reply function will be ignored.
+        - if `ignore_async_in_sync_chat` is set to `False` (default value), an exception will be raised, and
+        - if `ignore_async_in_sync_chat` is set to `True`, the reply function will be ignored.
 
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): the trigger.
