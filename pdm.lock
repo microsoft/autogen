@@ -5,7 +5,7 @@
 groups = ["default", "blendsearch", "graphs", "lmm", "mathchat", "retrievechat", "teachable", "test"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:93198843a6cb843490c948429dc50200a3903e75b079193672b7094fd1165913"
+content_hash = "sha256:9b267b0d735d335ee4ac502e2aaad8f68d8f1d20a169e2ef048a6f6cf303c915"
 
 [[package]]
 name = "alembic"
