@@ -4,6 +4,9 @@ import pytest
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 from autogen import config_list_from_json
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
@@ -22,17 +25,17 @@ except ImportError:
 
 try:
     import openai
-
-    OPENAI_INSTALLED = True
 except ImportError:
-    OPENAI_INSTALLED = False
+    skip = True
+else:
+    skip = False or skip_openai
 
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or not QDRANT_INSTALLED or not OPENAI_INSTALLED,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or not QDRANT_INSTALLED or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_retrievechat():
     conversations = {}
