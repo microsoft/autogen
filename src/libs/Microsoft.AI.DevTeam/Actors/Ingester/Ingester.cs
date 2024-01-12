@@ -2,6 +2,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 using Octokit;
 using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -37,6 +38,11 @@ public class Ingester : SemanticPersona, IIngestRepo
             // TODO: do something with the result
             await dev.BuildUnderstanding(file.Content);
         }
+    }
+
+    public override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        throw new NotImplementedException();
     }
 }
 

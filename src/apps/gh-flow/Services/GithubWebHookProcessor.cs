@@ -6,18 +6,22 @@ using Octokit.Webhooks.Events.CommitComment;
 using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
+using Orleans.Runtime;
 
 public sealed class GithubWebHookProcessor : WebhookEventProcessor
 {
     private readonly ILogger<GithubWebHookProcessor> _logger;
     private readonly IGrainFactory _grains;
+    private readonly IClusterClient client;
     private readonly IManageGithub _ghService;
     private readonly IManageAzure _azService;
 
-    public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, IGrainFactory grains, IManageGithub ghService, IManageAzure azService)
+    public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, IGrainFactory grains, 
+    IClusterClient client, IManageGithub ghService, IManageAzure azService)
     {
         _logger = logger;
         _grains = grains;
+        this.client = client;
         _ghService = ghService;
         _azService = azService;
     }
@@ -196,6 +200,17 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         {
             var conductor = _grains.GetGrain<IOrchestrateWorkflows>(issueNumber, suffix);
             await conductor.InitialFlow(input, org, repo, issueNumber);
+            var streamProvider = client.GetStreamProvider("StreamProvider");
+          
+            var streamId = StreamId.Create(suffix, issueNumber.ToString());
+            var stream = streamProvider.GetStream<Event>(streamId);
+            await stream.OnNextAsync(new Event{
+                Type = EventType.NewAsk,
+                Message = input,
+                Org = org,
+                Repo = repo,
+                IssueNumber = issueNumber
+            });
         }
         else if (skillName == "Repo" && functionName == "Ingest")
         {
@@ -242,3 +257,4 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         else { }// something went wrong
     }
 }
+

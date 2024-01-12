@@ -1,4 +1,5 @@
 using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -9,6 +10,12 @@ public class Tester : SemanticPersona, ITestCode
     {
         
     }
+
+    public override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<string> ReviewPlan(string plan)
     {
         throw new NotImplementedException();

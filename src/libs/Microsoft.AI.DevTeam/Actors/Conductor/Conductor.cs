@@ -1,16 +1,18 @@
 using Microsoft.AI.DevTeam.Skills;
-using Orleans.Concurrency;
 using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
 public class Conductor : Grain, IOrchestrateWorkflows
 {
     private readonly IManageGithub _ghService;
+
     public Conductor( IManageGithub ghService)
     {
         _ghService = ghService;
     }
+    
      public async Task InitialFlow(string input, string org, string repo, long parentNumber)
     {
             await _ghService.CreateBranch(new CreateBranchRequest
@@ -80,3 +82,38 @@ public class Conductor : Grain, IOrchestrateWorkflows
         await lookup.StoreMetadata(metadataList);
     }
 }
+
+/*
+Events:
+
+NewAsk - Org, Repo, IssueNumber
+
+-> PM subscribes -> check label, 
+                    if Do It, create an issue, mark it as PM.Readme
+                    if PM.Readme send the prompt and create a comment
+-> DevLead subscribes -> check label,
+                        if Do It, create an issue, mark it as Devlead.Plan
+                        if DevLead.Plan, send the prompt and create a comment
+-> Developer subscribes -> check label,
+                          if Developer.Implement, send the prompt and create a comment
+
+ChainClosed - Org, Repo, IssueNumber
+
+-> PM subscribes -> check label,
+                    if PM.Readme send ReadmeCreated event
+-> DevLead subscribes -> check label,
+                        if DevLead.Plan, send PlanSubstepCreated event
+
+-> Developer subscribes -> check label,
+                          if Developer.Implement, send ImplementSubstepCreated event
+
+PlanSubstepCreated - Org, Repo, IssueNumber, Substep
+
+-> Developer subscribes -> create an issue, mark it as Developer.Implement
+
+
+ReadmeCreated - store readme, commit to PR branch
+
+ImplementSubstepCreated - store code, run in sandbox, commit to PR branch
+
+*/

@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -58,6 +59,16 @@ public class Dev : SemanticPersona, IDevelopCode
         }
     }
 
+    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        switch (item.Type)
+        {
+            case EventType.NewAsk:
+                break;
+            default:
+                break;
+        }
+    }
 
 
     public Task<string> ReviewPlan(string plan)

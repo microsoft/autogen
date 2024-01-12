@@ -2,6 +2,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -15,6 +16,8 @@ public abstract class SemanticPersona : Grain, IChatHistory
     protected virtual string MemorySegment { get; set; }
     protected List<ChatHistoryItem> History { get; set; }
     protected readonly IPersistentState<SemanticPersonaState> _state;
+
+    public abstract Task HandleEvent(Event item, StreamSequenceToken? token);
 
     public async Task<string> GetLastMessage()
     {
@@ -31,6 +34,24 @@ public abstract class SemanticPersona : Grain, IChatHistory
         }
 
         context.Set("wafContext", wafContext);
+    }
+
+    public async override Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        var streamProvider = this.GetStreamProvider("");
+        var streamId = StreamId.Create("MyStreamNamespace", this.GetPrimaryKey());
+        var stream = streamProvider.GetStream<Event>(streamId);
+
+        var subscriptionHandles = await stream.GetAllSubscriptionHandles();
+        if ( subscriptionHandles != null && subscriptionHandles.Count > 0)
+        {
+            subscriptionHandles.ToList().ForEach(
+                async x => await x.ResumeAsync(HandleEvent)); 
+        }
+        else
+        {
+            await stream.SubscribeAsync(HandleEvent);
+        }
     }
 }
 

@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 public class ProductManager : SemanticPersona, IManageProduct
@@ -53,6 +54,17 @@ public class ProductManager : SemanticPersona, IManageProduct
         {
             _logger.LogError(ex, "Error creating readme");
             return default;
+        }
+    }
+
+    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        switch (item.Type)
+        {
+            case EventType.NewAsk:
+                break;
+            default:
+                break;
         }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
+using Orleans.Streams;
 using System.Text.Json;
 
 namespace Microsoft.AI.DevTeam;
@@ -63,6 +64,17 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
         var plan = _state.State.History.Last().Message;
         var response = JsonSerializer.Deserialize<DevLeadPlanResponse>(plan);
         return Task.FromResult(response);
+    }
+
+    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        switch (item.Type)
+        {
+            case EventType.NewAsk:
+                break;
+            default:
+                break;
+        }
     }
 }
 
