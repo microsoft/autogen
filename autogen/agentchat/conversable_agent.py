@@ -110,7 +110,7 @@ class _Register:
         position: int = 0,
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
-    ):
+    ) -> Callable[[F], F]:
         """Register a reply function.
 
         The reply function will be called when the trigger matches the sender.
@@ -134,6 +134,9 @@ class _Register:
                 When an agent is reset, the config will be reset to the original value.
             reset_config (Callable): the function to reset the config.
                 The function returns None. Signature: ```def reset_config(config: Any)```
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
         """
         return self._agent._register_for_reply(
             trigger=trigger,
@@ -141,6 +144,28 @@ class _Register:
             config=config,
             reset_config=reset_config,
         )
+
+    def for_is_termination_msg(self) -> Callable[[F], F]:
+        """Decorator factory for registering an is_termination_function to be used by an agent.
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+        """
+        return self._agent.register_for_is_termination_msg()
+
+    def for_hook(self, hookable_method: Callable) -> Callable[[F], F]:
+        """Decorator factory for registering a hook to be called by a hookable method.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Args:
+            hookable_method: A hookable method implemented by ConversableAgent.
+
+        Returns:
+            The decorator for registering a hook to be called by a hookable method.
+
+        """
+        return self._agent.register_for_hook(hookable_method)
 
 
 class ConversableAgent(Agent):
@@ -1970,12 +1995,80 @@ class ConversableAgent(Agent):
             hookable_method: A hookable method implemented by ConversableAgent.
             hook: A method implemented by a subclass of AgentCapability.
         """
-        assert hookable_method in self.hook_lists, f"{hookable_method} is not a hookable method."
+        if hookable_method not in self.hook_lists:
+            raise ValueError(f"{hookable_method} is not a hookable method.")
+
         hook_list = self.hook_lists[hookable_method]
-        assert hook not in hook_list, f"{hook} is already registered as a hook."
+
+        if hook in hook_list:
+            raise ValueError(f"{hook} is already registered as a hook.")
         hook_list.append(hook)
 
-    def process_last_message(self, messages):
+    def register_for_hook(self, hookable_method: Callable) -> Callable[[F], F]:
+        """Decorator factory for registering a hook to be called by a hookable method.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Args:
+            hookable_method: A hookable method implemented by ConversableAgent.
+
+        Returns:
+            The decorator for registering a hook to be called by a hookable method.
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a hook to be called by a hookable method.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered.
+
+            """
+            self.register_hook(hookable_method, func)
+
+            return func
+
+        return _decorator
+
+    def register_is_termination_msg(self, is_termination_msg: Callable[[Dict[str, Any]], bool]) -> None:
+        """Registers a function to be used by an agent to determine if a message is a termination message.
+
+        Args:
+            is_termination_msg: A function that takes a message dict as input and returns True if the message is a termination message, otherwise False.
+
+        """
+        self._is_termination_msg = is_termination_msg
+
+    def register_for_is_termination_msg(self) -> Callable[[F], F]:
+        """Decorator factory for registering a function to be used by an agent as is_termination_message.
+
+        It's return value is used to decorate a function to be registered to the agent.
+
+        Returns:
+            The decorator for registering a function to be used by an agent as is_termination_message.
+
+        """
+
+        def _decorator(func: F) -> F:
+            """Decorator for registering a function to be used by an agent as is_termination_message.
+
+            Args:
+                func: the function to be registered.
+
+            Returns:
+                The function to be registered.
+
+            """
+            self.register_is_termination_msg(func)
+
+            return func
+
+        return _decorator
+
+    def process_last_message(self, messages: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
         """
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
@@ -2012,4 +2105,5 @@ class ConversableAgent(Agent):
         # Replace the last user message with the expanded one.
         messages = messages.copy()
         messages[-1]["content"] = processed_user_text
+        # assert False, (user_text, processed_user_text, messages)
         return messages

@@ -12,6 +12,7 @@ from typing_extensions import Annotated
 import autogen
 
 from autogen.agentchat import Agent, ConversableAgent, UserProxyAgent
+from autogen.code_utils import content_str
 
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
@@ -822,6 +823,106 @@ async def test_function_registration_e2e_async() -> None:
 
     timer_mock.assert_called_once_with(num_seconds="4")
     stopwatch_mock.assert_called_once_with(num_seconds="5")
+
+
+def test_register_hook() -> None:
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    assert agent.hook_lists[agent.process_last_message] == []
+
+    def world_hook(text_msg: str) -> str:
+        return text_msg + " world"
+
+    agent.register_hook(agent.process_last_message, world_hook)
+    assert agent.hook_lists[agent.process_last_message] == [world_hook]
+
+    agent1.initiate_chat(agent, message="hello")
+
+    assert agent.last_message(agent1)["content"] == "hello world"
+
+
+def test_register_for_hook() -> None:
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    assert agent.hook_lists[agent.process_last_message] == []
+
+    @agent.register_for_hook(agent.process_last_message)
+    def world_hook(text_msg: str) -> str:
+        return text_msg + " world"
+
+    assert agent.hook_lists[agent.process_last_message] == [world_hook]
+
+    agent1.initiate_chat(agent, message="hello")
+
+    assert agent.last_message(agent1)["content"] == "hello world"
+
+
+def test_register_dot_for_hook() -> None:
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    assert agent.hook_lists[agent.process_last_message] == []
+
+    @agent.register.for_hook(agent.process_last_message)
+    def world_hook(text_msg: str) -> str:
+        return text_msg + " world"
+
+    assert agent.hook_lists[agent.process_last_message] == [world_hook]
+
+    agent1.initiate_chat(agent, message="hello")
+
+    assert agent.last_message(agent1)["content"] == "hello world"
+
+
+def test_register_is_termination_msg() -> None:
+    agent = ConversableAgent(name="agent", llm_config=False, human_input_mode="NEVER")
+
+    assert agent._is_termination_msg({"content": "TERMINATE"}) is True
+    assert agent._is_termination_msg({"content": "  STOP!  "}) is False
+
+    def is_termination_message(message: Dict[str, Any]) -> bool:
+        msg = content_str(message.get("content"))
+
+        return msg and "STOP!" in msg
+
+    agent.register_is_termination_msg(is_termination_message)
+
+    assert agent._is_termination_msg({"content": "TERMINATE"}) is False
+    assert agent._is_termination_msg({"content": "  STOP!  "}) is True
+
+
+def test_register_for_is_termination_msg() -> None:
+    agent = ConversableAgent(name="agent", llm_config=False, human_input_mode="NEVER")
+
+    assert agent._is_termination_msg({"content": "TERMINATE"}) is True
+    assert agent._is_termination_msg({"content": "  STOP!  "}) is False
+
+    @agent.register_for_is_termination_msg()
+    def is_termination_message(message: Dict[str, Any]) -> bool:
+        msg = content_str(message.get("content"))
+
+        return msg and "STOP!" in msg
+
+    assert agent._is_termination_msg({"content": "TERMINATE"}) is False
+    assert agent._is_termination_msg({"content": "  STOP!  "}) is True
+
+
+def test_register_dot_for_is_termination_msg() -> None:
+    agent = ConversableAgent(name="agent", llm_config=False, human_input_mode="NEVER")
+
+    assert agent._is_termination_msg({"content": "TERMINATE"}) is True
+    assert agent._is_termination_msg({"content": "  STOP!  "}) is False
+
+    @agent.register.for_is_termination_msg()
+    def is_termination_message(message: Dict[str, Any]) -> bool:
+        msg = content_str(message.get("content"))
+
+        return msg and "STOP!" in msg
+
+    assert agent._is_termination_msg({"content": "TERMINATE"}) is False
+    assert agent._is_termination_msg({"content": "  STOP!  "}) is True
 
 
 @pytest.mark.skipif(
