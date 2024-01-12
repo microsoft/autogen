@@ -20,37 +20,7 @@ At the core of any benchmark is a set of tasks. To implement tasks that are runn
 
 ### Task Definitions
 
-All tasks are stored in JSONL files (in subdirectories under `./Tasks`). Each line of a tasks file is a JSON object. The schema varies slightly based on if "template" specifies a _file_ or a _directory_.
-
-If `template` points to a _file_, the format is:
-```
-{
-   "id": string,
-   "template": filename,
-   "substitutions" {
-       "find_string1": replace_string1,
-       "find_string2": replace_string2,
-       ...
-       "find_stringN": replace_stringN
-   }
-}
-```
-
-For example:
-
-```
-{
-    "id": "two_agent_stocks_gpt4",
-    "template": "default_two_agents.py",
-    "substitutions": {
-        "\__MODEL\__": "gpt-4",
-        "\__PROMPT\__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
-    }
-}
-```
-
-
-If `template` points to a _directory_, the format is:
+All tasks are stored in JSONL files (in subdirectories under `./Tasks`). Each line of a tasks file is a JSON object with the following schema:
 
 ```
 {
@@ -81,10 +51,10 @@ For example:
     "template": "default_two_agents",
     "substitutions": {
 	"scenario.py": {
-            "\__MODEL\__": "gpt-4",
+            "__MODEL__": "gpt-4",
 	},
 	"prompt.txt": {
-            "\__PROMPT\__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
+            "__PROMPT__": "Plot and save to disk a chart of NVDA and TESLA stock price YTD."
         }
     }
 }
@@ -181,7 +151,7 @@ If you wish to implement your own tabulation logic, simply create the file `Scri
 
 Should you provide a custom tabulation script, please implement `--help` and `-h` options for documenting your interface.
 
-The `scenarios/GAIA/Scripts/custom_tabulate.py` is a great example of custom tabulation. It also shows how you can re-use some components of the default tabulator to speed up development.
+The `scenarios/GAIA/Scripts/custom_tabulate.py` is a great example of custom tabulation. It also shows how you can reuse some components of the default tabulator to speed up development.
 
 
 ### Cloning
