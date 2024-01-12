@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-class _Register:
+class Register:
     """A class for decorators registering functions to be used by an agent.
 
     The decorator factory is returned by the `for_execution` and `for_llm` methods.
@@ -43,7 +43,7 @@ class _Register:
         """
         self._agent = agent
 
-    def for_execution(
+    def execution(
         self,
         *,
         name: Optional[str] = None,
@@ -60,7 +60,7 @@ class _Register:
 
         Examples:
             ```
-            @user_proxy.register.for_execution()
+            @user_proxy.register_for.execution()
             @agent2.register_for_llm()
             @agent1.register_for_llm(description="This is a very useful function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14):
@@ -70,7 +70,7 @@ class _Register:
         """
         return self._agent.register_for_execution(name=name)
 
-    def for_llm(
+    def llm(
         self,
         *,
         name: Optional[str] = None,
@@ -96,9 +96,9 @@ class _Register:
 
         Examples:
             ```python
-            @user_proxy.register.for_execution()
-            @agent2.register.for_llm()
-            @agent1.register.for_llm(description="This is a very useful function")
+            @user_proxy.register_for.execution()
+            @agent2.register_for.llm()
+            @agent1.register_for.llm(description="This is a very useful function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
                  return a + str(b * c)
             ```
@@ -106,7 +106,7 @@ class _Register:
         """
         return self._agent.register_for_llm(name=name, description=description)
 
-    def for_reply(
+    def reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         *,
@@ -144,7 +144,7 @@ class _Register:
             ```
                 agent0 = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
                 agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-                @agent0.register.for_reply()
+                @agent0.register_for.reply()
                 def reply_with_hi(recipient, messages, sender, config):
                      return (True, "hello")
                 agent1.initiate_chat(agent, message="hi")
@@ -159,7 +159,7 @@ class _Register:
             reset_config=reset_config,
         )
 
-    def for_is_termination_msg(self) -> Callable[[F], F]:
+    def is_termination_msg(self) -> Callable[[F], F]:
         """Decorator factory for registering an is_termination_function to be used by an agent.
 
         Returns:
@@ -167,7 +167,9 @@ class _Register:
         """
         return self._agent.register_for_is_termination_msg()
 
-    def for_hook(self, hookable_method: Callable) -> Callable[[F], F]:
+    def hook(
+        self, hookable_method: Callable[[Optional[List[Dict[str, Any]]]], Optional[List[Dict[str, Any]]]]
+    ) -> Callable[[F], F]:
         """Decorator factory for registering a hook to be called by a hookable method.
 
         It's return value is used to decorate a function to be registered to the agent.
@@ -261,7 +263,7 @@ class ConversableAgent(Agent):
         super().__init__(name)
 
         # Register decorators factory
-        self.register = _Register(self)
+        self._register_for: Register = Register(self)
 
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
@@ -312,6 +314,11 @@ class ConversableAgent(Agent):
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+
+    @property
+    def register_for(self) -> Register:
+        """Register decorators factories."""
+        return self._register_for
 
     def register_reply(
         self,
@@ -1932,7 +1939,11 @@ class ConversableAgent(Agent):
 
         return _decorator
 
-    def register_hook(self, hookable_method: Callable, hook: Callable):
+    def register_hook(
+        self,
+        hookable_method: Callable[[Optional[List[Dict[str, Any]]]], Optional[List[Dict[str, Any]]]],
+        hook: Callable[[str], str],
+    ) -> None:
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
         Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
@@ -1950,7 +1961,9 @@ class ConversableAgent(Agent):
             raise ValueError(f"{hook} is already registered as a hook.")
         hook_list.append(hook)
 
-    def register_for_hook(self, hookable_method: Callable) -> Callable[[F], F]:
+    def register_for_hook(
+        self, hookable_method: Callable[[Optional[List[Dict[str, Any]]]], Optional[List[Dict[str, Any]]]]
+    ) -> Callable[[F], F]:
         """Decorator factory for registering a hook to be called by a hookable method.
 
         Please see the documentation of `Register.for_hook` for more details.

@@ -95,7 +95,7 @@ def test_register_dot_for_reply() -> None:
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
 
-    @agent.register.for_reply(trigger=agent1)
+    @agent.register_for.reply(trigger=agent1)
     def reply_function(
         recipient: ConversableAgent,
         messages: Optional[List[Dict[str, Any]]],
@@ -539,9 +539,9 @@ def test_register_for_llm():
         agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
         agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
 
-        @agent3.register.for_llm()
-        @agent2.register.for_llm(name="python")
-        @agent1.register.for_llm(description="run cell in ipython and return the execution result.")
+        @agent3.register_for.llm()
+        @agent2.register_for.llm(name="python")
+        @agent1.register_for.llm(description="run cell in ipython and return the execution result.")
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
             pass
 
@@ -572,9 +572,9 @@ def test_register_for_llm():
         assert agent2.llm_config["tools"] == expected2
         assert agent3.llm_config["tools"] == expected3
 
-        @agent3.register.for_llm()
-        @agent2.register.for_llm()
-        @agent1.register.for_llm(name="sh", description="run a shell script and return the execution result.")
+        @agent3.register_for.llm()
+        @agent2.register_for.llm()
+        @agent1.register_for.llm(name="sh", description="run a shell script and return the execution result.")
         async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
             pass
 
@@ -612,7 +612,7 @@ def test_register_for_llm_without_description():
 
         with pytest.raises(ValueError) as e:
 
-            @agent.register.for_llm()
+            @agent.register_for.llm()
             def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
                 pass
 
@@ -628,7 +628,7 @@ def test_register_for_llm_without_LLM():
 
         with pytest.raises(RuntimeError) as e:
 
-            @agent.register.for_llm(description="run cell in ipython and return the execution result.")
+            @agent.register_for.llm(description="run cell in ipython and return the execution result.")
             def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
                 pass
 
@@ -642,10 +642,10 @@ def test_register_for_execution():
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
-        @user_proxy_2.register.for_execution(name="python")
-        @agent.register.for_execution()
-        @agent.register.for_llm(description="run cell in ipython and return the execution result.")
-        @user_proxy_1.register.for_execution()
+        @user_proxy_2.register_for.execution(name="python")
+        @agent.register_for.execution()
+        @agent.register_for.llm(description="run cell in ipython and return the execution result.")
+        @user_proxy_1.register_for.execution()
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]):
             pass
 
@@ -656,9 +656,9 @@ def test_register_for_execution():
         expected_function_map_2 = {"python": exec_python}
         assert get_origin(user_proxy_2.function_map) == expected_function_map_2
 
-        @agent.register.for_execution()
-        @agent.register.for_llm(description="run a shell script and return the execution result.")
-        @user_proxy_1.register.for_execution(name="sh")
+        @agent.register_for.execution()
+        @agent.register_for.llm(description="run a shell script and return the execution result.")
+        @user_proxy_1.register_for.execution(name="sh")
         async def exec_sh(script: Annotated[str, "Valid shell script to execute."]):
             pass
 
@@ -708,8 +708,8 @@ def test_function_registration_e2e_sync() -> None:
     stopwatch_mock = unittest.mock.MagicMock()
 
     # An example async function
-    @user_proxy.register.for_execution()
-    @coder.register.for_llm(description="create a timer for N seconds")
+    @user_proxy.register_for.execution()
+    @coder.register_for.llm(description="create a timer for N seconds")
     def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
         print("timer is running")
         for i in range(int(num_seconds)):
@@ -721,8 +721,8 @@ def test_function_registration_e2e_sync() -> None:
         return "Timer is done!"
 
     # An example sync function
-    @user_proxy.register.for_execution()
-    @coder.register.for_llm(description="create a stopwatch for N seconds")
+    @user_proxy.register_for.execution()
+    @coder.register_for.llm(description="create a stopwatch for N seconds")
     def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
         print("stopwatch is running")
         # assert False, "stopwatch's alive!"
@@ -786,8 +786,8 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock = unittest.mock.MagicMock()
 
     # An example async function
-    @user_proxy.register.for_execution()
-    @coder.register.for_llm(description="create a timer for N seconds")
+    @user_proxy.register_for.execution()
+    @coder.register_for.llm(description="create a timer for N seconds")
     async def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
         print("timer is running")
         for i in range(int(num_seconds)):
@@ -799,8 +799,8 @@ async def test_function_registration_e2e_async() -> None:
         return "Timer is done!"
 
     # An example sync function
-    @user_proxy.register.for_execution()
-    @coder.register.for_llm(description="create a stopwatch for N seconds")
+    @user_proxy.register_for.execution()
+    @coder.register_for.llm(description="create a stopwatch for N seconds")
     def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
         print("stopwatch is running")
         # assert False, "stopwatch's alive!"
@@ -865,7 +865,7 @@ def test_register_dot_for_hook() -> None:
 
     assert agent.hook_lists[agent.process_last_message] == []
 
-    @agent.register.for_hook(agent.process_last_message)
+    @agent.register_for.hook(agent.process_last_message)
     def world_hook(text_msg: str) -> str:
         return text_msg + " world"
 
@@ -915,7 +915,7 @@ def test_register_dot_for_is_termination_msg() -> None:
     assert agent._is_termination_msg({"content": "TERMINATE"}) is True
     assert agent._is_termination_msg({"content": "  STOP!  "}) is False
 
-    @agent.register.for_is_termination_msg()
+    @agent.register_for.is_termination_msg()
     def is_termination_message(message: Dict[str, Any]) -> bool:
         msg = content_str(message.get("content"))
 
