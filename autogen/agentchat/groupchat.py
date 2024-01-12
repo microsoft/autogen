@@ -447,3 +447,14 @@ class GroupChatManager(ConversableAgent):
             await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
         return True, None
+
+    def _raise_exception_on_async_reply_functions(self) -> None:
+        """Raise an exception if any async reply functions are registered.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered.
+        """
+        super()._raise_exception_on_async_reply_functions()
+
+        for agent in self._groupchat.agents:
+            agent._raise_exception_on_async_reply_functions()

@@ -638,10 +638,6 @@ class ConversableAgent(Agent):
 
             raise RuntimeError(msg)
 
-        if hasattr(self, "_groupchat"):
-            for agent in self._groupchat.agents:
-                agent._raise_exception_on_async_reply_functions()
-
     def initiate_chat(
         self,
         recipient: "ConversableAgent",
