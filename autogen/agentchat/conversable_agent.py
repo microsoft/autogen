@@ -78,6 +78,9 @@ class _Register:
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
+        To be used for LLM function or tool call generation. Note this requires the LLM to support function or tool call
+        following the OpenAI api specification.
+
         It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
         specify the arguments and return type. The function name is used as the default name for the function,
         but a custom name can be provided. The function description is used to describe the function in the
