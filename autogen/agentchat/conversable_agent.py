@@ -95,7 +95,7 @@ class _Register:
             The decorator for registering a function to be used by an agent.
 
         Examples:
-            ```
+            ```python
             @user_proxy.register.for_execution()
             @agent2.register.for_llm()
             @agent1.register.for_llm(description="This is a very useful function")
@@ -114,7 +114,7 @@ class _Register:
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
     ) -> Callable[[F], F]:
-        """Register a reply function.
+        """Decorator factory for registering a reply function to be used by an agent.
 
         The reply function will be called when the trigger matches the sender.
         The function registered later will be checked earlier by default.
@@ -129,7 +129,6 @@ class _Register:
                 - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
                 - If None is provided, the reply function will be called only when the sender is None.
                 Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
-        ```
             position (int): the position of the reply function in the reply function list.
                 The function registered later will be checked earlier by default.
                 To change the order, set the position to a positive integer.
@@ -140,6 +139,18 @@ class _Register:
 
         Returns:
             The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+                agent0 = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+                agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+                @agent0.register.for_reply()
+                def reply_with_hi(recipient, messages, sender, config):
+                     return (True, "hello")
+                agent1.initiate_chat(agent, message="hi")
+                assert agent1.last_message(agent)["content"] == "hello"
+            ```
+
         """
         return self._agent._register_for_reply(
             trigger=trigger,
@@ -366,40 +377,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a reply function to be used by an agent.
 
-        The reply function will be called when the trigger matches the sender.
-        The function registered later will be checked earlier by default.
-        To change the order, set the position to a positive integer.
-
-        Args:
-            trigger (Agent class, str, Agent instance, callable, or list): the trigger.
-                - If a class is provided, the reply function will be called when the sender is an instance of the class.
-                - If a string is provided, the reply function will be called when the sender's name matches the string.
-                - If an agent instance is provided, the reply function will be called when the sender is the agent instance.
-                - If a callable is provided, the reply function will be called when the callable returns True.
-                - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
-                - If None is provided, the reply function will be called only when the sender is None.
-                Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
-            position (int): the position of the reply function in the reply function list.
-                The function registered later will be checked earlier by default.
-                To change the order, set the position to a positive integer.
-            config (Any): the config to be passed to the reply function.
-                When an agent is reset, the config will be reset to the original value.
-            reset_config (Callable): the function to reset the config.
-                The function returns None. Signature: ```def reset_config(config: Any)```
-
-        Returns:
-            The decorator for registering a function to be used by an agent.
-
-        Examples:
-            ```
-                agent0 = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-                agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
-                @agent0.register.for_reply()
-                def reply_with_hi(recipient, messages, sender, config):
-                     return (True, "hello")
-                agent1.initiate_chat(agent, message="hi")
-                assert agent1.last_message(agent)["content"] == "hello"
-            ```
+        Please see the documentation of `Register.for_reply` for more details.
 
         """
 
@@ -1876,27 +1854,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
-        It's return value is used to decorate a function to be registered to the agent. The function uses type hints to
-        specify the arguments and return type. The function name is used as the default name for the function,
-        but a custom name can be provided. The function description is used to describe the function in the
-        agent's configuration.
-
-        Args:
-            name (optional(str)): name of the function. If None, the function name will be used (default: None).
-            description (optional(str)): description of the function (default: None). It is mandatory
-                for the initial decorator, but the following ones can omit it.
-
-        Returns:
-            The decorator for registering a function to be used by an agent.
-
-        Examples:
-            ```
-            @user_proxy.register_for_execution()
-            @agent2.register_for_llm()
-            @agent1.register_for_llm(description="This is a very useful function")
-            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
-                 return a + str(b * c)
-            ```
+        Please see the documentation of `Register.for_llm` for more details.
 
         """
 
@@ -1946,23 +1904,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be executed by an agent.
 
-        It's return value is used to decorate a function to be registered to the agent.
-
-        Args:
-            name (optional(str)): name of the function. If None, the function name will be used (default: None).
-
-        Returns:
-            The decorator for registering a function to be used by an agent.
-
-        Examples:
-            ```
-            @user_proxy.register_for_execution()
-            @agent2.register_for_llm()
-            @agent1.register_for_llm(description="This is a very useful function")
-            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14):
-                 return a + str(b * c)
-            ```
-
+        Please see the documentation of`Register.for_execution` for more details.
         """
 
         def _decorator(func: F) -> F:
@@ -2011,13 +1953,7 @@ class ConversableAgent(Agent):
     def register_for_hook(self, hookable_method: Callable) -> Callable[[F], F]:
         """Decorator factory for registering a hook to be called by a hookable method.
 
-        It's return value is used to decorate a function to be registered to the agent.
-
-        Args:
-            hookable_method: A hookable method implemented by ConversableAgent.
-
-        Returns:
-            The decorator for registering a hook to be called by a hookable method.
+        Please see the documentation of `Register.for_hook` for more details.
 
         """
 
@@ -2049,11 +1985,7 @@ class ConversableAgent(Agent):
     def register_for_is_termination_msg(self) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent as is_termination_message.
 
-        It's return value is used to decorate a function to be registered to the agent.
-
-        Returns:
-            The decorator for registering a function to be used by an agent as is_termination_message.
-
+        Please see the documentation of `Register.for_is_termination_msg` for more details.
         """
 
         def _decorator(func: F) -> F:
