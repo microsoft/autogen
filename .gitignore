@@ -177,3 +177,4 @@ test/test_files/agenteval-in-out/out/
 test/agentchat/test_agent_scripts/*
 test/agentchat/tsp_add_new_point.py
 autogen/extensions/*
+test/executed_openai_notebook_output.txt

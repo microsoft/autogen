@@ -103,6 +103,45 @@ class _Register:
         """
         return self._agent.register_for_llm(name=name, description=description)
 
+    def for_reply(
+        self,
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
+        *,
+        position: int = 0,
+        config: Optional[Any] = None,
+        reset_config: Optional[Callable] = None,
+    ):
+        """Register a reply function.
+
+        The reply function will be called when the trigger matches the sender.
+        The function registered later will be checked earlier by default.
+        To change the order, set the position to a positive integer.
+
+        Args:
+            trigger (Agent class, str, Agent instance, callable, or list): the trigger.
+                - If a class is provided, the reply function will be called when the sender is an instance of the class.
+                - If a string is provided, the reply function will be called when the sender's name matches the string.
+                - If an agent instance is provided, the reply function will be called when the sender is the agent instance.
+                - If a callable is provided, the reply function will be called when the callable returns True.
+                - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
+                - If None is provided, the reply function will be called only when the sender is None.
+                Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
+        ```
+            position (int): the position of the reply function in the reply function list.
+                The function registered later will be checked earlier by default.
+                To change the order, set the position to a positive integer.
+            config (Any): the config to be passed to the reply function.
+                When an agent is reset, the config will be reset to the original value.
+            reset_config (Callable): the function to reset the config.
+                The function returns None. Signature: ```def reset_config(config: Any)```
+        """
+        return self._agent._register_for_reply(
+            trigger=trigger,
+            position=position,
+            config=config,
+            reset_config=reset_config,
+        )
+
 
 class ConversableAgent(Agent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
@@ -288,6 +327,77 @@ class ConversableAgent(Agent):
                 "reset_config": reset_config,
             },
         )
+
+    def _register_for_reply(
+        self,
+        *,
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
+        position: int = 0,
+        config: Optional[Any] = None,
+        reset_config: Optional[Callable] = None,
+    ) -> Callable[[F], F]:
+        """Decorator factory for registering a reply function to be used by an agent.
+
+        The reply function will be called when the trigger matches the sender.
+        The function registered later will be checked earlier by default.
+        To change the order, set the position to a positive integer.
+
+        Args:
+            trigger (Agent class, str, Agent instance, callable, or list): the trigger.
+                - If a class is provided, the reply function will be called when the sender is an instance of the class.
+                - If a string is provided, the reply function will be called when the sender's name matches the string.
+                - If an agent instance is provided, the reply function will be called when the sender is the agent instance.
+                - If a callable is provided, the reply function will be called when the callable returns True.
+                - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
+                - If None is provided, the reply function will be called only when the sender is None.
+                Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
+            position (int): the position of the reply function in the reply function list.
+                The function registered later will be checked earlier by default.
+                To change the order, set the position to a positive integer.
+            config (Any): the config to be passed to the reply function.
+                When an agent is reset, the config will be reset to the original value.
+            reset_config (Callable): the function to reset the config.
+                The function returns None. Signature: ```def reset_config(config: Any)```
+
+        Returns:
+            The decorator for registering a function to be used by an agent.
+
+        Examples:
+            ```
+                agent0 = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+                agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+                @agent0.register.for_reply()
+                def reply_with_hi(recipient, messages, sender, config):
+                     return (True, "hello")
+                agent1.initiate_chat(agent, message="hi")
+                assert agent1.last_message(agent)["content"] == "hello"
+            ```
+
+        """
+
+        def _decorator(reply_func: F) -> F:
+            """Decorator for registering a function to be used by an agent.
+
+            Args:
+                reply_func: the function to be registered with the following signature
+                    ```python
+                    def reply_func(
+                        recipient: ConversableAgent,
+                        messages: Optional[List[Dict]] = None,
+                        sender: Optional[Agent] = None,
+                        config: Optional[Any] = None,
+                    ) -> Tuple[bool, Union[str, Dict, None]]:
+                    ```
+
+            Returns:
+                The function to be registered as a reply function
+
+            """
+            self.register_reply(trigger, reply_func, position, config, reset_config)
+
+            return reply_func
+
+        return _decorator
 
     @property
     def system_message(self) -> Union[str, List]:

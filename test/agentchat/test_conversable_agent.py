@@ -2,7 +2,7 @@ import asyncio
 import copy
 import sys
 import time
-from typing import Any, Callable, Dict, Literal
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 import unittest
 
 import pytest
@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 import autogen
 
-from autogen.agentchat import ConversableAgent, UserProxyAgent
+from autogen.agentchat import Agent, ConversableAgent, UserProxyAgent
+
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
 
@@ -70,6 +71,40 @@ def test_trigger():
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
     pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
+
+
+def test__register_for_reply() -> None:
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    @agent._register_for_reply(trigger=agent1)
+    def reply_function(
+        recipient: ConversableAgent,
+        messages: Optional[List[Dict[str, Any]]],
+        sender: Optional[Agent],
+        config: Optional[Any],
+    ) -> Tuple[bool, Optional[Union[str, Dict[str, Any]]]]:
+        return (True, "hello")
+
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello"
+
+
+def test_register_dot_for_reply() -> None:
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    @agent.register.for_reply(trigger=agent1)
+    def reply_function(
+        recipient: ConversableAgent,
+        messages: Optional[List[Dict[str, Any]]],
+        sender: Optional[Agent],
+        config: Optional[Any],
+    ) -> Tuple[bool, Optional[Union[str, Dict[str, Any]]]]:
+        return (True, "hello")
+
+    agent1.initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello"
 
 
 def test_context():
