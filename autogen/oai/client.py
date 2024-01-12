@@ -1,4 +1,7 @@
 from __future__ import annotations
+from dataclasses import asdict
+import hashlib
+import json
 
 import os
 import sys
@@ -400,6 +403,24 @@ class OpenAIWrapper:
             params = params.copy()
             params["stream"] = False
             response = completions.create(**params)
+            choice = response.choices[0]
+            log = {"params": params, "response":
+                   {"content": choice.message.content,
+                    "created": response.created,
+                    "role": choice.message.role,
+                    "function_call": choice.message.function_call,
+                    "finish_reason": choice.finish_reason}
+                   }
+            # compute hash of log
+            log_hash = hashlib.sha256(json.dumps(log).encode()).hexdigest()
+            log_file = os.path.join(os.path.expanduser(
+                "~"), ".openai", "logs", log_hash + ".json")
+            # save to ~/.openai/logs if not already saved.
+            if not os.path.exists(log_file):
+                os.makedirs(os.path.dirname(log_file), exist_ok=True)
+                with open(log_file, "w", encoding="utf-8") as f:
+                    json.dump(log, f)
+            print("**** tresponse | ", len(params["messages"]))
 
         return response
 
