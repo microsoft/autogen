@@ -173,3 +173,33 @@ Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/con
 
 The "use_docker" arg in an agent's code_execution_config will be set to the name of the image containing the change after execution, when the conversation finishes.
 You can save that image name. For a new conversation, you can set "use_docker" to the saved name of the image to start execution there.
+
+
+## How can I hook message streams?
+
+An early solution for overriding OpenAIWrapper is available as follows.
+
+```python
+from autogen.oai import OpenAIWrapper
+
+
+class NewOpenAIWrapper(OpenAIWrapper):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    # ... override additional methods like _completions_create()
+
+
+from autogen.agentchat.assistant_agent import AssistantAgent
+
+# ... Your standard autogen initialization codes
+
+assistant = AssistantAgent(
+    name="chatbot",
+    system_message="You are a helpful assistant.",
+    llm_config=llm_config,
+    openai_wrapper=NewOpenAIWrapper,
+)
+
+```
