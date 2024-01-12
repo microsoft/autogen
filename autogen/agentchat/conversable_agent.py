@@ -384,7 +384,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a reply function to be used by an agent.
 
-        Please see the documentation of `Register.for_reply` for more details.
+        Please see the documentation of `Register.reply` for more details.
 
         """
 
@@ -1861,7 +1861,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
-        Please see the documentation of `Register.for_llm` for more details.
+        Please see the documentation of `Register.llm` for more details.
 
         """
 
@@ -1911,7 +1911,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be executed by an agent.
 
-        Please see the documentation of`Register.for_execution` for more details.
+        Please see the documentation of`Register.execution` for more details.
         """
 
         def _decorator(func: F) -> F:
@@ -1966,7 +1966,7 @@ class ConversableAgent(Agent):
     ) -> Callable[[F], F]:
         """Decorator factory for registering a hook to be called by a hookable method.
 
-        Please see the documentation of `Register.for_hook` for more details.
+        Please see the documentation of `Register.hook` for more details.
 
         """
 
@@ -1998,7 +1998,7 @@ class ConversableAgent(Agent):
     def register_for_is_termination_msg(self) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent as is_termination_message.
 
-        Please see the documentation of `Register.for_is_termination_msg` for more details.
+        Please see the documentation of `Register.is_termination_msg` for more details.
         """
 
         def _decorator(func: F) -> F:
