@@ -124,3 +124,6 @@ graphs = [
     "matplotlib~=3.8.2",
     "networkx~=3.2.1",
 ]
+
+[tool.pdm.scripts]
+checks = "pre-commit run --all-files"
