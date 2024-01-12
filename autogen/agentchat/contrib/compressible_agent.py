@@ -95,6 +95,8 @@ Reply "TERMINATE" in the end when everything is done.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
                 - "verbose" (Optional, bool, default to False): Whether to print the content before and after compression. Used when mode="COMPRESS".
                 - "leave_last_n" (Optional, int, default to 0): If provided, the last n messages will not be compressed. Used when mode="COMPRESS".
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
