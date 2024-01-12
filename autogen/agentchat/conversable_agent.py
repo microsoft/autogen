@@ -1493,7 +1493,8 @@ class ConversableAgent(Agent):
             return trigger == sender
         elif isinstance(trigger, Callable):
             rst = trigger(sender)
-            assert rst in [True, False], f"trigger {trigger} must return a boolean value."
+            if not isinstance(rst, bool):
+                raise ValueError(f"trigger {trigger} must return a boolean value.")
             return rst
         elif isinstance(trigger, list):
             return any(self._match_trigger(t, sender) for t in trigger)
@@ -2105,5 +2106,4 @@ class ConversableAgent(Agent):
         # Replace the last user message with the expanded one.
         messages = messages.copy()
         messages[-1]["content"] = processed_user_text
-        # assert False, (user_text, processed_user_text, messages)
         return messages
