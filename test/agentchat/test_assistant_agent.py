@@ -2,8 +2,10 @@ import os
 import sys
 import pytest
 import autogen
-from conftest import skip_openai
 from autogen.agentchat import AssistantAgent, UserProxyAgent
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI

@@ -3,6 +3,9 @@ import os
 import sys
 import autogen
 
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
@@ -16,15 +19,15 @@ try:
     )
     import chromadb
     from chromadb.utils import embedding_functions as ef
-
-    skip_test = False
 except ImportError:
-    skip_test = True
+    skip = True
+else:
+    skip = False or skip_openai
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_test,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_retrievechat():
     conversations = {}
@@ -69,8 +72,8 @@ def test_retrievechat():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_test,
-    reason="do not run on MacOS or windows or dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_retrieve_config(caplog):
     # test warning message when no docs_path is provided

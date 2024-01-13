@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
 from typing_extensions import get_origin
 
-__all__ = ("JsonSchemaValue", "model_dump", "model_dump_json", "type2schema")
+__all__ = ("JsonSchemaValue", "model_dump", "model_dump_json", "type2schema", "evaluate_forwardref")
 
 PYDANTIC_V1 = PYDANTIC_VERSION.startswith("1.")
 

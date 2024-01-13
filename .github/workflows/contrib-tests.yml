@@ -45,15 +45,14 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
-          pip uninstall -y openai
       - name: Test RetrieveChat
         run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
@@ -82,16 +81,15 @@ jobs:
       - name: Install packages and dependencies for Compression
         run: |
           pip install -e .
-          pip uninstall -y openai
       - name: Test Compression
         if: matrix.python-version != '3.10'   # diversify the python versions
         run: |
-          pytest test/agentchat/contrib/test_compressible_agent.py
+          pytest test/agentchat/contrib/test_compressible_agent.py  --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py
+          coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
@@ -120,16 +118,15 @@ jobs:
       - name: Install packages and dependencies for GPTAssistantAgent
         run: |
           pip install -e .
-          pip uninstall -y openai
       - name: Test GPTAssistantAgent
         if: matrix.python-version != '3.11'  # diversify the python versions
         run: |
-          pytest test/agentchat/contrib/test_gpt_assistant.py
+          pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.11'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_gpt_assistant.py
+          coverage run -a -m pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.11'
@@ -155,19 +152,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
-      - name: Install packages and dependencies for TeachableAgent
+      - name: Install packages and dependencies for Teachability
         run: |
           pip install -e .[teachable]
-          pip uninstall -y openai
       - name: Test TeachableAgent
         if: matrix.python-version != '3.9'  # diversify the python versions
         run: |
-          pytest test/agentchat/contrib/test_teachable_agent.py
+          pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.9'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py
+          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.9'
@@ -196,15 +192,14 @@ jobs:
       - name: Install packages and dependencies for LMM
         run: |
           pip install -e .[lmm]
-          pip uninstall -y openai
       - name: Test LMM and LLaVA
         run: |
-          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
+          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py
+          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

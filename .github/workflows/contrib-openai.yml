@@ -200,6 +200,9 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
+      - name: Install packages for test when needed
+        run: |
+          pip install -e .[autobuild]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
