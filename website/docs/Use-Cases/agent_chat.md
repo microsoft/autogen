@@ -113,7 +113,11 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
     else:
         raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
-
+# NOTE: for Azure OpenAI, please use API version 2023-12-01-preview or later as
+# support for earlier versions will be deprecated.
+# For API versions 2023-10-01-preview or earlier you may
+# need to set `api_style="function"` in the decorator if the default value does not work:
+# `register_for_llm(description=..., api_style="function")`.
 @user_proxy.register_for_execution()
 @chatbot.register_for_llm(description="Currency exchange calculator.")
 def currency_calculator(
