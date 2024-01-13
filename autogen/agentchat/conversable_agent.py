@@ -1669,7 +1669,7 @@ class ConversableAgent(Agent):
             description (optional(str)): description of the function (default: None). It is mandatory
                 for the initial decorator, but the following ones can omit it.
             api_style: (optional(str)): the API style for function call.
-                For Azure OpenAI API prior to 2023-10-01-preview, you should set this to
+                For Azure OpenAI API version up to 2023-10-01-preview, you should set this to
                 `"function"`. By default, it uses the tool calling style.
 
         Returns:
@@ -1684,7 +1684,7 @@ class ConversableAgent(Agent):
                  return a + str(b * c)
             ```
 
-            For Azure OpenAI API prior to 2023-10-01-preview, you should set `api_style` to `"function"`:
+            For Azure OpenAI API version up to 2023-10-01-preview, you should set `api_style` to `"function"`:
             ```
             @agent2.register_for_llm(api_style="function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:

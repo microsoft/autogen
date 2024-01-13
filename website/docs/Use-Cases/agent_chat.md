@@ -113,7 +113,7 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
     else:
         raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
 
-# NOTE: for Azure OpenAI, API version prior to 2023-10-01-preview
+# NOTE: for Azure OpenAI, API version up to 2023-10-01-preview
 # uses the old function call style. So you need to set `api_style="function"`:
 # `register_for_llm(description=..., api_style="function")`.
 @user_proxy.register_for_execution()
