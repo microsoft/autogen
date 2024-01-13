@@ -714,14 +714,24 @@ class ConversableAgent(Agent):
         else:
             self._consecutive_auto_reply_counter[sender] = 0
 
-    def clear_history(self, agent: Optional[Agent] = None):
+    def clear_history(
+            self,
+            agent: Optional[Agent] = None,
+            preserve_messages: Optional[int] = None
+    ):
         """Clear the chat history of the agent.
 
         Args:
             agent: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
+            preserve_messages: the number of newest messages to preserve in the chat history.
         """
         if agent is None:
-            self._oai_messages.clear()
+            if preserve_messages:
+                for key in self._oai_messages:
+                    # Remove messages from history except last `preserve_messages` messages.
+                    self._oai_messages[key] = self._oai_messages[key][-preserve_messages:]
+            else:
+                self._oai_messages.clear()
         else:
             self._oai_messages[agent].clear()
 
