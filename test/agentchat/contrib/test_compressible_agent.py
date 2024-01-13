@@ -211,8 +211,19 @@ def test_mode_terminate():
     assert final, "Terminating the conversation at max token limit is not working."
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
+def test_new_compressible_agent_description():
+    assistant = CompressibleAgent(name="assistant", description="this is a description")
+
+    assert assistant.description == "this is a description", "description is not set correctly"
+
+
 if __name__ == "__main__":
     test_mode_compress()
     test_mode_customized()
     test_compress_message()
     test_mode_terminate()
+    test_new_compressible_agent_description()
