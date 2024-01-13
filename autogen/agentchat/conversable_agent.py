@@ -1655,6 +1655,7 @@ class ConversableAgent(Agent):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        api_style: Optional[str] = None,
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
@@ -1667,6 +1668,9 @@ class ConversableAgent(Agent):
             name (optional(str)): name of the function. If None, the function name will be used (default: None).
             description (optional(str)): description of the function (default: None). It is mandatory
                 for the initial decorator, but the following ones can omit it.
+            api_style: (optional(str)): the API style for function call.
+                For Azure OpenAI API as of 2023-09-01-preview, you should set this to
+                `"function"`. By default, it uses the OpenAI API's tool calling style.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1676,6 +1680,13 @@ class ConversableAgent(Agent):
             @user_proxy.register_for_execution()
             @agent2.register_for_llm()
             @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+            For Azure OpenAI API as of 2023-09-01-preview, you should set `api_style` to `"function"`:
+            ```
+            @agent2.register_for_llm(api_style="function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
                  return a + str(b * c)
             ```
@@ -1716,7 +1727,11 @@ class ConversableAgent(Agent):
             if self.llm_config is None:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
-            self.update_tool_signature(f, is_remove=False)
+            if api_style == "function":
+                f = f["function"]
+                self.update_function_signature(f, is_remove=False)
+            else:
+                self.update_tool_signature(f, is_remove=False)
 
             return func
 
