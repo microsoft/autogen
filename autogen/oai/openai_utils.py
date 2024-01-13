@@ -356,7 +356,7 @@ def filter_config(config_list, filter_dict):
         filter_dict (dict): A dictionary representing the filter criteria, where each key is a
                             field name to check within the configuration dictionaries, and the
                             corresponding value is a list of acceptable values for that field.
-                            If the configutation's field's value is a scalar, then a match occurs
+                            If the configuration's field's value is not a list, then a match occurs
                             when it is found in the list of acceptable values. If the configuration's
                             field's value is a list, then a match occurs if there is a non-empty
                             intersection with the acceptable values.
