@@ -1655,7 +1655,7 @@ class ConversableAgent(Agent):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        api_style: Optional[str] = None,
+        api_style: Literal["function", "tool"] = "tool",
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
@@ -1670,7 +1670,7 @@ class ConversableAgent(Agent):
                 for the initial decorator, but the following ones can omit it.
             api_style: (optional(str)): the API style for function call.
                 For Azure OpenAI API version up to 2023-10-01-preview, you should set this to
-                `"function"`. By default, it uses the tool calling style.
+                `"function"`. By default, it uses the tool calling style, `"tool"`.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1730,8 +1730,10 @@ class ConversableAgent(Agent):
             if api_style == "function":
                 f = f["function"]
                 self.update_function_signature(f, is_remove=False)
-            else:
+            elif api_style == "tool":
                 self.update_tool_signature(f, is_remove=False)
+            else:
+                raise ValueError(f"Unsupported API style: {api_style}")
 
             return func
 
