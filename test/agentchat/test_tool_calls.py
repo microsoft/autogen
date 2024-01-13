@@ -75,6 +75,62 @@ def test_eval_math_responses():
     print(eval_math_responses(**arguments))
 
 
+@pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed or requested to skip")
+def test_eval_math_responses_api_style_function():
+    config_list = autogen.config_list_from_models(
+        KEY_LOC,
+        model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"],
+        filter_dict={
+            "api_type": ["azure"],
+            "api_version": ["2023-10-01-preview", "2023-09-01-preview", "2023-08-01-preview", "2023-07-01-preview"],
+        },
+    )
+    functions = [
+        {
+            "name": "eval_math_responses",
+            "description": "Select a response for a math problem using voting, and check if the response is correct if the solution is provided",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "responses": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The responses in a list",
+                    },
+                    "solution": {
+                        "type": "string",
+                        "description": "The canonical solution",
+                    },
+                },
+                "required": ["responses"],
+            },
+        },
+    ]
+    client = autogen.OpenAIWrapper(config_list=config_list)
+    response = client.create(
+        messages=[
+            {
+                "role": "user",
+                "content": 'evaluate the math responses ["1", "5/2", "5/2"] against the true answer \\frac{5}{2}',
+            },
+        ],
+        functions=functions,
+    )
+    print(response)
+    responses = client.extract_text_or_completion_object(response)
+    print(responses[0])
+    function_call = responses[0].function_call
+    name, arguments = function_call.name, json.loads(function_call.arguments)
+    assert name == "eval_math_responses"
+    print(arguments["responses"])
+    # if isinstance(arguments["responses"], str):
+    #     arguments["responses"] = json.loads(arguments["responses"])
+    arguments["responses"] = [f"\\boxed{{{x}}}" for x in arguments["responses"]]
+    print(arguments["responses"])
+    arguments["solution"] = f"\\boxed{{{arguments['solution']}}}"
+    print(eval_math_responses(**arguments))
+
+
 @pytest.mark.skipif(
     skip_openai or not TOOL_ENABLED or not sys.version.startswith("3.10"),
     reason="do not run if openai is <1.1.0 or py!=3.10 or requested to skip",

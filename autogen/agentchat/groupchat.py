@@ -332,11 +332,20 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        # Store groupchat
+        self._groupchat = groupchat
+
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
         self.register_reply(Agent, GroupChatManager.run_chat, config=groupchat, reset_config=GroupChat.reset)
         # Allow async chat if initiated using a_initiate_chat
-        self.register_reply(Agent, GroupChatManager.a_run_chat, config=groupchat, reset_config=GroupChat.reset)
+        self.register_reply(
+            Agent,
+            GroupChatManager.a_run_chat,
+            config=groupchat,
+            reset_config=GroupChat.reset,
+            ignore_async_in_sync_chat=True,
+        )
 
     def run_chat(
         self,
@@ -438,3 +447,14 @@ class GroupChatManager(ConversableAgent):
             await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
         return True, None
+
+    def _raise_exception_on_async_reply_functions(self) -> None:
+        """Raise an exception if any async reply functions are registered.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered.
+        """
+        super()._raise_exception_on_async_reply_functions()
+
+        for agent in self._groupchat.agents:
+            agent._raise_exception_on_async_reply_functions()
