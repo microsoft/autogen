@@ -484,7 +484,7 @@ class GroupChatManager(ConversableAgent):
         for word in words_to_check:
             if word.isdigit():
                 preserve_messages = int(word)
-            elif word[:-1].isdigit():     # for the case when number of messages is followed by dot or other sign
+            elif word[:-1].isdigit():   # for the case when number of messages is followed by dot or other sign
                 preserve_messages = int(word[:-1])
             else:
                 for agent in groupchat.agents:
@@ -505,6 +505,6 @@ class GroupChatManager(ConversableAgent):
 
         # Reconstruct the reply without the "clear history" command and parameters
         skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(preserve_messages))
-        reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number:])
+        reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
 
         return reply
