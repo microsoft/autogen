@@ -484,7 +484,7 @@ class GroupChatManager(ConversableAgent):
         for word in words_to_check:
             if word.isdigit():
                 preserve_messages = int(word)
-            elif word[:-1].isdigit():   # for the case when number of messages is followed by dot or other sign
+            elif word[:-1].isdigit():  # for the case when number of messages is followed by dot or other sign
                 preserve_messages = int(word[:-1])
             else:
                 for agent in groupchat.agents:
