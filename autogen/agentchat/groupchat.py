@@ -394,9 +394,9 @@ class GroupChatManager(ConversableAgent):
                 break
 
             # check for "clear history" phrase in reply and activate clear history function if found
-            if type(reply) is dict and reply['role'] == 'user':
-                if "CLEAR HISTORY" in reply['content'].upper():
-                    reply['content'] = self.clear_agents_history(reply['content'], groupchat)
+            if type(reply) is dict and reply["role"] == "user":
+                if "CLEAR HISTORY" in reply["content"].upper():
+                    reply["content"] = self.clear_agents_history(reply["content"], groupchat)
 
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
@@ -477,7 +477,7 @@ class GroupChatManager(ConversableAgent):
         # Find the position of "clear" to determine where to start processing
         clear_word_index = next(i for i in reversed(range(len(words))) if words[i].upper() == "CLEAR")
         # Extract potential agent name and steps
-        words_to_check = words[clear_word_index + 2: clear_word_index + 4]
+        words_to_check = words[clear_word_index + 2 : clear_word_index + 4]
         preserve_messages = None
         agent_to_memory_clear = None
 
@@ -499,12 +499,12 @@ class GroupChatManager(ConversableAgent):
             print(f"Clearing history for {agent_to_memory_clear.name}.")
             agent_to_memory_clear.clear_history(preserve_messages=preserve_messages)
         else:
-            print(f"Clearing history for all agents.")
+            print("Clearing history for all agents.")
             for agent in groupchat.agents:
                 agent.clear_history(preserve_messages=preserve_messages)
 
         # Reconstruct the reply without the "clear history" command and parameters
         skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(preserve_messages))
-        reply = ' '.join(words[:clear_word_index] + words[clear_word_index + skip_words_number:])
+        reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number:])
 
         return reply
