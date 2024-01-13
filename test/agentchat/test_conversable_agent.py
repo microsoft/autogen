@@ -677,6 +677,77 @@ def test_register_for_llm():
         assert agent3.llm_config["tools"] == expected3
 
 
+def test_register_for_llm_api_style_function():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+
+        @agent3.register_for_llm(api_style="function")
+        @agent2.register_for_llm(name="python", api_style="function")
+        @agent1.register_for_llm(
+            description="run cell in ipython and return the execution result.", api_style="function"
+        )
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
+
+        expected1 = [
+            {
+                "description": "run cell in ipython and return the execution result.",
+                "name": "exec_python",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cell": {
+                            "type": "string",
+                            "description": "Valid Python cell to execute.",
+                        }
+                    },
+                    "required": ["cell"],
+                },
+            }
+        ]
+        expected2 = copy.deepcopy(expected1)
+        expected2[0]["name"] = "python"
+        expected3 = expected2
+
+        assert agent1.llm_config["functions"] == expected1
+        assert agent2.llm_config["functions"] == expected2
+        assert agent3.llm_config["functions"] == expected3
+
+        @agent3.register_for_llm(api_style="function")
+        @agent2.register_for_llm(api_style="function")
+        @agent1.register_for_llm(
+            name="sh", description="run a shell script and return the execution result.", api_style="function"
+        )
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
+            pass
+
+        expected1 = expected1 + [
+            {
+                "name": "sh",
+                "description": "run a shell script and return the execution result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "type": "string",
+                            "description": "Valid shell script to execute.",
+                        }
+                    },
+                    "required": ["script"],
+                },
+            }
+        ]
+        expected2 = expected2 + [expected1[1]]
+        expected3 = expected3 + [expected1[1]]
+
+        assert agent1.llm_config["functions"] == expected1
+        assert agent2.llm_config["functions"] == expected2
+        assert agent3.llm_config["functions"] == expected3
+
+
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
