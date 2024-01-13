@@ -1,4 +1,6 @@
 # AutoGen Studio
+[![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
+[![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
 
 ![ARA](./docs/ara_stockprices.png)
 
