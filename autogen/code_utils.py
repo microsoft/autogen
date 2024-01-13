@@ -2,6 +2,7 @@ import logging
 import os
 import pathlib
 import re
+import string
 import subprocess
 import sys
 import time
@@ -236,12 +237,12 @@ def _sanitize_filename_for_docker_tag(filename: str) -> str:
         str: The sanitized Docker tag.
     """
     # Replace any character not allowed with an underscore
-    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-")
+    allowed_chars = set(string.ascii_letters + string.digits + "_.-")
     sanitized = "".join(char if char in allowed_chars else "_" for char in filename)
 
     # Ensure it does not start with a period or a dash
     if sanitized.startswith(".") or sanitized.startswith("-"):
-        sanitized = sanitized.replace(".", "_", 1).replace("-", "_", 1)
+        sanitized = "_" + sanitized[1:]
 
     # Truncate if longer than 128 characters
     return sanitized[:128]
