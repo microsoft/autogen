@@ -21,6 +21,7 @@ try:
 except ImportError:
     ERROR: Optional[ImportError] = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
+    AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
     from openai import OpenAI, AzureOpenAI, APIError, __version__ as OPENAIVERSION
