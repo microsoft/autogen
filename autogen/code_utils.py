@@ -2,6 +2,7 @@ import logging
 import os
 import pathlib
 import re
+import string
 import subprocess
 import sys
 import time
@@ -224,6 +225,29 @@ def _cmd(lang):
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
+def _sanitize_filename_for_docker_tag(filename: str) -> str:
+    """Convert a filename to a valid docker tag.
+    See https://docs.docker.com/engine/reference/commandline/tag/ for valid tag
+    format.
+
+    Args:
+        filename (str): The filename to be converted.
+
+    Returns:
+        str: The sanitized Docker tag.
+    """
+    # Replace any character not allowed with an underscore
+    allowed_chars = set(string.ascii_letters + string.digits + "_.-")
+    sanitized = "".join(char if char in allowed_chars else "_" for char in filename)
+
+    # Ensure it does not start with a period or a dash
+    if sanitized.startswith(".") or sanitized.startswith("-"):
+        sanitized = "_" + sanitized[1:]
+
+    # Truncate if longer than 128 characters
+    return sanitized[:128]
+
+
 def execute_code(
     code: Optional[str] = None,
     timeout: Optional[int] = None,
@@ -379,7 +403,7 @@ def execute_code(
     cmd = [
         "sh",
         "-c",
-        f"{_cmd(lang)} {filename}; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}",
+        f'{_cmd(lang)} "{filename}"; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}',
     ]
     # create a docker container
     container = client.containers.run(
@@ -403,7 +427,7 @@ def execute_code(
     # get the container logs
     logs = container.logs().decode("utf-8").rstrip()
     # commit the image
-    tag = filename.replace("/", "")
+    tag = _sanitize_filename_for_docker_tag(filename)
     container.commit(repository="python", tag=tag)
     # remove the container
     container.remove()
