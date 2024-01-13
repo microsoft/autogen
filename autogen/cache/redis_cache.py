@@ -2,6 +2,7 @@ import pickle
 import redis
 from .abstract_cache_base import AbstractCache
 
+
 class RedisCache(AbstractCache):
     """
     Implementation of AbstractCache using the Redis database.
@@ -75,7 +76,7 @@ class RedisCache(AbstractCache):
         Notes:
             The value is serialized using pickle before being stored in Redis.
         """
-        serialized_value = pickle.dumps(value, protocol=0)
+        serialized_value = pickle.dumps(value)
         self.cache.set(self._prefixed_key(key), serialized_value)
 
     def close(self):

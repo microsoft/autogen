@@ -5,6 +5,7 @@ try:
 except ImportError:
     RedisCache = None
 
+
 def cache_factory(seed, redis_url):
     """
     Factory function for creating cache instances.

@@ -5,53 +5,76 @@ import time
 import pytest
 import autogen
 from autogen.agentchat import AssistantAgent, UserProxyAgent
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai, skip_redis  # noqa: E402
 
 try:
     from openai import OpenAI
 except ImportError:
-    skip = True
+    skip_openai_tests = True
 else:
-    skip = False or skip_openai
+    skip_openai_tests = False or skip_openai
 
 try:
     import redis
 except ImportError:
-    skip_redis = True
+    skip_redis_tests = True
 else:
-    skip_redis = False or skip_redis
+    skip_redis_tests = False or skip_redis
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+
+@pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
 def test_disk_cache(human_input_mode="NEVER", max_consecutive_auto_reply=5):
     random_cache_seed = int.from_bytes(os.urandom(2), "big")
     start_time = time.time()
-    cold_cache_messages = run_conversation(cache_seed=random_cache_seed, human_input_mode=human_input_mode, max_consecutive_auto_reply=max_consecutive_auto_reply)
+    cold_cache_messages = run_conversation(
+        cache_seed=random_cache_seed,
+        human_input_mode=human_input_mode,
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+    )
     end_time = time.time()
     duration_with_cold_cache = end_time - start_time
 
     start_time = time.time()
-    warm_cache_messages = run_conversation(cache_seed=random_cache_seed, human_input_mode=human_input_mode, max_consecutive_auto_reply=max_consecutive_auto_reply)
+    warm_cache_messages = run_conversation(
+        cache_seed=random_cache_seed,
+        human_input_mode=human_input_mode,
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+    )
     end_time = time.time()
     duration_with_warm_cache = end_time - start_time
     assert cold_cache_messages == warm_cache_messages
     assert duration_with_warm_cache < duration_with_cold_cache
 
-@pytest.mark.skipif(skip_redis, reason="redis not installed OR requested to skip")
+
+@pytest.mark.skipif(skip_openai_tests or skip_redis_tests, reason="redis not installed OR requested to skip")
 def test_redis_cache(human_input_mode="NEVER", max_consecutive_auto_reply=5):
     random_cache_seed = int.from_bytes(os.urandom(2), "big")
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     start_time = time.time()
-    cold_cache_messages = run_conversation(cache_seed=random_cache_seed, redis_url=redis_url, human_input_mode=human_input_mode, max_consecutive_auto_reply=max_consecutive_auto_reply)
+    cold_cache_messages = run_conversation(
+        cache_seed=random_cache_seed,
+        redis_url=redis_url,
+        human_input_mode=human_input_mode,
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+    )
     end_time = time.time()
     duration_with_cold_cache = end_time - start_time
 
     start_time = time.time()
-    warm_cache_messages = run_conversation(cache_seed=random_cache_seed, redis_url=redis_url, human_input_mode=human_input_mode, max_consecutive_auto_reply=max_consecutive_auto_reply)
+    warm_cache_messages = run_conversation(
+        cache_seed=random_cache_seed,
+        redis_url=redis_url,
+        human_input_mode=human_input_mode,
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+    )
     end_time = time.time()
     duration_with_warm_cache = end_time - start_time
     assert cold_cache_messages == warm_cache_messages
     assert duration_with_warm_cache < duration_with_cold_cache
+
+
 def run_conversation(cache_seed, redis_url=None, human_input_mode="NEVER", max_consecutive_auto_reply=5):
     KEY_LOC = "notebook"
     OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -106,4 +129,3 @@ def run_conversation(cache_seed, redis_url=None, human_input_mode="NEVER", max_c
     # track how long this takes
     user.initiate_chat(assistant, message=coding_task)
     return user.chat_messages[list(user.chat_messages.keys())[-0]]
-
