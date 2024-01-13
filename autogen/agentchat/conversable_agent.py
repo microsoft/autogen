@@ -1701,6 +1701,7 @@ class ConversableAgent(Agent):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        api_style: Literal["function", "tool"] = "tool",
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
@@ -1713,6 +1714,10 @@ class ConversableAgent(Agent):
             name (optional(str)): name of the function. If None, the function name will be used (default: None).
             description (optional(str)): description of the function (default: None). It is mandatory
                 for the initial decorator, but the following ones can omit it.
+            api_style: (literal): the API style for function call.
+                For Azure OpenAI API, use version 2023-12-01-preview or later.
+                `"function"` style will be deprecated. For earlier version use
+                `"function"` if `"tool"` doesn't work.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1722,6 +1727,14 @@ class ConversableAgent(Agent):
             @user_proxy.register_for_execution()
             @agent2.register_for_llm()
             @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+            For Azure OpenAI versions 2023-10-01-preview and earlier, set `api_style`
+            to `"function"` if `"tool"` doesn't work:
+            ```
+            @agent2.register_for_llm(api_style="function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
                  return a + str(b * c)
             ```
@@ -1762,7 +1775,13 @@ class ConversableAgent(Agent):
             if self.llm_config is None:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
-            self.update_tool_signature(f, is_remove=False)
+            if api_style == "function":
+                f = f["function"]
+                self.update_function_signature(f, is_remove=False)
+            elif api_style == "tool":
+                self.update_tool_signature(f, is_remove=False)
+            else:
+                raise ValueError(f"Unsupported API style: {api_style}")
 
             return func
 
