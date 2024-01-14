@@ -4,22 +4,37 @@ import sys
 import os
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
-
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+    from conftest import skip_openai as skip
+
+func_def = {
+    "name": "get_random_number",
+    "description": "Get a random number between 0 and 100",
+    "parameters": {
+        "type": "object",
+        "properties": {},
+    },
+}
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip,
+    reason="do not run if openai is not installed or requested to skip",
 )
-def test_function_call_groupchat():
+@pytest.mark.parametrize(
+    "key, value, sync",
+    [
+        ("tools", [{"type": "function", "function": func_def}], False),
+        ("functions", [func_def], True),
+        ("tools", [{"type": "function", "function": func_def}], True),
+    ],
+)
+def test_function_call_groupchat(key, value, sync):
     import random
 
     def get_random_number():
@@ -35,29 +50,31 @@ def test_function_call_groupchat():
     llm_config = {
         "config_list": config_list_gpt4,
         "cache_seed": 42,
-        "functions": [
-            {
-                "name": "get_random_number",
-                "description": "Get a random number between 0 and 100",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                },
-            },
-        ],
+        key: value,
     }
+    # llm_config without functions
+    llm_config_no_function = llm_config.copy()
+    del llm_config_no_function[key]
+
     user_proxy = autogen.UserProxyAgent(
-        name="User_proxy",
-        system_message="A human admin that will execute function_calls.",
+        name="Executor",
+        description="An executor that will execute function_calls.",
         function_map={"get_random_number": get_random_number},
         human_input_mode="NEVER",
     )
-    coder = autogen.AssistantAgent(
+    player = autogen.AssistantAgent(
         name="Player",
-        system_message="You will can function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        system_message="You will use function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        description="A player that will make function_calls.",
         llm_config=llm_config,
     )
-    groupchat = autogen.GroupChat(agents=[user_proxy, coder], messages=[], max_round=7)
+    observer = autogen.AssistantAgent(
+        name="Observer",
+        system_message="You observe the conversation between the executor and the player. Summarize the conversation in 1 sentence.",
+        description="An observer that will observe the conversation.",
+        llm_config=llm_config_no_function,
+    )
+    groupchat = autogen.GroupChat(agents=[user_proxy, player, observer], messages=[], max_round=7)
 
     # pass in llm_config with functions
     with pytest.raises(
@@ -66,12 +83,12 @@ def test_function_call_groupchat():
     ):
         manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
-    # pass in llm_config without functions
-    llm_config_manager = llm_config.copy()
-    del llm_config_manager["functions"]
-    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_manager)
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_no_function)
 
-    user_proxy.initiate_chat(manager, message="Let's start the game!")
+    if sync:
+        user_proxy.initiate_chat(manager, message="Let's start the game!")
+    else:
+        user_proxy.a_initiate_chat(manager, message="Let's start the game!")
 
 
 def test_no_function_map():
@@ -103,4 +120,4 @@ def test_no_function_map():
 
 if __name__ == "__main__":
     test_function_call_groupchat()
-    test_no_function_map()
+    # test_no_function_map()
