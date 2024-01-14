@@ -12,6 +12,7 @@ from .. import OpenAIWrapper
 from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
+from ..hooks import hookable_method
 from .._pydantic import model_dump
 
 try:
@@ -156,10 +157,6 @@ class ConversableAgent(Agent):
         self.register_reply(
             [Agent, None], ConversableAgent.a_check_termination_and_human_reply, ignore_async_in_sync_chat=True
         )
-
-        # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
-        # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
 
     def register_reply(
         self,
@@ -1837,19 +1834,9 @@ class ConversableAgent(Agent):
 
         return _decorator
 
-    def register_hook(self, hookable_method: Callable, hook: Callable):
-        """
-        Registers a hook to be called by a hookable method, in order to add a capability to the agent.
-        Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
-
-        Args:
-            hookable_method: A hookable method implemented by ConversableAgent.
-            hook: A method implemented by a subclass of AgentCapability.
-        """
-        assert hookable_method in self.hook_lists, f"{hookable_method} is not a hookable method."
-        hook_list = self.hook_lists[hookable_method]
-        assert hook not in hook_list, f"{hook} is already registered as a hook."
-        hook_list.append(hook)
+    @hookable_method
+    def process_last_message_user_text(self, user_text: str) -> str:
+        return user_text
 
     def process_last_message(self, messages):
         """
@@ -1858,9 +1845,6 @@ class ConversableAgent(Agent):
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists[self.process_last_message]
-        if len(hook_list) == 0:
-            return messages  # No hooks registered.
         if messages is None:
             return None  # No message to process.
         if len(messages) == 0:
@@ -1879,9 +1863,7 @@ class ConversableAgent(Agent):
             return messages  # Last message is an exit command.
 
         # Call each hook (in order of registration) to process the user's message.
-        processed_user_text = user_text
-        for hook in hook_list:
-            processed_user_text = hook(processed_user_text)
+        processed_user_text = self.process_last_message_user_text(user_text)
         if processed_user_text == user_text:
             return messages  # No hooks actually modified the user's message.
 
