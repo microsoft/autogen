@@ -79,7 +79,7 @@ def test_eval_math_responses():
 def test_eval_math_responses_api_style_function():
     config_list = autogen.config_list_from_models(
         KEY_LOC,
-        model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"],
+        model_list=["gpt-4", "gpt-35-turbo"],
         filter_dict={
             "api_type": ["azure"],
             "api_version": ["2023-10-01-preview", "2023-09-01-preview"],
