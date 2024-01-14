@@ -227,12 +227,12 @@ jobs:
           pip install -e .[redis]
       - name: Test Cache
         run: |
-          pytest test/cache/test_redis_cache.py test/cache/test_disk_cache.py --skip-openai
+          pytest test/cache/test_cache.py test/cache/test_redis_cache.py test/cache/test_disk_cache.py --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/cache/test_redis_cache.py test/cache/test_disk_cache.py --skip-openai
+          coverage run -a -m pytest test/cache/test_cache.py test/cache/test_redis_cache.py test/cache/test_disk_cache.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

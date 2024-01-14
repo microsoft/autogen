@@ -255,7 +255,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/test_cache.py
+          coverage run -a -m pytest test/agentchat/test_cache_agent.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

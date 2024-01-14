@@ -8,6 +8,8 @@ import inspect
 from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
+
+from autogen.cache.cache import Cache
 from autogen.oai import completion
 
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
@@ -34,9 +36,6 @@ else:
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
-
-    # cache wrapper
-    from autogen.cache.cache_factory import cache_factory
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
@@ -68,6 +67,7 @@ class OpenAIWrapper:
     openai_kwargs = openai_kwargs | aopenai_kwargs
     total_usage_summary: Optional[Dict[str, Any]] = None
     actual_usage_summary: Optional[Dict[str, Any]] = None
+    cache: Optional[Cache] = None
 
     def __init__(self, *, config_list: Optional[List[Dict[str, Any]]] = None, **base_config: Any):
         """
@@ -209,10 +209,7 @@ class OpenAIWrapper:
             - `cache_seed` (int | None) for the cache. Default to 41.
                 An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
-            - `redis_url` (str | None) for the redis cache. Default to None.
-                A string redis_url formatted like "redis://:password@localhost:6379/0" will turn on the redis cache.
-                None for no redis cache. If `cache_seed` is None, redis_url will be ignored
-                You must install redis to use redis cache.
+                This is a legacy parameter. See [cache](/docs/Use-Cases/agent_chat#llmcaching) for more details.
             - filter_func (Callable | None): A function that takes in the context and the response
                 and returns a boolean to indicate whether the response is valid. E.g.,
 
@@ -241,13 +238,19 @@ class OpenAIWrapper:
             params = self._construct_create_params(create_config, extra_kwargs)
             # get the cache_seed, filter_func and context
             cache_seed = extra_kwargs.get("cache_seed", 41)
-            redis_url = extra_kwargs.get("redis_url", None)
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
-            # Try to load the response from cache
+            cache_client = None
             if cache_seed is not None:
-                with cache_factory(f"{cache_seed}", redis_url) as cache:
+                # Legacy cache behavior, if cache_seed is in the llm_config, use disk cache
+                cache_client = Cache.disk(cache_seed, ".cache")
+            elif self.cache is not None:
+                # Otherwise if they have passed in a cache, use that
+                cache_client = self.cache
+
+            if cache_client is not None:
+                with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
                     response: ChatCompletion = cache.get(key, None)
@@ -282,9 +285,9 @@ class OpenAIWrapper:
                 # add cost calculation before caching no matter filter is passed or not
                 response.cost = self.cost(response)
                 self._update_usage_summary(response, use_cache=False)
-                if cache_seed is not None:
+                if cache_client is not None:
                     # Cache the response
-                    with cache_factory(f"{cache_seed}", redis_url) as cache:
+                    with cache_client as cache:
                         cache.set(key, response)
 
                 # check the filter

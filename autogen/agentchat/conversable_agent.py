@@ -9,6 +9,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
+from ..cache.cache import Cache
 from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
@@ -124,6 +125,9 @@ class ConversableAgent(Agent):
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
             self.client = OpenAIWrapper(**self.llm_config)
+
+        # initialize standalone cache client
+        self.cache_client = None
 
         self._code_execution_config: Union[Dict, Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
@@ -648,6 +652,7 @@ class ConversableAgent(Agent):
         recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
+        cache_client: Optional[Cache] = None,
         **context,
     ):
         """Initiate a chat with the recipient agent.
@@ -660,6 +665,7 @@ class ConversableAgent(Agent):
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
+            cache_client (Cache or None): the cache client to be used for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
 
@@ -669,6 +675,8 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
         self._prepare_chat(recipient, clear_history)
+        self.cache_client = cache_client
+        recipient.cache_client = cache_client
         self.send(self.generate_init_message(**context), recipient, silent=silent)
 
     async def a_initiate_chat(
@@ -758,6 +766,7 @@ class ConversableAgent(Agent):
                 all_messages.append(message)
 
         # TODO: #1143 handle token limit exceeded error
+        client.cache = self.cache_client
         response = client.create(
             context=messages[-1].pop("context", None), messages=self._oai_system_message + all_messages
         )
