@@ -18,5 +18,9 @@
     'Research',
   ],
   // pydoc-markdown auto-generated markdowns from docstrings
-  referenceSideBar: [require("./docs/reference/sidebar.json")]
+  
+  // commenting out the reference sidebar allows the docs to be built 
+  // the reference sidebar is not found in the docs folder
+  // referenceSideBar: [require("./docs/reference/sidebar.json")]
+
 };
