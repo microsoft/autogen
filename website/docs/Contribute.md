@@ -121,7 +121,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 
 Once you have built the `autogen_dev_img`, you can run it using the standard Docker commands. This will place you inside the containerized development environment where you can run tests, develop code, and ensure everything is functioning as expected before submitting your contributions.
 
-- This will start your Docker container and allow Dockers port 3000 to be mapped to your workstation on port 8081. It wll also mount the local directory of autogen-newcode to the docker directory of /home/autogen/newstuff. And once running it will put you at the CLI in the /home/autogen/ directory.
+- This will start your Docker container and allow Dockers port 3000 to be mapped to your workstation on port 8081. It will also mount the local directory of autogen-newcode to the docker directory of /home/autogen/newstuff. And once running it will put you at the CLI in the /home/autogen/ directory.
 
 ```bash
 docker run -it -p 8081:3000 -v `pwd`/autogen-newcode:newstuff/ autogen_dev_img bash
