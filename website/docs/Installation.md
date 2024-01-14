@@ -46,7 +46,7 @@ To run an application built with AutoGen using the Docker image:
    
    Here, `$(pwd)/myapp` is your local directory, and `/home/autogen/autogen/myapp` is the path in the Docker container where your code will be located.
 
-2. **Execute your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker. 
+2. **Execute your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker.
 
 **Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in docker.
 
