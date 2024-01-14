@@ -64,7 +64,8 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ### Pull Requests
 
-* For new PR, decide whether to close without review. If not, find the right reviewers. The default reviewer is microsoft/autogen. Ask users who can benefit from the PR to review it.
+- For new PR, decide whether to close without review. If not, find the right reviewers. The default reviewer is microsoft/autogen. Ask users who can benefit from the PR to review it.
+
 - For old PR, check the blocker: reviewer or PR creator. Try to unblock. Get additional help when needed.
 - When requesting changes, make sure you can check back in time because it blocks merging.
 - Make sure all the checks are passed.
@@ -81,20 +82,12 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 ### Issues and Discussions
 
-* For new issues, write a reply, apply a label if relevant. Ask on discord when necessary. For roadmap issues, add to the roadmap project and encourage community discussion. Mention relevant experts when necessary.
+- For new issues, write a reply, apply a label if relevant. Ask on discord when necessary. For roadmap issues, add to the roadmap project and encourage community discussion. Mention relevant experts when necessary.
+
 - For old issues, provide an update or close. Ask on discord when necessary. Encourage PR creation when relevant.
 - Use “good first issue” for easy fix suitable for first-time contributors.
 - Use “task list” for issues that require multiple PRs.
 - For discussions, create an issue when relevant. Discuss on discord when appropriate.
-
-## Developing
-
-### Setup
-
-```bash
-git clone https://github.com/microsoft/autogen.git
-pip install -e autogen
-```
 
 ## Docker for Development
 
@@ -134,7 +127,7 @@ Once you have built the `autogen_dev_img`, you can run it using the standard Doc
 docker run -it -p 8081:3000 -v `pwd`/autogen-newcode:newstuff/ autogen_dev_img bash
 ```
 
-- Note that the `pwd` is shorthand for present working directory. If you want a more verbose method you could remove the "`pwd`/autogen-newcode" and replace it with the full path to your directory
+- Note that the `pwd` is shorthand for present working directory. Thus, any path after the pwd is relative to that. If you want a more verbose method you could remove the "`pwd`/autogen-newcode" and replace it with the full path to your directory
 
 ```bash
 docker run -it -p 8081:3000 -v `/home/AutoGenDeveloper/autogen-newcode:newstuff/ autogen_dev_img bash
