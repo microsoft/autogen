@@ -1,29 +1,26 @@
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
 import inspect
 import pytest
 import json
+import sys
+import os
 import autogen
-from conftest import skip_openai
 from autogen.math_utils import eval_math_responses
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-import sys
 from autogen.oai.client import TOOL_ENABLED
 
 try:
     from openai import OpenAI
 except ImportError:
-    skip = True
+    skip_openai = True
 else:
-    skip = False or skip_openai
+    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+    from conftest import skip_openai
 
 
 @pytest.mark.skipif(skip_openai or not TOOL_ENABLED, reason="openai>=1.1.0 not installed or requested to skip")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
-        KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+        KEY_LOC, model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
     )
     tools = [
         {
@@ -80,10 +77,6 @@ def test_eval_math_responses_api_style_function():
     config_list = autogen.config_list_from_models(
         KEY_LOC,
         model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"],
-        filter_dict={
-            "api_type": ["azure"],
-            "api_version": ["2023-10-01-preview", "2023-09-01-preview", "2023-08-01-preview", "2023-07-01-preview"],
-        },
     )
     functions = [
         {
@@ -286,6 +279,7 @@ def test_multi_tool_call():
 
 
 if __name__ == "__main__":
-    test_update_tool()
-    test_eval_math_responses()
-    test_multi_tool_call()
+    # test_update_tool()
+    # test_eval_math_responses()
+    # test_multi_tool_call()
+    test_eval_math_responses_api_style_function()

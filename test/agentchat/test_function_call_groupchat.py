@@ -4,15 +4,13 @@ import sys
 import os
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
-
 try:
     from openai import OpenAI
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+    from conftest import skip_openai as skip
 
 func_def = {
     "name": "get_random_number",
@@ -29,13 +27,14 @@ func_def = {
     reason="do not run if openai is not installed or requested to skip",
 )
 @pytest.mark.parametrize(
-    "key, value",
+    "key, value, sync",
     [
-        ("functions", [func_def]),
-        ("tools", [{"type": "function", "function": func_def}]),
+        ("tools", [{"type": "function", "function": func_def}], False),
+        ("functions", [func_def], True),
+        ("tools", [{"type": "function", "function": func_def}], True),
     ],
 )
-def test_function_call_groupchat(key, value):
+def test_function_call_groupchat(key, value, sync):
     import random
 
     def get_random_number():
@@ -86,7 +85,10 @@ def test_function_call_groupchat(key, value):
 
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config_no_function)
 
-    user_proxy.initiate_chat(manager, message="Let's start the game!")
+    if sync:
+        user_proxy.initiate_chat(manager, message="Let's start the game!")
+    else:
+        user_proxy.a_initiate_chat(manager, message="Let's start the game!")
 
 
 def test_no_function_map():
