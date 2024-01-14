@@ -139,6 +139,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
 
+        if not isinstance(self.allow_repeat_speaker, (bool, list)):
+            raise ValueError("GroupChat allow_repeat_speaker should be a bool or a list of Agents.")
         # If provided a list, make sure the agent is in the list
         allow_repeat_speaker = (
             self.allow_repeat_speaker
