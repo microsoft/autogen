@@ -950,9 +950,7 @@ class ConversableAgent(Agent):
         message = messages[-1]
         async_tool_calls = []
         for tool_call in message.get("tool_calls", []):
-            func = self._function_map.get(tool_call.get("function", {}).get("name", None), None)
-            if func and asyncio.coroutines.iscoroutinefunction(func):
-                async_tool_calls.append(self._a_execute_tool_call(tool_call))
+            async_tool_calls.append(self._a_execute_tool_call(tool_call))
         if async_tool_calls:
             tool_returns = await asyncio.gather(*async_tool_calls)
             return True, {
