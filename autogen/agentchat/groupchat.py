@@ -57,7 +57,8 @@ class GroupChat:
         We cast the content to str here so that it can be managed by text-based
         model.
         """
-        # set the name to speaker's name if the role is not function or tool
+        # set the name to speaker's name if the role is not function
+        # if the role is tool, it is OK to modify the name
         if message["role"] != "function":
             message["name"] = speaker.name
         message["content"] = content_str(message["content"])
