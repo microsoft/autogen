@@ -32,18 +32,6 @@ RUN sudo pip install pydoc-markdown
 RUN cd website
 RUN yarn install --frozen-lockfile --ignore-engines
 
-# Alternate method for installing tools for documentation
-# The Debian package for Yarn is stable and is not as likely to have breaking changes
-# However, it is not the latest version of Yarn and so may not be compatible with
-# the latest version of Docusaurus installed on the website.
-# your mileage may vary
-# RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-# RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-# RUN sudo apt-get update && sudo apt-get install -y yarn
-# RUN sudo pip install pydoc-markdown 
-# RUN cd /home/autogen/autogen/website/
-# RUN yarn install --frozen-lockfile --ignore-engines
-
 # Exposes the Yarn port for Docusaurus
 EXPOSE 3000
 
