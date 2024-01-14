@@ -4,7 +4,7 @@ AutoGen is a versatile tool that can be installed and run in Docker or locally u
 
 ## Option 1: Install and Run AutoGen in Docker
 
-Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/samples/dockers](https://github.com/microsoft/autogen/tree/main/samples/dockers). For more details on customizing the Dockerfiles, see the [Docker Samples README](autogen/samples/dockers/Dockerfiles.md).
+Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/samples/dockers](https://github.com/microsoft/autogen/tree/main/samples/dockers). For more details on customizing the Dockerfiles, see the [Docker Samples README](../../samples/dockers/Dockerfiles.md).
 
 **Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is, however they can be modified to suit your development needs. Please see the README.md file in autogen/samples/dockers
 
@@ -88,7 +88,7 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
 
-- Details for managing and interacting with your AutoGen Docker containers can be found in the [Docker Samples README](autogen/samples/dockers/Dockerfiles.md).
+- Details for managing and interacting with your AutoGen Docker containers can be found in the [Docker Samples README](../../samples/dockers/Dockerfiles.md).
 
 - Details on how to use the Dockerfile.dev version can be found on the [Contributing](Contribute.md#docker)
 
