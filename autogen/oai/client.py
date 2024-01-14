@@ -53,8 +53,10 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
+    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version", "api_type"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
+    aopenai_kwargs = set(inspect.getfullargspec(AzureOpenAI.__init__).kwonlyargs)
+    openai_kwargs = openai_kwargs & aopenai_kwargs
     total_usage_summary: Optional[Dict[str, Any]] = None
     actual_usage_summary: Optional[Dict[str, Any]] = None
 
@@ -514,7 +516,6 @@ class OpenAIWrapper:
             # If streaming is not enabled, send a regular chat completion request
             params = params.copy()
             params["stream"] = False
-            params.pop("api_type", None)
             response = completions.create(**params)
 
         return response
