@@ -31,10 +31,6 @@ def test_aoai_chat_completion():
         filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
     )
     client = OpenAIWrapper(config_list=config_list)
-    # for config in config_list:
-    #     print(config)
-    #     client = OpenAIWrapper(**config)
-    #     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     print(response)
     print(client.extract_text_or_completion_object(response))
