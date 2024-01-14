@@ -4,9 +4,9 @@ AutoGen is a versatile tool that can be installed and run in Docker or locally u
 
 ## Option 1: Install and Run AutoGen in Docker
 
-Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/samples/dockers](https://github.com/microsoft/autogen/tree/main/samples/dockers). For more details on customizing the Dockerfiles, see the [Docker Samples README](https://github.com/microsoft/autogen/tree/main/samples/dockers/Dockerfiles.md).
+Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/samples/dockers](https://github.com/microsoft/autogen/tree/main/samples/dockers). For more details on customizing the Dockerfiles, see the [Docker Samples README](../../samples/dockers/Dockerfiles.md).
 
-**Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is; however, they can be modified to suit your development needs.
+**Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is, however they can be modified to suit your development needs. Please see the README.md file in autogen/samples/dockers
 
 - **autogen_base_img**: For a basic setup, you can use the `autogen_base_img` to run simple scripts or applications. This is ideal for general users or those new to AutoGen.
 - **autogen_full_img**: Advanced users or those requiring more features can use `autogen_full_img`. Be aware that this version loads ALL THE THINGS and thus is very large. Take this into consideration if you build your application off of it.
@@ -29,28 +29,26 @@ AutoGen now provides updated Dockerfiles tailored for different needs. Building 
 
 - **Autogen Advanced (dockerfile.full)**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
 
-
    ```bash
    docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
    ```
 
 ### Step 3: Run AutoGen Applications from Docker Image
 
-To run an application built with AutoGen using the Docker image:
+Here's how you can run an application built with AutoGen, using the Docker image:
 
-1. **Mount Your Directory**: Use the Docker `-v` flag to mount your local application directory to the Docker container. This allows you to develop on your local machine while running the code in a consistent Docker environment. For example, to run a Python script located in your local `myapp` directory:
+1. **Mount Your Directory**: Use the Docker `-v` flag to mount your local application directory to the Docker container. This allows you to develop on your local machine while running the code in a consistent Docker environment. For example:
 
    ```bash
    docker run -it -v $(pwd)/myapp:/home/autogen/autogen/myapp autogen_base_img:latest python /home/autogen/autogen/myapp/main.py
    ```
-   
+
    Here, `$(pwd)/myapp` is your local directory, and `/home/autogen/autogen/myapp` is the path in the Docker container where your code will be located.
 
-2. **Execute your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker.
+2. **Mount your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker.
 
-**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in docker.
-
-```bash
+```python
+# Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
 docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
 ```
 
@@ -62,8 +60,11 @@ docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoag
 
    In this command, `-p 8080:3000` maps port 3000 from the container to port 8080 on your local machine.
 
-4. **Examples of Running Different Applications**:
-`docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Docker_DIR} {name_of_the_image}:latest`
+4. **Examples of Running Different Applications**: Here is the basic format of the docker run command.
+
+```bash
+docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Docker_DIR} {name_of_the_image} {bash/python} {Docker_path_to_script_to_execute}
+```
 
 - *Simple Script*: Run a Python script located in your local `myapp` directory.
 
@@ -87,7 +88,7 @@ docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoag
 
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
 
-- Details for managing and interacting with your AutoGen Docker containers can be found in the [Docker Samples README](../samples/dockers/Dockerfiles.md).
+- Details for managing and interacting with your AutoGen Docker containers can be found in the [Docker Samples README](../../samples/dockers/Dockerfiles.md).
 
 - Details on how to use the Dockerfile.dev version can be found on the [Contributing](Contribute.md#docker)
 
@@ -98,12 +99,14 @@ When installing AutoGen locally, we recommend using a virtual environment for th
 ### Option a: venv
 
 You can create a virtual environment with `venv` as below:
+
 ```bash
 python3 -m venv pyautogen
 source pyautogen/bin/activate
 ```
 
 The following command will deactivate the current `venv` environment:
+
 ```bash
 deactivate
 ```
@@ -112,12 +115,14 @@ deactivate
 
 Another option is with `Conda`. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
+
 ```bash
 conda create -n pyautogen python=3.10  # python 3.10 is recommended as it's stable and not too old
 conda activate pyautogen
 ```
 
 The following command will deactivate the current `conda` environment:
+
 ```bash
 conda deactivate
 ```
@@ -130,6 +135,7 @@ Another option is with `poetry`, which is a dependency manager for Python.
 
 You can install it by following [this doc](https://python-poetry.org/docs/#installation),
 and then create a virtual environment as below:
+
 ```bash
 poetry init
 poetry shell
@@ -138,6 +144,7 @@ poetry add pyautogen
 ```
 
 The following command will deactivate the current `poetry` environment:
+
 ```bash
 exit
 ```
@@ -168,30 +175,34 @@ Therefore, some changes are required for users of `pyautogen<0.2`.
 - `api_base` -> `base_url`, `request_timeout` -> `timeout` in `llm_config` and `config_list`. `max_retry_period` and `retry_wait_time` are deprecated. `max_retries` can be set for each client.
 - MathChat is unsupported until it is tested in future release.
 - `autogen.Completion` and `autogen.ChatCompletion` are deprecated. The essential functionalities are moved to `autogen.OpenAIWrapper`:
+
 ```python
 from autogen import OpenAIWrapper
 client = OpenAIWrapper(config_list=config_list)
 response = client.create(messages=[{"role": "user", "content": "2+2="}])
 print(client.extract_text_or_completion_object(response))
 ```
+
 - Inference parameter tuning and inference logging features are currently unavailable in `OpenAIWrapper`. Logging will be added in a future release.
 Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.github.io/FLAML/docs/Use-Cases/Tune-User-Defined-Function).
 - `seed` in autogen is renamed into `cache_seed` to accommodate the newly added `seed` param in openai chat completion api. `use_cache` is removed as a kwarg in `OpenAIWrapper.create()` for being automatically decided by `cache_seed`: int | None. The difference between autogen's `cache_seed` and openai's `seed` is that:
-    * autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
-    * openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
-
+  - autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
+  - openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
 
 ### Optional Dependencies
+
 - #### docker
 
 Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
 
 To use docker for code execution, you also need to install the python package `docker`:
+
 ```bash
 pip install docker
 ```
 
 You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+
 ```python
 user_proxy = autogen.UserProxyAgent(
     name="agent",
@@ -207,6 +218,7 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 - #### blendsearch
 
 `pyautogen<0.2` offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Please install with the [blendsearch] option to use it.
+
 ```bash
 pip install "pyautogen[blendsearch]<0.2"
 ```
@@ -220,6 +232,7 @@ Example notebooks:
 - #### retrievechat
 
 `pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+
 ```bash
 pip install "pyautogen[retrievechat]"
 ```
@@ -241,21 +254,20 @@ Example notebooks:
 
 [Automated Code Generation and Question Answering with Qdrant based Retrieval Augmented Agents](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
 
-
 - #### Teachability
 
 To use Teachability, please install AutoGen with the [teachable] option.
+
 ```bash
 pip install "pyautogen[teachable]"
 ```
 
 Example notebook:  [Chatting with a teachable agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
 
-
-
 - #### Large Multimodal Model (LMM) Agents
 
 We offered Multimodal Conversable Agent and LLaVA Agent. Please install with the [lmm] option to use it.
+
 ```bash
 pip install "pyautogen[lmm]"
 ```
@@ -264,10 +276,10 @@ Example notebooks:
 
 [LLaVA Agent](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
 
-
 - #### mathchat
 
 `pyautogen<0.2` offers an experimental agent for math problem solving. Please install with the [mathchat] option to use it.
+
 ```bash
 pip install "pyautogen[mathchat]<0.2"
 ```
