@@ -126,7 +126,7 @@ class GeminiClient:
         response_oai = ChatCompletion(
             id=str(random.randint(0, 1000)),
             model=model_name,
-            created=time.time(),
+            created=int(time.time() * 1000),
             object="chat.completion",
             choices=choices,
             usage=CompletionUsage(
