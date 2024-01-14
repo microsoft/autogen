@@ -30,7 +30,7 @@ AutoGen now provides updated Dockerfiles tailored for different needs. Building 
 - **Autogen Advanced (dockerfile.full)**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
 
    ```bash
-   docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git  
+   docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
    ```
 
 ### Step 3: Run AutoGen Applications from Docker Image
@@ -43,7 +43,7 @@ Here's how you can run an application built with AutoGen, using the Docker image
    docker run -it -v $(pwd)/myapp:/home/autogen/autogen/myapp autogen_base_img:latest python /home/autogen/autogen/myapp/main.py
    ```
 
-   Here, `$(pwd)/myapp` is your local directory, and `/home/autogen/autogen/myapp` is the path in the Docker container where your code will be located. 
+   Here, `$(pwd)/myapp` is your local directory, and `/home/autogen/autogen/myapp` is the path in the Docker container where your code will be located.
 
 2. **Port Mapping**: If your application requires a specific port, use the `-p` flag to map the container's port to your host. For instance, if your app runs on port 3000 inside Docker and you want it accessible on port 8080 on your host machine:
 
