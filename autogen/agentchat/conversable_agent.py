@@ -144,16 +144,21 @@ class ConversableAgent(Agent):
         )
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
+        self._ignore_async_func_in_sync_chat_list = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_function_call_reply)
+        self.register_reply(
+            [Agent, None], ConversableAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=True
+        )
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
+        self.register_reply(
+            [Agent, None], ConversableAgent.a_check_termination_and_human_reply, ignore_async_in_sync_chat=True
+        )
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
@@ -166,12 +171,21 @@ class ConversableAgent(Agent):
         position: int = 0,
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
+        *,
+        ignore_async_in_sync_chat: bool = False,
     ):
         """Register a reply function.
 
         The reply function will be called when the trigger matches the sender.
         The function registered later will be checked earlier by default.
         To change the order, set the position to a positive integer.
+
+        Both sync and async reply functions can be registered. The sync reply function will be triggered
+        from both sync and async chats. However, an async reply function will only be triggered from async
+        chats (initiated with `ConversableAgent.a_initiate_chat`). If an `async` reply function is registered
+        and a chat is initialized with a sync function, `ignore_async_in_sync_chat` determines the behaviour as follows:
+        - if `ignore_async_in_sync_chat` is set to `False` (default value), an exception will be raised, and
+        - if `ignore_async_in_sync_chat` is set to `True`, the reply function will be ignored.
 
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): the trigger.
@@ -184,6 +198,12 @@ class ConversableAgent(Agent):
                 Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
             reply_func (Callable): the reply function.
                 The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
+            position: the position of the reply function in the reply function list.
+            config: the config to be passed to the reply function, see below.
+            reset_config: the function to reset the config, see below.
+            ignore_async_in_sync_chat: whether to ignore the async reply function in sync chats. If `False`, an exception
+                will be raised if an async reply function is registered and a chat is initialized with a sync
+                function.
         ```python
         def reply_func(
             recipient: ConversableAgent,
@@ -212,6 +232,8 @@ class ConversableAgent(Agent):
                 "reset_config": reset_config,
             },
         )
+        if ignore_async_in_sync_chat and asyncio.coroutines.iscoroutinefunction(reply_func):
+            self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @property
     def system_message(self) -> Union[str, List]:
@@ -600,6 +622,25 @@ class ConversableAgent(Agent):
             self.clear_history(recipient)
             recipient.clear_history(self)
 
+    def _raise_exception_on_async_reply_functions(self) -> None:
+        """Raise an exception if any async reply functions are registered.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered.
+        """
+        reply_functions = {f["reply_func"] for f in self._reply_func_list}.difference(
+            self._ignore_async_func_in_sync_chat_list
+        )
+
+        async_reply_functions = [f for f in reply_functions if asyncio.coroutines.iscoroutinefunction(f)]
+        if async_reply_functions != []:
+            msg = (
+                "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). The following async reply functions are found: "
+                + ", ".join([f.__name__ for f in async_reply_functions])
+            )
+
+            raise RuntimeError(msg)
+
     def initiate_chat(
         self,
         recipient: "ConversableAgent",
@@ -619,7 +660,12 @@ class ConversableAgent(Agent):
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered and not ignored in sync chat.
         """
+        for agent in [self, recipient]:
+            agent._raise_exception_on_async_reply_functions()
         self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
 
@@ -1658,6 +1704,7 @@ class ConversableAgent(Agent):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        api_style: Literal["function", "tool"] = "tool",
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
@@ -1670,6 +1717,10 @@ class ConversableAgent(Agent):
             name (optional(str)): name of the function. If None, the function name will be used (default: None).
             description (optional(str)): description of the function (default: None). It is mandatory
                 for the initial decorator, but the following ones can omit it.
+            api_style: (literal): the API style for function call.
+                For Azure OpenAI API, use version 2023-12-01-preview or later.
+                `"function"` style will be deprecated. For earlier version use
+                `"function"` if `"tool"` doesn't work.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1679,6 +1730,14 @@ class ConversableAgent(Agent):
             @user_proxy.register_for_execution()
             @agent2.register_for_llm()
             @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+            For Azure OpenAI versions 2023-10-01-preview and earlier, set `api_style`
+            to `"function"` if `"tool"` doesn't work:
+            ```
+            @agent2.register_for_llm(api_style="function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
                  return a + str(b * c)
             ```
@@ -1719,7 +1778,13 @@ class ConversableAgent(Agent):
             if self.llm_config is None:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
-            self.update_tool_signature(f, is_remove=False)
+            if api_style == "function":
+                f = f["function"]
+                self.update_function_signature(f, is_remove=False)
+            elif api_style == "tool":
+                self.update_tool_signature(f, is_remove=False)
+            else:
+                raise ValueError(f"Unsupported API style: {api_style}")
 
             return func
 
