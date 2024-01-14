@@ -227,6 +227,5 @@ yarn start --host 0.0.0.0 --port 3000
 
 Once done you should be able to access the documentaion at `http://127.0.0.1:8081/autogen`
 
-
 Note:
 some tips in this guide are based off the contributor guide from [flaml](https://microsoft.github.io/FLAML/docs/Contribute).

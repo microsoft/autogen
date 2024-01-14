@@ -47,10 +47,10 @@ Here's how you can run an application built with AutoGen, using the Docker image
 
 2. **Mount your code:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in Docker.
 
-```python
-# Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
-docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
-```
+   ```python
+   # Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
+   docker run -it -v `pwd`/myapp:/myapp autogen_img:latest python /myapp/main_twoagent.py
+   ```
 
 3. **Port Mapping**: If your application requires a specific port, use the `-p` flag to map the container's port to your host. For instance, if your app runs on port 3000 inside Docker and you want it accessible on port 8080 on your host machine:
 
