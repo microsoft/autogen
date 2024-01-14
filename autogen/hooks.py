@@ -69,7 +69,7 @@ def hookable_method(f: F) -> Hookable:
         a = A()
 
         # we can add hooks using decorators
-        @a.f.pre_hook
+        @a.f.add_pre_hook
         def add_one(x: float, y: float, *, z: int):
             return x + 1
 
@@ -77,7 +77,7 @@ def hookable_method(f: F) -> Hookable:
             return x - 1
 
         # or we can add hooks using function calls
-        a.f.post_hook(deduct_one)
+        a.f.add_post_hook(deduct_one)
 
         assert a.f(1.1, 2.2, z=3) == (1.1 + 1 + 2.2) * 3 - 1
         ```
@@ -95,8 +95,8 @@ def hookable_method(f: F) -> Hookable:
     f_with_hooks._pre_hooks = []  # type: ignore [attr-defined]
     f_with_hooks._post_hooks = []  # type: ignore [attr-defined]
 
-    f_with_hooks.pre_hook = lambda h: _pre_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
-    f_with_hooks.post_hook = lambda h: _post_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
+    f_with_hooks.add_pre_hook = lambda h: _pre_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
+    f_with_hooks.add_post_hook = lambda h: _post_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
     f_with_hooks._origin = f  # type: ignore [attr-defined]
 
     return f_with_hooks  # type: ignore [return-value]
@@ -120,7 +120,7 @@ def hookable_function(f: F) -> Hookable:
             return (x + y) * z
 
         # we can add hooks using decorators
-        @g.pre_hook
+        @g.add_pre_hook
         def add_one(x: float, y: float, *, z: int):
             return x + 1
 
@@ -128,7 +128,7 @@ def hookable_function(f: F) -> Hookable:
             return x - 1
 
         # or we can add hooks using function calls
-        g.post_hook(deduct_one)
+        g.add_post_hook(deduct_one)
 
         assert g(1.1, 2.2, z=3) == (1.1 + 1 + 2.2) * 3 - 1
     """
@@ -145,8 +145,8 @@ def hookable_function(f: F) -> Hookable:
     f_with_hooks._pre_hooks = []  # type: ignore [attr-defined]
     f_with_hooks._post_hooks = []  # type: ignore [attr-defined]
 
-    f_with_hooks.pre_hook = lambda h: _pre_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
-    f_with_hooks.post_hook = lambda h: _post_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
+    f_with_hooks.add_pre_hook = lambda h: _pre_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
+    f_with_hooks.add_post_hook = lambda h: _post_hook(f_with_hooks, h)  # type: ignore [attr-defined,arg-type]
     f_with_hooks._origin = f  # type: ignore [attr-defined]
 
     return f_with_hooks  # type: ignore [return-value]

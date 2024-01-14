@@ -11,12 +11,12 @@ def test_hookable_method() -> None:
     a = A()
 
     # we can add hooks using decorators
-    @a.f.pre_hook
+    @a.f.add_pre_hook
     def add_one(x: float, y: float, *, z: int) -> float:
         return x + 1
 
     with pytest.raises(ValueError) as e:
-        a.f.pre_hook(add_one)
+        a.f.add_pre_hook(add_one)
 
     assert str(e.value).endswith("is already registered.")
 
@@ -24,10 +24,10 @@ def test_hookable_method() -> None:
         return x - 1
 
     # or we can add hooks using function calls
-    a.f.post_hook(deduct_one)
+    a.f.add_post_hook(deduct_one)
 
     with pytest.raises(ValueError) as e:
-        a.f.post_hook(add_one)
+        a.f.add_post_hook(add_one)
 
     assert str(e.value).endswith("is already registered.")
 
@@ -40,7 +40,7 @@ def test_hookable_function() -> None:
         return (x + y) * z
 
     # we can add hooks using decorators
-    @g.pre_hook
+    @g.add_pre_hook
     def add_one(x: float, y: float, *, z: int) -> float:
         return x + 1
 
@@ -48,6 +48,6 @@ def test_hookable_function() -> None:
         return x - 1
 
     # or we can add hooks using function calls
-    g.post_hook(deduct_one)
+    g.add_post_hook(deduct_one)
 
     assert g(1.1, 2.2, z=3) == (1.1 + 1 + 2.2) * 3 - 1
