@@ -93,21 +93,25 @@ def test_chat_completion():
 def test_completion():
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct")
+    # Azure can't have dot in model/deployment name
+    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
+    response = client.create(prompt="1+1=", model=model)
     print(response)
     print(client.extract_text_or_completion_object(response))
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 @pytest.mark.parametrize(
-    "cache_seed, model",
+    "cache_seed",
     [
-        (None, "gpt-3.5-turbo-instruct"),
-        (42, "gpt-3.5-turbo-instruct"),
+        None,
+        42,
     ],
 )
-def test_cost(cache_seed, model):
+def test_cost(cache_seed):
     config_list = config_list_openai_aoai(KEY_LOC)
+    # Azure can't have dot in model/deployment name
+    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
     client = OpenAIWrapper(config_list=config_list, cache_seed=cache_seed)
     response = client.create(prompt="1+3=", model=model)
     print(response.cost)
@@ -117,7 +121,9 @@ def test_cost(cache_seed, model):
 def test_usage_summary():
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct", cache_seed=None)
+    # Azure can't have dot in model/deployment name
+    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
+    response = client.create(prompt="1+3=", model=model, cache_seed=None)
 
     # usage should be recorded
     assert client.actual_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
@@ -138,7 +144,7 @@ def test_usage_summary():
     assert client.total_usage_summary is None, "total_usage_summary should be None"
 
     # actual usage and all usage should be different
-    response = client.create(prompt="1+3=", model="gpt-3.5-turbo-instruct", cache_seed=42)
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
     assert client.actual_usage_summary is None, "No actual cost should be recorded"
 
