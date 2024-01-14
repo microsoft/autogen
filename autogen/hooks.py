@@ -22,10 +22,10 @@ class Hookable(Protocol):
     def _origin(self) -> Callable[..., Any]:
         ...
 
-    def pre_hook(self, h: H) -> H:
+    def add_pre_hook(self, h: H) -> H:
         ...
 
-    def post_hook(self, h: H) -> H:
+    def add_post_hook(self, h: H) -> H:
         ...
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
