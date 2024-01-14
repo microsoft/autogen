@@ -2,7 +2,18 @@ from typing import Callable, Dict, List, Literal, Optional, Union
 
 from .conversable_agent import ConversableAgent
 
-# Import necessary abstract interfaces
+
+# Create necessary abstract interfaces
+class ActionExecutor:
+    def perform_action(self, action_command):
+        # Implementation for executing an action
+        raise NotImplementedError("This method needs to be implemented")
+
+
+class SensorProcessor:
+    def get_sensor_data(self):
+        # Implementation for processing sensor data
+        raise NotImplementedError("This method needs to be implemented")
 
 
 class EmbodiedAgent(ConversableAgent):
