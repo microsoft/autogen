@@ -1,4 +1,4 @@
-# AutoGen Installation Guide
+# Installation
 
 AutoGen is a versatile tool that can be installed and run in Docker or locally using a virtual environment. Below are detailed instructions for both methods.
 
