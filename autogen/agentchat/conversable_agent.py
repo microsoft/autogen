@@ -1718,7 +1718,7 @@ class ConversableAgent(Agent):
                 For Azure OpenAI API, use version 2023-12-01-preview or later.
                 `"function"` style will be deprecated. For earlier version use
                 `"function"` if `"tool"` doesn't work.
-                See [Azure Open AI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/function-calling?tabs=python) for details.
+                See [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/function-calling?tabs=python) for details.
 
         Returns:
             The decorator for registering a function to be used by an agent.
