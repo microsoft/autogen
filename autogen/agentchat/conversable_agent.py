@@ -1832,7 +1832,7 @@ class ConversableAgent(Agent):
 
         return _decorator
 
-    @hookable_method
+    @hookable_method()
     def process_last_message_user_text(self, user_text: str) -> str:
         return user_text
 
