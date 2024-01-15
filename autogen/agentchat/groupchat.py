@@ -223,13 +223,15 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
-    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
+    def _prepare_and_select_agents(
+        self, last_speaker: Agent
+    ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
-        
+
         if not isinstance(self.allow_repeat_speaker, (bool, list)):
             raise ValueError("GroupChat allow_repeat_speaker should be a bool or a list of Agents.")
 
