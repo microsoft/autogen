@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
-permissions:
+permissions: {}
     # actions: read
   # checks: read
-  contents: read
+  # contents: read
   # deployments: read
 jobs:
   checks:
