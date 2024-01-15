@@ -43,7 +43,7 @@ class GroupChat:
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat.
     - allowed_or_disallowed_speaker_order: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_order_dict is assumed.
-    - is_allowed_graph: whether the speaker_order_type is a dictionary containing lists of allowed agents or disallowed agents. Default is True, in which case the allowed_or_disallowed_speaker_order is a dictionary containing lists of allowed agents. If set to False, then the allowed_or_disallowed_speaker_order is a dictionary containing lists of disallowed agents.
+    - speaker_order_type: whether the speaker_order_type is a dictionary containing lists of allowed agents or disallowed agents. Default is allowed, in which case the allowed_or_disallowed_speaker_order is a dictionary containing lists of allowed agents. If set to disallowed, then the allowed_or_disallowed_speaker_order is a dictionary containing lists of disallowed agents.
     """
 
     agents: List[Agent]
