@@ -4,26 +4,30 @@ import logging
 from autogen.agentchat.groupchat import Agent
 
 
-def get_successor_agent_names(source_agent_name:str, allowed_speaker_order:dict) -> List[str]:
+def get_successor_agent_names(source_agent_name: str, allowed_speaker_order: dict) -> List[str]:
     """
     Returns a list of agent names that the source_agent_name can transition to.
     allowed_speaker_order[key] contains a list of Agent. Retrieve agent name through agent.name
     """
     return [agent.name for agent in allowed_speaker_order[source_agent_name]]
 
-def get_predecessor_agent_names(destination_agent_name:str, allowed_speaker_order:dict) -> List[str]:
+
+def get_predecessor_agent_names(destination_agent_name: str, allowed_speaker_order: dict) -> List[str]:
     """
     Returns a list of agent names that can transition to the destination_agent_name.
     allowed_speaker_order[key] contains a list of Agent. Retrieve agent name through agent.name
     """
-    return [key for key, value in allowed_speaker_order.items() if destination_agent_name in [agent.name for agent in value]]
+    return [
+        key for key, value in allowed_speaker_order.items() if destination_agent_name in [agent.name for agent in value]
+    ]
 
-def has_self_loops(allowed_speaker_order:dict) -> bool:
+
+def has_self_loops(allowed_speaker_order: dict) -> bool:
     """
     Returns True if there are self loops in the allowed_speaker_order_dict.
     """
     return any([key in [agent.name for agent in value] for key, value in allowed_speaker_order.items()])
-    
+
 
 def check_graph_validity(
     allowed_speaker_order_dict: dict,
@@ -67,9 +71,7 @@ def check_graph_validity(
 
     # Check 4. Check for contradiction between allow_repeat_speaker and allowed_speaker_order_dict
     if allow_repeat_speaker is False:
-        offending_agents = [
-                key for key, value in allowed_speaker_order_dict.items() if key in value
-            ]
+        offending_agents = [key for key, value in allowed_speaker_order_dict.items() if key in value]
         if len(offending_agents) > 0:
             raise ValueError(
                 f"""allowed_speaker_order_dict has self-loops when allow_repeat_speaker is set to false. Offending agents: {offending_agents}"""
@@ -81,12 +83,11 @@ def check_graph_validity(
         has_self_loops = [
             key for key, value in allowed_speaker_order_dict.items() if key in [agent.name for agent in value]
         ]
-        
+
         if len(has_self_loops) == 0:
             raise ValueError(
-                f"""allowed_speaker_order_dict has no self-loops when allow_repeat_speaker is set to true."""
+                """allowed_speaker_order_dict has no self-loops when allow_repeat_speaker is set to true."""
             )
-        
 
     elif isinstance(allow_repeat_speaker, list):
         # First extract the names of the agents that are having self loop in allowed_speaker_order_dict
@@ -108,7 +109,6 @@ def check_graph_validity(
                 """
             )
 
-
     # Warnings
     # Warning 1. Warning if there are isolated agent nodes, there are not incoming nor outgoing edges
     # Concat keys if len(value) is positive
@@ -127,7 +127,6 @@ def check_graph_validity(
         if len(agent_list) > 0:
             has_incoming_edge.extend([agent.name for agent in agent_list])
 
-            
     no_incoming_edges = [agent.name for agent in agents if agent.name not in has_incoming_edge]
 
     isolated_agents = set(no_incoming_edges).intersection(set(no_outgoing_edges))
@@ -145,9 +144,6 @@ def check_graph_validity(
         logging.warning(
             f"""Warning: The set of agents in allowed_speaker_order do not match agents. Offending agents: {full_anti_join}"""
         )
-
-    
-
 
 
 def invert_disallowed_to_allowed(disallowed_speaker_order_dict: dict, agents: List[Agent]) -> dict:

@@ -52,7 +52,9 @@ class GroupChat:
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
-    allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None # It would be set to True is allowed_or_disallowed_speaker_order is None
+    allow_repeat_speaker: Optional[
+        Union[bool, List[Agent]]
+    ] = None  # It would be set to True is allowed_or_disallowed_speaker_order is None
     allowed_or_disallowed_speaker_order: Optional[Dict] = None
     speaker_order_type: Optional[str] = None
 
@@ -87,7 +89,6 @@ class GroupChat:
                 "Please set one of them to None."
             )
 
-        
         # Asks the user to specify whether the speaker_order_type is allowed or disallowed if speaker_order_type is supplied
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451259524
         if self.allowed_or_disallowed_speaker_order is not None and self.allowed_or_disallowed_speaker_order is None:
@@ -96,20 +97,22 @@ class GroupChat:
                 "Please set speaker_order_type to either 'allowed' or 'disallowed'."
             )
 
-        # Infering self.allowed_speaker_order_dict
+        # Inferring self.allowed_speaker_order_dict
         # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is None, using allow_repeat_speaker
         if self.allowed_or_disallowed_speaker_order is None:
             self.allowed_speaker_order_dict = {}
 
             # Create a fully connected allowed_speaker_order_dict not including self loops
             for agent in self.agents:
-                self.allowed_speaker_order_dict[agent.name] = [other_agent for other_agent in self.agents if other_agent != agent]
-            
+                self.allowed_speaker_order_dict[agent.name] = [
+                    other_agent for other_agent in self.agents if other_agent != agent
+                ]
+
             # If self.allow_repeat_speaker is True, add self loops to all agents
             if self.allow_repeat_speaker:
                 for agent in self.agents:
                     self.allowed_speaker_order_dict[agent.name].append(agent)
-            
+
             # Else if self.allow_repeat_speaker is a list of Agents, add self loops to the agents in the list
             elif isinstance(self.allow_repeat_speaker, list):
                 for agent in self.allow_repeat_speaker:
@@ -118,16 +121,17 @@ class GroupChat:
         # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is not None, using allowed_or_disallowed_speaker_order
         elif self.allowed_or_disallowed_speaker_order is not None:
             # Process based on is_allowed_graph
-            if self.speaker_order_type == 'allowed':
+            if self.speaker_order_type == "allowed":
                 self.allowed_speaker_order_dict = self.allowed_or_disallowed_speaker_order
-            elif self.speaker_order_type == 'disallowed':
+            elif self.speaker_order_type == "disallowed":
                 # Logic for processing disallowed allowed_or_disallowed_speaker_order to allowed_speaker_order_dict
-                self.allowed_speaker_order_dict = invert_disallowed_to_allowed(self.allowed_or_disallowed_speaker_order, self.agents)
+                self.allowed_speaker_order_dict = invert_disallowed_to_allowed(
+                    self.allowed_or_disallowed_speaker_order, self.agents
+                )
 
-        # Infering self.allow_repeat_speaker from allowed_speaker_order_dict using has_self_loops
+        # Inferring self.allow_repeat_speaker from allowed_speaker_order_dict using has_self_loops
         if self.allow_repeat_speaker is None:
             self.allow_repeat_speaker = has_self_loops(self.allowed_speaker_order_dict)
-            
 
         # Check for validity
         check_graph_validity(
@@ -219,12 +223,15 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
-    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent]]:
+    def _prepare_and_select_agents(self, last_speaker: Agent) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
+        
+        if not isinstance(self.allow_repeat_speaker, (bool, list)):
+            raise ValueError("GroupChat allow_repeat_speaker should be a bool or a list of Agents.")
 
         # If provided a list, make sure the agent is in the list
         allow_repeat_speaker = (
@@ -265,12 +272,12 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             agents = [agent for agent in self.agents if agent.can_execute_function(funcs)]
             if len(agents) == 1:
                 # only one agent can execute the function
-                return agents[0], agents
+                return agents[0], agents, None
             elif not agents:
                 # find all the agents with function_map
                 agents = [agent for agent in self.agents if agent.function_map]
                 if len(agents) == 1:
-                    return agents[0], agents
+                    return agents[0], agents, None
                 elif not agents:
                     raise ValueError(
                         f"No agent can execute the function {', '.join(funcs)}. "
@@ -292,22 +299,29 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
 
         # Use the selected speaker selection method
+        select_speaker_messages = None
         if self.speaker_selection_method.lower() == "manual":
             selected_agent = self.manual_select_speaker(graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "round_robin":
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "random":
             selected_agent = random.choice(graph_eligible_agents)
-        elif len(graph_eligible_agents) == 1:
-            # If there is only one eligible agent, use it.
-            selected_agent = graph_eligible_agents[0]
         else:
             selected_agent = None
-        return selected_agent, graph_eligible_agents
+            select_speaker_messages = self.messages.copy()
+            # If last message is a tool call or function call, blank the call so the api doesn't throw
+            if select_speaker_messages[-1].get("function_call", False):
+                select_speaker_messages[-1] = dict(select_speaker_messages[-1], function_call=None)
+            if select_speaker_messages[-1].get("tool_calls", False):
+                select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
+            select_speaker_messages = select_speaker_messages + [
+                {"role": "system", "content": self.select_speaker_prompt(graph_eligible_agents)}
+            ]
+        return selected_agent, graph_eligible_agents, select_speaker_messages
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
-        selected_agent, agents = self._prepare_and_select_agents(last_speaker)
+        selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
         # auto speaker selection
@@ -343,7 +357,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
-        selected_agent, agents = self._prepare_and_select_agents(last_speaker)
+        selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
         # auto speaker selection
