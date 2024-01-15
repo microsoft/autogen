@@ -74,10 +74,10 @@ class Always(Condition):
         super().__init__(*args, **kwargs)
 
     def __call__(self, x: Any) -> bool:
-        """Check if the object is an instance of the class.
+        """Always return True.
 
         Args:
-            x: The object to check.
+            x: Ignored.
 
         Returns:
             Always True.
@@ -99,7 +99,7 @@ class Never(Condition):
         super().__init__(*args, **kwargs)
 
     def __call__(self, x: Any) -> bool:
-        """Check if the object is an instance of the class.
+        """Always return False.
 
         Args:
             x: The object to check.
@@ -167,6 +167,8 @@ class Evaluate(Condition):
             ```
         """
         self.f = f
+        self.args = args
+        self.kwargs = kwargs
 
     def __call__(self, x: Any) -> bool:
         """Check if the object is an instance of the class.
@@ -178,7 +180,7 @@ class Evaluate(Condition):
 
 
         """
-        return self.f(x, self.args, self.kwargs)
+        return self.f(x, *self.args, **self.kwargs)
 
 
 class AllOf(Condition):

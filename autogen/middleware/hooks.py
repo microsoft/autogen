@@ -97,42 +97,32 @@ def hookable_method(cond: Optional[Condition] = None) -> Callable[[F], Hookable]
     """
 
     def _hookable_method(f: F) -> Hookable:
-        print(f"_hookable_method({f=})")
-
         @wraps(f)
         def f_with_hooks_sync(self: Any, x: Any, *args: Any, **kwargs: Any) -> Any:
-            print(f"f_with_hooks_sync({self=}, {x=}, {args=}, {kwargs=})")
             for c, pre_hook in f_with_hooks._pre_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(x):
                     x = pre_hook(x, *args, **kwargs)
-                    print(f" - {x=}")
 
             y = f(self, x, *args, **kwargs)
 
             for c, post_hook in f_with_hooks._post_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(y):
                     y = post_hook(y, *args, **kwargs)
-                    print(f" - {y=}")
 
             return y
 
         @wraps(f)
         async def f_with_hooks_async(self: Any, x: Any, *args: Any, **kwargs: Any) -> Any:
-            print(f"f_with_hooks_async({self=}, {x=}, {args=}, {kwargs=})")
             for c, pre_hook in f_with_hooks._pre_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
-                    print(f"calling pre_hook: {pre_hook}({x=}, {args=}, {kwargs=})")
+                if c is None or c(x):
                     x = pre_hook(x, *args, **kwargs)
-                    print(f" - {x=}")
                     x = await await_if_needed(x)
-                    print(f" - awaited {x=}")
 
             y = await f(self, x, *args, **kwargs)
 
             for c, post_hook in f_with_hooks._post_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(y):
                     y = await await_if_needed(post_hook(y, *args, **kwargs))
-                    print(f" - {y=}")
 
             return y
 
@@ -185,24 +175,22 @@ def hookable_function(cond: Optional[Condition] = None) -> Callable[[F], Hookabl
         @wraps(f)
         def f_with_hooks_sync(x: Any, *args: Any, **kwargs: Any) -> Any:
             for c, pre_hook in f_with_hooks._pre_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(x):
                     x = pre_hook(x, *args, **kwargs)
-                    print(f" - {x=}")
             y = f(x, *args, **kwargs)
             for c, post_hook in f_with_hooks._post_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(y):
                     y = post_hook(y, *args, **kwargs)
-                    print(f" - {y=}")
             return y
 
         @wraps(f)
         async def f_with_hooks_async(x: Any, *args: Any, **kwargs: Any) -> Any:
             for c, pre_hook in f_with_hooks._pre_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(x):
                     x = await await_if_needed(pre_hook(x, *args, **kwargs))
             y = await f(x, *args, **kwargs)
             for c, post_hook in f_with_hooks._post_hooks:  # type: ignore [attr-defined]
-                if c is None or c():
+                if c is None or c(y):
                     y = await await_if_needed(post_hook(y, *args, **kwargs))
             return y
 

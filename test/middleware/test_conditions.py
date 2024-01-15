@@ -22,4 +22,13 @@ def test_isinstance() -> None:
 
     cond = Condition.isinstance(A)
     assert cond(a)
-    assert not cond(int)
+    assert not cond(2.3)
+
+
+def test_evaluate() -> None:
+    def f(x: int) -> bool:
+        return x > 0
+
+    cond = Condition.evaluate(f)
+    assert cond(1)
+    assert not cond(-1)
