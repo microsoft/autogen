@@ -334,6 +334,16 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    def _prepare_chat(self, recipient, clear_history, caller=None):
+        super()._prepare_chat(recipient, clear_history, caller)
+
+        if clear_history:
+            self._groupchat.reset()
+
+        for agent in self._groupchat.agents:
+            if caller != agent:
+                agent._prepare_chat(self, clear_history, self)
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
