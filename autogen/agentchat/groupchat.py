@@ -228,9 +228,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return None
 
     def _prepare_and_select_agents(
-
         self, last_speaker: Agent
-
     ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]], Optional[List[Dict]]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
