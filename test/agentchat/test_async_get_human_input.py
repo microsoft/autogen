@@ -1,7 +1,7 @@
 import asyncio
 import autogen
 import pytest
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+from .test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
 import os
 

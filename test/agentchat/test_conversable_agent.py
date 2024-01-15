@@ -12,7 +12,7 @@ from typing_extensions import Annotated
 import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+from .test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
 
 try:
