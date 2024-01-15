@@ -21,7 +21,7 @@ else:
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
-        KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+        KEY_LOC, model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
     )
     functions = [
         {
