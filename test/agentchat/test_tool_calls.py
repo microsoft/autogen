@@ -245,32 +245,27 @@ def test_multi_tool_call():
         {
             "role": "tool",
             "tool_responses": [
-                {"tool_call_id": "tool_1", "role": "tool", "name": "echo", "content": "hello world"},
+                {"tool_call_id": "tool_1", "role": "tool", "content": "hello world"},
                 {
                     "tool_call_id": "tool_2",
                     "role": "tool",
-                    "name": "echo",
                     "content": "goodbye and thanks for all the fish",
                 },
                 {
                     "tool_call_id": "tool_3",
                     "role": "tool",
-                    "name": "multi_tool_call_echo",
                     "content": "Error: Function multi_tool_call_echo not found.",
                 },
             ],
             "content": inspect.cleandoc(
                 """
-                Tool call: echo
-                Id: tool_1
+                Tool Call Id: tool_1
                 hello world
 
-                Tool call: echo
-                Id: tool_2
+                Tool Call Id: tool_2
                 goodbye and thanks for all the fish
 
-                Tool call: multi_tool_call_echo
-                Id: tool_3
+                Tool Call Id: tool_3
                 Error: Function multi_tool_call_echo not found.
                 """
             ),
@@ -348,32 +343,27 @@ async def test_async_multi_tool_call():
         {
             "role": "tool",
             "tool_responses": [
-                {"tool_call_id": "tool_1", "role": "tool", "name": "a_echo", "content": "hello world"},
+                {"tool_call_id": "tool_1", "role": "tool", "content": "hello world"},
                 {
                     "tool_call_id": "tool_2",
                     "role": "tool",
-                    "name": "echo",
                     "content": "goodbye and thanks for all the fish",
                 },
                 {
                     "tool_call_id": "tool_3",
                     "role": "tool",
-                    "name": "multi_tool_call_echo",
                     "content": "Error: Function multi_tool_call_echo not found.",
                 },
             ],
             "content": inspect.cleandoc(
                 """
-                Tool call: a_echo
-                Id: tool_1
+                Tool Call Id: tool_1
                 hello world
 
-                Tool call: echo
-                Id: tool_2
+                Tool Call Id: tool_2
                 goodbye and thanks for all the fish
 
-                Tool call: multi_tool_call_echo
-                Id: tool_3
+                Tool Call Id: tool_3
                 Error: Function multi_tool_call_echo not found.
                 """
             ),
