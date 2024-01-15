@@ -52,7 +52,7 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version"}
+    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version", "tags"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
     total_usage_summary: Optional[Dict[str, Any]] = None
     actual_usage_summary: Optional[Dict[str, Any]] = None
