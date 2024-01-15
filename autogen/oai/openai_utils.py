@@ -18,7 +18,7 @@ except ImportError:
     Assistant = object
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
-DEFAULT_AZURE_API_VERSION = "2023-08-01-preview"
+DEFAULT_AZURE_API_VERSION = "2023-12-01-preview"
 OAI_PRICE1K = {
     "text-ada-001": 0.0004,
     "text-babbage-001": 0.0005,
@@ -96,7 +96,7 @@ def get_config_list(
 
     # Optionally, define the API type and version if they are common for all keys
     api_type = 'azure'
-    api_version = '2023-08-01-preview'
+    api_version = '2023-12-01-preview'
 
     # Call the get_config_list function to get a list of configuration dictionaries
     config_list = get_config_list(api_keys, base_urls, api_type, api_version)
@@ -305,11 +305,11 @@ def config_list_from_models(
     ```
     """
     config_list = config_list_openai_aoai(
-        key_file_path,
-        openai_api_key_file,
-        aoai_api_key_file,
-        aoai_api_base_file,
-        exclude,
+        key_file_path=key_file_path,
+        openai_api_key_file=openai_api_key_file,
+        aoai_api_key_file=aoai_api_key_file,
+        aoai_api_base_file=aoai_api_base_file,
+        exclude=exclude,
     )
     if model_list:
         config_list = [{**config, "model": model} for model in model_list for config in config_list]

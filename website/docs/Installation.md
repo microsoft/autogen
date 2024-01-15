@@ -26,7 +26,7 @@ Once you build the docker image, you can use `docker images` to check whether it
 
 #### Step 3.  Run applications built with AutoGen from a docker image.
 
-**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mont your folder and run the application in docker.
+**Mount your code to the docker image and run your application from there:** Now suppose you have your application built with AutoGen in a main script named `twoagent.py` ([example](https://github.com/microsoft/autogen/blob/main/test/twoagent.py)) in a folder named `myapp`. With the command line below, you can mount your folder and run the application in docker.
 
 ```python
 # Mount the local folder `myapp` into docker image and run the script named "twoagent.py" in the docker.
