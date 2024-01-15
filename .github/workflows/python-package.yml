@@ -7,7 +7,7 @@ name: python-package
 on:
   release:
     types: [published]
-
+permissions: read-all
 jobs:
   deploy:
     strategy:

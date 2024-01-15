@@ -12,7 +12,7 @@ on:
       - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
       - 'notebook/agentchat_function_call.ipynb'
       - '.github/workflows/openai.yml'
-
+permissions: read-all
 jobs:
   test:
     strategy:

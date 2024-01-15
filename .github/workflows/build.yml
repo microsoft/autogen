@@ -19,7 +19,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
+permissions:
+  actions: read
 jobs:
   build:
 

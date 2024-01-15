@@ -9,7 +9,7 @@ on:  # Trigger the workflow on pull request or merge
 defaults:
   run:
     shell: bash
-
+permissions: read-all
 jobs:
 
   pre-commit-check:

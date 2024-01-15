@@ -7,7 +7,7 @@ on:
       - 'dotnet/**'
 env:
   BUILD_CONFIGURATION: Release    # set this to the appropriate build configuration
-
+permissions: read-all
 jobs:
   build:
     environment: dotnet
