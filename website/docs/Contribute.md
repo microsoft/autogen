@@ -109,10 +109,17 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
   docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
   ```
 
-- For building the developer image built from a specific Dockerfile in a branch other than main/master just append a `#{branch-name}` as shown below
+- For building the developer image built from a specific Dockerfile in a branch other than main/master
 
   ```bash
-    docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img 'https://github.com/microsoft/autogen.git#dockerDocs'
+  # clone the branch you want to work out of
+  git clone --branch {branch-name} https://github.com/microsoft/autogen.git
+
+  # cd to your new directory
+  cd autogen
+
+  # build your Docker image
+  docker build -f samples/dockers/Dockerfile.dev -t autogen_dev-srv_img .
   ```
 
 ### Using the Developer Docker Image
