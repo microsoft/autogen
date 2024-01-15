@@ -356,6 +356,11 @@ def filter_config(config_list, filter_dict):
         filter_dict (dict): A dictionary representing the filter criteria, where each key is a
                             field name to check within the configuration dictionaries, and the
                             corresponding value is a list of acceptable values for that field.
+                            If the configuration's field's value is not a list, then a match occurs
+                            when it is found in the list of acceptable values. If the configuration's
+                            field's value is a list, then a match occurs if there is a non-empty
+                            intersection with the acceptable values.
+
 
     Returns:
         list of dict: A list of configuration dictionaries that meet all the criteria specified
@@ -368,6 +373,7 @@ def filter_config(config_list, filter_dict):
             {'model': 'gpt-3.5-turbo'},
             {'model': 'gpt-4'},
             {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
+            {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
         ]
 
         # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
@@ -382,6 +388,19 @@ def filter_config(config_list, filter_dict):
 
         # The resulting `filtered_configs` will be:
         # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
+
+
+        # Define a filter to select a given tag
+        filter_criteria = {
+            'tags': ['gpt35_turbo'],
+        }
+
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
+
     ```
 
     Note:
@@ -391,9 +410,18 @@ def filter_config(config_list, filter_dict):
         - If the list of acceptable values for a key in `filter_dict` includes None, then configuration
           dictionaries that do not have that key will also be considered a match.
     """
+
+    def _satisfies(config_value, acceptable_values):
+        if isinstance(config_value, list):
+            return bool(set(config_value) & set(acceptable_values))  # Non-empty intersection
+        else:
+            return config_value in acceptable_values
+
     if filter_dict:
         config_list = [
-            config for config in config_list if all(config.get(key) in value for key, value in filter_dict.items())
+            config
+            for config in config_list
+            if all(_satisfies(config.get(key), value) for key, value in filter_dict.items())
         ]
     return config_list
 
