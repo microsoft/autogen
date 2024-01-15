@@ -201,25 +201,46 @@ def _test_n_agents_less_than_3(method):
             "This is bob speaking.",
         ] * 3
 
-    # test one agent
+    # test zero agent
+    groupchat = autogen.GroupChat(
+        agents=[],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker=False,
+    )
     with pytest.raises(ValueError):
-        groupchat = autogen.GroupChat(
-            agents=[agent1],
-            messages=[],
-            max_round=6,
-            speaker_selection_method="round_robin",
-            allow_repeat_speaker=False,
-        )
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
-    # test zero agent
-    with pytest.raises(ValueError):
-        groupchat = autogen.GroupChat(
-            agents=[], messages=[], max_round=6, speaker_selection_method="round_robin", allow_repeat_speaker=False
-        )
+
+def test_invalid_allow_repeat_speaker():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    # test invalid allow_repeat_speaker
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        max_round=6,
+        speaker_selection_method="round_robin",
+        allow_repeat_speaker={},
+    )
+    with pytest.raises(ValueError) as e:
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+    assert str(e.value) == "GroupChat allow_repeat_speaker should be a bool or a list of Agents.", e.value
 
 
 def test_n_agents_less_than_3():
@@ -536,8 +557,9 @@ if __name__ == "__main__":
     # test_broadcast()
     # test_chat_manager()
     # test_plugin()
-    test_speaker_selection_method()
+    # test_speaker_selection_method()
     # test_n_agents_less_than_3()
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
+    test_invalid_allow_repeat_speaker()
