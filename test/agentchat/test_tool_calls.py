@@ -278,6 +278,109 @@ def test_multi_tool_call():
     ]
 
 
+@pytest.mark.skipif(not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
+@pytest.mark.asyncio
+async def test_async_multi_tool_call():
+    class FakeAgent(autogen.Agent):
+        def __init__(self, name):
+            super().__init__(name)
+            self.received = []
+
+        async def a_receive(
+            self,
+            message,
+            sender,
+            request_reply=None,
+            silent=False,
+        ):
+            message = message if isinstance(message, list) else [message]
+            self.received.extend(message)
+            return ""
+
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False,
+    )
+
+    def echo(str):
+        return str
+
+    async def a_echo(str):
+        return str
+
+    user_proxy.register_function({"a_echo": a_echo, "echo": echo})
+
+    fake_agent = FakeAgent("fake_agent")
+
+    await user_proxy.a_receive(
+        message={
+            "content": "test multi tool call",
+            "tool_calls": [
+                {
+                    "id": "tool_1",
+                    "type": "function",
+                    "function": {"name": "a_echo", "arguments": json.JSONEncoder().encode({"str": "hello world"})},
+                },
+                {
+                    "id": "tool_2",
+                    "type": "function",
+                    "function": {
+                        "name": "echo",
+                        "arguments": json.JSONEncoder().encode({"str": "goodbye and thanks for all the fish"}),
+                    },
+                },
+                {
+                    "id": "tool_3",
+                    "type": "function",
+                    "function": {
+                        "name": "multi_tool_call_echo",  # normalized "multi_tool_call.echo"
+                        "arguments": json.JSONEncoder().encode({"str": "goodbye and thanks for all the fish"}),
+                    },
+                },
+            ],
+        },
+        sender=fake_agent,
+        request_reply=True,
+    )
+
+    assert fake_agent.received == [
+        {
+            "role": "tool",
+            "tool_responses": [
+                {"tool_call_id": "tool_1", "role": "tool", "name": "a_echo", "content": "hello world"},
+                {
+                    "tool_call_id": "tool_2",
+                    "role": "tool",
+                    "name": "echo",
+                    "content": "goodbye and thanks for all the fish",
+                },
+                {
+                    "tool_call_id": "tool_3",
+                    "role": "tool",
+                    "name": "multi_tool_call_echo",
+                    "content": "Error: Function multi_tool_call_echo not found.",
+                },
+            ],
+            "content": inspect.cleandoc(
+                """
+                Tool call: a_echo
+                Id: tool_1
+                hello world
+
+                Tool call: echo
+                Id: tool_2
+                goodbye and thanks for all the fish
+
+                Tool call: multi_tool_call_echo
+                Id: tool_3
+                Error: Function multi_tool_call_echo not found.
+                """
+            ),
+        }
+    ]
+
+
 if __name__ == "__main__":
     # test_update_tool()
     # test_eval_math_responses()
