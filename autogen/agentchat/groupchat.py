@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Union, Tuple
 from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
+from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed, has_self_loops
 
 
 logger = logging.getLogger(__name__)
@@ -42,8 +42,8 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat.
-    - speaker_order_dict: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected graph is assumed.
-    - is_allowed_graph: whether the speaker_order_dict is a dictionary containing lists of allowed agents or disallowed agents. Default is True, in which case the speaker_order_dict is a dictionary containing lists of allowed agents. If set to False, then the speaker_order_dict is a dictionary containing lists of disallowed agents.
+    - allowed_or_disallowed_speaker_order: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_order_dict is assumed.
+    - is_allowed_graph: whether the speaker_order_type is a dictionary containing lists of allowed agents or disallowed agents. Default is True, in which case the allowed_or_disallowed_speaker_order is a dictionary containing lists of allowed agents. If set to False, then the allowed_or_disallowed_speaker_order is a dictionary containing lists of disallowed agents.
     """
 
     agents: List[Agent]
@@ -52,42 +52,82 @@ class GroupChat:
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
-    allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True
-    speaker_order_dict: Optional[Dict] = None
-    is_allowed_graph: Optional[bool] = True
+    allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None # It would be set to True is allowed_or_disallowed_speaker_order is None
+    allowed_or_disallowed_speaker_order: Optional[Dict] = None
+    speaker_order_type: Optional[str] = None
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
+    _VALID_SPEAKER_ORDER_TYPE = ["allowed", "disallowed", None]
+
     allowed_speaker_order_dict: Dict = field(init=False)
 
     def __post_init__(self):
         # Post init steers clears of the automatically generated __init__ method from dataclass
-        # Here, we create allowed_speaker_order_dict from the supplied speaker_order_dict and is_allowed_graph, and lastly checks for validity.
+        # Here, we create allowed_speaker_order_dict from the supplied allowed_or_disallowed_speaker_order and is_allowed_graph, and lastly checks for validity.
 
-        # Create a fully connected graph if speaker_order_dict is None
-        if self.speaker_order_dict is None:
-            # self.allow_repeat_speaker can be Union[bool, List[Agent]]
-            if self.allow_repeat_speaker is True:
-                self.allowed_speaker_order_dict = {
-                    agent.name: [other_agent for other_agent in self.agents] for agent in self.agents
-                }
-            else:
-                # self.allow_repeat_speaker is now either False or a List[Agent]
-                self.allowed_speaker_order_dict = {
-                    agent.name: [other_agent for other_agent in self.agents if other_agent != agent]
-                    for agent in self.agents
-                }
-                if isinstance(self.allow_repeat_speaker, list):
-                    # If allow_repeat_speaker is a list of agents, add those agents as allowed to repeat
-                    for agent in self.allow_repeat_speaker:
-                        self.allowed_speaker_order_dict[agent.name].append(agent)
+        # Check input
+        if self.speaker_order_type is not None:
+            self.speaker_order_type = self.speaker_order_type.lower()
 
-        else:
+        assert self.speaker_order_type in self._VALID_SPEAKER_ORDER_TYPE, (
+            f"GroupChat speaker_order_type is set to '{self.speaker_order_type}'. "
+            f"It should be one of {self._VALID_SPEAKER_ORDER_TYPE} (case insensitive). "
+        )
+
+        # If both self.allowed_or_disallowed_speaker_order is None and self.allow_repeat_speaker is None, set allow_repeat_speaker to True to ensure backward compatibility
+        # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451541204
+        if self.allowed_or_disallowed_speaker_order is None and self.allow_repeat_speaker is None:
+            self.allow_repeat_speaker = True
+
+        # self.allowed_or_disallowed_speaker_order and self.allow_repeat_speaker are mutually exclusive parameters.
+        # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451266661
+        if self.allowed_or_disallowed_speaker_order is not None and self.allow_repeat_speaker is not None:
+            raise ValueError(
+                "GroupChat allowed_or_disallowed_speaker_order and allow_repeat_speaker cannot both be not None. "
+                "Please set one of them to None."
+            )
+
+        
+        # Asks the user to specify whether the speaker_order_type is allowed or disallowed if speaker_order_type is supplied
+        # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451259524
+        if self.allowed_or_disallowed_speaker_order is not None and self.allowed_or_disallowed_speaker_order is None:
+            raise ValueError(
+                "GroupChat allowed_or_disallowed_speaker_order is not None, but speaker_order_type is None. "
+                "Please set speaker_order_type to either 'allowed' or 'disallowed'."
+            )
+
+        # Infering self.allowed_speaker_order_dict
+        # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is None, using allow_repeat_speaker
+        if self.allowed_or_disallowed_speaker_order is None:
+            self.allowed_speaker_order_dict = {}
+
+            # Create a fully connected allowed_speaker_order_dict not including self loops
+            for agent in self.agents:
+                self.allowed_speaker_order_dict[agent.name] = [other_agent for other_agent in self.agents if other_agent != agent]
+            
+            # If self.allow_repeat_speaker is True, add self loops to all agents
+            if self.allow_repeat_speaker:
+                for agent in self.agents:
+                    self.allowed_speaker_order_dict[agent.name].append(agent)
+            
+            # Else if self.allow_repeat_speaker is a list of Agents, add self loops to the agents in the list
+            elif isinstance(self.allow_repeat_speaker, list):
+                for agent in self.allow_repeat_speaker:
+                    self.allowed_speaker_order_dict[agent.name].append(agent)
+
+        # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is not None, using allowed_or_disallowed_speaker_order
+        elif self.allowed_or_disallowed_speaker_order is not None:
             # Process based on is_allowed_graph
-            if self.is_allowed_graph:
-                self.allowed_speaker_order_dict = self.speaker_order_dict
-            else:
-                # Logic for processing disallowed graph to allowed graph
-                self.allowed_speaker_order_dict = invert_disallowed_to_allowed(self.speaker_order_dict, self.agents)
+            if self.speaker_order_type == 'allowed':
+                self.allowed_speaker_order_dict = self.allowed_or_disallowed_speaker_order
+            elif self.speaker_order_type == 'disallowed':
+                # Logic for processing disallowed allowed_or_disallowed_speaker_order to allowed_speaker_order_dict
+                self.allowed_speaker_order_dict = invert_disallowed_to_allowed(self.allowed_or_disallowed_speaker_order, self.agents)
+
+        # Infering self.allow_repeat_speaker from allowed_speaker_order_dict using has_self_loops
+        if self.allow_repeat_speaker is None:
+            self.allow_repeat_speaker = has_self_loops(self.allowed_speaker_order_dict)
+            
 
         # Check for validity
         check_graph_validity(
