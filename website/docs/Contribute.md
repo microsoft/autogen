@@ -97,10 +97,9 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 
 - **Purpose**: The `autogen_dev_img` is tailored for contributors to the AutoGen project. It includes a suite of tools and configurations that aid in the development and testing of new features or fixes.
 - **Usage**: This image is recommended for developers who intend to contribute code or documentation to AutoGen.
-- **Setup**:
-  - **Forking the Project**: It's advisable to fork the AutoGen GitHub project to your own repository. This allows you to make changes in a separate environment without affecting the main project.
-  - **Updating Dockerfile.dev**: Modify your copy of `Dockerfile.dev` as needed for your development work.
-  - **Submitting Pull Requests**: Once your changes are ready, submit a pull request from your branch to the upstream AutoGen GitHub project for review and integration. For more details on contributing, see the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page.
+- **Forking the Project**: It's advisable to fork the AutoGen GitHub project to your own repository. This allows you to make changes in a separate environment without affecting the main project.
+- **Updating Dockerfile.dev**: Modify your copy of `Dockerfile.dev` as needed for your development work.
+- **Submitting Pull Requests**: Once your changes are ready, submit a pull request from your branch to the upstream AutoGen GitHub project for review and integration. For more details on contributing, see the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page.
 
 ### Building the Developer Docker Image
 
@@ -109,7 +108,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
   ```bash
   docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
   ```
-  
+
 - For building the developer image built from a specific Dockerfile in a branch other than main/master just append a `#{branch-name}` as shown below
 
   ```bash
