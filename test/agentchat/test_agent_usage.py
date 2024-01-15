@@ -3,6 +3,7 @@ from autogen import AssistantAgent, UserProxyAgent
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
 from conftest import skip_openai
+import autogen
 
 try:
     import openai
@@ -12,26 +13,34 @@ else:
     skip = False or skip_openai
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_gathering():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
     assistant1 = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "config_list": OAI_CONFIG_LIST,
+            "config_list": config_list,
+            "model": "gpt-3.5-turbo-0613",
         },
     )
     assistant2 = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "config_list": OAI_CONFIG_LIST,
+            "config_list": config_list,
+            "model": "gpt-3.5-turbo-0613",
         },
     )
     assistant3 = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "config_list": OAI_CONFIG_LIST,
+            "config_list": config_list,
+            "model": "gpt-3.5-turbo-0613",
         },
     )
 
@@ -68,13 +77,18 @@ def test_gathering():
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_agent_usage():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
             "timeout": 600,
             "cache_seed": None,
-            "config_list": OAI_CONFIG_LIST,
+            "config_list": config_list,
+            "model": "gpt-3.5-turbo-0613",
         },
     )
 
@@ -84,7 +98,8 @@ def test_agent_usage():
         max_consecutive_auto_reply=1,
         code_execution_config=False,
         llm_config={
-            "config_list": OAI_CONFIG_LIST,
+            "config_list": config_list,
+            "model": "gpt-3.5-turbo-0613",
         },
         # In the system message the "user" always refers to the other agent.
         system_message="You ask a user for help. You check the answer from the user and provide feedback.",
