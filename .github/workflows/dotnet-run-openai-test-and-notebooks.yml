@@ -7,10 +7,10 @@ on:
       - 'dotnet/**'
 env:
   BUILD_CONFIGURATION: Release    # set this to the appropriate build configuration
-permissions:
+permissions: {}
     # actions: read
   # checks: read
-  contents: read
+  # contents: read
   # deployments: read
 jobs:
   build:

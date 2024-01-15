@@ -11,10 +11,10 @@ on:
       - 'test/agentchat/contrib/**'
       - '.github/workflows/contrib-openai.yml'
       - 'setup.py'
-permissions:
+permissions: {}
     # actions: read
   # checks: read
-  contents: read
+  # contents: read
   # deployments: read
 jobs:
   RetrieveChatTest:

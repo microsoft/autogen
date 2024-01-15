@@ -9,10 +9,10 @@ on:  # Trigger the workflow on pull request or merge
 defaults:
   run:
     shell: bash
-permissions:
+permissions: {}
     # actions: read
   # checks: read
-  contents: read
+  # contents: read
   # deployments: read
 jobs:
 
