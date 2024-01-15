@@ -482,7 +482,7 @@ def test_init_default_parameters():
 
 def test_graph_validity_check():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
-    invalid_order = {agents[0].name: []} 
+    invalid_order = {agents[0].name: []}
     with pytest.raises(Exception):
         GroupChat(agents=agents, allowed_or_disallowed_speaker_order=invalid_order, speaker_order_type="allowed")
 
@@ -520,7 +520,7 @@ def test_graceful_exit_before_max_round():
         speaker_selection_method="round_robin",
         max_round=10,
         allowed_or_disallowed_speaker_order=allowed_or_disallowed_speaker_order,
-        speaker_order_type='allowed'
+        speaker_order_type="allowed",
     )
 
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False, is_termination_msg=None)

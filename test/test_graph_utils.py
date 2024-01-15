@@ -4,13 +4,13 @@ import logging
 from autogen.agentchat.groupchat import Agent
 import autogen.graph_utils as gru
 
+
 # Use pytest.mark.skipif decorator for conditional skipping
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"],
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 class TestHelpers:
-        
     # Tests for get_successor_agent_names
     def test_get_successor_agent_names(self):
         # Setup test data
@@ -18,14 +18,14 @@ class TestHelpers:
         allowed_speaker_order = {
             agents[0].name: [agents[1], agents[2]],
             agents[1].name: [agents[2]],
-            agents[2].name: [agents[0]]
+            agents[2].name: [agents[0]],
         }
 
         # Testing
         assert gru.get_successor_agent_names(agents[0].name, allowed_speaker_order) == [agents[1].name, agents[2].name]
         assert gru.get_successor_agent_names(agents[1].name, allowed_speaker_order) == [agents[2].name]
         assert gru.get_successor_agent_names(agents[2].name, allowed_speaker_order) == [agents[0].name]
-        
+
         # Test with an agent not in the dictionary
         with pytest.raises(KeyError):
             gru.get_successor_agent_names("NonExistentAgent", allowed_speaker_order)
@@ -37,14 +37,17 @@ class TestHelpers:
         allowed_speaker_order = {
             agents[0].name: [agents[1], agents[2]],
             agents[1].name: [agents[2]],
-            agents[2].name: [agents[0]]
+            agents[2].name: [agents[0]],
         }
 
         # Testing
         assert gru.get_predecessor_agent_names(agents[1].name, allowed_speaker_order) == [agents[0].name]
-        assert gru.get_predecessor_agent_names(agents[2].name, allowed_speaker_order) == [agents[0].name, agents[1].name]
+        assert gru.get_predecessor_agent_names(agents[2].name, allowed_speaker_order) == [
+            agents[0].name,
+            agents[1].name,
+        ]
         assert gru.get_predecessor_agent_names(agents[0].name, allowed_speaker_order) == [agents[2].name]
-        
+
         # Test with an agent not in the dictionary
         assert gru.get_predecessor_agent_names("NonExistentAgent", allowed_speaker_order) == []
 
@@ -54,18 +57,17 @@ class TestHelpers:
         allowed_speaker_order = {
             agents[0].name: [agents[1], agents[2]],
             agents[1].name: [agents[2]],
-            agents[2].name: [agents[0]]
+            agents[2].name: [agents[0]],
         }
         allowed_speaker_order_with_self_loops = {
             agents[0].name: [agents[0], agents[1], agents[2]],
             agents[1].name: [agents[1], agents[2]],
-            agents[2].name: [agents[0]]
+            agents[2].name: [agents[0]],
         }
 
         # Testing
         assert not gru.has_self_loops(allowed_speaker_order)
         assert gru.has_self_loops(allowed_speaker_order_with_self_loops)
-
 
 
 # Use pytest.mark.skipif decorator for conditional skipping
@@ -74,7 +76,6 @@ class TestHelpers:
     reason="do not run on MacOS or windows or dependency is not installed",
 )
 class TestGraphUtilCheckGraphValidity:
-
     def test_valid_structure(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
         valid_speaker_order_dict = {agent.name: [other_agent for other_agent in agents] for agent in agents}
@@ -136,10 +137,9 @@ class TestGraphUtilCheckGraphValidity:
     # Test for Warning 2: Warning if the set of agents in allowed_speaker_order do not match agents
     def test_warning_for_mismatch_in_agents(self, caplog):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        
 
         # Test with missing agents in allowed_speaker_order_dict
-       
+
         unknown_agent_dict = {
             "agent1": [agents[0], agents[1], agents[2]],
             "agent2": [agents[0], agents[1], agents[2]],
@@ -148,9 +148,8 @@ class TestGraphUtilCheckGraphValidity:
 
         with caplog.at_level(logging.WARNING):
             gru.check_graph_validity(allowed_speaker_order_dict=unknown_agent_dict, agents=agents)
-        
+
         assert "allowed_speaker_order do not match agents" in caplog.text
-        
 
 
 @pytest.mark.skipif(
