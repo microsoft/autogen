@@ -53,7 +53,15 @@ class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     cache_path_root: str = ".cache"
-    extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version", "api_type", , "tags"}
+    extra_kwargs = {
+        "cache_seed",
+        "filter_func",
+        "allow_format_str_template",
+        "context",
+        "api_version",
+        "api_type",
+        "tags",
+    }
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
     aopenai_kwargs = set(inspect.getfullargspec(AzureOpenAI.__init__).kwonlyargs)
     openai_kwargs = openai_kwargs | aopenai_kwargs
