@@ -93,7 +93,7 @@ There is currently no formal reviewer solicitation process. Current reviewers id
 
 For developers contributing to the AutoGen project, we offer a specialized Docker environment. This setup is designed to streamline the development process, ensuring that all contributors work within a consistent and well-equipped environment.
 
-### Autogen Developer Image (`autogen_dev_img`)
+### Autogen Developer Image (autogen_dev_img)
 
 - **Purpose**: The `autogen_dev_img` is tailored for contributors to the AutoGen project. It includes a suite of tools and configurations that aid in the development and testing of new features or fixes.
 - **Usage**: This image is recommended for developers who intend to contribute code or documentation to AutoGen.
@@ -133,7 +133,7 @@ docker run -it -p 8081:3000 -v `pwd`/autogen-newcode:newstuff/ autogen_dev_img b
 - Note that the `pwd` is shorthand for present working directory. Thus, any path after the pwd is relative to that. If you want a more verbose method you could remove the "`pwd`/autogen-newcode" and replace it with the full path to your directory
 
 ```bash
-docker run -it -p 8081:3000 -v `/home/AutoGenDeveloper/autogen-newcode:newstuff/ autogen_dev_img bash
+docker run -it -p 8081:3000 -v /home/AutoGenDeveloper/autogen-newcode:newstuff/ autogen_dev_img bash
 ```
 
 ### Develop in Remote Container
