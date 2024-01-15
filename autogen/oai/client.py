@@ -56,7 +56,7 @@ class OpenAIWrapper:
     extra_kwargs = {"cache_seed", "filter_func", "allow_format_str_template", "context", "api_version", "api_type"}
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
     aopenai_kwargs = set(inspect.getfullargspec(AzureOpenAI.__init__).kwonlyargs)
-    openai_kwargs = openai_kwargs & aopenai_kwargs
+    openai_kwargs = openai_kwargs | aopenai_kwargs
     total_usage_summary: Optional[Dict[str, Any]] = None
     actual_usage_summary: Optional[Dict[str, Any]] = None
 
@@ -123,19 +123,20 @@ class OpenAIWrapper:
     def _client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> OpenAI:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
+
+        For Azure models/deployment names there's a convenience modification of model removing dots in
+        the it's value (Azure deploment names can't have dots). I.e. if you have Azure deployment name
+        "gpt-35-turbo" and define model "gpt-3.5-turbo" in the config the function will remove the dot
+        from the name and create a client that connects to "gpt-35-turbo" Azure deployment.
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         api_type = config.get("api_type")
         if api_type is not None and api_type.startswith("azure"):
-            api_key = config.get("api_key", os.environ.get("AZURE_OPENAI_API_KEY"))
-            api_version = config.get("api_version", DEFAULT_AZURE_API_VERSION)
-            model = config.get("model")
-            base_url = config.get("base_url")
-            if base_url is None:
-                raise ValueError("to use azure openai api, base_url must be specified.")
-            client = AzureOpenAI(
-                azure_deployment=model, api_version=api_version, api_key=api_key, azure_endpoint=base_url
-            )
+            openai_config["azure_deployment"] = openai_config.get("azure_deployment", config.get("model"))
+            if openai_config["azure_deployment"] is not None:
+                openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
+            openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
+            client = AzureOpenAI(**openai_config)
         else:
             client = OpenAI(**openai_config)
         return client

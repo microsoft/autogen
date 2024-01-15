@@ -35,6 +35,15 @@ def test_aoai_chat_completion():
     print(response)
     print(client.extract_text_or_completion_object(response))
 
+    # test dialect
+    config = config_list[0]
+    config["azure_deployment"] = config["model"]
+    config["azure_endpoint"] = config.pop("base_url")
+    client = OpenAIWrapper(**config)
+    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    print(response)
+    print(client.extract_text_or_completion_object(response))
+
 
 @pytest.mark.skipif(skip or not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_oai_tool_calling_extraction():
@@ -89,8 +98,7 @@ def test_chat_completion():
 def test_completion():
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    # Azure can't have dot in model/deployment name
-    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
+    model = "gpt-3.5-turbo-instruct"
     response = client.create(prompt="1+1=", model=model)
     print(response)
     print(client.extract_text_or_completion_object(response))
@@ -106,8 +114,7 @@ def test_completion():
 )
 def test_cost(cache_seed):
     config_list = config_list_openai_aoai(KEY_LOC)
-    # Azure can't have dot in model/deployment name
-    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
+    model = "gpt-3.5-turbo-instruct"
     client = OpenAIWrapper(config_list=config_list, cache_seed=cache_seed)
     response = client.create(prompt="1+3=", model=model)
     print(response.cost)
@@ -117,8 +124,7 @@ def test_cost(cache_seed):
 def test_usage_summary():
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    # Azure can't have dot in model/deployment name
-    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
+    model = "gpt-3.5-turbo-instruct"
     response = client.create(prompt="1+3=", model=model, cache_seed=None)
 
     # usage should be recorded
@@ -147,8 +153,8 @@ def test_usage_summary():
 
 if __name__ == "__main__":
     test_aoai_chat_completion()
-    test_oai_tool_calling_extraction()
-    test_chat_completion()
-    test_completion()
-    # test_cost()
-    test_usage_summary()
+    # test_oai_tool_calling_extraction()
+    # test_chat_completion()
+    # test_completion()
+    # # test_cost()
+    # test_usage_summary()
