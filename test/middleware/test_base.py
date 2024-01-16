@@ -184,7 +184,7 @@ async def test_hookable() -> None:
     assert f(1, 2, 3, a=4, b=5) == "A.call(a.call(B.call(b.call(C.call(c.call(D.call(f(1, 2, 3, a=4, b=5))))))))"
 
 
-def get_mw(trigger_value, is_async: bool) -> Type[Hookable]:
+def get_mw(trigger_value: bool, is_async: bool) -> Type[Any]:
     class MyMiddlewareSyncTrigger(MyMiddlewareSync):
         def trigger(self, *args: Any, **kwargs: Any) -> bool:
             return trigger_value
@@ -232,16 +232,22 @@ async def test__get_next_function(trigger_value: bool) -> None:
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
     a_next_f = _get_next_function(a_f, amw, a_next_mock)
-    if trigger_value is False:
-        assert await a_next_f(1, 2, 3, a=4, b=5) == "a_next_mock(...)"
-    else:
-        assert await a_next_f(1, 2, 3, a=4, b=5) == "amw.call(a_next_mock(...))"
+    expected = "a_next_mock(...)" if trigger_value is False else "amw.call(a_next_mock(...))"
+    actual = await a_next_f(1, 2, 3, a=4, b=5)
+    assert actual == expected
+    # if trigger_value is False:
+    #     assert await a_next_f(1, 2, 3, a=4, b=5) == "a_next_mock(...)"
+    # else:
+    #     assert await a_next_f(1, 2, 3, a=4, b=5) == "amw.call(a_next_mock(...))"
     a_next_mock.assert_awaited_once_with(1, 2, 3, a=4, b=5)
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
     # with pytest.raises(NotImplementedError) as e:
     a_next_f = _get_next_function(a_f, mw, a_next_mock)
-    assert await a_next_f(1, 2, 3, a=4, b=5) == "mw.call(a_next_mock(...))"
+    expected = "a_next_mock(...)" if trigger_value is False else "mw.call(a_next_mock(...))"
+    actual = await a_next_f(1, 2, 3, a=4, b=5)
+    assert actual == expected
+    # assert await a_next_f(1, 2, 3, a=4, b=5) == "mw.call(a_next_mock(...))"
     a_next_mock.assert_awaited_once_with(1, 2, 3, a=4, b=5)
 
 

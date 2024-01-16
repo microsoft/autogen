@@ -131,26 +131,36 @@ def match_caller_type(*, callee: Callable[..., Any], caller: Callable[..., Any])
 
 def _get_next_function(h: Hookable, mw: Middleware, next: Callable[..., Any]) -> Callable[..., Any]:
     next = match_caller_type(callee=next, caller=mw.call)
-    # next = match_caller_type(callee=next, caller=h._origin)
     call = match_caller_type(callee=mw.call, caller=h._origin)
     trigger = match_caller_type(callee=mw.trigger, caller=h._origin) if hasattr(mw, "trigger") else None
 
-    @wraps(call)
-    async def _chain_async(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
-        trigger_value = (await trigger(*args, **kwargs)) if trigger is not None else True
-        if trigger_value:
-            return await call(*args, next=next, **kwargs)
-        else:
-            return await next(*args, **kwargs)
+    if inspect.iscoroutinefunction(h._origin):
 
-    @wraps(call)
-    def _chain_sync(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
-        if trigger is None or trigger(*args, **kwargs):
-            return call(*args, next=next, **kwargs)
-        else:
-            return next(*args, **kwargs)
+        async def _aa() -> None:
+            pass
 
-    return _chain_async if inspect.iscoroutinefunction(h._origin) else _chain_sync
+        next_async = match_caller_type(callee=next, caller=_aa)
+
+        @wraps(call)
+        async def _chain_async(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
+            trigger_value = (await trigger(*args, **kwargs)) if trigger is not None else True
+            if trigger_value:
+                return await call(*args, next=next, **kwargs)
+            else:
+                return await next_async(*args, **kwargs)
+
+        return _chain_async
+    else:
+        next_sync = match_caller_type(callee=next, caller=lambda: None)
+
+        @wraps(call)
+        def _chain_sync(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
+            if trigger is None or trigger(*args, **kwargs):
+                return call(*args, next=next, **kwargs)
+            else:
+                return next_sync(*args, **kwargs)
+
+        return _chain_sync
 
 
 def _build_middleware_chain(h: Hookable) -> None:
@@ -169,7 +179,7 @@ def _check_middleware(h: Hookable, mw: Middleware) -> None:
         raise TypeError(f"Cannot use middleare with async `trigger` method on a sync hookable function: {mw=}, {h=} ")
 
 
-def add_middleware(h: Callable[..., Any], mw: Middleware, *, position: Optional[int] = None) -> None:
+def add_middleware(h: Callable[..., Any], mw: Any, *, position: Optional[int] = None) -> None:
     """Add a middleware to a hookable function.
 
     Args:
@@ -194,7 +204,7 @@ def add_middleware(h: Callable[..., Any], mw: Middleware, *, position: Optional[
     _build_middleware_chain(_h)
 
 
-def set_middlewares(h: Callable[..., Any], mws: List[Middleware]) -> None:
+def set_middlewares(h: Callable[..., Any], mws: List[Any]) -> None:
     """Set the middlewares for a hookable function.
 
     Args:
