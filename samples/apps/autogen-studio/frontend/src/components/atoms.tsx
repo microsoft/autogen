@@ -11,7 +11,17 @@ import {
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
-import { Button, Input, Modal, Select, Slider, Tooltip, message } from "antd";
+import {
+  Button,
+  Dropdown,
+  Input,
+  MenuProps,
+  Modal,
+  Select,
+  Slider,
+  Tooltip,
+  message,
+} from "antd";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -29,6 +39,7 @@ import { ResizableBox } from "react-resizable";
 import debounce from "lodash.debounce";
 import TextArea from "antd/es/input/TextArea";
 import { appContext } from "../hooks/provider";
+import Item from "antd/es/list/Item";
 
 interface CodeProps {
   node?: any;
@@ -982,8 +993,8 @@ export const AgentFlowSpecView = ({
               options={
                 [
                   { label: "NEVER", value: "NEVER" },
-                  { label: "TERMINATE", value: "TERMINATE" },
-                  { label: "ALWAYS", value: "ALWAYS" },
+                  // { label: "TERMINATE", value: "TERMINATE" },
+                  // { label: "ALWAYS", value: "ALWAYS" },
                 ] as any
               }
             />
@@ -1277,13 +1288,78 @@ export const SkillLoader = ({
 const GroupChatFlowSpecView = ({
   flowSpec,
   setFlowSpec,
+  flowSpecs,
 }: {
   flowSpec: IGroupChatFlowSpec | null;
   setFlowSpec: (flowSpec: IGroupChatFlowSpec | null) => void;
+  flowSpecs: IAgentFlowSpec[];
 }) => {
   const [showAgentModal, setShowAgentModal] = React.useState(false);
   const [selectedAgent, setSelectedAgent] =
     React.useState<IAgentFlowSpec | null>(null);
+
+  const handleRemoveAgent = (index: number) => {
+    const updatedAgents = flowSpec?.groupchat_config.agents.filter(
+      (_, i) => i !== index
+    );
+    if (flowSpec?.groupchat_config && updatedAgents) {
+      setFlowSpec({
+        ...flowSpec,
+        groupchat_config: {
+          ...flowSpec?.groupchat_config,
+          agents: updatedAgents,
+        },
+      });
+    }
+  };
+
+  const handleAddAgent = (agent: IAgentFlowSpec) => {
+    if (flowSpec?.groupchat_config && flowSpec?.groupchat_config.agents) {
+      const updatedAgents = [...flowSpec?.groupchat_config.agents, agent];
+      if (flowSpec?.groupchat_config) {
+        setFlowSpec({
+          ...flowSpec,
+          groupchat_config: {
+            ...flowSpec?.groupchat_config,
+            agents: updatedAgents,
+          },
+        });
+      }
+    }
+  };
+
+  const agentItems: MenuProps["items"] = flowSpecs.map(
+    (flowSpec: IAgentFlowSpec, index: number) => ({
+      key: index,
+      label: flowSpec.config.name,
+      value: index,
+    })
+  );
+
+  const agentOnClick: MenuProps["onClick"] = ({ key }) => {
+    const selectedIndex = parseInt(key.toString());
+    const selectedAgent = flowSpecs[selectedIndex];
+    handleAddAgent(selectedAgent);
+  };
+
+  const AgentDropDown = () => {
+    return (
+      <Dropdown
+        menu={{ items: agentItems, onClick: agentOnClick }}
+        placement="bottomRight"
+      >
+        <div
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+          role="button"
+          onClick={(e) => {
+            // add agent to flowSpec?.groupchat_config.agents
+          }}
+        >
+          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+        </div>
+      </Dropdown>
+    );
+  };
 
   const agentsView = flowSpec?.groupchat_config.agents.map(
     (flowSpec: IAgentFlowSpec, index: number) => {
@@ -1307,8 +1383,8 @@ const GroupChatFlowSpecView = ({
             <div
               role="button"
               onClick={(e) => {
-                e.stopPropagation(); // Prevent opening the modal to edit
-                // handleRemoveConfig(i);
+                e.stopPropagation();
+                handleRemoveAgent(index);
               }}
               className="ml-1 text-primary hover:text-accent duration-300"
             >
@@ -1338,13 +1414,7 @@ const GroupChatFlowSpecView = ({
       <GroupView title="Group Chat Agents">
         <div className="flex flex-wrap mt-3">
           {agentsView}
-          <div
-            className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
-            role="button"
-            onClick={() => {}}
-          >
-            add <PlusIcon className="w-4 h-4 inline-block mt-1" />
-          </div>
+          <AgentDropDown />
         </div>
       </GroupView>
       <div className="h-2"> </div>
@@ -1435,8 +1505,9 @@ const AgentModal = ({
               {" "}
               Group Chat
               <GroupChatFlowSpecView
-                flowSpec={agent as IGroupChatFlowSpec}
-                setFlowSpec={setAgent}
+                flowSpec={localAgent as IGroupChatFlowSpec}
+                setFlowSpec={setLocalAgent}
+                flowSpecs={flowSpecs}
               />
             </div>
           )}

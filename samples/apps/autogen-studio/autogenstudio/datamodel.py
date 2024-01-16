@@ -58,7 +58,7 @@ class Skill(object):
 
 # autogenflow data models
 @dataclass
-class ModelConfig:
+class Model:
     """Data model for Model Config item in LLMConfig for AutoGen"""
 
     model: str
@@ -66,6 +66,9 @@ class ModelConfig:
     base_url: Optional[str] = None
     api_type: Optional[str] = None
     api_version: Optional[str] = None
+    id: Optional[str] = None
+    timestamp: Optional[str] = None
+    user_id: Optional[str] = None
 
     def dict(self):
         result = asdict(self)
@@ -185,7 +188,7 @@ class AgentWorkFlowConfig:
     description: str
     sender: AgentFlowSpec
     receiver: Union[AgentFlowSpec, GroupChatFlowSpec]
-    type: Literal["default", "groupchat"] = "default"
+    type: Literal["twoagents", "groupchat"] = "twoagents"
     id: Optional[str] = None
     user_id: Optional[str] = None
     timestamp: Optional[str] = None

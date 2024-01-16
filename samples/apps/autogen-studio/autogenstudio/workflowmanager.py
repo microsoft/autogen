@@ -46,9 +46,14 @@ class AutoGenWorkFlowManager:
             callback(sender, recipient, messages[-1])
         last_message = messages[-1]
 
+        sender = sender.name
+        recipient = recipient.name
+        if "name" in last_message:
+            sender = last_message["name"]
+
         iteration = {
-            "recipient": recipient.name,
-            "sender": sender.name,
+            "recipient": recipient,
+            "sender":  sender,
             "message": last_message,
             "timestamp": datetime.now().isoformat(),
         }
@@ -106,7 +111,7 @@ class AutoGenWorkFlowManager:
         """
 
         agent_spec.config.is_termination_msg = agent_spec.config.is_termination_msg or (
-            lambda x: "TERMINATE" in x.get("content", "").rstrip()
+            lambda x: "TERMINATE" in x.get("content", "").rstrip()[-20:]
         )
         skills_prompt = ""
         if agent_spec.skills:
