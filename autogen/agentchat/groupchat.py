@@ -3,7 +3,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Callable
 
 from ..code_utils import content_str
 from .agent import Agent
@@ -295,7 +295,13 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
 
 class GroupChatManager(ConversableAgent):
-    """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
+    """
+    (In preview) A chat manager agent that can manage a group chat of multiple agents.
+    
+    use_agent_stream: whether to use agent stream to communicate with the agents. Default is False.
+    get_socket_client_function: a function that returns a socket client. Default is None.
+    sid: the session id. Default is "".
+    """
 
     def __init__(
         self,
@@ -305,18 +311,43 @@ class GroupChatManager(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[Union[str, List]] = "Group chat manager.",
+        use_agent_stream: Optional[bool] = False,
+        get_socket_client_function: Optional[Callable] = None,
+        sid: Optional[str] = None,
         **kwargs,
     ):
         if kwargs.get("llm_config") and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools")):
             raise ValueError(
                 "GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in."
             )
+        
+        if use_agent_stream:
+            # Generate sid if None
+            if sid is None:
+                # Upper, digits. 5chars - 5chars - 5chars
+                candidates = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                sid = "-".join(
+                    [
+                        "".join(random.choices(candidates, k=5)),
+                        "".join(random.choices(candidates, k=5)),
+                        "".join(random.choices(candidates, k=5)),
+                    ]
+                )
+
+            # get_socket_client_function is required if use_agent_stream is True
+            if get_socket_client_function is None:
+                raise ValueError(
+                    "get_socket_client_function is required if use_agent_stream is True."
+                )
 
         super().__init__(
             name=name,
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
             system_message=system_message,
+            use_agent_stream=use_agent_stream,
+            get_socket_client_function=get_socket_client_function,
+            sid=sid,
             **kwargs,
         )
         # Store groupchat

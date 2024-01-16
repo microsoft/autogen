@@ -504,6 +504,19 @@ def test_selection_helpers():
         groupchat.manual_select_speaker()
 
 
+def test_value_error_for_missing_get_socket_client():
+    # Create 3 agents
+    agents = [autogen.agentchat.Agent(name="Agent1"), 
+              autogen.agentchat.Agent(name="Agent2"), 
+              autogen.agentchat.Agent(name="Agent3")]
+
+    with pytest.raises(ValueError, match="get_socket_client_function is required if use_agent_stream is True"):
+        autogen.agentchat.GroupChatManager(groupchat=autogen.agentchat.GroupChat(
+            agents = agents,
+            messages = []
+        ), use_agent_stream=True)
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -514,4 +527,6 @@ if __name__ == "__main__":
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    test_invalid_allow_repeat_speaker()
+    #test_invalid_allow_repeat_speaker()
+
+    test_value_error_for_missing_get_socket_client()

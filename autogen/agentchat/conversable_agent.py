@@ -4,6 +4,7 @@ import functools
 import inspect
 import json
 import logging
+import random
 import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
@@ -61,6 +62,9 @@ class ConversableAgent(Agent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         description: Optional[str] = None,
+        use_agent_stream: Optional[bool] = False,
+        get_socket_client_function: Optional[Callable] = None,
+        sid: Optional[str] = None,
     ):
         """
         Args:
@@ -160,6 +164,32 @@ class ConversableAgent(Agent):
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+
+        self.use_agent_stream = use_agent_stream
+        self.sid = sid
+
+        if self.use_agent_stream:
+            # Generate sid if None
+            if self.sid is None:
+                # Upper, digits. 5chars - 5chars - 5chars
+                candidates = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                sid = "-".join(
+                    [
+                        "".join(random.choices(candidates, k=5)),
+                        "".join(random.choices(candidates, k=5)),
+                        "".join(random.choices(candidates, k=5)),
+                    ]
+                )
+
+            # get_socket_client_function is required if use_agent_stream is True
+            if get_socket_client_function is None:
+                raise ValueError(
+                    "get_socket_client_function is required if use_agent_stream is True."
+                )
+            else:
+                self.socket_client = get_socket_client_function()
+
+        
 
     def register_reply(
         self,
