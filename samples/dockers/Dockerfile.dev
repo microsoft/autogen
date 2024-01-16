@@ -1,10 +1,12 @@
 # Basic setup
 FROM python:3.11-slim-bookworm
 
-# Update and install necessary packages
-RUN apt-get update && apt-get -y update
-# added vim and nano for convenience
-RUN apt-get install -y sudo git npm vim nano curl
+# Update and install dependencies
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        software-properties-common sudo git npm vim nano curl\
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Setup a non-root user 'autogen' with sudo access
 RUN adduser --disabled-password --gecos '' autogen
@@ -22,31 +24,27 @@ RUN git clone https://github.com/microsoft/autogen.git /home/autogen/autogen
 WORKDIR /home/autogen/autogen
 
 # Install AutoGen in editable mode with extra components
-RUN sudo pip install -e .[test,teachable,lmm,retrievechat,mathchat,blendsearch] autogenstudio
-
+RUN pip install -e .[test,teachable,lmm,retrievechat,mathchat,blendsearch] 
+# Pre-load popular Python packages
+RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
 # Install pre-commit hooks
 RUN pre-commit install
-
 # Setup Docusaurus and Yarn for the documentation website
 RUN sudo npm install --global yarn
-RUN sudo pip install pydoc-markdown
+RUN pip install pydoc-markdown
 RUN cd website
 RUN yarn install --frozen-lockfile --ignore-engines
 
-# Copy the autogenstudio-start.sh script into the working directory
-COPY docker-scripts/autogenstudio-start.sh /home/autogen/autogenstudio-start.sh
-RUN sudo chmod +x /home/autogen/autogenstudio-start.sh
-# Expose port for AutoGen Studio
-EXPOSE 8081
-
 # Copy the autogendocs-start.sh script into the working directory
-COPY docker-scripts/autogendocs-start.sh /home/autogen/autogendocs-start.sh
-RUN sudo chmod +x /home/autogen/autogendocs-start.sh
+COPY docker-scripts/autogendocs-start.sh /home/autogen/autogen/website/autogendocs-start.sh
+RUN sudo chmod +x /home/autogen/autogen/website/autogendocs-start.sh
 # Exposes the Yarn port for Docusaurus
 EXPOSE 3000
 
-# Pre-load popular Python packages
-RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
-
 # Set the default command to bash
 CMD ["/bin/bash"]
+# Start Command AutoGen Docs (ensure that the previous CMD lines are commented and uncomment the following line if you need to start AutoGen Docs)
+#CMD ["./autogendocs-start.sh"]
+
+# cmd to build image: docker build -t autogenstudio-dev_img -f Dockerfile.dev .
+# cmd to run container: docker run -it -p 3000:3000 --name autogenstudio-dev autogenstudio-dev_img

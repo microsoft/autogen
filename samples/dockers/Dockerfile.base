@@ -13,7 +13,8 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER autogen
 WORKDIR /home/autogen
 
-# Set environment variable if needed
+# Set environment variable
+ENV PATH="/home/autogen/.local/bin:$PATH"
 ENV OPENAI_API_KEY="{OpenAI-API-Key}"
 
 # Pre-load popular packages as per https://learnpython.com/blog/most-popular-python-packages/
@@ -26,7 +27,10 @@ RUN sudo chmod +x /home/autogen/autogenstudio-start.sh
 # Expose port
 EXPOSE 8081
 
-# Start Command AutoGen Studio
+# Start Command AutoGen Studio 
 CMD ["./autogenstudio-start.sh"]
-# if you need a bash shell, uncomment the following line and comment the previous line
+# Set the default command to bash (comment the previous line and uncomment the following line if you need to start bash)
 #CMD ["/bin/bash"]
+
+# cmd to build image: docker build -t autogenstudio-base_img -f Dockerfile.base .
+# cmd to run container: docker run -it --rm -p 8081:8081 --name autogenstudio-base autogenstudio-base_img

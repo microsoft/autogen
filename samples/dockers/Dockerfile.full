@@ -35,5 +35,5 @@ CMD ["./autogenstudio-start.sh"]
 # if you need a bash shell, uncomment the following line and comment the previous line
 #CMD ["/bin/bash"]
 
-# cmd to build image: docker build -t autogenstudio_img -f Dockerfile.full .
-# cmd to run container: docker run -it --rm -p 8081:8081 --name autogenstudio autogenstudio_img
+# cmd to build image: docker build -t autogenstudio_full_img -f Dockerfile.full .
+# cmd to run container: docker run -it --rm -p 8081:8081 --name autogenstudio-full autogenstudio_full_img
