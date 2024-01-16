@@ -17,8 +17,7 @@ else:
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
-@pytest.mark.asyncio
-async def test_get_human_input():
+def test_get_human_input():
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
     # create an AssistantAgent instance named "assistant"
@@ -30,18 +29,16 @@ async def test_get_human_input():
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
 
-    # Use MagicMock to wrap the custom_a_get_human_input function
-    custom_a_get_human_input = MagicMock(return_value="This is a test")
-
-    user_proxy.get_human_input = custom_a_get_human_input
+    # Use MagicMock to create a mock get_human_input function
+    user_proxy.get_human_input = MagicMock(return_value="This is a test")
 
     user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
 
-    await user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
+    user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
 
     # Assert that custom_a_get_human_input was called at least once
-    custom_a_get_human_input.assert_called()
+    user_proxy.get_human_input.assert_called()
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    test_get_human_input()
