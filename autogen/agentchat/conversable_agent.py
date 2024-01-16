@@ -229,7 +229,7 @@ class ConversableAgent(Agent):
                 "reset_config": reset_config,
             },
         )
-        if ignore_async_in_sync_chat and asyncio.coroutines.iscoroutinefunction(reply_func):
+        if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @property
@@ -629,7 +629,7 @@ class ConversableAgent(Agent):
             self._ignore_async_func_in_sync_chat_list
         )
 
-        async_reply_functions = [f for f in reply_functions if asyncio.coroutines.iscoroutinefunction(f)]
+        async_reply_functions = [f for f in reply_functions if inspect.iscoroutinefunction(f)]
         if async_reply_functions != []:
             msg = (
                 "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). The following async reply functions are found: "
@@ -849,7 +849,7 @@ class ConversableAgent(Agent):
         if "function_call" in message and message["function_call"]:
             func_call = message["function_call"]
             func = self._function_map.get(func_call.get("name", None), None)
-            if asyncio.coroutines.iscoroutinefunction(func):
+            if inspect.iscoroutinefunction(func):
                 return False, None
 
             _, func_return = self.execute_function(message["function_call"])
@@ -877,7 +877,7 @@ class ConversableAgent(Agent):
             func_call = message["function_call"]
             func_name = func_call.get("name", "")
             func = self._function_map.get(func_name, None)
-            if func and asyncio.coroutines.iscoroutinefunction(func):
+            if func and inspect.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
 
@@ -906,7 +906,7 @@ class ConversableAgent(Agent):
             id = tool_call["id"]
             function_call = tool_call.get("function", {})
             func = self._function_map.get(function_call.get("name", None), None)
-            if asyncio.coroutines.iscoroutinefunction(func):
+            if inspect.iscoroutinefunction(func):
                 continue
             _, func_return = self.execute_function(function_call)
             tool_returns.append(
@@ -1231,7 +1231,7 @@ class ConversableAgent(Agent):
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
                 continue
-            if asyncio.coroutines.iscoroutinefunction(reply_func):
+            if inspect.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
@@ -1288,7 +1288,7 @@ class ConversableAgent(Agent):
             if exclude and reply_func in exclude:
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
-                if asyncio.coroutines.iscoroutinefunction(reply_func):
+                if inspect.iscoroutinefunction(reply_func):
                     final, reply = await reply_func(
                         self, messages=messages, sender=sender, config=reply_func_tuple["config"]
                     )
@@ -1537,7 +1537,7 @@ class ConversableAgent(Agent):
                     flush=True,
                 )
                 try:
-                    if asyncio.coroutines.iscoroutinefunction(func):
+                    if inspect.iscoroutinefunction(func):
                         content = await func(**arguments)
                     else:
                         # Fallback to sync function if the function is not async
