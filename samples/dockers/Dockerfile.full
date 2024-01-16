@@ -15,15 +15,25 @@ USER autogen
 WORKDIR /home/autogen
 
 # Set environment variable if needed
-# ENV OPENAI_API_KEY="{OpenAI-API-Key}"
+ENV PATH="/home/autogen/.local/bin:$PATH"
+ENV OPENAI_API_KEY="{OPENAI_API_KEY}"
 
 # Install Python packages
 RUN pip install --upgrade pip
-RUN pip install pyautogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra
+RUN pip install pyautogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra autogenstudio
 RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
+
+# Copy the autogenstudio-start.sh script into the working directory
+COPY docker-scripts/autogenstudio-start.sh /home/autogen/autogenstudio-start.sh
+RUN sudo chmod +x /home/autogen/autogenstudio-start.sh
 
 # Expose port
 EXPOSE 8081
 
-# Start Command
-CMD ["/bin/bash"]
+# Start Command AutoGen Studio
+CMD ["./autogenstudio-start.sh"]
+# if you need a bash shell, uncomment the following line and comment the previous line
+#CMD ["/bin/bash"]
+
+# cmd to build image: docker build -t autogenstudio_img -f Dockerfile.full .
+# cmd to run container: docker run -it --rm -p 8081:8081 --name autogenstudio autogenstudio_img
