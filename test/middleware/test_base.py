@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import inspect
 from typing import Any, Awaitable, Callable, Type
 from unittest.mock import AsyncMock, MagicMock
@@ -6,16 +8,13 @@ import pytest
 
 from autogen.middleware.base import (
     Hookable,
-    _build_middleware_chain,
     _check_middleware,
     _get_next_function,
     add_middleware,
-    get_compatible_function,
+    match_caller_type,
     hookable,
     set_middlewares,
 )
-
-from ..mocks import monitor_calls
 
 
 class MyMiddlewareSync:
@@ -59,24 +58,52 @@ def test_format_function() -> None:
     assert f(1, 2, 3, a=4, b=5) == "f(1, 2, 3, a=4, b=5)"
 
 
+# @pytest.mark.asyncio()
+# async def test_match_caller_type_composition() -> None:
+#     def f1(*args: Any, **kwargs: Any) -> Any:
+#         return format_function(f1, *args, **kwargs)
+
+#     def f2(*args: Any, **kwargs: Any) -> Any:
+#         return format_function(f2, *args, **kwargs)
+
+#     async def a_f1(*args: Any, **kwargs: Any) -> Any:
+#         return format_function(a_f1, *args, **kwargs)
+
+#     async def a_f2(*args: Any, **kwargs: Any) -> Any:
+#         return format_function(a_f2, *args, **kwargs)
+
+#     a_x1 = match_caller_type(callee=f1, caller=a_f1)
+#     assert inspect.iscoroutinefunction(a_x1)
+#     assert await a_x1(1, 2, 3, a=4, b=5) == "f1(1, 2, 3, a=4, b=5)"
+
+#     x2 = match_caller_type(callee=a_f2, caller=f1)
+#     assert not inspect.iscoroutinefunction(x2)
+#     assert x2(1, 2, 3, a=4, b=5) == "a_f2(1, 2, 3, a=4, b=5)"
+
+
+def run_in_thread_pool(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Awaitable[Any]:
+    loop = asyncio.get_running_loop()
+    return loop.run_in_executor(None, functools.partial(f, *args, **kwargs))
+
+
 @pytest.mark.asyncio()
-async def test__get_compatible_function() -> None:
+async def test_match_caller_type() -> None:
     def f(*args: Any, **kwargs: Any) -> Any:
         return format_function(f, *args, **kwargs)
 
     async def a_f(*args: Any, **kwargs: Any) -> Any:
         return format_function(a_f, *args, **kwargs)
 
-    assert get_compatible_function(callee=f, caller=f) == f
-    assert get_compatible_function(callee=a_f, caller=a_f) == a_f
+    assert match_caller_type(callee=f, caller=f) == f
+    assert match_caller_type(callee=a_f, caller=a_f) == a_f
 
-    a_f2 = get_compatible_function(callee=f, caller=a_f)
+    a_f2 = match_caller_type(callee=f, caller=a_f)
     assert inspect.iscoroutinefunction(a_f2)
     assert await a_f2(1, 2, 3, a=4, b=5) == "f(1, 2, 3, a=4, b=5)"
 
-    with pytest.raises(TypeError) as e:
-        get_compatible_function(callee=a_f, caller=f)
-    assert "Cannot call async function from sync function:" in str(e.value)
+    f3 = match_caller_type(callee=a_f, caller=f)
+    assert not inspect.iscoroutinefunction(f3)
+    assert await run_in_thread_pool(f3, 1, 2, 3, a=4, b=5) == "a_f(1, 2, 3, a=4, b=5)"
 
 
 @pytest.mark.asyncio()
@@ -194,9 +221,14 @@ async def test__get_next_function(trigger_value: bool) -> None:
         assert next_f(1, 2, 3, a=4, b=5) == "mw.call(next_mock(...))"
     next_mock.assert_called_once_with(1, 2, 3, a=4, b=5)
 
-    with pytest.raises(TypeError) as e:
-        _get_next_function(f, amw, next_mock)
-    assert "Cannot call async function from sync function" in str(e.value)
+    next_mock = MagicMock(return_value="next_mock(...)")
+    next_f = _get_next_function(f, amw, next_mock)
+    assert not inspect.iscoroutinefunction(next_f)
+    # sync next_f -> async amw.call -> sync next_mock
+    actual = await run_in_thread_pool(next_f, 1, 2, 3, a=4, b=5)
+    expected = "next_mock(...)" if trigger_value is False else "amw.call(next_mock(...))"
+    assert actual == expected
+    next_mock.assert_called_once_with(1, 2, 3, a=4, b=5)
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
     a_next_f = _get_next_function(a_f, amw, a_next_mock)
@@ -207,10 +239,10 @@ async def test__get_next_function(trigger_value: bool) -> None:
     a_next_mock.assert_awaited_once_with(1, 2, 3, a=4, b=5)
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
-    with pytest.raises(NotImplementedError) as e:
-        a_next_f = _get_next_function(a_f, mw, a_next_mock)
-    # assert await a_next_f(1, 2, 3, a=4, b=5) == "mw.call(a_next_mock(...))"
-    # a_next_mock.assert_awaited_once_with(1, 2, 3, a=4, b=5)
+    # with pytest.raises(NotImplementedError) as e:
+    a_next_f = _get_next_function(a_f, mw, a_next_mock)
+    assert await a_next_f(1, 2, 3, a=4, b=5) == "mw.call(a_next_mock(...))"
+    a_next_mock.assert_awaited_once_with(1, 2, 3, a=4, b=5)
 
 
 @pytest.mark.parametrize("trigger_value", [None, True, False])

@@ -1,6 +1,8 @@
 import asyncio
+import functools
 import inspect
 from functools import wraps
+import threading
 from typing import Any, Callable, List, Optional, Protocol
 
 from typing_extensions import TypeVar
@@ -84,48 +86,54 @@ def hookable(f: F) -> Hookable:
     return h
 
 
-def get_compatible_function(*, callee: Callable[..., Any], caller: Callable[..., Any]) -> Callable[..., Any]:
-    """Get a function executing `src` that can be called from `dst`.
+def match_caller_type(*, callee: Callable[..., Any], caller: Callable[..., Any]) -> Callable[..., Any]:
+    """Match the caller type of two functions.
 
     If both `callee` and `caller` are both async or both sync functions, then `callee` is returned.
     If `callee` is sync and `caller` is async, then a wrapper is returned that calls `callee` and awaits the result.
-    If `callee` is async and `caller` is sync, then an error is raised.
+    If `callee` is async and `caller` is sync, a wrapper is returned that waits for `callee` and returns the result.
 
     Args:
         callee: The source function.
         caller: The destination function.
 
     Returns:
-        A function that can be called from `caller`.
+        A function that matches the caller type of `caller`.
 
     Raises:
         TypeError: If `callee` is async and `caller` is sync.
     """
-    if inspect.iscoroutinefunction(caller):
-        if inspect.iscoroutinefunction(callee):
-            # both async functions
-            return callee
-        else:
-            # src is sync, dst is async
-            @wraps(callee)
-            async def _async_wrapper(*args: Any, **kwargs: Any) -> Any:
-                return callee(*args, **kwargs)
+    # return the callee if already the same type
+    if inspect.iscoroutinefunction(caller) == inspect.iscoroutinefunction(callee):
+        return callee
 
-            return _async_wrapper
+    loop = asyncio.get_running_loop()
+
+    if inspect.iscoroutinefunction(callee):
+
+        @wraps(callee)
+        def _sync_callee(*args: Any, **kwargs: Any) -> Any:
+            coro = callee(*args, **kwargs)
+            future = asyncio.run_coroutine_threadsafe(coro, loop)
+            return future.result(
+                timeout=2
+            )  # This will block until the coroutine has completed or the timeout is reached
+
+        return _sync_callee
     else:
-        if inspect.iscoroutinefunction(callee):
-            raise TypeError(f"Cannot call async function from sync function: callee={callee}, caller={caller}")
-        else:
-            # both sync functions
-            return callee
+
+        @wraps(callee)
+        async def _async_callee(*args: Any, **kwargs: Any) -> Any:
+            return await loop.run_in_executor(None, functools.partial(callee, *args, **kwargs))
+
+        return _async_callee
 
 
 def _get_next_function(h: Hookable, mw: Middleware, next: Callable[..., Any]) -> Callable[..., Any]:
-    trigger = get_compatible_function(callee=mw.trigger, caller=h._origin) if hasattr(mw, "trigger") else None
-    call = get_compatible_function(callee=mw.call, caller=h._origin)
-    if inspect.iscoroutinefunction(call) and not inspect.iscoroutinefunction(mw.call):
-        # todo: execute async function in thread pool
-        raise NotImplementedError("Currently cannot call async function from sync function: {mw=}, {h=} ")
+    next = match_caller_type(callee=next, caller=mw.call)
+    # next = match_caller_type(callee=next, caller=h._origin)
+    call = match_caller_type(callee=mw.call, caller=h._origin)
+    trigger = match_caller_type(callee=mw.trigger, caller=h._origin) if hasattr(mw, "trigger") else None
 
     @wraps(call)
     async def _chain_async(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
