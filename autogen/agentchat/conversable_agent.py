@@ -20,6 +20,7 @@ from ..code_utils import (
     infer_lang,
 )
 
+
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 from .._pydantic import model_dump
@@ -139,7 +140,7 @@ class ConversableAgent(Agent):
             {} if code_execution_config is None else code_execution_config
         )
 
-        if isinstance(self._code_execution_config, Dict):
+        if isinstance(self._code_execution_config, dict):
             use_docker = self._code_execution_config.get("use_docker", None)
             use_docker = decide_use_docker(use_docker)
             check_use_docker(use_docker)

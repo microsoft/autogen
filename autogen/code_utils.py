@@ -281,11 +281,11 @@ def check_use_docker(use_docker) -> None:
         docker_installed_and_running = is_docker_running()
         if use_docker and not inside_docker and not docker_installed_and_running:
             raise RuntimeError(
-                'Docker is not running, please make sure docker is running (advised approach for code execution) or set "use_docker":False.'
-            )
-        if not use_docker:
-            logger.warning(
-                'use_docker was set to False. Any code execution will be run natively but we strongly advise to set "use_docker":True. Set "use_docker":None to silence this message.'
+                "Code execution is set to be run in docker (default behaviour) but docker is not running.\n"
+                "The options available are:\n"
+                "- Make sure docker is running (advised approach for code execution)\n"
+                '- Set "use_docker": False in code_execution_config\n'
+                '- Set AUTOGEN_USE_DOCKER to "0/False/no" in your environment variables'
             )
 
 
