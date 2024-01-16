@@ -309,3 +309,6 @@ def test_example() -> None:
     assert a.go(1, 2, 3, a=4, b=5) == "mw.call(a.go(1, 2, 3, a=4, b=5))"
     assert a.go(1, 2, 3, a=4, b=5, skip_middleware=False) == "mw.call(a.go(1, 2, 3, a=4, b=5, skip_middleware=False))"
     assert a.go(1, 2, 3, a=4, b=5, skip_middleware=True) == "a.go(1, 2, 3, a=4, b=5, skip_middleware=True)"
+
+    add_middleware(A.go, A.MyMiddleware("MW"))
+    assert a.go(1, 2, 3, a=4, b=5) == "mw.call(MW.call(a.go(1, 2, 3, a=4, b=5)))"
