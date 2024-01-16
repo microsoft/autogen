@@ -281,3 +281,31 @@ async def test_set_middlewares() -> None:
     set_middlewares(a_f, mws_async)
     assert a_f._middlewares == [MyMiddlewareAsync("a_a"), MyMiddlewareAsync("a_b"), MyMiddlewareAsync("a_c")]
     assert await a_f(1, 2, 3, a=4, b=5) == "a_a.call(a_b.call(a_c.call(a_f(1, 2, 3, a=4, b=5))))"
+
+
+def test_example() -> None:
+    class A:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        @hookable
+        def go(self, *args: Any, **kwargs: Any) -> str:
+            return f"{self.name}.{format_function(self.go, *args, **kwargs)}"
+
+        class MyMiddleware:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def call(self, *args: Any, next: Callable[..., Any], **kwargs: Any) -> str:
+                retval = next(*args, **kwargs)
+                return f"{self.name}.{format_function(self.call, retval)}"
+
+            def trigger(self, *args: Any, **kwargs: Any) -> bool:
+                return not ("skip_middleware" in kwargs and kwargs["skip_middleware"])
+
+    a = A("a")
+    add_middleware(A.go, A.MyMiddleware("mw"))
+
+    assert a.go(1, 2, 3, a=4, b=5) == "mw.call(a.go(1, 2, 3, a=4, b=5))"
+    assert a.go(1, 2, 3, a=4, b=5, skip_middleware=False) == "mw.call(a.go(1, 2, 3, a=4, b=5, skip_middleware=False))"
+    assert a.go(1, 2, 3, a=4, b=5, skip_middleware=True) == "a.go(1, 2, 3, a=4, b=5, skip_middleware=True)"
