@@ -176,5 +176,4 @@ test/test_files/agenteval-in-out/out/
 *tmp_code_*
 test/agentchat/test_agent_scripts/*
 
-.devcontainer/
 ```
