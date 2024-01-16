@@ -2,7 +2,7 @@ import asyncio
 import sys
 
 
-async def ainput(prompt: str) -> str:
+async def a_input(prompt: str) -> str:
     """
     Async alternative to input()
     Args:

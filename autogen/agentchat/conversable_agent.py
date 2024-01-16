@@ -13,7 +13,7 @@ from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extr
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 from .._pydantic import model_dump
-from ..misc_utils import ainput
+from ..misc_utils import a_input
 
 try:
     from termcolor import colored
@@ -1356,7 +1356,7 @@ class ConversableAgent(Agent):
         Returns:
             str: human input.
         """
-        reply = await ainput(prompt)
+        reply = await a_input(prompt)
         return reply
 
     def run_code(self, code, **kwargs):
