@@ -484,7 +484,12 @@ class ConversableAgent(Agent):
                 return  # If role is tool, then content is just a concatenation of all tool_responses
 
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
+            if message["role"] == "function":
+                id_key = "name"
+            else:
+                id_key = "tool_call_id"
+
+            func_print = f"***** Response from calling {message['role']} \"{message[id_key]}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
@@ -884,10 +889,9 @@ class ConversableAgent(Agent):
         return False, None
 
     def _str_for_tool_response(self, tool_response):
-        func_name = tool_response.get("name", "")
         func_id = tool_response.get("tool_call_id", "")
         response = tool_response.get("content", "")
-        return f"Tool call: {func_name}\nId: {func_id}\n{response}"
+        return f"Tool Call Id: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
         self,
@@ -913,7 +917,6 @@ class ConversableAgent(Agent):
                 {
                     "tool_call_id": id,
                     "role": "tool",
-                    "name": func_return.get("name", ""),
                     "content": func_return.get("content", ""),
                 }
             )
@@ -932,7 +935,6 @@ class ConversableAgent(Agent):
         return {
             "tool_call_id": id,
             "role": "tool",
-            "name": func_return.get("name", ""),
             "content": func_return.get("content", ""),
         }
 
