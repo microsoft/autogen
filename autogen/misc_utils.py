@@ -11,6 +11,6 @@ async def a_input(prompt: str) -> str:
     Returns: The stdin str.
 
     """
-    await asyncio.get_event_loop().run_in_executor(None, lambda s=prompt: sys.stdout.write(s + " "))
+    sys.stdout.write(prompt)
     user_input: str = await asyncio.get_event_loop().run_in_executor(None, sys.stdin.readline)
     return user_input.strip()
