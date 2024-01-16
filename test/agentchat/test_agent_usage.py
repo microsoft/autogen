@@ -4,6 +4,8 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
 from conftest import skip_openai
 import autogen
+import io
+from contextlib import redirect_stdout
 
 try:
     import openai
@@ -112,9 +114,17 @@ def test_agent_usage():
     )
 
     # test print
-    ai_user_proxy.print_usage_summary()
-    print()
-    assistant.print_usage_summary()
+    captured_output = io.StringIO()
+    with redirect_stdout(captured_output):
+        ai_user_proxy.print_usage_summary()
+    output = captured_output.getvalue()
+    assert "Usage summary excluding cached usage:" in output
+
+    captured_output = io.StringIO()
+    with redirect_stdout(captured_output):
+        assistant.print_usage_summary()
+    output = captured_output.getvalue()
+    assert "All completions are non-cached:" in output
 
     # test get
     print("Actual usage summary (excluding completion from cache):", assistant.get_actual_usage())

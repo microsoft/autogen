@@ -1891,6 +1891,7 @@ class ConversableAgent(Agent):
         return messages
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
+        """Print the usage summary."""
         if self.client is None:
             print(f"No cost incurred from agent '{self.name}'.")
         else:
