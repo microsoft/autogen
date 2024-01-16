@@ -1,6 +1,7 @@
 import asyncio
 import autogen
 import pytest
+from unittest.mock import AsyncMock
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
 import os
@@ -30,8 +31,8 @@ async def test_async_get_human_input():
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
 
-    async def custom_a_get_human_input(prompt):
-        return "This is a test"
+    # Use AsyncMock to wrap the custom_a_get_human_input function
+    custom_a_get_human_input = AsyncMock(return_value="This is a test")
 
     user_proxy.a_get_human_input = custom_a_get_human_input
 
@@ -39,6 +40,5 @@ async def test_async_get_human_input():
 
     await user_proxy.a_initiate_chat(assistant, clear_history=True, message="Hello.")
 
-
-if __name__ == "__main__":
-    test_async_get_human_input()
+    # Assert that custom_a_get_human_input was called at least once
+    custom_a_get_human_input.assert_called()
