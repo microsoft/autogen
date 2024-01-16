@@ -27,7 +27,7 @@ RUN sudo chmod +x /home/autogen/autogenstudio-start.sh
 # Expose port
 EXPOSE 8081
 
-# Start Command AutoGen Studio 
+# Start Command AutoGen Studio
 CMD ["./autogenstudio-start.sh"]
 # Set the default command to bash (comment the previous line and uncomment the following line if you need to start bash)
 #CMD ["/bin/bash"]
