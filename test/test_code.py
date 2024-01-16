@@ -309,6 +309,10 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"],
+    reason="do not run on MacOS or Windows",
+)
 def test_execute_code(use_docker=None):
     try:
         import docker
