@@ -6,9 +6,9 @@ with open("requirements.txt") as f:
 
 setup(
     name="tinyra",
-    version="0.1",
+    version="0.2.0.post1",
     description="A minimalistic research assistant built with AutoGen.",
-    py_modules=["tui"],
+    py_modules=["tui", "run_tab"],
     install_requires=requirements,
     entry_points={
         "console_scripts": [
