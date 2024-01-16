@@ -20,7 +20,7 @@ class UserProxyAgent(ConversableAgent):
     DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
         "ALWAYS": "An attentive HUMAN user who can answer questions about the task, and can perform tasks such as running Python code or inputting command line commands at a Linux terminal and reporting back the execution results.",
         "TERMINATE": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
-        "NEVER": "A user that can run Python code or input command line commands at a Linux terminal and report back the execution results.",
+        "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
     }
 
     def __init__(
