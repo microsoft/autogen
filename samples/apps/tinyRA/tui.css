@@ -1,0 +1,59 @@
+Screen{
+    layout: grid;
+    grid-size: 10 10;
+    padding: 1;
+    /* grid-rows: 1fr;
+    grid-columns: 1fr; */
+}
+
+#chat-history {
+    /* margin: 1; */
+    padding: 1;
+    row-span: 9;
+    column-span: 6;
+    /* border: solid red; */
+}
+
+#chat-input{
+    /* margin: 1; */
+    /* padding: 1; */
+    row-span: 1;
+    column-span: 6;
+    /* height: 100%; */
+    /* width: 100%; */
+    /* border: solid red; */
+
+}
+
+#skills{
+    /* border: solid green; */
+    row-span: 10;
+    column-span: 4;
+    height: 100%;
+    padding: 1;
+    /* border: solid red; */
+}
+
+.message{
+    padding: 1;
+    margin: 1;
+}
+
+.info-message {
+    color: grey;
+    text-opacity: 60%;
+
+}
+
+.error-message {
+    color: $error;
+    text-opacity: 60%;
+}
+
+.user-message {
+    background: $boost;
+}
+
+.assistant-message {
+    border: dashed white;
+}
