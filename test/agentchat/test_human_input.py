@@ -30,9 +30,7 @@ def test_get_human_input():
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
 
     # Use MagicMock to create a mock get_human_input function
-    custom_a_get_human_input = MagicMock(return_value="This is a test")
-
-    user_proxy.get_human_input = custom_a_get_human_input
+    user_proxy.get_human_input = MagicMock(return_value="This is a test")
 
     user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
 
@@ -41,7 +39,7 @@ def test_get_human_input():
     user_proxy.initiate_chat(assistant, clear_history=True)
 
     # Assert that custom_a_get_human_input was called at least once
-    custom_a_get_human_input.assert_called()
+    user_proxy.get_human_input.assert_called()
 
 
 if __name__ == "__main__":
