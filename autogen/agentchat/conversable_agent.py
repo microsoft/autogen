@@ -1718,6 +1718,7 @@ class ConversableAgent(Agent):
                 For Azure OpenAI API, use version 2023-12-01-preview or later.
                 `"function"` style will be deprecated. For earlier version use
                 `"function"` if `"tool"` doesn't work.
+                See [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/function-calling?tabs=python) for details.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1731,7 +1732,7 @@ class ConversableAgent(Agent):
                  return a + str(b * c)
             ```
 
-            For Azure OpenAI versions 2023-10-01-preview and earlier, set `api_style`
+            For Azure OpenAI versions prior to 2023-12-01-preview, set `api_style`
             to `"function"` if `"tool"` doesn't work:
             ```
             @agent2.register_for_llm(api_style="function")
