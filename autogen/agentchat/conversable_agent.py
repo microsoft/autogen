@@ -1555,7 +1555,7 @@ class ConversableAgent(Agent):
             "content": str(content),
         }
 
-    def generate_init_message(self, **context) -> Union[str, Dict]:
+    def generate_init_message(self, **context) -> Union[str, Dict[str, Any]]:
         """Generate the initial message for the agent.
 
         Override this function to customize the initial message based on user's request.
@@ -1566,7 +1566,7 @@ class ConversableAgent(Agent):
         """
         return context["message"]
 
-    async def a_generate_init_message(self, **context) -> Union[str, Dict]:
+    async def a_generate_init_message(self, **context) -> Union[str, Dict[str, Any]]:
         """Generate the initial message for the agent.
 
         Override this function to customize the initial message based on user's request.
