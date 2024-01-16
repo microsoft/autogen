@@ -484,7 +484,12 @@ class ConversableAgent(Agent):
                 return  # If role is tool, then content is just a concatenation of all tool_responses
 
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
+            if message["role"] == "function":
+                id_key = "name"
+            else:
+                id_key = "tool_call_id"
+
+            func_print = f"***** Response from calling {message['role']} \"{message[id_key]}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
