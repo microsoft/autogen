@@ -141,16 +141,21 @@ class ConversableAgent(Agent):
         )
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
+        self._ignore_async_func_in_sync_chat_list = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply)
+        self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_function_call_reply)
+        self.register_reply(
+            [Agent, None], ConversableAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=True
+        )
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_check_termination_and_human_reply)
+        self.register_reply(
+            [Agent, None], ConversableAgent.a_check_termination_and_human_reply, ignore_async_in_sync_chat=True
+        )
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
@@ -163,12 +168,21 @@ class ConversableAgent(Agent):
         position: int = 0,
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
+        *,
+        ignore_async_in_sync_chat: bool = False,
     ):
         """Register a reply function.
 
         The reply function will be called when the trigger matches the sender.
         The function registered later will be checked earlier by default.
         To change the order, set the position to a positive integer.
+
+        Both sync and async reply functions can be registered. The sync reply function will be triggered
+        from both sync and async chats. However, an async reply function will only be triggered from async
+        chats (initiated with `ConversableAgent.a_initiate_chat`). If an `async` reply function is registered
+        and a chat is initialized with a sync function, `ignore_async_in_sync_chat` determines the behaviour as follows:
+        - if `ignore_async_in_sync_chat` is set to `False` (default value), an exception will be raised, and
+        - if `ignore_async_in_sync_chat` is set to `True`, the reply function will be ignored.
 
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): the trigger.
@@ -181,6 +195,12 @@ class ConversableAgent(Agent):
                 Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
             reply_func (Callable): the reply function.
                 The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
+            position: the position of the reply function in the reply function list.
+            config: the config to be passed to the reply function, see below.
+            reset_config: the function to reset the config, see below.
+            ignore_async_in_sync_chat: whether to ignore the async reply function in sync chats. If `False`, an exception
+                will be raised if an async reply function is registered and a chat is initialized with a sync
+                function.
         ```python
         def reply_func(
             recipient: ConversableAgent,
@@ -209,6 +229,8 @@ class ConversableAgent(Agent):
                 "reset_config": reset_config,
             },
         )
+        if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
+            self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @property
     def system_message(self) -> Union[str, List]:
@@ -462,7 +484,12 @@ class ConversableAgent(Agent):
                 return  # If role is tool, then content is just a concatenation of all tool_responses
 
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
+            if message["role"] == "function":
+                id_key = "name"
+            else:
+                id_key = "tool_call_id"
+
+            func_print = f"***** Response from calling {message['role']} \"{message[id_key]}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
@@ -597,6 +624,25 @@ class ConversableAgent(Agent):
             self.clear_history(recipient)
             recipient.clear_history(self)
 
+    def _raise_exception_on_async_reply_functions(self) -> None:
+        """Raise an exception if any async reply functions are registered.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered.
+        """
+        reply_functions = {f["reply_func"] for f in self._reply_func_list}.difference(
+            self._ignore_async_func_in_sync_chat_list
+        )
+
+        async_reply_functions = [f for f in reply_functions if inspect.iscoroutinefunction(f)]
+        if async_reply_functions != []:
+            msg = (
+                "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). The following async reply functions are found: "
+                + ", ".join([f.__name__ for f in async_reply_functions])
+            )
+
+            raise RuntimeError(msg)
+
     def initiate_chat(
         self,
         recipient: "ConversableAgent",
@@ -616,7 +662,12 @@ class ConversableAgent(Agent):
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
+
+        Raises:
+            RuntimeError: if any async reply functions are registered and not ignored in sync chat.
         """
+        for agent in [self, recipient]:
+            agent._raise_exception_on_async_reply_functions()
         self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
 
@@ -803,7 +854,7 @@ class ConversableAgent(Agent):
         if "function_call" in message and message["function_call"]:
             func_call = message["function_call"]
             func = self._function_map.get(func_call.get("name", None), None)
-            if asyncio.coroutines.iscoroutinefunction(func):
+            if inspect.iscoroutinefunction(func):
                 return False, None
 
             _, func_return = self.execute_function(message["function_call"])
@@ -831,17 +882,16 @@ class ConversableAgent(Agent):
             func_call = message["function_call"]
             func_name = func_call.get("name", "")
             func = self._function_map.get(func_name, None)
-            if func and asyncio.coroutines.iscoroutinefunction(func):
+            if func and inspect.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
                 return True, func_return
 
         return False, None
 
     def _str_for_tool_response(self, tool_response):
-        func_name = tool_response.get("name", "")
         func_id = tool_response.get("tool_call_id", "")
         response = tool_response.get("content", "")
-        return f"Tool call: {func_name}\nId: {func_id}\n{response}"
+        return f"Tool Call Id: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
         self,
@@ -855,24 +905,22 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
-        if "tool_calls" in message and message["tool_calls"]:
-            tool_calls = message["tool_calls"]
-            tool_returns = []
-            for tool_call in tool_calls:
-                id = tool_call["id"]
-                function_call = tool_call.get("function", {})
-                func = self._function_map.get(function_call.get("name", None), None)
-                if asyncio.coroutines.iscoroutinefunction(func):
-                    continue
-                _, func_return = self.execute_function(function_call)
-                tool_returns.append(
-                    {
-                        "tool_call_id": id,
-                        "role": "tool",
-                        "name": func_return.get("name", ""),
-                        "content": func_return.get("content", ""),
-                    }
-                )
+        tool_returns = []
+        for tool_call in message.get("tool_calls", []):
+            id = tool_call["id"]
+            function_call = tool_call.get("function", {})
+            func = self._function_map.get(function_call.get("name", None), None)
+            if inspect.iscoroutinefunction(func):
+                continue
+            _, func_return = self.execute_function(function_call)
+            tool_returns.append(
+                {
+                    "tool_call_id": id,
+                    "role": "tool",
+                    "content": func_return.get("content", ""),
+                }
+            )
+        if tool_returns:
             return True, {
                 "role": "tool",
                 "tool_responses": tool_returns,
@@ -887,7 +935,6 @@ class ConversableAgent(Agent):
         return {
             "tool_call_id": id,
             "role": "tool",
-            "name": func_return.get("name", ""),
             "content": func_return.get("content", ""),
         }
 
@@ -905,10 +952,8 @@ class ConversableAgent(Agent):
         message = messages[-1]
         async_tool_calls = []
         for tool_call in message.get("tool_calls", []):
-            func = self._function_map.get(tool_call.get("function", {}).get("name", None), None)
-            if func and asyncio.coroutines.iscoroutinefunction(func):
-                async_tool_calls.append(self._a_execute_tool_call(tool_call))
-        if len(async_tool_calls) > 0:
+            async_tool_calls.append(self._a_execute_tool_call(tool_call))
+        if async_tool_calls:
             tool_returns = await asyncio.gather(*async_tool_calls)
             return True, {
                 "role": "tool",
@@ -1017,7 +1062,9 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            response = {"role": "user", "content": reply}
+            if tool_returns:
+                response["tool_responses"] = tool_returns
 
             return True, response
 
@@ -1125,7 +1172,10 @@ class ConversableAgent(Agent):
                     ]
                 )
 
-            response = {"role": "user", "content": reply, "tool_responses": tool_returns}
+            response = {"role": "user", "content": reply}
+            if tool_returns:
+                response["tool_responses"] = tool_returns
+
             return True, response
 
         # increment the consecutive_auto_reply_counter
@@ -1183,7 +1233,7 @@ class ConversableAgent(Agent):
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
                 continue
-            if asyncio.coroutines.iscoroutinefunction(reply_func):
+            if inspect.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
@@ -1240,7 +1290,7 @@ class ConversableAgent(Agent):
             if exclude and reply_func in exclude:
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
-                if asyncio.coroutines.iscoroutinefunction(reply_func):
+                if inspect.iscoroutinefunction(reply_func):
                     final, reply = await reply_func(
                         self, messages=messages, sender=sender, config=reply_func_tuple["config"]
                     )
@@ -1489,7 +1539,7 @@ class ConversableAgent(Agent):
                     flush=True,
                 )
                 try:
-                    if asyncio.coroutines.iscoroutinefunction(func):
+                    if inspect.iscoroutinefunction(func):
                         content = await func(**arguments)
                     else:
                         # Fallback to sync function if the function is not async
@@ -1651,6 +1701,7 @@ class ConversableAgent(Agent):
         *,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        api_style: Literal["function", "tool"] = "tool",
     ) -> Callable[[F], F]:
         """Decorator factory for registering a function to be used by an agent.
 
@@ -1663,6 +1714,11 @@ class ConversableAgent(Agent):
             name (optional(str)): name of the function. If None, the function name will be used (default: None).
             description (optional(str)): description of the function (default: None). It is mandatory
                 for the initial decorator, but the following ones can omit it.
+            api_style: (literal): the API style for function call.
+                For Azure OpenAI API, use version 2023-12-01-preview or later.
+                `"function"` style will be deprecated. For earlier version use
+                `"function"` if `"tool"` doesn't work.
+                See [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/function-calling?tabs=python) for details.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1672,6 +1728,14 @@ class ConversableAgent(Agent):
             @user_proxy.register_for_execution()
             @agent2.register_for_llm()
             @agent1.register_for_llm(description="This is a very useful function")
+            def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
+                 return a + str(b * c)
+            ```
+
+            For Azure OpenAI versions prior to 2023-12-01-preview, set `api_style`
+            to `"function"` if `"tool"` doesn't work:
+            ```
+            @agent2.register_for_llm(api_style="function")
             def my_function(a: Annotated[str, "description of a parameter"] = "a", b: int, c=3.14) -> str:
                  return a + str(b * c)
             ```
@@ -1712,7 +1776,13 @@ class ConversableAgent(Agent):
             if self.llm_config is None:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
-            self.update_tool_signature(f, is_remove=False)
+            if api_style == "function":
+                f = f["function"]
+                self.update_function_signature(f, is_remove=False)
+            elif api_style == "tool":
+                self.update_tool_signature(f, is_remove=False)
+            else:
+                raise ValueError(f"Unsupported API style: {api_style}")
 
             return func
 
