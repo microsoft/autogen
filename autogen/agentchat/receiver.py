@@ -32,7 +32,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # Ignore this for now and hardcode to True below
         # This is usually configured by the initiate conversation code, but this
         # isn't available here.
-        request_reply = post_obj["request_reply"]
+        # request_reply = post_obj["request_reply"]
+        request_reply = True
         sender = post_obj["sender"]
         sender_agent = self._receiver._agents[sender]
         message = post_obj["message"]
@@ -47,7 +48,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             time.sleep(1)
             # Request reply is hardcoded to True for now
             # Causes issues with termination
-            recipient_agent.receive(message, sender_remote_agent, True)
+            recipient_agent.receive(message, sender_remote_agent, request_reply)
 
         # Fire off the task on another thread to not block the server
         thread = threading.Thread(target=handle)
