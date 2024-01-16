@@ -8,18 +8,24 @@ Welcome to the `autogen/samples/dockers` directory! Here you'll find Dockerfiles
 
 - **Purpose**: This Dockerfile is designed for basic setups. It includes common Python libraries and essential dependencies required for general usage of AutoGen.
 - **Usage**: Ideal for those just starting with AutoGen or for general-purpose applications.
-- **Building the Image**: Run `docker build -f Dockerfile.base -t autogen_base_img .` in this directory.
+- **AutoGen Studio**: Set to automatically start. just build and run and you will have AutoGen Studio ready for you at <http://localhost:8081>.
+- **Building the Image**: Run `docker build -t autogenstudio-base_img -f Dockerfile.base .` in this directory.
+- **Running the Image**: Run `docker run -it --rm -p 8081:8081 --name autogenstudio-base autogenstudio-base_img`.
 
 ### Dockerfile.full
 
 - **Purpose**: This Dockerfile is for advanced features. It includes additional dependencies and is configured for more complex or feature-rich AutoGen applications.
 - **Usage**: Suited for advanced users who need the full range of AutoGen's capabilities.
+- **AutoGen Studio**: Set to automatically start. just build and run and you will have AutoGen Studio ready for you at <http://localhost:8081>.
 - **Building the Image**: Execute `docker build -f Dockerfile.full -t autogen_full_img .`.
+- **Running the Image**: Run `docker run -it --rm -p 8081:8081 --name autogenstudio-full autogenstudio_full_img`.
 
 ### Dockerfile.dev
 
 - **Purpose**: Tailored for AutoGen project developers, this Dockerfile includes tools and configurations aiding in development and contribution.
 - **Usage**: Recommended for developers who are contributing to the AutoGen project.
+- **AutoGen Studio**: Because of the nature of the developer setup AutoGen Studio cannot be setup on this image without the use of a .devcontainer.
+- **AutoGen Document Server**: Need the document server local, just run the following at the CLI `/website/autogendocs-start.sh` and documentation will be ready for you at <httpd://localhost:3000>.
 - **Building the Image**: Run `docker build -f Dockerfile.dev -t autogen_dev_img .`.
 - **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
