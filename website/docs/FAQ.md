@@ -173,3 +173,16 @@ Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/con
 
 The "use_docker" arg in an agent's code_execution_config will be set to the name of the image containing the change after execution, when the conversation finishes.
 You can save that image name. For a new conversation, you can set "use_docker" to the saved name of the image to start execution there.
+
+## Database Locked error in Azure Machine Learning compute instance
+
+Please make sure cache_seed is None and comment out use cache or delete to avoid database locked error in Azure machine learning compute instance.
+```
+gpt4_config = {
+    "cache_seed": None, #42,  # change the cache_seed for different trials
+    #"use_cache": False,
+    "temperature": 0,
+    "config_list": config_list,
+    "timeout": 120,
+}
+```
