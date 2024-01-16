@@ -4,6 +4,7 @@ import sys
 import time
 from typing import Any, Callable, Dict, Literal
 import unittest
+import inspect
 
 import pytest
 from unittest.mock import patch
@@ -559,7 +560,7 @@ def test__wrap_function_sync():
         == '{"currency":"EUR","amount":100.1}'
     )
 
-    assert not asyncio.coroutines.iscoroutinefunction(currency_calculator)
+    assert not inspect.iscoroutinefunction(currency_calculator)
 
 
 @pytest.mark.asyncio
@@ -597,7 +598,7 @@ async def test__wrap_function_async():
         == '{"currency":"EUR","amount":100.1}'
     )
 
-    assert asyncio.coroutines.iscoroutinefunction(currency_calculator)
+    assert inspect.iscoroutinefunction(currency_calculator)
 
 
 def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:
