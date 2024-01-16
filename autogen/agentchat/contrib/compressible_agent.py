@@ -4,6 +4,7 @@ from autogen import Agent, ConversableAgent
 import copy
 import asyncio
 import logging
+import inspect
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
 
 try:
@@ -201,7 +202,7 @@ Reply "TERMINATE" in the end when everything is done.
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
                 continue
-            if asyncio.coroutines.iscoroutinefunction(reply_func):
+            if inspect.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
