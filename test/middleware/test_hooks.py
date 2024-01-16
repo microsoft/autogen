@@ -1,7 +1,10 @@
-from unittest.mock import MagicMock, AsyncMock
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+
 from autogen.middleware.conditions import Condition
-from autogen.middleware.hooks import await_if_needed, hookable_method, hookable_function
+from autogen.middleware.hooks import await_if_needed, hookable_function, hookable_method
 
 from ..mocks import monitor_calls
 
@@ -167,8 +170,9 @@ async def test_hookable_function_async(cond: Condition) -> None:
 
 def test_hookable_function_with_condition():
     from typing import Union
-    from autogen.middleware.hooks import hookable_method
+
     from autogen.middleware.conditions import Condition as C
+    from autogen.middleware.hooks import hookable_method
 
     class A:
         # hooks are only executed if the condition is met (the first argument being an instance of float)
@@ -193,3 +197,73 @@ def test_hookable_function_with_condition():
     assert a.f(1.1, 2.2, z=3) == (1.1 + 1 + 2.2) * 3 - 1
     # the pre-hook is not executed because the the first argument is not an instance of float
     assert a.f(1, 2.2, z=3) == (1 + 2.2) * 3 - 1
+
+
+# from contextlib import contextmanager
+
+
+# @contextmanager
+# def my_middleware(*args, **kwargs):
+#     # do something before passing control to the next middleware
+#     new_args = [arg + 1 for arg in args]
+#     new_kwargs = {k: v + 1 for k, v in kwargs.items()}
+#     try:
+#         next_ret_args, next_ret_kwargs = yield new_args, new_kwargs
+#     finally:
+#         # do some cleanup after the next middleware has finished
+#         pass
+#     # do something after the next middleware has finished and return
+#     ret_args = [arg + 1 for arg in next_ret_args]
+#     ret_kwargs = {k: v + 1 for k, v in next_ret_kwargs.items()}
+
+#     return ret_args, ret_kwargs
+
+
+# class MyMiddleware():
+#     def __init__(self, *args, **kwargs):
+#         pass
+
+#     def trigger(self, *args, **kwargs) -> bool:
+#         return isinstance(args[0], int)
+
+#     def call(self, *args, next_middleware=None, **kwargs) -> Any:
+#         new_args = [arg + 1 for arg in args]
+#         new_kwargs = {k: v + 1 for k, v in kwargs.items()}
+
+#         try:
+#             if next_middleware is not None:
+#                 next_ret_args, next_ret_kwargs = next_middleware(*new_args, **new_kwargs)
+#             else:
+#                 next_ret_args, next_ret_kwargs = new_args, new_kwargs
+#         finally:
+#             pass
+
+#         ret_args = [arg + 1 for arg in args]
+#         ret_kwargs = {k: v + 1 for k, v in kwargs.items()}
+#         return ret_args, ret_kwargs
+
+# class ReplyMiddleware():
+#     def __init__(self, *args, **kwargs):
+#         pass
+
+#     def trigger(self, sender: Agent, receiver: Agent, messages: List[Dict[str, Any]]) -> bool:
+#         return isinstance(args[0], ConversibleAgent)
+
+#     def call(self, *args, next=None, **kwargs) -> Any:
+#         last_message = messages[-1]
+#         # do some stuff with the last message
+#         pass
+
+#         messages = messages[:-1] + [last_message]
+
+#         try:
+#             if next_middleware is not None:
+#                 next_ret_args, next_ret_kwargs = next_middleware(*new_args, **new_kwargs)
+#             else:
+#                 next_ret_args, next_ret_kwargs = new_args, new_kwargs
+#         finally:
+#             pass
+
+#         ret_args = [arg + 1 for arg in args]
+#         ret_kwargs = {k: v + 1 for k, v in kwargs.items()}
+#         return ret_args, ret_kwargs

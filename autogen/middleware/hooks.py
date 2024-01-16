@@ -1,10 +1,9 @@
 """Hookable functions and methods.
 """
-from functools import wraps
 import inspect
-from typing import Any, Awaitable, Callable, List, Optional, Tuple, TypeVar, Protocol, Union
+from functools import wraps
+from typing import Any, Awaitable, Callable, List, Optional, Protocol, Tuple, TypeVar, Union
 
-from .base import AbstractMiddleWare
 from .conditions import Condition
 
 __all__ = ["Hookable", "hookable_method", "hookable_function", "await_if_needed"]
@@ -37,8 +36,8 @@ class Hookable(Protocol):
     def add_post_hook(self, h: H) -> H:
         ...
 
-    def add_middleware(self, m: AbstractMiddleWare) -> AbstractMiddleWare:
-        ...
+    # def add_middleware(self, m: AbstractMiddleWare) -> AbstractMiddleWare:
+    #     ...
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         ...
@@ -58,14 +57,14 @@ def _add_post_hook(f_with_hooks: Hookable, h: H, cond: Condition) -> H:
     return h
 
 
-def _add_middleware(f_with_hooks: Hookable, m: AbstractMiddleWare, cond: Condition) -> H:
-    if (
-        inspect.iscoroutinefunction(m.on_enter) or inspect.iscoroutinefunction(m.on_exit)
-    ) and not inspect.iscoroutinefunction(f_with_hooks):
-        raise TypeError("Cannot attach async middleware to sync function.")
-    f_with_hooks._pre_hooks.insert(0, (cond, m.on_exit))
-    f_with_hooks._post_hooks.append((cond, m.on_enter))
-    return m
+# def _add_middleware(f_with_hooks: Hookable, m: AbstractMiddleWare, cond: Condition) -> H:
+#     if (
+#         inspect.iscoroutinefunction(m.on_enter) or inspect.iscoroutinefunction(m.on_exit)
+#     ) and not inspect.iscoroutinefunction(f_with_hooks):
+#         raise TypeError("Cannot attach async middleware to sync function.")
+#     f_with_hooks._pre_hooks.insert(0, (cond, m.on_exit))
+#     f_with_hooks._post_hooks.append((cond, m.on_enter))
+#     return m
 
 
 async def await_if_needed(x: Any) -> Any:
@@ -147,7 +146,7 @@ def hookable_method(cond: Optional[Condition] = None) -> Callable[[F], Hookable]
 
         f_with_hooks.add_pre_hook = lambda h: _add_pre_hook(f_with_hooks, h, cond)  # type: ignore [attr-defined,arg-type]
         f_with_hooks.add_post_hook = lambda h: _add_post_hook(f_with_hooks, h, cond)  # type: ignore [attr-defined,arg-type]
-        f_with_hooks.add_middleware = lambda m: _add_middleware(f_with_hooks, m, cond)  # type: ignore [attr-defined,arg-type]
+        # f_with_hooks.add_middleware = lambda m: _add_middleware(f_with_hooks, m, cond)  # type: ignore [attr-defined,arg-type]
         f_with_hooks._origin = f  # type: ignore [attr-defined]
 
         return f_with_hooks  # type: ignore [return-value]
@@ -216,7 +215,7 @@ def hookable_function(cond: Optional[Condition] = None) -> Callable[[F], Hookabl
 
         f_with_hooks.add_pre_hook = lambda h: _add_pre_hook(f_with_hooks, h, cond)  # type: ignore [attr-defined,arg-type]
         f_with_hooks.add_post_hook = lambda h: _add_post_hook(f_with_hooks, h, cond)  # type: ignore [attr-defined,arg-type]
-        f_with_hooks.add_middleware = lambda m: _add_middleware(f_with_hooks, m, cond)  # type: ignore [attr-defined,arg-type]
+        # f_with_hooks.add_middleware = lambda m: _add_middleware(f_with_hooks, m, cond)  # type: ignore [attr-defined,arg-type]
         f_with_hooks._origin = f  # type: ignore [attr-defined]
 
         return f_with_hooks  # type: ignore [return-value]

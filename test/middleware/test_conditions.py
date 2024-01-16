@@ -1,5 +1,6 @@
 import pytest
-from autogen.middleware.conditions import Always, IsInstance, Never, Condition
+
+from autogen.middleware.conditions import Always, Condition, IsInstance, Never
 
 
 def test_always() -> None:
