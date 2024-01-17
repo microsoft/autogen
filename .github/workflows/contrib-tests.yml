@@ -195,9 +195,7 @@ jobs:
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
-          if [[ ${{ matrix.os }} == windows-2019 ]]; then
-            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
-          elif [[ ${{ matrix.os }} == macos-latest ]]; then
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
             echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
           fi
       - name: Test LMM and LLaVA
