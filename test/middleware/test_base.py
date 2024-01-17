@@ -5,8 +5,8 @@ from typing import Any, Awaitable, Callable, Optional, Type
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from autogen.asyncio_utils import sync_to_async
 
+from autogen.asyncio_utils import sync_to_async
 from autogen.middleware.base import (
     MiddlewareCallable,
     _check_middleware,
@@ -72,10 +72,10 @@ async def test_middlewares_simple_sync() -> None:
     assert not inspect.iscoroutinefunction(f)
     assert f("world") == "Hello world!"
 
-    assert f._middlewares == []
+    assert f._middlewares == []  # type: ignore[attr-defined]
 
     add_middleware(f, MyMiddlewareSync("a"))
-    assert f._middlewares == [MyMiddlewareSync("a")]
+    assert f._middlewares == [MyMiddlewareSync("a")]  # type: ignore[attr-defined]
     actual = f("world")
     expected = "a.call(Hello world!)"
     assert actual == expected
@@ -97,27 +97,27 @@ async def test_middlewares() -> None:
     assert inspect.iscoroutinefunction(a_f)
     assert await a_f(1, 2, 3, a=4, b=5) == "a_f(1, 2, 3, a=4, b=5)"
 
-    assert f._middlewares == []
-    assert a_f._middlewares == []
+    assert f._middlewares == []  # type: ignore[attr-defined]
+    assert a_f._middlewares == []  # type: ignore[attr-defined]
 
     add_middleware(f, MyMiddlewareSync("a"))
-    assert f._middlewares == [MyMiddlewareSync("a")]
+    assert f._middlewares == [MyMiddlewareSync("a")]  # type: ignore[attr-defined]
     assert f(1, 2, 3, a=4, b=5) == "a.call(f(1, 2, 3, a=4, b=5))"
 
     add_middleware(a_f, MyMiddlewareAsync("a_a"))
-    assert a_f._middlewares == [MyMiddlewareAsync("a_a")]
+    assert a_f._middlewares == [MyMiddlewareAsync("a_a")]  # type: ignore[attr-defined]
     assert await a_f(1, 2, 3, a=4, b=5) == "a_a.call(a_f(1, 2, 3, a=4, b=5))"
 
     add_middleware(f, MyMiddlewareSync("b"))
-    assert f._middlewares == [MyMiddlewareSync("a"), MyMiddlewareSync("b")]
+    assert f._middlewares == [MyMiddlewareSync("a"), MyMiddlewareSync("b")]  # type: ignore[attr-defined]
     assert f(1, 2, 3, a=4, b=5) == "a.call(b.call(f(1, 2, 3, a=4, b=5)))"
 
     add_middleware(f, MyMiddlewareSync("c"))
-    assert f._middlewares == [MyMiddlewareSync("a"), MyMiddlewareSync("b"), MyMiddlewareSync("c")]
+    assert f._middlewares == [MyMiddlewareSync("a"), MyMiddlewareSync("b"), MyMiddlewareSync("c")]  # type: ignore[attr-defined]
     assert f(1, 2, 3, a=4, b=5) == "a.call(b.call(c.call(f(1, 2, 3, a=4, b=5))))"
 
     add_middleware(f, MyMiddlewareSync("A"), position=0)
-    assert f._middlewares == [
+    assert f._middlewares == [  # type: ignore[attr-defined]
         MyMiddlewareSync("A"),
         MyMiddlewareSync("a"),
         MyMiddlewareSync("b"),
@@ -126,7 +126,7 @@ async def test_middlewares() -> None:
     assert f(1, 2, 3, a=4, b=5) == "A.call(a.call(b.call(c.call(f(1, 2, 3, a=4, b=5)))))"
 
     add_middleware(f, MyMiddlewareSync("B"), position=2)
-    assert f._middlewares == [
+    assert f._middlewares == [  # type: ignore[attr-defined]
         MyMiddlewareSync("A"),
         MyMiddlewareSync("a"),
         MyMiddlewareSync("B"),
@@ -136,7 +136,7 @@ async def test_middlewares() -> None:
     assert f(1, 2, 3, a=4, b=5) == "A.call(a.call(B.call(b.call(c.call(f(1, 2, 3, a=4, b=5))))))"
 
     add_middleware(f, MyMiddlewareSync("C"), position=-1)
-    assert f._middlewares == [
+    assert f._middlewares == [  # type: ignore[attr-defined]
         MyMiddlewareSync("A"),
         MyMiddlewareSync("a"),
         MyMiddlewareSync("B"),
@@ -147,7 +147,7 @@ async def test_middlewares() -> None:
     assert f(1, 2, 3, a=4, b=5) == "A.call(a.call(B.call(b.call(C.call(c.call(f(1, 2, 3, a=4, b=5)))))))"
 
     add_middleware(f, MyMiddlewareSync("D"), position=6)
-    assert f._middlewares == [
+    assert f._middlewares == [  # type: ignore[attr-defined]
         MyMiddlewareSync("A"),
         MyMiddlewareSync("a"),
         MyMiddlewareSync("B"),
@@ -189,7 +189,7 @@ async def test__get_next_function(trigger_value: bool) -> None:
         return format_function(a_f, *args, **kwargs)
 
     next_mock = MagicMock(return_value="next_mock(...)")
-    next_f = _get_next_function(f, mw, next_mock)
+    next_f = _get_next_function(f, mw, next_mock)  # type: ignore[arg-type]
     if trigger_value is False:
         assert next_f(1, 2, 3, a=4, b=5) == "next_mock(...)"
     else:
@@ -197,7 +197,7 @@ async def test__get_next_function(trigger_value: bool) -> None:
     next_mock.assert_called_once_with(1, 2, 3, a=4, b=5)
 
     next_mock = MagicMock(return_value="next_mock(...)")
-    next_f = _get_next_function(f, amw, next_mock)
+    next_f = _get_next_function(f, amw, next_mock)  # type: ignore[arg-type]
     assert not inspect.iscoroutinefunction(next_f)
     # sync next_f -> async amw.call -> sync next_mock
     actual = await sync_to_async()(next_f)(1, 2, 3, a=4, b=5)
@@ -206,7 +206,7 @@ async def test__get_next_function(trigger_value: bool) -> None:
     next_mock.assert_called_once_with(1, 2, 3, a=4, b=5)
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
-    a_next_f = _get_next_function(a_f, amw, a_next_mock)
+    a_next_f = _get_next_function(a_f, amw, a_next_mock)  # type: ignore[arg-type]
     expected = "a_next_mock(...)" if trigger_value is False else "amw.call(a_next_mock(...))"
     actual = await a_next_f(1, 2, 3, a=4, b=5)
     assert actual == expected
@@ -214,7 +214,7 @@ async def test__get_next_function(trigger_value: bool) -> None:
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
     # with pytest.raises(NotImplementedError) as e:
-    a_next_f = _get_next_function(a_f, mw, a_next_mock)
+    a_next_f = _get_next_function(a_f, mw, a_next_mock)  # type: ignore[arg-type]
     expected = "a_next_mock(...)" if trigger_value is False else "mw.call(a_next_mock(...))"
     actual = await a_next_f(1, 2, 3, a=4, b=5)
     assert actual == expected
@@ -236,12 +236,12 @@ def test__check_middleware(trigger_value: bool) -> None:
     mw = get_mw(trigger_value, False)("mw")
     amw = get_mw(trigger_value, True)("amw")
 
-    _check_middleware(g, mw)
+    _check_middleware(g, mw)  # type: ignore[arg-type]
     with pytest.raises(TypeError) as e:
-        _check_middleware(g, amw)
+        _check_middleware(g, amw)  # type: ignore[arg-type]
     assert "Cannot use middleare with async `call` method on a sync hookable function" in str(e.value)
-    _check_middleware(a_g, amw)
-    _check_middleware(a_g, mw)
+    _check_middleware(a_g, amw)  # type: ignore[arg-type]
+    _check_middleware(a_g, mw)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio()
@@ -257,7 +257,7 @@ async def test__check_middleware_trigger() -> None:
     broken_mw = MyMiddlewareSyncWithAsyncTrigger("broken_mw")
 
     with pytest.raises(TypeError) as e:
-        _check_middleware(f, broken_mw)
+        _check_middleware(f, broken_mw)  # type: ignore[arg-type]
 
     assert "Cannot use middleare with async `trigger` method on a sync hookable function" in str(e.value)
 
@@ -278,17 +278,17 @@ async def test_set_middlewares() -> None:
     assert inspect.iscoroutinefunction(a_f)
     assert await a_f(1, 2, 3, a=4, b=5) == "a_f(1, 2, 3, a=4, b=5)"
 
-    assert f._middlewares == []
-    assert a_f._middlewares == []
+    assert f._middlewares == []  # type: ignore[attr-defined]
+    assert a_f._middlewares == []  # type: ignore[attr-defined]
 
     mws_sync = [MyMiddlewareSync("a"), MyMiddlewareSync("b"), MyMiddlewareSync("c")]
     set_middlewares(f, mws_sync)
-    assert f._middlewares == [MyMiddlewareSync("a"), MyMiddlewareSync("b"), MyMiddlewareSync("c")]
+    assert f._middlewares == [MyMiddlewareSync("a"), MyMiddlewareSync("b"), MyMiddlewareSync("c")]  # type: ignore[attr-defined]
     assert f(1, 2, 3, a=4, b=5) == "a.call(b.call(c.call(f(1, 2, 3, a=4, b=5))))"
 
     mws_async = [MyMiddlewareAsync("a_a"), MyMiddlewareAsync("a_b"), MyMiddlewareAsync("a_c")]
     set_middlewares(a_f, mws_async)
-    assert a_f._middlewares == [MyMiddlewareAsync("a_a"), MyMiddlewareAsync("a_b"), MyMiddlewareAsync("a_c")]
+    assert a_f._middlewares == [MyMiddlewareAsync("a_a"), MyMiddlewareAsync("a_b"), MyMiddlewareAsync("a_c")]  # type: ignore[attr-defined]
     assert await a_f(1, 2, 3, a=4, b=5) == "a_a.call(a_b.call(a_c.call(a_f(1, 2, 3, a=4, b=5))))"
 
 

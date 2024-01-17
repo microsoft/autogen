@@ -64,17 +64,17 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        class TeachabilityMiddleware:
-            def __init__(self, teachability):
+        class ProcessLastMessageMiddleware:
+            def __init__(self, teachability: Teachability):
                 print(f"TeachabilityMiddleware.__init__({teachability=})")
                 self.teachability = teachability
 
-            def call(self, text: str, next: Callable[..., Any]):
-                print(f"TeachabilityMiddleware.call({text=}, {next=}, {self.teachability.process_last_message})")
-                text = next(text)
-                return self.teachability.process_last_message(text)
+            def call(self, agent: ConversableAgent, user_text: str, *, next: Callable[[str], str]):
+                # print(f"TeachabilityMiddleware.call({agent=}, {user_text=}, {next=})")
+                user_text = next(agent, user_text)
+                return self.teachability.process_last_message(user_text)
 
-        add_middleware(ConversableAgent.process_last_message_user_text, TeachabilityMiddleware(self))
+        add_middleware(ConversableAgent.process_last_message_user_text, ProcessLastMessageMiddleware(self))
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:

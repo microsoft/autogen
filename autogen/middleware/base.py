@@ -6,7 +6,7 @@ from typing_extensions import TypeVar
 
 from ..asyncio_utils import match_caller_type
 
-__all__ = ["MiddlewareCallable", "register_for_middleware"]
+__all__ = ["Middleware", "MiddlewareCallable", "add_middleware", "register_for_middleware", "set_middlewares"]
 
 F = TypeVar("F", bound=Callable[..., Any])
 H = TypeVar("H", bound=Callable[..., Any])
@@ -84,7 +84,7 @@ def register_for_middleware(f: F) -> F:
 
     h._middlewares = []  # type: ignore[misc]
 
-    return h
+    return h  # type: ignore[return-value]
 
 
 def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[..., Any]) -> Callable[..., Any]:
@@ -95,7 +95,7 @@ def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[...
     if inspect.iscoroutinefunction(h._origin):
 
         async def _aa() -> None:
-            pass
+            pass  # pragma: no cover
 
         next_async = match_caller_type(callee=next, caller=_aa)
 
@@ -109,7 +109,11 @@ def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[...
 
         return _chain_async
     else:
-        next_sync = match_caller_type(callee=next, caller=lambda: None)
+
+        def _ss() -> None:
+            pass  # pragma: no cover
+
+        next_sync = match_caller_type(callee=next, caller=_ss)
 
         @wraps(call)
         def _chain_sync(*args: Any, **kwargs: Any) -> Any:
@@ -159,7 +163,7 @@ def add_middleware(h: Callable[..., Any], mw: Any, *, position: Optional[int] = 
     else:
         _h._middlewares.insert(position, mw)
 
-    # we could update the cain inplace, but this is a more robust solution
+    # we could update the chain in-place, but this is a more robust solution
     _build_middleware_chain(_h)
 
 

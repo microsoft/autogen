@@ -37,7 +37,7 @@ def sync_to_async(*, loop: Optional[asyncio.AbstractEventLoop] = None) -> Callab
     """
     loop = asyncio.get_running_loop() if loop is None else loop
     if loop is None:
-        raise RuntimeError("No running event loop found.")
+        raise RuntimeError("No running event loop found.")  # pragma: no cover
 
     def _sync_to_async(f: F) -> F:
         if inspect.iscoroutinefunction(f):
@@ -87,7 +87,7 @@ def async_to_sync(
     """
     loop = asyncio.get_running_loop() if loop is None else loop
     if loop is None:
-        raise RuntimeError("No running event loop found.")
+        raise RuntimeError("No running event loop found.")  # pragma: no cover
 
     def _async_to_sync(f: F) -> F:
         if not inspect.iscoroutinefunction(f):
