@@ -5,14 +5,14 @@ from typing import Any, Awaitable, Callable, Type
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from autogen.asyncio_utils import sync_to_async
 
 from autogen.middleware.base import (
-    Hookable,
+    MiddlewareCallable,
     _check_middleware,
     _get_next_function,
     add_middleware,
-    match_caller_type,
-    hookable,
+    register_for_middleware,
     set_middlewares,
 )
 
@@ -58,64 +58,21 @@ def test_format_function() -> None:
     assert f(1, 2, 3, a=4, b=5) == "f(1, 2, 3, a=4, b=5)"
 
 
-# @pytest.mark.asyncio()
-# async def test_match_caller_type_composition() -> None:
-#     def f1(*args: Any, **kwargs: Any) -> Any:
-#         return format_function(f1, *args, **kwargs)
-
-#     def f2(*args: Any, **kwargs: Any) -> Any:
-#         return format_function(f2, *args, **kwargs)
-
-#     async def a_f1(*args: Any, **kwargs: Any) -> Any:
-#         return format_function(a_f1, *args, **kwargs)
-
-#     async def a_f2(*args: Any, **kwargs: Any) -> Any:
-#         return format_function(a_f2, *args, **kwargs)
-
-#     a_x1 = match_caller_type(callee=f1, caller=a_f1)
-#     assert inspect.iscoroutinefunction(a_x1)
-#     assert await a_x1(1, 2, 3, a=4, b=5) == "f1(1, 2, 3, a=4, b=5)"
-
-#     x2 = match_caller_type(callee=a_f2, caller=f1)
-#     assert not inspect.iscoroutinefunction(x2)
-#     assert x2(1, 2, 3, a=4, b=5) == "a_f2(1, 2, 3, a=4, b=5)"
-
-
 def run_in_thread_pool(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Awaitable[Any]:
     loop = asyncio.get_running_loop()
     return loop.run_in_executor(None, functools.partial(f, *args, **kwargs))
 
 
 @pytest.mark.asyncio()
-async def test_match_caller_type() -> None:
-    def f(*args: Any, **kwargs: Any) -> Any:
-        return format_function(f, *args, **kwargs)
-
-    async def a_f(*args: Any, **kwargs: Any) -> Any:
-        return format_function(a_f, *args, **kwargs)
-
-    assert match_caller_type(callee=f, caller=f) == f
-    assert match_caller_type(callee=a_f, caller=a_f) == a_f
-
-    a_f2 = match_caller_type(callee=f, caller=a_f)
-    assert inspect.iscoroutinefunction(a_f2)
-    assert await a_f2(1, 2, 3, a=4, b=5) == "f(1, 2, 3, a=4, b=5)"
-
-    f3 = match_caller_type(callee=a_f, caller=f)
-    assert not inspect.iscoroutinefunction(f3)
-    assert await run_in_thread_pool(f3, 1, 2, 3, a=4, b=5) == "a_f(1, 2, 3, a=4, b=5)"
-
-
-@pytest.mark.asyncio()
 async def test_hookable() -> None:
-    @hookable
+    @register_for_middleware
     def f(*args: Any, **kwargs: Any) -> str:
         return format_function(f, *args, **kwargs)
 
     assert not inspect.iscoroutinefunction(f)
     assert f(1, 2, 3, a=4, b=5) == "f(1, 2, 3, a=4, b=5)"
 
-    @hookable
+    @register_for_middleware
     async def a_f(*args: Any, **kwargs: Any) -> str:
         return format_function(a_f, *args, **kwargs)
 
@@ -205,11 +162,11 @@ async def test__get_next_function(trigger_value: bool) -> None:
     mw = get_mw(trigger_value, False)("mw")
     amw = get_mw(trigger_value, True)("amw")
 
-    @hookable
+    @register_for_middleware
     def f(*args: Any, **kwargs: Any) -> Any:
         return format_function(f, *args, **kwargs)
 
-    @hookable
+    @register_for_middleware
     async def a_f(*args: Any, **kwargs: Any) -> Any:
         return format_function(a_f, *args, **kwargs)
 
@@ -225,7 +182,7 @@ async def test__get_next_function(trigger_value: bool) -> None:
     next_f = _get_next_function(f, amw, next_mock)
     assert not inspect.iscoroutinefunction(next_f)
     # sync next_f -> async amw.call -> sync next_mock
-    actual = await run_in_thread_pool(next_f, 1, 2, 3, a=4, b=5)
+    actual = await sync_to_async()(next_f)(1, 2, 3, a=4, b=5)
     expected = "next_mock(...)" if trigger_value is False else "amw.call(next_mock(...))"
     assert actual == expected
     next_mock.assert_called_once_with(1, 2, 3, a=4, b=5)
@@ -235,10 +192,6 @@ async def test__get_next_function(trigger_value: bool) -> None:
     expected = "a_next_mock(...)" if trigger_value is False else "amw.call(a_next_mock(...))"
     actual = await a_next_f(1, 2, 3, a=4, b=5)
     assert actual == expected
-    # if trigger_value is False:
-    #     assert await a_next_f(1, 2, 3, a=4, b=5) == "a_next_mock(...)"
-    # else:
-    #     assert await a_next_f(1, 2, 3, a=4, b=5) == "amw.call(a_next_mock(...))"
     a_next_mock.assert_awaited_once_with(1, 2, 3, a=4, b=5)
 
     a_next_mock = AsyncMock(return_value="a_next_mock(...)")
@@ -253,11 +206,11 @@ async def test__get_next_function(trigger_value: bool) -> None:
 
 @pytest.mark.parametrize("trigger_value", [None, True, False])
 def test__check_middleware(trigger_value: bool) -> None:
-    @hookable
+    @register_for_middleware
     def g(*args: Any, **kwargs: Any) -> Any:
         return format_function(g, *args, **kwargs)
 
-    @hookable
+    @register_for_middleware
     async def a_g(*args: Any, **kwargs: Any) -> Any:
         return format_function(a_g, *args, **kwargs)
 
@@ -279,7 +232,7 @@ async def test__check_middleware_trigger() -> None:
         async def trigger(self, *args: Any, **kwargs: Any) -> bool:
             return True
 
-    @hookable
+    @register_for_middleware
     def f(*args: Any, **kwargs: Any) -> Any:
         return format_function(f, *args, **kwargs)
 
@@ -293,14 +246,14 @@ async def test__check_middleware_trigger() -> None:
 
 @pytest.mark.asyncio()
 async def test_set_middlewares() -> None:
-    @hookable
+    @register_for_middleware
     def f(*args: Any, **kwargs: Any) -> str:
         return format_function(f, *args, **kwargs)
 
     assert not inspect.iscoroutinefunction(f)
     assert f(1, 2, 3, a=4, b=5) == "f(1, 2, 3, a=4, b=5)"
 
-    @hookable
+    @register_for_middleware
     async def a_f(*args: Any, **kwargs: Any) -> str:
         return format_function(a_f, *args, **kwargs)
 
@@ -326,7 +279,7 @@ def test_example() -> None:
         def __init__(self, name: str) -> None:
             self.name = name
 
-        @hookable
+        @register_for_middleware
         def go(self, *args: Any, **kwargs: Any) -> str:
             return f"{self.name}.{format_function(self.go, *args, **kwargs)}"
 

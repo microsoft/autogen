@@ -1,13 +1,12 @@
-import asyncio
-import functools
 import inspect
 from functools import wraps
-import threading
 from typing import Any, Callable, List, Optional, Protocol
 
 from typing_extensions import TypeVar
 
-__all__ = ["Hookable", "hookable"]
+from ..asyncio_utils import match_caller_type
+
+__all__ = ["MiddlewareCallable", "register_for_middleware"]
 
 F = TypeVar("F", bound=Callable[..., Any])
 H = TypeVar("H", bound=Callable[..., Any])
@@ -16,11 +15,12 @@ T = TypeVar("T")
 
 class Middleware(Protocol):
     def call(self, *args: Any, **kwargs: Any) -> Any:
+        """The function to called in the middleware chain."""
         ...  # pragma: no cover
 
 
-class Hookable(Protocol):
-    """Protocol for hookable functions and methods."""
+class MiddlewareCallable(Protocol):
+    """Protocol for a function registered for middleware."""
 
     @property
     def _origin(self) -> Callable[..., Any]:
@@ -46,16 +46,17 @@ class Hookable(Protocol):
         ...  # pragma: no cover
 
 
-def hookable(f: F) -> Hookable:
-    """Decorator to make a function hookable.
+def register_for_middleware(f: F) -> MiddlewareCallable:
+    """Decorator to register a function for middleware.
 
-    You can attach middlewares to a hookable function using the `add_middleware` or `set_middlewares` methods.
+    After being applied to a function, middlewares can be attached to it using `add_middleware` and
+    `set_middlewares` methods.
 
     Args:
-        f: The function to make hookable.
+        f: The function to register.
 
     Returns:
-        A hookable version of the function.
+        A function that is registered for middleware.
     """
 
     @wraps(f)
@@ -67,7 +68,7 @@ def hookable(f: F) -> Hookable:
         return await h_async._chained_call(*args, **kwargs)  # type: ignore[attr-defined]
 
     # this is to reduce number of mypy errors below, although we don't care about errors here
-    h: Hookable = h_async if inspect.iscoroutinefunction(f) else h_sync  # type: ignore[assignment]
+    h: MiddlewareCallable = h_async if inspect.iscoroutinefunction(f) else h_sync  # type: ignore[assignment]
 
     h._origin = f  # type: ignore[misc]
     h._chained_call = f  # type: ignore[misc]
@@ -86,50 +87,7 @@ def hookable(f: F) -> Hookable:
     return h
 
 
-def match_caller_type(*, callee: Callable[..., Any], caller: Callable[..., Any]) -> Callable[..., Any]:
-    """Match the caller type of two functions.
-
-    If both `callee` and `caller` are both async or both sync functions, then `callee` is returned.
-    If `callee` is sync and `caller` is async, then a wrapper is returned that calls `callee` and awaits the result.
-    If `callee` is async and `caller` is sync, a wrapper is returned that waits for `callee` and returns the result.
-
-    Args:
-        callee: The source function.
-        caller: The destination function.
-
-    Returns:
-        A function that matches the caller type of `caller`.
-
-    Raises:
-        TypeError: If `callee` is async and `caller` is sync.
-    """
-    # return the callee if already the same type
-    if inspect.iscoroutinefunction(caller) == inspect.iscoroutinefunction(callee):
-        return callee
-
-    loop = asyncio.get_running_loop()
-
-    if inspect.iscoroutinefunction(callee):
-
-        @wraps(callee)
-        def _sync_callee(*args: Any, **kwargs: Any) -> Any:
-            coro = callee(*args, **kwargs)
-            future = asyncio.run_coroutine_threadsafe(coro, loop)
-            return future.result(
-                timeout=2
-            )  # This will block until the coroutine has completed or the timeout is reached
-
-        return _sync_callee
-    else:
-
-        @wraps(callee)
-        async def _async_callee(*args: Any, **kwargs: Any) -> Any:
-            return await loop.run_in_executor(None, functools.partial(callee, *args, **kwargs))
-
-        return _async_callee
-
-
-def _get_next_function(h: Hookable, mw: Middleware, next: Callable[..., Any]) -> Callable[..., Any]:
+def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[..., Any]) -> Callable[..., Any]:
     next = match_caller_type(callee=next, caller=mw.call)
     call = match_caller_type(callee=mw.call, caller=h._origin)
     trigger = match_caller_type(callee=mw.trigger, caller=h._origin) if hasattr(mw, "trigger") else None
@@ -163,7 +121,7 @@ def _get_next_function(h: Hookable, mw: Middleware, next: Callable[..., Any]) ->
         return _chain_sync
 
 
-def _build_middleware_chain(h: Hookable) -> None:
+def _build_middleware_chain(h: MiddlewareCallable) -> None:
     next = h._origin
     for mw in reversed(h._middlewares):
         next = _get_next_function(h, mw, next)
@@ -172,7 +130,7 @@ def _build_middleware_chain(h: Hookable) -> None:
     h._chained_call = next  # type: ignore[misc]
 
 
-def _check_middleware(h: Hookable, mw: Middleware) -> None:
+def _check_middleware(h: MiddlewareCallable, mw: Middleware) -> None:
     if inspect.iscoroutinefunction(mw.call) and not inspect.iscoroutinefunction(h):
         raise TypeError(f"Cannot use middleare with async `call` method on a sync hookable function: {mw=}, {h=} ")
     if hasattr(mw, "trigger") and inspect.iscoroutinefunction(mw.trigger) and not inspect.iscoroutinefunction(h):
@@ -191,7 +149,7 @@ def add_middleware(h: Callable[..., Any], mw: Any, *, position: Optional[int] = 
         TypeError: If the middleware cannot be used with the hookable function due to hookable function `h` being sync
             and `ws.call`` being async function.
     """
-    _h: Hookable = h  # type: ignore[assignment]
+    _h: MiddlewareCallable = h  # type: ignore[assignment]
 
     _check_middleware(_h, mw)
 
@@ -216,7 +174,7 @@ def set_middlewares(h: Callable[..., Any], mws: List[Any]) -> None:
             being sync and `mw.call`` being async function for any `mw in mws`.
 
     """
-    _h: Hookable = h  # type: ignore[assignment]
+    _h: MiddlewareCallable = h  # type: ignore[assignment]
 
     for mw in mws:
         _check_middleware(_h, mw)

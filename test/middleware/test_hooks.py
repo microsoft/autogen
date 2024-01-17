@@ -155,7 +155,7 @@ async def test_hookable_function_async(cond: Condition) -> None:
     # we can add hooks using decorators
     @g.add_pre_hook
     @monitor_calls(add_one_mock)
-    async def add_one(x: [float], y: float, *, z: int) -> float:
+    async def add_one(x: float, y: float, *, z: int) -> float:
         return x + 1
 
     @monitor_calls(deduct_one_mock)
@@ -171,7 +171,7 @@ async def test_hookable_function_async(cond: Condition) -> None:
     deduct_one_mock.assert_called_once_with((1.1 + 1 + 2.2) * 3, 2.2, z=3)
 
 
-def test_hookable_function_with_condition():
+def test_hookable_function_with_condition() -> None:
     from typing import Union
 
     from autogen.middleware.conditions import Condition as C
@@ -180,17 +180,17 @@ def test_hookable_function_with_condition():
     class A:
         # hooks are only executed if the condition is met (the first argument being an instance of float)
         @hookable_method(C.isinstance(float))
-        def f(self, x: Union[int, float], y: float, *, z: int):
+        def f(self, x: Union[int, float], y: float, *, z: int) -> float:
             return (x + y) * z
 
     a = A()
 
     # we can add hooks using decorators
     @a.f.add_pre_hook
-    def add_one(x: Union[int, float], y: float, *, z: int):
+    def add_one(x: Union[int, float], y: float, *, z: int) -> float:
         return x + 1
 
-    def deduct_one(x: Union[int, float], y: float, *, z: int):
+    def deduct_one(x: Union[int, float], y: float, *, z: int) -> float:
         return x - 1
 
     # or we can add hooks using function calls
