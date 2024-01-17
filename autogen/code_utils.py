@@ -378,7 +378,7 @@ def execute_code(
     # create a docker client
     client = docker.from_env()
     image_list = (
-        ["python:3-alpine", "python:3", "python:3-windowsservercore"]
+        ["python:3-slim", "python:3", "python:3-windowsservercore"]
         if use_docker is True
         else [use_docker]
         if isinstance(use_docker, str)
