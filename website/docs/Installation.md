@@ -165,7 +165,9 @@ pip install pyautogen
 
 Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#code-execution).
 
-The default behaviour for code-execution agents is for code execution to be performed in a docker container. If you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+The default behaviour for code-execution agents is for code execution to be performed in a docker container.
+
+**To turn this off**: if you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
 
 You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
 

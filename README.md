@@ -65,7 +65,7 @@ The easiest way to start playing is
 ## [Installation](https://microsoft.github.io/autogen/docs/Installation)
 ### Option 1. Install and Run AutoGen in Docker
 
-Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-install-and-run-autogen-in-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker).
+Find detailed instructions for users [here](https://microsoft.github.io/autogen/docs/Installation#option-1-install-and-run-autogen-in-docker), and for developers [here](https://microsoft.github.io/autogen/docs/Contribute#docker-for-development).
 
 ### Option 2. Install AutoGen Locally
 
@@ -86,7 +86,7 @@ Find more options in [Installation](https://microsoft.github.io/autogen/docs/Ins
 
 <!-- Each of the [`notebook examples`](https://github.com/microsoft/autogen/tree/main/notebook) may require a specific option to be installed. -->
 
-Even if you are installing AutoGen locally out of docker,  we recommend performing [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution) in docker. Find more instructions [here](https://microsoft.github.io/autogen/docs/Installation#docker).
+Even if you are installing and running AutoGen locally outside of docker, the recommendation and default behavior of agents is to perform [code execution](https://microsoft.github.io/autogen/docs/FAQ/#code-execution) in docker. Find more instructions and how to change the default behaviour [here](https://microsoft.github.io/autogen/docs/Installation#code-execution-with-docker-(default)).
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
@@ -111,7 +111,7 @@ from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 # You can also set config_list directly as a list, for example, config_list = [{'model': 'gpt-4', 'api_key': '<your OpenAI API key here>'},]
 assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
-user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "coding"})
+user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "coding", "use_docker": False}) # IMPORTANT: set to True to run code in docker, recommended
 user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
 # This initiates an automated chat between the two agents to solve the task
 ```
