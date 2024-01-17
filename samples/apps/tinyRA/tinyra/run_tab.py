@@ -1,4 +1,5 @@
 import sys
+import os
 from autogen import config_list_from_json
 from autogen import AssistantAgent, UserProxyAgent
 import tui
@@ -14,9 +15,7 @@ config_list = config_list_from_json("OAI_CONFIG_LIST")
 assistant = AssistantAgent("tinyra", llm_config={"config_list": config_list})
 user = UserProxyAgent(
     "user",
-    code_execution_config={
-        "work_dir": "agent_work_dir",
-    },
+    code_execution_config={"work_dir": os.path.join(tui.DATA_PATH, "work_dir")},
     human_input_mode="TERMINATE",
     is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
 )
