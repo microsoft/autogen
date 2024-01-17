@@ -183,13 +183,9 @@ class ConversableAgent(Agent):
 
             # get_socket_client_function is required if use_agent_stream is True
             if get_socket_client_function is None:
-                raise ValueError(
-                    "get_socket_client_function is required if use_agent_stream is True."
-                )
+                raise ValueError("get_socket_client_function is required if use_agent_stream is True.")
             else:
                 self.socket_client = get_socket_client_function()
-
-        
 
     def register_reply(
         self,

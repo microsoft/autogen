@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from autogen.agentchat.contrib.stream_handler import SimpleClientSocketIOStreamHandler
 
+
 class TestSimpleClientSocketIOStreamHandler:
     @pytest.fixture
     def mock_socket_client(self):
@@ -14,7 +15,7 @@ class TestSimpleClientSocketIOStreamHandler:
     def test_open(self, handler, mock_socket_client):
         url = "http://example.com"
         handler.open(url)
-        mock_socket_client.connect.assert_called_once_with(url, None, None, None, '/', 'socket.io', 5)
+        mock_socket_client.connect.assert_called_once_with(url, None, None, None, "/", "socket.io", 5)
 
     def test_write(self, handler, mock_socket_client):
         event = "test_event"

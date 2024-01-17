@@ -297,7 +297,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 class GroupChatManager(ConversableAgent):
     """
     (In preview) A chat manager agent that can manage a group chat of multiple agents.
-    
+
     use_agent_stream: whether to use agent stream to communicate with the agents. Default is False.
     get_socket_client_function: a function that returns a socket client. Default is None.
     sid: the session id. Default is "".
@@ -320,7 +320,7 @@ class GroupChatManager(ConversableAgent):
             raise ValueError(
                 "GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in."
             )
-        
+
         if use_agent_stream:
             # Generate sid if None
             if sid is None:
@@ -336,9 +336,7 @@ class GroupChatManager(ConversableAgent):
 
             # get_socket_client_function is required if use_agent_stream is True
             if get_socket_client_function is None:
-                raise ValueError(
-                    "get_socket_client_function is required if use_agent_stream is True."
-                )
+                raise ValueError("get_socket_client_function is required if use_agent_stream is True.")
 
         super().__init__(
             name=name,

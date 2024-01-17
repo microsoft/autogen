@@ -2,18 +2,19 @@ import abc
 import socketio
 from typing import Union, Tuple, Any, Optional, Dict
 
+
 class StreamHandler(abc.ABC):
     """
     Abstract base class for streaming data.
     """
-    
+
     @abc.abstractmethod
     def open(self):
         """
         Open the stream.
         """
         pass
-    
+
     @abc.abstractmethod
     def write(self, data):
         """
@@ -44,15 +45,17 @@ class SimpleClientSocketIOStreamHandler(StreamHandler):
 
         super().__init__()
         self.socket_client = socket_client
-    
-    def open(self, 
-             url: str, 
-             headers: Optional[Dict[str, str]] = None, 
-             auth: Optional[Dict[str, Any]] = None, 
-             transports: Optional[list] = None, 
-             namespace: str = '/', 
-             socketio_path: str = 'socket.io', 
-             wait_timeout: int = 5) -> None:
+
+    def open(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        auth: Optional[Dict[str, Any]] = None,
+        transports: Optional[list] = None,
+        namespace: str = "/",
+        socketio_path: str = "socket.io",
+        wait_timeout: int = 5,
+    ) -> None:
         """
         Connect to a Socket.IO server.
         :param url: URL of the Socket.IO server.
@@ -64,7 +67,6 @@ class SimpleClientSocketIOStreamHandler(StreamHandler):
         :param wait_timeout: Timeout for establishing connection.
         """
         self.socket_client.connect(url, headers, auth, transports, namespace, socketio_path, wait_timeout)
-
 
     def write(self, event: str, data: Union[str, bytes, list, dict, Tuple[Any, ...]]) -> None:
         """
