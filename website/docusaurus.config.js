@@ -19,6 +19,9 @@ module.exports = {
       defer: true,
     },
   ],
+  markdown: {
+    format: 'detect', // Support for MD files with .md extension
+  },
   themeConfig: {
     navbar: {
       title: "AutoGen",
