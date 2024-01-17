@@ -183,8 +183,6 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 )
 ```
 
-## Other Installation Options
-
 ### Migration guide to v0.2
 
 openai v1 is a total rewrite of the library with many breaking changes. For example, the inference requires instantiating a client, instead of using a global class method.
@@ -206,6 +204,8 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
 - `seed` in autogen is renamed into `cache_seed` to accommodate the newly added `seed` param in openai chat completion api. `use_cache` is removed as a kwarg in `OpenAIWrapper.create()` for being automatically decided by `cache_seed`: int | None. The difference between autogen's `cache_seed` and openai's `seed` is that:
   - autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
   - openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
+
+## Other Installation Options
 
 ### Optional Dependencies
 
