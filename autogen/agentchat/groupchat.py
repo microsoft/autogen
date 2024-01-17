@@ -54,7 +54,7 @@ class GroupChat:
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[
         Union[bool, List[Agent]]
-    ] = None  # It would be set to True is allowed_or_disallowed_speaker_order is None
+    ] = None  # It would be set to True if allowed_or_disallowed_speaker_order is None
     allowed_or_disallowed_speaker_order: Optional[Dict] = None
     speaker_order_type: Optional[str] = None
 
