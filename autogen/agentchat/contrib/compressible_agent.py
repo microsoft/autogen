@@ -271,7 +271,16 @@ Reply "TERMINATE" in the end when everything is done.
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
         oai_message = {
             k: message[k]
-            for k in ("role", "content", "function_call", "tool_calls", "tool_call_id", "name", "context")
+            for k in (
+                "role",
+                "content",
+                "function_call",
+                "tool_calls",
+                "tool_responses",
+                "tool_call_id",
+                "name",
+                "context",
+            )
             if k in message and message[k] is not None
         }
         if "content" not in oai_message:
@@ -386,7 +395,7 @@ Reply "TERMINATE" in the end when everything is done.
             # Handle tool role
             elif m.get("role") == "tool":
                 for tool_response in m.get("tool_responses", []):
-                    chat_to_compress += f"##TOOL_RETURN## (from tool \"{tool_response['name']}\", tool call id \"{tool_response['tool_call_id']}\"): \n{tool_response['content']}\n"
+                    chat_to_compress += f"##TOOL_RETURN## (tool_call_id: \"{tool_response['tool_call_id']}\"): \n{tool_response['content']}\n"
 
             # If name exists in the message
             elif "name" in m:
@@ -418,9 +427,7 @@ Reply "TERMINATE" in the end when everything is done.
                     if not (tool_call_id and function_name and function_args):
                         chat_to_compress += f"##TOOL_CALL## {tool_call['tool_call']}\n"
                     else:
-                        chat_to_compress += (
-                            f"##TOOL_CALL## ToolCallId: {tool_call_id} \nName: {function_name}\nArgs: {function_args}\n"
-                        )
+                        chat_to_compress += f"##TOOL_CALL## (tool_call_id: {tool_call_id}) \nName: {function_name}\nArgs: {function_args}\n"
 
         chat_to_compress = [{"role": "user", "content": chat_to_compress}]
 
