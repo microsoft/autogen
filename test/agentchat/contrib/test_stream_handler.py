@@ -1,8 +1,19 @@
 import pytest
 from unittest.mock import MagicMock
-from autogen.agentchat.contrib.stream_handler import SimpleClientSocketIOStreamHandler
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from autogen.agentchat.contrib.stream_handler import SimpleClientSocketIOStreamHandler
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
 class TestSimpleClientSocketIOStreamHandler:
     @pytest.fixture
     def mock_socket_client(self):
