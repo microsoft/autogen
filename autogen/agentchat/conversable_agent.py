@@ -1839,7 +1839,6 @@ class ConversableAgent(Agent):
 
     @register_for_middleware
     def process_last_message_user_text(self, user_text: str) -> str:
-        print(f"ConversableAgent.process_last_message_user_text: user_text={user_text}")
         return user_text
 
     def process_last_message(self, messages):
@@ -1847,8 +1846,6 @@ class ConversableAgent(Agent):
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
         """
-        print(f"ConversableAgent.process_last_message: messages={messages}")
-
         # If any required condition is not met, return the original message list.
         if messages is None:
             return None  # No message to process.
