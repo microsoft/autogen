@@ -1,4 +1,0 @@
-include *.sh
-include *.css
-include requirements.txt
-include *.conf

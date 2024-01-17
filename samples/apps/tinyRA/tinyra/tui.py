@@ -21,10 +21,17 @@ from autogen import AssistantAgent, UserProxyAgent
 
 
 # get the path of the current script
-SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
+user_home = os.path.expanduser("~")
+DATA_PATH = os.path.join(user_home, ".tinyra")
+if not os.path.exists(DATA_PATH):
+    os.mkdir(DATA_PATH)
 
-
-logging.basicConfig(level=logging.INFO, filename="tinyra.log", filemode="w", format="%(asctime)-15s %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    filename=os.path.join(DATA_PATH, "tinyra.log"),
+    filemode="w",
+    format="%(asctime)-15s %(message)s",
+)
 
 
 def init_database():
@@ -45,13 +52,13 @@ def init_database():
 
 MODEL = "gpt-4"
 CONFIG = configparser.ConfigParser()
-CHATDB = os.path.join(SCRIPT_PATH, "chat_history.db")
+CHATDB = os.path.join(DATA_PATH, "chat_history.db")
 if not os.path.exists(CHATDB):
     init_database()
 USER_NAME = "Gagan"
 USER_PROFILE_TEXT = ""
 OPERATING_SYSTEM = platform.system()
-UTILS_FILE = os.path.join(SCRIPT_PATH, "agent_utils.py")
+UTILS_FILE = os.path.join(DATA_PATH, "agent_utils.py")
 if not os.path.exists(UTILS_FILE):
     with open(UTILS_FILE, "w") as f:
         f.write("")
