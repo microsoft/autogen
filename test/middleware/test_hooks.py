@@ -1,3 +1,5 @@
+import sys
+
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -6,7 +8,8 @@ import pytest
 from autogen.middleware.conditions import Condition
 from autogen.middleware.hooks import await_if_needed, hookable_function, hookable_method
 
-from ..mocks import monitor_calls
+sys.path.append("../..")
+from mocks import monitor_calls  # noqa: E402
 
 
 @pytest.mark.asyncio()
