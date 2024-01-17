@@ -202,14 +202,10 @@ def _test_n_agents_less_than_3(method):
         ] * 3
 
     # test zero agent
-    groupchat = autogen.GroupChat(
-        agents=[],
-        messages=[],
-        max_round=6,
-        speaker_selection_method="round_robin",
-        allow_repeat_speaker=False,
-    )
     with pytest.raises(ValueError):
+        groupchat = autogen.GroupChat(
+            agents=[], messages=[], max_round=6, speaker_selection_method="round_robin", allow_repeat_speaker=False
+        )
         group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
         agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
 
