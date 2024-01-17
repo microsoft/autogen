@@ -313,7 +313,10 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
-@pytest.mark.skipif(not is_docker_running() and not in_docker_container(), reason="docker is not running")
+# skip if os is windows
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()), reason="docker is not running"
+)
 def test_execute_code(use_docker=None):
     try:
         import docker
@@ -355,14 +358,18 @@ def test_execute_code(use_docker=None):
     assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
 
 
-@pytest.mark.skipif(not is_docker_running() and not in_docker_container(), reason="docker is not running")
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()), reason="docker is not running"
+)
 def test_execute_code_with_custom_filename_on_docker():
     exit_code, msg, image = execute_code("print('hello world')", filename="tmp/codetest.py", use_docker=True)
     assert exit_code == 0 and msg == "hello world\n", msg
     assert image == "python:tmp_codetest.py"
 
 
-@pytest.mark.skipif(not is_docker_running() and not in_docker_container(), reason="docker is not running")
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()), reason="docker is not running"
+)
 def test_execute_code_with_misformed_filename_on_docker():
     exit_code, msg, image = execute_code(
         "print('hello world')", filename="tmp/codetest.py (some extra information)", use_docker=True
