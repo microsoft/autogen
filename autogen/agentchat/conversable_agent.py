@@ -616,13 +616,13 @@ class ConversableAgent(Agent):
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
-    def _prepare_chat(self, recipient, clear_history, caller=None):
+    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
         self.reset_consecutive_auto_reply_counter(recipient)
         self.reply_at_receive[recipient] = True
         if clear_history:
             self.clear_history(recipient)
-        if not caller:
-            recipient._prepare_chat(self, clear_history, self)
+        if prepare_recipient:
+            recipient._prepare_chat(self, clear_history, False)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
