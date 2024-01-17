@@ -122,8 +122,8 @@ def test_graph_modelling_language_using_select_speaker(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_oai_client_cost(save=False):
-    run_notebook("oai_client_cost.ipynb", save=save)
+def test_agentchat_cost_token_tracking(save=False):
+    run_notebook("agentchat_cost_token_tracking.ipynb", save=save)
 
 
 if __name__ == "__main__":
