@@ -4,6 +4,7 @@ from autogen import Agent, ConversableAgent
 import copy
 import asyncio
 import logging
+import inspect
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
 
 try:
@@ -63,6 +64,8 @@ Reply "TERMINATE" in the end when everything is done.
         llm_config: Optional[Union[Dict, bool]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         compress_config: Optional[Dict] = False,
+        description: Optional[str] = None,
+        **kwargs,
     ):
         """
         Args:
@@ -93,6 +96,8 @@ Reply "TERMINATE" in the end when everything is done.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
                 - "verbose" (Optional, bool, default to False): Whether to print the content before and after compression. Used when mode="COMPRESS".
                 - "leave_last_n" (Optional, int, default to 0): If provided, the last n messages will not be compressed. Used when mode="COMPRESS".
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
@@ -106,6 +111,8 @@ Reply "TERMINATE" in the end when everything is done.
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
+            description=description,
+            **kwargs,
         )
 
         self._set_compress_config(compress_config)
@@ -195,7 +202,7 @@ Reply "TERMINATE" in the end when everything is done.
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
                 continue
-            if asyncio.coroutines.iscoroutinefunction(reply_func):
+            if inspect.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])

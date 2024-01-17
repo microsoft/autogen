@@ -4,6 +4,7 @@ import sys
 import time
 from typing import Any, Callable, Dict, Literal
 import unittest
+import inspect
 
 import pytest
 from unittest.mock import patch
@@ -34,7 +35,7 @@ def conversable_agent():
     )
 
 
-def test_trigger():
+def test_sync_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent.register_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
@@ -70,6 +71,114 @@ def test_trigger():
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
     pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
+
+
+@pytest.mark.asyncio
+async def test_async_trigger():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    async def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello")
+
+    agent.register_reply(agent1, a_reply)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello"
+
+    async def a_reply_a1(recipient, messages, sender, config):
+        print("hello from a_reply_a1")
+        return (True, "hello a1")
+
+    agent.register_reply("a1", a_reply_a1)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a1"
+
+    async def a_reply_conversable_agent(recipient, messages, sender, config):
+        print("hello from a_reply_conversable_agent")
+        return (True, "hello conversable agent")
+
+    agent.register_reply(ConversableAgent, a_reply_conversable_agent)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello conversable agent"
+
+    async def a_reply_a(recipient, messages, sender, config):
+        print("hello from a_reply_a")
+        return (True, "hello a")
+
+    agent.register_reply(lambda sender: sender.name.startswith("a"), a_reply_a)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a"
+
+    async def a_reply_b(recipient, messages, sender, config):
+        print("hello from a_reply_b")
+        return (True, "hello b")
+
+    agent.register_reply(lambda sender: sender.name.startswith("b"), a_reply_b)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a"
+
+    async def a_reply_agent2_or_agent1(recipient, messages, sender, config):
+        print("hello from a_reply_agent2_or_agent1")
+        return (True, "hello agent2 or agent1")
+
+    agent.register_reply(["agent2", agent1], a_reply_agent2_or_agent1)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
+
+    async def a_reply_agent2_or_agent3(recipient, messages, sender, config):
+        print("hello from a_reply_agent2_or_agent3")
+        return (True, "hello agent2 or agent3")
+
+    agent.register_reply(["agent2", "agent3"], a_reply_agent2_or_agent3)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
+
+    with pytest.raises(ValueError):
+        agent.register_reply(1, a_reply)
+
+    with pytest.raises(ValueError):
+        agent._match_trigger(1, agent1)
+
+
+def test_async_trigger_in_sync_chat():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent2 = ConversableAgent("a2", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    reply_mock = unittest.mock.MagicMock()
+
+    async def a_reply(recipient, messages, sender, config):
+        reply_mock()
+        print("hello from a_reply")
+        return (True, "hello from reply function")
+
+    agent.register_reply(agent1, a_reply)
+
+    with pytest.raises(RuntimeError) as e:
+        agent1.initiate_chat(agent, message="hi")
+
+    assert (
+        e.value.args[0] == "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
+        "The following async reply functions are found: a_reply"
+    )
+
+    agent2.register_reply(agent1, a_reply, ignore_async_in_sync_chat=True)
+    reply_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_sync_trigger_in_async_chat():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello from reply function")
+
+    agent.register_reply(agent1, a_reply)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello from reply function"
 
 
 def test_context():
@@ -451,7 +560,7 @@ def test__wrap_function_sync():
         == '{"currency":"EUR","amount":100.1}'
     )
 
-    assert not asyncio.coroutines.iscoroutinefunction(currency_calculator)
+    assert not inspect.iscoroutinefunction(currency_calculator)
 
 
 @pytest.mark.asyncio
@@ -489,7 +598,7 @@ async def test__wrap_function_async():
         == '{"currency":"EUR","amount":100.1}'
     )
 
-    assert asyncio.coroutines.iscoroutinefunction(currency_calculator)
+    assert inspect.iscoroutinefunction(currency_calculator)
 
 
 def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:
@@ -567,6 +676,77 @@ def test_register_for_llm():
         assert agent1.llm_config["tools"] == expected1
         assert agent2.llm_config["tools"] == expected2
         assert agent3.llm_config["tools"] == expected3
+
+
+def test_register_for_llm_api_style_function():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+
+        @agent3.register_for_llm(api_style="function")
+        @agent2.register_for_llm(name="python", api_style="function")
+        @agent1.register_for_llm(
+            description="run cell in ipython and return the execution result.", api_style="function"
+        )
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
+
+        expected1 = [
+            {
+                "description": "run cell in ipython and return the execution result.",
+                "name": "exec_python",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cell": {
+                            "type": "string",
+                            "description": "Valid Python cell to execute.",
+                        }
+                    },
+                    "required": ["cell"],
+                },
+            }
+        ]
+        expected2 = copy.deepcopy(expected1)
+        expected2[0]["name"] = "python"
+        expected3 = expected2
+
+        assert agent1.llm_config["functions"] == expected1
+        assert agent2.llm_config["functions"] == expected2
+        assert agent3.llm_config["functions"] == expected3
+
+        @agent3.register_for_llm(api_style="function")
+        @agent2.register_for_llm(api_style="function")
+        @agent1.register_for_llm(
+            name="sh", description="run a shell script and return the execution result.", api_style="function"
+        )
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
+            pass
+
+        expected1 = expected1 + [
+            {
+                "name": "sh",
+                "description": "run a shell script and return the execution result.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "script": {
+                            "type": "string",
+                            "description": "Valid shell script to execute.",
+                        }
+                    },
+                    "required": ["script"],
+                },
+            }
+        ]
+        expected2 = expected2 + [expected1[1]]
+        expected3 = expected3 + [expected1[1]]
+
+        assert agent1.llm_config["functions"] == expected1
+        assert agent2.llm_config["functions"] == expected2
+        assert agent3.llm_config["functions"] == expected3
 
 
 def test_register_for_llm_without_description():

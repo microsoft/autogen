@@ -364,7 +364,7 @@ def test_load_basemodels_if_needed_sync() -> None:
     ) -> Tuple[Currency, CurrencySymbol]:
         return base, quote_currency
 
-    assert not asyncio.coroutines.iscoroutinefunction(f)
+    assert not inspect.iscoroutinefunction(f)
 
     actual = f(base={"currency": "USD", "amount": 123.45}, quote_currency="EUR")
     assert isinstance(actual[0], Currency)
@@ -382,7 +382,7 @@ async def test_load_basemodels_if_needed_async() -> None:
     ) -> Tuple[Currency, CurrencySymbol]:
         return base, quote_currency
 
-    assert asyncio.coroutines.iscoroutinefunction(f)
+    assert inspect.iscoroutinefunction(f)
 
     actual = await f(base={"currency": "USD", "amount": 123.45}, quote_currency="EUR")
     assert isinstance(actual[0], Currency)
