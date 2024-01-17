@@ -124,7 +124,7 @@ def match_caller_type(
         callee: The source function.
         caller: The destination function.
         loop: The event loop to run the function in. If not set, the current running loop is used.
-        timeout: If not None, the timeout to use when waiting for the result of `callee`. It is only awailable if the
+        timeout: If not None, the timeout to use when waiting for the result of `callee`. It is only available if the
             caller is a `sync` function and the callee is an `async` function.
 
     Returns:
