@@ -7,7 +7,7 @@ const fixColorContrast = (selector, color) => {
   }
 }
 
-const observer = new MutationObserver((mutations, obs) => {
+const observer = new MutationObserver(() => {
   const hashLinks = document.querySelectorAll('.hash-link[title="Direct link to heading"]');
   if (hashLinks.length > 0) {
     hashLinks.forEach(link => {
