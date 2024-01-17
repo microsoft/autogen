@@ -2,10 +2,12 @@ import os
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
+from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 import chromadb
 from chromadb.config import Settings
 import pickle
+
+from autogen.middleware.base import add_middleware
 
 try:
     from termcolor import colored
@@ -58,10 +60,21 @@ class Teachability(AgentCapability):
 
     def add_to_agent(self, agent: ConversableAgent):
         """Adds teachability to the given agent."""
+        print(f"add_to_agent({agent=})")
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        agent.process_last_message_user_text.add_post_hook(self.process_last_message)
+        class TeachabilityMiddleware:
+            def __init__(self, teachability):
+                print(f"TeachabilityMiddleware.__init__({teachability=})")
+                self.teachability = teachability
+
+            def call(self, text: str, next: Callable[..., Any]):
+                print(f"TeachabilityMiddleware.call({text=}, {next=}, {self.teachability.process_last_message})")
+                text = next(text)
+                return self.teachability.process_last_message(text)
+
+        add_middleware(ConversableAgent.process_last_message_user_text, TeachabilityMiddleware(self))
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:

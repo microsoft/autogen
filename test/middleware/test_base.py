@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import inspect
-from typing import Any, Awaitable, Callable, Type
+from typing import Any, Awaitable, Callable, Optional, Type
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -64,7 +64,25 @@ def run_in_thread_pool(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Awai
 
 
 @pytest.mark.asyncio()
-async def test_hookable() -> None:
+async def test_middlewares_simple_sync() -> None:
+    @register_for_middleware
+    def f(msg: str) -> str:
+        return f"Hello {msg}!"
+
+    assert not inspect.iscoroutinefunction(f)
+    assert f("world") == "Hello world!"
+
+    assert f._middlewares == []
+
+    add_middleware(f, MyMiddlewareSync("a"))
+    assert f._middlewares == [MyMiddlewareSync("a")]
+    actual = f("world")
+    expected = "a.call(Hello world!)"
+    assert actual == expected
+
+
+@pytest.mark.asyncio()
+async def test_middlewares() -> None:
     @register_for_middleware
     def f(*args: Any, **kwargs: Any) -> str:
         return format_function(f, *args, **kwargs)
@@ -280,8 +298,8 @@ def test_example() -> None:
             self.name = name
 
         @register_for_middleware
-        def go(self, *args: Any, **kwargs: Any) -> str:
-            return f"{self.name}.{format_function(self.go, *args, **kwargs)}"
+        def process_message(self, msg: str, skip_middleware: Optional[bool] = None) -> str:
+            return f"{self.name}.process_message({msg=})"
 
     class MyMiddleware:
         def __init__(self, name: str) -> None:
@@ -295,11 +313,11 @@ def test_example() -> None:
             return not ("skip_middleware" in kwargs and kwargs["skip_middleware"])
 
     a = A("a")
-    add_middleware(A.go, MyMiddleware("mw"))
+    add_middleware(A.process_message, MyMiddleware("mw"))
 
-    assert a.go(1, 2, 3, a=4, b=5) == "mw.call(a.go(1, 2, 3, a=4, b=5))"
-    assert a.go(1, 2, 3, a=4, b=5, skip_middleware=False) == "mw.call(a.go(1, 2, 3, a=4, b=5, skip_middleware=False))"
-    assert a.go(1, 2, 3, a=4, b=5, skip_middleware=True) == "a.go(1, 2, 3, a=4, b=5, skip_middleware=True)"
+    assert a.process_message("hello") == "mw.call(a.process_message(msg='hello'))"
+    assert a.process_message("hello", skip_middleware=False) == "mw.call(a.process_message(msg='hello'))"
+    assert a.process_message("hello", skip_middleware=True) == "a.process_message(msg='hello')"
 
-    add_middleware(A.go, MyMiddleware("MW"))
-    assert a.go(1, 2, 3, a=4, b=5) == "mw.call(MW.call(a.go(1, 2, 3, a=4, b=5)))"
+    add_middleware(A.process_message, MyMiddleware("MW"))
+    assert a.process_message("hello") == "mw.call(MW.call(a.process_message(msg='hello')))"

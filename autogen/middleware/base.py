@@ -46,7 +46,7 @@ class MiddlewareCallable(Protocol):
         ...  # pragma: no cover
 
 
-def register_for_middleware(f: F) -> MiddlewareCallable:
+def register_for_middleware(f: F) -> F:
     """Decorator to register a function for middleware.
 
     After being applied to a function, middlewares can be attached to it using `add_middleware` and
@@ -100,7 +100,7 @@ def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[...
         next_async = match_caller_type(callee=next, caller=_aa)
 
         @wraps(call)
-        async def _chain_async(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
+        async def _chain_async(*args: Any, **kwargs: Any) -> Any:
             trigger_value = (await trigger(*args, **kwargs)) if trigger is not None else True
             if trigger_value:
                 return await call(*args, next=next, **kwargs)
@@ -112,7 +112,7 @@ def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[...
         next_sync = match_caller_type(callee=next, caller=lambda: None)
 
         @wraps(call)
-        def _chain_sync(*args: Any, next: Callable[..., Any] = next, **kwargs: Any) -> Any:
+        def _chain_sync(*args: Any, **kwargs: Any) -> Any:
             if trigger is None or trigger(*args, **kwargs):
                 return call(*args, next=next, **kwargs)
             else:
@@ -123,6 +123,7 @@ def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[...
 
 def _build_middleware_chain(h: MiddlewareCallable) -> None:
     next = h._origin
+
     for mw in reversed(h._middlewares):
         next = _get_next_function(h, mw, next)
         mw._chained_call = next  # type: ignore[attr-defined]
