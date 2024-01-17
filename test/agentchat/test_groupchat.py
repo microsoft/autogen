@@ -533,8 +533,8 @@ def test_clear_agents_history():
         agent1.initiate_chat(group_chat_manager, message="hello")
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
-    assert agent1_history == [{'content': 'How you doing?', 'name': 'sam', 'role': 'user'}]
-    assert agent2_history == [{'content': 'How you doing?', 'name': 'sam', 'role': 'user'}]
+    assert agent1_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
 
     # testing clear history for defined agent
     with mock.patch.object(builtins, "input", lambda _: "clear history bob. How you doing?"):
@@ -542,11 +542,11 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {'content': 'hello', 'role': 'assistant'},
-        {'content': 'This is bob speaking.', 'name': 'bob', 'role': 'user'},
-        {'content': 'How you doing?', 'name': 'sam', 'role': 'user'}
+        {"content": "hello", "role": "assistant"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"}
     ]
-    assert agent2_history == [{'content': 'How you doing?', 'name': 'sam', 'role': 'user'}]
+    assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
 
     # testing clear history with defined nr of messages to preserve
     with mock.patch.object(builtins, "input", lambda _: "clear history 1. How you doing?"):
@@ -554,12 +554,12 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {'content': 'This is bob speaking.', 'name': 'bob', 'role': 'user'},
-        {'content': 'How you doing?', 'name': 'sam', 'role': 'user'}
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"}
     ]
     assert agent2_history == [
-        {'content': 'This is bob speaking.', 'role': 'assistant'},
-        {'content': 'How you doing?', 'name': 'sam', 'role': 'user'}
+        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "How you doing?", "name": "sam", "role": "user"}
     ]
 
     # testing clear history with defined agent and nr of messages to preserve
@@ -568,13 +568,13 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [
-        {'content': 'hello', 'role': 'assistant'},
-        {'content': 'This is bob speaking.', 'name': 'bob', 'role': 'user'},
-        {'content': 'How you doing?', 'name': 'sam', 'role': 'user'}
+        {"content": "hello", "role": "assistant"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"}
     ]
     assert agent2_history == [
-        {'content': 'This is bob speaking.', 'role': 'assistant'},
-        {'content': 'How you doing?', 'name': 'sam', 'role': 'user'}
+        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "How you doing?", "name": "sam", "role": "user"}
     ]
 
 
