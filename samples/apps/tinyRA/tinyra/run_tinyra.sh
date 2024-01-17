@@ -4,6 +4,9 @@
 mode=$1
 SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+VIRTUAL_ENV_VALUE="$VIRTUAL_ENV"
+CONDA_PREFIX_VALUE="$CONDA_PREFIX"
+
 # if mode is not provided, set it to default proceed with code below
 if [ -z "$mode" ]; then
     mode="main"
@@ -30,7 +33,17 @@ if [ "$mode" == "main" ]; then
     tmux new-session -d -s tinyaRAtmux
     tmux source-file $SCRIPTS_DIR/$TMUX_CONFIG
 
-    CMD1="export TERMCOLOR=truecolor && python $SCRIPTS_DIR/tui.py"
+    # If VIRTUAL_ENV_VALUE is not empty, export it
+    if [ -n "$VIRTUAL_ENV_VALUE" ]; then
+        CMD1="export VIRTUAL_ENV=$VIRTUAL_ENV_VALUE && "
+    fi
+
+    # If CONDA_PREFIX_VALUE is not empty, export it
+    if [ -n "$CONDA_PREFIX_VALUE" ]; then
+        CMD1+="conda activate $CONDA_PREFIX_VALUE && "
+    fi
+
+    CMD1+="export TERMCOLOR=truecolor && python $SCRIPTS_DIR/tui.py"
     tmux send-keys -t tinyaRAtmux:0 "$CMD1" C-m
     tmux rename-window -t tinyaRAtmux:0 "main"
 
@@ -57,5 +70,15 @@ if [ "$mode" == "tab" ]; then
     # if it does not, add a new tab to the tmux session at the end
     tmux new-window -t tinyaRAtmux -n $newtab
     tmux select-window -t tinyaRAtmux:$newtab
-    tmux send-keys -t tinyaRAtmux:$newtab "python $SCRIPTS_DIR/run_tab.py $msgid && exit" C-m
+     # If VIRTUAL_ENV_VALUE is not empty, export it
+    if [ -n "$VIRTUAL_ENV_VALUE" ]; then
+        CMD1="export VIRTUAL_ENV=$VIRTUAL_ENV_VALUE && "
+    fi
+
+    # If CONDA_PREFIX_VALUE is not empty, export it
+    if [ -n "$CONDA_PREFIX_VALUE" ]; then
+        CMD1+="conda activate $CONDA_PREFIX_VALUE && "
+    fi
+    CMD1+="export TERMCOLOR=truecolor && python $SCRIPTS_DIR/run_tab.py $msgid && exit"
+    tmux send-keys -t tinyaRAtmux:$newtab "$CMD1" C-m
 fi
