@@ -276,7 +276,7 @@ def decide_use_docker(use_docker) -> bool:
     return use_docker
 
 
-def check_use_docker(use_docker) -> None:
+def check_can_use_docker_or_throw(use_docker) -> None:
     if use_docker is not None:
         inside_docker = in_docker_container()
         docker_installed_and_running = is_docker_running()
@@ -339,14 +339,14 @@ def execute_code(
             The default working directory is the "extensions" directory under
             "path_to_autogen".
         use_docker (list, str or bool): The docker image to use for code execution.
+            Default is True, which means the code will be executed in a docker container. A default list of images will be used.
             If a list or a str of image name(s) is provided, the code will be executed in a docker container
             with the first image successfully pulled.
-            If None, False or empty, the code will be executed in the current environment.
-            Default is True.
+            If False, the code will be executed in the current environment.
             Expected behaviour:
                 - If `use_docker` is not set (i.e. left default to True) or is explicitly set to True and the docker package is available, the code will run in a Docker container.
-                - If `use_docker` is not set (i.e. left default to True) or is explicitly set to True but the Docker package is missing, an error will be raised.
-                - If `use_docker` is explicitly set to False, a warning will be displayed, but the code will run natively.
+                - If `use_docker` is not set (i.e. left default to True) or is explicitly set to True but the Docker package is missing or docker isn't running, an error will be raised.
+                - If `use_docker` is explicitly set to False, the code will run natively.
             If the code is executed in the current environment,
             the code must be trusted.
         lang (Optional, str): The language of the code. Default is "python".
@@ -364,9 +364,10 @@ def execute_code(
     running_inside_docker = in_docker_container()
     docker_running = is_docker_running()
 
+    # SENTINEL is used to indicate that the user did not explicitly set the argument
     if use_docker is SENTINEL:
         use_docker = decide_use_docker(use_docker=None)
-    check_use_docker(use_docker)
+    check_can_use_docker_or_throw(use_docker)
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
