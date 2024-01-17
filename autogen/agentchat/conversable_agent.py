@@ -484,7 +484,12 @@ class ConversableAgent(Agent):
                 return  # If role is tool, then content is just a concatenation of all tool_responses
 
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
+            if message["role"] == "function":
+                id_key = "name"
+            else:
+                id_key = "tool_call_id"
+
+            func_print = f"***** Response from calling {message['role']} \"{message[id_key]}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
@@ -884,10 +889,9 @@ class ConversableAgent(Agent):
         return False, None
 
     def _str_for_tool_response(self, tool_response):
-        func_name = tool_response.get("name", "")
         func_id = tool_response.get("tool_call_id", "")
         response = tool_response.get("content", "")
-        return f"Tool call: {func_name}\nId: {func_id}\n{response}"
+        return f"Tool Call Id: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
         self,
@@ -913,7 +917,6 @@ class ConversableAgent(Agent):
                 {
                     "tool_call_id": id,
                     "role": "tool",
-                    "name": func_return.get("name", ""),
                     "content": func_return.get("content", ""),
                 }
             )
@@ -932,7 +935,6 @@ class ConversableAgent(Agent):
         return {
             "tool_call_id": id,
             "role": "tool",
-            "name": func_return.get("name", ""),
             "content": func_return.get("content", ""),
         }
 
@@ -1716,6 +1718,7 @@ class ConversableAgent(Agent):
                 For Azure OpenAI API, use version 2023-12-01-preview or later.
                 `"function"` style will be deprecated. For earlier version use
                 `"function"` if `"tool"` doesn't work.
+                See [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/function-calling?tabs=python) for details.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1729,7 +1732,7 @@ class ConversableAgent(Agent):
                  return a + str(b * c)
             ```
 
-            For Azure OpenAI versions 2023-10-01-preview and earlier, set `api_style`
+            For Azure OpenAI versions prior to 2023-12-01-preview, set `api_style`
             to `"function"` if `"tool"` doesn't work:
             ```
             @agent2.register_for_llm(api_style="function")
