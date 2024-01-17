@@ -12,6 +12,14 @@ def format_function(f: Callable[..., Any], *args: Any, **kwargs: Any) -> str:
 
 @pytest.mark.asyncio()
 async def test_sync_to_async() -> None:
+    with pytest.raises(TypeError) as e:
+
+        @sync_to_async()
+        async def a_f(*args: Any, **kwargs: Any) -> Any:
+            return format_function(f, *args, **kwargs)
+
+    assert str(e.value) == "Cannot convert async function to sync."
+
     @sync_to_async()
     def f(*args: Any, **kwargs: Any) -> Any:
         return format_function(f, *args, **kwargs)
@@ -22,6 +30,14 @@ async def test_sync_to_async() -> None:
 
 @pytest.mark.asyncio()
 async def test_async_to_sync() -> None:
+    with pytest.raises(TypeError) as e:
+
+        @async_to_sync()
+        def f(*args: Any, **kwargs: Any) -> Any:
+            return format_function(f, *args, **kwargs)
+
+    assert str(e.value) == "Cannot convert sync function to async."
+
     @async_to_sync(timeout=2)
     async def a_f(*args: Any, **kwargs: Any) -> Any:
         return format_function(a_f, *args, **kwargs)
@@ -31,6 +47,37 @@ async def test_async_to_sync() -> None:
     a_a_f = sync_to_async()(a_f)
 
     assert await a_a_f(1, 2, 3, a=4, b=5) == "a_f(1, 2, 3, a=4, b=5)"
+
+
+@pytest.mark.asyncio()
+async def test_async_sync_chain() -> None:
+    @sync_to_async()
+    def f1(*args: Any, **kwargs: Any) -> Any:
+        return format_function(f1, *args, **kwargs)
+
+    @async_to_sync(timeout=2)
+    async def a_f1(*args: Any, **kwargs: Any) -> Any:
+        retval = await f1(*args, **kwargs)
+        return format_function(a_f1, retval)
+
+    @sync_to_async()
+    def f2(*args: Any, **kwargs: Any) -> Any:
+        retval = a_f1(*args, **kwargs)
+        return format_function(f2, retval)
+
+    @async_to_sync(timeout=2)
+    async def a_f2(*args: Any, **kwargs: Any) -> Any:
+        retval = await f2(*args, **kwargs)
+        return format_function(a_f2, retval)
+
+    @sync_to_async()
+    def f3(*args: Any, **kwargs: Any) -> Any:
+        retval = a_f2(*args, **kwargs)
+        return format_function(f3, retval)
+
+    actual = await f3(1, 2, 3, a=4, b=5)
+    expected = "f3(a_f2(f2(a_f1(f1(1, 2, 3, a=4, b=5)))))"
+    assert actual == expected
 
 
 @pytest.mark.asyncio()

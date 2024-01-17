@@ -33,12 +33,16 @@ def sync_to_async(*, loop: Optional[asyncio.AbstractEventLoop] = None) -> Callab
 
     Raises:
         RuntimeError: If no running event loop is found.
+        TypeError: If the function is already async.
     """
     loop = asyncio.get_running_loop() if loop is None else loop
     if loop is None:
         raise RuntimeError("No running event loop found.")
 
     def _sync_to_async(f: F) -> F:
+        if inspect.iscoroutinefunction(f):
+            raise TypeError("Cannot convert async function to sync.")
+
         @wraps(f)
         async def _a_f(*args: Any, **kwargs: Any) -> Any:
             return await loop.run_in_executor(None, partial(f, *args, **kwargs))
@@ -79,12 +83,16 @@ def async_to_sync(
     Raises:
         RuntimeError: If no running event loop is found.
         TimeoutError: If the async function does not complete within the timeout.
+        TypeError: If the function is already sync.
     """
     loop = asyncio.get_running_loop() if loop is None else loop
     if loop is None:
         raise RuntimeError("No running event loop found.")
 
     def _async_to_sync(f: F) -> F:
+        if not inspect.iscoroutinefunction(f):
+            raise TypeError("Cannot convert sync function to async.")
+
         @wraps(f)
         def _s_f(*args: Any, **kwargs: Any) -> Any:
             coro = f(*args, **kwargs)
@@ -117,7 +125,7 @@ def match_caller_type(
         caller: The destination function.
         loop: The event loop to run the function in. If not set, the current running loop is used.
         timeout: If not None, the timeout to use when waiting for the result of `callee`. It is only awailable if the
-        caller is a `sync` function and the callee is an `async` function.
+            caller is a `sync` function and the callee is an `async` function.
 
     Returns:
         A function that matches the caller type of `caller`.
