@@ -5,7 +5,7 @@ import sys
 import os
 import autogen
 from autogen.math_utils import eval_math_responses
-from .test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from autogen.oai.client import TOOL_ENABLED
 
 try:

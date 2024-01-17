@@ -3,7 +3,7 @@ import pytest
 import asyncio
 import sys
 import os
-from .test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 try:
     from openai import OpenAI
