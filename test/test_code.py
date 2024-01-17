@@ -387,75 +387,78 @@ def test_execute_code_no_docker():
     assert image is None
 
 
-def clear_autogen_use_docker_env_var():
-    # Ensure the environment variable is cleared
-    if "AUTOGEN_USE_DOCKER" in os.environ:
+def get_current_autogen_env_var():
+    return os.environ.get("AUTOGEN_USE_DOCKER", None)
+
+
+def restore_autogen_env_var(current_env_value):
+    if current_env_value is None:
         del os.environ["AUTOGEN_USE_DOCKER"]
+    else:
+        os.environ["AUTOGEN_USE_DOCKER"] = current_env_value
 
 
 def test_decide_use_docker_truthy_values():
-    clear_autogen_use_docker_env_var()
+    current_env_value = get_current_autogen_env_var()
+
     for truthy_value in ["1", "true", "yes", "t"]:
         os.environ["AUTOGEN_USE_DOCKER"] = truthy_value
         assert decide_use_docker(None) is True
-    clear_autogen_use_docker_env_var()
+
+    restore_autogen_env_var(current_env_value)
 
 
 def test_decide_use_docker_falsy_values():
-    clear_autogen_use_docker_env_var()
+    current_env_value = get_current_autogen_env_var()
+
     for falsy_value in ["0", "false", "no", "f"]:
         os.environ["AUTOGEN_USE_DOCKER"] = falsy_value
         assert decide_use_docker(None) is False
-    clear_autogen_use_docker_env_var()
+
+    restore_autogen_env_var(current_env_value)
 
 
-def test_decide_use_docker_none_value():
-    clear_autogen_use_docker_env_var()
+def test_decide_use_docker():
+    current_env_value = get_current_autogen_env_var()
+
     os.environ["AUTOGEN_USE_DOCKER"] = "none"
     assert decide_use_docker(None) is None
-    clear_autogen_use_docker_env_var()
-
-
-def test_decide_use_docker_invalid_value():
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "invalid"
     with pytest.raises(ValueError):
         decide_use_docker(None)
-    clear_autogen_use_docker_env_var()
+
+    restore_autogen_env_var(current_env_value)
 
 
-# test that input overrides environment variable
 def test_decide_use_docker_with_env_var():
-    clear_autogen_use_docker_env_var()
+    current_env_value = get_current_autogen_env_var()
+
     os.environ["AUTOGEN_USE_DOCKER"] = "false"
     assert decide_use_docker(None) is False
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "true"
     assert decide_use_docker(None) is True
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "none"
     assert decide_use_docker(None) is None
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "invalid"
     with pytest.raises(ValueError):
         decide_use_docker(None)
-    clear_autogen_use_docker_env_var()
+
+    restore_autogen_env_var(current_env_value)
 
 
 def test_decide_use_docker_with_env_var_and_argument():
-    clear_autogen_use_docker_env_var()
+    current_env_value = get_current_autogen_env_var()
+
     os.environ["AUTOGEN_USE_DOCKER"] = "false"
     assert decide_use_docker(True) is True
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "true"
     assert decide_use_docker(False) is False
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "none"
     assert decide_use_docker(True) is True
-    clear_autogen_use_docker_env_var()
     os.environ["AUTOGEN_USE_DOCKER"] = "invalid"
     assert decide_use_docker(True) is True
-    clear_autogen_use_docker_env_var()
+
+    restore_autogen_env_var(current_env_value)
 
 
 def test_can_use_docker_or_throw():
