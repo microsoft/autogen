@@ -4,7 +4,8 @@
             "extensions": [
                 "ms-python.python",
                 "ms-toolsai.jupyter",
-                "visualstudioexptteam.vscodeintellicode"
+                "visualstudioexptteam.vscodeintellicode",
+                "GitHub.copilot"
             ],
             "settings": {
                 "terminal.integrated.profiles.linux": {
