@@ -1,6 +1,7 @@
 import inspect
 from functools import wraps
-from typing import Any, Callable, List, Optional, Protocol
+import textwrap
+from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from typing_extensions import TypeVar
 
@@ -18,6 +19,11 @@ class Middleware(Protocol):
         """The function to called in the middleware chain."""
         ...  # pragma: no cover
 
+    @property
+    def _h(self) -> "MiddlewareCallable":
+        """The hookable function to which the middleware is attached."""
+        ...  # pragma: no cover
+
 
 class MiddlewareCallable(Protocol):
     """Protocol for a function registered for middleware."""
@@ -27,7 +33,7 @@ class MiddlewareCallable(Protocol):
         ...  # pragma: no cover
 
     @property
-    def _chained_call(self) -> Callable[..., Any]:
+    def _chained_call(self) -> Dict[Any, Callable[..., Any]]:
         ...  # pragma: no cover
 
     @property
@@ -39,7 +45,7 @@ class MiddlewareCallable(Protocol):
         ...  # pragma: no cover
 
     @property
-    def _middlewares(self) -> List[Middleware]:
+    def _middlewares(self) -> Dict[Any, List[Middleware]]:
         ...  # pragma: no cover
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
@@ -61,17 +67,32 @@ def register_for_middleware(f: F) -> F:
 
     @wraps(f)
     def h_sync(*args: Any, **kwargs: Any) -> Any:
-        return h_sync._chained_call(*args, **kwargs)  # type: ignore[attr-defined]
+        # self is the first argument if the function is a method
+        self = args[0]
+
+        h: MiddlewareCallable = h_sync  # type: ignore[assignment]
+        if self in h._chained_call:
+            return h._chained_call[self](*args, **kwargs)  # type: ignore[attr-defined]
+        else:
+            return h._origin(*args, **kwargs)  # type: ignore[attr-defined]
 
     @wraps(f)
     async def h_async(*args: Any, **kwargs: Any) -> Any:
-        return await h_async._chained_call(*args, **kwargs)  # type: ignore[attr-defined]
+        # self is the first argument if the function is a method
+
+        self = args[0]
+
+        h: MiddlewareCallable = h_async  # type: ignore[assignment]
+        if self in h._chained_call:
+            return await h._chained_call[self](*args, **kwargs)  # type: ignore[attr-defined]
+        else:
+            return await h._origin(*args, **kwargs)  # type: ignore[attr-defined]
 
     # this is to reduce number of mypy errors below, although we don't care about errors here
     h: MiddlewareCallable = h_async if inspect.iscoroutinefunction(f) else h_sync  # type: ignore[assignment]
 
     h._origin = f  # type: ignore[misc]
-    h._chained_call = f  # type: ignore[misc]
+    h._chained_call = dict()  # type: ignore[misc]
 
     # if the name of the first argument is `self` or `cls`, then we assume
     # this is a method, otherwise it is a function
@@ -82,7 +103,7 @@ def register_for_middleware(f: F) -> F:
     # if async, then we need to await the result
     h._is_async = inspect.iscoroutinefunction(f)  # type: ignore[misc]
 
-    h._middlewares = []  # type: ignore[misc]
+    h._middlewares = {}  # type: ignore[misc]
 
     return h  # type: ignore[return-value]
 
@@ -125,43 +146,102 @@ def _get_next_function(h: MiddlewareCallable, mw: Middleware, next: Callable[...
         return _chain_sync
 
 
-def _build_middleware_chain(h: MiddlewareCallable) -> None:
-    next = h._origin
+def _is_bound_method(method: Callable[..., Any]) -> bool:
+    return hasattr(method, "__self__") and method.__self__ is not None
 
-    for mw in reversed(h._middlewares):
+
+def _get_self_from_bounded(h: Callable[..., Any], *, self: Any = None) -> Any:
+    if hasattr(h, "__self__") and h.__self__ is not None:
+        return h.__self__
+    else:
+        raise ValueError(f"Functions {h} is not bounded.")  # pragma: no cover
+
+
+def _build_middleware_chain(h: MiddlewareCallable) -> None:
+    if not _is_bound_method(h):
+        msg = """\
+        Middleware can only be added to bound methods.
+
+        Example:
+            class A():
+                @register_for_middleware
+                def f(self):
+                    pass
+
+            class Middleware():
+                def call(self, *args, **kwargs):
+                    pass
+
+            a = A()
+            mw = Middleware()
+            add_middleware(a.f, mw)
+
+            # raises ValueError
+            add_middleware(A.f, mw)
+        """
+        raise ValueError(textwrap.dedent(msg))
+
+    next = h._origin
+    self = _get_self_from_bounded(h)
+
+    for mw in reversed(h._middlewares[self]):
         next = _get_next_function(h, mw, next)
         mw._chained_call = next  # type: ignore[attr-defined]
 
-    h._chained_call = next  # type: ignore[misc]
+    h._chained_call[self] = next  # type: ignore[misc]
 
 
-def _check_middleware(h: MiddlewareCallable, mw: Middleware) -> None:
-    if inspect.iscoroutinefunction(mw.call) and not inspect.iscoroutinefunction(h):
-        raise TypeError(f"Cannot use middleare with async `call` method on a sync hookable function: {mw=}, {h=} ")
-    if hasattr(mw, "trigger") and inspect.iscoroutinefunction(mw.trigger) and not inspect.iscoroutinefunction(h):
-        raise TypeError(f"Cannot use middleare with async `trigger` method on a sync hookable function: {mw=}, {h=} ")
+def _check_for_added_to_multiple_functions(h: MiddlewareCallable, mw: Middleware) -> None:
+    msg = """\
+    The same instance of the middleware cannot be added to multiple functions.
+
+    Example:
+        class A():
+            @register_for_middleware
+            def f(self):
+                pass
+
+        class Middleware():
+            def call(self, *args, **kwargs):
+                pass
+
+        a = A()
+        b = A()
+
+        mwa = Middleware()
+        mwb = Middleware()
+
+        add_middleware(a.f, mwa)
+
+        # raises ValueError
+        add_middleware(b.f, mwa)
+    """
+    if hasattr(mw, "_h") and mw._h is not None and mw._h != h:
+        raise ValueError(textwrap.dedent(msg))
 
 
 def add_middleware(h: Callable[..., Any], mw: Any, *, position: Optional[int] = None) -> None:
     """Add a middleware to a hookable function.
 
     Args:
-        h: The hookable function.
+        h: A function registered for middleware.
         mw: The middleware to add.
         position: The position to insert the middleware at. If `None`, then the middleware is appended to the end.
-
-    Raises:
-        TypeError: If the middleware cannot be used with the hookable function due to hookable function `h` being sync
-            and `ws.call`` being async function.
     """
     _h: MiddlewareCallable = h  # type: ignore[assignment]
 
-    _check_middleware(_h, mw)
+    _check_for_added_to_multiple_functions(_h, mw)
+
+    self = _get_self_from_bounded(h, self=None)
+    if self not in _h._middlewares:
+        _h._middlewares[self] = []
 
     if position is None:
-        _h._middlewares.append(mw)
+        _h._middlewares[self].append(mw)
     else:
-        _h._middlewares.insert(position, mw)
+        _h._middlewares[self].insert(position, mw)
+
+    mw._h = _h
 
     # we could update the chain in-place, but this is a more robust solution
     _build_middleware_chain(_h)
@@ -182,8 +262,13 @@ def set_middlewares(h: Callable[..., Any], mws: List[Any]) -> None:
     _h: MiddlewareCallable = h  # type: ignore[assignment]
 
     for mw in mws:
-        _check_middleware(_h, mw)
+        _check_for_added_to_multiple_functions(_h, mw)
+        mw._h = _h
 
-    _h._middlewares = mws  # type: ignore[misc]
+    self = _get_self_from_bounded(h, self=mw)
+    if self not in _h._middlewares:
+        _h._middlewares[self] = []
+
+    _h._middlewares[self] = mws  # type: ignore[misc]
 
     _build_middleware_chain(_h)
