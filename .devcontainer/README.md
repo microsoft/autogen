@@ -1,26 +1,26 @@
-# README for AutoGen Docker Samples
+# Docker for AutoGen
 
-Welcome to the `autogen/samples/dockers` directory! Here you'll find Dockerfiles that are essential for setting up your AutoGen development environment. Each Dockerfile is tailored for different use cases and requirements. Below is a brief overview of each and how you can utilize them effectively.
+Welcome to the `.devcontainer` directory! Here you'll find Dockerfiles that are essential for setting up your AutoGen development environment. Each Dockerfile is tailored for different use cases and requirements. Below is a brief overview of each and how you can utilize them effectively.
 
 ## Dockerfile Descriptions
 
-### Dockerfile.base
+### base
 
 - **Purpose**: This Dockerfile is designed for basic setups. It includes common Python libraries and essential dependencies required for general usage of AutoGen.
 - **Usage**: Ideal for those just starting with AutoGen or for general-purpose applications.
-- **Building the Image**: Run `docker build -f Dockerfile.base -t autogen_base_img .` in this directory.
+- **Building the Image**: Run `docker build -f base/Dockerfile -t autogen_base_img .` in this directory.
 
-### Dockerfile.full
+### full
 
 - **Purpose**: This Dockerfile is for advanced features. It includes additional dependencies and is configured for more complex or feature-rich AutoGen applications.
 - **Usage**: Suited for advanced users who need the full range of AutoGen's capabilities.
-- **Building the Image**: Execute `docker build -f Dockerfile.full -t autogen_full_img .`.
+- **Building the Image**: Execute `docker build -f full/Dockerfile -t autogen_full_img .`.
 
-### Dockerfile.dev
+### dev
 
 - **Purpose**: Tailored for AutoGen project developers, this Dockerfile includes tools and configurations aiding in development and contribution.
 - **Usage**: Recommended for developers who are contributing to the AutoGen project.
-- **Building the Image**: Run `docker build -f Dockerfile.dev -t autogen_dev_img .`.
+- **Building the Image**: Run `docker build -f dev/Dockerfile -t autogen_dev_img .`.
 - **Before using**: We highly encourage all potential contributors to read the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page prior to submitting any pull requests.
 
 ## Customizing Dockerfiles
@@ -35,7 +35,7 @@ Feel free to modify these Dockerfiles for your specific project needs. Here are 
     `# ENV OPENAI_API_KEY="{OpenAI-API-Key}"` to `ENV OPENAI_API_KEY="{OpenAI-API-Key}"`
 - **Need a less "Advanced" Autogen build**: If the Dockerfile.full is to much but you need more than advanced then update this line in the Dockerfile.full file.
 `RUN pip install pyautogen[teachable,lmm,retrievechat,mathchat,blendsearch] autogenra` to install just what you need. `RUN pip install pyautogen[retrievechat,blendsearch] autogenra`
-- **Can't Dev without your favorite CLI tool**: if you need particular OS tools to be installed in your Docker container you can add those packages here right after the sudo for the Dockerfile.base and Dockerfile.full files. In the example below we are installing net-tools and vim to the environment.
+- **Can't Dev without your favorite CLI tool**: if you need particular OS tools to be installed in your Docker container you can add those packages here right after the sudo for the `base/Dockerfile` and `full/Dockerfile.full` files. In the example below we are installing net-tools and vim to the environment.
 
     ```code
     RUN apt-get update \
