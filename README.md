@@ -69,7 +69,7 @@ Find detailed instructions for users [here](https://microsoft.github.io/autogen/
 
 ### Option 2. Install AutoGen Locally
 
-AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
+AutoGen requires **Python version >= 3.8, <= 3.12**. It can be installed from pip:
 
 ```bash
 pip install pyautogen
