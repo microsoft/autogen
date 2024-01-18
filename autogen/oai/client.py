@@ -320,23 +320,17 @@ class OpenAIWrapper:
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
+        self._clients: List[Client] = []
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
-            self._clients: List[OpenAI] = []  # could modify the config
             for config in config_list:
-                c = self._client(config, openai_config)
-                if c is not None:
-                    self._clients.append(c)
-
+                self._register_client(config, openai_config) # could modify the config
             self._config_list = [
                 {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
             ]
         else:
-            self._clients = []
-            c = self._client(extra_kwargs, openai_config)
-            if c is not None:
-                self._clients.append(c)
+            self._register_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -351,7 +345,7 @@ class OpenAIWrapper:
         extra_kwargs = {k: v for k, v in config.items() if k in self.extra_kwargs}
         return create_config, extra_kwargs
 
-    def _client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> OpenAIClient:
+    def _register_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> OpenAIClient:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
 
@@ -367,18 +361,17 @@ class OpenAIWrapper:
             if openai_config["azure_deployment"] is not None:
                 openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
             openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
-            return OpenAIClient(AzureOpenAI(**openai_config))
+            self._clients.append(OpenAIClient(AzureOpenAI(**openai_config)))
         elif api_type is None:
-            return OpenAIClient(OpenAI(**openai_config))
-        # config for a custom client is set
+            self._clients.append(OpenAIClient(OpenAI(**openai_config)))
+        # else a config for a custom client is set
         # skipping until the register_custom_client is called with the appropriate class
-        return None
 
     def register_custom_client(self, ClientClass: Client, **kwargs):
         """Register a custom client.
 
         Args:
-            client: A custom client that follows  the Client interface
+            client: A custom client that follows the Client interface
         """
         for config in self._config_list:
             if config["api_type"] is not None and config["api_type"] == ClientClass.__name__:
