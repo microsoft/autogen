@@ -15,6 +15,7 @@ import {
   truncateText,
 } from "../../utils";
 import {
+  BounceLoader,
   Card,
   FlowConfigViewer,
   LaunchButton,
@@ -58,7 +59,7 @@ const WorkflowView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
         console.log("workflows", data.data);
         setWorkflows(data.data);
       } else {
@@ -172,7 +173,7 @@ const WorkflowView = ({}: any) => {
                 setSelectedWorkflow(workflow);
               }}
             >
-              <div style={{ minHeight: "45px" }} className="  my-2">
+              <div style={{ minHeight: "65px" }} className="break-words  my-2">
                 {" "}
                 {truncateText(workflow.name, 70)}
               </div>
@@ -299,13 +300,13 @@ const WorkflowView = ({}: any) => {
                 placement="bottomRight"
               >
                 <div
-                  className="inline-flex mr-1 mb-1 p-1 px-2 rounded   hover:border-accent duration-300 hover:text-accent"
+                  className="inline-flex    rounded   hover:border-accent duration-300 hover:text-accent"
                   role="button"
                   onClick={(e) => {
                     // add agent to flowSpec?.groupchat_config.agents
                   }}
                 >
-                  <LaunchButton className="-mt-2 text-sm p-2 px-3">
+                  <LaunchButton className=" text-sm p-2 px-3">
                     {" "}
                     <PlusIcon className="w-5 h-5 inline-block mr-1" />
                     New Workflow
@@ -314,7 +315,6 @@ const WorkflowView = ({}: any) => {
               </Dropdown>
             </div>
           </div>
-
           <div className="text-xs mb-2 pb-1  ">
             {" "}
             Configure an agent workflow that can be used to handle tasks.
@@ -328,11 +328,17 @@ const WorkflowView = ({}: any) => {
               <div className="flex flex-wrap gap-3">{workflowRows}</div>
             </div>
           )}
-
           {workflows && workflows.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No workflows found. Please create a new workflow.
+            </div>
+          )}
+          {loading && (
+            <div className="  w-full text-center">
+              {" "}
+              <BounceLoader />{" "}
+              <span className="inline-block"> loading .. </span>
             </div>
           )}
         </div>

@@ -1519,7 +1519,7 @@ const AgentModal = ({
         </>
       )}
 
-      {
+      {agent && agent.type !== "groupchat" && (
         <div>
           {" "}
           <div>
@@ -1538,7 +1538,7 @@ const AgentModal = ({
             }))}
           />
         </div>
-      }
+      )}
       {/* {JSON.stringify(localAgent)} */}
     </Modal>
   );

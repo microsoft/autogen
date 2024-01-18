@@ -10,8 +10,10 @@ import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
 import {
   AgentFlowSpecView,
+  BounceLoader,
   Card,
   LaunchButton,
+  LoadBox,
   LoadingOverlay,
 } from "../../atoms";
 
@@ -107,7 +109,7 @@ const AgentsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
         console.log("agents", data.data);
         setAgents(data.data);
       } else {
@@ -192,7 +194,7 @@ const AgentsView = ({}: any) => {
               setShowAgentModal(true);
             }}
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-all">
+            <div style={{ minHeight: "65px" }} className="my-2   break-words">
               {" "}
               {truncateText(agent.description || "", 70)}
             </div>
@@ -329,6 +331,14 @@ const AgentsView = ({}: any) => {
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No agents found. Please create a new agent.
+            </div>
+          )}
+
+          {loading && (
+            <div className="  w-full text-center">
+              {" "}
+              <BounceLoader />{" "}
+              <span className="inline-block"> loading .. </span>
             </div>
           )}
         </div>

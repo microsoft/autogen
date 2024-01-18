@@ -79,44 +79,6 @@ const ChatBox = ({
     setMessages(initMsgs);
   }, [initMessages]);
 
-  const deleteMessage = (messageId: string) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-    const payLoad = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: user?.email,
-        msg_id: messageId,
-        session_id: session?.id,
-      }),
-    };
-
-    const onSuccess = (data: any) => {
-      console.log(data);
-      if (data && data.status) {
-        message.success(data.message);
-        setMessages(parseMessages(data.data));
-
-        console.log("updated profile", data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-
-    const onError = (err: any) => {
-      setError(err);
-
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(deleteMsgUrl, payLoad, onSuccess, onError);
-  };
-
   const promptButtons = examplePrompts.map((prompt, i) => {
     return (
       <Button

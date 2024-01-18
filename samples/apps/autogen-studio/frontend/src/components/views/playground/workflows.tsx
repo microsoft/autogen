@@ -41,7 +41,7 @@ const AgentsWorkflowView = () => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
 
         setWorkflowConfigs(data.data);
         if (data.data.length > 0) {

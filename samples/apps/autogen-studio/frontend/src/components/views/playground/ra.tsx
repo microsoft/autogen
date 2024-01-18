@@ -54,7 +54,7 @@ const RAView = () => {
       // console.log(data);
       if (data && data.status) {
         setMessages(data.data);
-        message.success(data.message);
+        // message.success(data.message);
       } else {
         message.error(data.message);
       }
