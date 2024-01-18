@@ -618,11 +618,9 @@ class ConversableAgent(Agent):
 
     def _prepare_chat(self, recipient, clear_history):
         self.reset_consecutive_auto_reply_counter(recipient)
-        recipient.reset_consecutive_auto_reply_counter(self)
-        self.reply_at_receive[recipient] = recipient.reply_at_receive[self] = True
+        self.reply_at_receive[recipient] = True
         if clear_history:
             self.clear_history(recipient)
-            recipient.clear_history(self)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
@@ -669,6 +667,7 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
         self._prepare_chat(recipient, clear_history)
+        recipient._prepare_chat(self, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
 
     async def a_initiate_chat(
