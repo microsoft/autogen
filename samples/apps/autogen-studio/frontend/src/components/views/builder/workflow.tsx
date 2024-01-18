@@ -3,7 +3,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Modal, message } from "antd";
+import { Button, Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IFlowConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -156,17 +156,26 @@ const WorkflowView = ({}: any) => {
   const workflowRows = (workflows || []).map(
     (workflow: IFlowConfig, i: number) => {
       return (
-        <div key={"workflowrow" + i} className=" " style={{ width: "200px" }}>
-          <div className="h-full ">
+        <div
+          key={"workflowrow" + i}
+          className="block   h-full"
+          style={{ width: "200px" }}
+        >
+          <div className="  block">
             {" "}
             <Card
-              className="h-full block p-2 cursor-pointer"
-              title={workflow.name}
+              className="  block p-2 cursor-pointer"
+              title={
+                <div className="  ">{truncateText(workflow.name, 25)}</div>
+              }
               onClick={() => {
                 setSelectedWorkflow(workflow);
               }}
             >
-              <div className="my-2"> {truncateText(workflow.name, 70)}</div>
+              <div style={{ minHeight: "45px" }} className="  my-2">
+                {" "}
+                {truncateText(workflow.name, 70)}
+              </div>
               <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
             </Card>
             <div className="text-right  mt-2">
@@ -236,6 +245,24 @@ const WorkflowView = ({}: any) => {
     );
   };
 
+  const workflowTypes: MenuProps["items"] = [
+    {
+      key: "twoagents",
+      label: "Two Agents",
+    },
+    {
+      key: "groupchat",
+      label: "Group Chat",
+    },
+  ];
+
+  const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
+    console.log("key", key);
+    const newConfig = sampleWorkflowConfig(key);
+    setNewWorkflow(newConfig);
+    setShowNewWorkflowModal(true);
+  };
+
   return (
     <div className=" text-primary ">
       <WorkflowModal
@@ -263,20 +290,30 @@ const WorkflowView = ({}: any) => {
       <div className="mb-2   relative">
         <div className="     rounded  ">
           <div className="flex mt-2 pb-2 mb-2 border-b">
-            <div className="flex-1 font-semibold mb-2 ">
+            <div className="flex-1 font-semibold  mb-2 ">
               {" "}
               Workflows ({workflowRows.length}){" "}
             </div>
-            <LaunchButton
-              className="-mt-2 text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewWorkflowModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Workflow
-            </LaunchButton>
+            <div className=" ">
+              <Dropdown
+                menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
+                placement="bottomRight"
+              >
+                <div
+                  className="inline-flex mr-1 mb-1 p-1 px-2 rounded   hover:border-accent duration-300 hover:text-accent"
+                  role="button"
+                  onClick={(e) => {
+                    // add agent to flowSpec?.groupchat_config.agents
+                  }}
+                >
+                  <LaunchButton className="-mt-2 text-sm p-2 px-3">
+                    {" "}
+                    <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                    New Workflow
+                  </LaunchButton>
+                </div>
+              </Dropdown>
+            </div>
           </div>
 
           <div className="text-xs mb-2 pb-1  ">

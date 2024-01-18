@@ -2,6 +2,7 @@ import {
   IAgentConfig,
   IAgentFlowSpec,
   IFlowConfig,
+  IGroupChatFlowSpec,
   ILLMConfig,
   IModelConfig,
   IStatus,
@@ -222,7 +223,7 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
-export const sampleWorkflowConfig = () => {
+export const sampleWorkflowConfig = (type = "twoagents") => {
   const llm_model_config: IModelConfig[] = [
     {
       model: "gpt-4-1106-preview",
@@ -271,9 +272,36 @@ export const sampleWorkflowConfig = () => {
     description: "Default Agent Workflow",
     sender: userProxyFlowSpec,
     receiver: assistantFlowSpec,
-    type: "default",
+    type: "twoagents",
   };
 
+  const groupChatFlowSpec: IGroupChatFlowSpec = {
+    type: "groupchat",
+    config: assistantConfig,
+    groupchat_config: {
+      agents: [assistantFlowSpec],
+      admin_name: "primary_assistant",
+      messages: [],
+      max_round: 10,
+      speaker_selection_method: "auto",
+      allow_repeat_speaker: false,
+    },
+    description: "Default Group  Workflow",
+  };
+
+  const groupChatWorkFlowConfig: IFlowConfig = {
+    name: "Default Group Workflow",
+    description: "Default Group  Workflow",
+    sender: userProxyFlowSpec,
+    receiver: groupChatFlowSpec,
+    type: "groupchat",
+  };
+
+  if (type === "twoagents") {
+    return workFlowConfig;
+  } else if (type === "groupchat") {
+    return groupChatWorkFlowConfig;
+  }
   return workFlowConfig;
 };
 
