@@ -142,6 +142,13 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
         message="""Create and execute a script to plot a rocket without using matplotlib""",
     )
     assistant.reset()
+    user = UserProxyAgent(
+        "user",
+        human_input_mode=human_input_mode,
+        code_execution_config={"work_dir": f"{here}/test_agent_scripts"},
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+    )
     user.initiate_chat(
         assistant,
         message="""Create a temp.py file with the following content:
@@ -197,8 +204,8 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
 
 if __name__ == "__main__":
     # test_gpt35()
-    # test_create_execute_script(human_input_mode="TERMINATE")
+    test_create_execute_script(human_input_mode="TERMINATE")
     # when GPT-4, i.e., the DEFAULT_MODEL, is used, conversation in the following test
     # should terminate in 2-3 rounds of interactions (because is_termination_msg should be true after 2-3 rounds)
     # although the max_consecutive_auto_reply is set to 10.
-    test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    # test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
