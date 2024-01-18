@@ -1,7 +1,5 @@
-import itertools
 import sys
 import os
-import random
 import pytest
 from conftest import skip_openai
 
