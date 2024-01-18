@@ -326,8 +326,8 @@ async def handle_user_input():
         else:
             respond_directly = False
 
-        requires_autogen = {"requires_code": True, "confidence": 1.0}
-        respond_directly = False
+        # requires_autogen = {"requires_code": True, "confidence": 1.0}
+        # respond_directly = False
 
         # respond_directly = requires_autogen is not None and requires_autogen["requires_code"] == False
 
