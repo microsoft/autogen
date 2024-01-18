@@ -8,6 +8,7 @@ from autogen.oai.openai_utils import (
     config_list_from_json,
     config_list_from_dotenv,
 )
+from autogen.cache.cache import Cache
 
 __all__ = [
     "OpenAIWrapper",
@@ -20,4 +21,5 @@ __all__ = [
     "config_list_from_models",
     "config_list_from_json",
     "config_list_from_dotenv",
+    "Cache",
 ]
