@@ -1,3 +1,4 @@
+import sys
 import pytest
 from unittest.mock import MagicMock
 from conftest import skip_openai  # noqa: E402
