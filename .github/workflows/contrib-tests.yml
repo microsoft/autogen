@@ -45,6 +45,12 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test RetrieveChat
         run: |
           pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
@@ -81,6 +87,12 @@ jobs:
       - name: Install packages and dependencies for Compression
         run: |
           pip install -e .
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test Compression
         if: matrix.python-version != '3.10' # diversify the python versions
         run: |
@@ -118,6 +130,12 @@ jobs:
       - name: Install packages and dependencies for GPTAssistantAgent
         run: |
           pip install -e .
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test GPTAssistantAgent
         if: matrix.python-version != '3.11' # diversify the python versions
         run: |
@@ -155,6 +173,12 @@ jobs:
       - name: Install packages and dependencies for Teachability
         run: |
           pip install -e .[teachable]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test TeachableAgent
         if: matrix.python-version != '3.9' # diversify the python versions
         run: |
@@ -192,6 +216,12 @@ jobs:
       - name: Install packages and dependencies for LMM
         run: |
           pip install -e .[lmm]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test LMM and LLaVA
         run: |
           pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai
