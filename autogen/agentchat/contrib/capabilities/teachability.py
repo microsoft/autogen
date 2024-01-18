@@ -76,7 +76,7 @@ class Teachability(AgentCapability):
                 return self.agent == agent
 
         add_middleware(
-            ConversableAgent.process_last_message_user_text,
+            agent.process_last_message_user_text,
             ProcessLastMessageMiddleware(agent=agent, teachability=self),
         )
 
