@@ -154,7 +154,7 @@ class DBManager:
         # Create the models table
         self.cursor.execute(MODELS_TABLE_SQL)
 
-        # Create the messages tabe
+        # Create the messages table
         self.cursor.execute(MESSAGES_TABLE_SQL)
 
         # Create a sessions table
