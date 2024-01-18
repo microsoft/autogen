@@ -11,6 +11,8 @@ cd samples/app/tinyRA
 pip install -e .
 ```
 
+TinyRA requires that your system have `tmux` installed. Currently tested with `conda` and `virtualenv`.
+
 ## Usage
 
 You can run TinyRA with the following command:
@@ -19,18 +21,4 @@ You can run TinyRA with the following command:
 tinyra
 ```
 
-By default, TinyRA uses the configuration file at `./OAI_CONFIG_LIST` and the working directory `./coding`. You can specify a different config file or working directory with the `-c` and `-w` options, respectively:
-
-```
-tinyra -c path/to/config -w path/to/workdir
-```
-
-## Help
-
-You can display the help message with the `-h` option:
-
-```
-tinyra -h
-```
-
-This will display the usage information and the available options.
+By default, TinyRA uses the configuration file at `./OAI_CONFIG_LIST` and the working directory `./coding`.
