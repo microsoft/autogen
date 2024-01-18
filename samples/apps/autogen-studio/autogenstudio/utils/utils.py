@@ -87,8 +87,7 @@ def get_file_type(file_path: str) -> str:
     }
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg",
-                        ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
     # Supported (web) video extensions
     VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".avi", ".wmv"}
 
@@ -131,8 +130,7 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     try:
         with open(file_path, "rb") as file:
             file_content = file.read()
-            base64_encoded_content = base64.b64encode(
-                file_content).decode("utf-8")
+            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
     except Exception as e:
         raise IOError(f"An error occurred while reading the file: {e}") from e
 
@@ -180,8 +178,7 @@ def get_modified_files(
                 while os.path.exists(dest_file_path):
                     base, extension = os.path.splitext(file)
                     # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(
-                        dest_dir, f"{base}_{copy_idx}{extension}")
+                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
                     copy_idx += 1
 
                 # Copying the modified file to the destination directory
@@ -192,8 +189,7 @@ def get_modified_files(
                 dest_dir_as_path = Path(dest_dir)
                 uid = dest_dir_as_path.name
 
-                relative_file_path = os.path.relpath(
-                    dest_file_path, start=dest_dir)
+                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
                 file_dict = {
                     "path": f"files/user/{uid}/{relative_file_path}",
@@ -328,8 +324,7 @@ def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
             },
             max_consecutive_auto_reply=10,
             llm_config=llm_config,
-            is_termination_msg=lambda x: x.get(
-                "content", "").rstrip().endswith("TERMINATE"),
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         ),
     )
 
