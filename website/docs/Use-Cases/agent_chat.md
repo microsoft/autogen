@@ -287,8 +287,7 @@ By adopting the conversation-driven control with both programming language and n
 
 ### LLM Caching
 
-#### Configurable Context Manager
-(>=0.2.8) A new configurable context manager allows you to easily turn on and off LLM cache, using either DiskCache or Redis. All LLM agents inside the context manager will use the same cache.
+Since version 0.2.8, a configurable context manager allows you to easily configure LLM cache, using either DiskCache or Redis. All agents inside the context manager will use the same cache.
 ```python
 from autogen.cache.cache import Cache
 
@@ -299,21 +298,8 @@ with Cache.disk(cache_seed=42, cache_dir=".cache") as cache_client:
     user.initiate_chat(assistant, message=coding_task, cache_client=cache_client)
 ```
 
-#### Disk Cache (Legacy)
-By default, you can specify a `cache_seed` in your `llm_config` in order to take advantage of a local [DiskCache](https://grantjenks.com/docs/diskcache/) backed cache. This cache will be used to store the results of your LLM calls, and will be used to return results for the same input without making a call to the LLM. This is useful for saving on compute costs, and for speeding up inference.
-
-```python
-assistant = AssistantAgent(
-    "coding_agent",
-    llm_config={
-        "cache_seed": 42,
-        "config_list": OAI_CONFIG_LIST,
-        "max_tokens": 1024,
-    },
-)
-```
-
-Setting this `cache_seed` param to `None` will disable the cache.
+DiskCache is on by default with `cache_seed` set to 41.
+See [Caching](./enhanced_inference.md#caching) for more details.
 
 ### Diverse Applications Implemented with AutoGen
 
