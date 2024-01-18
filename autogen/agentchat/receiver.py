@@ -33,7 +33,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # This is usually configured by the initiate conversation code, but this
         # isn't available here.
         # request_reply = post_obj["request_reply"]
-        request_reply = True
+        request_reply = "TERMINATE" not in post_obj["message"]
         sender = post_obj["sender"]
         sender_agent = self._receiver._agents[sender]
         message = post_obj["message"]

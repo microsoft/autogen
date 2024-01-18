@@ -73,4 +73,8 @@ class RemoteAgent(Agent):
         raise NotImplementedError()
 
     def reset_consecutive_auto_reply_counter(self, sender: Optional[Agent] = None):
-        raise NotImplementedError()
+        pass
+
+    def _raise_exception_on_async_reply_functions(self):
+        pass
+
