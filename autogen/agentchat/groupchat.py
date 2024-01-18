@@ -476,10 +476,16 @@ class GroupChatManager(ConversableAgent):
                         break
         # clear history
         if agent_to_memory_clear:
-            print(f"Clearing history for {agent_to_memory_clear.name}.")
+            if preserve_messages:
+                print(f"Clearing history for {agent_to_memory_clear.name} except last {preserve_messages} messages.")
+            else:
+                print(f"Clearing history for {agent_to_memory_clear.name}.")
             agent_to_memory_clear.clear_history(preserve_messages=preserve_messages)
         else:
-            print("Clearing history for all agents.")
+            if preserve_messages:
+                print(f"Clearing history for all agents except last {preserve_messages} messages.")
+            else:
+                print("Clearing history for all agents.")
             for agent in groupchat.agents:
                 agent.clear_history(preserve_messages=preserve_messages)
 
