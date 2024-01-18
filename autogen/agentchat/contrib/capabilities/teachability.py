@@ -60,10 +60,9 @@ class Teachability(AgentCapability):
 
     def add_to_agent(self, agent: ConversableAgent):
         """Adds teachability to the given agent."""
-        print(f"add_to_agent({agent=})")
         self.teachable_agent = agent
 
-        # Register a hook for processing the last message.
+        # Register a middleware for processing the last message.
         class ProcessLastMessageMiddleware:
             def __init__(self, *, agent: ConversableAgent, teachability: Teachability):
                 self.teachability = teachability
