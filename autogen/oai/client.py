@@ -446,7 +446,7 @@ class OpenAIWrapper:
             raise ERROR
         last = len(self._clients) - 1
         if len(self._clients) == 0:
-            raise RuntimeError("No client model is registered. Please register a model client first.")
+            raise RuntimeError("No model client is registered. Please register a model client first.")
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}
