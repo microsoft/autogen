@@ -51,18 +51,6 @@ if not logger.handlers:
     logger.addHandler(_ch)
 
 
-def template_formatter(
-    template: str | Callable | None,
-    context: Optional[Dict] = None,
-    allow_format_str_template: Optional[bool] = False,
-):
-    if not context or template is None:
-        return template
-    if isinstance(template, str):
-        return template.format(**context) if allow_format_str_template else template
-    return template(context)
-
-
 class Client(ABC):
     """
     A client class must implement the following methods:
