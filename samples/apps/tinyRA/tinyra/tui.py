@@ -10,7 +10,7 @@ from typing import List, Dict
 
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
-from textual.widgets import Footer, Header, Markdown, Static, Input
+from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree
 from textual.reactive import reactive
 
 import sqlite3
@@ -464,6 +464,11 @@ class SkillsDisplayContainer(ScrollableContainer):
         yield SkillsDisplay()
 
 
+class DirectoryTreeContainer(ScrollableContainer):
+    def compose(self) -> ComposeResult:
+        yield DirectoryTree(os.path.join(DATA_PATH, "work_dir"))
+
+
 class SkillsDisplay(Markdown):
     skills = reactive(get_available_functions)
 
@@ -538,6 +543,7 @@ class TinyRA(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header(show_clock=True)
+        yield DirectoryTreeContainer(id="directory-tree")
         yield ChatDisplay(id="chat-history")
         yield SkillsDisplayContainer(id="skills")
         yield ChatInput(id="chat-input")
