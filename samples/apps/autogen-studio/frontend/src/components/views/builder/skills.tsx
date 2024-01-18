@@ -162,28 +162,33 @@ const SkillsView = ({}: any) => {
   const skillRows = (skills || []).map((skill: ISkill, i: number) => {
     return (
       <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
-        <Card
-          className="h-full p-2 cursor-pointer"
-          title={skill.title}
-          onClick={() => {
-            setSelectedSkill(skill);
-            setShowSkillModal(true);
-          }}
-        >
-          <div className="my-2"> {truncateText(skill.content, 70)}</div>
-          <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-        </Card>
-
-        <div className="text-right mt-2">
-          <div
-            role="button"
-            className="text-accent text-xs inline-block"
+        <div>
+          {" "}
+          <Card
+            className="h-full p-2 cursor-pointer"
+            title={truncateText(skill.title, 25)}
             onClick={() => {
-              deleteSkill(skill);
+              setSelectedSkill(skill);
+              setShowSkillModal(true);
             }}
           >
-            <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-            <span className="text-xs"> delete</span>
+            <div style={{ minHeight: "65px" }} className="my-2   break-all">
+              {" "}
+              {truncateText(skill.content, 70)}
+            </div>
+            <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
+          </Card>
+          <div className="text-right mt-2">
+            <div
+              role="button"
+              className="text-accent text-xs inline-block"
+              onClick={() => {
+                deleteSkill(skill);
+              }}
+            >
+              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+              <span className="text-xs"> delete</span>
+            </div>
           </div>
         </div>
       </div>

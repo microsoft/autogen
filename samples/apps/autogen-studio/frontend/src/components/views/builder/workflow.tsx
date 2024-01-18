@@ -38,7 +38,9 @@ const WorkflowView = ({}: any) => {
     React.useState<IFlowConfig | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
-  const [newWorkflow] = React.useState<IFlowConfig | null>(defaultConfig);
+  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
+    defaultConfig
+  );
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = React.useState(false);

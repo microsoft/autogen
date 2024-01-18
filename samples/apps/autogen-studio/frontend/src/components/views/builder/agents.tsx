@@ -181,16 +181,18 @@ const AgentsView = ({}: any) => {
   const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
     return (
       <div key={"agentrow" + i} className=" " style={{ width: "200px" }}>
-        <div className="h-full">
+        <div className="">
           <Card
             className="h-full p-2 cursor-pointer"
-            title={agent.config.name}
+            title={
+              <div className="  ">{truncateText(agent.config.name, 25)}</div>
+            }
             onClick={() => {
               setSelectedAgent(agent);
               setShowAgentModal(true);
             }}
           >
-            <div className="my-2">
+            <div style={{ minHeight: "65px" }} className="my-2   break-all">
               {" "}
               {truncateText(agent.description || "", 70)}
             </div>
