@@ -70,7 +70,7 @@ class Client(ABC):
     - cost
 
     This class is used to create a client that can be used by OpenAIWrapper.
-    It mimicks the OpenAI class, but allows for custom clients to be used.
+    It mimics the OpenAI class, but allows for custom clients to be used.
     """
 
     RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
@@ -324,7 +324,7 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
-                self._register_client(config, openai_config) # could modify the config
+                self._register_client(config, openai_config)  # could modify the config
             self._config_list = [
                 {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
@@ -373,10 +373,14 @@ class OpenAIWrapper:
         Args:
             client: A custom client that follows the Client interface
         """
+        found = False
         for config in self._config_list:
             if config["api_type"] is not None and config["api_type"] == ClientClass.__name__:
                 client = ClientClass(config, **kwargs)
                 self._clients.append(client)
+                found = True
+        if not found:
+            raise ValueError(f'Custom client "{ClientClass.__name__}" was not found in the config_list.')
 
     @classmethod
     def instantiate(
@@ -453,6 +457,8 @@ class OpenAIWrapper:
         if ERROR:
             raise ERROR
         last = len(self._clients) - 1
+        if len(self._clients) == 0:
+            raise RuntimeError("No client model is registered. Please register a model client first.")
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
             full_config = {**config, **self._config_list[i]}

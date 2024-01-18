@@ -83,3 +83,45 @@ def test_custom_client():
     assert test_hook["model"] == TEST_LOCAL_MODEL_NAME
     assert test_hook["other_params"] == TEST_OTHER_PARAMS_VAL
     assert test_hook["max_length"] == TEST_MAX_LENGTH
+
+
+def test_registering_with_wrong_name_missing_raises_error():
+    class CustomClient(Client):
+        def __init__(self, config: Dict):
+            pass
+
+        def create(self, params):
+            return None
+
+        def cost(self, response) -> float:
+            return 0
+
+    config_list = [
+        {
+            "model": "local_model_name",
+            "api_type": "CustomClientButWrongName",
+        },
+    ]
+    client = OpenAIWrapper(config_list=config_list)
+
+    with pytest.raises(ValueError):
+        client.register_custom_client(CustomClient)
+
+
+def test_custom_client_not_registered_raises_error():
+    config_list = [
+        {
+            "model": "local_model_name",
+            "device": "cpu",
+            "api_type": "CustomClient",
+            "params": {
+                "max_length": 1000,
+                "other_params": "other_params",
+            },
+        },
+    ]
+
+    client = OpenAIWrapper(config_list=config_list)
+
+    with pytest.raises(RuntimeError):
+        client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
