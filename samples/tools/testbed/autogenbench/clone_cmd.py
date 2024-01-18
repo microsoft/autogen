@@ -10,7 +10,7 @@ SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 # Where are the manifests located?
-BRANCH = "testbed_cli"
+BRANCH = "autogenbench"
 URL_PREFIX = f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/"
 SCENARIOS = {
     "Examples": "samples/tools/testbed/scenarios/Examples/MANIFEST.json",
@@ -80,7 +80,9 @@ def clone_scenario(scenario):
     print(f"\n\nSuccessfully cloned '{scenario}'")
     for readme in ["README.md", "README.txt", "README"]:
         if os.path.isfile(os.path.join(scenario, readme)):
-            print(f"Please read '{os.path.join(scenario, readme)}' for more information on running this benchmark.")
+            print(
+                f"Please read '{os.path.join(scenario, readme)}' for more information on running this benchmark."
+            )
             break
 
 
@@ -108,7 +110,7 @@ def clone_cli(args):
 
     parsed_args = parser.parse_args(args)
 
-    # Chekc if we are just printing a list
+    # Check if we are just printing a list
     if parsed_args.list:
         print("The following scenarios / benchmarks are available:\n")
         for s in get_scenarios():
