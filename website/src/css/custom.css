@@ -13,6 +13,7 @@
   --ifm-color-emphasis-300: #1064d3;
   --ifm-link-color: #1064d3;
   --ifm-menu-color-active: #1064d3;
+  --ifm-navbar-search-input-placeholder-color: #6e7174;
 }
 
 .docusaurus-highlight-code-line {
@@ -20,9 +21,6 @@
   display: block;
   margin: 0 calc(-1 * var(--ifm-pre-padding));
   padding: 0 var(--ifm-pre-padding);
-}
-html[data-theme="dark"] .docusaurus-highlight-code-line {
-  background-color: rgb(0, 0, 0, 0.3);
 }
 
 .admonition-content a {
@@ -39,33 +37,37 @@ blockquote {
   /* samsung blue with lots of transparency */
   background-color: #0c4da224;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ifm-hero-text-color: white;
+
+html[data-theme="dark"] {
+  --ifm-hero-text-color: white;
+  --ifm-navbar-search-input-placeholder-color: #8a8d91;
+  --ifm-navbar-link-hover-color: #0c90ff;
+  --ifm-menu-color-active: #0c90ff;
+  --ifm-link-color: #1084ff/*#107eff*/;
+
+  .table-of-contents__link--active {
+    color: #0c7eff;
   }
-}
-@media (prefers-color-scheme: dark) {
+
   .hero.hero--primary {
     --ifm-hero-text-color: white;
   }
-}
 
-@media (prefers-color-scheme: dark) {
   blockquote {
     --ifm-color-emphasis-300: var(--ifm-color-primary);
-    /* border-left: 6px solid var(--ifm-color-emphasis-300); */
   }
-}
-@media (prefers-color-scheme: dark) {
-  code {
-    /* background-color: rgb(41, 45, 62); */
-  }
-}
 
-/* Docusaurus still defaults to their green! */
-@media (prefers-color-scheme: dark) {
+  a code {
+    color: #10a5ff;
+  }
+
+  /* Docusaurus still defaults to their green! */
   .react-toggle-thumb {
     border-color: var(--ifm-color-primary) !important;
+  }
+
+  .docusaurus-highlight-code-line {
+    background-color: rgb(0, 0, 0, 0.3);
   }
 }
 
@@ -96,8 +98,8 @@ html[data-theme="dark"] .header-github-link:before {
 
 .tag {
   padding: 2px 8px;
-  border: 1px solid #1890ff;
-  color: #1890ff;
+  border: 1px solid #1273ce;
+  color: #1273ce;
   border-radius: 4px;
   font-size: 0.75rem;
   cursor: pointer;
@@ -105,6 +107,6 @@ html[data-theme="dark"] .header-github-link:before {
 }
 
 .tag:hover {
-  background-color: #1890ff;
+  background-color: #1273ce;
   color: white;
 }
