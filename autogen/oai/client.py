@@ -8,6 +8,8 @@ import inspect
 from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
+from abc import ABC, abstractmethod
+from typing import Protocol
 
 from autogen.oai import completion
 
@@ -47,6 +49,221 @@ if not logger.handlers:
     _ch = logging.StreamHandler(stream=sys.stdout)
     _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
+
+
+def template_formatter(
+    template: str | Callable | None,
+    context: Optional[Dict] = None,
+    allow_format_str_template: Optional[bool] = False,
+):
+    if not context or template is None:
+        return template
+    if isinstance(template, str):
+        return template.format(**context) if allow_format_str_template else template
+    return template(context)
+
+
+class Client(ABC):
+    """
+    A client class must implement the following methods:
+    - create must return a response object that implements the ClientResponseProtocol
+    - cost
+
+    This class is used to create a client that can be used by OpenAIWrapper.
+    It mimicks the OpenAI class, but allows for custom clients to be used.
+    """
+
+    RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
+
+    class ClientResponseProtocol(Protocol):
+        class Choice(Protocol):
+            class Message(Protocol):
+                content: str | None
+                function_call: str | None
+
+        choices: List[Choice]
+        config_id: int
+        cost: float
+        pass_filter: bool
+        model: str
+
+    def update(self, config: Dict):
+        # update with anything here
+        pass
+
+    @abstractmethod
+    def create(self, params) -> ClientResponseProtocol:
+        pass
+
+    @abstractmethod
+    def cost(self, response: ClientResponseProtocol) -> float:
+        pass
+
+    @staticmethod
+    def get_usage(response: ClientResponseProtocol) -> Dict:
+        return None
+
+
+class OpenAIClient(Client):
+    def __init__(self, client):
+        self.client = client
+
+    def create(self, params: Dict[str, Any]) -> ChatCompletion:
+        """Create a completion for a given config using openai's client.
+
+        Args:
+            client: The openai client.
+            params: The params for the completion.
+
+        Returns:
+            The completion.
+        """
+        completions: Completions = self.client.chat.completions if "messages" in params else self.client.completions  # type: ignore [attr-defined]
+        # If streaming is enabled and has messages, then iterate over the chunks of the response.
+        if params.get("stream", False) and "messages" in params:
+            response_contents = [""] * params.get("n", 1)
+            finish_reasons = [""] * params.get("n", 1)
+            completion_tokens = 0
+
+            # Set the terminal text color to green
+            print("\033[32m", end="")
+
+            # Prepare for potential function call
+            full_function_call: Optional[Dict[str, Any]] = None
+            full_tool_calls: Optional[List[Optional[Dict[str, Any]]]] = None
+
+            # Send the chat completion request to OpenAI's API and process the response in chunks
+            for chunk in completions.create(**params):
+                if chunk.choices:
+                    for choice in chunk.choices:
+                        content = choice.delta.content
+                        tool_calls_chunks = choice.delta.tool_calls
+                        finish_reasons[choice.index] = choice.finish_reason
+
+                        # todo: remove this after function calls are removed from the API
+                        # the code should work regardless of whether function calls are removed or not, but test_chat_functions_stream should fail
+                        # begin block
+                        function_call_chunk = (
+                            choice.delta.function_call if hasattr(choice.delta, "function_call") else None
+                        )
+                        # Handle function call
+                        if function_call_chunk:
+                            # Handle function call
+                            if function_call_chunk:
+                                full_function_call, completion_tokens = self._update_function_call_from_chunk(
+                                    function_call_chunk, full_function_call, completion_tokens
+                                )
+                            if not content:
+                                continue
+                        # end block
+
+                        # Handle tool calls
+                        if tool_calls_chunks:
+                            for tool_calls_chunk in tool_calls_chunks:
+                                # the current tool call to be reconstructed
+                                ix = tool_calls_chunk.index
+                                if full_tool_calls is None:
+                                    full_tool_calls = []
+                                if ix >= len(full_tool_calls):
+                                    # in case ix is not sequential
+                                    full_tool_calls = full_tool_calls + [None] * (ix - len(full_tool_calls) + 1)
+
+                                full_tool_calls[ix], completion_tokens = self._update_tool_calls_from_chunk(
+                                    tool_calls_chunk, full_tool_calls[ix], completion_tokens
+                                )
+                                if not content:
+                                    continue
+
+                        # End handle tool calls
+
+                        # If content is present, print it to the terminal and update response variables
+                        if content is not None:
+                            print(content, end="", flush=True)
+                            response_contents[choice.index] += content
+                            completion_tokens += 1
+                        else:
+                            # print()
+                            pass
+
+            # Reset the terminal text color
+            print("\033[0m\n")
+
+            # Prepare the final ChatCompletion object based on the accumulated data
+            model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
+            prompt_tokens = count_token(params["messages"], model)
+            response = ChatCompletion(
+                id=chunk.id,
+                model=chunk.model,
+                created=chunk.created,
+                object="chat.completion",
+                choices=[],
+                usage=CompletionUsage(
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=prompt_tokens + completion_tokens,
+                ),
+            )
+            for i in range(len(response_contents)):
+                if OPENAIVERSION >= "1.5":  # pragma: no cover
+                    # OpenAI versions 1.5.0 and above
+                    choice = Choice(
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role="assistant",
+                            content=response_contents[i],
+                            function_call=full_function_call,
+                            tool_calls=full_tool_calls,
+                        ),
+                        logprobs=None,
+                    )
+                else:
+                    # OpenAI versions below 1.5.0
+                    choice = Choice(  # type: ignore [call-arg]
+                        index=i,
+                        finish_reason=finish_reasons[i],
+                        message=ChatCompletionMessage(
+                            role="assistant",
+                            content=response_contents[i],
+                            function_call=full_function_call,
+                            tool_calls=full_tool_calls,
+                        ),
+                    )
+
+                response.choices.append(choice)
+        else:
+            # If streaming is not enabled, send a regular chat completion request
+            params = params.copy()
+            params["stream"] = False
+            response = completions.create(**params)
+
+        return response
+
+    def cost(self, response: Union[ChatCompletion, Completion]) -> float:
+        """Calculate the cost of the response."""
+        model = response.model
+        if model not in OAI_PRICE1K:
+            # TODO: add logging to warn that the model is not found
+            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
+            return 0
+
+        n_input_tokens = response.usage.prompt_tokens  # type: ignore [union-attr]
+        n_output_tokens = response.usage.completion_tokens  # type: ignore [union-attr]
+        tmp_price1K = OAI_PRICE1K[model]
+        # First value is input token rate, second value is output token rate
+        if isinstance(tmp_price1K, tuple):
+            return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000  # type: ignore [no-any-return]
+        return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000  # type: ignore [operator]
+
+    @staticmethod
+    def get_usage(response: Union[ChatCompletion, Completion]) -> Dict:
+        return {
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+            "cost": response.cost,
+            "model": response.model,
+        }
 
 
 class OpenAIWrapper:
@@ -144,9 +361,9 @@ class OpenAIWrapper:
             if openai_config["azure_deployment"] is not None:
                 openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
             openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
-            client = AzureOpenAI(**openai_config)
+            client = OpenAIClient(AzureOpenAI(**openai_config))
         else:
-            client = OpenAI(**openai_config)
+            client = OpenAIClient(OpenAI(**openai_config))
         return client
 
     @classmethod
@@ -239,6 +456,9 @@ class OpenAIWrapper:
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
+            total_usage = None
+            actual_usage = None
+
             # Try to load the response from cache
             if cache_seed is not None:
                 with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
@@ -251,19 +471,20 @@ class OpenAIWrapper:
                             response.cost  # type: ignore [attr-defined]
                         except AttributeError:
                             # update attribute if cost is not calculated
-                            response.cost = self.cost(response)
+                            response.cost = client.cost(response)
                             cache.set(key, response)
-                        self._update_usage_summary(response, use_cache=True)
+                        total_usage = client.get_usage(response)
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
                             # Return the response if it passes the filter or it is the last client
                             response.config_id = i
                             response.pass_filter = pass_filter
+                            self._update_usage(actual_usage=actual_usage, total_usage=total_usage)
                             return response
                         continue  # filter is not passed; try the next config
             try:
-                response = self._completions_create(client, params)
+                response = client.create(params)
             except APIError as err:
                 error_code = getattr(err, "code", None)
                 if error_code == "content_filter":
@@ -274,8 +495,10 @@ class OpenAIWrapper:
                     raise
             else:
                 # add cost calculation before caching no matter filter is passed or not
-                response.cost = self.cost(response)
-                self._update_usage_summary(response, use_cache=False)
+                response.cost = client.cost(response)
+                actual_usage = client.get_usage(response)
+                total_usage = actual_usage.copy() if actual_usage is not None else total_usage
+                self._update_usage(actual_usage=actual_usage, total_usage=total_usage)
                 if cache_seed is not None:
                     # Cache the response
                     with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
@@ -401,170 +624,31 @@ class OpenAIWrapper:
         else:
             raise RuntimeError("Tool call is not found, this should not happen.")
 
-    def _completions_create(self, client: OpenAI, params: Dict[str, Any]) -> ChatCompletion:
-        """Create a completion for a given config using openai's client.
+    def _update_usage(self, actual_usage, total_usage):
+        def update_usage(usage_summary, response_usage):
+            model = response_usage["model"]
+            cost = response_usage["cost"]
+            prompt_tokens = response_usage["prompt_tokens"]
+            completion_tokens = response_usage["completion_tokens"]
+            total_tokens = response_usage["total_tokens"]
 
-        Args:
-            client: The openai client.
-            params: The params for the completion.
-
-        Returns:
-            The completion.
-        """
-        completions: Completions = client.chat.completions if "messages" in params else client.completions  # type: ignore [attr-defined]
-        # If streaming is enabled and has messages, then iterate over the chunks of the response.
-        if params.get("stream", False) and "messages" in params:
-            response_contents = [""] * params.get("n", 1)
-            finish_reasons = [""] * params.get("n", 1)
-            completion_tokens = 0
-
-            # Set the terminal text color to green
-            print("\033[32m", end="")
-
-            # Prepare for potential function call
-            full_function_call: Optional[Dict[str, Any]] = None
-            full_tool_calls: Optional[List[Optional[Dict[str, Any]]]] = None
-
-            # Send the chat completion request to OpenAI's API and process the response in chunks
-            for chunk in completions.create(**params):
-                if chunk.choices:
-                    for choice in chunk.choices:
-                        content = choice.delta.content
-                        tool_calls_chunks = choice.delta.tool_calls
-                        finish_reasons[choice.index] = choice.finish_reason
-
-                        # todo: remove this after function calls are removed from the API
-                        # the code should work regardless of whether function calls are removed or not, but test_chat_functions_stream should fail
-                        # begin block
-                        function_call_chunk = (
-                            choice.delta.function_call if hasattr(choice.delta, "function_call") else None
-                        )
-                        # Handle function call
-                        if function_call_chunk:
-                            # Handle function call
-                            if function_call_chunk:
-                                full_function_call, completion_tokens = self._update_function_call_from_chunk(
-                                    function_call_chunk, full_function_call, completion_tokens
-                                )
-                            if not content:
-                                continue
-                        # end block
-
-                        # Handle tool calls
-                        if tool_calls_chunks:
-                            for tool_calls_chunk in tool_calls_chunks:
-                                # the current tool call to be reconstructed
-                                ix = tool_calls_chunk.index
-                                if full_tool_calls is None:
-                                    full_tool_calls = []
-                                if ix >= len(full_tool_calls):
-                                    # in case ix is not sequential
-                                    full_tool_calls = full_tool_calls + [None] * (ix - len(full_tool_calls) + 1)
-
-                                full_tool_calls[ix], completion_tokens = self._update_tool_calls_from_chunk(
-                                    tool_calls_chunk, full_tool_calls[ix], completion_tokens
-                                )
-                                if not content:
-                                    continue
-
-                        # End handle tool calls
-
-                        # If content is present, print it to the terminal and update response variables
-                        if content is not None:
-                            print(content, end="", flush=True)
-                            response_contents[choice.index] += content
-                            completion_tokens += 1
-                        else:
-                            # print()
-                            pass
-
-            # Reset the terminal text color
-            print("\033[0m\n")
-
-            # Prepare the final ChatCompletion object based on the accumulated data
-            model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
-            prompt_tokens = count_token(params["messages"], model)
-            response = ChatCompletion(
-                id=chunk.id,
-                model=chunk.model,
-                created=chunk.created,
-                object="chat.completion",
-                choices=[],
-                usage=CompletionUsage(
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    total_tokens=prompt_tokens + completion_tokens,
-                ),
-            )
-            for i in range(len(response_contents)):
-                if OPENAIVERSION >= "1.5":  # pragma: no cover
-                    # OpenAI versions 1.5.0 and above
-                    choice = Choice(
-                        index=i,
-                        finish_reason=finish_reasons[i],
-                        message=ChatCompletionMessage(
-                            role="assistant",
-                            content=response_contents[i],
-                            function_call=full_function_call,
-                            tool_calls=full_tool_calls,
-                        ),
-                        logprobs=None,
-                    )
-                else:
-                    # OpenAI versions below 1.5.0
-                    choice = Choice(  # type: ignore [call-arg]
-                        index=i,
-                        finish_reason=finish_reasons[i],
-                        message=ChatCompletionMessage(
-                            role="assistant",
-                            content=response_contents[i],
-                            function_call=full_function_call,
-                            tool_calls=full_tool_calls,
-                        ),
-                    )
-
-                response.choices.append(choice)
-        else:
-            # If streaming is not enabled, send a regular chat completion request
-            params = params.copy()
-            params["stream"] = False
-            response = completions.create(**params)
-
-        return response
-
-    def _update_usage_summary(self, response: Union[ChatCompletion, Completion], use_cache: bool) -> None:
-        """Update the usage summary.
-
-        Usage is calculated no matter filter is passed or not.
-        """
-        try:
-            usage = response.usage
-            assert usage is not None
-            usage.prompt_tokens = 0 if usage.prompt_tokens is None else usage.prompt_tokens
-            usage.completion_tokens = 0 if usage.completion_tokens is None else usage.completion_tokens
-            usage.total_tokens = 0 if usage.total_tokens is None else usage.total_tokens
-        except (AttributeError, AssertionError):
-            logger.debug("Usage attribute is not found in the response.", exc_info=True)
-            return
-
-        def update_usage(usage_summary: Optional[Dict[str, Any]]) -> Dict[str, Any]:
             if usage_summary is None:
-                usage_summary = {"total_cost": response.cost}  # type: ignore [union-attr]
+                usage_summary = {"total_cost": cost}
             else:
-                usage_summary["total_cost"] += response.cost  # type: ignore [union-attr]
+                usage_summary["total_cost"] += cost
 
-            usage_summary[response.model] = {
-                "cost": usage_summary.get(response.model, {}).get("cost", 0) + response.cost,  # type: ignore [union-attr]
-                "prompt_tokens": usage_summary.get(response.model, {}).get("prompt_tokens", 0) + usage.prompt_tokens,
-                "completion_tokens": usage_summary.get(response.model, {}).get("completion_tokens", 0)
-                + usage.completion_tokens,
-                "total_tokens": usage_summary.get(response.model, {}).get("total_tokens", 0) + usage.total_tokens,
+            usage_summary[model] = {
+                "cost": usage_summary.get(model, {}).get("cost", 0) + cost,
+                "prompt_tokens": usage_summary.get(model, {}).get("prompt_tokens", 0) + prompt_tokens,
+                "completion_tokens": usage_summary.get(model, {}).get("completion_tokens", 0) + completion_tokens,
+                "total_tokens": usage_summary.get(model, {}).get("total_tokens", 0) + total_tokens,
             }
             return usage_summary
 
-        self.total_usage_summary = update_usage(self.total_usage_summary)
-        if not use_cache:
-            self.actual_usage_summary = update_usage(self.actual_usage_summary)
+        if total_usage is not None:
+            self.total_usage_summary = update_usage(self.total_usage_summary, total_usage)
+        if actual_usage is not None:
+            self.actual_usage_summary = update_usage(self.actual_usage_summary, actual_usage)
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
@@ -622,22 +706,6 @@ class OpenAIWrapper:
         """Clear the usage summary."""
         self.total_usage_summary = None
         self.actual_usage_summary = None
-
-    def cost(self, response: Union[ChatCompletion, Completion]) -> float:
-        """Calculate the cost of the response."""
-        model = response.model
-        if model not in OAI_PRICE1K:
-            # TODO: add logging to warn that the model is not found
-            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
-            return 0
-
-        n_input_tokens = response.usage.prompt_tokens  # type: ignore [union-attr]
-        n_output_tokens = response.usage.completion_tokens  # type: ignore [union-attr]
-        tmp_price1K = OAI_PRICE1K[model]
-        # First value is input token rate, second value is output token rate
-        if isinstance(tmp_price1K, tuple):
-            return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000  # type: ignore [no-any-return]
-        return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000  # type: ignore [operator]
 
     @classmethod
     def extract_text_or_completion_object(
