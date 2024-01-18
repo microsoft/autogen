@@ -288,7 +288,7 @@ By adopting the conversation-driven control with both programming language and n
 ### LLM Caching
 
 #### Configurable Context Manager
-A new configurable context manager allows you to easily turn on and off LLM cache, using either DiskCache or Redis. All LLM agents inside the context manager will use the same cache.
+(>=0.2.8) A new configurable context manager allows you to easily turn on and off LLM cache, using either DiskCache or Redis. All LLM agents inside the context manager will use the same cache.
 ```python
 from autogen.cache.cache import Cache
 
