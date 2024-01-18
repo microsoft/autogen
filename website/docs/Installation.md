@@ -94,7 +94,9 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 When installing AutoGen locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
-### Option a: venv
+### Setup a virtual environment
+
+#### Option a: venv
 
 You can create a virtual environment with `venv` as below:
 
@@ -109,7 +111,7 @@ The following command will deactivate the current `venv` environment:
 deactivate
 ```
 
-### Option b: conda
+#### Option b: conda
 
 Another option is with `Conda`. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
@@ -125,7 +127,7 @@ The following command will deactivate the current `conda` environment:
 conda deactivate
 ```
 
-### Option c: poetry
+#### Option c: poetry
 
 Another option is with `poetry`, which is a dependency manager for Python.
 
@@ -149,7 +151,7 @@ exit
 
 Now, you're ready to install AutoGen in the virtual environment you've just created.
 
-## Python
+### Python requirements
 
 AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
 
@@ -159,11 +161,27 @@ pip install pyautogen
 
 `pyautogen<0.2` requires `openai<1`. Starting from pyautogen v0.2, `openai>=1` is required.
 
-<!--
-or conda:
+### Code execution with Docker (default)
+
+Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#code-execution).
+
+The default behaviour for code-execution agents is for code execution to be performed in a docker container.
+
+**To turn this off**: if you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+
+You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    human_input_mode="TERMINATE",
+    max_consecutive_auto_reply=10,
+    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
+    llm_config=llm_config,
+    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
+Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
+)
 ```
-conda install pyautogen -c conda-forge
-``` -->
 
 ### Migration guide to v0.2
 
@@ -187,31 +205,9 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
   - autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
   - openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
 
+## Other Installation Options
+
 ### Optional Dependencies
-
-- #### Docker
-
-Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
-
-To use docker for code execution, you also need to install the python package `docker`:
-
-```bash
-pip install docker
-```
-
-You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
-
-```python
-user_proxy = autogen.UserProxyAgent(
-    name="agent",
-    human_input_mode="TERMINATE",
-    max_consecutive_auto_reply=10,
-    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
-    llm_config=llm_config,
-    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
-Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
-)
-```
 
 - #### blendsearch
 
