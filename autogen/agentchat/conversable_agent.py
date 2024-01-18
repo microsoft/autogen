@@ -691,6 +691,7 @@ class ConversableAgent(Agent):
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
         """
         self._prepare_chat(recipient, clear_history)
+        recipient._prepare_chat(self, clear_history)
         await self.a_send(self.generate_init_message(**context), recipient, silent=silent)
 
     def reset(self):
