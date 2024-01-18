@@ -484,7 +484,12 @@ class ConversableAgent(Agent):
                 return  # If role is tool, then content is just a concatenation of all tool_responses
 
         if message.get("role") in ["function", "tool"]:
-            func_print = f"***** Response from calling {message['role']} \"{message['name']}\" *****"
+            if message["role"] == "function":
+                id_key = "name"
+            else:
+                id_key = "tool_call_id"
+
+            func_print = f"***** Response from calling {message['role']} \"{message[id_key]}\" *****"
             print(colored(func_print, "green"), flush=True)
             print(message["content"], flush=True)
             print(colored("*" * len(func_print), "green"), flush=True)
@@ -694,6 +699,8 @@ class ConversableAgent(Agent):
         self.clear_history()
         self.reset_consecutive_auto_reply_counter()
         self.stop_reply_at_receive()
+        if self.client is not None:
+            self.client.clear_usage_summary()
         for reply_func_tuple in self._reply_func_list:
             if reply_func_tuple["reset_config"] is not None:
                 reply_func_tuple["reset_config"](reply_func_tuple["config"])
@@ -884,10 +891,9 @@ class ConversableAgent(Agent):
         return False, None
 
     def _str_for_tool_response(self, tool_response):
-        func_name = tool_response.get("name", "")
         func_id = tool_response.get("tool_call_id", "")
         response = tool_response.get("content", "")
-        return f"Tool call: {func_name}\nId: {func_id}\n{response}"
+        return f"Tool Call Id: {func_id}\n{response}"
 
     def generate_tool_calls_reply(
         self,
@@ -913,7 +919,6 @@ class ConversableAgent(Agent):
                 {
                     "tool_call_id": id,
                     "role": "tool",
-                    "name": func_return.get("name", ""),
                     "content": func_return.get("content", ""),
                 }
             )
@@ -932,7 +937,6 @@ class ConversableAgent(Agent):
         return {
             "tool_call_id": id,
             "role": "tool",
-            "name": func_return.get("name", ""),
             "content": func_return.get("content", ""),
         }
 
@@ -1716,6 +1720,7 @@ class ConversableAgent(Agent):
                 For Azure OpenAI API, use version 2023-12-01-preview or later.
                 `"function"` style will be deprecated. For earlier version use
                 `"function"` if `"tool"` doesn't work.
+                See [Azure OpenAI documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/function-calling?tabs=python) for details.
 
         Returns:
             The decorator for registering a function to be used by an agent.
@@ -1729,7 +1734,7 @@ class ConversableAgent(Agent):
                  return a + str(b * c)
             ```
 
-            For Azure OpenAI versions 2023-10-01-preview and earlier, set `api_style`
+            For Azure OpenAI versions prior to 2023-12-01-preview, set `api_style`
             to `"function"` if `"tool"` doesn't work:
             ```
             @agent2.register_for_llm(api_style="function")
@@ -1887,3 +1892,25 @@ class ConversableAgent(Agent):
         messages = messages.copy()
         messages[-1]["content"] = processed_user_text
         return messages
+
+    def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
+        """Print the usage summary."""
+        if self.client is None:
+            print(f"No cost incurred from agent '{self.name}'.")
+        else:
+            print(f"Agent '{self.name}':")
+            self.client.print_usage_summary(mode)
+
+    def get_actual_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the actual usage summary."""
+        if self.client is None:
+            return None
+        else:
+            return self.client.actual_usage_summary
+
+    def get_total_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the total usage summary."""
+        if self.client is None:
+            return None
+        else:
+            return self.client.total_usage_summary
