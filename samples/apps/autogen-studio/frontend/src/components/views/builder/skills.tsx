@@ -14,7 +14,13 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import { Card, CodeBlock, LaunchButton, LoadingOverlay } from "../../atoms";
+import {
+  BounceLoader,
+  Card,
+  CodeBlock,
+  LaunchButton,
+  LoadingOverlay,
+} from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 import TextArea from "antd/es/input/TextArea";
 
@@ -87,7 +93,7 @@ const SkillsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
         // console.log("skills", data.data);
         setSkills(data.data);
       } else {
@@ -172,7 +178,7 @@ const SkillsView = ({}: any) => {
               setShowSkillModal(true);
             }}
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-all">
+            <div style={{ minHeight: "65px" }} className="my-2   break-words">
               {" "}
               {truncateText(skill.content, 70)}
             </div>
@@ -210,7 +216,7 @@ const SkillsView = ({}: any) => {
       >
         {selectedSkill && (
           <div>
-            <div className="mb-2">{selectedSkill.file_name}</div>
+            <div className="mb-2">{selectedSkill.title}</div>
 
             <CodeBlock code={selectedSkill?.content} language="python" />
           </div>
@@ -290,6 +296,13 @@ const SkillsView = ({}: any) => {
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No skills found. Please create a new skill.
+            </div>
+          )}
+          {loading && (
+            <div className="  w-full text-center">
+              {" "}
+              <BounceLoader />{" "}
+              <span className="inline-block"> loading .. </span>
             </div>
           )}
         </div>
