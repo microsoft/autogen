@@ -15,7 +15,7 @@ setup(
     description="A minimalistic research assistant built with AutoGen.",
     packages=["tinyra"],
     package_data={"tinyra": ["*"]},
-    install_requires=["textual", "tiktoken", "pyautogen"],
+    install_requires=["textual", "tiktoken", "pyautogen", "pyperclip"],
     entry_points={
         "console_scripts": [
             "tinyra = tinyra:run_tinyra",
