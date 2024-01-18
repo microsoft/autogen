@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from .. import OpenAIWrapper
+from .. import OpenAIWrapper, Client
 from ..code_utils import (
     DEFAULT_MODEL,
     UNKNOWN,
@@ -1875,6 +1875,9 @@ class ConversableAgent(Agent):
             return func
 
         return _decorator
+
+    def register_custom_client(self, ClientClass: Client, **kwargs):
+        self.client.register_custom_client(ClientClass, **kwargs)
 
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
