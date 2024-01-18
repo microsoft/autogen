@@ -62,12 +62,11 @@ class UserProxyAgent(ConversableAgent):
                     The default working directory is the "extensions" directory under
                     "path_to_autogen".
                 - use_docker (Optional, list, str or bool): The docker image to use for code execution.
+                    Default is True, which means the code will be executed in a docker container. A default list of images will be used.
                     If a list or a str of image name(s) is provided, the code will be executed in a docker container
                     with the first image successfully pulled.
-                    If None, False or empty, the code will be executed in the current environment.
-                    Default is True, which will be converted into a list.
-                    If the code is executed in the current environment,
-                    the code must be trusted.
+                    If False, the code will be executed in the current environment.
+                    We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
