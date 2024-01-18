@@ -4,6 +4,7 @@ import hashlib
 from typing import List, Dict, Tuple, Union
 import os
 import shutil
+from pathlib import Path
 import re
 import autogen
 from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Skill
@@ -187,7 +188,10 @@ def get_modified_files(
                 shutil.copy2(file_path, dest_file_path)
 
                 # Extract user id from the dest_dir and file path
-                uid = dest_dir.split("/")[-1]
+
+                dest_dir_as_path = Path(dest_dir)
+                uid = dest_dir_as_path.name
+
                 relative_file_path = os.path.relpath(
                     dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
