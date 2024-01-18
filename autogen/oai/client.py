@@ -372,7 +372,9 @@ class OpenAIWrapper:
                 self._clients.append(client)
                 found = True
         if not found:
-            raise ValueError(f'Custom client "{ClientClass.__name__}" was not found in the config_list.')
+            raise ValueError(
+                f'Custom client "{ClientClass.__name__}" was not found in the config_list. Please make sure to include an entry in the config_list with api_type = "{ClientClass.__name__}"'
+            )
 
     @classmethod
     def instantiate(
