@@ -10,6 +10,7 @@ from typing import List, Dict
 
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
+from textual.events import Mount
 from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree
 from textual.reactive import reactive
 
@@ -467,6 +468,12 @@ class SkillsDisplayContainer(ScrollableContainer):
 class DirectoryTreeContainer(ScrollableContainer):
     def compose(self) -> ComposeResult:
         yield DirectoryTree(os.path.join(DATA_PATH, "work_dir"))
+
+    def _on_mount(self) -> None:
+        self.set_interval(5, self.update_dir_contents)
+
+    def update_dir_contents(self):
+        self.query_one(DirectoryTree).reload()
 
 
 class SkillsDisplay(Markdown):
