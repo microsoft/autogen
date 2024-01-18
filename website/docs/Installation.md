@@ -151,7 +151,7 @@ Now, you're ready to install AutoGen in the virtual environment you've just crea
 
 ## Python
 
-AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
+AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
 
 ```bash
 pip install pyautogen
