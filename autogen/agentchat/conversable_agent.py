@@ -30,6 +30,94 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+class _ReplyValidationMiddleware:
+    def __init__(self, recipient: Agent):
+        self._recipient = recipient
+
+    def call(self, *args, next: Callable, **kwargs):
+        messages = kwargs.get("messages")
+        sender = kwargs.get("sender")
+        if all((messages is None, sender is None)):
+            error_msg = f"Either {messages=} or {sender=} must be provided."
+            logger.error(error_msg)
+            raise AssertionError(error_msg)
+
+        if messages is None:
+            messages = self._oai_messages[sender]
+            kwargs["messages"] = messages
+        return next(*args, **kwargs)
+
+
+class _ReplyFunctionMiddleware:
+    def __init__(
+        self,
+        recipient: Agent,
+        reply_func: Callable,
+        trigger: Union[None, str, type, Agent, Callable[[Agent], bool], List],
+        config: Optional[Any] = None,
+        reset_config: Optional[Callable] = None,
+    ):
+        self._recipient = recipient
+        self._trigger = trigger
+        self._reply_func = reply_func
+        self._config = copy.copy(config)
+        self._init_config = config
+        self._reset_config = reset_config
+
+    def call(self, *args, next: Callable, **kwargs):
+        messages = kwargs.get("messages")
+        sender = kwargs.get("sender")
+        exclude = kwargs.get("exclude")
+        if (exclude and self._reply_func not in exclude) and self._match_trigger(self._trigger, sender):
+            final, reply = self._reply_func(self._recipient, messages, sender, self._config)
+            if final:
+                # Short-circuit the middleware chain if the reply is final.
+                return reply
+        return next(*args, **kwargs)
+
+    def reset_config(self):
+        if self._reset_config is not None:
+            self._reset_config(self._config)
+        else:
+            self._config = copy.copy(self._init_config)
+
+    def _match_trigger(
+        self,
+        trigger: Union[None, str, type, Agent, Callable[[Agent], bool], List],
+        sender: Agent,
+    ) -> bool:
+        """Check if the sender matches the trigger.
+
+        Args:
+            - trigger (Union[None, str, type, Agent, Callable, List]): The condition to match against the sender.
+            Can be `None`, string, type, `Agent` instance, callable, or a list of these.
+            - sender (Agent): The sender object or type to be matched against the trigger.
+
+        Returns:
+            - bool: Returns `True` if the sender matches the trigger, otherwise `False`.
+
+        Raises:
+            - ValueError: If the trigger type is unsupported.
+        """
+        if trigger is None:
+            return sender is None
+        elif isinstance(trigger, str):
+            return trigger == sender.name
+        elif isinstance(trigger, type):
+            return isinstance(sender, trigger)
+        elif isinstance(trigger, Agent):
+            # return True if the sender is the same type (class) as the trigger
+            return trigger == sender
+        elif isinstance(trigger, Callable):
+            rst = trigger(sender)
+            assert rst in [True, False], f"trigger {trigger} must return a boolean value."
+            return rst
+        elif isinstance(trigger, list):
+            return any(self._match_trigger(t, sender) for t in trigger)
+        else:
+            raise ValueError(f"Unsupported trigger type: {type(trigger)}")
+
+
 class ConversableAgent(Agent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
@@ -1184,6 +1272,7 @@ class ConversableAgent(Agent):
 
         return False, None
 
+    @register_for_middleware
     def generate_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -1240,6 +1329,7 @@ class ConversableAgent(Agent):
                     return reply
         return self._default_auto_reply
 
+    @register_for_middleware
     async def a_generate_reply(
         self,
         messages: Optional[List[Dict]] = None,
