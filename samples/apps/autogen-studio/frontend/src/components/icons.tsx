@@ -169,7 +169,7 @@ const Icon = ({ icon = "app", size = 4, className = "" }: Props) => {
   if (icon === "app") {
     return (
       <svg
-        className={` ${sizeClass} inline-block  `}
+        className={` ${sizeClass} inline-block rounded-full `}
         xmlns="http://www.w3.org/2000/svg"
         fill="currentColor"
         viewBox="0 0 93 90"
