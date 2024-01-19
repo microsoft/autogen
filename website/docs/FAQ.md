@@ -1,5 +1,23 @@
 # Frequently Asked Questions
 
+- [Set your API endpoints](#set-your-api-endpoints)
+  - [Use the constructed configuration list in agents](#use-the-constructed-configuration-list-in-agents)
+  - [Unexpected keyword argument 'base_url'](#unexpected-keyword-argument-base_url)
+  - [Can I use non-OpenAI models?](#can-i-use-non-openai-models)
+- [Handle Rate Limit Error and Timeout Error](#handle-rate-limit-error-and-timeout-error)
+- [How to continue a finished conversation](#how-to-continue-a-finished-conversation)
+- [How do we decide what LLM is used for each agent? How many agents can be used? How do we decide how many agents in the group?](#how-do-we-decide-what-llm-is-used-for-each-agent-how-many-agents-can-be-used-how-do-we-decide-how-many-agents-in-the-group)
+- [Why is code not saved as file?](#why-is-code-not-saved-as-file)
+- [Code execution](#code-execution)
+  - [Enable Python 3 docker image](#enable-python-3-docker-image)
+  - [Agents keep thanking each other when using `gpt-3.5-turbo`](#agents-keep-thanking-each-other-when-using-gpt-35-turbo)
+- [ChromaDB fails in codespaces because of old version of sqlite3](#chromadb-fails-in-codespaces-because-of-old-version-of-sqlite3)
+- [How to register a reply function](#how-to-register-a-reply-function)
+- [How to get last message?](#how-to-get-last-message)
+- [How to get each agent message?](#how-to-get-each-agent-message)
+- [When using autogen docker, is it always necessary to reinstall modules?](#when-using-autogen-docker-is-it-always-necessary-to-reinstall-modules)
+- [Agents are throwing due to docker not running, how can I resolve this?](#agents-are-throwing-due-to-docker-not-running-how-can-i-resolve-this)
+
 ## Set your API endpoints
 
 There are multiple ways to construct configurations for LLM inference in the `oai` utilities:
@@ -72,7 +90,7 @@ The `AssistantAgent` doesn't save all the code by default, because there are cas
 We strongly recommend using docker to execute code. There are two ways to use docker:
 
 1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](Installation.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
-2. Run AutoGen outside of a docker, while performing code execution with a docker container. For this option, set up docker and make sure the python package `docker` is installed. When not installed and `use_docker` is omitted in `code_execution_config`, the code will be executed locally (this behavior is subject to change in future).
+2. Run AutoGen outside of a docker, while performing code execution with a docker container. For this option, make sure docker is up and running. If you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
 
 ### Enable Python 3 docker image
 
@@ -173,3 +191,11 @@ Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/con
 
 The "use_docker" arg in an agent's code_execution_config will be set to the name of the image containing the change after execution, when the conversation finishes.
 You can save that image name. For a new conversation, you can set "use_docker" to the saved name of the image to start execution there.
+
+## Agents are throwing due to docker not running, how can I resolve this?
+
+If running AutoGen locally the default for agents who execute code is for them to try and perform code execution within a docker container. If docker is not running, this will cause the agent to throw an error. To resolve this you have the below options:
+
+- **Recommended**: Make sure docker is up and running.
+- If you want to run the code locally then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent.
+- If you want to run the code locally for all code-execution agents: set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
