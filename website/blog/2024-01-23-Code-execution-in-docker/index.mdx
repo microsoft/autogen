@@ -10,7 +10,7 @@ tags: [AutoGen]
 
 AutoGen 0.2.8 enhances operational safety by making 'code execution inside a Docker container' the default setting, focusing on informing users about its operations and empowering them to make informed decisions regarding code execution.
 
-The new release introduces a breaking change where `use_docker` argument is set to `True` by default in code executing agents. This change underscores our commitment to prioritizing security in AutoGen.
+The new release introduces a breaking change where the `use_docker` argument is set to `True` by default in code executing agents. This change underscores our commitment to prioritizing security and safety in AutoGen.
 
 ## Introduction
 
@@ -31,11 +31,11 @@ user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "co
 user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
 ```
 
-## Related documentation
+## Related documentation and how to opt-out of the default behaviour
 
 - [Code execution with docker](https://microsoft.github.io/autogen/docs/Installation#code-execution-with-docker-default)
 - [How to disable code execution in docker](https://microsoft.github.io/autogen/docs/FAQ#agents-are-throwing-due-to-docker-not-running-how-can-i-resolve-this)
 
 ## Conclusion
 
-AutoGen 0.2.8 addresses security vulnerabilities and is making a conscious effort to make sure that the user is properly informed of what autogen is doing and make decisions around code-execution.
+AutoGen 0.2.8 now improves the code execution safety and is ensuring that the user is properly informed of what autogen is doing and can make decisions around code-execution.
