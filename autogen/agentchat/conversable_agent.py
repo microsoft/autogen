@@ -41,9 +41,10 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-# notice the signature matches the reply_func:
-# passing arguments to call() functions is the same as passing arguments to generate_reply()
-# apart from next being passed as a keyword argument
+# notice that the `call`` signature must match the function decorated with `register_for_middleware`:
+# passing arguments to call() functions must the the same as passing arguments
+# to generate_reply() apart from next being passed as a keyword argument
+# default values must also be the same
 class _PrintReplyMiddleware:
     def __init__(self, agent: Agent):
         self._agent = agent
@@ -53,9 +54,24 @@ class _PrintReplyMiddleware:
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         # next will be passed as a keyword argument
-        next: Callable[..., Any] = None,
-    ):
-        print(f"generate_reply(): {sender.name}: {messages[-1]}")
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Tuple[bool, Optional[str]]:
+        print(f"generate_reply() called: {sender} sending {messages[-1] if messages else messages}'")
+        retval = next(messages, sender)
+        return retval
+
+
+class _PassThroughMiddleware:
+    def __init__(self, agent: Agent):
+        self._agent = agent
+
+    def call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        # next will be passed as a keyword argument
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Tuple[bool, Optional[str]]:
         retval = next(messages, sender)
         return retval
 
@@ -283,6 +299,7 @@ class ConversableAgent(Agent):
         )
 
         # uncomment to test middleware
+        add_middleware(self.generate_reply, _PassThroughMiddleware(self))
         add_middleware(self.generate_reply, _PrintReplyMiddleware(self))
 
     def register_reply(
