@@ -653,7 +653,7 @@ output after executing the code) and provide a corrected answer or code.
                                 task=building_task,
                                 position=f"{name}\nPOSITION PROFILE: {profile}",
                                 default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-                            ) + "[/INST]" if llm_config else self.AGENT_SYS_MSG_PROMPT.format(
+                            ) + "[/INST]" if self.llm_config else self.AGENT_SYS_MSG_PROMPT.format(
                                 task=building_task,
                                 position=f"{name}\nPOSITION PROFILE: {profile}",
                                 default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
