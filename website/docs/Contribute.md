@@ -98,7 +98,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - **Purpose**: The `autogen_dev_img` is tailored for contributors to the AutoGen project. It includes a suite of tools and configurations that aid in the development and testing of new features or fixes.
 - **Usage**: This image is recommended for developers who intend to contribute code or documentation to AutoGen.
 - **Forking the Project**: It's advisable to fork the AutoGen GitHub project to your own repository. This allows you to make changes in a separate environment without affecting the main project.
-- **Updating Dockerfile.dev**: Modify your copy of `Dockerfile.dev` as needed for your development work.
+- **Updating Dockerfile**: Modify your copy of `Dockerfile` in the `dev` folder as needed for your development work.
 - **Submitting Pull Requests**: Once your changes are ready, submit a pull request from your branch to the upstream AutoGen GitHub project for review and integration. For more details on contributing, see the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page.
 
 ### Building the Developer Docker Image
@@ -106,7 +106,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - To build the developer Docker image (`autogen_dev_img`), use the following commands:
 
   ```bash
-  docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
   ```
 
 - For building the developer image built from a specific Dockerfile in a branch other than main/master
@@ -119,7 +119,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
   cd autogen
 
   # build your Docker image
-  docker build -f samples/dockers/Dockerfile.dev -t autogen_dev-srv_img .
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev-srv_img .
   ```
 
 ### Using the Developer Docker Image
@@ -207,10 +207,10 @@ yarn start
 The last command starts a local development server and opens up a browser window.
 Most changes are reflected live without having to restart the server.
 
-To build and test documentation within a docker container. Use the Dockerfile.dev as described above to build your image
+To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image
 
 ```bash
-docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
 ```
 
 Then start the container like so, this will log you in and ensure that Docker port 3000 is mapped to port 8081 on your local machine
