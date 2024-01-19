@@ -415,7 +415,7 @@ output after executing the code) and provide a corrected answer or code.
                 messages=[
                     {
                         "role": "user",
-                        "content": self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents),
+                        "content": "[INST]" + self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents) + "[/INST]" if self.llm_config else self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents)
                     }
                 ]
             )
@@ -429,15 +429,20 @@ output after executing the code) and provide a corrected answer or code.
         agent_sys_msg_list = []
         for name in agent_name_list:
             print(f"Preparing system message for {name}")
+            
             resp_agent_sys_msg = (
                 build_manager.create(
                     messages=[
                         {
                             "role": "user",
-                            "content": self.AGENT_SYS_MSG_PROMPT.format(
-                                task=building_task,
-                                position=name,
-                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+                            "content": "[INST]" + self.AGENT_SYS_MSG_PROMPT.format(
+                                task=building_task, 
+                                position=name, 
+                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                            ) + "[/INST]" if self.llm_config else self.AGENT_SYS_MSG_PROMPT.format(
+                                task=building_task, 
+                                position=name, 
+                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
                             ),
                         }
                     ]
@@ -451,12 +456,13 @@ output after executing the code) and provide a corrected answer or code.
         agent_description_list = []
         for name in agent_name_list:
             print(f"Preparing description for {name}")
+            
             resp_agent_description = (
                 build_manager.create(
                     messages=[
                         {
                             "role": "user",
-                            "content": self.AGENT_DESCRIPTION_PROMPT.format(position=name),
+                            "content": "[INST]" + self.AGENT_DESCRIPTION_PROMPT.format(position=name) + "[/INST]" if self.llm_config else self.AGENT_DESCRIPTION_PROMPT.format(position=name)
                         }
                     ]
                 )
@@ -473,7 +479,12 @@ output after executing the code) and provide a corrected answer or code.
         if coding is None:
             resp = (
                 build_manager.create(
-                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": "[INST]" + self.CODING_PROMPT.format(task=building_task) + "[/INST]" if self.llm_config else self.CODING_PROMPT.format(task=building_task)
+                        }
+                    ]
                 )
                 .choices[0]
                 .message.content
@@ -601,8 +612,14 @@ output after executing the code) and provide a corrected answer or code.
                     messages=[
                         {
                             "role": "user",
-                            "content": self.AGENT_SEARCHING_PROMPT.format(
-                                task=building_task, agent_list="".join(agent_profiles), max_agents=self.max_agents
+                            "content": "[INST]" + self.AGENT_SEARCHING_PROMPT.format(
+                                task=building_task, 
+                                agent_list="".join(agent_profiles), 
+                                max_agents=self.max_agents
+                            ) + "[/INST]" if self.llm_config else self.AGENT_SEARCHING_PROMPT.format(
+                                task=building_task, 
+                                agent_list="".join(agent_profiles), 
+                                max_agents=self.max_agents
                             ),
                         }
                     ]
@@ -610,6 +627,7 @@ output after executing the code) and provide a corrected answer or code.
                 .choices[0]
                 .message.content
             )
+
             agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
 
             # search profile from library
@@ -631,7 +649,11 @@ output after executing the code) and provide a corrected answer or code.
                     messages=[
                         {
                             "role": "user",
-                            "content": self.AGENT_SYS_MSG_PROMPT.format(
+                            "content": "[INST]" + self.AGENT_SYS_MSG_PROMPT.format(
+                                task=building_task,
+                                position=f"{name}\nPOSITION PROFILE: {profile}",
+                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+                            ) + "[/INST]" if llm_config else self.AGENT_SYS_MSG_PROMPT.format(
                                 task=building_task,
                                 position=f"{name}\nPOSITION PROFILE: {profile}",
                                 default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
@@ -652,7 +674,12 @@ output after executing the code) and provide a corrected answer or code.
         if coding is None:
             resp = (
                 build_manager.create(
-                    messages=[{"role": "user", "content": self.CODING_PROMPT.format(task=building_task)}]
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": "[INST]" + self.CODING_PROMPT.format(task=building_task) + "[/INST]" if self.llm_config else self.CODING_PROMPT.format(task=building_task)
+                        }
+                    ]
                 )
                 .choices[0]
                 .message.content
@@ -803,3 +830,39 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                 }
             )
             return self._build_agents(use_oai_assistant, **kwargs)
+
+# Test
+conf = [
+    {
+        "model": "llama2",
+        "base_url": "http://127.0.0.1:9999/v1", #the local address of the api
+        "api_key": "sk-111111111111111111111111111111111111111111111111", # just a placeholder
+    }
+]
+
+llm_config = {
+    "seed": 42,  # change the seed for different trials
+    "temperature": 0,
+    "config_list": conf,
+    "timeout": 120,
+}
+
+
+
+def start_task(execution_task: str, agent_list: list):
+    group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
+    manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
+    agent_list[0].initiate_chat(manager, message=execution_task)
+    
+new_builder = AgentBuilder(llm_config=llm_config)
+library_path_or_json = "./LLMAgent/agents/agent_library_example.json"
+building_task = "Find a recent paper about explainable AI on arxiv and find its potential applications in medical."
+
+agent_list, _ = new_builder.build_from_library(building_task, library_path_or_json, llm_config)
+
+
+start_task(
+    execution_task="Find a recent paper about explainable AI on arxiv and find its potential applications in medical.",
+    agent_list=agent_list,
+)
+new_builder.clear_all_agents()
