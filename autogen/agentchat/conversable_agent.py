@@ -42,7 +42,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 # notice the signature matches the reply_func:
-# passing arguments to call() functions is the same as passing arguments to reply_func()
+# passing arguments to call() functions is the same as passing arguments to generate_reply()
 # apart from next being passed as a keyword argument
 class _PrintReplyMiddleware:
     def __init__(self, agent: Agent):
