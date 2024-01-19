@@ -4,7 +4,8 @@ import subprocess as sp
 import socket
 import json
 import hashlib
-from typing import Optional, List, Dict, Tuple, Union
+from typing import Optional, List, Dict, Tuple
+from textwrap import dedent
 
 
 def _config_check(config: Dict):
@@ -33,16 +34,16 @@ class AgentBuilder:
 
     online_server_name = "online"
 
-    CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
+    CODING_PROMPT = dedent("""Does the following task need programming (i.e., access external API or tool by coding) to solve,
     or coding may help the following task become easier?
 
     TASK: {task}
 
     Hint:
     # Answer only YES or NO.
-    """
+    """)
 
-    AGENT_NAME_PROMPT = """To complete the following task, what positions/jobs should be set to maximize efficiency?
+    AGENT_NAME_PROMPT = dedent("""To complete the following task, what positions/jobs should be set to maximize efficiency?
 
     TASK: {task}
 
@@ -57,9 +58,9 @@ class AgentBuilder:
     # Generated agent's name should follow the format of ^[a-zA-Z0-9_-]{{1,64}}$, use "_" to split words.
     # Answer the names of those positions/jobs, separated names by commas.
     # Only return the list of positions.
-    """
+    """)
 
-    AGENT_SYS_MSG_PROMPT = """Considering the following position and task:
+    AGENT_SYS_MSG_PROMPT = dedent("""Considering the following position and task:
 
     TASK: {task}
     POSITION: {position}
@@ -78,9 +79,9 @@ class AgentBuilder:
     # People with the above position can doubt previous messages or code in the group chat (for example, if there is no
 output after executing the code) and provide a corrected answer or code.
     # People in the above position should ask for help from the group chat manager when confused and let the manager select another participant.
-    """
+    """)
 
-    AGENT_DESCRIPTION_PROMPT = """Considering the following position:
+    AGENT_DESCRIPTION_PROMPT = dedent("""Considering the following position:
 
     POSITION: {position}
 
@@ -95,9 +96,9 @@ output after executing the code) and provide a corrected answer or code.
     # Your answer should include the skills that this position should have.
     # Your answer should not contain coding-related skills when the position is not a programmer or developer.
     # Coding skills should be limited to Python.
-    """
+    """)
 
-    AGENT_SEARCHING_PROMPT = """Considering the following task:
+    AGENT_SEARCHING_PROMPT = dedent("""Considering the following task:
 
     TASK: {task}
 
@@ -111,7 +112,7 @@ output after executing the code) and provide a corrected answer or code.
     # Considering the effort, you should select less then {max_agents} agents; less is better.
     # Separate agent names by commas and use "_" instead of space. For example, Product_manager,Programmer
     # Only return the list of agent names.
-    """
+    """)
 
     def __init__(
         self,
@@ -136,7 +137,7 @@ output after executing the code) and provide a corrected answer or code.
             max_tokens: max tokens for each agent.
             max_agents: max agents for each task.
         """
-        self.config_file_or_env = config_file_or_env 
+        self.config_file_or_env = None 
 
         if config_file_or_env:
             self.config_file_location = config_file_location
@@ -152,7 +153,7 @@ output after executing the code) and provide a corrected answer or code.
             # Setup through LLM Config
             self.llm_config = llm_config
             self.config_list = llm_config["config_list"]
-            # self.builder_model = llm_config["config_list"][0]['model'] 
+            self.builder_model = llm_config["config_list"][0]['model'] 
             self.agent_model = llm_config["config_list"][0]['model'] 
             
         # Max Tokens + Agents
@@ -300,7 +301,7 @@ output after executing the code) and provide a corrected answer or code.
             
         # Custom LLM Config
         if self.llm_config:
-            current_config = self.llm_config
+            current_config = llm_config.copy()
             server_id = self.online_server_name
             
         # Set up agent
@@ -415,7 +416,7 @@ output after executing the code) and provide a corrected answer or code.
                 messages=[
                     {
                         "role": "user",
-                        "content": "[INST]" + self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents) + "[/INST]" if self.llm_config else self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents)
+                        "content": "[INST]" + self.AGENT_NAME_PROMPT.format(task=building_task, max_agents=self.max_agents) + "[/INST]"
                     }
                 ]
             )
@@ -439,17 +440,14 @@ output after executing the code) and provide a corrected answer or code.
                                 task=building_task, 
                                 position=name, 
                                 default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-                            ) + "[/INST]" if self.llm_config else self.AGENT_SYS_MSG_PROMPT.format(
-                                task=building_task, 
-                                position=name, 
-                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-                            ),
+                            ) + "[/INST]",
                         }
                     ]
                 )
                 .choices[0]
                 .message.content
             )
+            
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
         print("==> Generating description...")
@@ -462,7 +460,7 @@ output after executing the code) and provide a corrected answer or code.
                     messages=[
                         {
                             "role": "user",
-                            "content": "[INST]" + self.AGENT_DESCRIPTION_PROMPT.format(position=name) + "[/INST]" if self.llm_config else self.AGENT_DESCRIPTION_PROMPT.format(position=name)
+                            "content": "[INST]" + self.AGENT_DESCRIPTION_PROMPT.format(position=name) + "[/INST]"
                         }
                     ]
                 )
@@ -482,7 +480,7 @@ output after executing the code) and provide a corrected answer or code.
                     messages=[
                         {
                             "role": "user",
-                            "content": "[INST]" + self.CODING_PROMPT.format(task=building_task) + "[/INST]" if self.llm_config else self.CODING_PROMPT.format(task=building_task)
+                            "content": "[INST]" + self.CODING_PROMPT.format(task=building_task) + "[/INST]"
                         }
                     ]
                 )
@@ -607,6 +605,8 @@ output after executing the code) and provide a corrected answer or code.
                 f"No.{i + 1} AGENT's NAME: {agent['name']}\nNo.{i + 1} AGENT's PROFILE: {agent['profile']}\n\n"
                 for i, agent in enumerate(agent_library)
             ]
+            
+            # Added [INST] and [/INST] to the prompt
             resp_agent_name = (
                 build_manager.create(
                     messages=[
@@ -616,17 +616,14 @@ output after executing the code) and provide a corrected answer or code.
                                 task=building_task, 
                                 agent_list="".join(agent_profiles), 
                                 max_agents=self.max_agents
-                            ) + "[/INST]" if self.llm_config else self.AGENT_SEARCHING_PROMPT.format(
-                                task=building_task, 
-                                agent_list="".join(agent_profiles), 
-                                max_agents=self.max_agents
-                            ),
+                            ) + "[/INST]",
                         }
                     ]
                 )
                 .choices[0]
                 .message.content
             )
+
 
             agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
 
@@ -653,11 +650,7 @@ output after executing the code) and provide a corrected answer or code.
                                 task=building_task,
                                 position=f"{name}\nPOSITION PROFILE: {profile}",
                                 default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-                            ) + "[/INST]" if self.llm_config else self.AGENT_SYS_MSG_PROMPT.format(
-                                task=building_task,
-                                position=f"{name}\nPOSITION PROFILE: {profile}",
-                                default_sys_msg=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-                            ),
+                            ) + "[/INST]",
                         }
                     ]
                 )
@@ -672,12 +665,13 @@ output after executing the code) and provide a corrected answer or code.
             )
 
         if coding is None:
+
             resp = (
                 build_manager.create(
                     messages=[
                         {
                             "role": "user",
-                            "content": "[INST]" + self.CODING_PROMPT.format(task=building_task) + "[/INST]" if self.llm_config else self.CODING_PROMPT.format(task=building_task)
+                            "content": self.CODING_PROMPT.format(task=building_task)
                         }
                     ]
                 )
@@ -832,37 +826,39 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
             return self._build_agents(use_oai_assistant, **kwargs)
 
 # Test
-conf = [
-    {
-        "model": "llama2",
-        "base_url": "http://127.0.0.1:9999/v1", #the local address of the api
-        "api_key": "sk-111111111111111111111111111111111111111111111111", # just a placeholder
-    }
-]
+# conf = [
+#     {
+#         "model": "Mixtral",
+#         "base_url": "http://127.0.0.1:9999/v1", #the local address of the api
+#         "api_key": "sk-111111111111111111111111111111111111111111111111", # just a placeholder
+#     }
+# ]
 
-llm_config = {
-    "seed": 42,  # change the seed for different trials
-    "temperature": 0,
-    "config_list": conf,
-    "timeout": 120,
-}
+# llm_config = {
+#     "seed": 42,  # change the seed for different trials
+#     "temperature": 0,
+#     "config_list": conf,
+#     "timeout": 120,
+# }
 
 
 
-def start_task(execution_task: str, agent_list: list):
-    group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
-    manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
-    agent_list[0].initiate_chat(manager, message=execution_task)
+# def start_task(execution_task: str, agent_list: list):
+#     group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
+#     manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
+#     agent_list[0].initiate_chat(manager, message=execution_task)
     
-new_builder = AgentBuilder(llm_config=llm_config)
-library_path_or_json = "./LLMAgent/agents/agent_library_example.json"
-building_task = "Find a recent paper about explainable AI on arxiv and find its potential applications in medical."
+# new_builder = AgentBuilder(llm_config=llm_config)
+# library_path_or_json = "./LLMAgent/agents/agent_library_example.json"
+# building_task = "Find a recent paper about explainable AI on arxiv and find its potential applications in medical."
 
-agent_list, _ = new_builder.build_from_library(building_task, library_path_or_json, llm_config)
+# agent_list, agent_config = new_builder.build_from_library(building_task, library_path_or_json, llm_config)
 
 
-start_task(
-    execution_task="Find a recent paper about explainable AI on arxiv and find its potential applications in medical.",
-    agent_list=agent_list,
-)
-new_builder.clear_all_agents()
+# print(json.dumps(agent_config, indent=4))
+# print(json.dumps(agent_config, indent=4))
+# start_task(
+#     execution_task="Find a recent paper about explainable AI on arxiv and find its potential applications in medical.",
+#     agent_list=agent_list,
+# )
+# new_builder.clear_all_agents()
