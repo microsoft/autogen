@@ -71,7 +71,7 @@ def test_custom_client():
     test_hook = {"called": False}
 
     client = OpenAIWrapper(config_list=config_list)
-    client.register_custom_client(CustomClient, test_hook=test_hook)
+    client.register_client(CustomClient, test_hook=test_hook)
 
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     assert response.choices[0].message.content == TEST_CUSTOM_RESPONSE
@@ -105,7 +105,7 @@ def test_registering_with_wrong_name_missing_raises_error():
     client = OpenAIWrapper(config_list=config_list)
 
     with pytest.raises(ValueError):
-        client.register_custom_client(CustomClient)
+        client.register_client(CustomClient)
 
 
 def test_custom_client_not_registered_raises_error():

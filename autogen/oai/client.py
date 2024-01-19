@@ -97,7 +97,7 @@ class Client(ABC):
 
 class OpenAIClient(Client):
     def __init__(self, client):
-        self.client = client
+        self._oai_client = client
 
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config using openai's client.
@@ -109,7 +109,7 @@ class OpenAIClient(Client):
         Returns:
             The completion.
         """
-        completions: Completions = self.client.chat.completions if "messages" in params else self.client.completions  # type: ignore [attr-defined]
+        completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
         if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
@@ -316,13 +316,13 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
-                self._register_client(config, openai_config)  # could modify the config
+                self._register_openai_client(config, openai_config)  # could modify the config
             self._config_list = [
                 {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 for config in config_list
             ]
         else:
-            self._register_client(extra_kwargs, openai_config)
+            self._register_openai_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -337,7 +337,7 @@ class OpenAIWrapper:
         extra_kwargs = {k: v for k, v in config.items() if k in self.extra_kwargs}
         return create_config, extra_kwargs
 
-    def _register_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> OpenAIClient:
+    def _register_openai_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> OpenAIClient:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
 
@@ -357,9 +357,9 @@ class OpenAIWrapper:
         elif api_type is None:
             self._clients.append(OpenAIClient(OpenAI(**openai_config)))
         # else a config for a custom client is set
-        # skipping until the register_custom_client is called with the appropriate class
+        # skipping until the register_client is called with the appropriate class
 
-    def register_custom_client(self, ClientClass: Client, **kwargs):
+    def register_client(self, ClientClass: Client, **kwargs):
         """Register a custom client.
 
         Args:

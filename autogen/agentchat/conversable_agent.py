@@ -1900,8 +1900,8 @@ class ConversableAgent(Agent):
 
         return _decorator
 
-    def register_custom_client(self, ClientClass: Client, **kwargs):
-        self.client.register_custom_client(ClientClass, **kwargs)
+    def register_client(self, ClientClass: Client, **kwargs):
+        self.client.register_client(ClientClass, **kwargs)
 
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
