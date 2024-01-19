@@ -616,13 +616,13 @@ class ConversableAgent(Agent):
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
-    def _prepare_chat(self, recipient, clear_history):
+    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
         self.reset_consecutive_auto_reply_counter(recipient)
-        recipient.reset_consecutive_auto_reply_counter(self)
-        self.reply_at_receive[recipient] = recipient.reply_at_receive[self] = True
+        self.reply_at_receive[recipient] = True
         if clear_history:
             self.clear_history(recipient)
-            recipient.clear_history(self)
+        if prepare_recipient:
+            recipient._prepare_chat(self, clear_history, False)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
@@ -699,6 +699,8 @@ class ConversableAgent(Agent):
         self.clear_history()
         self.reset_consecutive_auto_reply_counter()
         self.stop_reply_at_receive()
+        if self.client is not None:
+            self.client.clear_usage_summary()
         for reply_func_tuple in self._reply_func_list:
             if reply_func_tuple["reset_config"] is not None:
                 reply_func_tuple["reset_config"](reply_func_tuple["config"])
@@ -1896,3 +1898,25 @@ class ConversableAgent(Agent):
         messages = messages.copy()
         messages[-1]["content"] = processed_user_text
         return messages
+
+    def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
+        """Print the usage summary."""
+        if self.client is None:
+            print(f"No cost incurred from agent '{self.name}'.")
+        else:
+            print(f"Agent '{self.name}':")
+            self.client.print_usage_summary(mode)
+
+    def get_actual_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the actual usage summary."""
+        if self.client is None:
+            return None
+        else:
+            return self.client.actual_usage_summary
+
+    def get_total_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the total usage summary."""
+        if self.client is None:
+            return None
+        else:
+            return self.client.total_usage_summary
