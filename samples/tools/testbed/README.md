@@ -6,7 +6,7 @@ This Testbed sample has been tested in, and is known to work with, Autogen versi
 
 ## Setup
 
-Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directy, or environment variable named, OAI_CONFIG_LIST. This can be overrriden using a command-line parameter described later.
+Before you begin, you must configure your API keys for use with the Testbed. As with other Autogen applications, the Testbed will look for the OpenAI keys in a file in the current working directory, or environment variable named, OAI_CONFIG_LIST. This can be overridden using a command-line parameter described later.
 
 For some scenarios, additional keys may be required (e.g., keys for the Bing Search API). These can be added to an `ENV` file in the `includes` folder. A sample has been provided in ``includes/ENV.example``. Edit ``includes/ENV`` as needed.
 
@@ -46,13 +46,17 @@ options:
                 The requirements file to pip install before running the scenario. This file must be found in
                 the 'includes' directory. (default: requirements.txt)
 
+  -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
+                The Docker image to use when running scenarios. Can not be used together with --native.
+                (default: 'autogen/testbed:default', which will be created if not present)
+
   --native      Run the scenarios natively rather than in docker.
                 NOTE: This is not advisable, and should be done with great caution.
 ```
 
 ## Results
 
-By default, the Testbed stores results in a folder heirarchy with the following template:
+By default, the Testbed stores results in a folder hierarchy with the following template:
 
 ``./results/[scenario]/[instance_id]/[repetition]``
 
@@ -158,7 +162,7 @@ For the sake of brevity we will refer to this folder as the `DEST_FOLDER`.
 
 The algorithm for populating the `DEST_FOLDER` is as follows:
 
-1. Recursively copy the contents of `./incudes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
+1. Recursively copy the contents of `./includes` to DEST_FOLDER. This folder contains all the basic starter files for running a scenario, including an ENV file which will set the Docker environment variables.
 2. Append the OAI_CONFIG_LIST to the ENV file so that autogen may access these secrets.
 3. Recursively copy the scenario folder (if `template` in the json scenario definition points to a folder) to DEST_FOLDER. If the `template` instead points to a file, copy the file, but rename it to `scenario.py`
 4. Apply any templating, as outlined in the prior section.
@@ -215,4 +219,21 @@ python ./run_scenarios.py ./scenarios/GAIA/gaia_validation_level_1__two_agents_g
 
 # Compute Metrics
 python utils/collate_gaia_csv.py ./results/gaia_validation_level_1__two_agents_gpt4 | python utils/metrics_gaia.py
+```
+
+## (Example) Running tasks from AutoGPT
+
+The Testbed supports running tasks proposed in [AutoGPT benchmark](https://github.com/Significant-Gravitas/AutoGPT/tree/master/benchmark/agbenchmark/challenges). In this scenario, the agents are prompted to handle a diverse range of tasks, including coding, question answering according to given tasks, web scraping. Similar to scenarios in HumanEval, the agents can call the unit test script to check if the task is successfully done.
+
+Accessing this scenario-type requires converting tasks, running the Testbed, collating the results, and finally computing the metrics. The following commands will run each test instance with GPT-4:
+
+```
+# Convert tasks
+python utils/prepare_autogpt.py
+
+# Run all the scenarios with GPT-4
+python run_scenarios.py scenarios/AutoGPT/autogpt_twoagent_gpt4.jsonl
+
+# Compute metrics, the metric script shares the same one with HumanEval
+python utils/collate_autogpt.py ./results/autogpt_twoagent_gpt4 | python metrics_human_eval.py
 ```

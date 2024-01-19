@@ -100,6 +100,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
                 - docs_path (Optional, Union[str, List[str]]): the path to the docs directory. It can also be the path to a single file,
                     the url to a single file or a list of directories, files and urls. Default is None, which works only if the collection is already created.
+                - extra_docs (Optional, bool): when true, allows adding documents with unique IDs without overwriting existing ones; when false, it replaces existing documents using default IDs, risking collection overwrite.,
+                    when set to true it enables the system to assign unique IDs starting from "length+i" for new document chunks, preventing the replacement of existing documents and facilitating the addition of more content to the collection..
+                    By default, "extra_docs" is set to false, starting document IDs from zero. This poses a risk as new documents might overwrite existing ones, potentially causing unintended loss or alteration of data in the collection.
                 - collection_name (Optional, str): the name of the collection.
                     If key not provided, a default name `autogen-docs` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
@@ -131,7 +134,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
                     Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
                 - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
-                    This only applies to files under the directories in `docs_path`. Explictly included files and urls will be chunked regardless of their types.
+                    This only applies to files under the directories in `docs_path`. Explicitly included files and urls will be chunked regardless of their types.
                 - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
             **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
@@ -171,6 +174,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._task = self._retrieve_config.get("task", "default")
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", None)
+        self._extra_docs = self._retrieve_config.get("extra_docs", False)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         if "docs_path" not in self._retrieve_config:
             logger.warning(
@@ -392,6 +396,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 custom_text_split_function=self.custom_text_split_function,
                 custom_text_types=self._custom_text_types,
                 recursive=self._recursive,
+                extra_docs=self._extra_docs,
             )
             self._collection = True
             self._get_or_create = True

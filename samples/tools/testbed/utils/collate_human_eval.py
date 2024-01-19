@@ -10,7 +10,7 @@ def collate(results_dir):
     Collate the results of running human eval.
 
     Args:
-        results_dir (path): The folder were results were be saved.
+        results_dir (path): The folder where results are saved.
     """
 
     all_results = list()
@@ -19,7 +19,7 @@ def collate(results_dir):
     for test_id in os.listdir(results_dir):
         test_path = os.path.join(results_dir, test_id)
 
-        # Collect the reslts vector
+        # Collect the results vector
         results = [test_id]
 
         instance = 0
@@ -83,7 +83,7 @@ HumanEval_2, x_20,   x_21,   ...,    X_2N
 HumanEval_M, x_M0,   x_M1,   ...,    X_MN
 
 
-Where x_ij is the number of AsssitantAgent conversation turns needed to pass all the tests for problem i, in Trial/repetition j. If the agent was not able to pass the tests by the end of the conversation, the value will be -1. If data for the trial is missing, the value will be an empty string "".
+Where x_ij is the number of AssistantAgent conversation turns needed to pass all the tests for problem i, in Trial/repetition j. If the agent was not able to pass the tests by the end of the conversation, the value will be -1. If data for the trial is missing, the value will be an empty string "".
 """.strip(),
         formatter_class=argparse.RawTextHelpFormatter,
     )

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Extra, root_validator
 from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 from time import sleep
 
+from autogen._pydantic import PYDANTIC_V1
 from autogen.agentchat import Agent, UserProxyAgent
 from autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
 from autogen.math_utils import get_answer
@@ -165,7 +166,7 @@ class MathUserProxyAgent(UserProxyAgent):
             default_auto_reply=default_auto_reply,
             **kwargs,
         )
-        self.register_reply([Agent, None], MathUserProxyAgent._generate_math_reply, 1)
+        self.register_reply([Agent, None], MathUserProxyAgent._generate_math_reply, position=2)
         # fixed var
         self._max_invalid_q_per_step = max_invalid_q_per_step
 
@@ -384,7 +385,8 @@ class WolframAlphaAPIWrapper(BaseModel):
     class Config:
         """Configuration for this pydantic object."""
 
-        extra = Extra.forbid
+        if PYDANTIC_V1:
+            extra = Extra.forbid
 
     @root_validator(skip_on_failure=True)
     def validate_environment(cls, values: Dict) -> Dict:
@@ -395,8 +397,8 @@ class WolframAlphaAPIWrapper(BaseModel):
         try:
             import wolframalpha
 
-        except ImportError:
-            raise ImportError("wolframalpha is not installed. " "Please install it with `pip install wolframalpha`")
+        except ImportError as e:
+            raise ImportError("wolframalpha is not installed. Please install it with `pip install wolframalpha`") from e
         client = wolframalpha.Client(wolfram_alpha_appid)
         values["wolfram_client"] = client
 
