@@ -64,8 +64,8 @@ async def test_register_for_middleware() -> None:
         async def a_f(self, *args: Any, **kwargs: Any) -> str:
             return format_function(A.a_f, *args, **kwargs)
 
-    assert A.f._chained_call == {}  # type: ignore[attr-defined]
-    assert A.a_f._chained_call == {}  # type: ignore[attr-defined]
+    assert A.f._chained_calls == {}  # type: ignore[attr-defined]
+    assert A.a_f._chained_calls == {}  # type: ignore[attr-defined]
 
     assert A.f._is_async is False  # type: ignore[attr-defined]
     assert A.a_f._is_async is True  # type: ignore[attr-defined]
@@ -151,6 +151,7 @@ async def test__get_initial_next_function():
     a = A()
     mw = MyMiddlewar("mw")
     mw._bound_h = a.f
+    assert mw._bound_h(1, c=3, d=4, f=6) == "f(1, 2, 3, d=4, e=5, f=6)"
 
     initial_next = _next_function_base(mw=mw)
     assert initial_next(1, c=3, d=4, f=6) == "f(1, 2, 3, d=4, e=5, f=6)"
@@ -251,7 +252,7 @@ async def test__build_middleware_chain():
     a.f._middlewares[a] = []  # type: ignore[attr-defined]
     _build_middleware_chain(a.f)
     assert mw._bound_h == a.f
-    assert a.f._chained_call == {}
+    assert a.f._chained_calls == {}
     assert a.f(1, c=3, d=4, f=6) == "f(1, 2, 3, d=4, e=5, f=6)"
 
     a.f._middlewares[a] = [mw]  # type: ignore[attr-defined]
@@ -496,7 +497,7 @@ async def test__build_middleware_chain():
 #             return f"{self.name}.process_message({msg=})"
 
 #     assert hasattr(A.process_message, "_origin")
-#     assert hasattr(A.process_message, "_chained_call")
+#     assert hasattr(A.process_message, "_chained_calls")
 
 #     def is_bound_method(method: Callable[..., Any]) -> bool:
 #         return hasattr(method, "__self__") and method.__self__ is not None
@@ -524,10 +525,10 @@ async def test__build_middleware_chain():
 
 #     h: MiddlewareCallable = a.process_message  # type: ignore[assignment]
 #     assert hasattr(h, "_origin")
-#     assert hasattr(h, "_chained_call")
-#     assert isinstance(h._chained_call, dict)
-#     assert a in h._chained_call.keys()
-#     assert hasattr(h._chained_call[a], "__call__")
+#     assert hasattr(h, "_chained_calls")
+#     assert isinstance(h._chained_calls, dict)
+#     assert a in h._chained_calls.keys()
+#     assert hasattr(h._chained_calls[a], "__call__")
 
 #     actual = a.process_message("hello")
 #     expected = "mw.call(a.process_message(msg='hello'))"

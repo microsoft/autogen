@@ -41,7 +41,7 @@ class MiddlewareCallable(Protocol):
         ...  # pragma: no cover
 
     @property
-    def _chained_call(self) -> Dict[Any, Callable[..., Any]]:
+    def _chained_calls(self) -> Dict[Any, Callable[..., Any]]:
         ...  # pragma: no cover
 
     @property
@@ -109,8 +109,8 @@ def register_for_middleware(f: F) -> F:
         self = args[0]
 
         h: MiddlewareCallable = h_sync  # type: ignore[assignment]
-        if self in h._chained_call:
-            return h._chained_call[self](*args, **kwargs)  # type: ignore[attr-defined]
+        if self in h._chained_calls:
+            return h._chained_calls[self].__get__(self)(*args[1:], **kwargs)  # type: ignore[attr-defined]
         else:
             return h._origin(*args, **kwargs)  # type: ignore[attr-defined]
 
@@ -119,15 +119,15 @@ def register_for_middleware(f: F) -> F:
         self = args[0]
 
         h: MiddlewareCallable = h_async  # type: ignore[assignment]
-        if self in h._chained_call:
-            return await h._chained_call[self](*args, **kwargs)  # type: ignore[attr-defined]
+        if self in h._chained_calls:
+            return await h._chained_calls[self].__get__(args[0])(*args[1:], **kwargs)  # type: ignore[attr-defined]
         else:
             return await h._origin(*args, **kwargs)  # type: ignore[attr-defined]
 
     h: MiddlewareCallable = h_async if inspect.iscoroutinefunction(f) else h_sync  # type: ignore[assignment]
 
     h._origin = f  # type: ignore[misc]
-    h._chained_call = {}  # type: ignore[misc]
+    h._chained_calls = {}  # type: ignore[misc]
     h._is_async = inspect.iscoroutinefunction(f)  # type: ignore[misc]
 
     h._middlewares = {}  # type: ignore[misc]
@@ -145,22 +145,8 @@ def _get_self_from_bound(h: Callable[..., Any], *, self: Any = None) -> Any:
 # inductive base
 def _next_function_base(mw: Middleware) -> Callable[..., Any]:
     f = mw._bound_h
-    _get_self_from_bound(f)
-
-    if inspect.iscoroutinefunction(f):
-
-        @wraps(f)
-        async def _bound_origin_async(*args: Any, **kwargs: Any) -> Any:
-            return await f._origin(*args, **kwargs)
-
-        return _bound_origin_async
-    else:
-
-        @wraps(f)
-        def _bound_origin_sync(*args: Any, **kwargs: Any) -> Any:
-            return f._origin(*args, **kwargs)
-
-        return _bound_origin_sync
+    self = _get_self_from_bound(f)
+    return f._origin.__get__(self)
 
 
 # inductive step
@@ -214,11 +200,11 @@ def _build_middleware_chain(h: MiddlewareCallable) -> None:
         for mw in reversed(mwx):
             next = _next_function_step(mw, next)
 
-        h._chained_call[self] = next  # type: ignore[misc]
+        h._chained_calls[self] = next  # type: ignore[misc]
         # assert False
     else:
-        if self in h._chained_call:
-            h._chained_call.pop(self)
+        if self in h._chained_calls:
+            h._chained_calls.pop(self)
 
 
 # def _check_for_added_to_multiple_functions(h: MiddlewareCallable, mw: Middleware) -> None:
