@@ -8,7 +8,6 @@ import inspect
 from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
-from abc import ABC, abstractmethod
 from typing import Protocol
 
 from autogen.cache.cache import Cache
@@ -54,11 +53,17 @@ LEGACY_DEFAULT_CACHE_SEED = 41
 LEGACY_CACHE_DIR = ".cache"
 
 
-class Client(ABC):
+class Client(Protocol):
     """
     A client class must implement the following methods:
     - create must return a response object that implements the ClientResponseProtocol
-    - cost
+    - cost must return the cost of the response
+    - get_usage must return a dict with the following keys:
+        - prompt_tokens
+        - completion_tokens
+        - total_tokens
+        - cost
+        - model
 
     This class is used to create a client that can be used by OpenAIWrapper.
     It mimics the OpenAI class, but allows for custom clients to be used.
@@ -78,20 +83,21 @@ class Client(ABC):
         pass_filter: bool
         model: str
 
-    @abstractmethod
     def create(self, params) -> ClientResponseProtocol:
-        pass
+        ...  # pragma: no cover
 
-    @abstractmethod
     def cost(self, response: ClientResponseProtocol) -> float:
-        pass
+        ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ClientResponseProtocol) -> Dict:
-        return None
+        """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
+        ...  # pragma: no cover
 
 
-class OpenAIClient(Client):
+class OpenAIClient:
+    """Follows the Client protocol and wraps the OpenAI client."""
+
     def __init__(self, client):
         self._oai_client = client
 
@@ -653,6 +659,11 @@ class OpenAIWrapper:
 
     def _update_usage(self, actual_usage, total_usage):
         def update_usage(usage_summary, response_usage):
+            # go through RESPONSE_USAGE_KEYS and check that they are in response_usage and if not just return usage_summary
+            for key in Client.RESPONSE_USAGE_KEYS:
+                if key not in response_usage:
+                    return usage_summary
+
             model = response_usage["model"]
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]

@@ -20,7 +20,7 @@ def test_custom_client():
     TEST_OTHER_PARAMS_VAL = "other_params"
     TEST_MAX_LENGTH = 1000
 
-    class CustomClient(Client):
+    class CustomClient:
         def __init__(self, config: Dict, test_hook):
             self.test_hook = test_hook
             self.device = config["device"]
@@ -56,6 +56,10 @@ def test_custom_client():
             response.cost = TEST_COST
             return TEST_COST
 
+        @staticmethod
+        def get_usage(response) -> Dict:
+            return {}
+
     config_list = [
         {
             "model": TEST_LOCAL_MODEL_NAME,
@@ -86,7 +90,7 @@ def test_custom_client():
 
 
 def test_registering_with_wrong_cls_name_raises_error():
-    class CustomClient(Client):
+    class CustomClient:
         def __init__(self, config: Dict):
             pass
 
@@ -109,7 +113,7 @@ def test_registering_with_wrong_cls_name_raises_error():
 
 
 def test_registering_with_wrong_model_name_raises_error():
-    class CustomClient(Client):
+    class CustomClient:
         def __init__(self, config: Dict):
             pass
 
@@ -118,6 +122,10 @@ def test_registering_with_wrong_model_name_raises_error():
 
         def cost(self, response) -> float:
             return 0
+
+        @staticmethod
+        def get_usage(response) -> Dict:
+            return {}
 
     config_list = [
         {
