@@ -68,12 +68,9 @@ class Teachability(AgentCapability):
                 self.teachability = teachability
                 self.agent = agent
 
-            def call(self, agent: ConversableAgent, user_text: str, *, next: Callable[[str], str]):
-                user_text = next(agent, user_text)
+            def call(self, user_text: str, next: Callable[[str], str]):
+                user_text = next(user_text)
                 return self.teachability.process_last_message(user_text)
-
-            def trigger(self, agent: ConversableAgent, user_text: str):
-                return self.agent == agent
 
         add_middleware(
             agent.process_last_message_user_text,
