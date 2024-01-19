@@ -78,10 +78,6 @@ class Client(ABC):
         pass_filter: bool
         model: str
 
-    def update(self, config: Dict):
-        # update with anything here
-        pass
-
     @abstractmethod
     def create(self, params) -> ClientResponseProtocol:
         pass
@@ -359,21 +355,27 @@ class OpenAIWrapper:
         # else a config for a custom client is set
         # skipping until the register_client is called with the appropriate class
 
-    def register_client(self, ClientClass: Client, **kwargs):
+    def register_client(self, model: str, client_cls: Client, **kwargs):
         """Register a custom client.
 
         Args:
-            client: A custom client that follows the Client interface
+            model: The model name, as specified in the config list
+            client_cls: A custom client class that follows the Client interface
+            **kwargs: The kwargs for the custom client class to be initialized with
         """
         found = False
         for config in self._config_list:
-            if config["api_type"] is not None and config["api_type"] == ClientClass.__name__:
-                client = ClientClass(config, **kwargs)
+            if (
+                config["api_type"] is not None
+                and config["api_type"] == client_cls.__name__
+                and config["model"] == model
+            ):
+                client = client_cls(config, **kwargs)
                 self._clients.append(client)
                 found = True
         if not found:
             raise ValueError(
-                f'Custom client "{ClientClass.__name__}" was not found in the config_list. Please make sure to include an entry in the config_list with api_type = "{ClientClass.__name__}"'
+                f'Pair of model "{model}" and api_type "{client_cls.__name__}" was not found in the config_list. Please make sure to include an entry in the config_list with "model": "{model}" and "api_type": "{client_cls.__name__}"'
             )
 
     @classmethod

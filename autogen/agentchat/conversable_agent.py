@@ -1900,8 +1900,15 @@ class ConversableAgent(Agent):
 
         return _decorator
 
-    def register_client(self, ClientClass: Client, **kwargs):
-        self.client.register_client(ClientClass, **kwargs)
+    def register_client(self, model: str, client_cls: Client, **kwargs):
+        """Register a custom client.
+
+        Args:
+            model: The model name, as specified in the config list
+            client_cls: A custom client class that follows the Client interface
+            **kwargs: The kwargs for the custom client class to be initialized with
+        """
+        self.client.register_client(model, client_cls, **kwargs)
 
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
