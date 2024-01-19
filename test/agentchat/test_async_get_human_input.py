@@ -21,10 +21,6 @@ else:
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 @pytest.mark.asyncio
 async def test_async_get_human_input():
-    try:
-        import openai
-    except ImportError:
-        return
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
     # create an AssistantAgent instance named "assistant"
