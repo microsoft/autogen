@@ -48,11 +48,15 @@ if not logger.handlers:
     _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
 
+LEGACY_DEFAULT_CACHE_SEED = 41
+LEGACY_CACHE_DIR = ".cache"
+
 
 class OpenAIWrapper:
     """A wrapper class for openai client."""
 
     extra_kwargs = {
+        "cache",
         "cache_seed",
         "filter_func",
         "allow_format_str_template",
@@ -67,7 +71,6 @@ class OpenAIWrapper:
     openai_kwargs = openai_kwargs | aopenai_kwargs
     total_usage_summary: Optional[Dict[str, Any]] = None
     actual_usage_summary: Optional[Dict[str, Any]] = None
-    cache: Optional[Cache] = None
 
     def __init__(self, *, config_list: Optional[List[Dict[str, Any]]] = None, **base_config: Any):
         """
@@ -206,10 +209,14 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - `cache_seed` (int | None) for the cache. Default to 41.
+            - cache (Cache | None): A Cache object to use for response cache. Default to None.
+                Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
+                then the cache_seed argument is ignored. If this argument is not provided or None,
+                then the cache_seed argument is used.
+            - (Legacy) cache_seed (int | None) for using the DiskCache. Default to 41.
                 An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
-                This is a legacy parameter. See [cache](/docs/Use-Cases/agent_chat#llmcaching) for more details.
+                Note: this is a legacy argument. It is only used when the cache argument is not provided.
             - filter_func (Callable | None): A function that takes in the context and the response
                 and returns a boolean to indicate whether the response is valid. E.g.,
 
@@ -237,17 +244,18 @@ class OpenAIWrapper:
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
             # get the cache_seed, filter_func and context
-            cache_seed = extra_kwargs.get("cache_seed", 41)
+            cache_seed = extra_kwargs.get("cache_seed", LEGACY_DEFAULT_CACHE_SEED)
+            cache = extra_kwargs.get("cache")
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
             cache_client = None
-            if cache_seed is not None:
-                # Legacy cache behavior, if cache_seed is in the llm_config, use disk cache
-                cache_client = Cache.disk(cache_seed, ".cache")
-            elif self.cache is not None:
-                # Otherwise if they have passed in a cache, use that
-                cache_client = self.cache
+            if cache is not None:
+                # Use the cache object if provided.
+                cache_client = cache
+            elif cache_seed is not None:
+                # Legacy cache behavior, if cache_seed is given, use DiskCache.
+                cache_client = Cache.disk(cache_seed, LEGACY_CACHE_DIR)
 
             if cache_client is not None:
                 with cache_client as cache:

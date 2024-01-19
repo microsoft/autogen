@@ -172,38 +172,40 @@ API call results are cached locally and reused when the same request is issued. 
 
 Starting version 0.2.8, a configurable context manager allows you to easily configure
 the cache, using either DiskCache or Redis.
-All LLM agents inside the context manager will use the same cache.
+All `OpenAIWrapper` created inside the context manager can use the same cache through the constructor..
 
 ```python
 from autogen.cache.cache import Cache
 
-with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache_client:
-    user.initiate_chat(assistant, message=coding_task, cache_client=cache_client)
+with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache:
+    client = OpenAIWrapper(..., cache=cache)
+    client.create(...)
 
-with Cache.disk(cache_seed=42, cache_dir=".cache") as cache_client:
-    user.initiate_chat(assistant, message=coding_task, cache_client=cache_client)
+with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
+    client = OpenAIWrapper(..., cache=cache)
+    client.create(...)
+```
+
+You can also set a cache directly in the `create()` method.
+
+```python
+client = OpenAIWrapper()
+with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
+    client.create(..., cache=cache)
 ```
 
 You can control the randomness by setting the `cache_seed` parameter.
 
 ### Turnning off cache
+
 For backward compatibility, DiskCache is always enabled by default
 with `cache_seed` set to 41. To fully disable it, set `cache_seed` to None.
 
 ```python
-# You turn off cache directly through the agent,
-assistant = AssistantAgent(
-    "coding_agent",
-    llm_config={
-        "cache_seed": None,
-        "config_list": OAI_CONFIG_LIST,
-        "max_tokens": 1024,
-    },
-)
-
-# or in the OpenAIWrapper create method.
-client = OpenAIWrapper()
-client.create(cache_seed=..., ...)
+# Turn off cache in constructor,
+client = OpenAIWrapper(..., cache_seed=None)
+# or directly in create().
+client.create(..., cache_seed=None)
 ```
 
 _NOTE_. openai v1.1 introduces a new param `seed`. The difference between autogen's `cache_seed` and openai's `seed` is that:

@@ -356,9 +356,9 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
-        if self.cache_client is not None:
+        if self.client_cache is not None:
             for a in groupchat.agents:
-                a.cache_client = self.cache_client
+                a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
             if self._is_termination_msg(message):

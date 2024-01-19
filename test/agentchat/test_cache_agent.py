@@ -152,13 +152,13 @@ def run_conversation(cache_seed, human_input_mode="NEVER", max_consecutive_auto_
     If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
     )
 
-    user.initiate_chat(assistant, message="TERMINATE", cache_client=cache)
+    user.initiate_chat(assistant, message="TERMINATE", cache=cache)
     # should terminate without sending any message
     assert assistant.last_message()["content"] == assistant.last_message(user)["content"] == "TERMINATE"
     coding_task = "Print hello world to a file called hello.txt"
 
     # track how long this takes
-    user.initiate_chat(assistant, message=coding_task, cache_client=cache)
+    user.initiate_chat(assistant, message=coding_task, cache=cache)
     return user.chat_messages[list(user.chat_messages.keys())[-0]]
 
 
@@ -207,7 +207,6 @@ def run_groupchat_conversation(cache, human_input_mode="NEVER", max_consecutive_
             "use_docker": "python:3",
             "timeout": 60,
         },
-        llm_config=llm_config,
         system_message="""Is code provided but not enclosed in ``` blocks?
     If so, remind that code blocks need to be enclosed in ``` blocks.
     Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
@@ -224,5 +223,5 @@ def run_groupchat_conversation(cache, human_input_mode="NEVER", max_consecutive_
 
     coding_task = "Print hello world to a file called hello.txt"
 
-    user.initiate_chat(manager, message=coding_task, cache_client=cache)
+    user.initiate_chat(manager, message=coding_task, cache=cache)
     return user.chat_messages[list(user.chat_messages.keys())[-0]]

@@ -137,7 +137,7 @@ class ConversableAgent(Agent):
             self.client = OpenAIWrapper(**self.llm_config)
 
         # initialize standalone cache client
-        self.cache_client = None
+        self.client_cache = None
 
         self._code_execution_config: Union[Dict, Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
@@ -669,7 +669,7 @@ class ConversableAgent(Agent):
         recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
-        cache_client: Optional[Cache] = None,
+        cache: Optional[Cache] = None,
         **context,
     ):
         """Initiate a chat with the recipient agent.
@@ -682,7 +682,7 @@ class ConversableAgent(Agent):
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
-            cache_client (Cache or None): the cache client to be used for this conversation.
+            cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
 
@@ -692,8 +692,8 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
         self._prepare_chat(recipient, clear_history)
-        self.cache_client = cache_client
-        recipient.cache_client = cache_client
+        self.client_cache = cache
+        recipient.client_cache = cache
         self.send(self.generate_init_message(**context), recipient, silent=silent)
 
     async def a_initiate_chat(
@@ -701,6 +701,7 @@ class ConversableAgent(Agent):
         recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
+        cache: Optional[Cache] = None,
         **context,
     ):
         """(async) Initiate a chat with the recipient agent.
@@ -713,10 +714,13 @@ class ConversableAgent(Agent):
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
+            cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
         """
         self._prepare_chat(recipient, clear_history)
+        self.client_cache = cache
+        recipient.client_cache = cache
         await self.a_send(self.generate_init_message(**context), recipient, silent=silent)
 
     def reset(self):
@@ -783,9 +787,10 @@ class ConversableAgent(Agent):
                 all_messages.append(message)
 
         # TODO: #1143 handle token limit exceeded error
-        client.cache = self.cache_client
         response = client.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + all_messages
+            context=messages[-1].pop("context", None),
+            messages=self._oai_system_message + all_messages,
+            cache=self.client_cache,
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
