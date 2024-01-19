@@ -60,6 +60,17 @@ class _PrintReplyMiddleware:
         retval = next(messages, sender)
         return retval
 
+    async def a_call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        # next will be passed as a keyword argument
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Tuple[bool, Optional[str]]:
+        print(f"generate_reply() called: {sender} sending {messages[-1] if messages else messages}'")
+        retval = await next(messages, sender)
+        return retval
+
 
 class _PassThroughMiddleware:
     def __init__(self, agent: Agent):
@@ -71,8 +82,18 @@ class _PassThroughMiddleware:
         sender: Optional[Agent] = None,
         # next will be passed as a keyword argument
         next: Optional[Callable[..., Any]] = None,
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> Union[str, Dict, None]:
         retval = next(messages, sender)
+        return retval
+
+    async def a_call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        # next will be passed as a keyword argument
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Union[str, Dict, None]:
+        retval = await next(messages, sender)
         return retval
 
 
@@ -300,7 +321,10 @@ class ConversableAgent(Agent):
 
         # uncomment to test middleware
         add_middleware(self.generate_reply, _PassThroughMiddleware(self))
+        add_middleware(self.a_generate_reply, _PassThroughMiddleware(self))
+
         add_middleware(self.generate_reply, _PrintReplyMiddleware(self))
+        add_middleware(self.a_generate_reply, _PrintReplyMiddleware(self))
 
     def register_reply(
         self,
