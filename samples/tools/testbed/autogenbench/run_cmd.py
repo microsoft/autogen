@@ -8,7 +8,8 @@ import time
 import pathlib
 import argparse
 import docker
-import np
+
+# import np
 from autogen import config_list_from_json
 
 # Figure out where everything is
@@ -37,7 +38,7 @@ def run_scenarios(
     requirements,
     docker_image=None,
     results_dir="Results",
-    subsample=1,
+    # subsample=1,
 ):
     """
     Run a set testbed scenarios a given number of times.
@@ -91,9 +92,12 @@ def run_scenarios(
         # Each line in the scenario file is an instance. Run it.
         # for line in file_handle:
         # subsample n instances from the file
-        line_list = np.random.choice(list(file_handle), size=subsample, replace=False)
-        print("line", len(line_list))
-        for line in line_list:
+
+        # line_list = np.random.choice(list(file_handle), size=subsample, replace=False)
+        # print("line", len(line_list))
+        # for line in line_list:
+
+        for line in file_handle:
             instance = json.loads(line)
 
             # Create a folder to store the results
@@ -516,13 +520,13 @@ def run_cli(args):
         help="The number of repetitions to run for each scenario (default: 1).",
         default=1,
     )
-    parser.add_argument(
-        "-s",
-        "--subsample",
-        type=int,
-        help="The number of repetitions to run for each scenario (default: 1).",
-        default=1,
-    )
+    # parser.add_argument(
+    #    "-s",
+    #    "--subsample",
+    #    type=int,
+    #    help="The number of repetitions to run for each scenario (default: 1).",
+    #    default=1,
+    # )
     parser.add_argument(
         "-m",
         "--model",
@@ -601,5 +605,5 @@ def run_cli(args):
         config_list=config_list,
         requirements=parsed_args.requirements,
         docker_image=parsed_args.docker_image,
-        subsample=parsed_args.subsample,
+        # subsample=parsed_args.subsample,
     )
