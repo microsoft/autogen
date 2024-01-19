@@ -172,7 +172,7 @@ API call results are cached locally and reused when the same request is issued. 
 
 Starting version 0.2.8, a configurable context manager allows you to easily configure
 the cache, using either DiskCache or Redis.
-All `OpenAIWrapper` created inside the context manager can use the same cache through the constructor..
+All `OpenAIWrapper` created inside the context manager can use the same cache through the constructor.
 
 ```python
 from autogen.cache.cache import Cache
