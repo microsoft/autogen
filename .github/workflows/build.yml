@@ -5,14 +5,14 @@ name: Build
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
     paths:
-      - 'autogen/**'
-      - 'test/**'
-      - '.github/workflows/build.yml'
-      - 'setup.py'
+      - "autogen/**"
+      - "test/**"
+      - ".github/workflows/build.yml"
+      - "setup.py"
   pull_request:
-    branches: ['main']
+    branches: ["main"]
   merge_group:
     types: [checks_requested]
 
@@ -22,13 +22,12 @@ concurrency:
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -41,17 +40,21 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install -e. pytest mock
-          pip uninstall -y openai
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test with pytest
         if: matrix.python-version != '3.10'
         run: |
-          pytest test
+          pytest test --skip-openai
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install -e .[test]
-          pip uninstall -y openai
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

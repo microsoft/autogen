@@ -4,6 +4,7 @@ from autogen import Agent, ConversableAgent
 import copy
 import asyncio
 import logging
+import inspect
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
 
 try:
@@ -63,6 +64,8 @@ Reply "TERMINATE" in the end when everything is done.
         llm_config: Optional[Union[Dict, bool]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         compress_config: Optional[Dict] = False,
+        description: Optional[str] = None,
+        **kwargs,
     ):
         """
         Args:
@@ -93,6 +96,8 @@ Reply "TERMINATE" in the end when everything is done.
                 - "broadcast" (Optional, bool, default to True): whether to update the compressed message history to sender.
                 - "verbose" (Optional, bool, default to False): Whether to print the content before and after compression. Used when mode="COMPRESS".
                 - "leave_last_n" (Optional, int, default to 0): If provided, the last n messages will not be compressed. Used when mode="COMPRESS".
+            description (str): a short description of the agent. This description is used by other agents
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
@@ -106,6 +111,8 @@ Reply "TERMINATE" in the end when everything is done.
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
+            description=description,
+            **kwargs,
         )
 
         self._set_compress_config(compress_config)
@@ -195,7 +202,7 @@ Reply "TERMINATE" in the end when everything is done.
             reply_func = reply_func_tuple["reply_func"]
             if exclude and reply_func in exclude:
                 continue
-            if asyncio.coroutines.iscoroutinefunction(reply_func):
+            if inspect.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
@@ -225,7 +232,7 @@ Reply "TERMINATE" in the end when everything is done.
         # 1. mode = "TERMINATE", terminate the agent if no token left.
         if self.compress_config["mode"] == "TERMINATE":
             if max_token_allowed - token_used <= 0:
-                # Teminate if no token left.
+                # Terminate if no token left.
                 print(
                     colored(
                         f'Warning: Terminate Agent "{self.name}" due to no token left for oai reply. max token for {model}: {max_token_allowed}, existing token count: {token_used}',
@@ -320,7 +327,7 @@ Reply "TERMINATE" in the end when everything is done.
                         cmsg["role"] = "user"
                     sender._oai_messages[self][i] = cmsg
 
-            # sucessfully compressed, return False, None for generate_oai_reply to be called with the updated messages
+            # successfully compressed, return False, None for generate_oai_reply to be called with the updated messages
             return False, None
         return final, None
 
@@ -332,7 +339,7 @@ Reply "TERMINATE" in the end when everything is done.
         """Compress a list of messages into one message.
 
         The first message (the initial prompt) will not be compressed.
-        The rest of the messages will be compressed into one message, the model is asked to distinuish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
+        The rest of the messages will be compressed into one message, the model is asked to distinguish the role of each message: USER, ASSISTANT, FUNCTION_CALL, FUNCTION_RETURN.
         Check out the compress_sys_msg.
 
         TODO: model used in compression agent is different from assistant agent: For example, if original model used by is gpt-4; we start compressing at 70% of usage, 70% of 8092 = 5664; and we use gpt 3.5 here max_toke = 4096, it will raise error. choosinng model automatically?
