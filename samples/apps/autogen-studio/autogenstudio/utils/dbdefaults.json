@@ -1,4 +1,24 @@
 {
+  "models": [
+    {
+      "model": "gpt-4",
+      "api_key": "Your Azure API key here",
+      "base_url": "Your Azure base URL here",
+      "api_type": "azure",
+      "api_version": "Your Azure API version here",
+      "description": "Azure Open AI"
+    },
+    {
+      "model": "gpt-4-1106-preview",
+      "description": "OpenAI model configuration"
+    },
+    {
+      "model": "TheBloke/zephyr-7B-alpha-AWQ",
+      "api_key": "EMPTY",
+      "base_url": "Your Model Endpoint",
+      "description": "Zephyr (Local Model)"
+    }
+  ],
   "agents": [
     {
       "type": "userproxy",

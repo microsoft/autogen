@@ -69,10 +69,19 @@ class Model:
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
+    description: Optional[str] = None
 
     def dict(self):
         result = asdict(self)
         return result
+
+    def __post_init__(self):
+        if self.id is None:
+            self.id = str(uuid.uuid4())
+        if self.timestamp is None:
+            self.timestamp = datetime.now().isoformat()
+        if self.user_id is None:
+            self.user_id = "default"
 
 
 @dataclass
@@ -158,7 +167,8 @@ class GroupChatFlowSpec:
 
     type: Literal["groupchat"]
     config: AgentConfig = field(default_factory=AgentConfig)
-    groupchat_config: Optional[GroupChatConfig] = field(default_factory=GroupChatConfig)
+    groupchat_config: Optional[GroupChatConfig] = field(
+        default_factory=GroupChatConfig)
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
@@ -286,3 +296,4 @@ class DBWebRequestModel(object):
     tags: Optional[List[str]] = None
     agent: Optional[AgentFlowSpec] = None
     workflow: Optional[AgentWorkFlowConfig] = None
+    model: Optional[Model] = None

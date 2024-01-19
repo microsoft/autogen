@@ -96,10 +96,9 @@ const AgentsView = ({}: any) => {
     fetchJSON(deleteAgentUrl, payLoad, onSuccess, onError);
   };
 
-  const fetchAgent = () => {
+  const fetchAgents = () => {
     setError(null);
     setLoading(true);
-    // const fetch;
     const payLoad = {
       method: "GET",
       headers: {
@@ -164,7 +163,7 @@ const AgentsView = ({}: any) => {
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
-      fetchAgent();
+      fetchAgents();
     }
   }, []);
 

@@ -89,6 +89,9 @@ export interface IModelConfig {
   api_version?: string;
   base_url?: string;
   api_type?: string;
+  user_id?: string;
+  timestamp?: string;
+  description?: string;
 }
 
 export interface IMetadataFile {

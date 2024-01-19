@@ -17,6 +17,7 @@ MODELS_TABLE_SQL = """
                 base_url TEXT,
                 api_type TEXT,
                 api_version TEXT,
+                description TEXT,
                 UNIQUE (id, user_id)
             )
             """
@@ -124,7 +125,8 @@ class DBManager:
             self.init_db(path=self.path, **kwargs)
 
         try:
-            self.conn = sqlite3.connect(self.path, check_same_thread=False, **kwargs)
+            self.conn = sqlite3.connect(
+                self.path, check_same_thread=False, **kwargs)
             self.cursor = self.conn.cursor()
         except Exception as e:
             logger.error("Error connecting to database: %s", e)
@@ -178,16 +180,27 @@ class DBManager:
             data = json.load(json_file)
             skills = data["skills"]
             agents = data["agents"]
+            models = data["models"]
+            for model in models:
+                model = Model(**model)
+                self.cursor.execute(
+                    "INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (model.id, "default", model.timestamp,
+                     model.model, model.api_key, model.base_url, model.api_type, model.api_version, model.description),
+                )
+
             for skill in skills:
                 skill = Skill(**skill)
 
                 self.cursor.execute(
                     "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)",
-                    (skill.id, "default", skill.timestamp, skill.content, skill.title, skill.file_name),
+                    (skill.id, "default", skill.timestamp,
+                     skill.content, skill.title, skill.file_name),
                 )
             for agent in agents:
                 agent = AgentFlowSpec(**agent)
-                agent.skills = [skill.dict() for skill in agent.skills] if agent.skills else None
+                agent.skills = [skill.dict()
+                                for skill in agent.skills] if agent.skills else None
                 self.cursor.execute(
                     "INSERT INTO agents (id, user_id, timestamp, config, type, skills, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
@@ -239,10 +252,12 @@ class DBManager:
                 result = self.cursor.fetchall()
                 self.commit()
                 if return_json:
-                    result = [dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
+                    result = [
+                        dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
                 return result
         except Exception as e:
-            logger.error("Error running query with query %s and args %s: %s", query, args, e)
+            logger.error(
+                "Error running query with query %s and args %s: %s", query, args, e)
             raise e
 
     def commit(self) -> None:
@@ -258,53 +273,88 @@ class DBManager:
         self.conn.close()
 
 
-def upsert_model(model_config: Model, dbmanager: DBManager) -> Model:
+def get_models(user_id: str, dbmanager: DBManager) -> List[dict]:
+    """
+    Get all models for a given user from the database.
+
+    Args:
+        user_id: The user id to get models for
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+    query = "SELECT * FROM models WHERE user_id = ? OR user_id = ?"
+    args = (user_id, "default")
+    results = dbmanager.query(query, args, return_json=True)
+    return results
+
+
+def upsert_model(model: Model, dbmanager: DBManager) -> List[dict]:
     """
     Insert or update a model configuration in the database.
 
     Args:
-        model_config: The Model object containing model configuration data
+        model: The Model object containing model configuration data
         dbmanager: The DBManager instance to interact with the database
 
     Returns:
-        The inserted or updated Model object
+        A list  of model configurations
     """
 
     # Check if the model config with the provided id already exists in the database
-    existing_model = get_item_by_field("models", "id", model_config.id, dbmanager)
+    existing_model = get_item_by_field(
+        "models", "id", model.id, dbmanager)
 
     if existing_model:
         # If the model config exists, update it with the new data
         updated_data = {
-            "model": model_config.model,
-            "api_key": model_config.api_key,
-            "base_url": model_config.base_url,
-            "api_type": model_config.api_type,
-            "api_version": model_config.api_version,
-            "user_id": model_config.user_id,
-            "timestamp": model_config.timestamp,
+            "model": model.model,
+            "api_key": model.api_key,
+            "base_url": model.base_url,
+            "api_type": model.api_type,
+            "api_version": model.api_version,
+            "user_id": model.user_id,
+            "timestamp": model.timestamp,
+            "description": model.description,
         }
-        update_item("models", model_config.id, updated_data, dbmanager)
+        update_item("models", model.id, updated_data, dbmanager)
     else:
         # If the model config does not exist, insert a new one
         query = """
-            INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         args = (
-            model_config.id,
-            model_config.user_id,
-            model_config.timestamp,
-            model_config.model,
-            model_config.api_key,
-            model_config.base_url,
-            model_config.api_type,
-            model_config.api_version,
+            model.id,
+            model.user_id,
+            model.timestamp,
+            model.model,
+            model.api_key,
+            model.base_url,
+            model.api_type,
+            model.api_version,
+            model.description,
         )
         dbmanager.query(query=query, args=args)
 
     # Return the inserted or updated model config
-    return get_item_by_field("models", "id", model_config.id, dbmanager)
+    models = get_models(model.user_id, dbmanager)
+    return models
+
+
+def delete_model(model: Model, dbmanager: DBManager) -> None:
+    """
+    Delete a model configuration from the database where id = model.id and user_id = model.user_id.
+
+    Args:
+        model: The Model object containing model configuration data
+        dbmanager: The DBManager instance to interact with the database
+    """
+
+    query = "DELETE FROM models WHERE id = ? AND user_id = ?"
+    args = (model.id, model.user_id)
+    dbmanager.query(query=query, args=args)
 
 
 def create_message(message: Message, dbmanager: DBManager) -> None:
@@ -373,7 +423,8 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     :return: A list of dictionaries, each representing a session
     """
     query = "INSERT INTO sessions (user_id, id, timestamp, flow_config) VALUES (?, ?, ?,?)"
-    args = (session.user_id, session.id, session.timestamp, json.dumps(session.flow_config.dict()))
+    args = (session.user_id, session.id, session.timestamp,
+            json.dumps(session.flow_config.dict()))
     dbmanager.query(query=query, args=args)
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
@@ -409,7 +460,8 @@ def create_gallery(session: Session, dbmanager: DBManager, tags: List[str] = [])
     :return: A gallery object containing the session and messages objects
     """
 
-    messages = get_messages(user_id=session.user_id, session_id=session.id, dbmanager=dbmanager)
+    messages = get_messages(user_id=session.user_id,
+                            session_id=session.id, dbmanager=dbmanager)
     gallery_item = Gallery(session=session, messages=messages, tags=tags)
     query = "INSERT INTO gallery (id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
     args = (
@@ -446,7 +498,8 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
         gallery_item = Gallery(
             id=row["id"],
             session=Session(**json.loads(row["session"])),
-            messages=[Message(**message) for message in json.loads(row["messages"])],
+            messages=[Message(**message)
+                      for message in json.loads(row["messages"])],
             tags=json.loads(row["tags"]),
             timestamp=row["timestamp"],
         )
@@ -500,7 +553,8 @@ def upsert_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
         update_item("skills", skill.id, updated_data, dbmanager)
     else:
         query = "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)"
-        args = (skill.id, skill.user_id, skill.timestamp, skill.content, skill.title, skill.file_name)
+        args = (skill.id, skill.user_id, skill.timestamp,
+                skill.content, skill.title, skill.file_name)
         dbmanager.query(query=query, args=args)
 
     skills = get_skills(user_id=skill.user_id, dbmanager=dbmanager)
@@ -547,7 +601,8 @@ def delete_message(
         query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ? AND session_id = ?"
         args = (user_id, msg_id, session_id)
         dbmanager.query(query=query, args=args)
-        messages = get_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        messages = get_messages(
+            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
         return messages
 
 
@@ -586,7 +641,8 @@ def upsert_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
     :return: A list of dictionaries, each representing an agent after insertion or update
     """
 
-    existing_agent = get_item_by_field("agents", "id", agent_flow_spec.id, dbmanager)
+    existing_agent = get_item_by_field(
+        "agents", "id", agent_flow_spec.id, dbmanager)
 
     if existing_agent:
         updated_data = {
@@ -608,7 +664,8 @@ def upsert_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
             config_json,
             agent_flow_spec.type,
             agent_flow_spec.description,
-            json.dumps([x.dict() for x in agent_flow_spec.skills] if agent_flow_spec.skills else []),
+            json.dumps([x.dict() for x in agent_flow_spec.skills]
+                       if agent_flow_spec.skills else []),
         )
         dbmanager.query(query=query, args=args)
 
@@ -680,7 +737,8 @@ def upsert_workflow(workflow: AgentWorkFlowConfig, dbmanager: DBManager) -> List
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a workflow after insertion or update
     """
-    existing_workflow = get_item_by_field("workflows", "id", workflow.id, dbmanager)
+    existing_workflow = get_item_by_field(
+        "workflows", "id", workflow.id, dbmanager)
 
     # print(workflow.receiver)
 
