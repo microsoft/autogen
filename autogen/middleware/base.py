@@ -104,27 +104,34 @@ def register_for_middleware(f: F) -> F:
         """
         raise ValueError(textwrap.dedent(msg))
 
-    @wraps(f)
-    def h_sync(*args: Any, **kwargs: Any) -> Any:
-        self = args[0]
+    if not inspect.iscoroutinefunction(f):
+
+        @wraps(f)
+        def h_sync(*args: Any, **kwargs: Any) -> Any:
+            self = args[0]
+
+            h: MiddlewareCallable = h_sync  # type: ignore[assignment]
+            if self in h._chained_calls:
+                args = args[1:]
+                return h._chained_calls[self](*args, **kwargs)  # type: ignore[attr-defined]
+            else:
+                return h._origin(*args, **kwargs)  # type: ignore[attr-defined]
 
         h: MiddlewareCallable = h_sync  # type: ignore[assignment]
-        if self in h._chained_calls:
-            return h._chained_calls[self].__get__(self)(*args[1:], **kwargs)  # type: ignore[attr-defined]
-        else:
-            return h._origin(*args, **kwargs)  # type: ignore[attr-defined]
+    else:
 
-    @wraps(f)
-    async def h_async(*args: Any, **kwargs: Any) -> Any:
-        self = args[0]
+        @wraps(f)
+        async def h_async(*args: Any, **kwargs: Any) -> Any:
+            self = args[0]
 
-        h: MiddlewareCallable = h_async  # type: ignore[assignment]
-        if self in h._chained_calls:
-            return await h._chained_calls[self].__get__(args[0])(*args[1:], **kwargs)  # type: ignore[attr-defined]
-        else:
-            return await h._origin(*args, **kwargs)  # type: ignore[attr-defined]
+            h: MiddlewareCallable = h_async  # type: ignore[assignment]
+            if self in h._chained_calls:
+                args = args[1:]
+                return await h._chained_calls[self](*args, **kwargs)  # type: ignore[attr-defined]
+            else:
+                return await h._origin(*args, **kwargs)  # type: ignore[attr-defined]
 
-    h: MiddlewareCallable = h_async if inspect.iscoroutinefunction(f) else h_sync  # type: ignore[assignment]
+        h = h_async  # type: ignore[assignment]
 
     h._origin = f  # type: ignore[misc]
     h._chained_calls = {}  # type: ignore[misc]
@@ -207,33 +214,33 @@ def _build_middleware_chain(h: MiddlewareCallable) -> None:
             h._chained_calls.pop(self)
 
 
-# def _check_for_added_to_multiple_functions(h: MiddlewareCallable, mw: Middleware) -> None:
-#     msg = """\
-#     The same instance of the middleware cannot be added to multiple functions.
+def _check_for_added_to_multiple_functions(h: MiddlewareCallable, mw: Middleware) -> None:
+    msg = """\
+    The same instance of the middleware cannot be added to multiple functions.
 
-#     Example:
-#         class A():
-#             @register_for_middleware
-#             def f(self):
-#                 pass
+    Example:
+        class A():
+            @register_for_middleware
+            def f(self):
+                pass
 
-#         class Middleware():
-#             def call(self, *args, **kwargs):
-#                 pass
+        class Middleware():
+            def call(self, *args, **kwargs):
+                pass
 
-#         a = A()
-#         b = A()
+        a = A()
+        b = A()
 
-#         mwa = Middleware()
-#         mwb = Middleware()
+        mwa = Middleware()
+        mwb = Middleware()
 
-#         add_middleware(a.f, mwa)
+        add_middleware(a.f, mwa)
 
-#         # raises ValueError
-#         add_middleware(b.f, mwa)
-#     """
-#     if hasattr(mw, "_h") and mw._h is not None and mw._h != h:
-#         raise ValueError(textwrap.dedent(msg))
+        # raises ValueError
+        add_middleware(b.f, mwa)
+    """
+    if hasattr(mw, "_h") and mw._h is not None and mw._h != h:
+        raise ValueError(textwrap.dedent(msg))
 
 
 # def add_middleware(h: Callable[..., Any], mw: Any, *, position: Optional[int] = None) -> None:

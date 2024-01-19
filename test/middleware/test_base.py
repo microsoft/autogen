@@ -42,6 +42,27 @@ class MyMiddlewar:
         return f"{self.__class__.__name__}({self.name})"
 
 
+class IntMiddleware:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def call(self, a: int, b: int = 2, c: int = 0, *, next, d: int, e: int = 5, f: int = 0) -> str:
+        # print(f"MyMiddlewar.call: {next=}")
+        # assert False, next
+        retval = next(a, b, c, d=d, e=e, f=f)
+        return f"{self.name}.{format_function(MyMiddlewar.call, retval)}"
+
+    async def a_call(self, a: int, b: int = 2, c: int = 0, *, next, d: int, e: int = 5, f: int = 0) -> str:
+        retval = await next(a, b, c, d=d, e=e, f=f)
+        return f"{self.name}.{format_function(MyMiddlewar.call, retval)}"
+
+    def __eq__(self, value: object) -> bool:
+        return isinstance(value, MyMiddlewar) and self.name == value.name
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.name})"
+
+
 def format_function(func: Callable[..., Any], *args: Any, **kwargs: Any) -> str:
     return f"{func.__name__}(" + ", ".join([str(a) for a in args] + [f"{k}={v}" for k, v in kwargs.items()]) + ")"
 
@@ -149,7 +170,7 @@ async def test__get_initial_next_function():
             return format_function(A.a_f, a, b, c, d=d, e=e, f=f)
 
     a = A()
-    mw = MyMiddlewar("mw")
+    mw = IntMiddleware("mw")
     mw._bound_h = a.f
     assert mw._bound_h(1, c=3, d=4, f=6) == "f(1, 2, 3, d=4, e=5, f=6)"
 
@@ -176,7 +197,7 @@ async def test__get_next_function():
 
     a = A()
 
-    mw = MyMiddlewar("mw")
+    mw = IntMiddleware("mw")
     mw._bound_h = a.f
     initial_next = _next_function_base(mw=mw)
     assert initial_next(1, c=3, d=4, f=6) == "f(1, 2, 3, d=4, e=5, f=6)"
@@ -195,7 +216,7 @@ async def test__get_next_function():
     a_next = _next_function_step(mw=amw, next=a_initial_next)
     assert await a_next(1, c=3, d=4, f=6) == "amw.call(a_f(1, 2, 3, d=4, e=5, f=6))"
 
-    amw2 = MyMiddlewar("amw2")
+    amw2 = IntMiddleware("amw2")
     amw2._bound_h = a.a_f
     a_next = _next_function_step(mw=amw2, next=a_next)
     assert await a_next(1, c=3, d=4, f=6) == "amw2.call(amw.call(a_f(1, 2, 3, d=4, e=5, f=6)))"
@@ -244,9 +265,10 @@ async def test__build_middleware_chain():
     assert hasattr(A.f, "_origin")
     assert hasattr(a.f, "_origin")
 
+    # sync cases
     mw = MyMiddlewar("mw")
     mw._bound_h = a.f
-    mw2 = MyMiddlewar("mw2")
+    mw2 = IntMiddleware("mw2")
     mw2._bound_h = a.f
 
     a.f._middlewares[a] = []  # type: ignore[attr-defined]
@@ -260,30 +282,116 @@ async def test__build_middleware_chain():
     assert mw._bound_h == a.f
     assert a.f(1, c=3, d=4, f=6) == "mw.call(f(1, 2, 3, d=4, e=5, f=6))"
 
-    # a.f._middlewares[a] = [mw, mw2]  # type: ignore[attr-defined]
-    # _build_middleware_chain(a.f)
-    # assert mw._bound_h == a.f
-    # assert a.f(1, c=3, d=4, f=6) == "mw.call(mw2(f(1, 2, 3, d=4, e=5, f=6)))"
+    a.f._middlewares[a] = [mw, mw2]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.f)
+    assert mw._bound_h == a.f
+    assert mw2._bound_h == a.f
+    assert a.f(1, c=3, d=4, f=6) == "mw.call(mw2.call(f(1, 2, 3, d=4, e=5, f=6)))"
 
-    # mw._next(a, 1, c=3, d=4, f=6)
-    # assert False
-    # assert mw._next(1, c=3, d=4, f=6) == "mw.call(f(1, 2, 3, d=4, e=5, f=6))"
-    # assert False
-    # assert a.f(1, c=3, d=4, f=6) == "mw.call(f(1, 2, 3, d=4, e=5, f=6))"
+    with pytest.raises(ValueError) as e:
+        _build_middleware_chain(A.f)
+    assert "Middleware can only be added to bound methods." in str(e.value)
 
-    # assert False
-    # a.f._middlewares[a] = [mw, mw2]  # type: ignore[attr-defined]
-    # _build_middleware_chain(a.f)
-    # assert a.f(1, c=3, d=4, f=6) == "mw2.call(mw.call(f(1, 2, 3, d=4, e=5, f=6)))"
+    # async cases
+    amw = IntMiddleware("amw")
+    amw._bound_h = a.a_f
+    amw2 = MyMiddlewar("amw2")
+    amw2._bound_h = a.a_f
 
-    # amw = MyMiddlewar("amw")
-    # amw._bound_h = a.a_f
-    # amw2 = MyMiddlewar("amw2")
-    # amw2._bound_h = a.a_f
-    # a.a_f._middlewares[a] = [mw, mw2]  # type: ignore[attr-defined]
-    # _build_middleware_chain(a.f)
-    # assert await a.f_a(1, c=3, d=4, f=6) == "amw2.call(amw.call(a_f(1, 2, 3, d=4, e=5, f=6)))"
-    # # def run_in_thread_pool(f: Callable[..., Any], *args: Any, **kwargs: Any) -> Awaitable[Any]:
+    a.a_f._middlewares[a] = []  # type: ignore[attr-defined]
+    _build_middleware_chain(a.a_f)
+    assert amw._bound_h == a.a_f
+    assert a.a_f._chained_calls == {}
+    assert await a.a_f(1, c=3, d=4, f=6) == "a_f(1, 2, 3, d=4, e=5, f=6)"
+
+    a.a_f._middlewares[a] = [amw]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.a_f)
+    assert amw._bound_h == a.a_f
+    assert await a.a_f(1, c=3, d=4, f=6) == "amw.call(a_f(1, 2, 3, d=4, e=5, f=6))"
+
+    a.a_f._middlewares[a] = [amw, amw2]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.a_f)
+    assert amw._bound_h == a.a_f
+    assert amw2._bound_h == a.a_f
+    assert await a.a_f(1, c=3, d=4, f=6) == "amw.call(amw2.call(a_f(1, 2, 3, d=4, e=5, f=6)))"
+
+    # error handling
+    with pytest.raises(ValueError) as e:
+        _build_middleware_chain(A.f)
+    assert "Middleware can only be added to bound methods." in str(e.value)
+
+
+@pytest.mark.asyncio()
+async def test_add_middleware():
+    class A:
+        @register_for_middleware
+        def f(self, a: int, b: int = 2, c: int = 0, *, d: int, e: int = 5, f: int = 0) -> str:
+            print(f"A.f: {self=}")
+            return format_function(A.f, a, b, c, d=d, e=e, f=f)
+
+        @register_for_middleware
+        async def a_f(self, a: int, b: int = 2, c: int = 0, *, d: int, e: int = 5, f: int = 0) -> str:
+            return format_function(A.a_f, a, b, c, d=d, e=e, f=f)
+
+    a = A()
+
+    assert hasattr(A.f, "_origin")
+    assert hasattr(a.f, "_origin")
+
+    # sync cases
+    mw = MyMiddlewar("mw")
+    mw._bound_h = a.f
+    mw2 = IntMiddleware("mw2")
+    mw2._bound_h = a.f
+
+    a.f._middlewares[a] = []  # type: ignore[attr-defined]
+    _build_middleware_chain(a.f)
+    assert mw._bound_h == a.f
+    assert a.f._chained_calls == {}
+    assert a.f(1, c=3, d=4, f=6) == "f(1, 2, 3, d=4, e=5, f=6)"
+
+    a.f._middlewares[a] = [mw]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.f)
+    assert mw._bound_h == a.f
+    assert a.f(1, c=3, d=4, f=6) == "mw.call(f(1, 2, 3, d=4, e=5, f=6))"
+
+    a.f._middlewares[a] = [mw, mw2]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.f)
+    assert mw._bound_h == a.f
+    assert mw2._bound_h == a.f
+    assert a.f(1, c=3, d=4, f=6) == "mw.call(mw2.call(f(1, 2, 3, d=4, e=5, f=6)))"
+
+    with pytest.raises(ValueError) as e:
+        _build_middleware_chain(A.f)
+    assert "Middleware can only be added to bound methods." in str(e.value)
+
+    # async cases
+    amw = IntMiddleware("amw")
+    amw._bound_h = a.a_f
+    amw2 = MyMiddlewar("amw2")
+    amw2._bound_h = a.a_f
+
+    a.a_f._middlewares[a] = []  # type: ignore[attr-defined]
+    _build_middleware_chain(a.a_f)
+    assert amw._bound_h == a.a_f
+    assert a.a_f._chained_calls == {}
+    assert await a.a_f(1, c=3, d=4, f=6) == "a_f(1, 2, 3, d=4, e=5, f=6)"
+
+    a.a_f._middlewares[a] = [amw]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.a_f)
+    assert amw._bound_h == a.a_f
+    assert await a.a_f(1, c=3, d=4, f=6) == "amw.call(a_f(1, 2, 3, d=4, e=5, f=6))"
+
+    a.a_f._middlewares[a] = [amw, amw2]  # type: ignore[attr-defined]
+    _build_middleware_chain(a.a_f)
+    assert amw._bound_h == a.a_f
+    assert amw2._bound_h == a.a_f
+    assert await a.a_f(1, c=3, d=4, f=6) == "amw.call(amw2.call(a_f(1, 2, 3, d=4, e=5, f=6)))"
+
+    # error handling
+    with pytest.raises(ValueError) as e:
+        _build_middleware_chain(A.f)
+    assert "Middleware can only be added to bound methods." in str(e.value)
 
 
 #     loop = asyncio.get_running_loop()
