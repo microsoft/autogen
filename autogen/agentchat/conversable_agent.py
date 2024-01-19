@@ -136,7 +136,7 @@ class ConversableAgent(Agent):
                 self.llm_config.update(llm_config)
             self.client = OpenAIWrapper(**self.llm_config)
 
-        # initialize standalone cache client
+        # Initialize standalone client cache object.
         self.client_cache = None
 
         self._code_execution_config: Union[Dict, Literal[False]] = (

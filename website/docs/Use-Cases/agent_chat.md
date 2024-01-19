@@ -293,10 +293,10 @@ Since version 0.2.8, a configurable context manager allows you to easily configu
 from autogen.cache.cache import Cache
 
 with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache:
-    user.initiate_chat(assistant, message=coding_task, cache_client=cache)
+    user.initiate_chat(assistant, message=coding_task, cache=cache)
 
 with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
-    user.initiate_chat(assistant, message=coding_task, cache_client=cache)
+    user.initiate_chat(assistant, message=coding_task, cache=cache)
 ```
 
 For backward compatibility, DiskCache is on by default with `cache_seed` set to 41.
