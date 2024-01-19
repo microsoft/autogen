@@ -588,5 +588,5 @@ if __name__ == "__main__":
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    # test_invalid_allow_repeat_speaker()
+    test_invalid_allow_repeat_speaker()
     test_clear_agents_history()
