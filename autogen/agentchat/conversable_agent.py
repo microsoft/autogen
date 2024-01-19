@@ -23,7 +23,7 @@ from ..code_utils import (
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
-from ..middleware.base import register_for_middleware
+from ..middleware.base import add_middleware, register_for_middleware
 from .._pydantic import model_dump
 
 try:
@@ -39,6 +39,25 @@ __all__ = ("ConversableAgent",)
 logger = logging.getLogger(__name__)
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+
+# notice the signature matches the reply_func:
+# passing arguments to call() functions is the same as passing arguments to reply_func()
+# apart from next being passed as a keyword argument
+class _PrintReplyMiddleware:
+    def __init__(self, agent: Agent):
+        self._agent = agent
+
+    def call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        # next will be passed as a keyword argument
+        next: Callable[..., Any] = None,
+    ):
+        print(f"generate_reply(): {sender.name}: {messages[-1]}")
+        retval = next(messages, sender)
+        return retval
 
 
 class _ReplyValidationMiddleware:
@@ -262,6 +281,9 @@ class ConversableAgent(Agent):
         self.register_reply(
             [Agent, None], ConversableAgent.a_check_termination_and_human_reply, ignore_async_in_sync_chat=True
         )
+
+        # uncomment to test middleware
+        add_middleware(self.generate_reply, _PrintReplyMiddleware(self))
 
     def register_reply(
         self,

@@ -6,9 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from autogen.asyncio_utils import sync_to_async
 from autogen.middleware.base import (
-    MiddlewareCallable,
     _build_middleware_chain,
     _next_function_base,
     _next_function_step,

@@ -7,8 +7,7 @@ from typing_extensions import TypeVar
 
 from ..asyncio_utils import match_caller_type
 
-# __all__ = ["Middleware", "MiddlewareCallable", "add_middleware", "register_for_middleware", "set_middlewares"]
-__all__ = ["Middleware", "MiddlewareCallable", "register_for_middleware"]
+__all__ = ["Middleware", "MiddlewareCallable", "add_middleware", "register_for_middleware", "set_middlewares"]
 
 F = TypeVar("F", bound=Callable[..., Any])
 H = TypeVar("H", bound=Callable[..., Any])
