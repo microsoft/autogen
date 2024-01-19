@@ -9,15 +9,15 @@ const Footer = () => {
           {" "}
           <Icon icon="app" size={8} />
         </span>{" "}
-        Maintained by the AutoGen{" "}
+        Maintained by{" "}
         <a
           target={"_blank"}
           rel={"noopener noreferrer"}
           className="underlipne inline-block border-accent border-b hover:text-accent"
-          href="https://microsoft.github.io/autogen/"
+          href="https://autonomous.enterprises"
         >
           {" "}
-          Team.
+          Autonomous Enterprises.
         </a>
       </div>
     </div>
