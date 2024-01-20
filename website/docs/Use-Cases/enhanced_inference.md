@@ -168,19 +168,45 @@ Total cost: 0.00027
 
 ## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "cache_seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
+API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving.
+
+Starting version 0.2.8, a configurable context manager allows you to easily configure
+the cache, using either DiskCache or Redis.
+All `OpenAIWrapper` created inside the context manager can use the same cache through the constructor.
 
 ```python
-client = OpenAIWrapper(cache_seed=...)
-client.create(...)
+from autogen.cache.cache import Cache
+
+with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache:
+    client = OpenAIWrapper(..., cache=cache)
+    client.create(...)
+
+with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
+    client = OpenAIWrapper(..., cache=cache)
+    client.create(...)
 ```
+
+You can also set a cache directly in the `create()` method.
 
 ```python
 client = OpenAIWrapper()
-client.create(cache_seed=..., ...)
+with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
+    client.create(..., cache=cache)
 ```
 
-Caching is enabled by default with cache_seed 41. To disable it please set `cache_seed` to None.
+You can control the randomness by setting the `cache_seed` parameter.
+
+### Turnning off cache
+
+For backward compatibility, DiskCache is always enabled by default
+with `cache_seed` set to 41. To fully disable it, set `cache_seed` to None.
+
+```python
+# Turn off cache in constructor,
+client = OpenAIWrapper(..., cache_seed=None)
+# or directly in create().
+client.create(..., cache_seed=None)
+```
 
 _NOTE_. openai v1.1 introduces a new param `seed`. The difference between autogen's `cache_seed` and openai's `seed` is that:
 * autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.

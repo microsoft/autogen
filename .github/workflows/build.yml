@@ -54,6 +54,7 @@ jobs:
         if: matrix.python-version == '3.10'
         run: |
           pip install -e .[test]
+          pip install -e .[redis]
           coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
