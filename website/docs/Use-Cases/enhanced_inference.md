@@ -175,7 +175,7 @@ the cache, using either DiskCache or Redis.
 All `OpenAIWrapper` created inside the context manager can use the same cache through the constructor.
 
 ```python
-from autogen.cache.cache import Cache
+from autogen.cache import Cache
 
 with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache:
     client = OpenAIWrapper(..., cache=cache)
