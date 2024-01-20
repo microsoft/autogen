@@ -759,7 +759,7 @@ class ConversableAgent(Agent):
             if nr_messages_to_preserve:
                 print(
                     colored(
-                        f"WARNING: `nr_preserved_messages` is ignored when clearing chat history with a specific agent.",
+                        "WARNING: `nr_preserved_messages` is ignored when clearing chat history with a specific agent.",
                         "yellow"
                     ),
                     flush=True
