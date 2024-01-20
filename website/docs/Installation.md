@@ -209,6 +209,17 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
 
 ### Optional Dependencies
 
+- #### LLM Caching
+
+To use LLM caching with Redis, you need to install the Python package with
+the option `redis`:
+
+```bash
+pip install "pyautogen[redis]"
+```
+
+See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
+
 - #### blendsearch
 
 `pyautogen<0.2` offers a cost-effective hyperparameter optimization technique [EcoOptiGen](https://arxiv.org/abs/2303.04673) for tuning Large Language Models. Please install with the [blendsearch] option to use it.

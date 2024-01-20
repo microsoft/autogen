@@ -285,6 +285,33 @@ By adopting the conversation-driven control with both programming language and n
 - LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call.
   By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls.
 
+### LLM Caching
+
+Since version 0.2.8, a configurable context manager allows you to easily configure LLM cache, using either DiskCache or Redis. All agents inside the context manager will use the same cache.
+
+```python
+from autogen.cache.cache import Cache
+
+with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache:
+    user.initiate_chat(assistant, message=coding_task, cache=cache)
+
+with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
+    user.initiate_chat(assistant, message=coding_task, cache=cache)
+```
+
+For backward compatibility, DiskCache is on by default with `cache_seed` set to 41.
+To disable caching completely, set `cache_seed` to `None` in the `llm_config` of the agent.
+
+```python
+assistant = AssistantAgent(
+    "coding_agent",
+    llm_config={
+        "cache_seed": None,
+        "config_list": OAI_CONFIG_LIST,
+        "max_tokens": 1024,
+    },
+)
+```
 
 ### Diverse Applications Implemented with AutoGen
 
