@@ -692,10 +692,13 @@ class ConversableAgent(Agent):
         """
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
+            agent.previous_cache = agent.client_cache
+            agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
-        self.client_cache = cache
-        recipient.client_cache = cache
         self.send(self.generate_init_message(**context), recipient, silent=silent)
+        for agent in [self, recipient]:
+            agent.client_cache = agent.previous_cache
+            agent.previous_cache = None
 
     async def a_initiate_chat(
         self,
@@ -721,9 +724,13 @@ class ConversableAgent(Agent):
                           Otherwise, input() will be called to get the initial message.
         """
         self._prepare_chat(recipient, clear_history)
-        self.client_cache = cache
-        recipient.client_cache = cache
+        for agent in [self, recipient]:
+            agent.previous_cache = agent.client_cache
+            agent.client_cache = cache
         await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+        for agent in [self, recipient]:
+            agent.client_cache = agent.previous_cache
+            agent.previous_cache = None
 
     def reset(self):
         """Reset the agent."""
