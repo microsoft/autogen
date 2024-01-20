@@ -19,10 +19,7 @@ print('hello world')
 Done.
 """
 
-_code_message_1_expected_reply = """exitcode: 0 (execution succeeded)
-Code output:
-hello world
-"""  # noqa
+_code_message_1_expected_reply = "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n"
 
 
 def test_code_execution_no_docker() -> None:
