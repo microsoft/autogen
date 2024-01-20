@@ -757,10 +757,13 @@ class ConversableAgent(Agent):
         else:
             self._oai_messages[recipient].clear()
             if nr_messages_to_preserve:
-                print(colored(
-                    f"WARNING: `nr_preserved_messages` is ignored when clearing chat history with a specific agent.",
-                    "yellow"
-                ), flush=True)
+                print(
+                    colored(
+                        f"WARNING: `nr_preserved_messages` is ignored when clearing chat history with a specific agent.",
+                        "yellow"
+                    ),
+                    flush=True
+                )
 
     def generate_oai_reply(
         self,
