@@ -16,6 +16,7 @@ import {
   LoadBox,
   LoadingOverlay,
 } from "../../atoms";
+import TextArea from "antd/es/input/TextArea";
 
 const ModelsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -30,9 +31,18 @@ const ModelsView = ({}: any) => {
   const saveModelsUrl = `${serverUrl}/models`;
   const deleteModelUrl = `${serverUrl}/models/delete`;
 
+  const defaultModel: IModelConfig = {
+    model: "gpt-4-1106-preview",
+    description: "Sample model",
+    user_id: user?.email,
+  };
+
   const [models, setModels] = React.useState<IModelConfig[] | null>([]);
   const [selectedModel, setSelectedModel] = React.useState<IModelConfig | null>(
     null
+  );
+  const [newModel, setNewModel] = React.useState<IModelConfig | null>(
+    defaultModel
   );
 
   const [showNewModelModal, setShowNewModelModal] = React.useState(false);
@@ -83,7 +93,6 @@ const ModelsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        console.log("models", data.data);
         setModels(data.data);
       } else {
         message.error(data.message);
@@ -101,7 +110,6 @@ const ModelsView = ({}: any) => {
   const saveModel = (model: IModelConfig) => {
     setError(null);
     setLoading(true);
-    // const fetch;
 
     const payLoad = {
       method: "POST",
@@ -272,6 +280,17 @@ const ModelsView = ({}: any) => {
             }
           }}
         />
+        <TextArea
+          className="mt-2"
+          placeholder="Description"
+          value={localModel?.description}
+          onChange={(e) => {
+            if (localModel) {
+              setLocalModel({ ...localModel, description: e.target.value });
+            }
+          }}
+        />
+
         {localModel?.api_type === "azure" && (
           <div className="mt-4 text-xs">
             Note: For Azure OAI models, you will need to specify all fields.
@@ -295,9 +314,9 @@ const ModelsView = ({}: any) => {
         }}
       />
 
-      {/* <ModelModal
-        model={null}
-        setModel={null}
+      <ModelModal
+        model={defaultModel}
+        setModel={setNewModel}
         setShowModelModal={setShowNewModelModal}
         showModelModal={showNewModelModal}
         handler={(model: IModelConfig | null) => {
@@ -305,7 +324,7 @@ const ModelsView = ({}: any) => {
             saveModel(model);
           }
         }}
-      /> */}
+      />
 
       <div className="mb-2   relative">
         <div className="     rounded  ">
@@ -328,7 +347,7 @@ const ModelsView = ({}: any) => {
 
           <div className="text-xs mb-2 pb-1  ">
             {" "}
-            Configure an model that can reused in your models{" "}
+            Configure an model that can be reused in your agents{" "}
             {selectedModel?.model}
           </div>
           {models && models.length > 0 && (

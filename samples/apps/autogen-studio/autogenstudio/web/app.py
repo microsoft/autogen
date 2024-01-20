@@ -396,6 +396,27 @@ async def create_user_models(req: DBWebRequestModel):
         }
 
 
+@api.delete("/models/delete")
+async def delete_user_model(req: DBWebRequestModel):
+    """Delete a model for a user"""
+
+    try:
+        models = dbutils.delete_model(model=req.model, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Model deleted successfully",
+            "data": models,
+        }
+
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while deleting model: " + str(ex_error),
+        }
+
+
 @api.get("/workflows")
 async def get_user_workflows(user_id: str):
     try:

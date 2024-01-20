@@ -343,18 +343,25 @@ def upsert_model(model: Model, dbmanager: DBManager) -> List[dict]:
     return models
 
 
-def delete_model(model: Model, dbmanager: DBManager) -> None:
+def delete_model(model: Model, dbmanager: DBManager) -> List[dict]:
     """
     Delete a model configuration from the database where id = model.id and user_id = model.user_id.
 
     Args:
         model: The Model object containing model configuration data
-        dbmanager: The DBManager instance to interact with the database
+        dbmanager: The DBManager instance to interact with the database 
+
+    Returns:
+        A list  of model configurations
     """
 
     query = "DELETE FROM models WHERE id = ? AND user_id = ?"
     args = (model.id, model.user_id)
     dbmanager.query(query=query, args=args)
+
+    # Return the remaining model configs
+    models = get_models(model.user_id, dbmanager)
+    return models
 
 
 def create_message(message: Message, dbmanager: DBManager) -> None:

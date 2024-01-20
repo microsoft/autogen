@@ -24,7 +24,7 @@ const BuildView = () => {
         {" "}
         <Tabs
           tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
-          defaultActiveKey="3"
+          defaultActiveKey="4"
           tabPosition="left"
           items={[
             {

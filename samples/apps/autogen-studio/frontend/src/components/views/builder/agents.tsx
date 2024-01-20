@@ -109,7 +109,7 @@ const AgentsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         // message.success(data.message);
-        console.log("agents", data.data);
+
         setAgents(data.data);
       } else {
         message.error(data.message);
@@ -166,18 +166,6 @@ const AgentsView = ({}: any) => {
       fetchAgents();
     }
   }, []);
-
-  React.useEffect(() => {
-    if (selectedAgent) {
-      console.log("selected agent", selectedAgent);
-    }
-  }, [selectedAgent]);
-
-  React.useEffect(() => {
-    if (newAgent) {
-      console.log("new agent", newAgent);
-    }
-  }, [newAgent]);
 
   const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
     return (

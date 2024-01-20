@@ -60,7 +60,7 @@ const WorkflowView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         // message.success(data.message);
-        console.log("workflows", data.data);
+
         setWorkflows(data.data);
       } else {
         message.error(data.message);
@@ -258,7 +258,6 @@ const WorkflowView = ({}: any) => {
   ];
 
   const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    console.log("key", key);
     const newConfig = sampleWorkflowConfig(key);
     setNewWorkflow(newConfig);
     setShowNewWorkflowModal(true);
