@@ -1,3 +1,4 @@
+from __future__ import annotations
 import asyncio
 import copy
 import functools
@@ -98,21 +99,41 @@ class _PassThroughMiddleware:
 
 
 class _ReplyValidationMiddleware:
-    def __init__(self, recipient: Agent):
+    def __init__(self, recipient: ConversableAgent):
         self._recipient = recipient
 
-    def call(self, *args, next: Callable, **kwargs):
-        messages = kwargs.get("messages")
-        sender = kwargs.get("sender")
+    def call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        exclude: Optional[List[Callable]] = None,
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Union[str, Dict, None]:
         if all((messages is None, sender is None)):
             error_msg = f"Either {messages=} or {sender=} must be provided."
             logger.error(error_msg)
             raise AssertionError(error_msg)
 
         if messages is None:
-            messages = self._oai_messages[sender]
-            kwargs["messages"] = messages
-        return next(*args, **kwargs)
+            messages = self._recipient._oai_messages[sender]
+        return next(messages=messages, sender=sender, exclude=exclude)
+
+
+class _ReplyProcessLastMessageMiddleware:
+    def __init__(self, recipient: ConversableAgent):
+        self._recipient = recipient
+
+    def call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        exclude: Optional[List[Callable]] = None,
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Union[str, Dict, None]:
+        # Call the hookable method that gives registered hooks a chance to process the last message.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self._recipient.process_last_message(messages)
+        return next(messages=messages, sender=sender, exclude=exclude)
 
 
 class _ReplyFunctionMiddleware:
@@ -124,6 +145,12 @@ class _ReplyFunctionMiddleware:
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
     ):
+        if not isinstance(trigger, (type, str, Agent, Callable, list)):
+            raise ValueError("trigger must be a class, a string, an agent, a callable or a list.")
+        if not callable(reply_func):
+            raise ValueError("reply_func must be callable.")
+        if not (reset_config is None or callable(reset_config)):
+            raise ValueError("reset_config must be callable or None.")
         self._recipient = recipient
         self._trigger = trigger
         self._reply_func = reply_func
@@ -131,16 +158,19 @@ class _ReplyFunctionMiddleware:
         self._init_config = config
         self._reset_config = reset_config
 
-    def call(self, *args, next: Callable, **kwargs):
-        messages = kwargs.get("messages")
-        sender = kwargs.get("sender")
-        exclude = kwargs.get("exclude")
+    def call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        exclude: Optional[List[Callable]] = None,
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Union[str, Dict, None]:
         if (exclude and self._reply_func not in exclude) and self._match_trigger(self._trigger, sender):
             final, reply = self._reply_func(self._recipient, messages, sender, self._config)
             if final:
                 # Short-circuit the middleware chain if the reply is final.
                 return reply
-        return next(*args, **kwargs)
+        return next(messages=messages, sender=sender, exclude=exclude)
 
     def reset_config(self):
         if self._reset_config is not None:
@@ -305,26 +335,48 @@ class ConversableAgent(Agent):
         self._reply_func_list = []
         self._ignore_async_func_in_sync_chat_list = []
         self.reply_at_receive = defaultdict(bool)
-        self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
-        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
-        self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
-        self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
-        self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
-        self.register_reply(
-            [Agent, None], ConversableAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=True
+        # self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
+        # self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
+        # self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        # self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
+        # self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
+        # self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
+        # self.register_reply(
+        # [Agent, None], ConversableAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=True
+        # )
+        # self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+        # self.register_reply(
+        #     [Agent, None], ConversableAgent.a_check_termination_and_human_reply, ignore_async_in_sync_chat=True
+        # )
+
+        add_middleware(
+            self.generate_reply,
+            _ReplyFunctionMiddleware(self, ConversableAgent.generate_oai_reply, [Agent, None]),
         )
-        self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
-        self.register_reply(
-            [Agent, None], ConversableAgent.a_check_termination_and_human_reply, ignore_async_in_sync_chat=True
+        add_middleware(
+            self.generate_reply,
+            _ReplyFunctionMiddleware(self, ConversableAgent.generate_code_execution_reply, [Agent, None]),
         )
+        add_middleware(
+            self.generate_reply,
+            _ReplyFunctionMiddleware(self, ConversableAgent.generate_tool_calls_reply, [Agent, None]),
+        )
+        add_middleware(
+            self.generate_reply,
+            _ReplyFunctionMiddleware(self, ConversableAgent.generate_function_call_reply, [Agent, None]),
+        )
+        add_middleware(
+            self.generate_reply,
+            _ReplyFunctionMiddleware(self, ConversableAgent.check_termination_and_human_reply, [Agent, None]),
+        )
+        add_middleware(self.generate_reply, _ReplyValidationMiddleware(self))
 
         # uncomment to test middleware
-        add_middleware(self.generate_reply, _PassThroughMiddleware(self))
-        add_middleware(self.a_generate_reply, _PassThroughMiddleware(self))
+        # add_middleware(self.generate_reply, _PassThroughMiddleware(self))
+        # add_middleware(self.a_generate_reply, _PassThroughMiddleware(self))
 
-        add_middleware(self.generate_reply, _PrintReplyMiddleware(self))
-        add_middleware(self.a_generate_reply, _PrintReplyMiddleware(self))
+        # add_middleware(self.generate_reply, _PrintReplyMiddleware(self))
+        # add_middleware(self.a_generate_reply, _PrintReplyMiddleware(self))
 
     def register_reply(
         self,
@@ -382,18 +434,12 @@ class ConversableAgent(Agent):
             reset_config (Callable): the function to reset the config.
                 The function returns None. Signature: ```def reset_config(config: Any)```
         """
-        if not isinstance(trigger, (type, str, Agent, Callable, list)):
-            raise ValueError("trigger must be a class, a string, an agent, a callable or a list.")
-        self._reply_func_list.insert(
-            position,
-            {
-                "trigger": trigger,
-                "reply_func": reply_func,
-                "config": copy.copy(config),
-                "init_config": config,
-                "reset_config": reset_config,
-            },
+        add_middleware(
+            self.generate_reply,
+            _ReplyFunctionMiddleware(self, reply_func, trigger, config, reset_config),
+            position=position,
         )
+        # TODO: is this still relevant?
         if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
@@ -1387,28 +1433,28 @@ class ConversableAgent(Agent):
         Returns:
             str or dict or None: reply. None if no reply is generated.
         """
-        if all((messages is None, sender is None)):
-            error_msg = f"Either {messages=} or {sender=} must be provided."
-            logger.error(error_msg)
-            raise AssertionError(error_msg)
+        # if all((messages is None, sender is None)):
+        #     error_msg = f"Either {messages=} or {sender=} must be provided."
+        #     logger.error(error_msg)
+        #     raise AssertionError(error_msg)
 
-        if messages is None:
-            messages = self._oai_messages[sender]
+        # if messages is None:
+        #     messages = self._oai_messages[sender]
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        # messages = self.process_last_message(messages)
 
-        for reply_func_tuple in self._reply_func_list:
-            reply_func = reply_func_tuple["reply_func"]
-            if exclude and reply_func in exclude:
-                continue
-            if inspect.iscoroutinefunction(reply_func):
-                continue
-            if self._match_trigger(reply_func_tuple["trigger"], sender):
-                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
-                if final:
-                    return reply
+        # for reply_func_tuple in self._reply_func_list:
+        #     reply_func = reply_func_tuple["reply_func"]
+        #     if exclude and reply_func in exclude:
+        #         continue
+        #     if inspect.iscoroutinefunction(reply_func):
+        #         continue
+        #     if self._match_trigger(reply_func_tuple["trigger"], sender):
+        #         final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+        #         if final:
+        #             return reply
         return self._default_auto_reply
 
     @register_for_middleware
