@@ -290,12 +290,12 @@ By adopting the conversation-driven control with both programming language and n
 Since version 0.2.8, a configurable context manager allows you to easily configure LLM cache, using either DiskCache or Redis. All agents inside the context manager will use the same cache.
 
 ```python
-from autogen.cache.cache import Cache
+from autogen import Cache
 
 with Cache.redis(cache_seed=42, redis_url="redis://localhost:6379/0") as cache:
     user.initiate_chat(assistant, message=coding_task, cache=cache)
 
-with Cache.disk(cache_seed=42, cache_dir=".cache") as cache:
+with Cache.disk(cache_seed=42, cache_path_root=".cache") as cache:
     user.initiate_chat(assistant, message=coding_task, cache=cache)
 ```
 
