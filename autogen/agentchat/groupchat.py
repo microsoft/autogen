@@ -468,14 +468,14 @@ class GroupChatManager(ConversableAgent):
         clear_word_index = next(i for i in reversed(range(len(words))) if words[i].upper() == "CLEAR")
         # Extract potential agent name and steps
         words_to_check = words[clear_word_index + 2 : clear_word_index + 4]
-        preserve_messages = None
+        nr_messages_to_preserve = None
         agent_to_memory_clear = None
 
         for word in words_to_check:
             if word.isdigit():
-                preserve_messages = int(word)
+                nr_messages_to_preserve = int(word)
             elif word[:-1].isdigit():  # for the case when number of messages is followed by dot or other sign
-                preserve_messages = int(word[:-1])
+                nr_messages_to_preserve = int(word[:-1])
             else:
                 for agent in groupchat.agents:
                     if agent.name == word:
@@ -486,21 +486,23 @@ class GroupChatManager(ConversableAgent):
                         break
         # clear history
         if agent_to_memory_clear:
-            if preserve_messages:
-                print(f"Clearing history for {agent_to_memory_clear.name} except last {preserve_messages} messages.")
+            if nr_messages_to_preserve:
+                print(
+                    f"Clearing history for {agent_to_memory_clear.name} except last {nr_messages_to_preserve} messages."
+                )
             else:
                 print(f"Clearing history for {agent_to_memory_clear.name}.")
-            agent_to_memory_clear.clear_history(preserve_messages=preserve_messages)
+            agent_to_memory_clear.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
         else:
-            if preserve_messages:
-                print(f"Clearing history for all agents except last {preserve_messages} messages.")
+            if nr_messages_to_preserve:
+                print(f"Clearing history for all agents except last {nr_messages_to_preserve} messages.")
             else:
                 print("Clearing history for all agents.")
             for agent in groupchat.agents:
-                agent.clear_history(preserve_messages=preserve_messages)
+                agent.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
 
         # Reconstruct the reply without the "clear history" command and parameters
-        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(preserve_messages))
+        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(nr_messages_to_preserve))
         reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
 
         return reply
