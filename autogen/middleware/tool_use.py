@@ -37,6 +37,16 @@ class ToolUseMiddleware:
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
+        """Call the middleware.
+
+        Args:
+            messages (List[Dict]): the messages to be processed.
+            sender (Optional[Agent]): the agent who sends the messages.
+            next (Optional[Callable[..., Any]]): the next middleware to be called.
+
+        Returns:
+            Union[str, Dict, None]: the reply message.
+        """
         message = messages[-1]
         if "function_call" in message and message["function_call"]:
             final, reply = self._generate_function_call_reply(message)
@@ -107,7 +117,7 @@ class ToolUseMiddleware:
             func_name = func_call.get("name", "")
             func = self._function_map.get(func_name, None)
             if func and inspect.iscoroutinefunction(func):
-                _, func_return = await self.a_execute_function(func_call)
+                _, func_return = await self._a_execute_function(func_call)
                 return True, func_return
         return False, None
 
@@ -153,7 +163,7 @@ class ToolUseMiddleware:
     async def _a_execute_tool_call(self, tool_call):
         id = tool_call["id"]
         function_call = tool_call.get("function", {})
-        _, func_return = await self.a_execute_function(function_call)
+        _, func_return = await self._a_execute_function(function_call)
         return {
             "tool_call_id": id,
             "role": "tool",
@@ -215,7 +225,7 @@ class ToolUseMiddleware:
             "content": str(content),
         }
 
-    async def a_execute_function(self, func_call):
+    async def _a_execute_function(self, func_call):
         """Execute an async function call and return the result.
 
         Override this function to modify the way async functions and tools are executed.

@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from autogen.middleware.tool import ToolUseMiddleware
+from autogen.middleware.tool_use import ToolUseMiddleware
 
 
 def _tool_func_1(arg1: str, arg2: str) -> str:
