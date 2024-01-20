@@ -192,9 +192,12 @@ Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/con
 The "use_docker" arg in an agent's code_execution_config will be set to the name of the image containing the change after execution, when the conversation finishes.
 You can save that image name. For a new conversation, you can set "use_docker" to the saved name of the image to start execution there.
 
-## Database Locked error in Azure Machine Learning compute instance
+## Database Locked error
 
-Please make sure cache_seed is None and comment out use cache or delete to avoid database locked error in Azure machine learning compute instance.
+When using VMs such as Azure Machine Learning compute instances, you may encounter a "database locked error".
+There are two workarounds.
+1. Set `cache_root_path` to a location where the code has access. For example, `OpenAIWrapper.cache_root_path=/tmp/.cache`.
+2. Disable cache by setting `cache_seed` to None in `llm_config`. For example,
 ```
 gpt4_config = {
     "cache_seed": None,
