@@ -14,3 +14,5 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     global skip_openai
     skip_openai = config.getoption("--skip-openai", False)
+    global skip_redis
+    skip_redis = config.getoption("--skip-redis", False)
