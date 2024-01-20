@@ -373,11 +373,7 @@ class GroupChatManager(ConversableAgent):
 
         # To support plugin goupchat behavior (see test_plugin in test_groupchat.py)
         # we need to get creative on how we check for this property and use duck typing.
-        send_introductions = False
-        try:
-            send_introductions = self.send_introductions
-        except AttributeError:
-            pass
+        send_introductions = getattr(self, "send_introductions", False)
 
         if send_introductions:
             # Broadcast the intro
