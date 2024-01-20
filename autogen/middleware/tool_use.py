@@ -4,7 +4,13 @@ import json
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from termcolor import colored
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
+
 
 from autogen.agentchat.agent import Agent
 

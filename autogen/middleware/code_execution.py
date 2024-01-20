@@ -1,6 +1,13 @@
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-from termcolor import colored
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
+
+
 from autogen.agentchat.agent import Agent
 
 from autogen.code_utils import (
@@ -14,6 +21,27 @@ from autogen.code_utils import (
 
 
 class CodeExecutionMiddleware:
+    """A middleware that executes code blocks in the messages.
+
+    This middleware handles messages with OpenAI-compatible schema.
+
+    Args:
+        code_execution_config (dict or False): config for the code execution.
+            To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
+            - work_dir (Optional, str): The working directory for the code execution.
+                If None, a default working directory will be used.
+                The default working directory is the "extensions" directory under
+                "path_to_autogen".
+            - use_docker (Optional, list, str or bool): The docker image to use for code execution.
+                Default is True, which means the code will be executed in a docker container. A default list of images will be used.
+                If a list or a str of image name(s) is provided, the code will be executed in a docker container
+                with the first image successfully pulled.
+                If False, the code will be executed in the current environment.
+                We strongly recommend using docker for code execution.
+            - timeout (Optional, int): The maximum execution time in seconds.
+            - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. Default to 1. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke (typically this is the last time execution was attempted).
+    """
+
     def __init__(
         self,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
