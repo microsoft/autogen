@@ -8,6 +8,8 @@ import {
   ArrowPathIcon,
   ArrowDownRightIcon,
   PencilIcon,
+  UserGroupIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
@@ -658,7 +660,7 @@ export const ModelSelector = ({
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
         setModels(data.data);
       } else {
         message.error(data.message);
@@ -1637,6 +1639,11 @@ export const AgentSelector = ({
       >
         {flowSpec && (
           <div className=" ">
+            {flowSpec.type === "groupchat" ? (
+              <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
+            ) : (
+              <UsersIcon className="w-5 h-5 inline-block mr-2" />
+            )}
             {flowSpec.config.name}
             <div className="mt-2 text-secondary text-sm">
               {" "}

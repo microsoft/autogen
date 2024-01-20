@@ -2,6 +2,8 @@ import {
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
+  UserGroupIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import { Button, Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
@@ -249,16 +251,28 @@ const WorkflowView = ({}: any) => {
   const workflowTypes: MenuProps["items"] = [
     {
       key: "twoagents",
-      label: "Two Agents",
+      label: (
+        <div>
+          {" "}
+          <UsersIcon className="w-5 h-5 inline-block mr-2" />
+          Two Agents
+        </div>
+      ),
     },
     {
       key: "groupchat",
-      label: "Group Chat",
+      label: (
+        <div>
+          <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
+          Group Chat
+        </div>
+      ),
     },
   ];
 
   const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
     const newConfig = sampleWorkflowConfig(key);
+    console.log("newConfig", newConfig);
     setNewWorkflow(newConfig);
     setShowNewWorkflowModal(true);
   };
