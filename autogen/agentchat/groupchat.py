@@ -411,6 +411,10 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.previous_cache = a.client_cache
+                a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
 
@@ -444,6 +448,10 @@ class GroupChatManager(ConversableAgent):
             # The speaker sends the message without requesting a reply
             await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.client_cache = a.previous_cache
+                a.previous_cache = None
         return True, None
 
     def _raise_exception_on_async_reply_functions(self) -> None:
