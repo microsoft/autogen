@@ -589,6 +589,9 @@ def main() -> None:
 def run_tinyra():
     import subprocess
 
+    workdir = os.path.join(DATA_PATH, "work_dir")
+    if not os.path.exists(workdir):
+        os.makedirs(workdir)
     script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
     subprocess.run(["bash", script_path], check=True)
 
