@@ -72,7 +72,7 @@ const RAView = () => {
 
   return (
     <div className="h-full   ">
-      <div className="flex h-full   ">
+      <div className="flex flex-wrap h-full   ">
         <div className="  mr-2  rounded">
           <SideBarView />
         </div>
