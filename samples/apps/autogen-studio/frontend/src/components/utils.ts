@@ -284,7 +284,7 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
     type: "groupchat",
     config: groupChatAssistantConfig,
     groupchat_config: {
-      agents: [assistantFlowSpec],
+      agents: [assistantFlowSpec, assistantFlowSpec],
       admin_name: "groupchat_assistant",
       messages: [],
       max_round: 10,
@@ -434,3 +434,16 @@ export const examplePrompts = [
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
 ];
+
+export const fetchVersion = () => {
+  const versionUrl = getServerUrl() + "/version";
+  return fetch(versionUrl)
+    .then((response) => response.json())
+    .then((data) => {
+      return data;
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      return null;
+    });
+};
