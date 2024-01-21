@@ -120,7 +120,7 @@ We welcome contributions to AutoGen Studio. We recommend the following general s
 - Please review the autogenstudio dev branch here [dev branch](https://github.com/microsoft/autogen/tree/autogenstudio) and use as a base for your contribution. This way, your contribution will be aligned with the latest changes in the AutoGen Studio project.
 - Submit a pull request with your contribution!
 - If you are modifying AutoGen Studio, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it
-- Please use the tag `studio` for any issues, questions, and PRs related to Studio 
+- Please use the tag `studio` for any issues, questions, and PRs related to Studio
 
 ## FAQ
 
