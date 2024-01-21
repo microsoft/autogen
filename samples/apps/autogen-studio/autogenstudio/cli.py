@@ -44,16 +44,6 @@ def ui(
 
 
 @app.command()
-def reset():
-    """
-    Reset the autogenstudio database.
-    """
-    dbmanager = DBManager()
-    dbmanager.reset_db()
-    print("AutoGen Studio database has been reset.")
-
-
-@app.command()
 def version():
     """
     Print the version of the AutoGen Studio UI CLI.
