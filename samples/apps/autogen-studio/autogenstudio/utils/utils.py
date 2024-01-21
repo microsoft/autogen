@@ -86,6 +86,9 @@ def get_file_type(file_path: str) -> str:
         ".config",
     }
 
+    # Supported spreadsheet extensions
+    CSV_EXTENSIONS = {".csv", ".xlsx"}
+
     # Supported image extensions
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
     # Supported (web) video extensions
@@ -100,6 +103,8 @@ def get_file_type(file_path: str) -> str:
     # Determine the file type based on the extension
     if file_extension in CODE_EXTENSIONS:
         file_type = "code"
+    elif file_extension in CSV_EXTENSIONS:
+        file_type = "csv"
     elif file_extension in IMAGE_EXTENSIONS:
         file_type = "image"
     elif file_extension == PDF_EXTENSION:

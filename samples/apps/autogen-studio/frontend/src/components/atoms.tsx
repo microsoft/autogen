@@ -21,9 +21,12 @@ import {
   Modal,
   Select,
   Slider,
+  Table,
   Tooltip,
   message,
 } from "antd";
+import { useTable } from 'react-table';
+import Papa from 'papaparse';
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -885,6 +888,74 @@ export const ImageLoader = ({
         } ${className}`}
         onLoad={() => setIsLoading(false)}
       />
+    </div>
+  );
+};
+
+export const CsvLoader = ({
+  csvUrl,
+  className
+}: {
+  csvUrl: string;
+  className?: string;
+}) => {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [columns, setColumns] = useState<{ Header: string; accessor: string; }[]>([]);
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(csvUrl);
+        const csvString = await response.text();
+        const parsedData = Papa.parse(csvString, { header: true, dynamicTyping: true });
+        setData(parsedData.data);
+
+        // Use the keys of the first object for column headers
+        const firstRow = parsedData.data[0];
+        const columnHeaders = Object.keys(firstRow).map(key => ({
+          Header: key,
+          accessor: key
+        }));
+        setColumns(columnHeaders);
+      } catch (error) {
+        console.error('Error fetching CSV data:', error);
+      }
+    };
+
+    fetchData();
+  }, [csvUrl]);
+
+  const tableInstance = useTable({ columns, data });
+
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = tableInstance;
+
+  return (
+    <div className={`w-full rounded relative ${className}`} style={{height: "450px", overflow: "scroll"}}>
+      <table {...getTableProps()} class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400" style={{ maxHeight: "100vh", overflow: "scroll" }}>
+        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+          {headerGroups.map((headerGroup: { getHeaderGroupProps: () => React.JSX.IntrinsicAttributes & React.ClassAttributes<HTMLTableRowElement> & React.HTMLAttributes<HTMLTableRowElement>; headers: any[]; }) => (
+            <tr {...headerGroup.getHeaderGroupProps()} className="px-6 py-3">
+              {headerGroup.headers.map(column => (
+                <th {...column.getHeaderProps()}>{column.render('Header')}</th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody {...getTableBodyProps()}>
+          {rows.map((row: { getRowProps: () => React.JSX.IntrinsicAttributes & React.ClassAttributes<HTMLTableRowElement> & React.HTMLAttributes<HTMLTableRowElement>; cells: any[]; }) => {
+            prepareRow(row);
+            return (
+              <tr {...row.getRowProps()} className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700">
+                {row.cells.map(cell => (
+                  <td {...cell.getCellProps()}>{cell.render('Cell')}</td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };
