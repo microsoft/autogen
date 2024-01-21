@@ -1,13 +1,10 @@
 from __future__ import annotations
-import asyncio
 import copy
 import functools
 import inspect
-import json
 import logging
-import re
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from autogen.middleware.code_execution import CodeExecutionMiddleware
 from autogen.middleware.llm import LLMMiddleware
@@ -17,22 +14,10 @@ from autogen.middleware.tool_use import ToolUseMiddleware
 
 from .. import OpenAIWrapper
 from ..cache.cache import Cache
-from ..code_utils import (
-    DEFAULT_MODEL,
-    UNKNOWN,
-    content_str,
-    check_can_use_docker_or_throw,
-    decide_use_docker,
-    execute_code,
-    extract_code,
-    infer_lang,
-)
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
-from ..middleware.base import add_middleware, register_for_middleware
-from .._pydantic import model_dump
 
 try:
     from termcolor import colored
@@ -103,44 +88,6 @@ class _PassThroughMiddleware:
     ) -> Union[str, Dict, None]:
         retval = await next(messages, sender)
         return retval
-
-
-class _ReplyValidationMiddleware:
-    def __init__(self, recipient: ConversableAgent):
-        self._recipient = recipient
-
-    def call(
-        self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
-        next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
-        if all((messages is None, sender is None)):
-            error_msg = f"Either {messages=} or {sender=} must be provided."
-            logger.error(error_msg)
-            raise AssertionError(error_msg)
-
-        if messages is None:
-            messages = self._recipient._oai_messages[sender]
-        return next(messages=messages, sender=sender, exclude=exclude)
-
-
-class _ReplyProcessLastMessageMiddleware:
-    def __init__(self, recipient: ConversableAgent):
-        self._recipient = recipient
-
-    def call(
-        self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
-        next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
-        # Call the hookable method that gives registered hooks a chance to process the last message.
-        # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self._recipient.process_last_message(messages)
-        return next(messages=messages, sender=sender, exclude=exclude)
 
 
 class _ReplyFunctionMiddleware:
@@ -329,6 +276,26 @@ class ConversableAgent(Agent):
         )
         self._middleware = [self._termination, self._code_execution, self._tool_use, self._llm]
         self._async_middleware = [self._termination, self._tool_use, self._llm]
+
+        # Middleware lookup for backward compatibility to support the exclude argument in generate_reply.
+        self._middleware_lookup = {
+            ConversableAgent.generate_oai_reply: self._llm,
+            ConversableAgent.generate_code_execution_reply: self._code_execution,
+            ConversableAgent.generate_tool_calls_reply: self._tool_use,
+            ConversableAgent.generate_function_call_reply: self._tool_use,
+            ConversableAgent.check_termination_and_human_reply: self._termination,
+        }
+        self._async_middleware_lookup = {
+            ConversableAgent.a_generate_oai_reply: self._llm,
+            ConversableAgent.a_generate_tool_calls_reply: self._tool_use,
+            ConversableAgent.a_generate_function_call_reply: self._tool_use,
+            ConversableAgent.a_check_termination_and_human_reply: self._termination,
+        }
+
+    @property
+    def llm_config(self) -> Union[Dict, Literal[False]]:
+        """The llm config."""
+        return self._llm._llm_config
 
     @property
     def client(self) -> OpenAIWrapper:
@@ -953,6 +920,8 @@ class ConversableAgent(Agent):
             for mw in self._middleware:
                 if isinstance(mw, _ReplyFunctionMiddleware) and mw._reply_func in exclude:
                     continue
+                if mw in self._middleware_lookup and self._middleware_lookup[mw] in exclude:
+                    continue
                 middleware.append(mw)
 
         # Build middleware chain.
@@ -961,10 +930,6 @@ class ConversableAgent(Agent):
 
         for mw in reversed(middleware):
             chain = functools.partial(mw.call, next=chain)
-
-        # Call the hookable method that gives registered hooks a chance to process the last message.
-        # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
 
         # Call the middleware chain.
         return chain(messages, sender)
@@ -1017,6 +982,8 @@ class ConversableAgent(Agent):
             for mw in self._async_middleware:
                 if isinstance(mw, _ReplyFunctionMiddleware) and mw._reply_func in exclude:
                     continue
+                if mw in self._async_middleware_lookup and self._async_middleware_lookup[mw] in exclude:
+                    continue
                 middleware.append(mw)
 
         # Build middleware chain.
@@ -1025,10 +992,6 @@ class ConversableAgent(Agent):
 
         for mw in reversed(middleware):
             chain = functools.partial(mw.a_call, next=chain)
-
-        # Call the hookable method that gives registered hooks a chance to process the last message.
-        # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
 
         # Call the middleware chain.
         return await chain(messages, sender)
@@ -1354,43 +1317,6 @@ class ConversableAgent(Agent):
             return func
 
         return _decorator
-
-    @register_for_middleware
-    def process_last_message_user_text(self, user_text: str) -> str:
-        return user_text
-
-    def process_last_message(self, messages):
-        """
-        Calls any registered capability hooks to use and potentially modify the text of the last message,
-        as long as the last message is not a function call or exit command.
-        """
-        # If any required condition is not met, return the original message list.
-        if messages is None:
-            return None  # No message to process.
-        if len(messages) == 0:
-            return messages  # No message to process.
-        last_message = messages[-1]
-        if "function_call" in last_message:
-            return messages  # Last message is a function call.
-        if "context" in last_message:
-            return messages  # Last message contains a context key.
-        if "content" not in last_message:
-            return messages  # Last message has no content.
-        user_text = last_message["content"]
-        if not isinstance(user_text, str):
-            return messages  # Last message content is not a string. TODO: Multimodal agents will use a dict here.
-        if user_text == "exit":
-            return messages  # Last message is an exit command.
-
-        # Call each hook (in order of registration) to process the user's message.
-        processed_user_text = self.process_last_message_user_text(user_text)
-        if processed_user_text == user_text:
-            return messages  # No hooks actually modified the user's message.
-
-        # Replace the last user message with the expanded one.
-        messages = messages.copy()
-        messages[-1]["content"] = processed_user_text
-        return messages
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
